@@ -5,12 +5,12 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Hermod")]
-[assembly: AssemblyDescription("A .NET HTTP library for REST and hypermedia transfer")]
+[assembly: AssemblyTitle("HermodDemo")]
+[assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("ahzf.de")]
-[assembly: AssemblyProduct("Hermod")]
-[assembly: AssemblyCopyright("Copyright © Achim Friedland 2010-2011")]
+[assembly: AssemblyProduct("HermodDemo")]
+[assembly: AssemblyCopyright("Copyright © Achim Friedland 2010")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("6ee05cc9-0bba-4e7f-9d4a-e1fc228e6a82")]
+[assembly: Guid("0b6382a8-f3ee-4ffb-bfec-734a6b04ceb7")]
 
 // Version information for an assembly consists of the following four values:
 //
