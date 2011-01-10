@@ -38,9 +38,9 @@ namespace de.ahzf.Hermod.HTTP
     {
 
         HTTPRequestHeader   RequestHeader   { get; }
+        //ToDo: Change this to a Stream!
         Byte[]              RequestBody     { get; }
         
-//        String              Server          { get; }
         String              ServerName      { get; }
         HTTPResponseHeader  ResponseHeader  { get; }
         NetworkStream       ResponseStream  { get; }
@@ -48,11 +48,11 @@ namespace de.ahzf.Hermod.HTTP
         String              ErrorReason     { get; set; }
         Exception           LastException   { get; set; }
         
-        HTTPResponseHeader GetAuthenticationRequiredHeader();
-        void SendErrorpage(HTTPStatusCode myHttpStatusCode, HTTPRequestHeader myRequestHeader, byte[] myRequestBody, string ErrorReason = null, Exception LastException = null);
-        
-        void WriteToResponseStream(HTTPResponseHeader myHTTPResponseHeader, Byte[] myContent = null);
-        void WriteToResponseStream(HTTPResponse myHTTPResponse, int myReadTimeout = 1000);
+        void SendErrorpage(HTTPStatusCode    myHTTPStatusCode,
+                           HTTPRequestHeader myRequestHeader,
+                           Byte[]            myRequestBody,
+                           String            ErrorReason   = null,
+                           Exception         LastException = null);
 
     }
 

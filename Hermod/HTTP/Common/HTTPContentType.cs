@@ -72,7 +72,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         private readonly String _Description;
         
         /// <summary>
-        /// A description of this HTTP content type
+        /// The description of this HTTP content type.
         /// </summary>
         public String Description
         {
@@ -88,15 +88,15 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #region Constructor(s)
 
-        #region HTTPContentType(myMediaType, CharSet, Description)
+        #region HTTPContentType(myMediaType, CharSet = "UTF-8", Description = null)
 
         /// <summary>
         /// Creates a new HTTP content type based on the given media type
-        /// and optional a char set or description
+        /// and optional a char set or description.
         /// </summary>
-        /// <param name="myMediaType">The media type for the HTTP content type</param>
-        /// <param name="CharSet">The char set of the HTTP content type</param>
-        /// <param name="Description">A description of the HTTP content type</param>
+        /// <param name="myMediaType">The media type for the HTTP content type.</param>
+        /// <param name="CharSet">The char set of the HTTP content type.</param>
+        /// <param name="Description">A description of the HTTP content type.</param>
         public HTTPContentType(String myMediaType, String CharSet = "UTF-8", String Description = null)
         {
             _MediaType   = myMediaType;

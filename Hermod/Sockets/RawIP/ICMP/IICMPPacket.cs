@@ -15,13 +15,20 @@
  * limitations under the License.
  */
 
-namespace de.ahzf.Hermod.HTTP
+#region Usings
+
+using System;
+using System.IO;
+
+using de.ahzf.Hermod.Datastructures;
+
+#endregion
+
+namespace de.ahzf.Hermod.Sockets.RawIP.ICMP
 {
 
-    public interface IHTTPService
+    public interface IICMPPacket : IRemoteSocket
     {
-        
-        IHTTPConnection IHTTPConnection { get; }
 
     }
 
