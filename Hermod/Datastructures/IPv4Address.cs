@@ -98,6 +98,8 @@ namespace de.ahzf.Hermod.Datastructures
         #endregion
 
 
+        #region IPv4Address.Any
+
         public static IPv4Address Any
         {
             get
@@ -106,11 +108,41 @@ namespace de.ahzf.Hermod.Datastructures
             }
         }
 
+        #endregion
+
+        #region IPv4Address.Localhost
+
+        public static IPv4Address Localhost
+        {
+            get
+            {
+                return new IPv4Address(new Byte[] { 127, 0, 0, 1 });
+            }
+        }
+
+        #endregion
+
+        #region IPv4Address.Broadcast
+
+        public static IPv4Address Broadcast
+        {
+            get
+            {
+                return new IPv4Address(new Byte[] { 255, 255, 255, 255 });
+            }
+        }
+
+        #endregion
+
+
+        #region GetBytes()
 
         public Byte[] GetBytes()
         {
             return new Byte[_Length];
         }
+
+        #endregion
 
 
         #region Operator overloading

@@ -44,6 +44,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CustomTCPConnection.cs" />
     <Compile Include="HermodDemo.cs" />
     <Compile Include="IRESTService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -54,6 +55,11 @@
       <Project>{EAB20045-3D15-4220-BB56-B22FF6630AC9}</Project>
       <Name>Hermod</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="resources\robots.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
