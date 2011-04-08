@@ -226,7 +226,9 @@ namespace de.ahzf.Hermod.Datastructures
         #endregion
 
 
-        #region IComparable Members
+        #region IComparable<IPPort> Members
+
+        #region CompareTo(myObject)
 
         /// <summary>
         /// Compares two instances of this object.
@@ -240,7 +242,7 @@ namespace de.ahzf.Hermod.Datastructures
             if (myObject == null)
                 throw new ArgumentNullException("myObject must not be null!");
 
-            // Check if myObject can be casted to an ElementId object
+            // Check if myObject can be casted to an IPPort object
             var myIPPort = myObject as IPPort;
             if ((Object) myIPPort == null)
                 throw new ArgumentException("myObject is not of type IPPort!");
@@ -251,23 +253,25 @@ namespace de.ahzf.Hermod.Datastructures
 
         #endregion
 
-        #region IComparable<IPPort> Members
+        #region CompareTo(myIPPort)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="myElementId">An object to compare with.</param>
+        /// <param name="myIPPort">An object to compare with.</param>
         /// <returns>true|false</returns>
         public Int32 CompareTo(IPPort myIPPort)
         {
 
             // Check if myIPPort is null
             if (myIPPort == null)
-                throw new ArgumentNullException("myElementId must not be null!");
+                throw new ArgumentNullException("myIPPort must not be null!");
 
             return _IPPort.CompareTo(myIPPort._IPPort);
 
         }
+
+        #endregion
 
         #endregion
 
@@ -303,7 +307,7 @@ namespace de.ahzf.Hermod.Datastructures
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="myElementId">An object to compare with.</param>
+        /// <param name="myIPPort">An object to compare with.</param>
         /// <returns>true|false</returns>
         public Boolean Equals(IPPort myIPPort)
         {
