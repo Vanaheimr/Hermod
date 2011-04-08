@@ -143,6 +143,86 @@ namespace de.ahzf.Hermod.Datastructures
 
         #endregion
 
+        #region Operator <  (myIPPort1, myIPPort2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="myIPPort1">A IPPort.</param>
+        /// <param name="myIPPort2">Another IPPort.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator < (IPPort myIPPort1, IPPort myIPPort2)
+        {
+
+            // Check if myIPPort1 is null
+            if ((Object) myIPPort1 == null)
+                throw new ArgumentNullException("Parameter myIPPort1 must not be null!");
+
+            // Check if myIPPort2 is null
+            if ((Object) myIPPort2 == null)
+                throw new ArgumentNullException("Parameter myIPPort2 must not be null!");
+
+            return myIPPort1.CompareTo(myIPPort2) < 0;
+
+        }
+
+        #endregion
+
+        #region Operator >  (myIPPort1, myIPPort2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="myIPPort1">A IPPort.</param>
+        /// <param name="myIPPort2">Another IPPort.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator > (IPPort myIPPort1, IPPort myIPPort2)
+        {
+
+            // Check if myIPPort1 is null
+            if ((Object) myIPPort1 == null)
+                throw new ArgumentNullException("Parameter myIPPort1 must not be null!");
+
+            // Check if myIPPort2 is null
+            if ((Object) myIPPort2 == null)
+                throw new ArgumentNullException("Parameter myIPPort2 must not be null!");
+
+            return myIPPort1.CompareTo(myIPPort2) > 0;
+
+        }
+
+        #endregion
+
+        #region Operator <= (myIPPort1, myIPPort2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="myIPPort1">A IPPort.</param>
+        /// <param name="myIPPort2">Another IPPort.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator <= (IPPort myIPPort1, IPPort myIPPort2)
+        {
+            return !(myIPPort1 > myIPPort2);
+        }
+
+        #endregion
+
+        #region Operator >= (myIPPort1, myIPPort2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="myIPPort1">A IPPort.</param>
+        /// <param name="myIPPort2">Another IPPort.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator >= (IPPort myIPPort1, IPPort myIPPort2)
+        {
+            return !(myIPPort1 < myIPPort2);
+        }
+
+        #endregion
+
         #endregion
 
 
