@@ -350,7 +350,7 @@ namespace de.ahzf.Hermod.Sockets.TCP
             try
             {
 
-                Console.WriteLine("Incoming connection from " + _TCPConnection.Value.RemoteSocket.ToString());
+                //Console.WriteLine("Incoming connection from " + _TCPConnection.Value.RemoteSocket.ToString());
 
                 // Start upper-layer protocol processing savely!
                 var OnNewConnection2 = OnNewConnection;

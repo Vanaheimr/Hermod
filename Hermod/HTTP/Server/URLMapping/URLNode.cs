@@ -49,6 +49,11 @@ namespace de.ahzf.Hermod.HTTP
         public Regex URLRegex { get; private set; }
 
         /// <summary>
+        /// The numner of parameters within this URLNode.
+        /// </summary>
+        public UInt16 ParameterCount { get; private set; }
+
+        /// <summary>
         /// The method handler.
         /// </summary>
         public MethodInfo MethodHandler { get; private set; }
@@ -96,8 +101,13 @@ namespace de.ahzf.Hermod.HTTP
             this.URLErrorHandlers   = new ConcurrentDictionary<HTTPStatusCode, MethodInfo>();
             this.HTTPMethods        = new ConcurrentDictionary<HTTPMethod, HTTPMethodNode>();
 
-            var _Replace  = new Regex(@"\{[^/]+\}");
-            this.URLRegex = new Regex(_Replace.Replace(URLTemplate, "([^/]+)"));
+            var _ReplaceLastParameter = new Regex(@"\{[^/]+\}$");
+            this.ParameterCount = (UInt16) _ReplaceLastParameter.Matches(URLTemplate).Count;
+            var URLTemplate2 = _ReplaceLastParameter.Replace(URLTemplate, "([^\n]+)");
+
+            var _ReplaceAllParameters  = new Regex(@"\{[^/]+\}");
+            this.ParameterCount += (UInt16) _ReplaceAllParameters.Matches(URLTemplate2).Count;
+            this.URLRegex = new Regex("^"+_ReplaceAllParameters.Replace(URLTemplate2, "([^/]+)"));
 
         }
 

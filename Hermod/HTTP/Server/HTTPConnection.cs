@@ -126,7 +126,7 @@ namespace de.ahzf.Hermod.HTTP
         public void ProcessHTTP()
         {
 
-            Console.WriteLine("HTTPConnection from {0}, thread {1}", TCPClientConnection.Client.RemoteEndPoint, Thread.CurrentThread.ManagedThreadId);
+            //Console.WriteLine("HTTPConnection from {0}, thread {1}", TCPClientConnection.Client.RemoteEndPoint, Thread.CurrentThread.ManagedThreadId);
 
             using (var _HTTPStream = TCPClientConnection.GetStream())
             {
