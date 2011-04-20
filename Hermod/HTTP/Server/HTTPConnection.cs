@@ -363,6 +363,8 @@ namespace de.ahzf.Hermod.HTTP
                             if (_HTTPResponse.ResponseHeader.Server == null)
                                 _HTTPResponse.ResponseHeader.Server = ServerName;
 
+                            ResponseHeader = _HTTPResponse.ResponseHeader;
+
                             // If there is no client and server error...
                             if (!_HTTPResponse.ResponseHeader.HttpStatusCode.IsClientError &&
                                 !_HTTPResponse.ResponseHeader.HttpStatusCode.IsServerError)
@@ -463,6 +465,10 @@ namespace de.ahzf.Hermod.HTTP
                 WriteToResponseStream(myHTTPResponse.Content);
             else if (myHTTPResponse.ContentStream != null)
                 WriteToResponseStream(myHTTPResponse.ContentStream, myReadTimeout);
+
+            if (myHTTPResponse.ResponseHeader.HttpStatusCode.IsClientError ||
+                myHTTPResponse.ResponseHeader.HttpStatusCode.IsServerError)
+                Console.WriteLine("HTTPStatusCode: " + myHTTPResponse.ResponseHeader.HttpStatusCode);
 
         }
 
