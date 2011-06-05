@@ -79,20 +79,24 @@ namespace de.ahzf.Hermod.HTTP
         /// <param name="MethodHandler">The method handler.</param>
         /// <param name="HTTPMethodAuthentication">This and all subordinated nodes demand an explicit http method authentication.</param>
         /// <param name="HTTPMethodErrorHandler">A general error handling method.</param>
-        public HTTPMethodNode(HTTPMethod HTTPMethod, MethodInfo MethodHandler = null, Boolean HTTPMethodAuthentication = false, MethodInfo HTTPMethodErrorHandler = null)
+        public HTTPMethodNode(HTTPMethod HTTPMethod, MethodInfo MethodHandler = null, Boolean HTTPMethodAuthentication = false, MethodInfo HTTPMethodErrorHandler = null, Boolean HandleContentTypes = false)
         {
+
             this.HTTPMethod                = HTTPMethod;
             this.MethodHandler             = MethodHandler;
             this.HTTPMethodAuthentication  = HTTPMethodAuthentication;
             this.HTTPMethodErrorHandler    = HTTPMethodErrorHandler;
             this.HTTPMethodErrorHandlers   = new ConcurrentDictionary<HTTPStatusCode, MethodInfo>();
             this.MethodHandler             = MethodHandler;
+
+            if (HandleContentTypes)
+                HTTPContentTypes = new ConcurrentDictionary<HTTPContentType, ContentTypeNode>(); 
+
         }
 
         #endregion
 
         #endregion
-
 
     }
 

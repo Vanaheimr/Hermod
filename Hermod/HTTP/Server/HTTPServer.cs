@@ -29,16 +29,16 @@ namespace de.ahzf.Hermod.HTTP
 {
 
     /// <summary>
-    ///  This http server will listen on a port and maps incoming urls to methods of HTTPServiceType. 
+    ///  This http server will listen on a port and maps incoming urls to methods of HTTPServiceInterface. 
     /// </summary>
-    /// <typeparam name="HTTPServiceType">A http service handler.</typeparam>
-    public class HTTPServer<HTTPServiceType> : AHTTPServer<HTTPServiceType>
-        where HTTPServiceType : class, IHTTPService, new()
+    /// <typeparam name="HTTPServiceInterface">A http service interface.</typeparam>
+    public class HTTPServer<HTTPServiceInterface> : AHTTPServer<HTTPServiceInterface>
+        where HTTPServiceInterface : IHTTPService
     {
 
         #region Data
 
-        private readonly TCPServer<HTTPConnection<HTTPServiceType>> _TCPServer;
+        private readonly TCPServer<HTTPConnection<HTTPServiceInterface>> _TCPServer;
 
         #endregion
 
@@ -209,7 +209,7 @@ namespace de.ahzf.Hermod.HTTP
         //public delegate void ExceptionOccuredHandler(Object mySender, Exception myException);
         //public event ExceptionOccuredHandler OnExceptionOccured;
 
-        public delegate void NewHTTPServiceHandler(HTTPServiceType myHTTPServiceType);
+        public delegate void NewHTTPServiceHandler(HTTPServiceInterface myHTTPServiceType);
         public event         NewHTTPServiceHandler OnNewHTTPService;
 
         #endregion
@@ -256,7 +256,7 @@ namespace de.ahzf.Hermod.HTTP
             if (NewHTTPServiceHandler != null)
                 OnNewHTTPService += NewHTTPServiceHandler;
 
-            _TCPServer = new TCPServer<HTTPConnection<HTTPServiceType>>(
+            _TCPServer = new TCPServer<HTTPConnection<HTTPServiceInterface>>(
                                  myIIPAddress,
                                  Port,
                                  NewHTTPConnection =>
@@ -266,6 +266,7 @@ namespace de.ahzf.Hermod.HTTP
                                          NewHTTPConnection.HTTPSecurity          = HTTPSecurity;
                                          NewHTTPConnection.URLMapping            = _URLMapping;
                                          NewHTTPConnection.NewHTTPServiceHandler = OnNewHTTPService;
+                                         NewHTTPConnection.Implementations       = Implementations;
                           
                                          try
                                          {

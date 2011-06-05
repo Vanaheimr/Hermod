@@ -30,6 +30,7 @@ using de.ahzf.Hermod.Sockets.TCP;
 using de.ahzf.Hermod.HTTP.Common;
 using System.Reflection;
 using System.IO;
+using de.ahzf.Hermod.Tools;
 
 #endregion
 
@@ -40,14 +41,14 @@ namespace de.ahzf.Hermod.HTTP
     /// This handles incoming HTTP requests and maps them onto
     /// methods of HTTPServiceType.
     /// </summary>
-    /// <typeparam name="HTTPServiceType">the instance</typeparam>
-    public class HTTPConnection<HTTPServiceType> : ATCPConnection, IHTTPConnection
-        where HTTPServiceType : class, IHTTPService, new()
+    /// <typeparam name="HTTPServiceInterface">the instance</typeparam>
+    public class HTTPConnection<HTTPServiceInterface> : ATCPConnection, IHTTPConnection
+        where HTTPServiceInterface : IHTTPService
     {
 
         #region Data
 
-        private HTTPServiceType _HTTPServiceType;
+        private HTTPServiceInterface _HTTPServiceInterface;
 
         #endregion
 
@@ -55,9 +56,9 @@ namespace de.ahzf.Hermod.HTTP
 
         #region NewHTTPServiceHandler
 
-        private de.ahzf.Hermod.HTTP.HTTPServer<HTTPServiceType>.NewHTTPServiceHandler _NewHTTPServiceHandler;
+        private de.ahzf.Hermod.HTTP.HTTPServer<HTTPServiceInterface>.NewHTTPServiceHandler _NewHTTPServiceHandler;
 
-        public de.ahzf.Hermod.HTTP.HTTPServer<HTTPServiceType>.NewHTTPServiceHandler NewHTTPServiceHandler
+        public de.ahzf.Hermod.HTTP.HTTPServer<HTTPServiceInterface>.NewHTTPServiceHandler NewHTTPServiceHandler
         {
 
             get
@@ -73,6 +74,11 @@ namespace de.ahzf.Hermod.HTTP
         }
 
         #endregion
+
+        /// <summary>
+        /// The autodiscovered implementations of the HTTPServiceInterface.
+        /// </summary>
+        public IDictionary<HTTPContentType, HTTPServiceInterface> Implementations { get; set; }
 
         public HTTPRequestHeader  RequestHeader  { get; protected set; }
 
@@ -204,10 +210,13 @@ namespace de.ahzf.Hermod.HTTP
 
                 #endregion
 
+                var _ContentType = RequestHeader.GetBestMatchingAcceptHeader(Implementations.Keys.ToArray());
+                var _X = Implementations[_ContentType];
+
                 #region Invoke upper-layer protocol constructor
 
                 // Get constructor for HTTPServiceType
-                var _Type = typeof(HTTPServiceType).
+                var _Type = _X.GetType().
                             GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
                                            null,
                                            new Type[] {
@@ -216,17 +225,17 @@ namespace de.ahzf.Hermod.HTTP
                                            null);
 
                 if (_Type == null)
-                    throw new ArgumentException("A appropriate constructor for type '" + typeof(HTTPServiceType).Name + "' could not be found!");
+                    throw new ArgumentException("A appropriate constructor for type '" + typeof(HTTPServiceInterface).Name + "' could not be found!");
 
 
                 // Invoke constructor of HTTPServiceType
-                _HTTPServiceType = _Type.Invoke(new Object[] { this }) as HTTPServiceType;
+                _HTTPServiceInterface = (HTTPServiceInterface) _Type.Invoke(new Object[] { this });
 
-                if (_HTTPServiceType == null)
-                    throw new ArgumentException("A http connection of type '" + typeof(HTTPServiceType).Name + "' could not be created!");
+                if (_HTTPServiceInterface == null)
+                    throw new ArgumentException("A http connection of type '" + typeof(HTTPServiceInterface).Name + "' could not be created!");
 
                 if (NewHTTPServiceHandler != null)
-                    NewHTTPServiceHandler(_HTTPServiceType);
+                    NewHTTPServiceHandler(_HTTPServiceInterface);
 
                 #endregion
 
@@ -239,7 +248,7 @@ namespace de.ahzf.Hermod.HTTP
 
                     var _ParsedCallback = URLMapping.GetHandler(RequestHeader.Host,
                                                                 RequestHeader.RawUrl,
-                                                                RequestHeader.HTTPMethod);
+                                                                RequestHeader.HTTPMethod, _ContentType);
 
                     if (_ParsedCallback == null || _ParsedCallback.Item1 == null)// || _ParsedCallback.Item1.MethodCallback == null)
                     {
@@ -345,7 +354,7 @@ namespace de.ahzf.Hermod.HTTP
                         try
                         {
 
-                            var _HTTPResponse = _ParsedCallback.Item1.Invoke(_HTTPServiceType, _ParsedCallback.Item2.ToArray()) as HTTPResponse;
+                            var _HTTPResponse = _ParsedCallback.Item1.Invoke(_HTTPServiceInterface, _ParsedCallback.Item2.ToArray()) as HTTPResponse;
 
                             if (_HTTPResponse == null || _HTTPResponse.ResponseHeader == null)
                             {
@@ -540,7 +549,7 @@ namespace de.ahzf.Hermod.HTTP
                     _Parameters[1] = LastException;
                 Array.Copy(_ParamArray, 0, _Parameters, 2, _ParamArray.Count());
 
-                var _Response      = __ErrorHandler.Item1.Invoke(_HTTPServiceType, _Parameters);
+                var _Response      = __ErrorHandler.Item1.Invoke(_HTTPServiceInterface, _Parameters);
                 var _HTTPResponse  = _Response as HTTPResponse;
 
                 if (_Response == null || _HTTPResponse == null)
@@ -640,7 +649,7 @@ namespace de.ahzf.Hermod.HTTP
         public override void Dispose()
         {
             
-            var _IDisposable = _HTTPServiceType as IDisposable;
+            var _IDisposable = _HTTPServiceInterface as IDisposable;
             
             if (_IDisposable != null)
                 _IDisposable.Dispose();

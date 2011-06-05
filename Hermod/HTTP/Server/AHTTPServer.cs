@@ -22,14 +22,16 @@ using System.Linq;
 using System.Reflection;
 
 using de.ahzf.Hermod.HTTP.Common;
+using de.ahzf.Hermod.Tools;
+using System.Collections.Generic;
 
 #endregion
 
 namespace de.ahzf.Hermod.HTTP
 {
 
-    public abstract class AHTTPServer<HTTPServiceType>
-        where HTTPServiceType : IHTTPService, new()
+    public abstract class AHTTPServer<HTTPServiceInterface>
+        where HTTPServiceInterface : IHTTPService
     {
 
         #region Data
@@ -39,6 +41,15 @@ namespace de.ahzf.Hermod.HTTP
         #endregion
 
         #region Properties
+
+        #region Implementations
+
+        /// <summary>
+        /// The autodiscovered implementations of the HTTPServiceInterface.
+        /// </summary>
+        public IDictionary<HTTPContentType, HTTPServiceInterface> Implementations { get; private set; }
+
+        #endregion
 
         #region ServerName
 
@@ -75,7 +86,8 @@ namespace de.ahzf.Hermod.HTTP
 
         public AHTTPServer()
         {
-            _URLMapping = new URLMapping();
+            _URLMapping     = new URLMapping();
+            Implementations = new Dictionary<HTTPContentType, HTTPServiceInterface>();
             ParseInterface();
         }
 
@@ -105,110 +117,133 @@ namespace de.ahzf.Hermod.HTTP
 
             #endregion
 
-            #region Find the correct interface
+            var HTTPServiceImplementations = new AutoDiscovery<HTTPServiceInterface>();
 
-            var _AllInterfaces = from _Interface
-                                 in typeof(HTTPServiceType).GetInterfaces()
-                                 where _Interface.GetInterfaces() != null
-                                 where _Interface.GetInterfaces().Contains(typeof(IHTTPService))
-                                 where _Interface.GetCustomAttributes(typeof(HTTPServiceAttribute), false) != null
-                                 select _Interface;
-
-            var _CurrentInterface = _AllInterfaces.FirstOrDefault();
-
-            if (_CurrentInterface == null)
-                throw new Exception("Could not find any valid interface having the HTTPService attribute!");
-
-            if (_AllInterfaces.Count() > 1)
-                throw new Exception("Multiple interfaces having the HTTPService attribute!");
-
-            #endregion
-
-            #region Get Host
-
-            var _HTTPServiceAttribute = _CurrentInterface.GetCustomAttributes(typeof(HTTPServiceAttribute), false);
-            if (_HTTPServiceAttribute != null && _HTTPServiceAttribute.Count() == 1)
-            {
-                _Host = (_HTTPServiceAttribute[0] as HTTPServiceAttribute).Host;
-            }
-
-            #endregion
-
-            #region Check global Force-/NoAuthenticationAttribute
-
-            var _GlobalNeedsExplicitAuthentication = false;
-
-            if (_CurrentInterface.GetCustomAttributes(typeof(NoAuthenticationAttribute), false) != null)
-                _GlobalNeedsExplicitAuthentication = false;
-
-            if (_CurrentInterface.GetCustomAttributes(typeof(ForceAuthenticationAttribute), false) != null)
-                _GlobalNeedsExplicitAuthentication = true;
-
-            #endregion
-
-            Boolean NeedsExplicitAuthentication = false;
-
-            foreach (var _MethodInfo in _CurrentInterface.GetMethods())
-            {
-
-                _HTTPMethod                 = null;
-                _URITemplate                = "";
-                NeedsExplicitAuthentication = _GlobalNeedsExplicitAuthentication;
-
-                foreach (var _Attribute in _MethodInfo.GetCustomAttributes(true))
+            if (HTTPServiceImplementations != null && HTTPServiceImplementations.Count > 1)
+                foreach (var _Implementation in HTTPServiceImplementations)
                 {
 
-                    #region HTTPMappingAttribute
+                    #region Find the correct interface
 
-                    var _HTTPMappingAttribute = _Attribute as HTTPMappingAttribute;
-                    if (_HTTPMappingAttribute != null)
-                    {
-                        _HTTPMethod  = _HTTPMappingAttribute.HTTPMethod;
-                        _URITemplate = _HTTPMappingAttribute.UriTemplate;
-                        continue;
-                    }
+                    //var _AllInterfaces = from _Interface
+                    //                     in typeof(HTTPServiceInterface).GetInterfaces()
+                    //                     where _Interface.GetInterfaces() != null
+                    //                     where _Interface.GetInterfaces().Contains(typeof(IHTTPService))
+                    //                     where _Interface.GetCustomAttributes(typeof(HTTPServiceAttribute), false) != null
+                    //                     select _Interface;
 
-                    #endregion
+                    //var _CurrentInterface = _AllInterfaces.FirstOrDefault();
 
-                    #region NoAuthentication
+                    //if (_CurrentInterface == null)
+                    //    throw new Exception("Could not find any valid interface having the HTTPService attribute!");
 
-                    var _NoAuthenticationAttribute = _Attribute as NoAuthenticationAttribute;
-                    if (_NoAuthenticationAttribute != null)
-                    {
-                        NeedsExplicitAuthentication = false;
-                        continue;
-                    }
+                    //if (_AllInterfaces.Count() > 1)
+                    //    throw new Exception("Multiple interfaces having the HTTPService attribute!");
 
                     #endregion
 
-                    #region ForceAuthentication
+                    HTTPContentType _CurrentContentType = null;
 
-                    var _ForceAuthenticationAttribute = _Attribute as ForceAuthenticationAttribute;
-                    if (_ForceAuthenticationAttribute != null)
-                    {
-                        NeedsExplicitAuthentication = true;
-                        continue;
-                    }
+                    var _CurrentInterface            = typeof(HTTPServiceInterface);
+                    var _HTTPImplementationAttribute = _Implementation.GetType().GetCustomAttributes(typeof(HTTPImplementationAttribute), false);
+                    if (_HTTPImplementationAttribute != null && _HTTPImplementationAttribute.Count() == 1)
+                        _CurrentContentType = (_HTTPImplementationAttribute[0] as HTTPImplementationAttribute).ContentType;
+
+                    Implementations.Add(_CurrentContentType, _Implementation);
+
+                    #region Get Host
+
+                    var _HTTPServiceAttribute = _CurrentInterface.GetCustomAttributes(typeof(HTTPServiceAttribute), false);
+                    //ToDo: _HTTPServiceAttribute.Count() == 1 might be a bug!!!
+                    if (_HTTPServiceAttribute != null && _HTTPServiceAttribute.Count() == 1)
+                        _Host = (_HTTPServiceAttribute[0] as HTTPServiceAttribute).Host;
 
                     #endregion
 
-                    #region NeedsAuthentication
+                    #region Check global Force-/NoAuthenticationAttribute
 
-                    var _NeedsAuthenticationAttribute = _Attribute as NeedsAuthenticationAttribute;
-                    if (_NeedsAuthenticationAttribute != null)
+                    var _GlobalNeedsExplicitAuthentication = false;
+
+                    if (_CurrentInterface.GetCustomAttributes(typeof(NoAuthenticationAttribute), false) != null)
+                        _GlobalNeedsExplicitAuthentication = false;
+
+                    if (_CurrentInterface.GetCustomAttributes(typeof(ForceAuthenticationAttribute), false) != null)
+                        _GlobalNeedsExplicitAuthentication = true;
+
+                    #endregion
+
+                    #region Add method callbacks
+
+                    Boolean NeedsExplicitAuthentication = false;
+
+                    foreach (var _MethodInfo in _CurrentInterface.GetMethods())
                     {
-                        NeedsExplicitAuthentication = _NeedsAuthenticationAttribute.NeedsAuthentication;
-                        continue;
+
+                        _HTTPMethod = null;
+                        _URITemplate = "";
+                        NeedsExplicitAuthentication = _GlobalNeedsExplicitAuthentication;
+
+                        foreach (var _Attribute in _MethodInfo.GetCustomAttributes(true))
+                        {
+
+                            #region HTTPMappingAttribute
+
+                            var _HTTPMappingAttribute = _Attribute as HTTPMappingAttribute;
+                            if (_HTTPMappingAttribute != null)
+                            {
+                                _HTTPMethod = _HTTPMappingAttribute.HTTPMethod;
+                                _URITemplate = _HTTPMappingAttribute.UriTemplate;
+                                continue;
+                            }
+
+                            #endregion
+
+                            #region NoAuthentication
+
+                            var _NoAuthenticationAttribute = _Attribute as NoAuthenticationAttribute;
+                            if (_NoAuthenticationAttribute != null)
+                            {
+                                NeedsExplicitAuthentication = false;
+                                continue;
+                            }
+
+                            #endregion
+
+                            #region ForceAuthentication
+
+                            var _ForceAuthenticationAttribute = _Attribute as ForceAuthenticationAttribute;
+                            if (_ForceAuthenticationAttribute != null)
+                            {
+                                NeedsExplicitAuthentication = true;
+                                continue;
+                            }
+
+                            #endregion
+
+                            #region NeedsAuthentication
+
+                            var _NeedsAuthenticationAttribute = _Attribute as NeedsAuthenticationAttribute;
+                            if (_NeedsAuthenticationAttribute != null)
+                            {
+                                NeedsExplicitAuthentication = _NeedsAuthenticationAttribute.NeedsAuthentication;
+                                continue;
+                            }
+
+                            #endregion
+
+                        }
+
+                        if (_HTTPMethod != null && _URITemplate != null && _URITemplate != "")
+                            AddMethodCallback(_MethodInfo, _Host, _URITemplate, _HTTPMethod, _CurrentContentType, NeedsExplicitAuthentication);
+
                     }
 
                     #endregion
 
                 }
 
-                if (_HTTPMethod != null && _URITemplate != null && _URITemplate != "")
-                    AddMethodCallback(_MethodInfo, _Host, _URITemplate, _HTTPMethod, null, NeedsExplicitAuthentication);
-
-            }
+            else
+                throw new Exception("Could not find any valid implementation of the HTTP service interface '" + typeof(HTTPServiceInterface).ToString() +"'!");
 
         }
 
@@ -222,7 +257,6 @@ namespace de.ahzf.Hermod.HTTP
         }
 
         #endregion
-
 
     }
 

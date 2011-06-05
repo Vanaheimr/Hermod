@@ -142,7 +142,7 @@ namespace de.ahzf.Hermod.HTTP
                     _HTTPMethodNode = new HTTPMethodNode(myHTTPMethod, myMethodHandler, HTTPMethodAuthentication);
 
                 else
-                    _HTTPMethodNode = new HTTPMethodNode(myHTTPMethod, null, HTTPMethodAuthentication);
+                    _HTTPMethodNode = new HTTPMethodNode(myHTTPMethod, null, HTTPMethodAuthentication, HandleContentTypes: true);
 
             }
 
@@ -232,6 +232,11 @@ namespace de.ahzf.Hermod.HTTP
             // If no HTTPContentType was given => return HTTPMethod MethodHandler
             if (myHTTPContentType == null)
                 return new Tuple<MethodInfo, IEnumerable<Object>>(_HTTPMethodNode.MethodHandler, _Parameters);
+            else
+            {
+                var _ContentTypeNode = _HTTPMethodNode.HTTPContentTypes[myHTTPContentType];
+                return new Tuple<MethodInfo, IEnumerable<Object>>(_ContentTypeNode.MethodHandler, _Parameters);
+            }
 
             #endregion
 

@@ -91,6 +91,8 @@
     <Compile Include="Sockets\UDP\IUDPPacket.cs" />
     <Compile Include="Sockets\UDP\UDPPacket.cs" />
     <Compile Include="Sockets\UDP\UDPServer.cs" />
+    <Compile Include="Tools\AutoDiscovery.cs" />
+    <Compile Include="Tools\AutoDiscoveryException.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="HTTP\Client\" />
