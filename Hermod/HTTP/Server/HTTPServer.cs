@@ -227,28 +227,28 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
-        #region HTTPServer(myPort, NewHTTPServiceHandler = null, myAutoStart = false)
+        #region HTTPServer(Port, NewHTTPServiceHandler = null, myAutoStart = false)
 
         /// <summary>
         /// Initialize the HTTPServer using IPAddress.Any and the given parameters.
         /// </summary>
-        /// <param name="myPort">The listening port</param>
+        /// <param name="Port">The listening port</param>
         /// <param name="Autostart"></param>
-        public HTTPServer(IPPort myPort, NewHTTPServiceHandler NewHTTPServiceHandler = null, Boolean Autostart = false)
-            : this(IPv4Address.Any, myPort, NewHTTPServiceHandler, Autostart)
+        public HTTPServer(IPPort Port, NewHTTPServiceHandler NewHTTPServiceHandler = null, Boolean Autostart = false)
+            : this(IPv4Address.Any, Port, NewHTTPServiceHandler, Autostart)
         { }
 
         #endregion
 
-        #region HTTPServer(myIIPAddress, myPort, NewHTTPServiceHandler = null, myAutoStart = false)
+        #region HTTPServer(myIIPAddress, Port, NewHTTPServiceHandler = null, AutoStart = false)
 
         /// <summary>
         /// Initialize the HTTPServer using the given parameters.
         /// </summary>
         /// <param name="myIIPAddress">The listening IP address(es)</param>
-        /// <param name="myPort">The listening port</param>
+        /// <param name="Port">The listening port</param>
         /// <param name="Autostart"></param>
-        public HTTPServer(IIPAddress myIIPAddress, IPPort myPort, NewHTTPServiceHandler NewHTTPServiceHandler = null, Boolean Autostart = false)
+        public HTTPServer(IIPAddress myIIPAddress, IPPort Port, NewHTTPServiceHandler NewHTTPServiceHandler = null, Boolean Autostart = false)
         {
 
             ServerName = _DefaultServerName;
@@ -256,25 +256,29 @@ namespace de.ahzf.Hermod.HTTP
             if (NewHTTPServiceHandler != null)
                 OnNewHTTPService += NewHTTPServiceHandler;
 
-            _TCPServer = new TCPServer<HTTPConnection<HTTPServiceType>>(myIIPAddress, myPort, NewHTTPConnection =>
-            {
-
-                NewHTTPConnection.ServerName   = ServerName;
-                NewHTTPConnection.HTTPSecurity = HTTPSecurity;
-                NewHTTPConnection.URLMapping    = _URLMapping;
-                NewHTTPConnection.NewHTTPServiceHandler = OnNewHTTPService;
-
-                try
-                {
-                    NewHTTPConnection.ProcessHTTP();
-                }
-                catch (Exception e)
-                {
-                    //ToDo: Do error logging!
-                }
-
-            }, false);
-
+            _TCPServer = new TCPServer<HTTPConnection<HTTPServiceType>>(
+                                 myIIPAddress,
+                                 Port,
+                                 NewHTTPConnection =>
+                                     {
+                          
+                                         NewHTTPConnection.ServerName            = ServerName;
+                                         NewHTTPConnection.HTTPSecurity          = HTTPSecurity;
+                                         NewHTTPConnection.URLMapping            = _URLMapping;
+                                         NewHTTPConnection.NewHTTPServiceHandler = OnNewHTTPService;
+                          
+                                         try
+                                         {
+                                             NewHTTPConnection.ProcessHTTP();
+                                         }
+                                         catch (Exception e)
+                                         {
+                                             //ToDo: Do error logging!
+                                         }
+                          
+                                     },
+                                 // Don't do it now, do it a bit later...
+                                 Autostart: false);
 
             if (Autostart)
                 _TCPServer.Start();

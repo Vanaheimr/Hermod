@@ -28,7 +28,7 @@ namespace de.ahzf.Hermod.HTTP.Common
     /// <summary>
     /// HTTP status codes as defined within RFC 2616 and other resources.
     /// </summary>
-    public class HTTPContentType : IComparable, IComparable<HTTPContentType>, IEquatable<HTTPContentType>
+    public sealed class HTTPContentType : IComparable, IComparable<HTTPContentType>, IEquatable<HTTPContentType>
     {
 
         #region Properties
@@ -169,125 +169,25 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #endregion
 
-        //#region ParseInt(myCode)
+        #region TryParseString(myString, out myHTTPContentType)
 
-        ///// <summary>
-        ///// Tries to find the apropriate HTTPStatusCode for the given integer
-        ///// or returns HTTPStatusCode.BadRequest.
-        ///// </summary>
-        ///// <param name="myCode">A HTTPStatusCode code</param>
-        ///// <returns>A HTTPStatusCode</returns>
-        //public static HTTPStatusCode ParseInt(UInt16 myCode)
-        //{
+        public static Boolean TryParseString(String myString, out HTTPContentType myHTTPContentType)
+        {
 
-        //    var myHTTPStatusCode = (from   _FieldInfo in typeof(HTTPStatusCode).GetFields()
-        //                            let    _HTTPStatusCode = _FieldInfo.GetValue(null) as HTTPStatusCode
-        //                            where  _HTTPStatusCode != null
-        //                            where  _HTTPStatusCode.Code == myCode
-        //                            select _HTTPStatusCode).FirstOrDefault();
+            myHTTPContentType = (from   _FieldInfo in typeof(HTTPContentType).GetFields()
+                                 let    _HTTPContentType = _FieldInfo.GetValue(null) as HTTPContentType
+                                 where  _HTTPContentType != null
+                                 where  _HTTPContentType.MediaType == myString
+                                 select _HTTPContentType).FirstOrDefault();
 
-        //    if (myHTTPStatusCode != null)
-        //        return myHTTPStatusCode;
+            if (myHTTPContentType != null)
+                return true;
 
-        //    return HTTPStatusCode.BadRequest;
+            return false;
 
-        //}
+        }
 
-        //#endregion
-
-        //#region ParseString(myCode)
-
-        ///// <summary>
-        ///// Tries to find the apropriate HTTPStatusCode for the given string
-        ///// or returns HTTPStatusCode.BadRequest.
-        ///// </summary>
-        ///// <param name="myCode">A HTTPStatusCode code as string</param>
-        ///// <returns>A HTTPStatusCode</returns>
-        //public static HTTPStatusCode ParseString(String myCode)
-        //{
-
-        //    UInt32 _Code;
-
-        //    if (UInt32.TryParse(myCode, out _Code))
-        //    {
-
-        //        var myHTTPStatusCode = (from   _FieldInfo in typeof(HTTPStatusCode).GetFields()
-        //                                let    _HTTPStatusCode = _FieldInfo.GetValue(null) as HTTPStatusCode
-        //                                where  _HTTPStatusCode != null
-        //                                where  _HTTPStatusCode.Code == _Code
-        //                                select _HTTPStatusCode).FirstOrDefault();
-
-        //        if (myHTTPStatusCode != null)
-        //            return myHTTPStatusCode;
-
-        //    }
-
-        //    return HTTPStatusCode.BadRequest;
-
-        //}
-
-        //#endregion
-
-        //#region TryParseInt(myCode, out myHTTPStatusCode)
-
-        ///// <summary>
-        ///// Tries to find the apropriate HTTPStatusCode for the given integer.
-        ///// </summary>
-        ///// <param name="myCode">A HTTPStatusCode code</param>
-        ///// <param name="myHTTPStatusCode">The parsed HTTPStatusCode</param>
-        ///// <returns>true or false</returns>
-        //public static Boolean TryParseInt(UInt16 myCode, out HTTPStatusCode myHTTPStatusCode)
-        //{
-
-        //    myHTTPStatusCode = (from _FieldInfo in typeof(HTTPStatusCode).GetFields()
-        //                        let _HTTPStatusCode = _FieldInfo.GetValue(null) as HTTPStatusCode
-        //                        where _HTTPStatusCode != null
-        //                        where _HTTPStatusCode.Code == myCode
-        //                        select _HTTPStatusCode).FirstOrDefault();
-
-        //    if (myHTTPStatusCode != null)
-        //        return true;
-
-        //    myHTTPStatusCode = HTTPStatusCode.BadRequest;
-        //    return false;
-
-        //}
-
-        //#endregion
-
-        //#region TryParseString(myCode, out myHTTPStatusCode)
-
-        ///// <summary>
-        ///// Tries to find the apropriate HTTPStatusCode for the given string.
-        ///// </summary>
-        ///// <param name="myCode">A HTTPStatusCode code</param>
-        ///// <param name="myHTTPStatusCode">The parsed HTTPStatusCode</param>
-        ///// <returns>true or false</returns>
-        //public static Boolean TryParseString(String myCode, out HTTPStatusCode myHTTPStatusCode)
-        //{
-
-        //    UInt32 _Code;
-
-        //    if (UInt32.TryParse(myCode, out _Code))
-        //    {
-
-        //        myHTTPStatusCode = (from   _FieldInfo in typeof(HTTPStatusCode).GetFields()
-        //                            let    _HTTPStatusCode = _FieldInfo.GetValue(null) as HTTPStatusCode
-        //                            where  _HTTPStatusCode != null
-        //                            where  _HTTPStatusCode.Code == _Code
-        //                            select _HTTPStatusCode).FirstOrDefault();
-
-        //        if (myHTTPStatusCode != null)
-        //            return true;
-
-        //    }
-
-        //    myHTTPStatusCode = HTTPStatusCode.BadRequest;
-        //    return false;
-
-        //}
-
-        //#endregion
+        #endregion
 
         #endregion
 
@@ -456,6 +356,9 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #region GetHashCode()
 
+        /// <summary>
+        /// Get the HashCode of this object.
+        /// </summary>
         public override Int32 GetHashCode()
         {
             return MediaType.GetHashCode() ^ CharSet.GetHashCode();
@@ -465,6 +368,9 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #region ToString()
 
+        /// <summary>
+        /// Return a string representation of this object.
+        /// </summary>
         public override String ToString()
         {
             return String.Format("{0} - {1}", MediaType, CharSet);

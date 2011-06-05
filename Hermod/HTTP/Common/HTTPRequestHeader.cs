@@ -158,7 +158,7 @@ namespace de.ahzf.Hermod.HTTP.Common
                 else
                     _AcceptList.Add(new AcceptType(_AcceptString.Trim()));
 
-                SetHeaderField("accept", _Accept);
+                SetHeaderField("Accept", _AcceptList);
 
                 return _AcceptList;
 
@@ -401,7 +401,6 @@ namespace de.ahzf.Hermod.HTTP.Common
         /// </summary>
         /// <typeparam name="T">The type of the requested header field.</typeparam>
         /// <param name="myKey">The key of the requested header field.</typeparam>
-        /// <returns></returns>
         public T GetHeaderField<T>(String myKey)
         {
 
@@ -461,9 +460,9 @@ namespace de.ahzf.Hermod.HTTP.Common
             foreach (var _ContentType in myContentTypes)
             {
 
-                var _AcceptType = new AcceptType(_ContentType.ToString(), pos++);
-
-                var _Match = GetHeaderField<List<AcceptType>>("accept").Find(_AType => _AType.Equals(_AcceptType));
+                var _AcceptType = new AcceptType(_ContentType.MediaType, pos++);
+                    
+                var _Match = Accept.ToList().Find(_AType => _AType.Equals(_AcceptType));
 
                 if (_Match != null)
                 {

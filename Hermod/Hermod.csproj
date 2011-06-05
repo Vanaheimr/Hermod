@@ -57,9 +57,10 @@
     <Compile Include="HTTP\Common\HTTPVersion.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="HTTP\Server\Attributes\AuthenticationAttributes.cs" />
+    <Compile Include="HTTP\Server\Attributes\HTTPServiceAttribute.cs" />
     <Compile Include="HTTP\Server\Attributes\HTTPErrorAttribute.cs" />
     <Compile Include="HTTP\Server\Attributes\HTTPMappingAttribute.cs" />
-    <Compile Include="HTTP\Server\Attributes\HTTPServiceAttribute.cs" />
+    <Compile Include="HTTP\Server\Attributes\HTTPImplementationAttribute.cs" />
     <Compile Include="HTTP\Server\AHTTPServer.cs" />
     <Compile Include="HTTP\Server\HTTPConnection.cs" />
     <Compile Include="HTTP\Server\HTTPResponse.cs" />

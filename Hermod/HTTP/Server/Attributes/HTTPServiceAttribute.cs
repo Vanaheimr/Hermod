@@ -19,6 +19,7 @@
 
 using System;
 using System.Net;
+using de.ahzf.Hermod.HTTP.Common;
 
 #endregion
 

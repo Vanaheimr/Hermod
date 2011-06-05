@@ -74,23 +74,23 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
-        public HTTPRequestHeader RequestHeader { get; protected set; }
+        public HTTPRequestHeader  RequestHeader  { get; protected set; }
 
-        public Byte[] RequestBody { get; protected set; }
+        public Byte[]             RequestBody    { get; protected set; }
 
-        public String ErrorReason { get; set; }
+        public String             ErrorReason    { get; set; }
 
-        public Exception LastException { get; set; }
+        public Exception          LastException  { get; set; }
 
         public HTTPResponseHeader ResponseHeader { get; protected set; }
 
-        public NetworkStream ResponseStream { get; protected set; }
+        public NetworkStream      ResponseStream { get; protected set; }
 
-        public String ServerName { get; set; }
+        public String             ServerName     { get; set; }
 
-        public HTTPSecurity HTTPSecurity { get; set; }
+        public HTTPSecurity       HTTPSecurity   { get; set; }
 
-        public URLMapping URLMapping { get; set; }
+        public URLMapping         URLMapping     { get; set; }
 
         #endregion
 
