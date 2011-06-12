@@ -15,13 +15,25 @@
  * limitations under the License.
  */
 
+#region Usings
+
+using de.ahzf.Hermod.HTTP.Common;
+using System.Collections.Generic;
+
+#endregion
+
 namespace de.ahzf.Hermod.HTTP
 {
 
     public interface IHTTPService
     {
         
-        IHTTPConnection IHTTPConnection { get; }
+        IHTTPConnection              IHTTPConnection  { get; }
+
+        /// <summary>
+        /// A list of supported HTTP ContentTypes.
+        /// </summary>
+        IEnumerable<HTTPContentType> HTTPContentTypes { get; }
 
     }
 

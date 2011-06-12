@@ -18,31 +18,33 @@
 #region Usings
 
 using System;
-using System.IO;
-using System.Net;
-using System.Net.Sockets;
-
-using de.ahzf.Hermod.Datastructures;
 
 #endregion
 
-namespace de.ahzf.Hermod.Sockets.TCP
+namespace de.ahzf.Hermod.Datastructures
 {
 
-    public interface ITCPConnection : ILocalSocket, IRemoteSocket
+    /// <summary>
+    /// The local socket is "this side" of a socket connection.
+    /// It a combination of a local IPAdress and a local port.
+    /// </summary>
+    public interface ILocalSocket : IDisposable
     {
 
-        TcpClient  TCPClientConnection { get; }
-        Boolean    IsConnected         { get; }
-        Boolean    KeepAlive           { get; set; }
-        Boolean    StopRequested       { get; set; }
-        UInt32     Timeout             { get; set; }
+        /// <summary>
+        /// The local socket.
+        /// </summary>
+        IPSocket   LocalSocket { get; }
 
-        void WriteToResponseStream(String myText);
-        void WriteToResponseStream(Byte[] myContent);
-        void WriteToResponseStream(Stream myInputStream, Int32 myReadTimeout = 1000);
+        /// <summary>
+        /// The local host.
+        /// </summary>
+        IIPAddress LocalHost   { get; }
 
-        void Close();
+        /// <summary>
+        /// The local port.
+        /// </summary>
+        IPPort     LocalPort   { get; }
 
     }
 

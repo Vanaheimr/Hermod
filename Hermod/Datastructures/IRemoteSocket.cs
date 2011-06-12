@@ -24,11 +24,26 @@ using System;
 namespace de.ahzf.Hermod.Datastructures
 {
 
+    /// <summary>
+    /// The remote socket is the "other side" of a socket connection.
+    /// It a combination of a remote IPAdress and a remote port.
+    /// </summary>
     public interface IRemoteSocket : IDisposable
     {
 
+        /// <summary>
+        /// The remote socket.
+        /// </summary>
         IPSocket   RemoteSocket { get; }
+
+        /// <summary>
+        /// The remote host.
+        /// </summary>
         IIPAddress RemoteHost   { get; }
+
+        /// <summary>
+        /// The remote port.
+        /// </summary>
         IPPort     RemotePort   { get; }
 
     }

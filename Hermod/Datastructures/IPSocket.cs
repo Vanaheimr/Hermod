@@ -30,70 +30,38 @@ namespace de.ahzf.Hermod.Datastructures
 {
 
     /// <summary>
-    /// An IPSocket is a combination of an IP Address and a port.
+    /// An IPSocket is a combination of an IPAddress and a port.
     /// </summary>    
     public class IPSocket : IComparable, IComparable<IPSocket>, IEquatable<IPSocket>
     {
 
-        #region Data
-
-        /// <summary>
-        /// The IP Address of this socket.
-        /// </summary>
-        protected readonly IIPAddress _IPAddress;
-
-        /// <summary>
-        /// The port of this socket.
-        /// </summary>
-        protected readonly IPPort _Port;
-
-        #endregion
-
         #region Properties
 
-        #region IPAddress
+        /// <summary>
+        /// The IPAddress of this IPSocket.
+        /// </summary>
+        public IIPAddress IPAddress { get; protected set; }
 
         /// <summary>
-        /// Returns the IPAddress of the IPSocket.
+        /// Returns the port of this IPSocket.
         /// </summary>
-        public IIPAddress IPAddress
-        {
-            get
-            {
-                return _IPAddress;
-            }
-        }
-
-        #endregion
-
-        #region Port
-
-        /// <summary>
-        /// Returns the port of the IPSocket.
-        /// </summary>
-        public IPPort Port
-        {
-            get
-            {
-                return _Port;
-            }
-        }
-
-        #endregion
+        public IPPort     Port      { get; protected set; }
 
         #endregion
 
         #region Constructor(s)
 
-        #region IPSocket(myIPAddress, myPort)
+        #region IPSocket(IPAddress, Port)
 
         /// <summary>
         /// Generates a new IPSocket.
         /// </summary>
-        public IPSocket(IIPAddress myIPAddress, IPPort myPort)
+        /// <param name="IPAddress">The IPAdress of the socket.</param>
+        /// <param name="Port">The port of the socket.</param>
+        public IPSocket(IIPAddress IPAddress, IPPort Port)
         {
-            _IPAddress = myIPAddress;
-            _Port      = myPort;
+            this.IPAddress = IPAddress;
+            this.Port      = Port;
         }
 
         #endregion
@@ -233,10 +201,10 @@ namespace de.ahzf.Hermod.Datastructures
             if (myIPSocket == null)
                 throw new ArgumentNullException("Parameter myIPSocket must not be null!");
 
-            var __IPAddress = _IPAddress.Equals(myIPSocket._IPAddress);
+            var __IPAddress = this.IPAddress.Equals(myIPSocket.IPAddress);
 
             if (__IPAddress)
-                return _Port.Equals(myIPSocket._Port);
+                return this.Port.Equals(myIPSocket.Port);
 
             return false;
 
@@ -254,7 +222,7 @@ namespace de.ahzf.Hermod.Datastructures
         /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
         {
-            return _IPAddress.GetHashCode() ^ _Port.GetHashCode();
+            return IPAddress.GetHashCode() ^ Port.GetHashCode();
         }
 
         #endregion
@@ -267,7 +235,7 @@ namespace de.ahzf.Hermod.Datastructures
         /// <returns>A string representation of this object.</returns>
         public override String ToString()
         {
-            return _IPAddress.ToString() + ":" + _Port.ToString();
+            return IPAddress.ToString() + ":" + Port.ToString();
         }
 
         #endregion

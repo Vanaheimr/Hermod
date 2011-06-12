@@ -35,42 +35,69 @@ namespace de.ahzf.Hermod.Sockets.TCP
     public abstract class ATCPConnection : ITCPConnection
     {
 
-
         #region Properties
 
-        #region RemoteSocket
+        #region LocalSocket
 
-        protected readonly IPSocket _RemoteSocket;
+        /// <summary>
+        /// The local socket.
+        /// </summary>
+        public IPSocket LocalSocket { get; protected set; }
 
-        public IPSocket RemoteSocket
+
+        /// <summary>
+        /// The local host.
+        /// </summary>
+        public IIPAddress LocalHost
         {
             get
             {
-                return _RemoteSocket;
+                return LocalSocket.IPAddress;
+            }
+        }
+
+
+        /// <summary>
+        /// The local port.
+        /// </summary>
+        public IPPort LocalPort
+        {
+            get
+            {
+                return LocalSocket.Port;
             }
         }
 
         #endregion
 
-        #region RemoteHost
+        #region RemoteSocket
 
+        /// <summary>
+        /// The remote socket.
+        /// </summary>
+        public IPSocket RemoteSocket { get; protected set; }
+
+
+        /// <summary>
+        /// The remote host.
+        /// </summary>
         public IIPAddress RemoteHost
         {
             get
             {
-                return _RemoteSocket.IPAddress;
+                return RemoteSocket.IPAddress;
             }
         }
 
-        #endregion
 
-        #region RemotePort
-
+        /// <summary>
+        /// The remote port.
+        /// </summary>
         public IPPort RemotePort
         {
             get
             {
-                return _RemoteSocket.Port;
+                return RemoteSocket.Port;
             }
         }
 
@@ -79,18 +106,10 @@ namespace de.ahzf.Hermod.Sockets.TCP
 
         #region TCPClientConnection
 
-        protected readonly TcpClient _TCPClientConnection;
-
         /// <summary>
         /// The TCPClient connection to a connected Client
         /// </summary>
-        public TcpClient TCPClientConnection
-        {
-            get
-            {
-                return _TCPClientConnection;
-            }
-        }
+        public TcpClient TCPClientConnection { get; protected set; }
 
         #endregion
 
@@ -156,19 +175,19 @@ namespace de.ahzf.Hermod.Sockets.TCP
 
         #endregion
 
-        #region ATCPConnection(myTCPClientConnection)
+        #region ATCPConnection(TCPClientConnection)
 
         /// <summary>
         /// Initiate a new abstract ATCPConnection using the given TcpClient class
         /// </summary>
-        public ATCPConnection(TcpClient myTCPClientConnection)
+        public ATCPConnection(TcpClient TCPClientConnection)
         {
             
-            _TCPClientConnection = myTCPClientConnection;
-            var _IPEndPoint = _TCPClientConnection.Client.RemoteEndPoint as IPEndPoint;
-            _RemoteSocket      = new IPSocket(new IPv4Address(_IPEndPoint.Address), new IPPort((UInt16) _IPEndPoint.Port));
+            this.TCPClientConnection = TCPClientConnection;
+            var _IPEndPoint = this.TCPClientConnection.Client.RemoteEndPoint as IPEndPoint;
+            RemoteSocket      = new IPSocket(new IPv4Address(_IPEndPoint.Address), new IPPort((UInt16) _IPEndPoint.Port));
 
-            if (_RemoteSocket == null)
+            if (RemoteSocket == null)
                 throw new ArgumentNullException("The RemoteEndPoint is invalid!");
 
         }
@@ -242,8 +261,8 @@ namespace de.ahzf.Hermod.Sockets.TCP
 
         public void Close()
         {
-            if (_TCPClientConnection != null)
-                _TCPClientConnection.Close();
+            if (TCPClientConnection != null)
+                TCPClientConnection.Close();
         }
 
         #endregion

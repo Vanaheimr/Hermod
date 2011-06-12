@@ -145,9 +145,14 @@ namespace de.ahzf.Hermod.HTTP
                     HTTPContentType _CurrentContentType = null;
 
                     var _CurrentInterface            = typeof(HTTPServiceInterface);
-                    var _HTTPImplementationAttribute = _Implementation.GetType().GetCustomAttributes(typeof(HTTPImplementationAttribute), false);
-                    if (_HTTPImplementationAttribute != null && _HTTPImplementationAttribute.Count() == 1)
-                        _CurrentContentType = (_HTTPImplementationAttribute[0] as HTTPImplementationAttribute).ContentType;
+                    //var _HTTPImplementationAttribute = _Implementation.GetType().GetCustomAttributes(typeof(HTTPImplementationAttribute), false);
+                    //if (_HTTPImplementationAttribute != null && _HTTPImplementationAttribute.Count() == 1)
+                    //    _CurrentContentType = (_HTTPImplementationAttribute[0] as HTTPImplementationAttribute).ContentType;
+
+                    if (_Implementation.HTTPContentTypes.Count() != 1)
+                        throw new ApplicationException("Less than and more than one HTTPContentType is currently not supported!");
+
+                    _CurrentContentType = _Implementation.HTTPContentTypes.First();
 
                     Implementations.Add(_CurrentContentType, _Implementation);
 

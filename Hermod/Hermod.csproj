@@ -45,6 +45,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Datastructures\ILocalSocket.cs" />
     <Compile Include="HTTP\Common\AcceptType.cs" />
     <Compile Include="HTTP\Common\HTTPAuthenticationTypes.cs" />
     <Compile Include="HTTP\Common\HTTPBasicAuthentication.cs" />
@@ -60,7 +61,6 @@
     <Compile Include="HTTP\Server\Attributes\HTTPServiceAttribute.cs" />
     <Compile Include="HTTP\Server\Attributes\HTTPErrorAttribute.cs" />
     <Compile Include="HTTP\Server\Attributes\HTTPMappingAttribute.cs" />
-    <Compile Include="HTTP\Server\Attributes\HTTPImplementationAttribute.cs" />
     <Compile Include="HTTP\Server\AHTTPServer.cs" />
     <Compile Include="HTTP\Server\HTTPConnection.cs" />
     <Compile Include="HTTP\Server\HTTPResponse.cs" />

@@ -21,6 +21,7 @@ using System;
 using System.Text;
 
 using de.ahzf.Hermod.HTTP.Common;
+using System.Collections.Generic;
 
 #endregion
 
@@ -62,7 +63,6 @@ namespace de.ahzf.Hermod.HTTP
     public class DefaultHTTPService : IDefaultHTTPService
     {
 
-
         #region Properties
 
         public IHTTPConnection IHTTPConnection { get; set; }
@@ -93,6 +93,22 @@ namespace de.ahzf.Hermod.HTTP
         }
 
         #endregion
+
+        #endregion
+
+
+        #region HTTPContentTypes
+
+        /// <summary>
+        /// The supported HTTP ContentTypes.
+        /// </summary>
+        public IEnumerable<HTTPContentType> HTTPContentTypes
+        {
+            get
+            {
+                return new List<HTTPContentType>();
+            }
+        }
 
         #endregion
 
