@@ -276,6 +276,44 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #endregion
 
+        #region Location
+
+        public String Location
+        {
+
+            get
+            {
+
+                if (_HeaderFields.ContainsKey("Location"))
+                    return _HeaderFields["Location"] as String;
+
+                return null;
+
+            }
+
+            set
+            {
+
+                if (value != null)
+                {
+
+                    if (_HeaderFields.ContainsKey("Location"))
+                        _HeaderFields["Location"] = value;
+                    else
+                        _HeaderFields.Add("Location", value);
+
+                }
+
+                else
+                    if (_HeaderFields.ContainsKey("Location"))
+                        _HeaderFields.Remove("Location");
+
+            }
+
+        }
+
+        #endregion
+
         #region KeepAlive
 
         public Boolean KeepAlive
