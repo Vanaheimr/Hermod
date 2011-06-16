@@ -18,10 +18,10 @@ A .NET library for simplified networking, HTTP/REST and hypermedia transfer.
 #### UDPServer Usage
 
     var _UDPServer = new UDPServer(new IPPort(5000),
-                             NewUDPPacket => {
-                                 Console.WriteLine("Incoming udp packet from: " + NewUDPPacket.RemoteHost + ":" + NewUDPPacket.RemotePort);
-                             },
-                             Autostart: true);
+                                   NewUDPPacket => {
+                                       Console.WriteLine("Incoming udp packet from: " + NewUDPPacket.RemoteHost + ":" + NewUDPPacket.RemotePort);
+                                   },
+                                   Autostart: true);
 
 
 #### HTTPServer Usage
