@@ -42,10 +42,10 @@ namespace de.ahzf.Hermod.Sockets.TCP
         #region Data
 
         // The internal thread
-        private readonly Thread _ListenerThread;
+        private readonly Thread          _ListenerThread;
 
         // The TCP listener socket
-        private readonly TcpListener _TCPListener;
+        private readonly TcpListener     _TCPListener;
 
         // Store each connection, in order to be able to stop them activily
         private readonly ConcurrentDictionary<IPSocket, TCPConnectionType> _SocketConnections;

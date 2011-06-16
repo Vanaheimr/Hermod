@@ -41,10 +41,14 @@ namespace de.ahzf.Hermod.Sockets.UDP
         #region Data
 
         // The internal thread
-        private readonly Thread _ListenerThread;
+        private readonly Thread          _ListenerThread;
 
         // The constructor for UDPPacketType
         private readonly ConstructorInfo _Constructor;
+
+        private readonly IPEndPoint      _IPEndPoint;
+
+        private readonly Socket          _Socket;
 
         #endregion
 
@@ -90,6 +94,40 @@ namespace de.ahzf.Hermod.Sockets.UDP
         /// The size of the receive buffer.
         /// </summary>
         public UInt32 BufferSize { get; set; }
+
+        #endregion
+
+        #region ReceiveTimeout
+
+        /// <summary>
+        /// Gets or sets a value that specifies the amount of time in milliseconds
+        /// after which a synchronous Socket.Receive(...) call will time out.
+        /// </summary>
+        public UInt32 ReceiveTimeout
+        {
+            
+            get
+            {
+
+                if (_Socket != null)
+                    return (UInt32) _Socket.ReceiveTimeout;
+
+                return 0;
+
+            }
+
+            set
+            {
+
+                if (value > Int32.MaxValue)
+                    throw new ArgumentException("The value for the ReceiveTimeout must be smaller than " + Int32.MaxValue + "!");
+
+                if (_Socket != null)
+                    _Socket.ReceiveTimeout = (Int32) value;
+
+            }
+
+        }
 
         #endregion
 
@@ -168,8 +206,18 @@ namespace de.ahzf.Hermod.Sockets.UDP
         public UDPServer(IIPAddress myIIPAddress, IPPort myPort, NewPacketHandler NewPacketHandler = null, Boolean Autostart = false)
         {
 
-            _IPAddress = myIIPAddress;
-            _Port      = myPort;
+            _IPAddress      = myIIPAddress;
+            _Port           = myPort;
+
+            BufferSize      = 1600;
+
+            _IPEndPoint     = new IPEndPoint(new System.Net.IPAddress(_IPAddress.GetBytes()), _Port.ToInt32());
+            _Socket         = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            _Socket.Bind(_IPEndPoint);
+
+            // Timeout will throw an exception which is a little bit stupid!
+            //ReceiveTimeout  = 1000;
+
 
             // Get constructor for UDPPacketType
             _Constructor = typeof(UDPPacketType).
@@ -177,7 +225,7 @@ namespace de.ahzf.Hermod.Sockets.UDP
                                                     null,
                                                     new Type[] {
                                                        typeof(Byte[]),
-                                                       typeof(EndPoint)
+                                                       typeof(IPEndPoint)
                                                    },
                                                     null);
 
@@ -231,40 +279,48 @@ namespace de.ahzf.Hermod.Sockets.UDP
         private void Listen()
         {
 
+            EndPoint _RemoteEndPoint = null;
+            Byte[]   _UDPPacket;
+            Int32    _NumberOfReceivedBytes;
+
             try
             {
 
-                using (var _Socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp))
+                _IsRunning = true;
+
+                // Loop until interrupted
+                while (!_StopRequested)
                 {
 
-                    // Listens to broadcasts
-                    _Socket.Bind(new IPEndPoint(0, _Port.ToInt32()));
+                    // Break when a server stop was requested
+                    if (_StopRequested)
+                        break;
 
-                    // Loop until interrupted
-                    while (!_StopRequested)
+                    _UDPPacket      = new Byte[BufferSize];
+                    _RemoteEndPoint = new IPEndPoint(0,0);
+
+                    // Wait for the next packet...
+                    _NumberOfReceivedBytes = _Socket.ReceiveFrom(_UDPPacket, ref _RemoteEndPoint);
+
+                    if (_NumberOfReceivedBytes > 0)
                     {
 
-                        // Break when a server stop was requested
-                        if (_StopRequested)
-                            break;
+                        // Create a local copy of the UDPPacket and RemoteEndPoint as we
+                        // do not want to wait till the new thread has accepted the packet
 
+                        //var _UDPPacketCopy      = new Byte[_NumberOfReceivedBytes];
+                        //Array.Copy(_UDPPacket, 0, _UDPPacketCopy, 0, _NumberOfReceivedBytes);
 
-                        // Init a new buffer with the desired size
-                        var buffer = new Byte[BufferSize];
+                        //var _UDPPacketCopy = new Byte[_NumberOfReceivedBytes];
+                        //Buffer.BlockCopy(_UDPPacket, 0, _UDPPacketCopy, 0, _NumberOfReceivedBytes);
 
-                        //Prepare a new IPEndPoint which should be filled by the socket
-                        EndPoint endPoint = new IPEndPoint(0, 0);
-
-                        // Receive the next packet
-                        var receivedLenght = _Socket.ReceiveFrom(buffer, ref endPoint);
-
-                        // Copy the buffer into an array with the actual lenght of the packet
-                        var packet = new Byte[receivedLenght];
-                        Array.Copy(buffer, 0, packet, 0, receivedLenght);
+                        Array.Resize(ref _UDPPacket, _NumberOfReceivedBytes);
+                        var _UDPPacketCopy      = _UDPPacket;
+                        var _RemoteEndPointCopy = (IPEndPoint) _RemoteEndPoint;
 
                         Task.Factory.StartNew(() =>
                         {
-                            ProcessNewPacket(packet, endPoint);
+                            ProcessNewPacket(_UDPPacketCopy, _RemoteEndPointCopy);
                         });
 
                     }
@@ -272,7 +328,6 @@ namespace de.ahzf.Hermod.Sockets.UDP
                 }
 
             }
-
             catch (Exception ex)
             {
                 if (OnExceptionOccured != null)
@@ -295,18 +350,17 @@ namespace de.ahzf.Hermod.Sockets.UDP
 
             // Invoke constructor of UDPPacketType
             // Create a new thread-local instance of the upper-layer protocol stack
-            var _UDPPacket = new ThreadLocal<UDPPacketType>(
-                                 () => _Constructor.Invoke(new Object[] { myPacket, myEndPoint }) as UDPPacketType
-                             );
+            var _UDPPacketThreadLocal = new ThreadLocal<UDPPacketType>(
+                                            () => _Constructor.Invoke(new Object[] { myPacket, myEndPoint }) as UDPPacketType
+                                        );
 
-            if (_UDPPacket.Value == null)
+            if (_UDPPacketThreadLocal.Value == null)
                 throw new ArgumentException("An UDPPacketType of type '" + typeof(UDPPacketType).FullName + "' could not be created!");
 
 
             // Start upper-layer protocol processing
             if (OnNewPacket != null)
-                OnNewPacket(_UDPPacket.Value);
-
+                OnNewPacket(_UDPPacketThreadLocal.Value);
 
         }
 
@@ -323,9 +377,6 @@ namespace de.ahzf.Hermod.Sockets.UDP
 
             if (_IsRunning)
                 return;
-
-            // Start the TCPListener
-            //_TCPListener.Start((Int32)MaxClientConnections);
 
             // Start the TCPListenerThread
             _ListenerThread.Start();

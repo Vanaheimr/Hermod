@@ -17,6 +17,9 @@
 
 #region Usings
 
+using System;
+using System.Net;
+
 #endregion
 
 namespace de.ahzf.Hermod.Sockets.UDP
@@ -33,23 +36,23 @@ namespace de.ahzf.Hermod.Sockets.UDP
         #region UDPPacket()
 
         /// <summary>
-        /// Create a new UDPPacket class
+        /// Create a new UDP packet.
         /// </summary>
         public UDPPacket()
         { }
 
         #endregion
 
-        //#region UDPPacket(myTCPClientConnection)
+        #region UDPPacket()
 
-        ///// <summary>
-        ///// Create a new TCPConnection class using the given TcpClient class
-        ///// </summary>
-        //public UDPPacket(TcpClient myTCPClientConnection)
-        //    : base(myTCPClientConnection)
-        //{ }
+        /// <summary>
+        /// Create a new UDP packet.
+        /// </summary>
+        public UDPPacket(Byte[] UDPPacket, IPEndPoint RemoteEndPoint)
+            : base(UDPPacket, RemoteEndPoint)
+        { }
 
-        //#endregion
+        #endregion
 
         #endregion
 

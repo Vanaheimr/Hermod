@@ -17,36 +17,33 @@
 
 #region Usings
 
-using System.Net;
-
-using de.ahzf.Hermod.Datastructures;
+using System;
+using System.Text;
+using System.Net.Sockets;
 
 #endregion
 
 namespace de.ahzf.Hermod.Sockets.UDP
 {
 
-    /// <summary>
-    /// An interface for all UDP packets.
-    /// </summary>
-    public interface IUDPPacket
+    public static class UDPExtensions
     {
 
-        /// <summary>
-        /// The remote sender of the UDP packet.
-        /// </summary>
-        IPEndPoint RemoteEndPoint { get; }
+        #region Send(this UDPClient, UDPPacketString, SocketFlags = SocketFlags.None)
 
-        /// <summary>
-        /// The remote IP host.
-        /// </summary>
-        IIPAddress RemoteHost     { get; }
+        public static SocketError Send(this UDPClient UDPClient, String UDPPacketString, SocketFlags SocketFlags = SocketFlags.None)
+        {
 
-        /// <summary>
-        /// The remote IP port.
-        /// </summary>
-        IPPort     RemotePort     { get; }
+            var UDPPacketData = Encoding.UTF8.GetBytes(UDPPacketString);
+
+            return UDPClient.Send(UDPPacketData, SocketFlags);
+
+        }
+
+        #endregion
+
 
     }
 
 }
+

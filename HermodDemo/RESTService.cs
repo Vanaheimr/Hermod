@@ -371,6 +371,14 @@ namespace de.ahzf.Hermod.Demo
         #endregion
 
 
+        public IEnumerable<HTTPContentType> HTTPContentTypes
+        {
+            get
+            {
+                return new List<HTTPContentType>() { HTTPContentType.TEXT_UTF8 };
+            }
+        }
+
     }
 
 }
