@@ -21,6 +21,9 @@ using System;
 using System.Text;
 using System.Net.Sockets;
 
+using de.ahzf.Hermod.Datastructures;
+using System.Net;
+
 #endregion
 
 namespace de.ahzf.Hermod.Sockets.UDP
@@ -29,18 +32,41 @@ namespace de.ahzf.Hermod.Sockets.UDP
     public static class UDPExtensions
     {
 
-        #region Send(this UDPClient, UDPPacketString, SocketFlags = SocketFlags.None)
+        #region Send(this UDPClient, UDPPacketString, Encoding = null, SocketFlags = SocketFlags.None)
 
-        public static SocketError Send(this UDPClient UDPClient, String UDPPacketString, SocketFlags SocketFlags = SocketFlags.None)
+        public static SocketError Send(this UDPClient UDPClient, String UDPPacketString, Encoding Encoding = null, SocketFlags SocketFlags = SocketFlags.None)
         {
 
-            var UDPPacketData = Encoding.UTF8.GetBytes(UDPPacketString);
+            if (Encoding == null)
+                Encoding = Encoding.UTF8;
+
+            var UDPPacketData = Encoding.GetBytes(UDPPacketString);
 
             return UDPClient.Send(UDPPacketData, SocketFlags);
 
         }
 
         #endregion
+
+
+        public static void SendTo(this UDPClient UDPClient, Byte[] UDPPacketData, IIPAddress RemoteIPAddress, IPPort IPPort, SocketFlags SocketFlags = SocketFlags.None)
+        {
+            var RemoteIPEndPoint = new IPEndPoint(new IPAddress(RemoteIPAddress.GetBytes()), IPPort.ToInt32());
+            UDPClient.SendTo(UDPPacketData, RemoteIPEndPoint, SocketFlags);
+        }
+
+        public static void SendTo(this UDPClient UDPClient, String UDPPacketString, IIPAddress RemoteIPAddress, IPPort IPPort, Encoding Encoding = null, SocketFlags SocketFlags = SocketFlags.None)
+        {
+
+            if (Encoding == null)
+                Encoding = Encoding.UTF8;
+
+            var UDPPacketData = Encoding.GetBytes(UDPPacketString);
+            var RemoteIPEndPoint = new IPEndPoint(new IPAddress(RemoteIPAddress.GetBytes()), IPPort.ToInt32());
+
+            UDPClient.SendTo(UDPPacketData, RemoteIPEndPoint, SocketFlags);
+
+        }
 
 
     }

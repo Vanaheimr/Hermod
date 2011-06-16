@@ -31,8 +31,21 @@ namespace de.ahzf.Hermod.Sockets.UDP
 
         #region Data
 
-        private IPEndPoint _IPEndPoint;
+        private IPEndPoint _RemoteIPEndPoint;
         private readonly Socket _Socket;
+
+        #endregion
+
+        #region Properties
+
+        #region BufferSize
+
+        /// <summary>
+        /// The size of the receive buffer.
+        /// </summary>
+        public UInt32 BufferSize { get; set; }
+
+        #endregion
 
         #endregion
 
@@ -42,8 +55,8 @@ namespace de.ahzf.Hermod.Sockets.UDP
 
         public UDPClient()
         {
-            this._Socket     = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            this._IPEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 5000);
+            this._Socket           = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            this._RemoteIPEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 5000);
         }
 
         #endregion
@@ -57,13 +70,47 @@ namespace de.ahzf.Hermod.Sockets.UDP
             if (_Socket == null)
                 throw new Exception("Socket == null!");
 
-            if (_IPEndPoint == null)
+            if (_RemoteIPEndPoint == null)
                 throw new Exception("IPEndPoint == null!");
 
             SocketError SocketErrorCode;
             _Socket.Send(UDPPacketData, 0, UDPPacketData.Length, SocketFlags, out SocketErrorCode);
             return SocketErrorCode;
 
+        }
+
+
+        public void SendTo(Byte[] UDPPacketData, IPEndPoint RemoteIPEndPoint, SocketFlags SocketFlags = SocketFlags.None)
+        {
+
+            if (_Socket == null)
+                throw new Exception("Socket == null!");
+
+            if (_RemoteIPEndPoint == null)
+                throw new Exception("IPEndPoint == null!");
+
+            _Socket.SendTo(UDPPacketData, SocketFlags, RemoteIPEndPoint);
+
+        }
+
+
+        public Byte[] SendAndWaitForReponse(Byte[] UDPPacketData, SocketFlags SocketFlags = SocketFlags.None)
+        {
+
+            var _SocketError =  Send(UDPPacketData, SocketFlags);
+            
+            var _UDPRepose             = new Byte[BufferSize];
+            var _RemoteEndPoint        = (EndPoint) _RemoteIPEndPoint;
+            var _NumberOfReceivedBytes = _Socket.ReceiveFrom(_UDPRepose, ref _RemoteEndPoint);
+
+            if (_NumberOfReceivedBytes > 0)
+            {
+                Array.Resize(ref _UDPRepose, _NumberOfReceivedBytes);
+                return _UDPRepose;
+            }
+
+            return new Byte[0];
+        
         }
 
 
