@@ -43,16 +43,19 @@ namespace de.ahzf.Hermod.Sockets.UDP
         // The internal thread
         private readonly Thread          _ListenerThread;
 
-        // The constructor for UDPPacketType
-        private readonly ConstructorInfo _Constructor;
+        private readonly ConstructorInfo _UDPPacketConstructor;
 
-        private readonly Socket          _LocalSocket;
+        private readonly Socket          _LocaldotNetSocket;
+
+        private readonly IPEndPoint      _LocalIPEndPoint;
+
+        private volatile Boolean         _WaitForChildTask;
 
         #endregion
 
         #region Properties
 
-        public IPEndPoint LocalEndPoint { get; private set; }
+        public IPSocket LocalSocket { get; private set; }
 
         #region IPAddress
 
@@ -109,8 +112,8 @@ namespace de.ahzf.Hermod.Sockets.UDP
             get
             {
 
-                if (_LocalSocket != null)
-                    return (UInt32) _LocalSocket.ReceiveTimeout;
+                if (_LocaldotNetSocket != null)
+                    return (UInt32) _LocaldotNetSocket.ReceiveTimeout;
 
                 return 0;
 
@@ -122,8 +125,8 @@ namespace de.ahzf.Hermod.Sockets.UDP
                 if (value > Int32.MaxValue)
                     throw new ArgumentException("The value for the ReceiveTimeout must be smaller than " + Int32.MaxValue + "!");
 
-                if (_LocalSocket != null)
-                    _LocalSocket.ReceiveTimeout = (Int32) value;
+                if (_LocaldotNetSocket != null)
+                    _LocaldotNetSocket.ReceiveTimeout = (Int32) value;
 
             }
 
@@ -211,38 +214,37 @@ namespace de.ahzf.Hermod.Sockets.UDP
 
             BufferSize      = 1600;
 
-            LocalEndPoint   = new IPEndPoint(new System.Net.IPAddress(_IPAddress.GetBytes()), _Port.ToInt32());
-            _LocalSocket    = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            _LocalSocket.Bind(LocalEndPoint);
+            _LocalIPEndPoint    = new IPEndPoint(new System.Net.IPAddress(_IPAddress.GetBytes()), _Port.ToInt32());
+            LocalSocket         = new IPSocket(_LocalIPEndPoint);
+            _LocaldotNetSocket  = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            _LocaldotNetSocket.Bind(_LocalIPEndPoint);
 
             // Timeout will throw an exception which is a little bit stupid!
             //ReceiveTimeout  = 1000;
 
 
             // Get constructor for UDPPacketType
-            _Constructor = typeof(UDPPacketType).
+            _UDPPacketConstructor = typeof(UDPPacketType).
                                      GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
                                                     null,
                                                     new Type[] {
                                                        typeof(Byte[]),
-                                                       typeof(IPEndPoint)
+                                                       typeof(IPSocket),
+                                                       typeof(IPSocket)
                                                    },
                                                     null);
 
-            if (_Constructor == null)
+            if (_UDPPacketConstructor == null)
                 throw new ArgumentException("A appropriate constructor for type '" + typeof(UDPPacketType).FullName + "' could not be found!");
 
 
             _ListenerThread = new Thread(() =>
             {
-
                 Thread.CurrentThread.Name         = "UDPServer thread";
                 Thread.CurrentThread.Priority     = ThreadPriority.AboveNormal;
                 Thread.CurrentThread.IsBackground = true;
                 Listen();
-
             });
-
 
             if (NewPacketHandler != null)
                 OnNewPacket += NewPacketHandler;
@@ -274,7 +276,7 @@ namespace de.ahzf.Hermod.Sockets.UDP
         #region (private, threaded) Listen()
 
         /// <summary>
-        /// Processes a new packet.
+        /// Processes an incoming UDP packet.
         /// </summary>
         private void Listen()
         {
@@ -300,28 +302,40 @@ namespace de.ahzf.Hermod.Sockets.UDP
                     _RemoteEndPoint = new IPEndPoint(0,0);
 
                     // Wait for the next packet...
-                    _NumberOfReceivedBytes = _LocalSocket.ReceiveFrom(_UDPPacket, ref _RemoteEndPoint);
+                    _NumberOfReceivedBytes = _LocaldotNetSocket.ReceiveFrom(_UDPPacket, ref _RemoteEndPoint);
 
                     if (_NumberOfReceivedBytes > 0)
                     {
 
-                        // Create a local copy of the UDPPacket and RemoteEndPoint as we
-                        // do not want to wait till the new thread has accepted the packet
-
-                        //var _UDPPacketCopy      = new Byte[_NumberOfReceivedBytes];
-                        //Array.Copy(_UDPPacket, 0, _UDPPacketCopy, 0, _NumberOfReceivedBytes);
-
-                        //var _UDPPacketCopy = new Byte[_NumberOfReceivedBytes];
-                        //Buffer.BlockCopy(_UDPPacket, 0, _UDPPacketCopy, 0, _NumberOfReceivedBytes);
-
-                        Array.Resize(ref _UDPPacket, _NumberOfReceivedBytes);
-                        var _UDPPacketCopy      = _UDPPacket;
-                        var _RemoteEndPointCopy = (IPEndPoint) _RemoteEndPoint;
+                        _WaitForChildTask = true;
 
                         Task.Factory.StartNew(() =>
                         {
-                            ProcessNewPacket(_UDPPacketCopy, _RemoteEndPointCopy);
+
+                            // Create a local copy of the UDPPacket and RemoteEndPoint as we
+                            // do not want to wait till the new thread has accepted the packet
+
+                            //var _UDPPacketCopy      = new Byte[_NumberOfReceivedBytes];
+                            //Array.Copy(_UDPPacket, 0, _UDPPacketCopy, 0, _NumberOfReceivedBytes);
+
+                            //var _UDPPacketCopy = new Byte[_NumberOfReceivedBytes];
+                            //Buffer.BlockCopy(_UDPPacket, 0, _UDPPacketCopy, 0, _NumberOfReceivedBytes);
+
+                            Array.Resize(ref _UDPPacket, _NumberOfReceivedBytes);
+                            
+                            var _UDPPacketCopy = _UDPPacket;
+                            var _RemoteSocket  = new IPSocket((IPEndPoint) _RemoteEndPoint);
+
+                            _WaitForChildTask = false;
+
+                            ProcessNewPacket(_UDPPacketCopy, _RemoteSocket);
+
                         });
+
+                        // Wait till the new Task had used some of its time to
+                        // make a copy of the given references.
+                        while (_WaitForChildTask)
+                        { }
 
                     }
 
@@ -340,18 +354,18 @@ namespace de.ahzf.Hermod.Sockets.UDP
 
         #endregion
 
-        #region (private, threaded) ProcessNewPacket(UDPPacketData, RemoteEndPoint)
+        #region (private, threaded) ProcessNewPacket(UDPPacketData, RemoteSocket)
 
         /// <summary>
         /// Processes a new received packet.
         /// </summary>
-        private void ProcessNewPacket(Byte[] UDPPacketData, EndPoint RemoteEndPoint)
+        private void ProcessNewPacket(Byte[] UDPPacketData, IPSocket RemoteSocket)
         {
 
             // Invoke constructor of UDPPacketType
             // Create a new thread-local instance of the upper-layer protocol stack
             var _UDPPacketThreadLocal = new ThreadLocal<UDPPacketType>(
-                                            () => _Constructor.Invoke(new Object[] { UDPPacketData, LocalEndPoint, RemoteEndPoint }) as UDPPacketType
+                                            () => _UDPPacketConstructor.Invoke(new Object[] { UDPPacketData, LocalSocket, RemoteSocket }) as UDPPacketType
                                         );
 
             if (_UDPPacketThreadLocal.Value == null)
@@ -515,6 +529,5 @@ namespace de.ahzf.Hermod.Sockets.UDP
     }
 
     #endregion
-
 
 }

@@ -29,7 +29,7 @@ namespace de.ahzf.Hermod.Datastructures
     /// <summary>
     /// An IPv4 address.
     /// </summary>    
-    public class IPv4Address : IComparable, IComparable<IPv4Address>, IEquatable<IPv4Address>, IIPAddress
+    public class IPv4Address : IIPAddress, IComparable, IComparable<IPv4Address>, IEquatable<IPv4Address>
     {
 
         #region Data
@@ -232,8 +232,7 @@ namespace de.ahzf.Hermod.Datastructures
 
         #endregion
 
-
-        #region IComparable<IPv4Address> Members
+        #region IComparable Members
 
         #region CompareTo(Object)
 
@@ -249,11 +248,11 @@ namespace de.ahzf.Hermod.Datastructures
                 throw new ArgumentNullException("The given object must not be null!");
 
             // Check if the given object can be casted to an IPv4Address
-            var myIPAddress = Object as IPv4Address;
-            if ((Object) myIPAddress == null)
+            var _IPv4Address = Object as IPv4Address;
+            if ((Object) _IPv4Address == null)
                 throw new ArgumentException("The given object is not an IPv4Address!");
 
-            return CompareTo(myIPAddress);
+            return CompareTo(_IPv4Address);
 
         }
 
@@ -272,16 +271,16 @@ namespace de.ahzf.Hermod.Datastructures
             if ((Object) IPv4Address == null)
                 throw new ArgumentNullException("The given IPv4Address must not be null!");
 
-            var _ByteArray = IPv4Address.GetBytes();
-            var j = 0;
+            var _ByteArray   = IPv4Address.GetBytes();
+            var _Comparision = 0;
 
-            for (var i=0; i<4; i++)
+            for (var _BytePosition = 0; _BytePosition < 4; _BytePosition++)
             {
                 
-                j = _IPAddressArray[0].CompareTo(_ByteArray[0]);
+                _Comparision = _IPAddressArray[0].CompareTo(_ByteArray[0]);
                 
-                if (j != 0)
-                    return j;
+                if (_Comparision != 0)
+                    return _Comparision;
 
             }
 
@@ -291,9 +290,33 @@ namespace de.ahzf.Hermod.Datastructures
 
         #endregion
 
+        #region CompareTo(IIPAddress)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="Object">An object to compare with.</param>
+        /// <returns>true|false</returns>
+        public Int32 CompareTo(IIPAddress IIPAddress)
+        {
+
+            if (IIPAddress == null)
+                throw new ArgumentNullException("The given IIPAddress must not be null!");
+
+            // Check if the given object can be casted to an IPv4Address
+            var _IPv4Address = IIPAddress as IPv4Address;
+            if ((Object) _IPv4Address == null)
+                throw new ArgumentException("The given IIPAddress is not an IPv4Address!");
+
+            return this.CompareTo(_IPv4Address);
+
+        }
+
         #endregion
 
-        #region IEquatable<IPv4Address> Members
+        #endregion
+
+        #region IEquatable Members
 
         #region Equals(Object)
 
@@ -309,11 +332,11 @@ namespace de.ahzf.Hermod.Datastructures
                 throw new ArgumentNullException("The given object must not be null!");
 
             // Check if the given object can be casted to an IPv4Address
-            var myIPAddress = Object as IPv4Address;
-            if ((Object) myIPAddress == null)
+            var _IPv4Address = Object as IPv4Address;
+            if ((Object) _IPv4Address == null)
                 throw new ArgumentException("The given object is not an IPv4Address!");
 
-            return this.Equals(myIPAddress);
+            return this.Equals(_IPv4Address);
 
         }
 
@@ -337,6 +360,33 @@ namespace de.ahzf.Hermod.Datastructures
                 return true;
 
             return this.ToString().Equals(IPv4Address.ToString());
+
+        }
+
+        #endregion
+
+        #region Equals(IIPAddress)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="IIPAddress">An IIPAddress.</param>
+        /// <returns>true|false</returns>
+        public Boolean Equals(IIPAddress IIPAddress)
+        {
+
+            if ((Object) IIPAddress == null)
+                throw new ArgumentNullException("The given IIPAddress must not be null!");
+
+            if (_Length != IIPAddress.Length)
+                return false;
+
+            // Check if the given IIPAddress can be casted to an IPv4Address
+            var _IPv4Address = IIPAddress as IPv4Address;
+            if ((Object) _IPv4Address == null)
+                return false;
+
+            return this.Equals(_IPv4Address);
 
         }
 

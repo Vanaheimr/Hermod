@@ -36,16 +36,7 @@ namespace de.ahzf.Hermod.Datastructures
 
         #region Data
 
-        /// <summary>
-        /// The internal port number.
-        /// </summary>
-        protected readonly UInt16 _IPPort;
-
-        #endregion
-
-        #region Properties
-
-        
+        private readonly UInt16 _IPPort;
 
         #endregion
 
@@ -225,49 +216,46 @@ namespace de.ahzf.Hermod.Datastructures
 
         #endregion
 
-
         #region IComparable<IPPort> Members
 
-        #region CompareTo(myObject)
+        #region CompareTo(Object)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="myObject">An object to compare with.</param>
+        /// <param name="Object">An object to compare with.</param>
         /// <returns>true|false</returns>
-        public Int32 CompareTo(Object myObject)
+        public Int32 CompareTo(Object Object)
         {
 
-            // Check if myObject is null
-            if (myObject == null)
-                throw new ArgumentNullException("myObject must not be null!");
+            if (Object == null)
+                throw new ArgumentNullException("The given Object must not be null!");
 
             // Check if myObject can be casted to an IPPort object
-            var myIPPort = myObject as IPPort;
-            if ((Object) myIPPort == null)
-                throw new ArgumentException("myObject is not of type IPPort!");
+            var _IPPort = Object as IPPort;
+            if ((Object) _IPPort == null)
+                throw new ArgumentException("The given Object is an IPPort!");
 
-            return CompareTo(myIPPort);
+            return CompareTo(_IPPort);
 
         }
 
         #endregion
 
-        #region CompareTo(myIPPort)
+        #region CompareTo(IPPort)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="myIPPort">An object to compare with.</param>
+        /// <param name="IPPort">An object to compare with.</param>
         /// <returns>true|false</returns>
-        public Int32 CompareTo(IPPort myIPPort)
+        public Int32 CompareTo(IPPort IPPort)
         {
 
-            // Check if myIPPort is null
-            if (myIPPort == null)
-                throw new ArgumentNullException("myIPPort must not be null!");
+            if ((Object) IPPort == null)
+                throw new ArgumentNullException("The given IPPort must not be null!");
 
-            return _IPPort.CompareTo(myIPPort._IPPort);
+            return _IPPort.CompareTo(IPPort._IPPort);
 
         }
 
@@ -277,26 +265,25 @@ namespace de.ahzf.Hermod.Datastructures
 
         #region IEquatable<IPPort> Members
 
-        #region Equals(myObject)
+        #region Equals(Object)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="myObject">An object to compare with.</param>
+        /// <param name="Object">An object to compare with.</param>
         /// <returns>true|false</returns>
-        public override Boolean Equals(Object myObject)
+        public override Boolean Equals(Object Object)
         {
 
-            // Check if myObject is null
-            if (myObject == null)
-                throw new ArgumentNullException("Parameter myObject must not be null!");
+            if (Object == null)
+                throw new ArgumentNullException("The given Object must not be null!");
 
             // Check if myObject can be cast to IPPort
-            var myIPPort = myObject as IPPort;
-            if ((Object) myIPPort == null)
-                throw new ArgumentException("Parameter myObject could not be casted to type IPPort!");
+            var _IPPort = Object as IPPort;
+            if ((Object) _IPPort == null)
+                throw new ArgumentException("The given Object is not an IPPort!");
 
-            return this.Equals(myIPPort);
+            return this.Equals(_IPPort);
 
         }
 
@@ -307,16 +294,15 @@ namespace de.ahzf.Hermod.Datastructures
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="myIPPort">An object to compare with.</param>
+        /// <param name="IPPort">An object to compare with.</param>
         /// <returns>true|false</returns>
-        public Boolean Equals(IPPort myIPPort)
+        public Boolean Equals(IPPort IPPort)
         {
 
-            // Check if myIPPort is null
-            if (myIPPort == null)
-                throw new ArgumentNullException("Parameter myIPPort must not be null!");
+            if ((Object) IPPort == null)
+                throw new ArgumentNullException("The given IPPort must not be null!");
 
-            return _IPPort.Equals(myIPPort._IPPort);
+            return _IPPort.Equals(IPPort._IPPort);
 
         }
 

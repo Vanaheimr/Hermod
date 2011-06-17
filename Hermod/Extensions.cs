@@ -85,7 +85,7 @@ namespace de.ahzf.Hermod
 
         public static IEnumerable<T> Take<T>(this IEnumerable<T> myIEnumerable, UInt32 myCount)
         {
-            return myIEnumerable.Take((Int32)myCount);
+            return myIEnumerable.Take((Int32) myCount);
         }
 
         #endregion

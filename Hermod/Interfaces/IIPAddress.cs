@@ -17,26 +17,39 @@
 
 #region Usings
 
-using System.Net;
-
-using de.ahzf.Hermod.Datastructures;
 using System;
 
 #endregion
 
-namespace de.ahzf.Hermod.Sockets.UDP
+namespace de.ahzf.Hermod.Datastructures
 {
 
     /// <summary>
-    /// An interface for all UDP packets.
+    /// A common interface for all kinds of IP Addresses.
     /// </summary>
-    public interface IUDPPacket : ILocalSocket, IRemoteSocket
+    public interface IIPAddress : IComparable, IComparable<IIPAddress>, IEquatable<IIPAddress>
     {
 
         /// <summary>
-        /// The UDP packet data.
+        /// The length of the IP Address.
         /// </summary>
-        Byte[]     Data           { get; }
+        Byte   Length { get; }
+
+        /// <summary>
+        /// Return a byte array representation of this object.
+        /// </summary>
+        Byte[] GetBytes();
+
+
+        /// <summary>
+        /// Return the HashCode of this object.
+        /// </summary>
+        Int32  GetHashCode();
+        
+        /// <summary>
+        /// Return a string representation of this object.
+        /// </summary>
+        String ToString();
 
     }
 

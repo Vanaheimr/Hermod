@@ -26,13 +26,17 @@ using System.Net.Sockets;
 namespace de.ahzf.Hermod.Sockets.UDP
 {
 
+    /// <summary>
+    /// An UDP Client.
+    /// For testing via NetCat type: 'nc -lup 5000'
+    /// </summary>
     public class UDPClient : IDisposable
     {
 
         #region Data
 
-        private IPEndPoint _RemoteIPEndPoint;
-        private readonly Socket _Socket;
+        private          IPEndPoint _RemoteIPEndPoint;
+        private readonly Socket     _Socket;
 
         #endregion
 
@@ -53,6 +57,9 @@ namespace de.ahzf.Hermod.Sockets.UDP
 
         #region UDPClient()
 
+        /// <summary>
+        /// Creates a new UDP client.
+        /// </summary>
         public UDPClient()
         {
             this._Socket           = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
@@ -64,6 +71,14 @@ namespace de.ahzf.Hermod.Sockets.UDP
         #endregion
 
 
+        #region Send(UDPPacketData, SocketFlags = SocketFlags.None)
+
+        /// <summary>
+        /// Send the given packet data to the predefined remote host.
+        /// </summary>
+        /// <param name="UDPPacketData">The UDP packet data.</param>
+        /// <param name="SocketFlags">The socket options.</param>
+        /// <returns>A socket error.</returns>
         public SocketError Send(Byte[] UDPPacketData, SocketFlags SocketFlags = SocketFlags.None)
         {
 
@@ -79,8 +94,17 @@ namespace de.ahzf.Hermod.Sockets.UDP
 
         }
 
+        #endregion
 
-        public void SendTo(Byte[] UDPPacketData, IPEndPoint RemoteIPEndPoint, SocketFlags SocketFlags = SocketFlags.None)
+        #region SendTo(UDPPacketData, RemoteIPEndPoint, SocketFlags = SocketFlags.None)
+
+        /// <summary>
+        /// Send the given packet data to the given remote host.
+        /// </summary>
+        /// <param name="UDPPacketData">The UDP packet data.</param>
+        /// <param name="RemoteSocket"></param>
+        /// <param name="SocketFlags">The socket options.</param>
+        public void SendTo(Byte[] UDPPacketData, IPEndPoint RemoteSocket, SocketFlags SocketFlags = SocketFlags.None)
         {
 
             if (_Socket == null)
@@ -89,15 +113,25 @@ namespace de.ahzf.Hermod.Sockets.UDP
             if (_RemoteIPEndPoint == null)
                 throw new Exception("IPEndPoint == null!");
 
-            _Socket.SendTo(UDPPacketData, SocketFlags, RemoteIPEndPoint);
+            _Socket.SendTo(UDPPacketData, SocketFlags, RemoteSocket);
 
         }
+        
+        #endregion
 
+        #region SendAndWaitForReponse(Byte[] UDPPacketData, SocketFlags SocketFlags = SocketFlags.None)
 
+        /// <summary>
+        /// Send the given packet data to the predefined remote host
+        /// and wait for a single response packet.
+        /// </summary>
+        /// <param name="UDPPacketData">The UDP packet data.</param>
+        /// <param name="SocketFlags">The socket options.</param>
+        /// <returns></returns>
         public Byte[] SendAndWaitForReponse(Byte[] UDPPacketData, SocketFlags SocketFlags = SocketFlags.None)
         {
 
-            var _SocketError =  Send(UDPPacketData, SocketFlags);
+            var _SocketError           =  Send(UDPPacketData, SocketFlags);
             
             var _UDPRepose             = new Byte[BufferSize];
             var _RemoteEndPoint        = (EndPoint) _RemoteIPEndPoint;
@@ -112,6 +146,8 @@ namespace de.ahzf.Hermod.Sockets.UDP
             return new Byte[0];
         
         }
+
+        #endregion
 
 
         #region Close()

@@ -19,6 +19,7 @@
 
 using System;
 using System.Net;
+using de.ahzf.Hermod.Datastructures;
 
 #endregion
 
@@ -52,16 +53,16 @@ namespace de.ahzf.Hermod.Sockets.UDP
 
         #endregion
 
-        #region UDPPacket(UDPPacketData, LocalEndPoint, RemoteEndPoint)
+        #region UDPPacket(UDPPacketData, LocalSocket, RemoteSocket)
 
         /// <summary>
         /// Create a new UDP packet.
         /// </summary>
         /// <param name="UDPPacketData">The UDP packet data.</param>
-        /// <param name="LocalEndPoint">The local socket of this UDP packet.</param>
-        /// <param name="RemoteEndPoint">The remote socket of this UDP packet.</param>
-        public UDPPacket(Byte[] UDPPacketData, IPEndPoint LocalEndPoint, IPEndPoint RemoteEndPoint)
-            : base(UDPPacketData, LocalEndPoint, RemoteEndPoint)
+        /// <param name="LocalSocket">The local socket of this UDP packet.</param>
+        /// <param name="RemoteSocket">The remote socket of this UDP packet.</param>
+        public UDPPacket(Byte[] UDPPacketData, IPSocket LocalSocket, IPSocket RemoteSocket)
+            : base(UDPPacketData, LocalSocket, RemoteSocket)
         {
             Data = UDPPacketData;
         }

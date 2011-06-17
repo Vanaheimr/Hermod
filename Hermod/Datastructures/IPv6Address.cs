@@ -26,9 +26,9 @@ namespace de.ahzf.Hermod.Datastructures
 {
 
     /// <summary>
-    /// An IPv4 address.
+    /// An IPv6 address.
     /// </summary>    
-    public class IPv6Address : IComparable, IComparable<IPv6Address>, IEquatable<IPv6Address>, IIPAddress
+    public class IPv6Address : IIPAddress, IComparable, IComparable<IPv6Address>, IEquatable<IPv6Address>
     {
 
         #region Data
@@ -59,10 +59,10 @@ namespace de.ahzf.Hermod.Datastructures
 
         #region Constructor(s)
 
-        #region IPAddress(myIPAddress)
+        #region IPv6Address(myIPAddress)
 
         /// <summary>
-        /// Generates a new IPAddress.
+        /// Generates a new IPv6Address.
         /// </summary>
         public IPv6Address(System.Net.IPAddress myIPAddress)
             : this(myIPAddress.GetAddressBytes())
@@ -73,7 +73,7 @@ namespace de.ahzf.Hermod.Datastructures
         #region IPAddress(myByteArray)
 
         /// <summary>
-        /// Generates a new IPAddress.
+        /// Generates a new IPv6Address.
         /// </summary>
         public IPv6Address(Byte[] myByteArray)
         {
@@ -166,6 +166,8 @@ namespace de.ahzf.Hermod.Datastructures
         #endregion
 
 
+        #region IComparable<IPAddress> Members
+
         #region IComparable Members
 
         /// <summary>
@@ -191,7 +193,7 @@ namespace de.ahzf.Hermod.Datastructures
 
         #endregion
 
-        #region IComparable<IPAddress> Members
+        #region CompareTo(myIPAddress)
 
         /// <summary>
         /// Compares two instances of this object.
@@ -208,6 +210,13 @@ namespace de.ahzf.Hermod.Datastructures
             //return _IPAddress.GetAddressBytes() .CompareTo(myIPAddress._IPAddress);
             return 0;
 
+        }
+
+        #endregion
+
+        public int CompareTo(IIPAddress other)
+        {
+            throw new NotImplementedException();
         }
 
         #endregion
@@ -260,6 +269,11 @@ namespace de.ahzf.Hermod.Datastructures
         }
 
         #endregion
+
+        public bool Equals(IIPAddress other)
+        {
+            throw new NotImplementedException();
+        }
 
         #endregion
 

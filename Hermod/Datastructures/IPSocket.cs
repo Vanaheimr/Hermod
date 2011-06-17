@@ -30,7 +30,7 @@ namespace de.ahzf.Hermod.Datastructures
 {
 
     /// <summary>
-    /// An IPSocket is a combination of an IPAddress and a port.
+    /// An IPSocket is a combination of an IPAddress and a IPPort.
     /// </summary>    
     public class IPSocket : IComparable, IComparable<IPSocket>, IEquatable<IPSocket>
     {
@@ -40,12 +40,12 @@ namespace de.ahzf.Hermod.Datastructures
         /// <summary>
         /// The IPAddress of this IPSocket.
         /// </summary>
-        public IIPAddress IPAddress { get; protected set; }
+        public IIPAddress IPAddress { get; private set; }
 
         /// <summary>
         /// Returns the port of this IPSocket.
         /// </summary>
-        public IPPort     Port      { get; protected set; }
+        public IPPort     Port      { get; private set; }
 
         #endregion
 
@@ -54,7 +54,7 @@ namespace de.ahzf.Hermod.Datastructures
         #region IPSocket(IPAddress, Port)
 
         /// <summary>
-        /// Generates a new IPSocket.
+        /// Generates a new IPSocket based on the given IPAddress and IPPort.
         /// </summary>
         /// <param name="IPAddress">The IPAdress of the socket.</param>
         /// <param name="Port">The port of the socket.</param>
@@ -62,6 +62,20 @@ namespace de.ahzf.Hermod.Datastructures
         {
             this.IPAddress = IPAddress;
             this.Port      = Port;
+        }
+
+        #endregion
+
+        #region IPSocket(IPEndPoint)
+
+        /// <summary>
+        /// Generates a new IPSocket based on the given IPEndPoint.
+        /// </summary>
+        /// <param name="IPEndPoint">An IPEndPoint.</param>
+        public IPSocket(IPEndPoint IPEndPoint)
+        {
+            this.IPAddress = IPAddressFactory.Build(IPEndPoint.Address.GetAddressBytes());
+            this.Port      = new IPPort((UInt16) IPEndPoint.Port);
         }
 
         #endregion
@@ -113,25 +127,25 @@ namespace de.ahzf.Hermod.Datastructures
 
         #endregion
 
-
         #region IComparable Members
+
+        #region CompareTo(Object)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="myObject">An object to compare with.</param>
+        /// <param name="Object">An object to compare with.</param>
         /// <returns>true|false</returns>
-        public Int32 CompareTo(Object myObject)
+        public Int32 CompareTo(Object Object)
         {
 
-            // Check if myObject is null
-            if (myObject == null)
-                throw new ArgumentNullException("myObject must not be null!");
+            if (Object == null)
+                throw new ArgumentNullException("The given Object must not be null!");
 
-            // Check if myObject can be casted to an ElementId object
-            var myIPSocket = myObject as IPSocket;
+            // Check if myObject can be casted to an IPSocket object
+            var myIPSocket = Object as IPSocket;
             if ((Object) myIPSocket == null)
-                throw new ArgumentException("myObject is not of type IPSocket!");
+                throw new ArgumentException("The given Object is not an IPSocket!");
 
             return CompareTo(myIPSocket);
 
@@ -139,47 +153,50 @@ namespace de.ahzf.Hermod.Datastructures
 
         #endregion
 
-        #region IComparable<IPSocket> Members
+        #region CompareTo(IPSocket)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
         /// <param name="myElementId">An object to compare with.</param>
         /// <returns>true|false</returns>
-        public Int32 CompareTo(IPSocket myIPSocket)
+        public Int32 CompareTo(IPSocket IPSocket)
         {
 
-            // Check if myIPSocket is null
-            if (myIPSocket == null)
-                throw new ArgumentNullException("myElementId must not be null!");
+            if (((Object) IPSocket) == null)
+                throw new ArgumentNullException("The given IPSocket object must not be null!");
 
-            //return _IPAddress.GetAddressBytes() .CompareTo(myIPSocket._IPAddress);
-            return 0;
+            var __IPAddress = this.IPAddress.CompareTo(IPSocket.IPAddress);
+            if (__IPAddress != 0)
+                return __IPAddress;
+
+            return this.Port.CompareTo(IPSocket.Port);
 
         }
 
         #endregion
+        
+        #endregion
 
-        #region IEquatable<IPSocket> Members
+        #region IEquatable Members
 
-        #region Equals(myObject)
+        #region Equals(Object)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="myObject">An object to compare with.</param>
+        /// <param name="Object">An object to compare with.</param>
         /// <returns>true|false</returns>
-        public override Boolean Equals(Object myObject)
+        public override Boolean Equals(Object Object)
         {
 
-            // Check if myObject is null
-            if (myObject == null)
-                throw new ArgumentNullException("Parameter myObject must not be null!");
+            if (Object == null)
+                throw new ArgumentNullException("The given Object must not be null!");
 
             // Check if myObject can be cast to IPSocket
-            var myIPSocket = myObject as IPSocket;
+            var myIPSocket = Object as IPSocket;
             if ((Object) myIPSocket == null)
-                throw new ArgumentException("Parameter myObject could not be casted to type IPSocket!");
+                throw new ArgumentException("The given Object is not an IPSocket!");
 
             return this.Equals(myIPSocket);
 
@@ -187,24 +204,22 @@ namespace de.ahzf.Hermod.Datastructures
 
         #endregion
 
-        #region Equals(myIPSocket)
+        #region Equals(IPSocket)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
         /// <param name="myElementId">An object to compare with.</param>
         /// <returns>true|false</returns>
-        public Boolean Equals(IPSocket myIPSocket)
+        public Boolean Equals(IPSocket IPSocket)
         {
 
-            // Check if myIPSocket is null
-            if (myIPSocket == null)
-                throw new ArgumentNullException("Parameter myIPSocket must not be null!");
+            if (IPSocket == null)
+                throw new ArgumentNullException("Teh given IPSocket must not be null!");
 
-            var __IPAddress = this.IPAddress.Equals(myIPSocket.IPAddress);
-
+            var __IPAddress = this.IPAddress.Equals(IPSocket.IPAddress);
             if (__IPAddress)
-                return this.Port.Equals(myIPSocket.Port);
+                return this.Port.Equals(IPSocket.Port);
 
             return false;
 
