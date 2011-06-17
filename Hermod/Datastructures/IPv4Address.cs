@@ -19,6 +19,7 @@
 
 using System;
 using System.Text;
+using System.Text.RegularExpressions;
 
 #endregion
 
@@ -26,7 +27,7 @@ namespace de.ahzf.Hermod.Datastructures
 {
 
     /// <summary>
-    /// A IPv4 address.
+    /// An IPv4 address.
     /// </summary>    
     public class IPv4Address : IComparable, IComparable<IPv4Address>, IEquatable<IPv4Address>, IIPAddress
     {
@@ -42,6 +43,9 @@ namespace de.ahzf.Hermod.Datastructures
 
         #region Length
 
+        /// <summary>
+        /// The length of an IPv4Address.
+        /// </summary>
         public Byte Length
         {
             get
@@ -56,50 +60,44 @@ namespace de.ahzf.Hermod.Datastructures
 
         #region Constructor(s)
 
-        #region IPAddress(myIPAddress)
+        #region IPAddress(IPAddress)
 
         /// <summary>
-        /// Generates a new IPAddress.
+        /// Generates a new IPv4Address based on the given System.Net.IPAddress.
         /// </summary>
-        public IPv4Address(System.Net.IPAddress myIPAddress)
-            : this(myIPAddress.GetAddressBytes())
+        public IPv4Address(System.Net.IPAddress IPAddress)
+            : this(IPAddress.GetAddressBytes())
         { }
 
         #endregion
 
-        #region IPAddress(myByteArray)
+        #region IPAddress(ByteArray)
 
         /// <summary>
-        /// Generates a new IPAddress.
+        /// Generates a new IPv4Address based on the given byte array representation.
         /// </summary>
-        public IPv4Address(Byte[] myByteArray)
+        public IPv4Address(Byte[] ByteArray)
         {
+
+            if (ByteArray.Length != _Length)
+                throw new FormatException("The given byte array length is invalid!");
 
             _IPAddressArray = new Byte[_Length];
 
-            Array.Copy(myByteArray, _IPAddressArray, Math.Max(myByteArray.Length, _Length));
+            Array.Copy(ByteArray, _IPAddressArray, Math.Max(ByteArray.Length, _Length));
 
         }
 
         #endregion
 
-        #region IPAddress(myAddressString)
+        #endregion
+
+
+        #region IPv4Address.Any / 0.0.0.0
 
         /// <summary>
-        /// Generates a new IPAddress.
+        /// The IPv4.Any / 0.0.0.0 address.
         /// </summary>
-        public IPv4Address(String myAddressString)
-        {
-            _IPAddressArray = Encoding.UTF8.GetBytes(myAddressString);
-        }
-
-        #endregion
-
-        #endregion
-
-
-        #region IPv4Address.Any
-
         public static IPv4Address Any
         {
             get
@@ -110,8 +108,11 @@ namespace de.ahzf.Hermod.Datastructures
 
         #endregion
 
-        #region IPv4Address.Localhost
+        #region IPv4Address.Localhost / 127.0.0.1
 
+        /// <summary>
+        /// The IPv4 localhost / 127.0.0.1
+        /// </summary>
         public static IPv4Address Localhost
         {
             get
@@ -122,8 +123,11 @@ namespace de.ahzf.Hermod.Datastructures
 
         #endregion
 
-        #region IPv4Address.Broadcast
+        #region IPv4Address.Broadcast / 255.255.255.255
 
+        /// <summary>
+        /// The IPv4 broadcast / 255.255.255.255
+        /// </summary>
         public static IPv4Address Broadcast
         {
             get
@@ -144,45 +148,84 @@ namespace de.ahzf.Hermod.Datastructures
 
         #endregion
 
+        #region Parse(IPv4AddressString)
+
+        /// <summary>
+        /// Parsed the given string representation into a new IPv4Address.
+        /// </summary>
+        /// <param name="IPv4AddressString">An IPv4Address string representation.</param>
+        public static IPv4Address Parse(String IPv4AddressString)
+        {
+
+            var _Match = Regex.Match(IPv4AddressString, @"\b(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\b");
+
+            if (_Match.Success)
+            {
+
+                var _IPv4AddressArray = new Byte[_Length];
+
+                try
+                {
+                    _IPv4AddressArray[0] = Byte.Parse(_Match.Groups[1].Value);
+                    _IPv4AddressArray[1] = Byte.Parse(_Match.Groups[2].Value);
+                    _IPv4AddressArray[2] = Byte.Parse(_Match.Groups[3].Value);
+                    _IPv4AddressArray[3] = Byte.Parse(_Match.Groups[4].Value);
+                }
+                catch (Exception e)
+                {
+                    throw new FormatException("The given string '" + IPv4AddressString + "' is not a valid IPv4Address!", e);
+                }
+
+                return new IPv4Address(_IPv4AddressArray);
+
+            }
+
+            else
+                throw new FormatException("The given string '" + IPv4AddressString + "' is not a valid IPv4Address!");
+
+        }
+
+        #endregion
+
 
         #region Operator overloading
 
-        #region Operator == (myIPv4Address1, myIPv4Address2)
+        #region Operator == (IPv4Address1, IPv4Address2)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="myIPv4Address1">A IPv4Address.</param>
-        /// <param name="myIPv4Address2">Another IPv4Address.</param>
+        /// <param name="IPv4Address1">A IPv4Address.</param>
+        /// <param name="IPv4Address2">Another IPv4Address.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (IPv4Address myIPv4Address1, IPv4Address myIPv4Address2)
+        public static Boolean operator == (IPv4Address IPv4Address1, IPv4Address IPv4Address2)
         {
 
             // If both are null, or both are same instance, return true.
-            if (Object.ReferenceEquals(myIPv4Address1, myIPv4Address2))
+            if (Object.ReferenceEquals(IPv4Address1, IPv4Address2))
                 return true;
 
             // If one is null, but not both, return false.
-            if (((Object) myIPv4Address1 == null) || ((Object) myIPv4Address2 == null))
+            if (((Object) IPv4Address1 == null) || ((Object) IPv4Address2 == null))
                 return false;
 
-            return myIPv4Address1.Equals(myIPv4Address2);
+            return IPv4Address1.Equals(IPv4Address2);
 
         }
 
         #endregion
 
-        #region Operator != (myIPv4Address1, myIPv4Address2)
+        #region Operator != (IPv4Address1, IPv4Address2)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="myIPv4Address1">A IPv4Address.</param>
-        /// <param name="myIPv4Address2">Another IPv4Address.</param>
+        /// <param name="IPv4Address1">A IPv4Address.</param>
+        /// <param name="IPv4Address2">Another IPv4Address.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator != (IPv4Address myIPv4Address1, IPv4Address myIPv4Address2)
+        public static Boolean operator != (IPv4Address IPv4Address1, IPv4Address IPv4Address2)
         {
-            return !(myIPv4Address1 == myIPv4Address2);
+            return !(IPv4Address1 == IPv4Address2);
         }
 
         #endregion
@@ -190,24 +233,25 @@ namespace de.ahzf.Hermod.Datastructures
         #endregion
 
 
-        #region IComparable Members
+        #region IComparable<IPv4Address> Members
+
+        #region CompareTo(Object)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="myObject">An object to compare with.</param>
+        /// <param name="Object">An object to compare with.</param>
         /// <returns>true|false</returns>
-        public Int32 CompareTo(Object myObject)
+        public Int32 CompareTo(Object Object)
         {
 
-            // Check if myObject is null
-            if (myObject == null)
-                throw new ArgumentNullException("myObject must not be null!");
+            if (Object == null)
+                throw new ArgumentNullException("The given object must not be null!");
 
-            // Check if myObject can be casted to an ElementId object
-            var myIPAddress = myObject as IPv4Address;
+            // Check if the given object can be casted to an IPv4Address
+            var myIPAddress = Object as IPv4Address;
             if ((Object) myIPAddress == null)
-                throw new ArgumentException("myObject is not of type IPAddress!");
+                throw new ArgumentException("The given object is not an IPv4Address!");
 
             return CompareTo(myIPAddress);
 
@@ -215,47 +259,59 @@ namespace de.ahzf.Hermod.Datastructures
 
         #endregion
 
-        #region IComparable<IPAddress> Members
+        #region CompareTo(IPv4Address)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="myElementId">An object to compare with.</param>
+        /// <param name="IPv4Address">An object to compare with.</param>
         /// <returns>true|false</returns>
-        public Int32 CompareTo(IPv4Address myIPAddress)
+        public Int32 CompareTo(IPv4Address IPv4Address)
         {
 
-            // Check if myIPAddress is null
-            if (myIPAddress == null)
-                throw new ArgumentNullException("myElementId must not be null!");
+            if ((Object) IPv4Address == null)
+                throw new ArgumentNullException("The given IPv4Address must not be null!");
 
-            //return _IPAddress.GetAddressBytes() .CompareTo(myIPAddress._IPAddress);
+            var _ByteArray = IPv4Address.GetBytes();
+            var j = 0;
+
+            for (var i=0; i<4; i++)
+            {
+                
+                j = _IPAddressArray[0].CompareTo(_ByteArray[0]);
+                
+                if (j != 0)
+                    return j;
+
+            }
+
             return 0;
 
         }
 
         #endregion
 
-        #region IEquatable<IPAddress> Members
+        #endregion
 
-        #region Equals(myObject)
+        #region IEquatable<IPv4Address> Members
+
+        #region Equals(Object)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="myObject">An object to compare with.</param>
+        /// <param name="Object">An object to compare with.</param>
         /// <returns>true|false</returns>
-        public override Boolean Equals(Object myObject)
+        public override Boolean Equals(Object Object)
         {
 
-            // Check if myObject is null
-            if (myObject == null)
-                throw new ArgumentNullException("Parameter myObject must not be null!");
+            if (Object == null)
+                throw new ArgumentNullException("The given object must not be null!");
 
-            // Check if myObject can be cast to IPAddress
-            var myIPAddress = myObject as IPv4Address;
+            // Check if the given object can be casted to an IPv4Address
+            var myIPAddress = Object as IPv4Address;
             if ((Object) myIPAddress == null)
-                throw new ArgumentException("Parameter myObject could not be casted to type IPAddress!");
+                throw new ArgumentException("The given object is not an IPv4Address!");
 
             return this.Equals(myIPAddress);
 
@@ -263,27 +319,24 @@ namespace de.ahzf.Hermod.Datastructures
 
         #endregion
 
-        #region Equals(myIPv4Address)
+        #region Equals(IPv4Address)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="myElementId">An object to compare with.</param>
+        /// <param name="IPv4Address">An object to compare with.</param>
         /// <returns>true|false</returns>
-        public Boolean Equals(IPv4Address myIPv4Address)
+        public Boolean Equals(IPv4Address IPv4Address)
         {
 
-            // Check if myIPAddress is null
-            if ((Object) myIPv4Address == null)
-                throw new ArgumentNullException("Parameter myIPv4Address must not be null!");
+            if ((Object) IPv4Address == null)
+                throw new ArgumentNullException("The given IPv4Address must not be null!");
 
             // If both are null, or both are same instance, return true.
-            if (Object.ReferenceEquals(this, myIPv4Address))
+            if (Object.ReferenceEquals(this, IPv4Address))
                 return true;
 
-            var __IPAddress = _IPAddressArray.Equals(myIPv4Address._IPAddressArray);
-
-            return false;
+            return this.ToString().Equals(IPv4Address.ToString());
 
         }
 
@@ -296,10 +349,9 @@ namespace de.ahzf.Hermod.Datastructures
         /// <summary>
         /// Return the HashCode of this object.
         /// </summary>
-        /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
         {
-            return _IPAddressArray.GetHashCode();
+            return this.ToString().GetHashCode();
         }
 
         #endregion
@@ -309,7 +361,6 @@ namespace de.ahzf.Hermod.Datastructures
         /// <summary>
         /// Returns a string representation of this object.
         /// </summary>
-        /// <returns>A string representation of this object.</returns>
         public override String ToString()
         {
             return String.Format("{0}.{1}.{2}.{3}", _IPAddressArray[0], _IPAddressArray[1], _IPAddressArray[2], _IPAddressArray[3]);

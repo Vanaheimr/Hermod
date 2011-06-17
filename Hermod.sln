@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual C# Express 2010
+# Visual Studio 2010
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hermod", "Hermod\Hermod.csproj", "{EAB20045-3D15-4220-BB56-B22FF6630AC9}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HermodDemo", "HermodDemo\HermodDemo.csproj", "{78895E9D-B229-476D-AAD0-6A5DB3182833}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTests", "UnitTests\UnitTests.csproj", "{E9033C3A-8176-4449-A35A-C8F1E0DC464C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,6 +37,16 @@ Global
 		{78895E9D-B229-476D-AAD0-6A5DB3182833}.Release|Mixed Platforms.Build.0 = Release|x86
 		{78895E9D-B229-476D-AAD0-6A5DB3182833}.Release|x86.ActiveCfg = Release|x86
 		{78895E9D-B229-476D-AAD0-6A5DB3182833}.Release|x86.Build.0 = Release|x86
+		{E9033C3A-8176-4449-A35A-C8F1E0DC464C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E9033C3A-8176-4449-A35A-C8F1E0DC464C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E9033C3A-8176-4449-A35A-C8F1E0DC464C}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{E9033C3A-8176-4449-A35A-C8F1E0DC464C}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{E9033C3A-8176-4449-A35A-C8F1E0DC464C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E9033C3A-8176-4449-A35A-C8F1E0DC464C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E9033C3A-8176-4449-A35A-C8F1E0DC464C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E9033C3A-8176-4449-A35A-C8F1E0DC464C}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{E9033C3A-8176-4449-A35A-C8F1E0DC464C}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{E9033C3A-8176-4449-A35A-C8F1E0DC464C}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

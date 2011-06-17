@@ -26,7 +26,7 @@ namespace de.ahzf.Hermod.Datastructures
 {
 
     /// <summary>
-    /// A IPv4 address.
+    /// An IPv4 address.
     /// </summary>    
     public class IPv6Address : IComparable, IComparable<IPv6Address>, IEquatable<IPv6Address>, IIPAddress
     {
@@ -42,6 +42,9 @@ namespace de.ahzf.Hermod.Datastructures
 
         #region Length
 
+        /// <summary>
+        /// The length of an IPv6Address.
+        /// </summary>
         public Byte Length
         {
             get
@@ -83,18 +86,6 @@ namespace de.ahzf.Hermod.Datastructures
 
         #endregion
 
-        #region IPAddress(myAddressString)
-
-        /// <summary>
-        /// Generates a new IPAddress.
-        /// </summary>
-        public IPv6Address(String myAddressString)
-        {
-            _IPAddressArray = Encoding.UTF8.GetBytes(myAddressString);
-        }
-
-        #endregion
-
         #endregion
 
 
@@ -107,10 +98,27 @@ namespace de.ahzf.Hermod.Datastructures
         }
 
 
+        #region GetBytes()
+
         public Byte[] GetBytes()
         {
             return new Byte[_Length];
         }
+
+        #endregion
+
+        #region Parse(IPv6AddressString)
+
+        /// <summary>
+        /// Parsed the given string representation into a new IPv6Address.
+        /// </summary>
+        /// <param name="IPv6AddressString">An IPv6Address string representation.</param>
+        public static IPv6Address Parse(String IPv6AddressString)
+        {
+            throw new ArgumentException("The given string '" + IPv6AddressString + "' is not a valid IPv6Address!");
+        }
+
+        #endregion
 
 
         #region Operator overloading

@@ -45,6 +45,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Datastructures\IPAddressFactory.cs" />
     <Compile Include="Datastructures\ILocalSocket.cs" />
     <Compile Include="HTTP\Common\AcceptType.cs" />
     <Compile Include="HTTP\Common\HTTPAuthenticationTypes.cs" />

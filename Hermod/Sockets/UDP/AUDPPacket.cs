@@ -30,7 +30,7 @@ namespace de.ahzf.Hermod.Sockets.UDP
     /// <summary>
     /// An abstract class for all UDP packets.
     /// </summary>
-    public abstract class AUDPPacket : IUDPPacket
+    public abstract class AUDPPacket : IDisposable
     {
 
         #region Data
@@ -44,16 +44,68 @@ namespace de.ahzf.Hermod.Sockets.UDP
 
         #region Properties
 
-        #region RemoteSocket
+        #region LocalEndPoint
 
         /// <summary>
-        /// The remote sender of the UDP packet.
+        /// The local socket of the UDP packet.
         /// </summary>
-        public IPEndPoint RemoteEndPoint { get; protected set; }
+        public IPEndPoint LocalEndPoint { get; protected set; }
+
+        #endregion
+
+        #region LocalPort
+
+        /// <summary>
+        /// The local IP port.
+        /// </summary>
+        public IPPort LocalPort
+        {
+            get
+            {
+
+                if (LocalEndPoint != null)
+                    return new IPPort((UInt16)LocalEndPoint.Port);
+
+                return new IPPort(0);
+
+            }
+        }
+
+        #endregion
+
+
+        #region RemoteSocket
+
+        protected IPEndPoint _RemoteEndPoint;
+
+        /// <summary>
+        /// The remote socket of the UDP packet.
+        /// </summary>
+        public IPEndPoint RemoteEndPoint
+        {
+
+            get
+            {
+                return _RemoteEndPoint;
+            }
+
+            set
+            {
+                if (value != null)
+                {
+                    _RemoteEndPoint = value;
+                    _RemoteHost = new IPv4Address(RemoteEndPoint.Address);
+
+                }
+            }
+
+        }
 
         #endregion
 
         #region RemoteHost
+
+        private IIPAddress _RemoteHost;
 
         /// <summary>
         /// The remote IP host.
@@ -102,14 +154,18 @@ namespace de.ahzf.Hermod.Sockets.UDP
 
         #endregion
 
-        #region AUDPPacket(PacketData, RemoteEndPoint)
+        #region AUDPPacket(UDPPacketData, LocalEndPoint, RemoteEndPoint)
 
         /// <summary>
         /// Initiate a new abstract AUDPPacket
         /// </summary>
-        public AUDPPacket(Byte[] PacketData, IPEndPoint RemoteEndPoint)
+        /// <param name="UDPPacketData">The UDP packet data.</param>
+        /// <param name="LocalEndPoint">The local socket of this UDP packet.</param>
+        /// <param name="RemoteEndPoint">The remote socket of this UDP packet.</param>
+        public AUDPPacket(Byte[] UDPPacketData, IPEndPoint LocalEndPoint, IPEndPoint RemoteEndPoint)
         {
-            this.PacketData     = PacketData;
+            this.PacketData     = UDPPacketData;
+            this.LocalEndPoint  = LocalEndPoint;
             this.RemoteEndPoint = RemoteEndPoint;
         }
 
@@ -120,7 +176,11 @@ namespace de.ahzf.Hermod.Sockets.UDP
 
         #region IDisposable Members
 
-        public abstract void Dispose();
+        /// <summary>
+        /// Dispose this UDP packet.
+        /// </summary>
+        public virtual void Dispose()
+        { }
 
         #endregion
 

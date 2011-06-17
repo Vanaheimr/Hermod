@@ -20,6 +20,7 @@
 using System.Net;
 
 using de.ahzf.Hermod.Datastructures;
+using System;
 
 #endregion
 
@@ -33,7 +34,13 @@ namespace de.ahzf.Hermod.Sockets.UDP
     {
 
         /// <summary>
-        /// The remote sender of the UDP packet.
+        /// The local socket of this UDP packet.
+        /// </summary>
+        IPEndPoint LocalEndPoint { get; }
+
+
+        /// <summary>
+        /// The remote socket of this UDP packet.
         /// </summary>
         IPEndPoint RemoteEndPoint { get; }
 
@@ -46,6 +53,9 @@ namespace de.ahzf.Hermod.Sockets.UDP
         /// The remote IP port.
         /// </summary>
         IPPort     RemotePort     { get; }
+
+
+        Byte[] Data { get; }
 
     }
 

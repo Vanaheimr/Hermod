@@ -28,8 +28,17 @@ namespace de.ahzf.Hermod.Sockets.UDP
     /// <summary>
     /// A class representing a UDP packet
     /// </summary>
-    public class UDPPacket : AUDPPacket
+    public class UDPPacket : AUDPPacket, IUDPPacket
     {
+
+        #region Properties
+
+        /// <summary>
+        /// The UDP packet data.
+        /// </summary>
+        public Byte[] Data { get; private set; }
+
+        #endregion
 
         #region Constructor(s)
 
@@ -43,27 +52,21 @@ namespace de.ahzf.Hermod.Sockets.UDP
 
         #endregion
 
-        #region UDPPacket()
+        #region UDPPacket(UDPPacketData, LocalEndPoint, RemoteEndPoint)
 
         /// <summary>
         /// Create a new UDP packet.
         /// </summary>
-        public UDPPacket(Byte[] UDPPacket, IPEndPoint RemoteEndPoint)
-            : base(UDPPacket, RemoteEndPoint)
-        { }
+        /// <param name="UDPPacketData">The UDP packet data.</param>
+        /// <param name="LocalEndPoint">The local socket of this UDP packet.</param>
+        /// <param name="RemoteEndPoint">The remote socket of this UDP packet.</param>
+        public UDPPacket(Byte[] UDPPacketData, IPEndPoint LocalEndPoint, IPEndPoint RemoteEndPoint)
+            : base(UDPPacketData, LocalEndPoint, RemoteEndPoint)
+        {
+            Data = UDPPacketData;
+        }
 
         #endregion
-
-        #endregion
-
-
-        #region Dispose()
-
-        /// <summary>
-        /// Dispose this object
-        /// </summary>
-        public override void Dispose()
-        { }
 
         #endregion
 
