@@ -222,7 +222,7 @@ namespace de.ahzf.Hermod.Sockets
         /// </summary>
         public override String ToString()
         {
-            return LocalSocket.ToString() + " <-> " + RemoteSocket.ToString();
+            return LocalSocket.ToString() + "(local) <-> " + RemoteSocket.ToString() + "(remote)";
         }
 
         #endregion

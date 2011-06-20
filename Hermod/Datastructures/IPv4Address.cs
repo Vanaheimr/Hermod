@@ -71,6 +71,25 @@ namespace de.ahzf.Hermod.Datastructures
 
         #endregion
 
+        #region IPAddress(UInt32)
+
+        /// <summary>
+        /// Generates a new IPv4Address based on the given UInt32 representation.
+        /// </summary>
+        public IPv4Address(UInt32 UInt32)
+        {
+
+            _IPAddressArray = new Byte[4] {
+                                      (Byte) ( UInt32  & 0xFF),
+                                      (Byte) ((UInt32 >>  8) & 0xFF),
+                                      (Byte) ((UInt32 >> 16) & 0xFF),
+                                      (Byte) ( UInt32 >> 24)
+                                  };
+
+        }
+
+        #endregion
+
         #region IPAddress(ByteArray)
 
         /// <summary>
@@ -143,7 +162,7 @@ namespace de.ahzf.Hermod.Datastructures
 
         public Byte[] GetBytes()
         {
-            return new Byte[_Length];
+            return _IPAddressArray;
         }
 
         #endregion
