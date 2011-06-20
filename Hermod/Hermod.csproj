@@ -89,6 +89,7 @@
     <Compile Include="Sockets\TCP\TCPConnection.cs" />
     <Compile Include="Sockets\TCP\TCPServer.cs" />
     <Compile Include="Sockets\UDP\AUDPPacket.cs" />
+    <Compile Include="Sockets\ALocalRemoteSockets.cs" />
     <Compile Include="Sockets\UDP\UDPExtensions.cs" />
     <Compile Include="Sockets\UDP\IUDPPacket.cs" />
     <Compile Include="Sockets\UDP\UDPClient.cs" />

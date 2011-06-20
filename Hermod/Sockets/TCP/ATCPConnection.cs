@@ -32,77 +32,13 @@ using de.ahzf.Hermod.Datastructures;
 namespace de.ahzf.Hermod.Sockets.TCP
 {
 
-    public abstract class ATCPConnection : ITCPConnection
+    /// <summary>
+    /// An abstract class for all TCP connections.
+    /// </summary>
+    public abstract class ATCPConnection : ALocalRemoteSockets, ITCPConnection
     {
 
         #region Properties
-
-        #region LocalSocket
-
-        /// <summary>
-        /// The local socket.
-        /// </summary>
-        public IPSocket LocalSocket { get; protected set; }
-
-
-        /// <summary>
-        /// The local host.
-        /// </summary>
-        public IIPAddress LocalHost
-        {
-            get
-            {
-                return LocalSocket.IPAddress;
-            }
-        }
-
-
-        /// <summary>
-        /// The local port.
-        /// </summary>
-        public IPPort LocalPort
-        {
-            get
-            {
-                return LocalSocket.Port;
-            }
-        }
-
-        #endregion
-
-        #region RemoteSocket
-
-        /// <summary>
-        /// The remote socket.
-        /// </summary>
-        public IPSocket RemoteSocket { get; protected set; }
-
-
-        /// <summary>
-        /// The remote host.
-        /// </summary>
-        public IIPAddress RemoteHost
-        {
-            get
-            {
-                return RemoteSocket.IPAddress;
-            }
-        }
-
-
-        /// <summary>
-        /// The remote port.
-        /// </summary>
-        public IPPort RemotePort
-        {
-            get
-            {
-                return RemoteSocket.Port;
-            }
-        }
-
-        #endregion
-
 
         #region TCPClientConnection
 
@@ -259,6 +195,9 @@ namespace de.ahzf.Hermod.Sockets.TCP
 
         #region Close()
 
+        /// <summary>
+        /// Close this TCP connection.
+        /// </summary>
         public void Close()
         {
             if (TCPClientConnection != null)
@@ -270,7 +209,13 @@ namespace de.ahzf.Hermod.Sockets.TCP
 
         #region IDisposable Members
 
-        public abstract void Dispose();
+        /// <summary>
+        /// Dispose this packet.
+        /// </summary>
+        public override void Dispose()
+        {
+            Close();
+        }
 
         #endregion
 
