@@ -373,7 +373,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         /// </summary>
         public override String ToString()
         {
-            return String.Format("{0} - {1}", MediaType, CharSet);
+            return String.Format("{0}; charset={1}", MediaType, CharSet);
         }
 
         #endregion

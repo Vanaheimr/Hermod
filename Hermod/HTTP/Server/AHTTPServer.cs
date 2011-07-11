@@ -119,7 +119,7 @@ namespace de.ahzf.Hermod.HTTP
 
             var HTTPServiceImplementations = new AutoDiscovery<HTTPServiceInterface>();
 
-            if (HTTPServiceImplementations != null && HTTPServiceImplementations.Count > 1)
+            if (HTTPServiceImplementations != null && HTTPServiceImplementations.Count >= 1)
                 foreach (var _Implementation in HTTPServiceImplementations)
                 {
 
