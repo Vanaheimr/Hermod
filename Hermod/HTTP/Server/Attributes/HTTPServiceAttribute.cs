@@ -38,47 +38,11 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Properties
 
-        #region IPAddress
+        public IPAddress IPAddress          { get; private set; }
 
-        private IPAddress _IPAddress;
+        public String    Host               { get; private set; }
 
-        public IPAddress IPAddress
-        {
-            get
-            {
-                return _IPAddress;
-            }
-        }
-
-        #endregion
-
-        #region Host
-        
-        private String _Host;
-
-        public String Host
-        {
-            get
-            {
-                return _Host;
-            }
-        }
-
-        #endregion
-
-        #region HostAuthentication
-
-        private Boolean _HostAuthentication;
-
-        public Boolean HostAuthentication
-        {
-            get
-            {
-                return _HostAuthentication;
-            }
-        }
-
-        #endregion
+        public Boolean   HostAuthentication { get; private set; }
 
         #endregion
 
@@ -91,9 +55,9 @@ namespace de.ahzf.Hermod.HTTP
 
         public HTTPServiceAttribute()
         {
-            _IPAddress           = IPAddress.Any;
-            _Host                = _DefaultHost;
-            _HostAuthentication = false;
+            this.IPAddress          = IPAddress.Any;
+            this.Host               = _DefaultHost;
+            this.HostAuthentication = false;
         }
 
         #endregion
@@ -102,9 +66,9 @@ namespace de.ahzf.Hermod.HTTP
 
         public HTTPServiceAttribute(Boolean HostAuthentication)
         {
-            _IPAddress          = IPAddress.Any;
-            _Host               = _DefaultHost;
-            _HostAuthentication = HostAuthentication;
+            this.IPAddress          = IPAddress.Any;
+            this.Host               = _DefaultHost;
+            this.HostAuthentication = HostAuthentication;
         }
 
         #endregion
@@ -113,9 +77,9 @@ namespace de.ahzf.Hermod.HTTP
 
         public HTTPServiceAttribute(String Host, Boolean HostAuthentication)
         {
-            _IPAddress          = IPAddress.Any;
-            _Host               = Host;
-            _HostAuthentication = HostAuthentication;
+            this.IPAddress          = IPAddress.Any;
+            this.Host               = Host;
+            this.HostAuthentication = HostAuthentication;
         }
 
         #endregion
@@ -124,9 +88,9 @@ namespace de.ahzf.Hermod.HTTP
 
         public HTTPServiceAttribute(String Host)
         {
-            _IPAddress           = IPAddress.Any;
-            _Host                = Host;
-            _HostAuthentication = false;
+            this.IPAddress          = IPAddress.Any;
+            this.Host               = Host;
+            this.HostAuthentication = false;
         }
 
         #endregion
@@ -135,9 +99,9 @@ namespace de.ahzf.Hermod.HTTP
 
         public HTTPServiceAttribute(IPAddress IPAddress, String Host, Boolean HostAuthentication)
         {
-            _IPAddress          = IPAddress;
-            _Host               = Host;
-            _HostAuthentication = HostAuthentication;
+            this.IPAddress          = IPAddress;
+            this.Host               = Host;
+            this.HostAuthentication = HostAuthentication;
         }
 
         #endregion

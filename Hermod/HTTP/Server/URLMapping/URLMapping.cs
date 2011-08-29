@@ -38,7 +38,8 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Data
 
-        private readonly ConcurrentDictionary<String, HostNode> _HostNodes;
+        private readonly ConcurrentDictionary<String, HostNode>    _HostNodes;
+        private readonly SortedDictionary<String, HTTPEventSource> _EventSources;
 
         #endregion
 
@@ -51,7 +52,8 @@ namespace de.ahzf.Hermod.HTTP
         /// </summary>
         public URLMapping()
         {
-            _HostNodes  = new ConcurrentDictionary<String, HostNode>();
+            _HostNodes    = new ConcurrentDictionary<String, HostNode>();
+            _EventSources = new SortedDictionary<String, HTTPEventSource>();
         }
 
         #endregion
@@ -64,15 +66,6 @@ namespace de.ahzf.Hermod.HTTP
         /// <summary>
         /// Add a method handler for the given parameters.
         /// </summary>
-        /// <param name="myMethodHandler"></param>
-        /// <param name="myHost"></param>
-        /// <param name="myURL"></param>
-        /// <param name="myHTTPMethod"></param>
-        /// <param name="myHTTPContentType"></param>
-        /// <param name="HostAuthentication"></param>
-        /// <param name="URLAuthentication"></param>
-        /// <param name="HTTPMethodAuthentication"></param>
-        /// <param name="ContentTypeAuthentication"></param>
         public void AddHandler(MethodInfo       myMethodHandler,
                                String           myHost,
                                String           myURL,
@@ -169,16 +162,28 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
+        #region AddEventSource(myMethodInfo, myHost, myURITemplate, myEventIdentification, MaxNumberOfCachedEvents, myIsSharedEventSource, myNeedsExplicitAuthentication)
+
+        /// <summary>
+        /// Add an HTTP event source and a method handler for the given parameters.
+        /// </summary>
+        internal void AddEventSource(MethodInfo myMethodInfo, String myHost, String myURITemplate, String myEventIdentification, UInt32 MaxNumberOfCachedEvents, Boolean myIsSharedEventSource, Boolean myNeedsExplicitAuthentication)
+        {
+
+            _EventSources.Add(myEventIdentification, new HTTPEventSource(myEventIdentification) { MaxNumberOfCachedEvents = MaxNumberOfCachedEvents });
+
+            AddHandler(myMethodInfo, myHost, myURITemplate, HTTPMethod.GET, HTTPContentType.EVENTSTREAM, myNeedsExplicitAuthentication);
+
+        }
+
+        #endregion
+
+
         #region GetHandler(myHost, myURL, myHTTPMethod = null, myHTTPContentType = null)
 
         /// <summary>
         /// Return the best matching method handler for the given parameters.
         /// </summary>
-        /// <param name="myHost"></param>
-        /// <param name="myURL"></param>
-        /// <param name="myHTTPMethod"></param>
-        /// <param name="myHTTPContentType"></param>
-        /// <returns></returns>
         public Tuple<MethodInfo, IEnumerable<Object>> GetHandler(String myHost, String myURL, HTTPMethod myHTTPMethod = null, HTTPContentType myHTTPContentType = null)
         {
 
@@ -252,12 +257,6 @@ namespace de.ahzf.Hermod.HTTP
         /// <summary>
         /// Return the best matching error handler for the given parameters.
         /// </summary>
-        /// <param name="myHost"></param>
-        /// <param name="myURL"></param>
-        /// <param name="myHTTPMethod"></param>
-        /// <param name="myHTTPContentType"></param>
-        /// <param name="myHTTPStatusCode"></param>
-        /// <returns></returns>
         public Tuple<MethodInfo, IEnumerable<Object>> GetErrorHandler(String myHost, String myURL, HTTPMethod myHTTPMethod = null, HTTPContentType myHTTPContentType = null, HTTPStatusCode myHTTPStatusCode = null)
         {
 

@@ -129,7 +129,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         public static readonly HTTPContentType SWF             = new HTTPContentType("application/x-shockwave-flash");
         public static readonly HTTPContentType PDF             = new HTTPContentType("application/pdf");
         public static readonly HTTPContentType OCTETSTREAM     = new HTTPContentType("application/octet-stream");
-        public static readonly HTTPContentType EVENTSTREAM     = new HTTPContentType("text/event-stream");
+        public static readonly HTTPContentType EVENTSTREAM     = new HTTPContentType("text/event-stream",      "UTF-8");
 
         public static readonly HTTPContentType GIF             = new HTTPContentType("image/gif");
         public static readonly HTTPContentType ICO             = new HTTPContentType("image/ico");

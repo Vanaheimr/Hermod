@@ -197,8 +197,13 @@ namespace de.ahzf.Hermod.HTTP
 
                 // Copy only the number of bytes given within
                 // the HTTP header element 'ContentType'!
-                RequestBody = new Byte[RequestHeader.ContentLength];
-                Array.Copy(_ByteArray, _ReadPosition + 1, RequestBody, 0, (Int64) RequestHeader.ContentLength);
+                if (RequestHeader.ContentLength.HasValue)
+                {
+                    RequestBody = new Byte[RequestHeader.ContentLength.Value];
+                    Array.Copy(_ByteArray, _ReadPosition + 1, RequestBody, 0, (Int64)RequestHeader.ContentLength.Value);
+                }
+                else
+                    RequestBody = new Byte[0];
 
                 // The parsing of the http header failed!
                 if (__HTTPStatusCode != HTTPStatusCode.OK)

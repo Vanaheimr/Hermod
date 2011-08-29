@@ -75,7 +75,7 @@ namespace de.ahzf.Hermod.Demo
             Console.WriteLine(_HTTPServer1);
 
             // This service uses a custom HTTPService defined within IRESTService.cs
-            var _HTTPServer2 = new HTTPServer<RESTService>(IPv4Address.Localhost, IPPort.HTTP, Autostart: true)
+            var _HTTPServer2 = new HTTPServer<IRESTService>(IPv4Address.Localhost, IPPort.HTTP, Autostart: true)
                                    {
                                        ServerName = "Customized Hermod Demo"
                                    };

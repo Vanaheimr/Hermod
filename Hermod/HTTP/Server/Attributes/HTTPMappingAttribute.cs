@@ -34,39 +34,15 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Properties
 
-        #region HTTPMethod
-
-        private HTTPMethod _HTTPMethod;
-
         /// <summary>
         /// The HTTP method of this HTTP mapping.
         /// </summary>
-        public HTTPMethod HTTPMethod
-        {
-            get
-            {
-                return _HTTPMethod;
-            }
-        }
-
-        #endregion
-
-        #region UriTemplate
-
-        private String _UriTemplate;
+        public HTTPMethod HTTPMethod { get; private set; }
 
         /// <summary>
         /// The URI template of this HTTP mapping.
         /// </summary>
-        public String UriTemplate
-        {
-            get
-            {
-                return _UriTemplate;
-            }
-        }
-
-        #endregion
+        public String UriTemplate { get; private set; }
 
         #endregion
 
@@ -81,8 +57,8 @@ namespace de.ahzf.Hermod.HTTP
         /// <param name="UriTemplate">The URI template of this HTTP mapping.</param>
         public HTTPMappingAttribute(HTTPMethod HTTPMethod, String UriTemplate)
         {
-            _HTTPMethod  = HTTPMethod;
-            _UriTemplate = UriTemplate;
+            this.HTTPMethod  = HTTPMethod;
+            this.UriTemplate = UriTemplate;
         }
 
         #endregion
@@ -97,12 +73,12 @@ namespace de.ahzf.Hermod.HTTP
         public HTTPMappingAttribute(HTTPMethods HTTPMethod, String UriTemplate)
         {
             
-            _HTTPMethod  = de.ahzf.Hermod.HTTP.Common.HTTPMethod.ParseEnum(HTTPMethod);
+            this.HTTPMethod  = de.ahzf.Hermod.HTTP.Common.HTTPMethod.ParseEnum(HTTPMethod);
 
-            if (_HTTPMethod == null)
+            if (this.HTTPMethod == null)
                 throw new ArgumentNullException("Invalid HTTPMethod!");
             
-            _UriTemplate = UriTemplate;
+            this.UriTemplate = UriTemplate;
 
         }
 

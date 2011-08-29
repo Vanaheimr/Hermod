@@ -114,6 +114,9 @@ namespace de.ahzf.Hermod.HTTP
             HTTPMethod _HTTPMethod;
             String     _URITemplate;
             String     _Host = "*";
+            String     _EventIdentification;
+            UInt32     _MaxNumberOfCachedEvents = 0;
+            Boolean    _IsSharedEventSource = false;
 
             #endregion
 
@@ -144,10 +147,7 @@ namespace de.ahzf.Hermod.HTTP
 
                     HTTPContentType _CurrentContentType = null;
 
-                    var _CurrentInterface            = typeof(HTTPServiceInterface);
-                    //var _HTTPImplementationAttribute = _Implementation.GetType().GetCustomAttributes(typeof(HTTPImplementationAttribute), false);
-                    //if (_HTTPImplementationAttribute != null && _HTTPImplementationAttribute.Count() == 1)
-                    //    _CurrentContentType = (_HTTPImplementationAttribute[0] as HTTPImplementationAttribute).ContentType;
+                    var _CurrentInterface = typeof(HTTPServiceInterface);
 
                     if (_Implementation.HTTPContentTypes.Count() != 1)
                         throw new ApplicationException("Less than and more than one HTTPContentType is currently not supported!");
@@ -184,8 +184,9 @@ namespace de.ahzf.Hermod.HTTP
                     foreach (var _MethodInfo in _CurrentInterface.GetMethods())
                     {
 
-                        _HTTPMethod = null;
-                        _URITemplate = "";
+                        _HTTPMethod          = null;
+                        _EventIdentification = null;
+                        _URITemplate         = "";
                         NeedsExplicitAuthentication = _GlobalNeedsExplicitAuthentication;
 
                         foreach (var _Attribute in _MethodInfo.GetCustomAttributes(true))
@@ -196,9 +197,33 @@ namespace de.ahzf.Hermod.HTTP
                             var _HTTPMappingAttribute = _Attribute as HTTPMappingAttribute;
                             if (_HTTPMappingAttribute != null)
                             {
-                                _HTTPMethod = _HTTPMappingAttribute.HTTPMethod;
+
+                                if (_EventIdentification != null)
+                                    throw new Exception("URI '" + _URITemplate + "' is already registered as HTTP event source!");
+
+                                _HTTPMethod  = _HTTPMappingAttribute.HTTPMethod;
                                 _URITemplate = _HTTPMappingAttribute.UriTemplate;
                                 continue;
+
+                            }
+
+                            #endregion
+
+                            #region HTTPEventMappingAttribute
+
+                            var _HTTPEventMappingAttribute = _Attribute as HTTPEventMappingAttribute;
+                            if (_HTTPEventMappingAttribute != null)
+                            {
+                                
+                                if (_HTTPMethod != null)
+                                    throw new Exception("URI '" + _URITemplate + "' is already registered as HTTP method!");
+
+                                _EventIdentification     = _HTTPEventMappingAttribute.EventIdentification;
+                                _URITemplate             = _HTTPEventMappingAttribute.UriTemplate;
+                                _MaxNumberOfCachedEvents = _HTTPEventMappingAttribute.MaxNumberOfCachedEvents;
+                                _IsSharedEventSource     = _HTTPEventMappingAttribute.IsSharedEventSource;
+                                continue;
+
                             }
 
                             #endregion
@@ -241,6 +266,9 @@ namespace de.ahzf.Hermod.HTTP
                         if (_HTTPMethod != null && _URITemplate != null && _URITemplate != "")
                             AddMethodCallback(_MethodInfo, _Host, _URITemplate, _HTTPMethod, _CurrentContentType, NeedsExplicitAuthentication);
 
+                        else if (_EventIdentification != null && _URITemplate != null && _URITemplate != "")
+                            AddEventSource(_MethodInfo, _Host, _URITemplate, _EventIdentification, _MaxNumberOfCachedEvents, _IsSharedEventSource, NeedsExplicitAuthentication);
+
                     }
 
                     #endregion
@@ -262,6 +290,22 @@ namespace de.ahzf.Hermod.HTTP
         }
 
         #endregion
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="myMethodInfo"></param>
+        /// <param name="myHost"></param>
+        /// <param name="myURITemplate"></param>
+        /// <param name="myEventIdentification"></param>
+        /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events (0 means infinite).</param>
+        /// <param name="myIsSharedEventSource"></param>
+        /// <param name="myNeedsExplicitAuthentication"></param>
+        public void AddEventSource(MethodInfo myMethodInfo, String myHost, String myURITemplate, String myEventIdentification, UInt32 MaxNumberOfCachedEvents, Boolean myIsSharedEventSource = false, Boolean myNeedsExplicitAuthentication = false)
+        {
+            _URLMapping.AddEventSource(myMethodInfo, myHost, myURITemplate, myEventIdentification, MaxNumberOfCachedEvents, myIsSharedEventSource, myNeedsExplicitAuthentication);
+        }
 
     }
 

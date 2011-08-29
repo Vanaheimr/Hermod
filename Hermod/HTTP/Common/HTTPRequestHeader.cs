@@ -32,6 +32,9 @@ using de.ahzf.Hermod;
 namespace de.ahzf.Hermod.HTTP.Common
 {
 
+    /// <summary>
+    /// A http request header.
+    /// </summary>
     public class HTTPRequestHeader
     {
 
@@ -115,7 +118,7 @@ namespace de.ahzf.Hermod.HTTP.Common
 
             get
             {
-                return GetHeaderField<String>("Host");
+                return Get<String>("Host");
             }
 
             set
@@ -138,11 +141,11 @@ namespace de.ahzf.Hermod.HTTP.Common
             get
             {
                 
-                var _Accept = GetHeaderField<IEnumerable<AcceptType>>("Accept");
+                var _Accept = Get<IEnumerable<AcceptType>>("Accept");
                 if (_Accept != null)
                     return _Accept;
 
-                var _AcceptString = GetHeaderField<String>("Accept");
+                var _AcceptString = Get<String>("Accept");
                 var _AcceptList   = new List<AcceptType>();
 
                 if (_AcceptString.Contains(","))
@@ -170,20 +173,12 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #region ContentLength
 
-        public UInt64 ContentLength
+        public UInt64? ContentLength
         {
-
             get
             {
-
-                UInt64 _ContentLength;
-                if (!UInt64.TryParse(GetHeaderField<String>("Content-Length"), out _ContentLength))
-                    return 0;
-
-                return _ContentLength;
-
+                return GetNullable<UInt64>("Content-Length");
             }
-
         }
 
         #endregion
@@ -196,11 +191,11 @@ namespace de.ahzf.Hermod.HTTP.Common
             get
             {
 
-                var _ContentType = GetHeaderField<HTTPContentType>("Content-Type");
+                var _ContentType = Get<HTTPContentType>("Content-Type");
                 if (_ContentType != null)
                     return _ContentType;
 
-                _ContentType = new HTTPContentType(GetHeaderField<String>("Content-Type"));
+                _ContentType = new HTTPContentType(Get<String>("Content-Type"));
 
                 SetHeaderField("Content-Type", _ContentType);
 
@@ -220,11 +215,11 @@ namespace de.ahzf.Hermod.HTTP.Common
             get
             {
 
-                var _Authorization = GetHeaderField<HTTPBasicAuthentication>("Authorization");
+                var _Authorization = Get<HTTPBasicAuthentication>("Authorization");
                 if (_Authorization != null)
                     return _Authorization;
 
-                _Authorization = new HTTPBasicAuthentication(GetHeaderField<String>("Authorization"));
+                _Authorization = new HTTPBasicAuthentication(Get<String>("Authorization"));
 
                 SetHeaderField("Authorization", _Authorization);
 
@@ -236,8 +231,30 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #endregion
 
+        #region LastEventId
 
-        // Additional header infos
+        /// <summary>
+        /// The last event id.
+        /// </summary>
+        public UInt64? LastEventId
+        {
+            
+            get
+            {
+                return GetNullable<UInt64>("Last-Event-Id");
+            }
+
+            set
+            {
+                if (value != null && value.HasValue)
+                    SetHeaderField("Last-Event-Id", value.Value);
+                else
+                    throw new Exception("Could not set the HTTP request header 'Last-Event-Id' field!");
+            }
+
+        }
+
+        #endregion
 
         #region KeepAlive
 
@@ -246,12 +263,13 @@ namespace de.ahzf.Hermod.HTTP.Common
 
             get
             {
-                
-                var _Connection = GetHeaderField<String>("Connection");
-                if (_Connection == null)
-                    return false;
 
-                return _Connection.ToLower().Contains("keep-alive");
+                String _Connection;
+                if (TryGet<String>("Connection", out _Connection))
+                    if (_Connection != null)
+                        return _Connection.ToLower().Contains("keep-alive");
+                
+                return false;
 
             }
 
@@ -265,6 +283,9 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #region HTTPRequestHeader()
 
+        /// <summary>
+        /// Create a new empty http request header.
+        /// </summary>
         public HTTPRequestHeader()
         {
 
@@ -281,20 +302,25 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #endregion
 
-        #region HTTPRequestHeader(myHTTPHeader, out myHTTPStatusCode)
+        #region HTTPRequestHeader(HTTPHeader, out HTTPStatusCode)
 
-        public HTTPRequestHeader(String myHTTPHeader, out HTTPStatusCode myHTTPStatusCode)
+        /// <summary>
+        /// Create a new http request header based on the given string representation.
+        /// </summary>
+        /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
+        /// <param name="HTTPStatusCode">HTTPStatusCode.OK is the header could be parsed.</param>
+        public HTTPRequestHeader(String HTTPHeader, out HTTPStatusCode HTTPStatusCode)
             : this()
         {
 
             #region Split the request into lines
 
-            RAWHTTPHeader = myHTTPHeader;
+            RAWHTTPHeader = HTTPHeader;
 
-            var _HTTPRequestLines = myHTTPHeader.Split(_LineSeperator, StringSplitOptions.RemoveEmptyEntries);
+            var _HTTPRequestLines = HTTPHeader.Split(_LineSeperator, StringSplitOptions.RemoveEmptyEntries);
             if (_HTTPRequestLines.Length == 0)
             {
-                myHTTPStatusCode = HTTPStatusCode.BadRequest;
+                HTTPStatusCode = HTTPStatusCode.BadRequest;
                 return;
             }
 
@@ -307,7 +333,7 @@ namespace de.ahzf.Hermod.HTTP.Common
             // e.g: PROPFIND /file/file Name HTTP/1.1
             if (_HTTPMethodHeader.Length != 3)
             {
-                myHTTPStatusCode = HTTPStatusCode.BadRequest;
+                HTTPStatusCode = HTTPStatusCode.BadRequest;
                 return;
             }
 
@@ -316,7 +342,7 @@ namespace de.ahzf.Hermod.HTTP.Common
             HTTPMethod _HTTPMethod = null;
             if (!HTTPMethod.TryParseString(_HTTPMethodHeader[0], out _HTTPMethod))
             {
-                myHTTPStatusCode = HTTPStatusCode.MethodNotAllowed;
+                HTTPStatusCode = HTTPStatusCode.MethodNotAllowed;
                 return;
             }
 
@@ -385,7 +411,7 @@ namespace de.ahzf.Hermod.HTTP.Common
             if (!HeaderFields.ContainsKey("Host"))
                 HeaderFields.Add("Host", "*");
 
-            myHTTPStatusCode = HTTPStatusCode.OK;
+            HTTPStatusCode = HTTPStatusCode.OK;
 
         }
 
@@ -394,50 +420,181 @@ namespace de.ahzf.Hermod.HTTP.Common
         #endregion
 
 
-        #region GetHeaderField<T>(myKey)
-
-        /// <summary>
-        /// Return a http header field.
-        /// </summary>
-        /// <typeparam name="T">The type of the requested header field.</typeparam>
-        /// <param name="myKey">The key of the requested header field.</typeparam>
-        public T GetHeaderField<T>(String myKey)
-        {
-
-            Object _Value = null;
-            if (HeaderFields.TryGetValue(myKey, out _Value))
-                if (_Value is T)
-                    return (T) _Value;
-
-            return default(T);
-
-        }
-
-        #endregion
-
-        #region SetHeaderField(myKey, myValue)
+        #region (private) SetHeaderField(Key, Value)
 
         /// <summary>
         /// Sets a http header field.
         /// </summary>
-        /// <param name="myKey">The key of the requested header field.</typeparam>
-        /// <param name="myValue">The value of the requested header field.</typeparam>
-        private void SetHeaderField(String myKey, Object myValue)
+        /// <param name="Key">The key of the requested header field.</typeparam>
+        /// <param name="Value">The value of the requested header field.</typeparam>
+        private void SetHeaderField(String Key, Object Value)
         {
 
-            if (myValue != null)
+            if (Value != null)
             {
 
-                if (HeaderFields.ContainsKey(myKey))
-                    HeaderFields[myKey] = myValue;
+                if (HeaderFields.ContainsKey(Key))
+                    HeaderFields[Key] = Value;
                 else
-                    HeaderFields.Add(myKey, myValue);
+                    HeaderFields.Add(Key, Value);
 
             }
 
             else
-                if (HeaderFields.ContainsKey(myKey))
-                    HeaderFields.Remove(myKey);
+                if (HeaderFields.ContainsKey(Key))
+                    HeaderFields.Remove(Key);
+
+        }
+
+        #endregion
+
+
+        #region TryGet(Key)
+
+        /// <summary>
+        /// Return a http header field.
+        /// </summary>
+        /// <param name="Key">The key of the requested header field.</param>
+        /// <param name="Value">The value of the requested header field.</param>
+        /// <returns>True if the requested header exists; false otherwise.</returns>
+        public Boolean TryGet(String Key, out Object Value)
+        {
+            return HeaderFields.TryGetValue(Key, out Value);
+        }
+
+        #endregion
+
+        #region TryGet<T>(Key)
+
+        /// <summary>
+        /// Return a http header field.
+        /// </summary>
+        /// <typeparam name="T">The type of the value of the requested header field.</typeparam>
+        /// <param name="Key">The key of the requested header field.</param>
+        /// <param name="Value">The value of the requested header field.</param>
+        /// <returns>True if the requested header exists; false otherwise.</returns>
+        public Boolean TryGet<T>(String Key, out T Value)
+        {
+
+            Object _Object;
+
+            if (HeaderFields.TryGetValue(Key, out _Object))
+            {
+
+                if (_Object is T)
+                {
+                    Value = (T) _Object;
+                    return true;
+                }
+
+                else if (typeof(T).Equals(typeof(Int32)))
+                {
+                    Int32 _Int32;
+                    if (Int32.TryParse(_Object.ToString(), out _Int32))
+                    {
+                        Value = (T) (Object) _Int32;
+                        SetHeaderField(Key, Value);
+                        return true;
+                    }
+                }
+
+                else if (typeof(T).Equals(typeof(UInt32)))
+                {
+                    UInt32 _UInt32;
+                    if (UInt32.TryParse(_Object.ToString(), out _UInt32))
+                    {
+                        Value = (T) (Object) _UInt32;
+                        SetHeaderField(Key, Value);
+                        return true;
+                    }
+                }
+
+                else if (typeof(T).Equals(typeof(Int64)))
+                {
+                    Int64 _Int64;
+                    if (Int64.TryParse(_Object.ToString(), out _Int64))
+                    {
+                        Value = (T) (Object) _Int64;
+                        SetHeaderField(Key, Value);
+                        return true;
+                    }
+                }
+
+                else if (typeof(T).Equals(typeof(UInt64)))
+                {
+                    UInt64 _UInt64;
+                    if (UInt64.TryParse(_Object.ToString(), out _UInt64))
+                    {
+                        Value = (T) (Object) _UInt64;
+                        SetHeaderField(Key, Value);
+                        return true;
+                    }
+                }
+
+                else
+                {
+                    try
+                    {
+                        Value = (T) (Object) _Object;
+                        SetHeaderField(Key, Value);
+                        return true;
+                    }
+                    catch (Exception)
+                    {
+                        Value = default(T);
+                        return false;
+                    }                    
+                }
+
+            }
+
+
+            Value = default(T);
+            return false;
+
+        }
+
+        #endregion
+
+        #region GetNullable<T>(Key)
+
+        /// <summary>
+        /// Return a http header field wrapped within a nullable.
+        /// </summary>
+        /// <typeparam name="T">The underlying value type of the System.Nullable<T> generic type.</typeparam>
+        /// <param name="Key">The key of the requested header field.</param>
+        public Nullable<T> GetNullable<T>(String Key)
+            where T : struct
+        {
+
+            T Value;
+
+            if (TryGet<T>(Key, out Value))
+                return new Nullable<T>(Value);
+
+            else
+                return new Nullable<T>();
+
+        }
+
+        #endregion
+
+        #region Get<T>(myKey)
+
+        /// <summary>
+        /// Return a http header field.
+        /// </summary>
+        /// <typeparam name="T">The type of the value of the requested header field.</typeparam>
+        /// <param name="Key">The key of the requested header field.</typeparam>
+        public T Get<T>(String Key)
+            where T : class
+        {
+
+            T _Value;
+            if (TryGet<T>(Key, out _Value))
+                return _Value;
+
+            return null;
 
         }
 
@@ -489,7 +646,7 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #endregion
 
-
     }
 
 }
+

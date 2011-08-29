@@ -46,6 +46,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Datastructures\IPAddressFactory.cs" />
+    <Compile Include="HTTP\Server\Attributes\HTTPEventMappingAttribute.cs" />
+    <Compile Include="HTTP\Server\URLMapping\HTTPEvent.cs" />
+    <Compile Include="HTTP\Server\URLMapping\HTTPEventSource.cs" />
     <Compile Include="Interfaces\ILocalSocket.cs" />
     <Compile Include="HTTP\Common\AcceptType.cs" />
     <Compile Include="HTTP\Common\HTTPAuthenticationTypes.cs" />

@@ -33,47 +33,11 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Properties
 
-        #region HTTPMethod
+        public HTTPMethod     HTTPMethod     { get; private set; }
 
-        private HTTPMethod _HTTPMethod;
+        public String         UriTemplate    { get; private set; }
 
-        public HTTPMethod HTTPMethod
-        {
-            get
-            {
-                return _HTTPMethod;
-            }
-        }
-
-        #endregion
-
-        #region UriTemplate
-
-        private String _UriTemplate;
-
-        public String UriTemplate
-        {
-            get
-            {
-                return _UriTemplate;
-            }
-        }
-
-        #endregion
-
-        #region HTTPStatusCodes
-
-        private HTTPStatusCode _HTTPStatusCode;
-
-        public HTTPStatusCode HTTPStatusCode
-        {
-            get
-            {
-                return _HTTPStatusCode;
-            }
-        }
-
-        #endregion
+        public HTTPStatusCode HTTPStatusCode { get; private set; }
 
         #endregion
 
@@ -83,9 +47,9 @@ namespace de.ahzf.Hermod.HTTP
 
         public HTTPErrorAttribute(String UriTemplate)
         {
-            _HTTPMethod      = HTTPMethod.GET;
-            _UriTemplate     = UriTemplate;
-            _HTTPStatusCode  = null;
+            this.HTTPMethod      = HTTPMethod.GET;
+            this.UriTemplate     = UriTemplate;
+            this.HTTPStatusCode  = null;
         }
 
         #endregion
@@ -94,9 +58,9 @@ namespace de.ahzf.Hermod.HTTP
 
         public HTTPErrorAttribute(String UriTemplate, HTTPStatusCode myHTTPStatusCode)
         {
-            _HTTPMethod      = HTTPMethod.GET;
-            _UriTemplate     = UriTemplate;
-            _HTTPStatusCode  = myHTTPStatusCode;
+            this.HTTPMethod      = HTTPMethod.GET;
+            this.UriTemplate     = UriTemplate;
+            this.HTTPStatusCode  = myHTTPStatusCode;
         }
 
         #endregion
@@ -105,9 +69,9 @@ namespace de.ahzf.Hermod.HTTP
 
         public HTTPErrorAttribute(HTTPMethod HTTPMethod, String UriTemplate, HTTPStatusCode myHTTPStatusCode)
         {
-            _HTTPMethod     = HTTPMethod;
-            _UriTemplate    = UriTemplate;
-            _HTTPStatusCode = myHTTPStatusCode;
+            this.HTTPMethod     = HTTPMethod;
+            this.UriTemplate    = UriTemplate;
+            this.HTTPStatusCode = myHTTPStatusCode;
         }
 
         #endregion
@@ -117,13 +81,13 @@ namespace de.ahzf.Hermod.HTTP
         public HTTPErrorAttribute(HTTPMethods HTTPMethod, String UriTemplate, HTTPStatusCode myHTTPStatusCode)
         {
             
-            _HTTPMethod     = de.ahzf.Hermod.HTTP.Common.HTTPMethod.ParseEnum(HTTPMethod);
+            this.HTTPMethod     = de.ahzf.Hermod.HTTP.Common.HTTPMethod.ParseEnum(HTTPMethod);
 
-            if (_HTTPMethod == null)
+            if (this.HTTPMethod == null)
                 throw new ArgumentNullException("Invalid HTTPMethod!");
 
-            _UriTemplate    = UriTemplate;
-            _HTTPStatusCode = myHTTPStatusCode;
+            this.UriTemplate    = UriTemplate;
+            this.HTTPStatusCode = myHTTPStatusCode;
 
         }
 
