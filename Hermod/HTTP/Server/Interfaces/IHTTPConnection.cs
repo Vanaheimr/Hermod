@@ -41,9 +41,12 @@ namespace de.ahzf.Hermod.HTTP
         //ToDo: Change this to a Stream!
         Byte[]              RequestBody     { get; }
         
-        String              ServerName      { get; }
         HTTPResponseHeader  ResponseHeader  { get; }
         NetworkStream       ResponseStream  { get; }
+        
+        String              ServerName      { get; }
+        HTTPSecurity        HTTPSecurity    { get; set; }
+        URLMapping          URLMapping      { get; set; }
 
         String              ErrorReason     { get; set; }
         Exception           LastException   { get; set; }

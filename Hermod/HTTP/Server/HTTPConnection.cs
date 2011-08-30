@@ -84,10 +84,6 @@ namespace de.ahzf.Hermod.HTTP
 
         public Byte[]             RequestBody    { get; protected set; }
 
-        public String             ErrorReason    { get; set; }
-
-        public Exception          LastException  { get; set; }
-
         public HTTPResponseHeader ResponseHeader { get; protected set; }
 
         public NetworkStream      ResponseStream { get; protected set; }
@@ -97,6 +93,10 @@ namespace de.ahzf.Hermod.HTTP
         public HTTPSecurity       HTTPSecurity   { get; set; }
 
         public URLMapping         URLMapping     { get; set; }
+
+        public String             ErrorReason    { get; set; }
+
+        public Exception          LastException  { get; set; }
 
         #endregion
 

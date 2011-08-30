@@ -266,7 +266,7 @@ namespace de.ahzf.Hermod.HTTP
                         if (_HTTPMethod != null && _URITemplate != null && _URITemplate != "")
                             AddMethodCallback(_MethodInfo, _Host, _URITemplate, _HTTPMethod, _CurrentContentType, NeedsExplicitAuthentication);
 
-                        else if (_EventIdentification != null && _URITemplate != null && _URITemplate != "")
+                        else if (_EventIdentification != null && _URITemplate != null && _URITemplate != "" && _CurrentContentType == HTTPContentType.EVENTSTREAM)
                             AddEventSource(_MethodInfo, _Host, _URITemplate, _EventIdentification, _MaxNumberOfCachedEvents, _IsSharedEventSource, NeedsExplicitAuthentication);
 
                     }

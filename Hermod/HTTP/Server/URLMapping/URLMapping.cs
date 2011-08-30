@@ -43,6 +43,10 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
+        #region Properties
+
+        #endregion
+
         #region Constructor(s)
 
         #region URLMapping()
@@ -265,6 +269,42 @@ namespace de.ahzf.Hermod.HTTP
         }
 
         #endregion
+
+
+        #region EventSource
+
+        /// <summary>
+        /// Return the event source identified by the given event source identification.
+        /// </summary>
+        /// <param name="EventSourceIdentification">A string to identify an event source.</param>
+        public HTTPEventSource EventSource(String EventSourceIdentification)
+        {
+            return _EventSources[EventSourceIdentification];
+        }
+
+        #endregion
+
+        #region EventSources(EventSourceSelector = null)
+
+        /// <summary>
+        /// An enumeration of all event sources.
+        /// </summary>
+        public IEnumerable<HTTPEventSource> EventSources(Func<HTTPEventSource, Boolean> EventSourceSelector = null)
+        {
+
+            if (EventSourceSelector == null)
+                foreach (var EventSource in _EventSources.Values)
+                    yield return EventSource;
+
+            else
+                foreach (var EventSource in _EventSources.Values)
+                    if (EventSourceSelector(EventSource))
+                        yield return EventSource;
+
+        }
+
+        #endregion
+
 
     }
 
