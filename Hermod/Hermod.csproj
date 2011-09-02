@@ -45,7 +45,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Datastructures\IPAddressFactory.cs" />
+    <Compile Include="Datastructures\NetworkingHelpers.cs" />
+    <Compile Include="Datastructures\IPAddressHelpers.cs" />
     <Compile Include="HTTP\Server\Attributes\HTTPEventMappingAttribute.cs" />
     <Compile Include="HTTP\Server\AHTTPService.cs" />
     <Compile Include="HTTP\Server\URLMapping\HTTPEvent.cs" />

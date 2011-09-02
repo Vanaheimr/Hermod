@@ -84,11 +84,11 @@ class IgmpHeader : AProtocolHeader
     {
         get
         {
-            return (ushort)IPAddressFactory.NetworkToHostOrder((short)igmpChecksum);
+            return (ushort)NetworkingHelpers.NetworkToHostOrder((short)igmpChecksum);
         }
         set
         {
-            igmpChecksum = (ushort)IPAddressFactory.HostToNetworkOrder((short)value);
+            igmpChecksum = (ushort)NetworkingHelpers.HostToNetworkOrder((short)value);
         }
     }
 

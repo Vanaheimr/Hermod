@@ -30,11 +30,11 @@ class Icmpv6EchoRequest : AProtocolHeader
     {
         get
         {
-            return (ushort)IPAddressFactory.NetworkToHostOrder((short)echoId);
+            return (ushort) NetworkingHelpers.NetworkToHostOrder((short)echoId);
         }
         set
         {
-            echoId = (ushort)IPAddressFactory.HostToNetworkOrder((short)value);
+            echoId = (ushort) NetworkingHelpers.HostToNetworkOrder((short)value);
         }
     }
 
@@ -45,11 +45,11 @@ class Icmpv6EchoRequest : AProtocolHeader
     {
         get
         {
-            return (ushort)IPAddressFactory.NetworkToHostOrder((short)echoSequence);
+            return (ushort) NetworkingHelpers.NetworkToHostOrder((short)echoSequence);
         }
         set
         {
-            echoSequence = (ushort)IPAddressFactory.HostToNetworkOrder((short)value);
+            echoSequence = (ushort) NetworkingHelpers.HostToNetworkOrder((short)value);
         }
     }
 

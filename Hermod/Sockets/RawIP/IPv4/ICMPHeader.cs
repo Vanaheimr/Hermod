@@ -65,11 +65,11 @@ public class IcmpHeader : AProtocolHeader
     {
         get
         {
-            return (ushort)IPAddressFactory.NetworkToHostOrder((short)icmpChecksum);
+            return (ushort)NetworkingHelpers.NetworkToHostOrder((short)icmpChecksum);
         }
         set
         {
-            icmpChecksum = (ushort)IPAddressFactory.HostToNetworkOrder((short)value);
+            icmpChecksum = (ushort)NetworkingHelpers.HostToNetworkOrder((short)value);
         }
     }
 
@@ -81,11 +81,11 @@ public class IcmpHeader : AProtocolHeader
     {
         get
         {
-            return (ushort)IPAddressFactory.NetworkToHostOrder((short)icmpId);
+            return (ushort)NetworkingHelpers.NetworkToHostOrder((short)icmpId);
         }
         set
         {
-            icmpId = (ushort)IPAddressFactory.HostToNetworkOrder((short)value);
+            icmpId = (ushort)NetworkingHelpers.HostToNetworkOrder((short)value);
         }
     }
 
@@ -97,11 +97,11 @@ public class IcmpHeader : AProtocolHeader
     {
         get
         {
-            return (ushort)IPAddressFactory.NetworkToHostOrder((short)icmpSequence);
+            return (ushort)NetworkingHelpers.NetworkToHostOrder((short)icmpSequence);
         }
         set
         {
-            icmpSequence = (ushort)IPAddressFactory.HostToNetworkOrder((short)value);
+            icmpSequence = (ushort)NetworkingHelpers.HostToNetworkOrder((short)value);
         }
     }
 

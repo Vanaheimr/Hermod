@@ -74,7 +74,7 @@ namespace de.ahzf.Hermod.Datastructures
         /// <param name="IPEndPoint">An IPEndPoint.</param>
         public IPSocket(IPEndPoint IPEndPoint)
         {
-            this.IPAddress = IPAddressFactory.Build(IPEndPoint.Address.GetAddressBytes());
+            this.IPAddress = IPAddressHelpers.Build(IPEndPoint.Address.GetAddressBytes());
             this.Port      = new IPPort((UInt16) IPEndPoint.Port);
         }
 

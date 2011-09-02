@@ -83,11 +83,11 @@ class Icmpv6Header : AProtocolHeader
     {
         get
         {
-            return (ushort)IPAddressFactory.NetworkToHostOrder((short)icmpChecksum);
+            return (ushort)NetworkingHelpers.NetworkToHostOrder((short)icmpChecksum);
         }
         set
         {
-            icmpChecksum = (ushort)IPAddressFactory.HostToNetworkOrder((short)value);
+            icmpChecksum = (ushort)NetworkingHelpers.HostToNetworkOrder((short)value);
         }
     }
 
@@ -154,7 +154,7 @@ class Icmpv6Header : AProtocolHeader
         offset += byteValue.Length;
 
         // Packet total length
-        payLoadLength = IPAddressFactory.HostToNetworkOrder(Icmpv6HeaderLength + payLoad.Length);
+        payLoadLength = NetworkingHelpers.HostToNetworkOrder(Icmpv6HeaderLength + payLoad.Length);
 
         byteValue = BitConverter.GetBytes(payLoadLength);
         Array.Copy(byteValue, 0, pseudoHeader, offset, byteValue.Length);

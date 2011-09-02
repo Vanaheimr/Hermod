@@ -59,11 +59,11 @@ public class IPv6FragmentHeader
     {
         get
         {
-            return (ushort)IPAddressFactory.NetworkToHostOrder((short)fragmentOffset);
+            return (ushort)NetworkingHelpers.NetworkToHostOrder((short)fragmentOffset);
         }
         set
         {
-            fragmentOffset = (ushort)IPAddressFactory.HostToNetworkOrder((short)value);
+            fragmentOffset = (ushort)NetworkingHelpers.HostToNetworkOrder((short)value);
         }
     }
 
@@ -74,11 +74,11 @@ public class IPv6FragmentHeader
     {
         get
         {
-            return (uint)IPAddressFactory.NetworkToHostOrder((int)fragmentId);
+            return (uint)NetworkingHelpers.NetworkToHostOrder((int)fragmentId);
         }
         set
         {
-            fragmentId = (uint)IPAddressFactory.HostToNetworkOrder((int)value);
+            fragmentId = (uint)NetworkingHelpers.HostToNetworkOrder((int)value);
         }
     }
 

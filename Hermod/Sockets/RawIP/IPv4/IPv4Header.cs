@@ -96,11 +96,11 @@ public class IPv4Header : AProtocolHeader
     {
         get
         {
-            return (ushort)IPAddressFactory.NetworkToHostOrder((short)ipTotalLength);
+            return (ushort)NetworkingHelpers.NetworkToHostOrder((short)ipTotalLength);
         }
         set
         {
-            ipTotalLength = (ushort)IPAddressFactory.HostToNetworkOrder((short)value);
+            ipTotalLength = (ushort)NetworkingHelpers.HostToNetworkOrder((short)value);
         }
     }
 
@@ -111,11 +111,11 @@ public class IPv4Header : AProtocolHeader
     {
         get
         {
-            return (ushort)IPAddressFactory.NetworkToHostOrder((short)ipId);
+            return (ushort)NetworkingHelpers.NetworkToHostOrder((short)ipId);
         }
         set
         {
-            ipId = (ushort)IPAddressFactory.HostToNetworkOrder((short)value);
+            ipId = (ushort)NetworkingHelpers.HostToNetworkOrder((short)value);
         }
     }
 
@@ -127,11 +127,11 @@ public class IPv4Header : AProtocolHeader
     {
         get
         {
-            return (ushort)IPAddressFactory.NetworkToHostOrder((short)ipOffset);
+            return (ushort)NetworkingHelpers.NetworkToHostOrder((short)ipOffset);
         }
         set
         {
-            ipOffset = (ushort)IPAddressFactory.HostToNetworkOrder((short)value);
+            ipOffset = (ushort)NetworkingHelpers.HostToNetworkOrder((short)value);
         }
     }
 
@@ -177,11 +177,11 @@ public class IPv4Header : AProtocolHeader
     {
         get
         {
-            return (ushort)IPAddressFactory.NetworkToHostOrder((short)ipChecksum);
+            return (ushort)NetworkingHelpers.NetworkToHostOrder((short)ipChecksum);
         }
         set
         {
-            ipChecksum = (ushort)IPAddressFactory.HostToNetworkOrder((short)value);
+            ipChecksum = (ushort)NetworkingHelpers.HostToNetworkOrder((short)value);
         }
     }
 

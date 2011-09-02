@@ -35,11 +35,11 @@ public class UdpHeader : AProtocolHeader
     {
         get
         {
-            return (ushort)IPAddressFactory.NetworkToHostOrder((short)srcPort);
+            return (ushort)NetworkingHelpers.NetworkToHostOrder((short)srcPort);
         }
         set
         {
-            srcPort = (ushort)IPAddressFactory.HostToNetworkOrder((short)value);
+            srcPort = (ushort)NetworkingHelpers.HostToNetworkOrder((short)value);
         }
     }
 
@@ -50,11 +50,11 @@ public class UdpHeader : AProtocolHeader
     {
         get
         {
-            return (ushort)IPAddressFactory.NetworkToHostOrder((short)destPort);
+            return (ushort)NetworkingHelpers.NetworkToHostOrder((short)destPort);
         }
         set
         {
-            destPort = (ushort)IPAddressFactory.HostToNetworkOrder((short)value);
+            destPort = (ushort)NetworkingHelpers.HostToNetworkOrder((short)value);
         }
     }
 
@@ -66,11 +66,11 @@ public class UdpHeader : AProtocolHeader
     {
         get
         {
-            return (ushort)IPAddressFactory.NetworkToHostOrder((short)udpLength);
+            return (ushort)NetworkingHelpers.NetworkToHostOrder((short)udpLength);
         }
         set
         {
-            udpLength = (ushort)IPAddressFactory.HostToNetworkOrder((short)value);
+            udpLength = (ushort)NetworkingHelpers.HostToNetworkOrder((short)value);
         }
     }
 
@@ -81,11 +81,11 @@ public class UdpHeader : AProtocolHeader
     {
         get
         {
-            return (ushort)IPAddressFactory.NetworkToHostOrder((short)udpChecksum);
+            return (ushort)NetworkingHelpers.NetworkToHostOrder((short)udpChecksum);
         }
         set
         {
-            udpChecksum = (ushort)IPAddressFactory.HostToNetworkOrder((short)value);
+            udpChecksum = (ushort)NetworkingHelpers.HostToNetworkOrder((short)value);
         }
     }
 
@@ -210,7 +210,7 @@ public class UdpHeader : AProtocolHeader
             Array.Copy(byteValue, 0, pseudoHeader, offset, byteValue.Length);
             offset += byteValue.Length;
 
-            ipv6PayloadLength = (uint)IPAddressFactory.HostToNetworkOrder((int)(payLoad.Length + UdpHeaderLength));
+            ipv6PayloadLength = (uint)NetworkingHelpers.HostToNetworkOrder((int)(payLoad.Length + UdpHeaderLength));
 
             // Packet payload: ICMPv6 headers plus payload
             byteValue = BitConverter.GetBytes(ipv6PayloadLength);

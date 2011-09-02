@@ -67,11 +67,11 @@ public class Ipv6Header : AProtocolHeader
     {
         get
         {
-            return (uint)IPAddressFactory.NetworkToHostOrder((int)ipFlow);
+            return (uint)NetworkingHelpers.NetworkToHostOrder((int)ipFlow);
         }
         set
         {
-            ipFlow = (uint)IPAddressFactory.HostToNetworkOrder((int)value);
+            ipFlow = (uint)NetworkingHelpers.HostToNetworkOrder((int)value);
         }
     }
 
@@ -84,11 +84,11 @@ public class Ipv6Header : AProtocolHeader
     {
         get
         {
-            return (ushort)IPAddressFactory.NetworkToHostOrder((short)ipPayloadLength);
+            return (ushort)NetworkingHelpers.NetworkToHostOrder((short)ipPayloadLength);
         }
         set
         {
-            ipPayloadLength = (ushort)IPAddressFactory.HostToNetworkOrder((short)value);
+            ipPayloadLength = (ushort)NetworkingHelpers.HostToNetworkOrder((short)value);
         }
     }
 
