@@ -32,7 +32,7 @@ using System.Threading;
 
 #endregion
 
-namespace de.ahzf.Loki.HTML5
+namespace de.ahzf.Hermod.HTTP
 {
 
     public abstract class AHTTPService
