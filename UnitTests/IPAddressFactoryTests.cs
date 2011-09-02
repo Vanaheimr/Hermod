@@ -44,7 +44,7 @@ namespace de.ahzf.Hermod.UnitTests
         public void ParseIPv4String_001()
         {
 
-            var _IPv4Address = IPAddressFactory.Parse("141.24.12.2");
+            var _IPv4Address = IPAddressHelper.Parse("141.24.12.2");
 
             Assert.IsTrue (_IPv4Address is IIPAddress);
             Assert.IsTrue (_IPv4Address is IPv4Address);
@@ -64,7 +64,7 @@ namespace de.ahzf.Hermod.UnitTests
         [ExpectedException(typeof(FormatException))]
         public void ParseTooShortByteArray()
         {
-            IPAddressFactory.Build(new Byte[] { 10, 0, 0 });
+            IPAddressHelper.Build(new Byte[] { 10, 0, 0 });
         }
 
         #endregion
@@ -78,7 +78,7 @@ namespace de.ahzf.Hermod.UnitTests
         public void ParseIPv4ByteArray()
         {
 
-            var _IPv4Address = IPAddressFactory.Build(new Byte[] { 10, 0, 0, 0 });
+            var _IPv4Address = IPAddressHelper.Build(new Byte[] { 10, 0, 0, 0 });
 
             Assert.IsTrue (_IPv4Address is IIPAddress);
             Assert.IsTrue (_IPv4Address is IPv4Address);
@@ -97,7 +97,7 @@ namespace de.ahzf.Hermod.UnitTests
         public void ParseIPv6ByteArray()
         {
 
-            var _IPv4Address = IPAddressFactory.Build(new Byte[] { 10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0, 0 });
+            var _IPv4Address = IPAddressHelper.Build(new Byte[] { 10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0, 0 });
 
             Assert.IsTrue (_IPv4Address is IIPAddress);
             Assert.IsFalse(_IPv4Address is IPv4Address);

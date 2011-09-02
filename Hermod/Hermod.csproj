@@ -46,7 +46,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ExtentionMethods\NetworkingHelpers.cs" />
-    <Compile Include="ExtentionMethods\IPAddressHelpers.cs" />
+    <Compile Include="ExtentionMethods\IPAddressHelper.cs" />
     <Compile Include="HTTP\Server\Attributes\HTTPEventMappingAttribute.cs" />
     <Compile Include="HTTP\Server\AHTTPService.cs" />
     <Compile Include="HTTP\Server\URLMapping\HTTPEvent.cs" />

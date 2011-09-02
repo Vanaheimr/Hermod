@@ -28,7 +28,7 @@ namespace de.ahzf.Hermod.Datastructures
     /// <summary>
     /// IP address helpers.
     /// </summary>    
-    public static class IPAddressHelpers
+    public static class IPAddressHelper
     {
 
         #region (static) Build(ByteArray)
