@@ -45,8 +45,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Datastructures\NetworkingHelpers.cs" />
-    <Compile Include="Datastructures\IPAddressHelpers.cs" />
+    <Compile Include="ExtentionMethods\NetworkingHelpers.cs" />
+    <Compile Include="ExtentionMethods\IPAddressHelpers.cs" />
     <Compile Include="HTTP\Server\Attributes\HTTPEventMappingAttribute.cs" />
     <Compile Include="HTTP\Server\AHTTPService.cs" />
     <Compile Include="HTTP\Server\URLMapping\HTTPEvent.cs" />
@@ -62,7 +62,7 @@
     <Compile Include="HTTP\Common\HTTPResponseHeader.cs" />
     <Compile Include="HTTP\Common\HTTPStatusCode.cs" />
     <Compile Include="HTTP\Common\HTTPVersion.cs" />
-    <Compile Include="Extensions.cs" />
+    <Compile Include="ExtentionMethods\Extensions.cs" />
     <Compile Include="HTTP\Server\Attributes\AuthenticationAttributes.cs" />
     <Compile Include="HTTP\Server\Attributes\HTTPServiceAttribute.cs" />
     <Compile Include="HTTP\Server\Attributes\HTTPErrorAttribute.cs" />
