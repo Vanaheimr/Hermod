@@ -25,55 +25,39 @@ using System.Linq;
 namespace de.ahzf.Hermod.HTTP.Common
 {
 
+    /// <summary>
+    /// A HTTP version identifier.
+    /// </summary>
     public class HTTPVersion : IComparable, IComparable<HTTPVersion>, IEquatable<HTTPVersion>
     {
 
         #region Properties
 
-        #region Major
-
-        private readonly UInt16 _Major;
-
         /// <summary>
         /// The major of this HTTP version
         /// </summary>
-        public UInt16 Major
-        {
-            get
-            {
-                return _Major;
-            }
-        }
-        
-        #endregion
+        public UInt16 Major { get; private set; }
 
-        #region Minor
-
-        private readonly UInt16 _Minor;
-        
         /// <summary>
         /// The minor of this HTTP version
         /// </summary>
-        public UInt16 Minor
-        {
-            get
-            {
-                return _Minor;
-            }
-        }
-
-        #endregion
+        public UInt16 Minor { get; private set; }
 
         #endregion
 
         #region Constructor(s)
 
-        #region HTTPVersion(myMajor, myMinor)
+        #region HTTPVersion(Major, Minor)
 
-        public HTTPVersion(UInt16 myMajor, UInt16 myMinor)
+        /// <summary>
+        /// Create a new HTTP version identifier.
+        /// </summary>
+        /// <param name="Major">The majro number.</param>
+        /// <param name="Minor">The minor number.</param>
+        public HTTPVersion(UInt16 Major, UInt16 Minor)
         {
-            _Major = myMajor;
-            _Minor = myMinor;
+            this.Major = Major;
+            this.Minor = Minor;
         }
 
         #endregion
@@ -83,31 +67,36 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #region Static HTTP versions
 
+        /// <summary>
+        /// HTTP 1.0
+        /// </summary>
         public static readonly HTTPVersion HTTPVersion10 = new HTTPVersion(1, 0);
+
+        /// <summary>
+        /// HTTP 1.1
+        /// </summary>
         public static readonly HTTPVersion HTTPVersion11 = new HTTPVersion(1, 1);
 
         #endregion
 
 
-        #region Tools
-
-        #region TryParseString(myVersionString, out myHTTPVersion)
+        #region TryParseVersionString(VersionString, out HTTPVersion)
 
         /// <summary>
         /// Tries to find the apropriate HTTPVersion for the given string, e.g. "HTTP/1.1".
         /// </summary>
-        /// <param name="myVersionString">A HTTP version as stirng, e.g. HTTP/1.1</param>
-        /// <param name="myHTTPStatusCode">The parsed HTTP version</param>
+        /// <param name="VersionString">A HTTP version as stirng, e.g. "HTTP/1.1"</param>
+        /// <param name="HTTPVersion">The parsed HTTP version</param>
         /// <returns>true or false</returns>
-        public static Boolean TryParseString(String myVersionString, out HTTPVersion myHTTPVersion)
+        public static Boolean TryParseVersionString(String VersionString, out HTTPVersion HTTPVersion)
         {
 
-            myHTTPVersion = null;
+            HTTPVersion = null;
 
-            if (!myVersionString.StartsWith("HTTP/"))
+            if (!VersionString.StartsWith("HTTP/"))
                 return false;
 
-            var _MajorMinor = myVersionString.Substring(5).Split(new Char[] { '.' }, StringSplitOptions.RemoveEmptyEntries);
+            var _MajorMinor = VersionString.Substring(5).Split(new Char[] { '.' }, StringSplitOptions.RemoveEmptyEntries);
 
             if (_MajorMinor.Length != 2)
                 return false;
@@ -121,21 +110,20 @@ namespace de.ahzf.Hermod.HTTP.Common
             if (!UInt16.TryParse(_MajorMinor[1], out __Minor))
                 return false;
 
-            myHTTPVersion = (from _FieldInfo in typeof(HTTPVersion).GetFields()
-                             let    _HTTPVersion = _FieldInfo.GetValue(null) as HTTPVersion
-                             where  _HTTPVersion != null
-                             where  _HTTPVersion.Major == __Major
-                             where  _HTTPVersion.Minor == __Minor
-                             select _HTTPVersion).FirstOrDefault();
+            // Use reflection to find a static representation of the given version string.
+            HTTPVersion = (from _FieldInfo in typeof(HTTPVersion).GetFields()
+                           let    _HTTPVersion = _FieldInfo.GetValue(null) as HTTPVersion
+                           where  _HTTPVersion != null
+                           where  _HTTPVersion.Major == __Major
+                           where  _HTTPVersion.Minor == __Minor
+                           select _HTTPVersion).FirstOrDefault();
 
-            if (myHTTPVersion != null)
+            if (HTTPVersion != null)
                 return true;
 
             return false;
 
         }
-
-        #endregion
 
         #endregion
 
@@ -228,81 +216,99 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #endregion
 
-        #region IComparable Members
+        #region IComparable<HTTPVersion> Members
 
-        public Int32 CompareTo(Object myObject)
+        #region CompareTo(Object)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="Object">An object to compare with.</param>
+        public Int32 CompareTo(Object Object)
         {
 
-            // Check if myObject is null
-            if (myObject == null)
-                throw new ArgumentNullException("myObject must not be null!");
+            if (Object == null)
+                throw new ArgumentNullException("The given object must not be null!");
 
-            // Check if myObject can be casted to an HTTPVersion object
-            var myHTTPVersion = myObject as HTTPVersion;
-            if ((Object) myHTTPVersion == null)
-                throw new ArgumentException("myObject is not of type HTTPVersion!");
+            // Check if the given object is a HTTPVersion.
+            var HTTPVersion = Object as HTTPVersion;
+            if ((Object) HTTPVersion == null)
+                throw new ArgumentException("The given object is not a HTTPVersion!");
 
-            return CompareTo(myHTTPVersion);
+            return CompareTo(HTTPVersion);
 
         }
 
         #endregion
 
-        #region IComparable<HTTPVersion> Members
+        #region CompareTo(HTTPVersion)
 
-        public Int32 CompareTo(HTTPVersion myHTTPVersion)
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPVersion">An object to compare with.</param>
+        public Int32 CompareTo(HTTPVersion HTTPVersion)
         {
 
-            // Check if myHTTPVersion is null
-            if (myHTTPVersion == null)
-                throw new ArgumentNullException("myHTTPVersion must not be null!");
+            if ((Object) HTTPVersion == null)
+                throw new ArgumentNullException("The given HTTPVersion must not be null!");
 
-            var _MajorCompared = Major.CompareTo(myHTTPVersion.Major);
+            var _MajorCompared = Major.CompareTo(HTTPVersion.Major);
 
             if (_MajorCompared != 0)
                 return _MajorCompared;
 
-            return Minor.CompareTo(myHTTPVersion.Minor);
+            return Minor.CompareTo(HTTPVersion.Minor);
 
         }
+
+        #endregion
 
         #endregion
 
         #region IEquatable<HTTPVersion> Members
 
-        #region Equals(myObject)
+        #region Equals(Object)
 
-        public override Boolean Equals(Object myObject)
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="Object">An object to compare with.</param>
+        /// <returns>true|false</returns>
+        public override Boolean Equals(Object Object)
         {
 
-            // Check if myObject is null
-            if (myObject == null)
-                throw new ArgumentNullException("Parameter myObject must not be null!");
+            if (Object == null)
+                return false;
 
-            // Check if myObject can be cast to HTTPVersion
-            var myHTTPVersion = myObject as HTTPVersion;
-            if ((Object) myHTTPVersion == null)
-                throw new ArgumentException("Parameter myObject could not be casted to type HTTPVersion!");
+            // Check if the given object is a HTTPVersion.
+            var HTTPVersion = Object as HTTPVersion;
+            if ((Object) HTTPVersion == null)
+                return false;
 
-            return this.Equals(myHTTPVersion);
+            return this.Equals(HTTPVersion);
 
         }
 
         #endregion
 
-        #region Equals(myHTTPVersion)
+        #region Equals(HTTPVersion)
 
-        public Boolean Equals(HTTPVersion myHTTPVersion)
+        /// <summary>
+        /// Compares two HTTPVersions for equality.
+        /// </summary>
+        /// <param name="HTTPVersion">A HTTPVersion to compare with.</param>
+        /// <returns>True if both match; False otherwise.</returns>
+        public Boolean Equals(HTTPVersion HTTPVersion)
         {
 
-            // Check if myHTTPVersion is null
-            if (myHTTPVersion == null)
-                throw new ArgumentNullException("Parameter myHTTPVersion must not be null!");
-
-            if (Major != myHTTPVersion.Major)
+            if (HTTPVersion == null)
                 return false;
 
-            if (Minor != myHTTPVersion.Minor)
+            if (Major != HTTPVersion.Major)
+                return false;
+
+            if (Minor != HTTPVersion.Minor)
                 return false;
 
             return true;
@@ -315,6 +321,10 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #region GetHashCode()
 
+        /// <summary>
+        /// Return the HashCode of this object.
+        /// </summary>
+        /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
         {
             return Major + Minor;
@@ -324,6 +334,9 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #region ToString()
 
+        /// <summary>
+        /// Return a string represtentation of this object.
+        /// </summary>
         public override String ToString()
         {
             return String.Format("HTTP/{0}.{1}", Major, Minor);

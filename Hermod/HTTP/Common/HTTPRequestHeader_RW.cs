@@ -18,7 +18,6 @@
 #region Usings
 
 using System;
-using System.Web;
 using System.Collections.Generic;
 
 #endregion
@@ -29,20 +28,58 @@ namespace de.ahzf.Hermod.HTTP.Common
     /// <summary>
     /// A http request header.
     /// </summary>
-    public class HTTPRequestHeader : AHTTPRequestHeader
+    public class HTTPRequestHeader_RW : AHTTPRequestHeader
     {
 
-        #region Data
+        #region Properties
 
-        private readonly String[] _LineSeperator;
-        private readonly Char[]   _ColonSeperator;
-        private readonly Char[]   _SlashSeperator;
-        private readonly Char[]   _SpaceSeperator;
-        private readonly Char[]   _URLSeperator;        
+        #region Non-http header fields
+
+        /// <summary>
+        /// The http method.
+        /// </summary>
+        public new HTTPMethod HTTPMethod
+        {
+
+            get
+            {
+                return base.HTTPMethod;
+            }
+
+            set
+            {
+                base.HTTPMethod = value;
+            }
+
+        }
+
+        /// <summary>
+        /// The parsed minimal URL.
+        /// </summary>
+        public String Url { get; private set; }
+
+        /// <summary>
+        /// Optional SVNParameters.
+        /// </summary>
+        public String SVNParameters { get; set; }
+
+        /// <summary>
+        /// The http protocol field.
+        /// </summary>
+        public String Protocol { get; set; }
+
+        /// <summary>
+        /// The http protocol name field.
+        /// </summary>
+        public String ProtocolName { get; set; }
+
+        /// <summary>
+        /// The http protocol version.
+        /// </summary>
+        public Version ProtocolVersion { get; set; }
 
         #endregion
 
-        #region Properties
 
         // http header fields
 
@@ -219,126 +256,35 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #region Constructor(s)
 
-        #region HTTPRequestHeader(HTTPHeader, out HTTPStatusCode)
+        #region HTTPRequestHeader_RW()
 
         /// <summary>
-        /// Create a new http request header based on the given string representation.
+        /// Create a new http request header.
         /// </summary>
-        /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
-        /// <param name="HTTPStatusCode">HTTPStatusCode.OK is the header could be parsed.</param>
-        public HTTPRequestHeader(String HTTPHeader)
+        public HTTPRequestHeader_RW()
             : base()
         {
-
-            _LineSeperator  = new String[] { Environment.NewLine };
-            _ColonSeperator = new Char[]   { ':' };
-            _SlashSeperator = new Char[]   { '/' };
-            _SpaceSeperator = new Char[]   { ' ' };
-            _URLSeperator   = new Char[]   { '?', '!' };
-
-            #region Split the request into lines
-
-            RAWHTTPHeader = HTTPHeader;
-
-            var _HTTPRequestLines = HTTPHeader.Split(_LineSeperator, StringSplitOptions.RemoveEmptyEntries);
-            if (_HTTPRequestLines.Length == 0)
-            {
-                HTTPStatusCode = HTTPStatusCode.BadRequest;
-                return;
-            }
-
-            #endregion
-
-            #region Parse HTTPMethod (first line of the http request)
-
-            var _HTTPMethodHeader = _HTTPRequestLines[0].Split(_SpaceSeperator, StringSplitOptions.RemoveEmptyEntries);
-
-            // e.g: PROPFIND /file/file Name HTTP/1.1
-            if (_HTTPMethodHeader.Length != 3)
-            {
-                HTTPStatusCode = HTTPStatusCode.BadRequest;
-                return;
-            }
-
-            // Parse HTTP method
-            // Propably not usefull to define here, as we can not send a response having an "Allow-header" here!
-            HTTPMethod _HTTPMethod = null;
-            if (!HTTPMethod.TryParseString(_HTTPMethodHeader[0], out _HTTPMethod))
-            {
-                HTTPStatusCode = HTTPStatusCode.MethodNotAllowed;
-                return;
-            }
-
-            HTTPMethod = _HTTPMethod;
-
-            #endregion
-
-            #region Parse URL and QueryString (first line of the http request)
-
-            RawUrl         = _HTTPMethodHeader[1];
-            var _ParsedURL = RawUrl.Split(_URLSeperator, 2, StringSplitOptions.RemoveEmptyEntries);            
-            Url            = _ParsedURL[0];
-            
-            if (Url == "" || Url == null)
-                Url = "/";
-
-            // Parse QueryString after '?'
-            if (RawUrl.IndexOf('?') > -1)
-            {
-                var a = HttpUtility.ParseQueryString(_ParsedURL[1]);
-                foreach (var b in a.AllKeys)
-                    QueryString.Add(b, a[b]);
-            }
-
-            // Parse SVNParameters after '!'
-            if (RawUrl.IndexOf('!') > -1)
-                SVNParameters   = _ParsedURL[1];
-
-            #endregion
-
-            #region Parse protocol name and -version (first line of the http request)
-
-            var _ProtocolArray  = _HTTPMethodHeader[2].Split(_SlashSeperator, 2, StringSplitOptions.RemoveEmptyEntries);
-            ProtocolName        = _ProtocolArray[0].ToUpper();
-            ProtocolVersion     = new Version(_ProtocolArray[1]);
-
-            #endregion
-
-            #region Parse all other Header information
-
-            foreach (var _Line in _HTTPRequestLines.Skip(1))
-            {
-
-                var _KeyValuePairs = _Line.Split(_ColonSeperator, 2, StringSplitOptions.RemoveEmptyEntries);
-
-                if (_KeyValuePairs.Length == 2)
-                    HeaderFields.Add(_KeyValuePairs[0].Trim(), _KeyValuePairs[1].Trim());
-
-            }
-
-            //_AcceptTypes.Sort();
-            
-            //AcceptTypes.Sort(new Comparison<AcceptType>((at1, at2) =>
-            //{
-            //    if (at1.Quality > at2.Quality) return 1;
-            //    else if (at1.Quality == at2.Quality) return 0;
-            //    else return -1;
-            //    //if (at2.Quality > at1.Quality) return -1;
-            //    //else return 1;
-            //    //return at1.Quality.CompareTo(at2.Quality);
-            //}
-            //    ));
-
-            #endregion
-
-            if (!HeaderFields.ContainsKey("Host"))
-                HeaderFields.Add("Host", "*");
-
-            this.HTTPStatusCode = HTTPStatusCode.OK;
-
+            this.RawUrl          = "/";
+            this.ProtocolName    = "HTTP";
+            this.ProtocolVersion = new Version(1, 1);
         }
 
         #endregion
+
+        #endregion
+
+
+        #region SetHeaderField(Key, Value)
+
+        /// <summary>
+        /// Sets a http header field.
+        /// </summary>
+        /// <param name="Key">The key of the requested header field.</typeparam>
+        /// <param name="Value">The value of the requested header field.</typeparam>
+        public new void SetHeaderField(String Key, Object Value)
+        {
+            base.SetHeaderField(Key, Value);
+        }
 
         #endregion
 

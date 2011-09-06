@@ -75,6 +75,43 @@ namespace de.ahzf.Hermod.HTTP
         #endregion
 
 
+        #region GetRAWRequestHeader()
+
+        public HTTPResponse GetRAWRequestHeader()
+        {
+
+            return new HTTPResponse(
+
+                new HTTPResponseHeader()
+                {
+                    HttpStatusCode = HTTPStatusCode.OK,
+                    CacheControl   = "no-cache",
+                    Connection     = "close",
+                    ContentType    = HTTPContentType.TEXT_UTF8
+                },
+
+                Encoding.UTF8.GetBytes("Incoming http connection from '" + IHTTPConnection.RemoteSocket + "'" +
+                                        Environment.NewLine + Environment.NewLine +
+                                        IHTTPConnection.RequestHeader.RAWHTTPHeader +
+                                        Environment.NewLine + Environment.NewLine +
+                                        "Method => " + IHTTPConnection.RequestHeader.HTTPMethod + Environment.NewLine +
+                                        "URL => " + IHTTPConnection.RequestHeader.Url + Environment.NewLine +
+                                        "QueryString => " + IHTTPConnection.RequestHeader.QueryString + Environment.NewLine +
+                                        "Protocol => " + IHTTPConnection.RequestHeader.ProtocolName + Environment.NewLine +
+                                        "Version => " + IHTTPConnection.RequestHeader.ProtocolVersion + Environment.NewLine +
+                                        Environment.NewLine + Environment.NewLine +
+                                        IHTTPConnection.ResponseHeader.HttpStatusCode
+                                        )
+
+            );
+
+        }
+
+        #endregion
+
+
+        #region Error406_NotAcceptable()
+
         protected HTTPResponse Error406_NotAcceptable()
         {
 
@@ -95,6 +132,9 @@ namespace de.ahzf.Hermod.HTTP
 
         }
 
+        #endregion
+
+
         #region GetResources(myResource)
 
         /// <summary>
@@ -104,9 +144,15 @@ namespace de.ahzf.Hermod.HTTP
         public HTTPResponse GetResources(String myResource)
         {
 
+            #region Initial checks
+
+            if (CallingAssembly == null)
+                throw new ArgumentNullException("The calling assembly must not be null! Please add the line 'this.CallingAssembly = Assembly.GetExecutingAssembly();' to your constructor(s)!");
+
+            #endregion
+
             #region Data
 
-            //var _Assembly     = Assembly.GetExecutingAssembly();
             var _AllResources = CallingAssembly.GetManifestResourceNames();
 
             myResource = myResource.Replace('/', '.');
@@ -132,6 +178,7 @@ namespace de.ahzf.Hermod.HTTP
                     case "ico":  _ResponseContentType = HTTPContentType.ICO;             break;
                     case "swf":  _ResponseContentType = HTTPContentType.SWF;             break;
                     case "js":   _ResponseContentType = HTTPContentType.JAVASCRIPT_UTF8; break;
+                    case "txt":  _ResponseContentType = HTTPContentType.TEXT_UTF8;       break;
                     default:     _ResponseContentType = HTTPContentType.OCTETSTREAM;     break;
                 }
 

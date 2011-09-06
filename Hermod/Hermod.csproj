@@ -47,6 +47,15 @@
   <ItemGroup>
     <Compile Include="ExtentionMethods\NetworkingHelpers.cs" />
     <Compile Include="ExtentionMethods\IPAddressHelper.cs" />
+    <Compile Include="HTTP\Client\HTTPClientExtensions.cs" />
+    <Compile Include="HTTP\Client\HTTPRequest.cs" />
+    <Compile Include="HTTP\Client\HTTPClient.cs" />
+    <Compile Include="HTTP\Common\AHTTPRequestHeader.cs" />
+    <Compile Include="HTTP\Common\AHTTPResponseHeader.cs" />
+    <Compile Include="HTTP\Common\AHTTPHeaderField.cs" />
+    <Compile Include="HTTP\Common\HTTPResponseHeaderField.cs" />
+    <Compile Include="HTTP\Common\HTTPResponseHeader_RO.cs" />
+    <Compile Include="HTTP\Common\HTTPRequestHeader_RW.cs" />
     <Compile Include="HTTP\Server\Attributes\HTTPEventMappingAttribute.cs" />
     <Compile Include="HTTP\Server\AHTTPService.cs" />
     <Compile Include="HTTP\Server\URLMapping\HTTPEvent.cs" />
@@ -113,9 +122,7 @@
     <Compile Include="Tools\AutoDiscovery.cs" />
     <Compile Include="Tools\AutoDiscoveryException.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="HTTP\Client\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

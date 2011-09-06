@@ -327,7 +327,7 @@ namespace de.ahzf.Hermod.HTTP
 
     #region HTTPServer -> HTTPServer<DefaultHTTPService>
 
-    public class HTTPServer : HTTPServer<DefaultHTTPService>
+    public class HTTPServer : HTTPServer<IDefaultHTTPService>
     {
 
         #region Constructor(s)

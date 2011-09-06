@@ -1077,38 +1077,48 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #endregion
 
-        #region IComparable Members
+        #region IComparable<HTTPStatusCode> Members
 
-        public Int32 CompareTo(Object myObject)
+        #region CompareTo(Object)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="Object">An object to compare with.</param>
+        public Int32 CompareTo(Object Object)
         {
 
-            // Check if myObject is null
-            if (myObject == null)
-                throw new ArgumentNullException("myObject must not be null!");
+            if (Object == null)
+                throw new ArgumentNullException("The given object must not be null!");
 
-            // Check if myObject can be casted to an HTTPStatusCode object
-            var myHTTPStatusCode = myObject as HTTPStatusCode;
-            if ((Object) myHTTPStatusCode == null)
-                throw new ArgumentException("myObject is not of type HTTPStatusCode!");
+            // Check if the given object is an HTTPStatusCode.
+            var HTTPStatusCode = Object as HTTPStatusCode;
+            if ((Object) HTTPStatusCode == null)
+                throw new ArgumentException("The given object is not a GraphElementId!");
 
-            return CompareTo(myHTTPStatusCode);
+            return CompareTo(HTTPStatusCode);
 
         }
 
         #endregion
 
-        #region IComparable<HTTPStatusCode> Members
+        #region CompareTo(HTTPStatusCode)
 
-        public Int32 CompareTo(HTTPStatusCode myHTTPStatusCode)
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPStatusCode">An object to compare with.</param>
+        public Int32 CompareTo(HTTPStatusCode HTTPStatusCode)
         {
 
-            // Check if myHTTPStatusCode is null
-            if (myHTTPStatusCode == null)
-                throw new ArgumentNullException("myHTTPStatusCode must not be null!");
+            if ((Object) HTTPStatusCode == null)
+                throw new ArgumentNullException("The given HTTPStatusCode must not be null!");
 
-            return Code.CompareTo(myHTTPStatusCode.Code);
+            return Code.CompareTo(HTTPStatusCode.Code);
 
         }
+
+        #endregion
 
         #endregion
 
@@ -1116,34 +1126,42 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #region Equals(myObject)
 
-        public override Boolean Equals(Object myObject)
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="Object">An object to compare with.</param>
+        /// <returns>true|false</returns>
+        public override Boolean Equals(Object Object)
         {
 
-            // Check if myObject is null
-            if (myObject == null)
-                throw new ArgumentNullException("Parameter myObject must not be null!");
+            if (Object == null)
+                return false;
 
-            // Check if myObject can be cast to HTTPStatusCode
-            var myHTTPStatusCode = myObject as HTTPStatusCode;
-            if ((Object) myHTTPStatusCode == null)
-                throw new ArgumentException("Parameter myObject could not be casted to type HTTPStatusCode!");
+            // Check if the given object is an HTTPStatusCode.
+            var HTTPStatusCode = Object as HTTPStatusCode;
+            if ((Object) HTTPStatusCode == null)
+                return false;
 
-            return this.Equals(myHTTPStatusCode);
+            return this.Equals(HTTPStatusCode);
 
         }
 
         #endregion
 
-        #region Equals(myHTTPStatusCode)
+        #region Equals(HTTPStatusCode)
 
-        public Boolean Equals(HTTPStatusCode myHTTPStatusCode)
+        /// <summary>
+        /// Compares two HTTPStatusCodes for equality.
+        /// </summary>
+        /// <param name="HTTPStatusCode">A HTTPStatusCode to compare with.</param>
+        /// <returns>True if both match; False otherwise.</returns>
+        public Boolean Equals(HTTPStatusCode HTTPStatusCode)
         {
 
-            // Check if myHTTPStatusCode is null
-            if (myHTTPStatusCode == null)
-                throw new ArgumentNullException("Parameter myHTTPStatusCode must not be null!");
+            if ((Object) HTTPStatusCode == null)
+                return false;
 
-            return Code == myHTTPStatusCode.Code;
+            return Code == HTTPStatusCode.Code;
 
         }
 
@@ -1153,6 +1171,10 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #region GetHashCode()
 
+        /// <summary>
+        /// Return the HashCode of this object.
+        /// </summary>
+        /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
         {
             return Code.GetHashCode();
@@ -1162,6 +1184,9 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #region ToString()
 
+        /// <summary>
+        /// Return a string represtentation of this object.
+        /// </summary>
         public override String ToString()
         {
             return String.Format("{0} - {1}", Code, Name);

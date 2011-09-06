@@ -31,14 +31,8 @@ using System.Collections.Specialized;
 namespace de.ahzf.Hermod.HTTP.Common
 {
 
-    public class HTTPResponseHeader : AHTTPResponseHeader
+    public class HTTPResponseHeader_RO : AHTTPResponseHeader
     {
-
-        #region Data
-
-        private readonly Dictionary<String, Object> _HeaderFields;
-
-        #endregion
 
         #region Properties
 
@@ -92,7 +86,6 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         public String Connection
         {
-
             get
             {
 
@@ -102,26 +95,6 @@ namespace de.ahzf.Hermod.HTTP.Common
                 return null;
 
             }
-
-            set
-            {
-
-                if (value != null)
-                {
-
-                    if (_HeaderFields.ContainsKey("Connection"))
-                        _HeaderFields["Connection"] = value;
-                    else
-                        _HeaderFields.Add("Connection", value);
-
-                }
-
-                else
-                    if (_HeaderFields.ContainsKey("Connection"))
-                        _HeaderFields.Remove("Connection");
-
-            }
-
         }
 
         #endregion
@@ -130,7 +103,6 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         public UInt64? ContentLength
         {
-
             get
             {
 
@@ -145,18 +117,6 @@ namespace de.ahzf.Hermod.HTTP.Common
                 return default(UInt64);
 
             }
-
-            set
-            {
-
-                if (_HeaderFields.ContainsKey("Content-Length"))
-                    _HeaderFields["Content-Length"] = value;
-                
-                else
-                    _HeaderFields.Add("Content-Length", value);
-
-            }
-
         }
 
         #endregion
@@ -165,7 +125,6 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         public HTTPContentType ContentType
         {
-
             get
             {
                 
@@ -175,26 +134,6 @@ namespace de.ahzf.Hermod.HTTP.Common
                 return null;
 
             }
-
-            set
-            {
-
-                if (value != null)
-                {
-                
-                    if (_HeaderFields.ContainsKey("Content-Type"))
-                        _HeaderFields["Content-Type"] = value;
-                    else
-                        _HeaderFields.Add("Content-Type", value);
-
-                }
-                
-                else
-                    if (_HeaderFields.ContainsKey("Content-Type"))
-                        _HeaderFields.Remove("Content-Type");
-
-            }
-
         }
 
         #endregion
@@ -203,7 +142,6 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         public String CacheControl
         {
-
             get
             {
 
@@ -213,27 +151,6 @@ namespace de.ahzf.Hermod.HTTP.Common
                 return null;
 
             }
-
-            set
-            {
-
-                if (value != null)
-                {
-
-                    if (_HeaderFields.ContainsKey("Cache-Control"))
-                        _HeaderFields["Cache-Control"] = value;
-
-                    else
-                        _HeaderFields.Add("Cache-Control", value);
-
-                }
-
-                else
-                    if (_HeaderFields.ContainsKey("Cache-Control"))
-                        _HeaderFields.Remove("Cache-Control");
-
-            }
-
         }
 
         #endregion
@@ -242,7 +159,6 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         public String Server
         {
-
             get
             {
 
@@ -252,26 +168,6 @@ namespace de.ahzf.Hermod.HTTP.Common
                 return null;
 
             }
-
-            set
-            {
-
-                if (value != null)
-                {
-                    
-                    if (_HeaderFields.ContainsKey("Server"))
-                        _HeaderFields["Server"] = value;
-                    else
-                        _HeaderFields.Add("Server", value);
-
-                }
-
-                else
-                    if (_HeaderFields.ContainsKey("Server"))
-                        _HeaderFields.Remove("Server");
-
-            }
-
         }
 
         #endregion
@@ -280,7 +176,6 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         public String Location
         {
-
             get
             {
 
@@ -290,26 +185,6 @@ namespace de.ahzf.Hermod.HTTP.Common
                 return null;
 
             }
-
-            set
-            {
-
-                if (value != null)
-                {
-
-                    if (_HeaderFields.ContainsKey("Location"))
-                        _HeaderFields["Location"] = value;
-                    else
-                        _HeaderFields.Add("Location", value);
-
-                }
-
-                else
-                    if (_HeaderFields.ContainsKey("Location"))
-                        _HeaderFields.Remove("Location");
-
-            }
-
         }
 
         #endregion
@@ -318,7 +193,6 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         public Boolean KeepAlive
         {
-
             get
             {
 
@@ -330,24 +204,6 @@ namespace de.ahzf.Hermod.HTTP.Common
                 return false;
 
             }
-
-            set
-            {
-
-                if (value == true)
-                {
-                    if (_HeaderFields.ContainsKey("Connection"))
-                        _HeaderFields["Connection"] = "Keep-Alive";
-                    else
-                        _HeaderFields.Add("Content-Type", value);
-                }
-
-                else
-                    if (_HeaderFields.ContainsKey("Connection"))
-                        _HeaderFields.Remove("Connection");
-
-            }
-
         }
 
         #endregion
@@ -356,7 +212,6 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         public String Date
         {
-
             get
             {
 
@@ -366,26 +221,6 @@ namespace de.ahzf.Hermod.HTTP.Common
                 return null;
 
             }
-
-            set
-            {
-
-                if (value != null)
-                {
-
-                    if (_HeaderFields.ContainsKey("Date"))
-                        _HeaderFields["Date"] = value;
-                    else
-                        _HeaderFields.Add("Date", value);
-
-                }
-
-                else
-                    if (_HeaderFields.ContainsKey("Date"))
-                        _HeaderFields.Remove("Date");
-
-            }
-
         }
 
         #endregion
@@ -411,33 +246,20 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #region Constructor(s)
 
-        #region HTTPResponseHeader()
+        #region HTTPResponseHeader_RO()
 
-        public HTTPResponseHeader()
+        public HTTPResponseHeader_RO()
         {
-            
-            _HeaderFields  = new Dictionary<String, Object>(StringComparer.OrdinalIgnoreCase);
-            
-            ContentLength  = 0;
             HttpStatusCode = HTTPStatusCode.OK;
-            Date           = DateTime.Now.ToString();
-
         }
 
         #endregion
 
-        #region HTTPResponseHeader()
+        #region HTTPResponseHeader_RO()
 
-        public HTTPResponseHeader(String HTTPHeader, out HTTPStatusCode HTTPStatusCode)
+        public HTTPResponseHeader_RO(String HTTPHeader)
         {
-            
-            _HeaderFields  = new Dictionary<String, Object>(StringComparer.OrdinalIgnoreCase);
-            
-            ContentLength  = 0;
-            HttpStatusCode = HTTPStatusCode.OK;
-            Date           = DateTime.Now.ToString();
-            HTTPStatusCode = HTTPStatusCode.OK;
-
+            this.HttpStatusCode = HTTPStatusCode.OK;
         }
 
         #endregion

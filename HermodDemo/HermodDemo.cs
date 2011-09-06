@@ -22,6 +22,7 @@ using System;
 using de.ahzf.Hermod.HTTP;
 using de.ahzf.Hermod.Sockets.TCP;
 using de.ahzf.Hermod.Datastructures;
+using System.Threading;
 
 #endregion
 
@@ -43,13 +44,13 @@ namespace de.ahzf.Hermod.Demo
 
             #region Start TCPServers
 
-            var _TCPServer1 = new TCPServer(new IPv4Address(new Byte[] { 192, 168, 178, 31 }), new IPPort(2001), NewConnection =>
-                                               {
-                                                   NewConnection.WriteToResponseStream("Hello world!" + Environment.NewLine + Environment.NewLine);
-                                                   NewConnection.Close();
-                                               }, true);
+            //var _TCPServer1 = new TCPServer(new IPv4Address(new Byte[] { 192, 168, 178, 31 }), new IPPort(2001), NewConnection =>
+            //                                   {
+            //                                       NewConnection.WriteToResponseStream("Hello world!" + Environment.NewLine + Environment.NewLine);
+            //                                       NewConnection.Close();
+            //                                   }, true);
 
-            Console.WriteLine(_TCPServer1);
+            //Console.WriteLine(_TCPServer1);
 
             // The first line of the repose will be served from the CustomTCPConnection handler.
             var _TCPServer2 = new TCPServer<CustomTCPConnection>(IPv4Address.Any, new IPPort(2002), NewConnection =>
@@ -83,6 +84,13 @@ namespace de.ahzf.Hermod.Demo
             Console.WriteLine(_HTTPServer2);
 
             #endregion
+
+
+            var _client1     = new HTTPClient(IPv4Address.Localhost, IPPort.HTTP);
+            var _request1    = _client1.GET("/HelloWorld");
+            var _request1Str = _request1.ToString();
+            _request1.Execute();
+            Console.WriteLine("Response: " + _request1._Response);
 
             Console.ReadLine();
             Console.WriteLine("done!");

@@ -106,7 +106,7 @@ namespace de.ahzf.Hermod.HTTP
         {
             get
             {
-                return new List<HTTPContentType>();
+                return new List<HTTPContentType>() { HTTPContentType.TEXT_UTF8 };
             }
         }
 

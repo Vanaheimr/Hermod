@@ -192,23 +192,22 @@ namespace de.ahzf.Hermod.HTTP
                 var HeaderBytes = new Byte[_ReadPosition - 1];
                 Array.Copy(_ByteArray, 0, HeaderBytes, 0, _ReadPosition - 1);
 
-                HTTPStatusCode __HTTPStatusCode = null;
-                RequestHeader = new HTTPRequestHeader(Encoding.UTF8.GetString(HeaderBytes), out __HTTPStatusCode);
+                RequestHeader = new HTTPRequestHeader(Encoding.UTF8.GetString(HeaderBytes));
 
                 // Copy only the number of bytes given within
                 // the HTTP header element 'ContentType'!
                 if (RequestHeader.ContentLength.HasValue)
                 {
                     RequestBody = new Byte[RequestHeader.ContentLength.Value];
-                    Array.Copy(_ByteArray, _ReadPosition + 1, RequestBody, 0, (Int64)RequestHeader.ContentLength.Value);
+                    Array.Copy(_ByteArray, _ReadPosition + 1, RequestBody, 0, (Int64) RequestHeader.ContentLength.Value);
                 }
                 else
                     RequestBody = new Byte[0];
 
                 // The parsing of the http header failed!
-                if (__HTTPStatusCode != HTTPStatusCode.OK)
+                if (RequestHeader.HTTPStatusCode != HTTPStatusCode.OK)
                 {
-                    SendErrorpage(__HTTPStatusCode,
+                    SendErrorpage(RequestHeader.HTTPStatusCode,
                                   RequestHeader,
                                   RequestBody);
                 }

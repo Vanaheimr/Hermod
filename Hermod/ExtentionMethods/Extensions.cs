@@ -252,9 +252,9 @@ namespace de.ahzf.Hermod
 
         #endregion
 
-        #region ToUTF8String(this myByteArray)
+        #region ToUTF8String(this myByteArray, NumberOfBytes = 0)
 
-        public static String ToUTF8String(this Byte[] myByteArray)
+        public static String ToUTF8String(this Byte[] myByteArray, Int32 NumberOfBytes = 0)
         {
 
             if (myByteArray == null)
@@ -263,7 +263,10 @@ namespace de.ahzf.Hermod
             if (myByteArray.Length == 0)
                 return String.Empty;
 
-            return Encoding.UTF8.GetString(myByteArray);
+            if (NumberOfBytes == 0)
+                return Encoding.UTF8.GetString(myByteArray);
+            else
+                return Encoding.UTF8.GetString(myByteArray, 0, NumberOfBytes);
 
         }
 
