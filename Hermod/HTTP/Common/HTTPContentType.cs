@@ -123,7 +123,6 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         public static readonly HTTPContentType JSON_UTF8       = new HTTPContentType("application/json",       "UTF-8");
         public static readonly HTTPContentType XML_UTF8        = new HTTPContentType("application/xml",        "UTF-8");
-        public static readonly HTTPContentType XHTML_UTF8      = new HTTPContentType("application/xhtml+xml",  "UTF-8");
         public static readonly HTTPContentType GEXF_UTF8       = new HTTPContentType("application/gexf+xml",   "UTF-8");
         public static readonly HTTPContentType FORM            = new HTTPContentType("application/x-www-form-urlencoded");
         public static readonly HTTPContentType SWF             = new HTTPContentType("application/x-shockwave-flash");

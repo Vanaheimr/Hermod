@@ -1094,7 +1094,7 @@ namespace de.ahzf.Hermod.HTTP.Common
             // Check if the given object is an HTTPStatusCode.
             var HTTPStatusCode = Object as HTTPStatusCode;
             if ((Object) HTTPStatusCode == null)
-                throw new ArgumentException("The given object is not a GraphElementId!");
+                throw new ArgumentException("The given object is not a HTTPStatusCode!");
 
             return CompareTo(HTTPStatusCode);
 
@@ -1124,7 +1124,7 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #region IEquatable<HTTPStatusCode> Members
 
-        #region Equals(myObject)
+        #region Equals(Object)
 
         /// <summary>
         /// Compares two instances of this object.

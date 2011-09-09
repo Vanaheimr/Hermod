@@ -86,7 +86,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         #region Host
 
         /// <summary>
-        /// The http host header field.
+        /// The host header.
         /// </summary>
         public String Host
         {
@@ -110,35 +110,20 @@ namespace de.ahzf.Hermod.HTTP.Common
         /// <summary>
         /// The http content types accepted by the client.
         /// </summary>
-        public IEnumerable<AcceptType> Accept
+        public new List<AcceptType> Accept
         {
 
             get
             {
                 
-                var _Accept = Get<IEnumerable<AcceptType>>("Accept");
+                var _Accept = Get<List<AcceptType>>("Accept");
                 if (_Accept != null)
                     return _Accept;
 
-                var _AcceptString = Get<String>("Accept");
-                var _AcceptList   = new List<AcceptType>();
+                _Accept = new List<AcceptType>();
+                SetHeaderField("Accept", _Accept);
 
-                if (_AcceptString.Contains(","))
-                {
-                    
-                    UInt32 place = 0;
-
-                    foreach (var acc in _AcceptString.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
-                        _AcceptList.Add(new AcceptType(acc.Trim(), place++));
-
-                }
-
-                else
-                    _AcceptList.Add(new AcceptType(_AcceptString.Trim()));
-
-                SetHeaderField("Accept", _AcceptList);
-
-                return _AcceptList;
+                return _Accept;
 
             }
 

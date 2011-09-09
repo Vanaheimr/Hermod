@@ -29,7 +29,7 @@ namespace de.ahzf.Hermod.HTTP.Common
     /// <summary>
     /// A http request header.
     /// </summary>
-    public abstract class AHTTPRequestHeader
+    public abstract class AHTTPRequestHeader : IEnumerable<String>
     {
 
         #region Properties
@@ -515,6 +515,37 @@ namespace de.ahzf.Hermod.HTTP.Common
         }
 
         #endregion
+
+
+        public IEnumerator<String> GetEnumerator()
+        {
+            foreach (var field in HeaderFields)
+            {
+
+                if (field.Key == "Accept")
+                    yield return field.Key + ": " + (field.Value as List<AcceptType>).Select(at => at.ToString()).Aggregate((a, b) => a + ", " + b);
+
+                else
+                    yield return field.Key + ": " + field.Value.ToString();
+
+            }
+        }
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+        {
+
+            foreach (var field in HeaderFields)
+            {
+
+                if (field.Key == "Accept")
+                    yield return field.Key + ": " + (field.Value as List<AcceptType>).Select(at => at.ToString()).Aggregate((a, b) => a + ", " + b);
+
+                else
+                    yield return field.Key + ": " + field.Value.ToString();
+
+            }
+
+        }
 
     }
 

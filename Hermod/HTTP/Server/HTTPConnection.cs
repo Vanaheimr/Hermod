@@ -146,107 +146,108 @@ namespace de.ahzf.Hermod.HTTP
                 long    _Length             = 0;
                 long    _ReadPosition       = 6;
 
-                while (!_EndOfHTTPHeader || _HTTPStream.DataAvailable || !TCPClientConnection.Connected)
+                try
                 {
 
-                    while (_HTTPStream.DataAvailable)
-                    {
-                        _MemoryStream.Write(_Buffer, 0, _HTTPStream.Read(_Buffer, 0, _Buffer.Length));
-                    }
-
-                    _Length = _MemoryStream.Length;
-
-                    if (_Length > 4)
+                    while (!_EndOfHTTPHeader || _HTTPStream.DataAvailable || !TCPClientConnection.Connected)
                     {
 
-                        _ByteArray    = _MemoryStream.ToArray();
-                        _ReadPosition = _ReadPosition - 3;
-                        
-                        while (_ReadPosition < _Length)
+                        while (_HTTPStream.DataAvailable)
+                        {
+                            _MemoryStream.Write(_Buffer, 0, _HTTPStream.Read(_Buffer, 0, _Buffer.Length));
+                        }
+
+                        _Length = _MemoryStream.Length;
+
+                        if (_Length > 4)
                         {
 
-                            if (_ByteArray[_ReadPosition - 3] == 0x0d &&
-                                _ByteArray[_ReadPosition - 2] == 0x0a &&
-                                _ByteArray[_ReadPosition - 1] == 0x0d &&
-                                _ByteArray[_ReadPosition    ] == 0x0a)
+                            _ByteArray    = _MemoryStream.ToArray();
+                            _ReadPosition = _ReadPosition - 3;
+                        
+                            while (_ReadPosition < _Length)
                             {
-                                _EndOfHTTPHeader = true;
-                                break;
+
+                                if (_ByteArray[_ReadPosition - 3] == 0x0d &&
+                                    _ByteArray[_ReadPosition - 2] == 0x0a &&
+                                    _ByteArray[_ReadPosition - 1] == 0x0d &&
+                                    _ByteArray[_ReadPosition    ] == 0x0a)
+                                {
+                                    _EndOfHTTPHeader = true;
+                                    break;
+                                }
+
+                                _ReadPosition++;
+
                             }
 
-                            _ReadPosition++;
+                            if (_EndOfHTTPHeader)
+                                break;
 
                         }
 
-                        if (_EndOfHTTPHeader)
-                            break;
-
                     }
 
-                }
+                    if (_EndOfHTTPHeader == false)
+                        throw new Exception("Protocol Error!");
 
-                if (_EndOfHTTPHeader == false)
-                    throw new Exception("Protocol Error!");
+                    // Create a new HTTPRequestHeader
+                    var HeaderBytes = new Byte[_ReadPosition - 1];
+                    Array.Copy(_ByteArray, 0, HeaderBytes, 0, _ReadPosition - 1);
 
-                // Create a new HTTPRequestHeader
-                var HeaderBytes = new Byte[_ReadPosition - 1];
-                Array.Copy(_ByteArray, 0, HeaderBytes, 0, _ReadPosition - 1);
+                    RequestHeader = new HTTPRequestHeader(Encoding.UTF8.GetString(HeaderBytes));
 
-                RequestHeader = new HTTPRequestHeader(Encoding.UTF8.GetString(HeaderBytes));
+                    // Copy only the number of bytes given within
+                    // the HTTP header element 'ContentType'!
+                    if (RequestHeader.ContentLength.HasValue)
+                    {
+                        RequestBody = new Byte[RequestHeader.ContentLength.Value];
+                        Array.Copy(_ByteArray, _ReadPosition + 1, RequestBody, 0, (Int64) RequestHeader.ContentLength.Value);
+                    }
+                    else
+                        RequestBody = new Byte[0];
 
-                // Copy only the number of bytes given within
-                // the HTTP header element 'ContentType'!
-                if (RequestHeader.ContentLength.HasValue)
-                {
-                    RequestBody = new Byte[RequestHeader.ContentLength.Value];
-                    Array.Copy(_ByteArray, _ReadPosition + 1, RequestBody, 0, (Int64) RequestHeader.ContentLength.Value);
-                }
-                else
-                    RequestBody = new Byte[0];
+                    // The parsing of the http header failed!
+                    if (RequestHeader.HTTPStatusCode != HTTPStatusCode.OK)
+                    {
+                        SendErrorpage(RequestHeader.HTTPStatusCode,
+                                    RequestHeader,
+                                    RequestBody);
+                    }
 
-                // The parsing of the http header failed!
-                if (RequestHeader.HTTPStatusCode != HTTPStatusCode.OK)
-                {
-                    SendErrorpage(RequestHeader.HTTPStatusCode,
-                                  RequestHeader,
-                                  RequestBody);
-                }
+                    #endregion
 
-                #endregion
+                    var _ContentType = RequestHeader.GetBestMatchingAcceptHeader(Implementations.Keys.ToArray());
+                    var _X = Implementations[_ContentType];
 
-                var _ContentType = RequestHeader.GetBestMatchingAcceptHeader(Implementations.Keys.ToArray());
-                var _X = Implementations[_ContentType];
+                    #region Invoke upper-layer protocol constructor
 
-                #region Invoke upper-layer protocol constructor
+                    // Get constructor for HTTPServiceType
+                    var _Type = _X.GetType().
+                                GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+                                               null,
+                                               new Type[] {
+                                                   typeof(IHTTPConnection)
+                                               },
+                                               null);
 
-                // Get constructor for HTTPServiceType
-                var _Type = _X.GetType().
-                            GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
-                                           null,
-                                           new Type[] {
-                                               typeof(IHTTPConnection)
-                                           },
-                                           null);
-
-                if (_Type == null)
-                    throw new ArgumentException("A appropriate constructor for type '" + typeof(HTTPServiceInterface).Name + "' could not be found!");
+                    if (_Type == null)
+                        throw new ArgumentException("A appropriate constructor for type '" + typeof(HTTPServiceInterface).Name + "' could not be found!");
 
 
-                // Invoke constructor of HTTPServiceType
-                _HTTPServiceInterface = (HTTPServiceInterface) _Type.Invoke(new Object[] { this });
+                    // Invoke constructor of HTTPServiceType
+                    _HTTPServiceInterface = (HTTPServiceInterface) _Type.Invoke(new Object[] { this });
 
-                if (_HTTPServiceInterface == null)
-                    throw new ArgumentException("A http connection of type '" + typeof(HTTPServiceInterface).Name + "' could not be created!");
+                    if (_HTTPServiceInterface == null)
+                        throw new ArgumentException("A http connection of type '" + typeof(HTTPServiceInterface).Name + "' could not be created!");
 
-                if (NewHTTPServiceHandler != null)
-                    NewHTTPServiceHandler(_HTTPServiceInterface);
+                    if (NewHTTPServiceHandler != null)
+                        NewHTTPServiceHandler(_HTTPServiceInterface);
 
-                #endregion
+                    #endregion
 
-                //ToDo: Add HTTP pipelining!
+                    //ToDo: Add HTTP pipelining!
 
-                try
-                {
 
                     #region Get and check callback...
 
@@ -632,7 +633,7 @@ namespace de.ahzf.Hermod.HTTP
                 #endregion
 
                 ResponseHeader.ContentLength = (UInt64) _XHTMLErrorpage.LongCount();
-                ResponseHeader.ContentType   = HTTPContentType.XHTML_UTF8;
+                ResponseHeader.ContentType   = HTTPContentType.HTML_UTF8;
 
                 WriteToResponseStream(
                     ResponseHeader,

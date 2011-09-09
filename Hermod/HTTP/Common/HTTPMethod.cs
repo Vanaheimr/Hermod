@@ -107,94 +107,46 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #region Properties
 
-        #region MethodName
-
-        private readonly String _MethodName;
-
         /// <summary>
         /// The name of the HTTP method.
         /// </summary>
-        public String MethodName
-        {
-            get
-            {
-                return _MethodName;
-            }
-        }
-        
-        #endregion
-
-        #region IsSafe
-
-        private readonly Boolean _IsSafe;
+        public String  MethodName   { get; private set; }
         
         /// <summary>
         /// IsSafe
         /// </summary>
-        public Boolean IsSafe
-        {
-            get
-            {
-                return _IsSafe;
-            }
-        }
-
-        #endregion
-
-        #region IsIdempotent
-
-        private readonly Boolean _IsIdempotent;
+        public Boolean IsSafe       { get; private set; }
 
         /// <summary>
         /// This HTTP methods has no side-effects for N > 0 identical
         /// requests, as it is the same as for a single request.
         /// </summary>
-        public Boolean IsIdempotent
-        {
-            get
-            {
-                return _IsIdempotent;
-            }
-        }
-
-        #endregion
-
-        #region Description
-
-        private readonly String _Description;
+        public Boolean IsIdempotent { get; private set; }
         
         /// <summary>
         /// The description of this HTTP method.
         /// </summary>
-        public String Description
-        {
-            get
-            {
-                return _Description;
-            }
-        }
-
-        #endregion
+        public String  Description  { get; private set; }
 
         #endregion
 
         #region Constructor(s)
 
-        #region HTTPMethod(myMethodName, IsSafe = false, IsIdempotent = false, Description = null)
+        #region HTTPMethod(MethodName, IsSafe = false, IsIdempotent = false, Description = null)
 
         /// <summary>
         /// Creates a new HTTP method based on the given parameters.
         /// </summary>
-        /// <param name="myMethodName">The name of the HTTP method.</param>
+        /// <param name="MethodName">The name of the HTTP method.</param>
         /// <param name="IsSafe"></param>
         /// <param name="IsIdempotent">This HTTP methods has no side-effects for N > 0 identical requests, as it is the same as for a single request.</param>
         /// <param name="Description">The description of this HTTP method.</param>
-        public HTTPMethod(String myMethodName, Boolean IsSafe = false, Boolean IsIdempotent = false, String Description = null)
+        public HTTPMethod(String MethodName, Boolean IsSafe = false, Boolean IsIdempotent = false, String Description = null)
         {
-            _MethodName     = myMethodName;
-            _IsSafe         = IsSafe;
-            _IsIdempotent   = IsIdempotent;
-            _Description    = Description;
+            this.MethodName    = MethodName;
+            this.IsSafe        = IsSafe;
+            this.IsIdempotent  = IsIdempotent;
+            this.Description   = Description;
         }
 
         #endregion
@@ -380,73 +332,91 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #endregion
 
-        #region IComparable Members
+        #region IComparable<HTTPMethod> Members
 
-        public Int32 CompareTo(Object myObject)
+        #region CompareTo(Object)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="Object">An object to compare with.</param>
+        public Int32 CompareTo(Object Object)
         {
 
-            // Check if myObject is null
-            if (myObject == null)
-                throw new ArgumentNullException("myObject must not be null!");
+            if (Object == null)
+                throw new ArgumentNullException("The given object must not be null!");
 
-            // Check if myObject can be casted to an HTTPMethod object
-            var myHTTPMethod = myObject as HTTPMethod;
-            if ((Object) myHTTPMethod == null)
-                throw new ArgumentException("myObject is not of type HTTPMethod!");
+            // Check if the given object is an HTTPMethod.
+            var HTTPMethod = Object as HTTPMethod;
+            if ((Object) HTTPMethod == null)
+                throw new ArgumentException("The given object is not a HTTPMethod!");
 
-            return CompareTo(myHTTPMethod);
+            return CompareTo(HTTPMethod);
 
         }
 
         #endregion
 
-        #region IComparable<HTTPMethod> Members
+        #region CompareTo(HTTPMethod)
 
-        public Int32 CompareTo(HTTPMethod myHTTPMethod)
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPMethod">An object to compare with.</param>
+        public Int32 CompareTo(HTTPMethod HTTPMethod)
         {
 
-            // Check if myHTTPMethod is null
-            if (myHTTPMethod == null)
-                throw new ArgumentNullException("myHTTPMethod must not be null!");
+            if ((Object) HTTPMethod == null)
+                throw new ArgumentNullException("The given HTTPMethod must not be null!");
 
-            return _MethodName.CompareTo(myHTTPMethod._MethodName);
+            return MethodName.CompareTo(HTTPMethod.MethodName);
 
         }
+
+        #endregion
 
         #endregion
 
         #region IEquatable<HTTPMethod> Members
 
-        #region Equals(myObject)
+        #region Equals(Object)
 
-        public override Boolean Equals(Object myObject)
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="Object">An object to compare with.</param>
+        /// <returns>true|false</returns>
+        public override Boolean Equals(Object Object)
         {
 
-            // Check if myObject is null
-            if (myObject == null)
-                throw new ArgumentNullException("Parameter myObject must not be null!");
+            if (Object == null)
+                return false;
 
-            // Check if myObject can be cast to HTTPMethod
-            var myHTTPMethod = myObject as HTTPMethod;
-            if ((Object) myHTTPMethod == null)
-                throw new ArgumentException("Parameter myObject could not be casted to type HTTPMethod!");
+            // Check if the given object is an HTTPMethod.
+            var HTTPMethod = Object as HTTPMethod;
+            if ((Object) HTTPMethod == null)
+                return false;
 
-            return this.Equals(myHTTPMethod);
+            return this.Equals(HTTPMethod);
 
         }
 
         #endregion
 
-        #region Equals(myHTTPMethod)
+        #region Equals(HTTPMethod)
 
-        public Boolean Equals(HTTPMethod myHTTPMethod)
+        /// <summary>
+        /// Compares two HTTPMethod for equality.
+        /// </summary>
+        /// <param name="HTTPMethod">An HTTPMethod to compare with.</param>
+        /// <returns>True if both match; False otherwise.</returns>
+        public Boolean Equals(HTTPMethod HTTPMethod)
         {
 
-            // Check if myHTTPMethod is null
-            if (myHTTPMethod == null)
-                throw new ArgumentNullException("Parameter myHTTPMethod must not be null!");
+            if ((Object) HTTPMethod == null)
+                return false;
 
-            return _MethodName == myHTTPMethod._MethodName;
+            return MethodName == HTTPMethod.MethodName;
 
         }
 
@@ -456,18 +426,25 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #region GetHashCode()
 
+        /// <summary>
+        /// Return the HashCode of this object.
+        /// </summary>
+        /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
         {
-            return _MethodName.GetHashCode();
+            return MethodName.GetHashCode();
         }
 
         #endregion
 
         #region ToString()
 
+        /// <summary>
+        /// Return a string represtentation of this object.
+        /// </summary>
         public override String ToString()
         {
-            return String.Format("{0}", _MethodName);
+            return MethodName;
         }
 
         #endregion

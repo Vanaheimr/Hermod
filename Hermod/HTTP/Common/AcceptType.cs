@@ -25,95 +25,233 @@ using System.Globalization;
 namespace de.ahzf.Hermod.HTTP.Common
 {
 
-    public class AcceptType : IComparable<AcceptType>
+    /// <summary>
+    /// A single HTTP accept type.
+    /// </summary>
+    public class AcceptType : IEquatable<AcceptType>, IComparable<AcceptType>, IComparable
     {
 
-        /// <summary>
-        /// Value between 0..1, default is 1
-        /// </summary>
-        private Double _Quality = 1;
-        public Double Quality
-        {
-            get { return _Quality; }
-            set { _Quality = value; }
-        }
-
-
-        private HTTPContentType _ContentType;
-        public HTTPContentType ContentType
-        {
-            get { return _ContentType; }
-            set { _ContentType = value; }
-        }
+        #region Data
 
         private UInt32 _PlaceOfOccurence;
 
-        public AcceptType(String accept, UInt32 placeOfOccurence = 0)
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// The accepted content type.
+        /// </summary>
+        public HTTPContentType ContentType { get; set; }
+
+        /// <summary>
+        /// A value between 0..1; default is 1.
+        /// </summary>
+        public Double          Quality     { get; set; }
+
+        #endregion
+
+        #region Constructor(s)
+
+        #region AcceptType(HTTPContentType, Quality = 1)
+
+        /// <summary>
+        /// Create a new HTTP accept header field.
+        /// </summary>
+        /// <param name="HTTPContentType">The accepted content type.</param>
+        /// <param name="Quality">The preference of the content type.</param>
+        public AcceptType(HTTPContentType HTTPContentType, Double Quality = 1)
+        {
+            this.ContentType = HTTPContentType;
+            this.Quality     = Quality;
+        }
+
+        #endregion
+
+        #region AcceptType(AcceptString, placeOfOccurence = 0)
+
+        /// <summary>
+        /// Parse the string representation of a HTTP accept header field.
+        /// </summary>
+        /// <param name="AcceptString"></param>
+        /// <param name="placeOfOccurence"></param>
+        public AcceptType(String AcceptString, UInt32 placeOfOccurence = 0)
         {
 
-            if (accept.Contains(";"))
-            {
-                var split = accept.Split(';');
-                try
-                {
-                    ContentType = new HTTPContentType(split[0]);
-                    Double.TryParse(split[1].Replace("q=", "").Trim(), NumberStyles.Any, new CultureInfo("en"), out _Quality);
-                }
-                catch { }
-            }
+            this.Quality = 1;
 
-            else
+            var SplittedAcceptString = AcceptString.Split(';');
+
+            Double _Quality;
+
+            switch (SplittedAcceptString.Length)
             {
-                try
-                {
-                    ContentType = new HTTPContentType(accept);
-                }
-                catch { }
+
+                case 1: ContentType = new HTTPContentType(AcceptString); break;
+
+                case 2: ContentType = new HTTPContentType(SplittedAcceptString[0]);
+
+                        if (Double.TryParse(SplittedAcceptString[1].Replace("q=", "").Trim(),
+                                            NumberStyles.Any,
+                                            new CultureInfo("en"),
+                                            out _Quality))
+                        {
+                            this.Quality = _Quality;
+                        }
+
+                        break;
+
+                case 3: ContentType = new HTTPContentType(SplittedAcceptString[0]);
+
+                        if (Double.TryParse(SplittedAcceptString[2].Replace("q=", "").Trim(),
+                                            NumberStyles.Any,
+                                            new CultureInfo("en"),
+                                            out _Quality))
+                        {
+                            this.Quality = _Quality;
+                        }
+
+                        break;
+
+                default: throw new ArgumentException("Could not parse the given AcceptString!");
+
             }
 
             _PlaceOfOccurence = placeOfOccurence;
 
         }
 
+        #endregion
 
-
+        #endregion
 
 
         #region IComparable<AcceptType> Members
 
-        public int CompareTo(AcceptType other)
+        #region CompareTo(Object)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="Object">An object to compare with.</param>
+        public Int32 CompareTo(Object Object)
         {
-            if (_Quality == other._Quality)
-                return _PlaceOfOccurence.CompareTo(other._PlaceOfOccurence);
-            else
-                return _Quality.CompareTo(other._Quality) * -1;
+
+            if (Object == null)
+                throw new ArgumentNullException("The given object must not be null!");
+
+            // Check if the given object is an AcceptType.
+            var AcceptType = Object as AcceptType;
+            if ((Object) AcceptType == null)
+                throw new ArgumentException("The given object is not a AcceptType!");
+
+            return CompareTo(AcceptType);
+
         }
 
         #endregion
 
-        public override string ToString()
+        #region CompareTo(AcceptType)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPStatusCode">An object to compare with.</param>
+        public Int32 CompareTo(AcceptType AcceptType)
         {
-            return String.Concat(_ContentType, ";", "q=", _Quality);
+
+            if ((Object) AcceptType == null)
+                throw new ArgumentNullException("The given AcceptType must not be null!");
+
+            if (Quality == AcceptType.Quality)
+                return _PlaceOfOccurence.CompareTo(AcceptType._PlaceOfOccurence);
+            else
+                return Quality.CompareTo(AcceptType.Quality) * -1;
+
         }
 
-        public override bool Equals(object obj)
+        #endregion
+
+        #endregion
+
+        #region IEquatable<AcceptType> Members
+
+        #region Equals(Object)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="Object">An object to compare with.</param>
+        /// <returns>true|false</returns>
+        public override Boolean Equals(Object Object)
         {
 
-            if (_ContentType.Equals((obj as AcceptType).ContentType))
-                return true;
-
-            else if (_ContentType.GetMediaSubType() == "*" && _ContentType.GetMediaType().Equals((obj as AcceptType).ContentType.GetMediaType()))
-                return true;
-
-            else
+            if (Object == null)
                 return false;
 
+            // Check if the given object is an AcceptType.
+            var AcceptType = Object as AcceptType;
+            if ((Object) AcceptType == null)
+                return false;
+
+            return this.Equals(AcceptType);
+
         }
 
-        public override int GetHashCode()
+        #endregion
+
+        #region Equals(AcceptType)
+
+        /// <summary>
+        /// Compares two AcceptType for equality.
+        /// </summary>
+        /// <param name="AcceptType">An AcceptType to compare with.</param>
+        /// <returns>True if both match; False otherwise.</returns>
+        public Boolean Equals(AcceptType AcceptType)
         {
-            return _ContentType.GetHashCode();
+            
+            if ((Object) AcceptType == null)
+                return false;
+
+            if (ContentType.Equals(AcceptType.ContentType))
+                return true;
+
+            if (ContentType.GetMediaSubType() == "*" &&
+                ContentType.GetMediaType().Equals(AcceptType.ContentType.GetMediaType()))
+                return true;
+
+            return false;
+
         }
+
+        #endregion
+
+        #endregion
+
+        #region GetHashCode()
+
+        /// <summary>
+        /// Return the HashCode of this object.
+        /// </summary>
+        /// <returns>The HashCode of this object.</returns>
+        public override Int32 GetHashCode()
+        {
+            return ContentType.GetHashCode();
+        }
+
+        #endregion
+
+        #region ToString()
+
+        /// <summary>
+        /// Return a string represtentation of this object.
+        /// </summary>
+        public override String ToString()
+        {
+            return String.Concat(ContentType, "; q=", Quality);
+        }
+
+        #endregion
 
     }
 

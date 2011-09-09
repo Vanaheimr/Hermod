@@ -35,6 +35,9 @@ using System.Threading;
 namespace de.ahzf.Hermod.HTTP
 {
 
+    /// <summary>
+    /// Default abstract HTTP service implementation.
+    /// </summary>
     public abstract class AHTTPService
     {
 
@@ -218,7 +221,7 @@ namespace de.ahzf.Hermod.HTTP
                     new HTTPResponseHeader()
                         {
                             HttpStatusCode = HTTPStatusCode.NotFound,
-                            ContentType    = HTTPContentType.XHTML_UTF8,
+                            ContentType    = HTTPContentType.HTML_UTF8,
                             ContentLength  = (UInt64) _ResourceContent.Length,
                             CacheControl   = "no-cache",
                             Connection     = "close",
@@ -258,6 +261,19 @@ namespace de.ahzf.Hermod.HTTP
         public HTTPResponse GetRobotsTxt()
         {
             return GetResources("robots.txt");
+        }
+
+        #endregion
+
+        #region GetHumansTxt()
+
+        /// <summary>
+        /// Get /humans.txt
+        /// </summary>
+        /// <returns>Some search engine info.</returns>
+        public HTTPResponse GetHumansTxt()
+        {
+            return GetResources("humans.txt");
         }
 
         #endregion

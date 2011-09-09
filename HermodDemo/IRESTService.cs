@@ -94,6 +94,14 @@ namespace de.ahzf.Hermod.Demo
         [HTTPMapping(HTTPMethods.GET, "/robots.txt")]
         HTTPResponse GetRobotsTxt();
 
+        /// <summary>
+        /// Get /humans.txt
+        /// </summary>
+        /// <returns>Some search engine info.</returns>
+        [NoAuthentication]
+        [HTTPMapping(HTTPMethods.GET, "/humans.txt")]
+        HTTPResponse GetHumansTxt();
+
         #endregion
 
     }

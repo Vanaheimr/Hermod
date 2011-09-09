@@ -18,6 +18,7 @@
 #region Usings
 
 using System;
+using System.Linq;
 using System.Net;
 
 using de.ahzf.Hermod.Sockets.TCP;
@@ -27,6 +28,8 @@ using System.Net.Sockets;
 using System.IO;
 using System.Threading;
 using System.Text;
+using System.Threading.Tasks;
+using System.Collections.Generic;
 
 #endregion
 
@@ -120,114 +123,197 @@ namespace de.ahzf.Hermod.HTTP
 
 
 
-        public void Execute()
+        public Task<HTTPRequest> Execute()
         {
 
-            Boolean _EndOfHTTPHeader = false;
-            long    _Length          = 0;
-            long    _ReadPosition    = 6;
-
-            // Client initialisieren und mit dem Server verbinden
-            var TCPClient = new TcpClient("localhost", this.HTTPClient.Port.ToInt32());
-   //         _TCPClient.ReceiveTimeout = 5000;
-            
-            // Stream für lesen und schreiben holen
-            var _HTTPStream         = TCPClient.GetStream();
-            var _RequestBytes       = this.ToString().ToUTF8Bytes();
-            _HTTPStream.Write(_RequestBytes, 0, _RequestBytes.Length);
-
-            var _MemoryStream       = new MemoryStream();
-            var _Buffer             = new Byte[65535];
-            Byte[] _ResponseBytes   = null;
-
-            // Wait for the server to react!
-            while (!_HTTPStream.DataAvailable)
-                Thread.Sleep(10);
-
-            while (!_EndOfHTTPHeader || _HTTPStream.DataAvailable || !TCPClient.Connected)
+            return Task<HTTPRequest>.Factory.StartNew(() =>
             {
 
-                while (_HTTPStream.DataAvailable)
+                Boolean _EndOfHTTPHeader = false;
+                long   _Length        = 0;
+                long   _ReadPosition  = 6;
+
+                // Client initialisieren und mit dem Server verbinden
+                var     TCPClient     = new TcpClient("localhost", this.HTTPClient.Port.ToInt32());
+                //         _TCPClient.ReceiveTimeout = 5000;
+
+                #region Open stream for reading and writting
+
+                var    _TCPStream     = TCPClient.GetStream();
+                var    _RequestBytes  = (HTTPHeader.Aggregate((a, b) => a + Environment.NewLine + b) + Environment.NewLine + Environment.NewLine).ToUTF8Bytes();
+                _TCPStream.Write(_RequestBytes, 0, _RequestBytes.Length);
+
+                var    _MemoryStream  = new MemoryStream();
+                var    _Buffer        = new Byte[65535];
+                Byte[] _ResponseBytes = null;
+
+                #endregion
+
+                #region Wait for the server to react!
+
+                while (!_TCPStream.DataAvailable)
+                    Thread.Sleep(10);
+
+                #endregion
+
+                while (!_EndOfHTTPHeader || _TCPStream.DataAvailable || !TCPClient.Connected)
                 {
-                    _MemoryStream.Write(_Buffer, 0, _HTTPStream.Read(_Buffer, 0, _Buffer.Length));
-                }
 
-                _Length = _MemoryStream.Length;
+                    while (_TCPStream.DataAvailable)
+                    {
+                        _MemoryStream.Write(_Buffer, 0, _TCPStream.Read(_Buffer, 0, _Buffer.Length));
+                    }
 
-                if (_Length > 4)
-                {
+                    _Length = _MemoryStream.Length;
 
-                    _ResponseBytes = _MemoryStream.ToArray();
-                    _ReadPosition = _ReadPosition - 3;
-
-                    while (_ReadPosition < _Length)
+                    if (_Length > 4)
                     {
 
-                        if (_ResponseBytes[_ReadPosition - 3] == 0x0d &&
-                            _ResponseBytes[_ReadPosition - 2] == 0x0a &&
-                            _ResponseBytes[_ReadPosition - 1] == 0x0d &&
-                            _ResponseBytes[_ReadPosition    ] == 0x0a)
+                        _ResponseBytes = _MemoryStream.ToArray();
+                        _ReadPosition = _ReadPosition - 3;
+
+                        while (_ReadPosition < _Length)
                         {
-                            _EndOfHTTPHeader = true;
-                            break;
+
+                            if (_ResponseBytes[_ReadPosition - 3] == 0x0d &&
+                                _ResponseBytes[_ReadPosition - 2] == 0x0a &&
+                                _ResponseBytes[_ReadPosition - 1] == 0x0d &&
+                                _ResponseBytes[_ReadPosition    ] == 0x0a)
+                            {
+                                _EndOfHTTPHeader = true;
+                                break;
+                            }
+
+                            _ReadPosition++;
+
                         }
 
-                        _ReadPosition++;
+                        if (_EndOfHTTPHeader)
+                            break;
 
                     }
 
-                    if (_EndOfHTTPHeader)
-                        break;
-
                 }
 
-            }
+                if (_EndOfHTTPHeader == false)
+                    throw new Exception("Protocol Error!");
 
-            if (_EndOfHTTPHeader == false)
-                throw new Exception("Protocol Error!");
+                // Create a new HTTPResponseHeader
+                var HeaderBytes = new Byte[_ReadPosition - 1];
+                Array.Copy(_ResponseBytes, 0, HeaderBytes, 0, _ReadPosition - 1);
 
-            // Create a new HTTPResponseHeader
-            var HeaderBytes = new Byte[_ReadPosition - 1];
-            Array.Copy(_ResponseBytes, 0, HeaderBytes, 0, _ReadPosition - 1);
+                HTTPStatusCode __HTTPStatusCode = null;
+                var ResponseHeader = new HTTPResponseHeader(Encoding.UTF8.GetString(HeaderBytes), out __HTTPStatusCode);
 
-            HTTPStatusCode __HTTPStatusCode = null;
-            var ResponseHeader = new HTTPResponseHeader(Encoding.UTF8.GetString(HeaderBytes), out __HTTPStatusCode);
+                // Copy only the number of bytes given within
+                // the HTTP header element 'ContentType'!
+                if (ResponseHeader.ContentLength.HasValue)
+                {
+                    ResponseBody = new Byte[ResponseHeader.ContentLength.Value];
+                    Array.Copy(_ResponseBytes, _ReadPosition + 1, ResponseBody, 0, (Int64)ResponseHeader.ContentLength.Value);
+                }
+                else
+                    ResponseBody = new Byte[0];
 
-            // Copy only the number of bytes given within
-            // the HTTP header element 'ContentType'!
-            if (ResponseHeader.ContentLength.HasValue)
-            {
-                ResponseBody = new Byte[ResponseHeader.ContentLength.Value];
-                Array.Copy(_ResponseBytes, _ReadPosition + 1, ResponseBody, 0, (Int64)ResponseHeader.ContentLength.Value);
-            }
-            else
-                ResponseBody = new Byte[0];
-
-            // The parsing of the http header failed!
-            if (__HTTPStatusCode != HTTPStatusCode.OK)
-            {
-                throw new Exception(__HTTPStatusCode.ToString());
-            }
+                // The parsing of the http header failed!
+                if (__HTTPStatusCode != HTTPStatusCode.OK)
+                {
+                    throw new Exception(__HTTPStatusCode.ToString());
+                }
 
 
-            
-            //var _ReallyRead    = _TCPStream.Read(_ResponseBytes, 0, 4096);
-                  _Response      = _ResponseBytes.ToUTF8String();
 
-            // Hier kann in den Stream geschrieben werden
-            // oder aus dem Stream gelesen werden
-            // Verbindung schließen
-            TCPClient.Close();
+                //var _ReallyRead    = _TCPStream.Read(_ResponseBytes, 0, 4096);
+                _Response = _ResponseBytes.ToUTF8String();
+
+                // Hier kann in den Stream geschrieben werden
+                // oder aus dem Stream gelesen werden
+                // Verbindung schließen
+                TCPClient.Close();
+
+                return this;
+
+            }, TaskCreationOptions.AttachedToParent);
 
         }
 
 
+        public String HTTPRequestLine
+        {
+            get
+            {
+                return HTTPRequestHeader.HTTPMethod.ToString() + " " + this.URLPattern + " " + HTTPRequestHeader.ProtocolName + "/" + HTTPRequestHeader.ProtocolVersion;
+            }
+        }
+
+        public IEnumerable<String> HTTPHeader
+        {
+            get
+            {
+
+                yield return HTTPRequestLine;
+
+                foreach (var field in HTTPRequestHeader)
+                    yield return field;
+
+            }
+        }
+
+
+        #region Host
+
+        /// <summary>
+        /// Sets the Host header.
+        /// </summary>
+        /// <param name="Host">The value of the Host header.</param>
+        public HTTPRequest Host(String Host)
+        {
+            this.HTTPRequestHeader.Host = Host;
+            return this;
+        }
+
+        #endregion
+
+        #region Accept
+
+        /// <summary>
+        /// Set the accept header.
+        /// </summary>
+        /// <param name="HTTPContentType"></param>
+        /// <param name="Quality"></param>
+        public HTTPRequest Accept(HTTPContentType HTTPContentType, Double Quality = 1)
+        {
+            this.HTTPRequestHeader.Accept.Clear();
+            this.HTTPRequestHeader.Accept.Add(new AcceptType(HTTPContentType, Quality));
+            return this;
+        }
+
+        #endregion
+
+        #region AddAccept
+
+        /// <summary>
+        /// Add a content type to the accept header.
+        /// </summary>
+        /// <param name="HTTPContentType"></param>
+        /// <param name="Quality"></param>
+        public HTTPRequest AddAccept(HTTPContentType HTTPContentType, Double Quality = 1)
+        {
+            this.HTTPRequestHeader.Accept.Add(new AcceptType(HTTPContentType, Quality));
+            return this;
+        }
+
+        #endregion
+
 
         #region ToString()
 
+        /// <summary>
+        /// Return a string represtentation of this object.
+        /// </summary>
         public override String ToString()
         {
-            return HTTPRequestHeader.HTTPMethod.ToString() + " " + this.URLPattern + " " + HTTPRequestHeader.ProtocolName + "/" + HTTPRequestHeader.ProtocolVersion + Environment.NewLine + "Host: 127.0.0.1" + Environment.NewLine + Environment.NewLine;
+            return HTTPRequestLine + Environment.NewLine + "Host: 127.0.0.1" + Environment.NewLine + Environment.NewLine;
         }
 
         #endregion

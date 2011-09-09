@@ -18,11 +18,13 @@
 #region Usings
 
 using System;
+using System.Linq;
 
 using de.ahzf.Hermod.HTTP;
 using de.ahzf.Hermod.Sockets.TCP;
 using de.ahzf.Hermod.Datastructures;
 using System.Threading;
+using de.ahzf.Hermod.HTTP.Common;
 
 #endregion
 
@@ -87,10 +89,15 @@ namespace de.ahzf.Hermod.Demo
 
 
             var _client1     = new HTTPClient(IPv4Address.Localhost, IPPort.HTTP);
-            var _request1    = _client1.GET("/HelloWorld");
+            var _request1    = _client1.GET    ("/HelloWorld").
+                                        Host   ("localhost").
+                                        AddAccept (HTTPContentType.TEXT_UTF8);
             var _request1Str = _request1.ToString();
-            _request1.Execute();
-            Console.WriteLine("Response: " + _request1._Response);
+            Console.WriteLine("Request:" + Environment.NewLine + _request1.HTTPHeader.Aggregate((a, b) => a + Environment.NewLine + b));
+            _request1.Execute().
+                ContinueWith(RequestTask => { Console.WriteLine("Response: " + Environment.NewLine + RequestTask.Result._Response); return RequestTask.Result; }).
+                ContinueWith(RequestTask => { RequestTask.Result.Accept(HTTPContentType.HTML_UTF8); return RequestTask.Result.Execute().Result; }).
+                ContinueWith(RequestTask => { Console.WriteLine("Response: " + Environment.NewLine + RequestTask.Result._Response); });
 
             Console.ReadLine();
             Console.WriteLine("done!");

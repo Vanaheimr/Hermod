@@ -170,12 +170,6 @@ namespace de.ahzf.Hermod.HTTP
         #endregion
 
 
-        public void Execute(HTTPRequest HTTPRequest)
-        {
-        }
-
-
-
         public void Close()
         {
         }

@@ -290,7 +290,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         public Boolean Equals(AHTTPHeaderField AHTTPHeaderField)
         {
 
-            if (AHTTPHeaderField == null)
+            if ((Object) AHTTPHeaderField == null)
                 return false;
 
             return Name == AHTTPHeaderField.Name;

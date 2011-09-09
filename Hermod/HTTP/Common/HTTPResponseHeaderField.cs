@@ -374,7 +374,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         /// Compares two instances of this object.
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
-        public Int32 CompareTo(Object Object)
+        public new Int32 CompareTo(Object Object)
         {
 
             if (Object == null)
@@ -393,6 +393,10 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #region CompareTo(HTTPResponseHeaderField)
 
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPResponseHeaderField">An object to compare with.</param>
         public Int32 CompareTo(HTTPResponseHeaderField HTTPResponseHeaderField)
         {
 
@@ -443,7 +447,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         public Boolean Equals(HTTPResponseHeaderField HTTPResponseHeaderField)
         {
 
-            if (HTTPResponseHeaderField == null)
+            if ((Object) HTTPResponseHeaderField == null)
                 return false;
 
             return Name == HTTPResponseHeaderField.Name;

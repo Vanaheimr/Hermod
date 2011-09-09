@@ -17,21 +17,28 @@
 
 #region Usings
 
-using de.ahzf.Hermod.HTTP.Common;
 using System.Collections.Generic;
+
+using de.ahzf.Hermod.HTTP.Common;
 
 #endregion
 
 namespace de.ahzf.Hermod.HTTP
 {
 
+    /// <summary>
+    /// The minimal HTTP service interface.
+    /// </summary>
     public interface IHTTPService
     {
         
+        /// <summary>
+        /// The HTTP connection.
+        /// </summary>
         IHTTPConnection              IHTTPConnection  { get; }
 
         /// <summary>
-        /// A list of supported HTTP ContentTypes.
+        /// A list of supported HTTP content types.
         /// </summary>
         IEnumerable<HTTPContentType> HTTPContentTypes { get; }
 

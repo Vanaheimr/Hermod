@@ -34,12 +34,6 @@ namespace de.ahzf.Hermod.HTTP.Common
     public class HTTPResponseHeader : AHTTPResponseHeader
     {
 
-        #region Data
-
-        private readonly Dictionary<String, Object> _HeaderFields;
-
-        #endregion
-
         #region Properties
 
         #region RAWHTTPHeader
@@ -415,13 +409,9 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         public HTTPResponseHeader()
         {
-            
-            _HeaderFields  = new Dictionary<String, Object>(StringComparer.OrdinalIgnoreCase);
-            
             ContentLength  = 0;
             HttpStatusCode = HTTPStatusCode.OK;
             Date           = DateTime.Now.ToString();
-
         }
 
         #endregion
@@ -430,14 +420,10 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         public HTTPResponseHeader(String HTTPHeader, out HTTPStatusCode HTTPStatusCode)
         {
-            
-            _HeaderFields  = new Dictionary<String, Object>(StringComparer.OrdinalIgnoreCase);
-            
             ContentLength  = 0;
             HttpStatusCode = HTTPStatusCode.OK;
             Date           = DateTime.Now.ToString();
             HTTPStatusCode = HTTPStatusCode.OK;
-
         }
 
         #endregion

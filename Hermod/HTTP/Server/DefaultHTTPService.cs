@@ -159,7 +159,7 @@ namespace de.ahzf.Hermod.HTTP
                 {
                     HttpStatusCode = HTTPStatusCode.OK,
                     CacheControl   = "no-cache",
-                    ContentType    = HTTPContentType.XHTML_UTF8
+                    ContentType    = HTTPContentType.HTML_UTF8
                 },
 
                 HTMLBuilder("Hello world!", _StringBuilder =>
