@@ -34,15 +34,8 @@ namespace de.ahzf.Hermod.HTTP
     /// The interface for the default http service.
     /// </summary>
     [HTTPService(Host: "localhost:8181")]
-    public interface IDefaultHTTPService : IHTTPService
+    public interface IDefaultHTTPService : IHTTPBaseService
     {
-
-        /// <summary>
-        /// Get the http server root.
-        /// </summary>
-        /// <returns>Some HTML and JavaScript.</returns>
-        [HTTPMapping(HTTPMethods.GET, "/"), NoAuthentication]
-        HTTPResponse GetRoot();
 
         /// <summary>
         /// Get the raw http request header.
@@ -60,7 +53,7 @@ namespace de.ahzf.Hermod.HTTP
     /// <summary>
     /// The default http service.
     /// </summary>
-    public class DefaultHTTPService : IDefaultHTTPService
+    public class DefaultHTTPService : AHTTPService, IDefaultHTTPService
     {
 
         #region Properties

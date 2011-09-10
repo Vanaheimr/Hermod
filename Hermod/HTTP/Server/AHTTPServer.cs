@@ -20,63 +20,49 @@
 using System;
 using System.Linq;
 using System.Reflection;
-
-using de.ahzf.Hermod.HTTP.Common;
-using de.ahzf.Hermod.Tools;
 using System.Collections.Generic;
+
+using de.ahzf.Hermod.Tools;
+using de.ahzf.Hermod.HTTP.Common;
 
 #endregion
 
 namespace de.ahzf.Hermod.HTTP
 {
 
+    /// <summary>
+    /// An abstract HTTP server.
+    /// </summary>
+    /// <typeparam name="HTTPServiceInterface">An interface inheriting from IHTTPService and defining URLMappings.</typeparam>
     public abstract class AHTTPServer<HTTPServiceInterface>
         where HTTPServiceInterface : IHTTPService
     {
 
         #region Data
 
-        protected readonly URLMapping _URLMapping;
+        /// <summary>
+        /// A mapping from URLTemplates onto C# methods.
+        /// </summary>
+        protected readonly URLMapping URLMapping;
 
         #endregion
 
         #region Properties
-
-        #region Implementations
 
         /// <summary>
         /// The autodiscovered implementations of the HTTPServiceInterface.
         /// </summary>
         public IDictionary<HTTPContentType, HTTPServiceInterface> Implementations { get; private set; }
 
-        #endregion
+        /// <summary>
+        /// The HTTP server name.
+        /// </summary>
+        public String       ServerName   { get; set; }
 
-        #region ServerName
-
-        public String ServerName { get; set; }
-
-        #endregion
-
-        #region HTTPSecurity
-
-        private HTTPSecurity _HTTPSecurity;
-
-        public HTTPSecurity HTTPSecurity
-        {
-
-            get
-            {
-                return _HTTPSecurity;
-            }
-
-            set
-            {
-                _HTTPSecurity = value;
-            }
-
-        }
-
-        #endregion
+        /// <summary>
+        /// An associated HTTP security object.
+        /// </summary>
+        public HTTPSecurity HTTPSecurity { get; set; }
 
         #endregion
 
@@ -84,9 +70,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region AHTTPServer()
 
+        /// <summary>
+        /// Creates a new abstract HTTP server.
+        /// </summary>
         public AHTTPServer()
         {
-            _URLMapping     = new URLMapping();
+            URLMapping      = new URLMapping();
             Implementations = new Dictionary<HTTPContentType, HTTPServiceInterface>();
             ParseInterface();
         }
@@ -96,16 +85,12 @@ namespace de.ahzf.Hermod.HTTP
         #endregion
 
 
-        #region RegisterService(myIHTTPService)
+        #region (private) ParseInterface
 
-        public void RegisterService(IHTTPService myIHTTPService)
-        {
-        }
-
-        #endregion
-
-        #region ParseInterface
-
+        /// <summary>
+        /// Parses the given HTTP service interface and
+        /// adds method callbacks and event sources.
+        /// </summary>
         private void ParseInterface()
         {
 
@@ -120,47 +105,45 @@ namespace de.ahzf.Hermod.HTTP
 
             #endregion
 
-            var HTTPServiceImplementations = new AutoDiscovery<HTTPServiceInterface>();
+            var HTTPServiceInterfaceType = typeof(HTTPServiceInterface);
+            var HTTPServiceDiscovery     = new AutoDiscovery<HTTPServiceInterface>();
 
-            if (HTTPServiceImplementations != null && HTTPServiceImplementations.Count >= 1)
-                foreach (var _Implementation in HTTPServiceImplementations)
+            if (HTTPServiceDiscovery != null && HTTPServiceDiscovery.Count >= 1)
+            {
+                foreach (var HTTPServiceImplementation in HTTPServiceDiscovery)
                 {
 
-                    #region Find the correct interface
+                    #region Initial checks
 
-                    //var _AllInterfaces = from _Interface
-                    //                     in typeof(HTTPServiceInterface).GetInterfaces()
-                    //                     where _Interface.GetInterfaces() != null
-                    //                     where _Interface.GetInterfaces().Contains(typeof(IHTTPService))
-                    //                     where _Interface.GetCustomAttributes(typeof(HTTPServiceAttribute), false) != null
-                    //                     select _Interface;
+                    if (HTTPServiceImplementation.HTTPContentTypes == null)
+                        throw new ApplicationException("Please define an associated HTTPContentType for the '" + HTTPServiceImplementation.GetType().FullName + "' HTTP service implementation!");
 
-                    //var _CurrentInterface = _AllInterfaces.FirstOrDefault();
-
-                    //if (_CurrentInterface == null)
-                    //    throw new Exception("Could not find any valid interface having the HTTPService attribute!");
-
-                    //if (_AllInterfaces.Count() > 1)
-                    //    throw new Exception("Multiple interfaces having the HTTPService attribute!");
+                    if (HTTPServiceImplementation.HTTPContentTypes.Count() != 1)
+                        throw new ApplicationException("Less than and more than one HTTPContentType is currently not supported!");
 
                     #endregion
 
-                    HTTPContentType _CurrentContentType = null;
+                    #region Register associated content type(s)
 
-                    var _CurrentInterface = typeof(HTTPServiceInterface);
+                    foreach (var AssociatedContentType in HTTPServiceImplementation.HTTPContentTypes)
+                    {
+                        if (!(Implementations.ContainsKey(AssociatedContentType)))
+                            Implementations.Add(AssociatedContentType, HTTPServiceImplementation);
+                        else
+                            throw new ApplicationException("The content type '" + AssociatedContentType + "' is already associated with an HTTP service implementation called '" + Implementations[AssociatedContentType].GetType().FullName + "'!");
+                    }
 
-                    if (_Implementation.HTTPContentTypes.Count() != 1)
-                        throw new ApplicationException("Less than and more than one HTTPContentType is currently not supported!");
+                    #endregion
 
-                    _CurrentContentType = _Implementation.HTTPContentTypes.First();
+                    #region Get HTTPServiceInterface Attributes
 
-                    Implementations.Add(_CurrentContentType, _Implementation);
+                    #region HTTPServiceAttribute
 
-                    #region Get Host
+                    var _HTTPServiceAttribute = HTTPServiceInterfaceType.GetCustomAttributes(typeof(HTTPServiceAttribute), false);
 
-                    var _HTTPServiceAttribute = _CurrentInterface.GetCustomAttributes(typeof(HTTPServiceAttribute), false);
-                    //ToDo: _HTTPServiceAttribute.Count() == 1 might be a bug!!!
-                    if (_HTTPServiceAttribute != null && _HTTPServiceAttribute.Count() == 1)
+                    if (_HTTPServiceAttribute == null || _HTTPServiceAttribute.Count() != 1)
+                        throw new ApplicationException("Invalid HTTPServiceAttributes found!");
+
                         _Host = (_HTTPServiceAttribute[0] as HTTPServiceAttribute).Host;
 
                     #endregion
@@ -169,24 +152,26 @@ namespace de.ahzf.Hermod.HTTP
 
                     var _GlobalNeedsExplicitAuthentication = false;
 
-                    if (_CurrentInterface.GetCustomAttributes(typeof(NoAuthenticationAttribute), false) != null)
+                    if (HTTPServiceInterfaceType.GetCustomAttributes(typeof(NoAuthenticationAttribute), false) != null)
                         _GlobalNeedsExplicitAuthentication = false;
 
-                    if (_CurrentInterface.GetCustomAttributes(typeof(ForceAuthenticationAttribute), false) != null)
+                    if (HTTPServiceInterfaceType.GetCustomAttributes(typeof(ForceAuthenticationAttribute), false) != null)
                         _GlobalNeedsExplicitAuthentication = true;
 
                     #endregion
 
-                    #region Add method callbacks
+                    #endregion
 
-                    Boolean NeedsExplicitAuthentication = false;
+                    #region Add method callbacks and event sources
 
-                    foreach (var _MethodInfo in _CurrentInterface.GetMethods())
+                    var NeedsExplicitAuthentication = false;
+
+                    foreach (var _MethodInfo in HTTPServiceInterfaceType.GetRecursiveInterfaces().SelectMany(CI => CI.GetMethods()))
                     {
 
-                        _HTTPMethod          = null;
-                        _EventIdentification = null;
-                        _URITemplate         = "";
+                        _HTTPMethod                 = null;
+                        _EventIdentification        = null;
+                        _URITemplate                = "";
                         NeedsExplicitAuthentication = _GlobalNeedsExplicitAuthentication;
 
                         foreach (var _Attribute in _MethodInfo.GetCustomAttributes(true))
@@ -214,7 +199,7 @@ namespace de.ahzf.Hermod.HTTP
                             var _HTTPEventMappingAttribute = _Attribute as HTTPEventMappingAttribute;
                             if (_HTTPEventMappingAttribute != null)
                             {
-                                
+
                                 if (_HTTPMethod != null)
                                     throw new Exception("URI '" + _URITemplate + "' is already registered as HTTP method!");
 
@@ -263,49 +248,69 @@ namespace de.ahzf.Hermod.HTTP
 
                         }
 
-                        if (_HTTPMethod != null && _URITemplate != null && _URITemplate != "")
-                            AddMethodCallback(_MethodInfo, _Host, _URITemplate, _HTTPMethod, _CurrentContentType, NeedsExplicitAuthentication);
+                        #region Add MethodCallback or EventSource
 
-                        else if (_EventIdentification != null && _URITemplate != null && _URITemplate != "" && _CurrentContentType == HTTPContentType.EVENTSTREAM)
-                            AddEventSource(_MethodInfo, _Host, _URITemplate, _EventIdentification, _MaxNumberOfCachedEvents, _IsSharedEventSource, NeedsExplicitAuthentication);
+                        if (_HTTPMethod != null && _URITemplate != null && _URITemplate != "")
+                            foreach (var AssociatedContentType in HTTPServiceImplementation.HTTPContentTypes)
+                            {
+                                if (AssociatedContentType != HTTPContentType.EVENTSTREAM)
+                                    AddMethodCallback(_MethodInfo, _Host, _URITemplate, _HTTPMethod, AssociatedContentType, NeedsExplicitAuthentication);
+                                else if (_EventIdentification != null)
+                                    AddEventSource(_MethodInfo, _Host, _URITemplate, _EventIdentification, _MaxNumberOfCachedEvents, _IsSharedEventSource, NeedsExplicitAuthentication);
+                            }
+
+                        #endregion
 
                     }
 
                     #endregion
 
                 }
-
+            }
             else
-                throw new Exception("Could not find any valid implementation of the HTTP service interface '" + typeof(HTTPServiceInterface).ToString() +"'!");
+                throw new Exception("Could not find any valid implementation of the HTTP service interface '" + typeof(HTTPServiceInterface).FullName.ToString() + "'!");
 
         }
 
         #endregion
 
-        #region AddMethodCallback(myHost, myURITemplate, myHTTPMethod, myMethodInfo, myHTTPContentType = null, myNeedsExplicitAuthentication = null)
 
-        public void AddMethodCallback(MethodInfo myMethodInfo, String myHost, String myURITemplate, HTTPMethod myHTTPMethod, HTTPContentType myHTTPContentType = null, Boolean myNeedsExplicitAuthentication = false)
-        {
-            _URLMapping.AddHandler(myMethodInfo, myHost, myURITemplate, myHTTPMethod, myHTTPContentType, myNeedsExplicitAuthentication);
-        }
-
-        #endregion
-
+        #region AddMethodCallback(Host, URITemplate, HTTPMethod, MethodInfo, HTTPContentType = null, NeedsExplicitAuthentication = false)
 
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="myMethodInfo"></param>
-        /// <param name="myHost"></param>
-        /// <param name="myURITemplate"></param>
-        /// <param name="myEventIdentification"></param>
-        /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events (0 means infinite).</param>
-        /// <param name="myIsSharedEventSource"></param>
-        /// <param name="myNeedsExplicitAuthentication"></param>
-        public void AddEventSource(MethodInfo myMethodInfo, String myHost, String myURITemplate, String myEventIdentification, UInt32 MaxNumberOfCachedEvents, Boolean myIsSharedEventSource = false, Boolean myNeedsExplicitAuthentication = false)
+        /// <param name="MethodInfo"></param>
+        /// <param name="Host"></param>
+        /// <param name="URITemplate"></param>
+        /// <param name="HTTPMethod"></param>
+        /// <param name="HTTPContentType"></param>
+        /// <param name="NeedsExplicitAuthentication"></param>
+        public void AddMethodCallback(MethodInfo MethodInfo, String Host, String URITemplate, HTTPMethod HTTPMethod, HTTPContentType HTTPContentType = null, Boolean NeedsExplicitAuthentication = false)
         {
-            _URLMapping.AddEventSource(myMethodInfo, myHost, myURITemplate, myEventIdentification, MaxNumberOfCachedEvents, myIsSharedEventSource, myNeedsExplicitAuthentication);
+            URLMapping.AddHandler(MethodInfo, Host, URITemplate, HTTPMethod, HTTPContentType, NeedsExplicitAuthentication);
         }
+
+        #endregion
+
+        #region AddEventSource(MethodInfo, Host, URITemplate, EventIdentification, MaxNumberOfCachedEvents, IsSharedEventSource = false, NeedsExplicitAuthentication = false)
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="MethodInfo"></param>
+        /// <param name="Host"></param>
+        /// <param name="URITemplate"></param>
+        /// <param name="EventIdentification"></param>
+        /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events (0 means infinite).</param>
+        /// <param name="IsSharedEventSource"></param>
+        /// <param name="NeedsExplicitAuthentication"></param>
+        public void AddEventSource(MethodInfo MethodInfo, String Host, String URITemplate, String EventIdentification, UInt32 MaxNumberOfCachedEvents, Boolean IsSharedEventSource = false, Boolean NeedsExplicitAuthentication = false)
+        {
+            URLMapping.AddEventSource(MethodInfo, Host, URITemplate, EventIdentification, MaxNumberOfCachedEvents, IsSharedEventSource, NeedsExplicitAuthentication);
+        }
+
+        #endregion
 
     }
 

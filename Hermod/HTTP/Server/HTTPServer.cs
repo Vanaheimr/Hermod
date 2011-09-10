@@ -264,7 +264,7 @@ namespace de.ahzf.Hermod.HTTP
                           
                                          NewHTTPConnection.ServerName            = ServerName;
                                          NewHTTPConnection.HTTPSecurity          = HTTPSecurity;
-                                         NewHTTPConnection.URLMapping            = _URLMapping;
+                                         NewHTTPConnection.URLMapping            = URLMapping;
                                          NewHTTPConnection.NewHTTPServiceHandler = OnNewHTTPService;
                                          NewHTTPConnection.Implementations       = Implementations;
                           

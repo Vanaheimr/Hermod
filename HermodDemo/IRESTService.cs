@@ -29,21 +29,10 @@ namespace de.ahzf.Hermod.Demo
 
     //[HTTPService(Host: "localhost:8080", ForceAuthentication: true)]
     [HTTPService(HostAuthentication: true)]
-    public interface IRESTService : IHTTPService
+    public interface IRESTService : IHTTPBaseService
     {
 
-        #region Landingpage
-
-        /// <summary>
-        /// Get Landingpage
-        /// </summary>
-        /// <returns>Some HTML and JavaScript</returns>
-        [HTTPMapping(HTTPMethods.GET, "/"), NoAuthentication]
-        HTTPResponse GetRoot();
-
-        #endregion
-
-        #region Defaults
+        #region GetRAWRequestHeader
 
         /// <summary>
         /// Get the raw http request header.
@@ -64,43 +53,6 @@ namespace de.ahzf.Hermod.Demo
 
         [HTTPMapping(HTTPMethods.GET,     "/HelloWorld")]
         HTTPResponse HelloWorld_GET();
-
-        #endregion
-
-
-        #region Utilities
-
-        /// <summary>
-        /// Will return internal resources
-        /// </summary>
-        /// <returns>internal resources</returns>
-        [NoAuthentication]
-        [HTTPMapping(HTTPMethods.GET, "/resources/{myResource}")]
-        HTTPResponse GetResources(String myResource);
-
-        /// <summary>
-        /// Get /favicon.ico
-        /// </summary>
-        /// <returns>Some HTML and JavaScript.</returns>
-        [NoAuthentication]
-        [HTTPMapping(HTTPMethods.GET, "/favicon.ico")]
-        HTTPResponse GetFavicon();
-
-        /// <summary>
-        /// Get /robots.txt
-        /// </summary>
-        /// <returns>Some search engine info.</returns>
-        [NoAuthentication]
-        [HTTPMapping(HTTPMethods.GET, "/robots.txt")]
-        HTTPResponse GetRobotsTxt();
-
-        /// <summary>
-        /// Get /humans.txt
-        /// </summary>
-        /// <returns>Some search engine info.</returns>
-        [NoAuthentication]
-        [HTTPMapping(HTTPMethods.GET, "/humans.txt")]
-        HTTPResponse GetHumansTxt();
 
         #endregion
 

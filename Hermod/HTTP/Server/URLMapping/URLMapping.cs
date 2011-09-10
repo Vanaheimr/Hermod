@@ -31,7 +31,7 @@ namespace de.ahzf.Hermod.HTTP
 {
 
     /// <summary>
-    /// The mapping from URLTemplates onto C# methods.
+    /// A mapping from URLTemplates onto C# methods.
     /// </summary>
     public class URLMapping
     {
@@ -40,10 +40,6 @@ namespace de.ahzf.Hermod.HTTP
 
         private readonly ConcurrentDictionary<String, HostNode>    _HostNodes;
         private readonly SortedDictionary<String, HTTPEventSource> _EventSources;
-
-        #endregion
-
-        #region Properties
 
         #endregion
 

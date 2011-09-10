@@ -58,6 +58,7 @@
     <Compile Include="HTTP\Common\HTTPRequestHeader_RW.cs" />
     <Compile Include="HTTP\Server\Attributes\HTTPEventMappingAttribute.cs" />
     <Compile Include="HTTP\Server\AHTTPService.cs" />
+    <Compile Include="HTTP\Server\Interfaces\IHTTPBaseService.cs" />
     <Compile Include="HTTP\Server\URLMapping\HTTPEvent.cs" />
     <Compile Include="HTTP\Server\URLMapping\HTTPEventSource.cs" />
     <Compile Include="Interfaces\ILocalSocket.cs" />
