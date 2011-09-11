@@ -84,7 +84,7 @@ namespace de.ahzf.Hermod.HTTP
 
         public Byte[]             RequestBody    { get; protected set; }
 
-        public HTTPResponseHeader ResponseHeader { get; protected set; }
+        public HTTPResponseHeader_RW ResponseHeader { get; protected set; }
 
         public NetworkStream      ResponseStream { get; protected set; }
 
@@ -118,7 +118,7 @@ namespace de.ahzf.Hermod.HTTP
         public HTTPConnection(TcpClient myTCPClientConnection)
             : base(myTCPClientConnection)
         {
-            ResponseHeader = new HTTPResponseHeader();
+            ResponseHeader = new HTTPResponseHeader_RW();
             ResponseStream = myTCPClientConnection.GetStream();
         }
 
@@ -380,8 +380,8 @@ namespace de.ahzf.Hermod.HTTP
                             ResponseHeader = _HTTPResponse.ResponseHeader;
 
                             // If there is no client and server error...
-                            if (!_HTTPResponse.ResponseHeader.HttpStatusCode.IsClientError &&
-                                !_HTTPResponse.ResponseHeader.HttpStatusCode.IsServerError)
+                            if (!_HTTPResponse.ResponseHeader.HTTPStatusCode.IsClientError &&
+                                !_HTTPResponse.ResponseHeader.HTTPStatusCode.IsServerError)
                                  WriteToResponseStream(_HTTPResponse);
 
 
@@ -392,9 +392,9 @@ namespace de.ahzf.Hermod.HTTP
 
                             WriteToResponseStream(new HTTPResponse(
                     
-                                new HTTPResponseHeader()
+                                new HTTPResponseHeader_RW()
                                 {
-                                    HttpStatusCode = HTTPStatusCode.InternalServerError,
+                                    HTTPStatusCode = HTTPStatusCode.InternalServerError,
                                     CacheControl   = "no-cache",
                                     ContentType    = HTTPContentType.TEXT_UTF8
                                 },
@@ -414,17 +414,17 @@ namespace de.ahzf.Hermod.HTTP
                 catch (Exception _Exception)
                 {
                     LastException = _Exception;
-                    ResponseHeader.HttpStatusCode = HTTPStatusCode.InternalServerError;
+                    ResponseHeader.HTTPStatusCode = HTTPStatusCode.InternalServerError;
                     //ExceptionThrown(this, _Exception);
                 }
 
                 #region In case of errors => Send an errorpage!
 
-                if (ResponseHeader.HttpStatusCode.IsClientError ||
-                    ResponseHeader.HttpStatusCode.IsServerError)
+                if (ResponseHeader.HTTPStatusCode.IsClientError ||
+                    ResponseHeader.HTTPStatusCode.IsServerError)
                 {
 
-                    SendErrorpage(ResponseHeader.HttpStatusCode,
+                    SendErrorpage(ResponseHeader.HTTPStatusCode,
                                   RequestHeader,
                                   RequestBody,
                                   LastException: LastException);
@@ -446,7 +446,7 @@ namespace de.ahzf.Hermod.HTTP
 
         #region (private) WriteToResponseStream(myHTTPResponseHeader, myContent = null)
 
-        private void WriteToResponseStream(HTTPResponseHeader myHTTPResponseHeader, Byte[] myContent = null)
+        private void WriteToResponseStream(HTTPResponseHeader_RW myHTTPResponseHeader, Byte[] myContent = null)
         {
 
             if (myContent != null)
@@ -480,9 +480,9 @@ namespace de.ahzf.Hermod.HTTP
             else if (myHTTPResponse.ContentStream != null)
                 WriteToResponseStream(myHTTPResponse.ContentStream, myReadTimeout);
 
-            if (myHTTPResponse.ResponseHeader.HttpStatusCode.IsClientError ||
-                myHTTPResponse.ResponseHeader.HttpStatusCode.IsServerError)
-                Console.WriteLine("HTTPStatusCode: " + myHTTPResponse.ResponseHeader.HttpStatusCode);
+            if (myHTTPResponse.ResponseHeader.HTTPStatusCode.IsClientError ||
+                myHTTPResponse.ResponseHeader.HTTPStatusCode.IsServerError)
+                Console.WriteLine("HTTPStatusCode: " + myHTTPResponse.ResponseHeader.HTTPStatusCode);
 
         }
 
@@ -491,12 +491,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region (private) GetAuthenticationRequiredHeader()
 
-        private HTTPResponseHeader GetAuthenticationRequiredHeader()
+        private HTTPResponseHeader_RW GetAuthenticationRequiredHeader()
         {
-            return new HTTPResponseHeader()
+            return (new HTTPResponseHeader_RW()
             {
-                HttpStatusCode = HTTPStatusCode.Unauthorized
-            };
+                HTTPStatusCode = HTTPStatusCode.Unauthorized
+            }).SetHTTPStatusCode(HTTPStatusCode.Unauthorized);
         }
 
         #endregion
@@ -534,7 +534,7 @@ namespace de.ahzf.Hermod.HTTP
             if (LastException != null && LastException == null)
                 this.LastException = LastException;
 
-            ResponseHeader.HttpStatusCode = myHttpStatusCode;
+            ResponseHeader.HTTPStatusCode = myHttpStatusCode;
             ResponseHeader.Server         = ServerName;
 
             #region Send a customized errorpage...
@@ -543,7 +543,7 @@ namespace de.ahzf.Hermod.HTTP
                                                             RequestHeader.RawUrl,
                                                             RequestHeader.HTTPMethod,
                                                             null,
-                                                            ResponseHeader.HttpStatusCode);
+                                                            ResponseHeader.HTTPStatusCode);
 
             if (__ErrorHandler != null && __ErrorHandler.Item1 != null)
             {

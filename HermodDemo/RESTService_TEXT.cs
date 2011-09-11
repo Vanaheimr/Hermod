@@ -93,9 +93,9 @@ namespace de.ahzf.Hermod.Demo
 
             return new HTTPResponse(
 
-                new HTTPResponseHeader()
+                new HTTPResponseHeader_RW()
                 {
-                    HttpStatusCode = HTTPStatusCode.OK,
+                    HTTPStatusCode = HTTPStatusCode.OK,
                     CacheControl   = "no-cache",
                     ContentType    = HTTPContentType.HTML_UTF8
                 },
@@ -118,10 +118,10 @@ namespace de.ahzf.Hermod.Demo
 
             return new HTTPResponse(
 
-                new HTTPResponseHeader()
+                new HTTPResponseHeader_RW()
                 {
 
-                    HttpStatusCode = HTTPStatusCode.OK,
+                    HTTPStatusCode = HTTPStatusCode.OK,
                     CacheControl = "no-cache",
 
                     Allow = new List<HTTPMethod> {
@@ -148,9 +148,9 @@ namespace de.ahzf.Hermod.Demo
 
             return new HTTPResponse(
 
-                new HTTPResponseHeader()
+                new HTTPResponseHeader_RW()
                 {
-                    HttpStatusCode = HTTPStatusCode.OK,
+                    HTTPStatusCode = HTTPStatusCode.OK,
                     CacheControl   = "no-cache",
                     ContentLength  = (UInt64) _Content.Length,
                     ContentType    = HTTPContentType.TEXT_UTF8
@@ -174,9 +174,9 @@ namespace de.ahzf.Hermod.Demo
 
             return new HTTPResponse(
 
-                new HTTPResponseHeader()
+                new HTTPResponseHeader_RW()
                 {
-                    HttpStatusCode = HTTPStatusCode.OK,
+                    HTTPStatusCode = HTTPStatusCode.OK,
                     CacheControl   = "no-cache",
                     ContentLength  = (UInt64) _Content.Length,
                     ContentType    = HTTPContentType.TEXT_UTF8

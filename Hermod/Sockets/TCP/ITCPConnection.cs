@@ -29,6 +29,9 @@ using de.ahzf.Hermod.Datastructures;
 namespace de.ahzf.Hermod.Sockets.TCP
 {
 
+    /// <summary>
+    /// The interface for all TCP connections.
+    /// </summary>
     public interface ITCPConnection : ILocalSocket, IRemoteSocket
     {
 

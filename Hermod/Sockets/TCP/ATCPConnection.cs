@@ -120,8 +120,8 @@ namespace de.ahzf.Hermod.Sockets.TCP
         {
             
             this.TCPClientConnection = TCPClientConnection;
-            var _IPEndPoint = this.TCPClientConnection.Client.RemoteEndPoint as IPEndPoint;
-            RemoteSocket      = new IPSocket(new IPv4Address(_IPEndPoint.Address), new IPPort((UInt16) _IPEndPoint.Port));
+            var _IPEndPoint          = this.TCPClientConnection.Client.RemoteEndPoint as IPEndPoint;
+            RemoteSocket             = new IPSocket(new IPv4Address(_IPEndPoint.Address), new IPPort((UInt16) _IPEndPoint.Port));
 
             if (RemoteSocket == null)
                 throw new ArgumentNullException("The RemoteEndPoint is invalid!");
@@ -148,27 +148,27 @@ namespace de.ahzf.Hermod.Sockets.TCP
 
         #region WriteToResponseStream(myText)
 
-        public void WriteToResponseStream(String myText)
+        public void WriteToResponseStream(String Text)
         {
-            WriteToResponseStream(Encoding.UTF8.GetBytes(myText));
+            WriteToResponseStream(Encoding.UTF8.GetBytes(Text));
         }
 
         #endregion
 
-        #region WriteToResponseStream(myContent)
+        #region WriteToResponseStream(Content)
 
-        public void WriteToResponseStream(Byte[] myContent)
+        public void WriteToResponseStream(Byte[] Content)
         {
             if (IsConnected)
-                if (myContent != null)
-                    TCPClientConnection.GetStream().Write(myContent, 0, myContent.Length);
+                if (Content != null)
+                    TCPClientConnection.GetStream().Write(Content, 0, Content.Length);
         }
 
         #endregion
 
-        #region WriteToResponseStream(myInputStream, myReadTimeout = 1000)
+        #region WriteToResponseStream(InputStream, ReadTimeout = 1000)
 
-        public void WriteToResponseStream(Stream myInputStream, Int32 myReadTimeout = 1000)
+        public void WriteToResponseStream(Stream InputStream, Int32 ReadTimeout = 1000)
         {
 
             if (IsConnected)
@@ -177,12 +177,12 @@ namespace de.ahzf.Hermod.Sockets.TCP
                 var _Buffer = new Byte[65535];
                 var _BytesRead = 0;
 
-                if (myInputStream.CanTimeout && myReadTimeout != 1000)
-                    myInputStream.ReadTimeout = myReadTimeout;
+                if (InputStream.CanTimeout && ReadTimeout != 1000)
+                    InputStream.ReadTimeout = ReadTimeout;
 
                 do
                 {
-                    _BytesRead = myInputStream.Read(_Buffer, 0, _Buffer.Length);
+                    _BytesRead = InputStream.Read(_Buffer, 0, _Buffer.Length);
                     TCPClientConnection.GetStream().Write(_Buffer, 0, _BytesRead);
                 } while (_BytesRead != 0);
 

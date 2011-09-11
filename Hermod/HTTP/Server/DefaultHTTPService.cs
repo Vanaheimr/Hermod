@@ -148,9 +148,9 @@ namespace de.ahzf.Hermod.HTTP
 
             return new HTTPResponse(
 
-                new HTTPResponseHeader()
+                new HTTPResponseHeader_RW()
                 {
-                    HttpStatusCode = HTTPStatusCode.OK,
+                    HTTPStatusCode = HTTPStatusCode.OK,
                     CacheControl   = "no-cache",
                     ContentType    = HTTPContentType.HTML_UTF8
                 },
@@ -175,9 +175,9 @@ namespace de.ahzf.Hermod.HTTP
 
             return new HTTPResponse(
 
-                new HTTPResponseHeader()
+                new HTTPResponseHeader_RW()
                 {
-                    HttpStatusCode = HTTPStatusCode.OK,
+                    HTTPStatusCode = HTTPStatusCode.OK,
                     CacheControl   = "no-cache",
                     Connection     = "close",
                     ContentType    = HTTPContentType.TEXT_UTF8
@@ -193,7 +193,7 @@ namespace de.ahzf.Hermod.HTTP
                                         "Protocol => " + IHTTPConnection.RequestHeader.ProtocolName + Environment.NewLine +
                                         "Version => " + IHTTPConnection.RequestHeader.ProtocolVersion + Environment.NewLine +
                                         Environment.NewLine + Environment.NewLine +
-                                        IHTTPConnection.ResponseHeader.HttpStatusCode
+                                        IHTTPConnection.ResponseHeader.HTTPStatusCode
                                         )
 
             );

@@ -41,7 +41,7 @@ namespace de.ahzf.Hermod.HTTP
         //ToDo: Change this to a Stream!
         Byte[]              RequestBody     { get; }
         
-        HTTPResponseHeader  ResponseHeader  { get; }
+        HTTPResponseHeader_RW  ResponseHeader  { get; }
         NetworkStream       ResponseStream  { get; }
         
         String              ServerName      { get; }

@@ -17,8 +17,6 @@
 
 #region Usings
 
-using System;
-using System.Text;
 using System.Net.Sockets;
 
 #endregion
@@ -44,13 +42,13 @@ namespace de.ahzf.Hermod.Sockets.TCP
 
         #endregion
 
-        #region TCPConnection(myTCPClientConnection)
+        #region TCPConnection(TCPClientConnection)
 
         /// <summary>
         /// Create a new TCPConnection class using the given TcpClient class
         /// </summary>
-        public TCPConnection(TcpClient myTCPClientConnection)
-            : base(myTCPClientConnection)
+        public TCPConnection(TcpClient TCPClientConnection)
+            : base(TCPClientConnection)
         { }
 
         #endregion

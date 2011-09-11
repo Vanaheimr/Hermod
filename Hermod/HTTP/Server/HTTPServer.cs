@@ -28,6 +28,8 @@ using de.ahzf.Hermod.Datastructures;
 namespace de.ahzf.Hermod.HTTP
 {
 
+    #region HTTPServer<DefaultHTTPService>
+
     /// <summary>
     ///  This http server will listen on a port and maps incoming urls to methods of HTTPServiceInterface. 
     /// </summary>
@@ -206,21 +208,27 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Events
 
-        //public delegate void ExceptionOccuredHandler(Object mySender, Exception myException);
-        //public event ExceptionOccuredHandler OnExceptionOccured;
+        /// <summary>
+        /// A delegate called for every new http connection.
+        /// </summary>
+        /// <param name="HTTPServiceInterfaceType">The interface of the associated http connections.</param>
+        public delegate void NewHTTPServiceHandler(HTTPServiceInterface HTTPServiceInterfaceType);
 
-        public delegate void NewHTTPServiceHandler(HTTPServiceInterface myHTTPServiceType);
-        public event         NewHTTPServiceHandler OnNewHTTPService;
+        /// <summary>
+        /// An event called for every incoming http connection.
+        /// </summary>
+        public event NewHTTPServiceHandler OnNewHTTPService;
 
         #endregion
 
         #region Constructor(s)
 
-        #region HTTPServer()
+        #region HTTPServer(NewHTTPConnectionHandler = null)
 
         /// <summary>
         /// Initialize the HTTPServer using IPAddress.Any, http port 80 and start the server.
         /// </summary>
+        /// <param name="NewHTTPConnectionHandler">A delegate called for every new http connection.</param>
         public HTTPServer(NewHTTPServiceHandler NewHTTPConnectionHandler = null)
             : this(IPv4Address.Any, IPPort.HTTP, NewHTTPConnectionHandler, true)
         { }
@@ -233,22 +241,24 @@ namespace de.ahzf.Hermod.HTTP
         /// Initialize the HTTPServer using IPAddress.Any and the given parameters.
         /// </summary>
         /// <param name="Port">The listening port</param>
-        /// <param name="Autostart"></param>
+        /// <param name="NewHTTPServiceHandler">A delegate called for every new http connection.</param>
+        /// <param name="Autostart">Autostart the http server.</param>
         public HTTPServer(IPPort Port, NewHTTPServiceHandler NewHTTPServiceHandler = null, Boolean Autostart = false)
             : this(IPv4Address.Any, Port, NewHTTPServiceHandler, Autostart)
         { }
 
         #endregion
 
-        #region HTTPServer(myIIPAddress, Port, NewHTTPServiceHandler = null, AutoStart = false)
+        #region HTTPServer(IIPAddress, Port, NewHTTPServiceHandler = null, AutoStart = false)
 
         /// <summary>
         /// Initialize the HTTPServer using the given parameters.
         /// </summary>
-        /// <param name="myIIPAddress">The listening IP address(es)</param>
+        /// <param name="IIPAddress">The listening IP address(es)</param>
         /// <param name="Port">The listening port</param>
-        /// <param name="Autostart"></param>
-        public HTTPServer(IIPAddress myIIPAddress, IPPort Port, NewHTTPServiceHandler NewHTTPServiceHandler = null, Boolean Autostart = false)
+        /// <param name="NewHTTPServiceHandler">A delegate called for every new http connection.</param>
+        /// <param name="Autostart">Autostart the http server.</param>
+        public HTTPServer(IIPAddress IIPAddress, IPPort Port, NewHTTPServiceHandler NewHTTPServiceHandler = null, Boolean Autostart = false)
         {
 
             ServerName = _DefaultServerName;
@@ -257,7 +267,7 @@ namespace de.ahzf.Hermod.HTTP
                 OnNewHTTPService += NewHTTPServiceHandler;
 
             _TCPServer = new TCPServer<HTTPConnection<HTTPServiceInterface>>(
-                                 myIIPAddress,
+                                 IIPAddress,
                                  Port,
                                  NewHTTPConnection =>
                                      {
@@ -288,16 +298,16 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
-        #region HTTPServer(myIPSocket, NewHTTPServiceHandler = null, Autostart = false)
+        #region HTTPServer(IPSocket, NewHTTPServiceHandler = null, Autostart = false)
 
         /// <summary>
         /// Initialize the HTTPServer using the given parameters.
         /// </summary>
-        /// <param name="myIPSocket">The listening IPSocket.</param>
-        /// <param name="NewHTTPServiceHandler"></param>
-        /// <param name="Autostart"></param>
-        public HTTPServer(IPSocket myIPSocket, NewHTTPServiceHandler NewHTTPServiceHandler = null, Boolean Autostart = false)
-            : this(myIPSocket.IPAddress, myIPSocket.Port, NewHTTPServiceHandler, Autostart)
+        /// <param name="IPSocket">The listening IPSocket.</param>
+        /// <param name="NewHTTPServiceHandler">A delegate called for every new http connection.</param>
+        /// <param name="Autostart">Autostart the http server.</param>
+        public HTTPServer(IPSocket IPSocket, NewHTTPServiceHandler NewHTTPServiceHandler = null, Boolean Autostart = false)
+            : this(IPSocket.IPAddress, IPSocket.Port, NewHTTPServiceHandler, Autostart)
         { }
 
         #endregion
@@ -307,6 +317,9 @@ namespace de.ahzf.Hermod.HTTP
         
         #region ToString()
 
+        /// <summary>
+        /// Return a string represtentation of this object.
+        /// </summary>
         public override String ToString()
         {
 
@@ -324,51 +337,57 @@ namespace de.ahzf.Hermod.HTTP
 
     }
 
+    #endregion
 
     #region HTTPServer -> HTTPServer<DefaultHTTPService>
 
+    /// <summary>
+    /// A HTTP server serving a default HTTP service.
+    /// </summary>
     public class HTTPServer : HTTPServer<IDefaultHTTPService>
     {
 
         #region Constructor(s)
 
-        #region HTTPServer(myPort, NewHTTPConnectionHandler = null, myAutoStart = false)
+        #region HTTPServer(Port, NewHTTPConnectionHandler = null, AutoStart = false)
 
         /// <summary>
         /// Initialize the HTTPServer using IPAddress.Any and the given parameters.
         /// </summary>
-        /// <param name="myPort">The listening port</param>
-        /// <param name="Autostart"></param>
-        public HTTPServer(IPPort myPort, NewHTTPServiceHandler NewHTTPConnectionHandler = null, Boolean Autostart = false)
-            : this(IPv4Address.Any, myPort, NewHTTPConnectionHandler, Autostart)
+        /// <param name="Port">The listening port</param>
+        /// <param name="NewHTTPConnectionHandler">A delegate called for every new http connection.</param>
+        /// <param name="Autostart">Autostart the http server.</param>
+        public HTTPServer(IPPort Port, NewHTTPServiceHandler NewHTTPConnectionHandler = null, Boolean Autostart = false)
+            : this(IPv4Address.Any, Port, NewHTTPConnectionHandler, Autostart)
         { }
 
         #endregion
 
-        #region HTTPServer(myIIPAddress, myPort, NewHTTPConnectionHandler = null, myAutoStart = false)
+        #region HTTPServer(IIPAddress, Port, NewHTTPConnectionHandler = null, AutoStart = false)
 
         /// <summary>
         /// Initialize the HTTPServer using the given parameters.
         /// </summary>
-        /// <param name="myIIPAddress">The listening IP address(es)</param>
-        /// <param name="myPort">The listening port</param>
-        /// <param name="Autostart"></param>
-        public HTTPServer(IIPAddress myIIPAddress, IPPort myPort, NewHTTPServiceHandler NewHTTPConnectionHandler = null, Boolean Autostart = false)
-            : base(myIIPAddress, myPort, NewHTTPConnectionHandler, Autostart)
+        /// <param name="IIPAddress">The listening IP address(es)</param>
+        /// <param name="Port">The listening port</param>
+        /// <param name="NewHTTPConnectionHandler">A delegate called for every new http connection.</param>
+        /// <param name="Autostart">Autostart the http server.</param>
+        public HTTPServer(IIPAddress IIPAddress, IPPort Port, NewHTTPServiceHandler NewHTTPConnectionHandler = null, Boolean Autostart = false)
+            : base(IIPAddress, Port, NewHTTPConnectionHandler, Autostart)
         { }
 
         #endregion
 
-        #region HTTPServer(myIPSocket, NewHTTPConnectionHandler = null, Autostart = false)
+        #region HTTPServer(IPSocket, NewHTTPConnectionHandler = null, Autostart = false)
 
         /// <summary>
         /// Initialize the HTTPServer using the given parameters.
         /// </summary>
-        /// <param name="myIPSocket">The listening IPSocket.</param>
-        /// <param name="NewHTTPConnectionHandler"></param>
-        /// <param name="Autostart"></param>
-        public HTTPServer(IPSocket myIPSocket, NewHTTPServiceHandler NewHTTPConnectionHandler = null, Boolean Autostart = false)
-            : this(myIPSocket.IPAddress, myIPSocket.Port, NewHTTPConnectionHandler, Autostart)
+        /// <param name="IPSocket">The listening IPSocket.</param>
+        /// <param name="NewHTTPConnectionHandler">A delegate called for every new http connection.</param>
+        /// <param name="Autostart">Autostart the http server.</param></param>
+        public HTTPServer(IPSocket IPSocket, NewHTTPServiceHandler NewHTTPConnectionHandler = null, Boolean Autostart = false)
+            : this(IPSocket.IPAddress, IPSocket.Port, NewHTTPConnectionHandler, Autostart)
         { }
 
         #endregion
@@ -377,6 +396,9 @@ namespace de.ahzf.Hermod.HTTP
 
         #region ToString()
 
+        /// <summary>
+        /// Return a string represtentation of this object.
+        /// </summary>
         public override String ToString()
         {
 

@@ -34,20 +34,20 @@ namespace de.ahzf.Hermod.HTTP
     public class NeedsAuthenticationAttribute : Attribute
     {
 
-        private Boolean _NeedsAuthentication;
-        public Boolean NeedsAuthentication
-        {
-            get { return _NeedsAuthentication; }
-        }
+        #region Properties
+
+        public Boolean NeedsAuthentication { get; private set; }
+
+        #endregion
 
         /// <summary>
         /// If set to True, this methods of a web interface definition needs authentication. If the server does not provide any, an exception will be thrown.
         /// If set to False, no authentication is required even if the server expect one.
         /// </summary>
-        /// <param name="needsAuthentication">If set to True, this methods of a web interface definition needs authentication. If the server does not provide any, an exception will be thrown. If set to False, no authentication is required even if the server expect one.</param>
-        public NeedsAuthenticationAttribute(Boolean needsAuthentication)
+        /// <param name="NeedsAuthentication">If set to True, this methods of a web interface definition needs authentication. If the server does not provide any, an exception will be thrown. If set to False, no authentication is required even if the server expect one.</param>
+        public NeedsAuthenticationAttribute(Boolean NeedsAuthentication)
         {
-            _NeedsAuthentication = needsAuthentication;
+            this.NeedsAuthentication = NeedsAuthentication;
         }
 
     }
@@ -60,8 +60,7 @@ namespace de.ahzf.Hermod.HTTP
     public class NoAuthenticationAttribute : Attribute
     {
         public NoAuthenticationAttribute()
-        {
-        }
+        { }
     }
 
     #endregion
@@ -72,8 +71,7 @@ namespace de.ahzf.Hermod.HTTP
     public class ForceAuthenticationAttribute : Attribute
     {
         public ForceAuthenticationAttribute()
-        {
-        }
+        { }
     }
 
     #endregion

@@ -30,6 +30,7 @@ using System.Threading;
 using System.Text;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 #endregion
 
@@ -44,11 +45,18 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Properties
 
-        #region HTTPClient
+        /// <summary>
+        /// The associated HTTPClient.
+        /// </summary>
+        public HTTPClient           HTTPClient        { get; private set; }
 
-        public HTTPClient HTTPClient { get; private set; }
 
-        #endregion
+        public HTTPRequestHeader_RW HTTPRequestHeader { get; private set; }
+
+
+        public Byte[]               ResponseBody      { get; protected set; }
+
+
 
         #region HTTPMethod
 
@@ -71,22 +79,9 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
-        #region HTTPRequestHeader
-
-        public HTTPRequestHeader_RW HTTPRequestHeader { get; private set; }
-
-        #endregion
-
-        public Byte[] ResponseBody { get; protected set; }
-
-        public String _Response { get; private set; }
-
         #endregion
 
         #region Events
-
-        public delegate void NewHTTPServiceHandler(String myHTTPServiceType);
-        public event         NewHTTPServiceHandler OnNewHTTPService;
 
         #endregion
 
@@ -106,14 +101,14 @@ namespace de.ahzf.Hermod.HTTP
             #region Initial checks
 
             if (HTTPClient == null)
-                throw new ArgumentNullException("The given HTTPClient must not be null!");
+                throw new ArgumentNullException("The given associated HTTPClient must not be null!");
 
             #endregion
 
-            this.HTTPClient                     = HTTPClient;
-            this.HTTPRequestHeader              = new HTTPRequestHeader_RW();
-            this.HTTPRequestHeader.HTTPMethod   = (HTTPMethod == null) ? HTTPMethod.GET : HTTPMethod;
-            this.URLPattern                     = URLPattern;
+            this.HTTPClient                   = HTTPClient;
+            this.HTTPRequestHeader            = new HTTPRequestHeader_RW();
+            this.HTTPRequestHeader.HTTPMethod = (HTTPMethod == null) ? HTTPMethod.GET : HTTPMethod;
+            this.URLPattern                   = URLPattern;
 
         }
 
@@ -145,46 +140,66 @@ namespace de.ahzf.Hermod.HTTP
 
                 var    _MemoryStream  = new MemoryStream();
                 var    _Buffer        = new Byte[65535];
-                Byte[] _ResponseBytes = null;
+                //Byte[] _ResponseBytes = null;
+                var    sw             = new Stopwatch();
 
                 #endregion
 
                 #region Wait for the server to react!
 
-                while (!_TCPStream.DataAvailable)
-                    Thread.Sleep(10);
+                sw.Start();
+
+                while (!_TCPStream.DataAvailable || sw.ElapsedMilliseconds > 20000)
+                    Thread.Sleep(1);
+
+                if (!_TCPStream.DataAvailable && sw.ElapsedMilliseconds > 20000)
+                {
+                    TCPClient.Close();
+                    throw new ApplicationException("Could not read from the TCP stream!");
+                }
+
+                sw.Stop();
 
                 #endregion
+
+                #region Read
 
                 while (!_EndOfHTTPHeader || _TCPStream.DataAvailable || !TCPClient.Connected)
                 {
 
+                    #region Read the entire stream into the memory <= Rethink this someday!
+
                     while (_TCPStream.DataAvailable)
-                    {
                         _MemoryStream.Write(_Buffer, 0, _TCPStream.Read(_Buffer, 0, _Buffer.Length));
-                    }
+
+                    #endregion
+
+                    #region Walk through the stream and search for two consecutive newlines indicating the end of the HTTP header
 
                     _Length = _MemoryStream.Length;
 
                     if (_Length > 4)
                     {
 
-                        _ResponseBytes = _MemoryStream.ToArray();
-                        _ReadPosition = _ReadPosition - 3;
+                        _MemoryStream.Seek(0, SeekOrigin.Begin);
 
-                        while (_ReadPosition < _Length)
+                        int state = 0;
+                        int _int  = 0;
+                        _EndOfHTTPHeader = false;
+
+                        while (!_EndOfHTTPHeader || _int == -1)
                         {
+                            
+                            _int = _MemoryStream.ReadByte();
 
-                            if (_ResponseBytes[_ReadPosition - 3] == 0x0d &&
-                                _ResponseBytes[_ReadPosition - 2] == 0x0a &&
-                                _ResponseBytes[_ReadPosition - 1] == 0x0d &&
-                                _ResponseBytes[_ReadPosition    ] == 0x0a)
+                            switch (state)
                             {
-                                _EndOfHTTPHeader = true;
-                                break;
+                                case 0 : if (_int == 0x0d) state = 1; else state = 0; break;
+                                case 1 : if (_int == 0x0a) state = 2; else state = 0; break;
+                                case 2 : if (_int == 0x0d) state = 3; else state = 0; break;
+                                case 3 : if (_int == 0x0a) _EndOfHTTPHeader = true; else state = 0; break;
+                                default : state = 0; break;
                             }
-
-                            _ReadPosition++;
 
                         }
 
@@ -193,41 +208,44 @@ namespace de.ahzf.Hermod.HTTP
 
                     }
 
+                    #endregion
+
                 }
 
                 if (_EndOfHTTPHeader == false)
-                    throw new Exception("Protocol Error!");
+                    throw new ApplicationException("Could not find the end of the HTTP protocol header!");
 
-                // Create a new HTTPResponseHeader
+                _ReadPosition = _MemoryStream.Position - 3;
+
+                #endregion
+
+                #region Create a new HTTPResponseHeader
+
+                // Copy HTTP header data
                 var HeaderBytes = new Byte[_ReadPosition - 1];
-                Array.Copy(_ResponseBytes, 0, HeaderBytes, 0, _ReadPosition - 1);
+                _MemoryStream.Seek(0, SeekOrigin.Begin);
+                _MemoryStream.Read(HeaderBytes, 0, HeaderBytes.Length);
 
-                HTTPStatusCode __HTTPStatusCode = null;
-                var ResponseHeader = new HTTPResponseHeader(Encoding.UTF8.GetString(HeaderBytes), out __HTTPStatusCode);
+                // Parse HTTP header
+                var ResponseHeader = new HTTPResponseHeader(Encoding.UTF8.GetString(HeaderBytes));
+
+                // The parsing of the http header failed!
+                if (ResponseHeader.HTTPStatusCode != HTTPStatusCode.OK)
+                    throw new Exception(ResponseHeader.HTTPStatusCode.ToString());
+
+                #endregion
 
                 // Copy only the number of bytes given within
-                // the HTTP header element 'ContentType'!
+                // the HTTP header element 'Content-Length'!
                 if (ResponseHeader.ContentLength.HasValue)
                 {
                     ResponseBody = new Byte[ResponseHeader.ContentLength.Value];
-                    Array.Copy(_ResponseBytes, _ReadPosition + 1, ResponseBody, 0, (Int64)ResponseHeader.ContentLength.Value);
+                    _MemoryStream.Seek(4, SeekOrigin.Current);
+                    _MemoryStream.Read(ResponseBody, 0, ResponseBody.Length);
                 }
                 else
                     ResponseBody = new Byte[0];
 
-                // The parsing of the http header failed!
-                if (__HTTPStatusCode != HTTPStatusCode.OK)
-                {
-                    throw new Exception(__HTTPStatusCode.ToString());
-                }
-
-
-
-                //var _ReallyRead    = _TCPStream.Read(_ResponseBytes, 0, 4096);
-                _Response = _ResponseBytes.ToUTF8String();
-
-                // Hier kann in den Stream geschrieben werden
-                // oder aus dem Stream gelesen werden
                 // Verbindung schließen
                 TCPClient.Close();
 

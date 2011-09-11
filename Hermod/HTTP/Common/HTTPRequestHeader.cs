@@ -32,16 +32,6 @@ namespace de.ahzf.Hermod.HTTP.Common
     public class HTTPRequestHeader : AHTTPRequestHeader
     {
 
-        #region Data
-
-        private readonly String[] _LineSeperator;
-        private readonly Char[]   _ColonSeperator;
-        private readonly Char[]   _SlashSeperator;
-        private readonly Char[]   _SpaceSeperator;
-        private readonly Char[]   _URLSeperator;        
-
-        #endregion
-
         #region Properties
 
         // http header fields
@@ -230,15 +220,7 @@ namespace de.ahzf.Hermod.HTTP.Common
             : base()
         {
 
-            _LineSeperator  = new String[] { Environment.NewLine };
-            _ColonSeperator = new Char[]   { ':' };
-            _SlashSeperator = new Char[]   { '/' };
-            _SpaceSeperator = new Char[]   { ' ' };
-            _URLSeperator   = new Char[]   { '?', '!' };
-
             #region Split the request into lines
-
-            RAWHTTPHeader = HTTPHeader;
 
             var _HTTPRequestLines = HTTPHeader.Split(_LineSeperator, StringSplitOptions.RemoveEmptyEntries);
             if (_HTTPRequestLines.Length == 0)
@@ -306,28 +288,7 @@ namespace de.ahzf.Hermod.HTTP.Common
 
             #region Parse all other Header information
 
-            foreach (var _Line in _HTTPRequestLines.Skip(1))
-            {
-
-                var _KeyValuePairs = _Line.Split(_ColonSeperator, 2, StringSplitOptions.RemoveEmptyEntries);
-
-                if (_KeyValuePairs.Length == 2)
-                    HeaderFields.Add(_KeyValuePairs[0].Trim(), _KeyValuePairs[1].Trim());
-
-            }
-
-            //_AcceptTypes.Sort();
-            
-            //AcceptTypes.Sort(new Comparison<AcceptType>((at1, at2) =>
-            //{
-            //    if (at1.Quality > at2.Quality) return 1;
-            //    else if (at1.Quality == at2.Quality) return 0;
-            //    else return -1;
-            //    //if (at2.Quality > at1.Quality) return -1;
-            //    //else return 1;
-            //    //return at1.Quality.CompareTo(at2.Quality);
-            //}
-            //    ));
+            ParseHeader(_HTTPRequestLines.Skip(1));
 
             #endregion
 

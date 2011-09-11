@@ -31,6 +31,8 @@ using de.ahzf.Hermod.HTTP.Common;
 namespace de.ahzf.Hermod.Demo
 {
 
+    //                _Response = Environment.NewLine + "<<<<<<<<<<<<<<<<header>>>>>>>>>>>>>>>>" + Environment.NewLine + HeaderBytes.ToUTF8String() + Environment.NewLine + "<<<<<<<<<<<<<<<<body>>>>>>>>>>>>>>>>" + Environment.NewLine + ResponseBody.ToUTF8String() + Environment.NewLine + "<<<<<<<<<<<<<<<<end>>>>>>>>>>>>>>>>";
+
     /// <summary>
     /// A simple hermod demo using TCP and HTTP servers.
     /// </summary>
@@ -95,9 +97,9 @@ namespace de.ahzf.Hermod.Demo
             var _request1Str = _request1.ToString();
             Console.WriteLine("Request:" + Environment.NewLine + _request1.HTTPHeader.Aggregate((a, b) => a + Environment.NewLine + b));
             _request1.Execute().
-                ContinueWith(RequestTask => { Console.WriteLine("Response: " + Environment.NewLine + RequestTask.Result._Response); return RequestTask.Result; }).
+                ContinueWith(RequestTask => { Console.WriteLine("Response: " + Environment.NewLine + RequestTask.Result.ResponseBody.ToUTF8String()); return RequestTask.Result; }).
                 ContinueWith(RequestTask => { RequestTask.Result.Accept(HTTPContentType.HTML_UTF8); return RequestTask.Result.Execute().Result; }).
-                ContinueWith(RequestTask => { Console.WriteLine("Response: " + Environment.NewLine + RequestTask.Result._Response); });
+                ContinueWith(RequestTask => { Console.WriteLine("Response: " + Environment.NewLine + RequestTask.Result.ResponseBody.ToUTF8String()); });
 
             Console.ReadLine();
             Console.WriteLine("done!");

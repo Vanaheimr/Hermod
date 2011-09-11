@@ -35,11 +35,6 @@ namespace de.ahzf.Hermod.HTTP
     public class HTTPClient
     {
 
-        #region Data
-
-
-        #endregion
-
         #region Properties
 
         #region Hostname

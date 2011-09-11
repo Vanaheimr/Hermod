@@ -30,6 +30,8 @@ using de.ahzf.Hermod.Datastructures;
 namespace de.ahzf.Hermod.Sockets.TCP
 {
 
+    #region TCPServer<TCPConnection>
+
     /// <summary>
     /// A multi-threaded TCPServer
     /// </summary>
@@ -181,37 +183,36 @@ namespace de.ahzf.Hermod.Sockets.TCP
 
         #endregion
 
-
         #region Constructor(s)
 
-        #region TCPServer(myPort, myNewConnectionHandler = null, Autostart = false)
+        #region TCPServer(Port, NewConnectionHandler = null, Autostart = false)
 
         /// <summary>
         /// Initialize the TCPServer using IPAddress.Any and the given parameters.
         /// </summary>
-        /// <param name="myPort">The listening port</param>
-        /// <param name="NewConnectionHandler"></param>
-        /// <param name="Autostart"></param>
-        public TCPServer(IPPort myPort, NewConnectionHandler NewConnectionHandler = null, Boolean Autostart = false)
-            : this(IPv4Address.Any, myPort, NewConnectionHandler, Autostart)
+        /// <param name="Port">The listening port</param>
+        /// <param name="NewConnectionHandler">A delegate called for every new tcp connection.</param>
+        /// <param name="Autostart">Autostart the tcp server.</param>
+        public TCPServer(IPPort Port, NewConnectionHandler NewConnectionHandler = null, Boolean Autostart = false)
+            : this(IPv4Address.Any, Port, NewConnectionHandler, Autostart)
         { }
 
         #endregion
 
-        #region TCPServer(myIIPAddress, myPort, myNewConnectionHandler = null, Autostart = false)
+        #region TCPServer(IIPAddress, Port, NewConnectionHandler = null, Autostart = false)
 
         /// <summary>
         /// Initialize the TCPServer using the given parameters.
         /// </summary>
-        /// <param name="myIIPAddress">The listening IP address(es)</param>
-        /// <param name="myPort">The listening port</param>
-        /// <param name="NewConnectionHandler"></param>
-        /// <param name="Autostart"></param>
-        public TCPServer(IIPAddress myIIPAddress, IPPort myPort, NewConnectionHandler NewConnectionHandler = null, Boolean Autostart = false)
+        /// <param name="IIPAddress">The listening IP address(es)</param>
+        /// <param name="Port">The listening port</param>
+        /// <param name="NewConnectionHandler">A delegate called for every new tcp connection.</param>
+        /// <param name="Autostart">Autostart the tcp server.</param>
+        public TCPServer(IIPAddress IIPAddress, IPPort Port, NewConnectionHandler NewConnectionHandler = null, Boolean Autostart = false)
         {
 
-            _IPAddress          = myIIPAddress;
-            _Port               = myPort;
+            _IPAddress          = IIPAddress;
+            _Port               = Port;
 
             _SocketConnections  = new ConcurrentDictionary<IPSocket, TCPConnectionType>();
             _TCPListener        = new TcpListener(new System.Net.IPAddress(_IPAddress.GetBytes()), _Port.ToInt32());
@@ -247,18 +248,19 @@ namespace de.ahzf.Hermod.Sockets.TCP
                 Start();
 
         }
+
         #endregion
 
-        #region TCPServer(myIPSocket, myNewConnectionHandler = null, Autostart = false)
+        #region TCPServer(IPSocket, NewConnectionHandler = null, Autostart = false)
 
         /// <summary>
         /// Initialize the TCPServer using the given parameters.
         /// </summary>
-        /// <param name="myIPSocket">The listening IPSocket.</param>
-        /// <param name="NewConnectionHandler"></param>
-        /// <param name="Autostart"></param>
-        public TCPServer(IPSocket myIPSocket, NewConnectionHandler NewConnectionHandler = null, Boolean Autostart = false)
-            : this(myIPSocket.IPAddress, myIPSocket.Port, NewConnectionHandler, Autostart)
+        /// <param name="IPSocket">The listening IPSocket.</param>
+        /// <param name="NewConnectionHandler">A delegate called for every new tcp connection.</param>
+        /// <param name="Autostart">Autostart the tcp server.</param>
+        public TCPServer(IPSocket IPSocket, NewConnectionHandler NewConnectionHandler = null, Boolean Autostart = false)
+            : this(IPSocket.IPAddress, IPSocket.Port, NewConnectionHandler, Autostart)
         { }
 
         #endregion
@@ -350,15 +352,10 @@ namespace de.ahzf.Hermod.Sockets.TCP
             try
             {
 
-                //Console.WriteLine("Incoming connection from " + _TCPConnection.Value.RemoteSocket.ToString());
-
                 // Start upper-layer protocol processing savely!
                 var OnNewConnection2 = OnNewConnection;
                 if (OnNewConnection2 != null)
                     OnNewConnection2(_TCPConnection.Value);
-
-                //// Finally start the upper-layer protocol processing
-                //_TCPConnection.Value.ProcessUpperLayerProtocol();
 
             }
             catch (Exception ex)
@@ -372,7 +369,6 @@ namespace de.ahzf.Hermod.Sockets.TCP
 
             }
 
-
             // Remove stored client connection
             var _ATCPConnectionType = default(TCPConnectionType);
             _SocketConnections.TryRemove(_TCPConnection.Value.RemoteSocket, out _ATCPConnectionType);
@@ -382,7 +378,6 @@ namespace de.ahzf.Hermod.Sockets.TCP
         }
 
         #endregion
-
 
 
         #region Start()
@@ -397,19 +392,19 @@ namespace de.ahzf.Hermod.Sockets.TCP
 
         #endregion
 
-        #region Start(myMaxClientConnections)
+        #region Start(MaxClientConnections)
 
         /// <summary>
         /// Start the TCPServer thread
         /// </summary>
-        public void Start(UInt32 myMaxClientConnections)
+        public void Start(UInt32 MaxClientConnections)
         {
 
             if (_IsRunning)
                 return;
             
-            if (myMaxClientConnections != _DefaultMaxClientConnections)
-                _MaxClientConnections = myMaxClientConnections;
+            if (MaxClientConnections != _DefaultMaxClientConnections)
+                _MaxClientConnections = MaxClientConnections;
 
             // Start the TCPListener
             _TCPListener.Start((Int32) _MaxClientConnections);
@@ -479,6 +474,9 @@ namespace de.ahzf.Hermod.Sockets.TCP
 
         #region ToString()
 
+        /// <summary>
+        /// Return a string represtentation of this object.
+        /// </summary>
         public override String ToString()
         {
 
@@ -496,7 +494,7 @@ namespace de.ahzf.Hermod.Sockets.TCP
     
     }
 
-
+    #endregion
 
     #region TCPServer -> TCPServer<TCPConnection>
 
@@ -508,45 +506,45 @@ namespace de.ahzf.Hermod.Sockets.TCP
 
         #region Constructor(s)
 
-        #region TCPServer(myPort, NewConnectionHandler = null, Autostart = false)
+        #region TCPServer(Port, NewConnectionHandler = null, Autostart = false)
 
         /// <summary>
         /// Initialize the TCP server using IPAddress.Any and the given parameters
         /// </summary>
-        /// <param name="myPort">The listening port</param>
-        /// <param name="NewConnectionHandler"></param>
-        /// <param name="Autostart"></param>
-        public TCPServer(IPPort myPort, NewConnectionHandler NewConnectionHandler = null, Boolean Autostart = false)
-            : base(IPv4Address.Any, myPort, NewConnectionHandler, Autostart)
+        /// <param name="Port">The listening port</param>
+        /// <param name="NewConnectionHandler">A delegate called for every new tcp connection.</param>
+        /// <param name="Autostart">Autostart the tcp server.</param>
+        public TCPServer(IPPort Port, NewConnectionHandler NewConnectionHandler = null, Boolean Autostart = false)
+            : base(IPv4Address.Any, Port, NewConnectionHandler, Autostart)
         { }
 
         #endregion
 
-        #region TCPServer(myIIPAddress, myPort, NewConnectionHandler = null, Autostart = false)
+        #region TCPServer(IIPAddress, Port, NewConnectionHandler = null, Autostart = false)
 
         /// <summary>
         /// Initialize the TCP server using the given parameters.
         /// </summary>
-        /// <param name="myIIPAddress">The listening IP address(es).</param>
-        /// <param name="myPort">The listening port.</param>
-        /// <param name="NewConnectionHandler"></param>
-        /// <param name="Autostart"></param>
-        public TCPServer(IIPAddress myIIPAddress, IPPort myPort, NewConnectionHandler NewConnectionHandler = null, Boolean Autostart = false)
-            : base(myIIPAddress, myPort, NewConnectionHandler, Autostart)
+        /// <param name="IIPAddress">The listening IP address(es).</param>
+        /// <param name="Port">The listening port.</param>
+        /// <param name="NewConnectionHandler">A delegate called for every new tcp connection.</param>
+        /// <param name="Autostart">Autostart the tcp server.</param>
+        public TCPServer(IIPAddress IIPAddress, IPPort Port, NewConnectionHandler NewConnectionHandler = null, Boolean Autostart = false)
+            : base(IIPAddress, Port, NewConnectionHandler, Autostart)
         { }
 
         #endregion
 
-        #region TCPServer(myIPSocket, myNewConnectionHandler = null, Autostart = false)
+        #region TCPServer(IPSocket, myNewConnectionHandler = null, Autostart = false)
 
         /// <summary>
         /// Initialize the TCP server using the given parameters.
         /// </summary>
-        /// <param name="myIPSocket">The listening IPSocket.</param>
-        /// <param name="NewConnectionHandler"></param>
-        /// <param name="Autostart"></param>
-        public TCPServer(IPSocket myIPSocket, NewConnectionHandler NewConnectionHandler = null, Boolean Autostart = false)
-            : base(myIPSocket, NewConnectionHandler, Autostart)
+        /// <param name="IPSocket">The listening IPSocket.</param>
+        /// <param name="NewConnectionHandler">A delegate called for every new tcp connection.</param>
+        /// <param name="Autostart">Autostart the tcp server.</param>
+        public TCPServer(IPSocket IPSocket, NewConnectionHandler NewConnectionHandler = null, Boolean Autostart = false)
+            : base(IPSocket, NewConnectionHandler, Autostart)
         { }
 
         #endregion
@@ -555,6 +553,9 @@ namespace de.ahzf.Hermod.Sockets.TCP
 
         #region ToString()
 
+        /// <summary>
+        /// Return a string represtentation of this object.
+        /// </summary>
         public override String ToString()
         {
 
@@ -570,6 +571,5 @@ namespace de.ahzf.Hermod.Sockets.TCP
     }
 
     #endregion
-
 
 }

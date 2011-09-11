@@ -34,9 +34,9 @@ namespace de.ahzf.Hermod.HTTP
 
         #region ResponseHeader
 
-        private HTTPResponseHeader  _ResponseHeader;
+        private HTTPResponseHeader_RW  _ResponseHeader;
 
-        public HTTPResponseHeader ResponseHeader
+        public HTTPResponseHeader_RW ResponseHeader
         {
             get
             {
@@ -80,7 +80,7 @@ namespace de.ahzf.Hermod.HTTP
 
         #region HTTPResponse(myResponseHeader)
 
-        public HTTPResponse(HTTPResponseHeader myResponseHeader)
+        public HTTPResponse(HTTPResponseHeader_RW myResponseHeader)
         {
             _ResponseHeader = myResponseHeader;
             _Content        = null;
@@ -91,7 +91,7 @@ namespace de.ahzf.Hermod.HTTP
 
         #region HTTPResponse(myResponseHeader, myByteArray)
 
-        public HTTPResponse(HTTPResponseHeader myResponseHeader, Byte[] myByteArray)
+        public HTTPResponse(HTTPResponseHeader_RW myResponseHeader, Byte[] myByteArray)
         {
 
             _ResponseHeader = myResponseHeader;
@@ -106,7 +106,7 @@ namespace de.ahzf.Hermod.HTTP
 
         #region HTTPResponse(myResponseHeader, myContentStream)
 
-        public HTTPResponse(HTTPResponseHeader myResponseHeader, Stream myContentStream)
+        public HTTPResponse(HTTPResponseHeader_RW myResponseHeader, Stream myContentStream)
         {
 
             _ResponseHeader = myResponseHeader;

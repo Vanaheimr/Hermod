@@ -31,31 +31,10 @@ using System.Collections.Specialized;
 namespace de.ahzf.Hermod.HTTP.Common
 {
 
-    public class HTTPResponseHeader : AHTTPResponseHeader
+    public class HTTPResponseHeader : AHTTPHeader
     {
 
         #region Properties
-
-        #region RAWHTTPHeader
-
-        public String RAWHTTPHeader
-        {
-            get
-            {
-                
-                if (_HeaderFields.Count > 0)
-                    return (from   _KeyValuePair in _HeaderFields
-                            where  _KeyValuePair.Key   != null
-                            where  _KeyValuePair.Value != null
-                            select _KeyValuePair.Key + ": " + _KeyValuePair.Value).
-                            Aggregate((a, b) => a + Environment.NewLine + b);
-
-                return null;
-
-            }
-        }
-
-        #endregion
 
         #region GetResponseHeader
 
@@ -63,19 +42,8 @@ namespace de.ahzf.Hermod.HTTP.Common
         {
             get
             {
-
-                var _RAWHTTPHeader = HttpStatusCode.SimpleString + Environment.NewLine + RAWHTTPHeader + Environment.NewLine + Environment.NewLine;
-
+                var _RAWHTTPHeader = HTTPStatusCode.SimpleString + Environment.NewLine + RAWHTTPHeader + Environment.NewLine + Environment.NewLine;
                 return _RAWHTTPHeader;
-
-                ////      AddToResponseString(result, "Cache-Control",    CacheControl);
-                //      AddToResponseString(result, "Content-Length",   _HeaderFields["Content-Length"].ToString());
-                //      AddToResponseString(result, "Content-Type",     _HeaderFields["Content-Type"].ToString());
-                //      AddToResponseString(result, "Date",             DateTime.Now.ToString());
-                //      AddToResponseString(result, "Server",           Server);
-
-                //      if (KeepAlive)
-                //          AddToResponseString(result, "Connection", "Keep-Alive");
             }
         }
 
@@ -86,148 +54,31 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         public String Connection
         {
-
             get
             {
-
-                if (_HeaderFields.ContainsKey("Connection"))
-                    return _HeaderFields["Connection"] as String;
-
-                return null;
-
+                return GetHeaderField<String>("Connection");
             }
-
-            set
-            {
-
-                if (value != null)
-                {
-
-                    if (_HeaderFields.ContainsKey("Connection"))
-                        _HeaderFields["Connection"] = value;
-                    else
-                        _HeaderFields.Add("Connection", value);
-
-                }
-
-                else
-                    if (_HeaderFields.ContainsKey("Connection"))
-                        _HeaderFields.Remove("Connection");
-
-            }
-
         }
 
         #endregion
 
-        #region ContentLength
+        
 
-        public UInt64? ContentLength
-        {
-
-            get
-            {
-
-                try
-                {
-                    if (_HeaderFields.ContainsKey("Content-Length"))
-                        return (UInt64) _HeaderFields["Content-Length"];
-                }
-                finally
-                {}
-
-                return default(UInt64);
-
-            }
-
-            set
-            {
-
-                if (_HeaderFields.ContainsKey("Content-Length"))
-                    _HeaderFields["Content-Length"] = value;
-                
-                else
-                    _HeaderFields.Add("Content-Length", value);
-
-            }
-
-        }
-
-        #endregion
-
-        #region ContentType
-
-        public HTTPContentType ContentType
-        {
-
-            get
-            {
-                
-                if (_HeaderFields.ContainsKey("Content-Type"))
-                    return _HeaderFields["Content-Type"] as HTTPContentType;
-                
-                return null;
-
-            }
-
-            set
-            {
-
-                if (value != null)
-                {
-                
-                    if (_HeaderFields.ContainsKey("Content-Type"))
-                        _HeaderFields["Content-Type"] = value;
-                    else
-                        _HeaderFields.Add("Content-Type", value);
-
-                }
-                
-                else
-                    if (_HeaderFields.ContainsKey("Content-Type"))
-                        _HeaderFields.Remove("Content-Type");
-
-            }
-
-        }
-
-        #endregion
+        
 
         #region CacheControl
 
         public String CacheControl
         {
-
             get
             {
 
-                if (_HeaderFields.ContainsKey("Cache-Control"))
-                    return _HeaderFields["Cache-Control"] as String;
+                if (HeaderFields.ContainsKey("Cache-Control"))
+                    return HeaderFields["Cache-Control"] as String;
 
                 return null;
 
             }
-
-            set
-            {
-
-                if (value != null)
-                {
-
-                    if (_HeaderFields.ContainsKey("Cache-Control"))
-                        _HeaderFields["Cache-Control"] = value;
-
-                    else
-                        _HeaderFields.Add("Cache-Control", value);
-
-                }
-
-                else
-                    if (_HeaderFields.ContainsKey("Cache-Control"))
-                        _HeaderFields.Remove("Cache-Control");
-
-            }
-
         }
 
         #endregion
@@ -236,36 +87,15 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         public String Server
         {
-
             get
             {
 
-                if (_HeaderFields.ContainsKey("Server"))
-                    return _HeaderFields["Server"] as String;
+                if (HeaderFields.ContainsKey("Server"))
+                    return HeaderFields["Server"] as String;
 
                 return null;
 
             }
-
-            set
-            {
-
-                if (value != null)
-                {
-                    
-                    if (_HeaderFields.ContainsKey("Server"))
-                        _HeaderFields["Server"] = value;
-                    else
-                        _HeaderFields.Add("Server", value);
-
-                }
-
-                else
-                    if (_HeaderFields.ContainsKey("Server"))
-                        _HeaderFields.Remove("Server");
-
-            }
-
         }
 
         #endregion
@@ -274,36 +104,15 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         public String Location
         {
-
             get
             {
 
-                if (_HeaderFields.ContainsKey("Location"))
-                    return _HeaderFields["Location"] as String;
+                if (HeaderFields.ContainsKey("Location"))
+                    return HeaderFields["Location"] as String;
 
                 return null;
 
             }
-
-            set
-            {
-
-                if (value != null)
-                {
-
-                    if (_HeaderFields.ContainsKey("Location"))
-                        _HeaderFields["Location"] = value;
-                    else
-                        _HeaderFields.Add("Location", value);
-
-                }
-
-                else
-                    if (_HeaderFields.ContainsKey("Location"))
-                        _HeaderFields.Remove("Location");
-
-            }
-
         }
 
         #endregion
@@ -312,36 +121,17 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         public Boolean KeepAlive
         {
-
             get
             {
 
-                if (_HeaderFields.ContainsKey("Connection"))
-                    if (_HeaderFields["Connection"] is String)
-                        if (((String) _HeaderFields["Connection"]) == "Keep-Alive")
+                if (HeaderFields.ContainsKey("Connection"))
+                    if (HeaderFields["Connection"] is String)
+                        if (((String) HeaderFields["Connection"]) == "Keep-Alive")
                             return true;
 
                 return false;
 
             }
-
-            set
-            {
-
-                if (value == true)
-                {
-                    if (_HeaderFields.ContainsKey("Connection"))
-                        _HeaderFields["Connection"] = "Keep-Alive";
-                    else
-                        _HeaderFields.Add("Content-Type", value);
-                }
-
-                else
-                    if (_HeaderFields.ContainsKey("Connection"))
-                        _HeaderFields.Remove("Connection");
-
-            }
-
         }
 
         #endregion
@@ -350,55 +140,23 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         public String Date
         {
-
             get
             {
 
-                if (_HeaderFields.ContainsKey("Date"))
-                    return _HeaderFields["Date"] as String;
+                if (HeaderFields.ContainsKey("Date"))
+                    return HeaderFields["Date"] as String;
 
                 return null;
 
             }
-
-            set
-            {
-
-                if (value != null)
-                {
-
-                    if (_HeaderFields.ContainsKey("Date"))
-                        _HeaderFields["Date"] = value;
-                    else
-                        _HeaderFields.Add("Date", value);
-
-                }
-
-                else
-                    if (_HeaderFields.ContainsKey("Date"))
-                        _HeaderFields.Remove("Date");
-
-            }
-
         }
 
         #endregion
 
-
         public List<AcceptType> AcceptTypes { get; set; }
-        public Encoding ContentEncoding { get; set; }
         public String AcceptEncoding { get; set; }
-
         public List<HTTPMethod> Allow { get; set; }
-
-
-
         public String Destination { get; set; }
-
-        public HTTPStatusCode HttpStatusCode { get; set; }
-
-        
-
         public HTTPBasicAuthentication Authorization { get; set; }
 
         #endregion
@@ -408,35 +166,18 @@ namespace de.ahzf.Hermod.HTTP.Common
         #region HTTPResponseHeader()
 
         public HTTPResponseHeader()
-        {
-            ContentLength  = 0;
-            HttpStatusCode = HTTPStatusCode.OK;
-            Date           = DateTime.Now.ToString();
-        }
+        { }
 
         #endregion
 
-        #region HTTPResponseHeader()
+        #region HTTPResponseHeader(HTTPHeader)
 
-        public HTTPResponseHeader(String HTTPHeader, out HTTPStatusCode HTTPStatusCode)
+        public HTTPResponseHeader(String HTTPHeader)
         {
-            ContentLength  = 0;
-            HttpStatusCode = HTTPStatusCode.OK;
-            Date           = DateTime.Now.ToString();
-            HTTPStatusCode = HTTPStatusCode.OK;
+            ParseHeader(HTTPHeader.Split(_LineSeperator, StringSplitOptions.RemoveEmptyEntries).Skip(1));
         }
 
         #endregion
-
-        #endregion
-
-
-        #region ToString()
-
-        public override String ToString()
-        {
-            return RAWHTTPHeader;
-        }
 
         #endregion
 

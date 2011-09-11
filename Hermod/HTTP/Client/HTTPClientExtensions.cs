@@ -18,10 +18,7 @@
 #region Usings
 
 using System;
-using System.Net;
 
-using de.ahzf.Hermod.Sockets.TCP;
-using de.ahzf.Hermod.Datastructures;
 using de.ahzf.Hermod.HTTP.Common;
 
 #endregion
@@ -37,7 +34,7 @@ namespace de.ahzf.Hermod.HTTP
 
         #region RFC 2616 - HTTP/1.1
 
-        #region DELETE(this HTTPClient)
+        #region DELETE(this HTTPClient, URLPattern = "/")
 
         /// <summary>
         /// Create a new HTTP DELETE request.
@@ -52,7 +49,7 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
-        #region GET(this HTTPClient)
+        #region GET(this HTTPClient, URLPattern = "/")
 
         /// <summary>
         /// Create a new HTTP GET request.
@@ -67,7 +64,7 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
-        #region HEAD(this HTTPClient)
+        #region HEAD(this HTTPClient, URLPattern = "/")
 
         /// <summary>
         /// Create a new HTTP HEAD request.
@@ -82,7 +79,7 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
-        #region OPTIONS(this HTTPClient)
+        #region OPTIONS(this HTTPClient, URLPattern = "/")
 
         /// <summary>
         /// Create a new HTTP OPTIONS request.
@@ -97,7 +94,7 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
-        #region POST(this HTTPClient)
+        #region POST(this HTTPClient, URLPattern = "/")
 
         /// <summary>
         /// Create a new HTTP POST request.
@@ -112,7 +109,7 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
-        #region PUT(this HTTPClient)
+        #region PUT(this HTTPClient, URLPattern = "/")
 
         /// <summary>
         /// Create a new HTTP PUT request.
@@ -127,7 +124,7 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
-        #region TRACE(this HTTPClient)
+        #region TRACE(this HTTPClient, URLPattern = "/")
 
         /// <summary>
         /// Create a new HTTP TRACE request.
@@ -146,7 +143,7 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Additional methods
 
-        #region PATCH(this HTTPClient)
+        #region PATCH(this HTTPClient, URLPattern = "/")
 
         /// <summary>
         /// Create a new HTTP PATCH request.
@@ -161,7 +158,7 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
-        #region TRAVERSE(this HTTPClient)
+        #region TRAVERSE(this HTTPClient, URLPattern = "/")
 
         /// <summary>
         /// Create a new HTTP TRAVERSE request.
