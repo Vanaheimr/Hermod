@@ -19,6 +19,7 @@
 
 using System;
 using System.Web;
+using System.Linq;
 using System.Collections.Generic;
 
 #endregion
@@ -31,10 +32,54 @@ namespace de.ahzf.Hermod.HTTP.Common
     /// <summary>
     /// A read-only HTTP request header.
     /// </summary>
-    public class HTTPRequestHeader : AHTTPRequestHeader
+    public class HTTPRequestHeader : AHTTPHeader
     {
 
         #region Properties
+
+        #region Non-http header fields
+
+        /// <summary>
+        /// The http method.
+        /// </summary>
+        public HTTPMethod HTTPMethod { get; protected set; }
+
+        /// <summary>
+        /// The unparsed http URL.
+        /// </summary>
+        public String RawUrl { get; protected set; }
+
+        /// <summary>
+        /// The parsed minimal URL.
+        /// </summary>
+        public String Url { get; protected set; }
+
+        /// <summary>
+        /// The parsed QueryString.
+        /// </summary>
+        public IDictionary<String, String> QueryString { get; protected set; }
+
+        /// <summary>
+        /// Optional SVNParameters.
+        /// </summary>
+        public String SVNParameters { get; protected set; }
+
+        /// <summary>
+        /// The http protocol field.
+        /// </summary>
+        public String Protocol { get; protected set; }
+
+        /// <summary>
+        /// The http protocol name field.
+        /// </summary>
+        public String ProtocolName { get; protected set; }
+
+        /// <summary>
+        /// The http protocol version.
+        /// </summary>
+        public Version ProtocolVersion { get; protected set; }
+
+        #endregion
 
         // http header fields
 
@@ -48,7 +93,7 @@ namespace de.ahzf.Hermod.HTTP.Common
 
             get
             {
-                return Get<String>("Host");
+                return GetHeaderField<String>("Host");
             }
 
             set
@@ -70,12 +115,12 @@ namespace de.ahzf.Hermod.HTTP.Common
 
             get
             {
-                
-                var _Accept = Get<IEnumerable<AcceptType>>("Accept");
+
+                var _Accept = GetHeaderField<IEnumerable<AcceptType>>("Accept");
                 if (_Accept != null)
                     return _Accept;
 
-                var _AcceptString = Get<String>("Accept");
+                var _AcceptString = GetHeaderField<String>("Accept");
                 var _AcceptList   = new List<AcceptType>();
 
                 if (_AcceptString.Contains(","))
@@ -107,7 +152,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         {
             get
             {
-                return GetNullable<UInt64>("Content-Length");
+                return GetHeaderField_UInt64(HTTPHeaderField.ContentLength);
             }
         }
 
@@ -121,11 +166,11 @@ namespace de.ahzf.Hermod.HTTP.Common
             get
             {
 
-                var _ContentType = Get<HTTPContentType>("Content-Type");
+                var _ContentType = GetHeaderField<HTTPContentType>("Content-Type");
                 if (_ContentType != null)
                     return _ContentType;
 
-                _ContentType = new HTTPContentType(Get<String>("Content-Type"));
+                _ContentType = new HTTPContentType(GetHeaderField<String>("Content-Type"));
 
                 SetHeaderField("Content-Type", _ContentType);
 
@@ -145,11 +190,11 @@ namespace de.ahzf.Hermod.HTTP.Common
             get
             {
 
-                var _Authorization = Get<HTTPBasicAuthentication>("Authorization");
+                var _Authorization = GetHeaderField<HTTPBasicAuthentication>("Authorization");
                 if (_Authorization != null)
                     return _Authorization;
 
-                _Authorization = new HTTPBasicAuthentication(Get<String>("Authorization"));
+                _Authorization = new HTTPBasicAuthentication(GetHeaderField<String>("Authorization"));
 
                 SetHeaderField("Authorization", _Authorization);
 
@@ -171,7 +216,7 @@ namespace de.ahzf.Hermod.HTTP.Common
             
             get
             {
-                return GetNullable<UInt64>("Last-Event-Id");
+                return GetHeaderField_UInt64("Last-Event-Id");
             }
 
             set
@@ -211,7 +256,17 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #region Constructor(s)
 
-        #region HTTPRequestHeader(HTTPHeader, out HTTPStatusCode)
+        #region HTTPRequestHeader()
+
+        /// <summary>
+        /// Create a new http request header.
+        /// </summary>
+        public HTTPRequestHeader()
+        { }
+
+        #endregion
+
+        #region HTTPRequestHeader(HTTPHeader)
 
         /// <summary>
         /// Create a new http request header based on the given string representation.
@@ -305,6 +360,52 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #endregion
 
+
+        #region GetBestMatchingAcceptHeader
+
+        /// <summary>
+        /// Will return the best matching content type OR the first given!
+        /// </summary>
+        /// <param name="myContentTypes"></param>
+        /// <returns></returns>        
+        public HTTPContentType GetBestMatchingAcceptHeader(params HTTPContentType[] myContentTypes)
+        {
+
+            UInt32 pos = 0;
+            var _ListOfFoundAcceptHeaders = new List<AcceptType>();
+
+            foreach (var _ContentType in myContentTypes)
+            {
+
+                var _AcceptType = new AcceptType(_ContentType.MediaType, pos++);
+                    
+                var _Match = Accept.ToList().Find(_AType => _AType.Equals(_AcceptType));
+
+                if (_Match != null)
+                {
+
+                    if (_Match.ContentType.GetMediaSubType() == "*") // this was a * and we will set the quality to lowest
+                        _AcceptType.Quality = 0;
+
+                    _ListOfFoundAcceptHeaders.Add(_AcceptType);
+
+                }
+
+            }
+
+            _ListOfFoundAcceptHeaders.Sort();
+
+            if (!_ListOfFoundAcceptHeaders.IsNullOrEmpty())
+                return _ListOfFoundAcceptHeaders.First().ContentType;
+            else if (!myContentTypes.IsNullOrEmpty())
+                return myContentTypes.First();
+            else
+                return null;
+
+        }
+
+        #endregion
+
     }
 
     #endregion
@@ -314,7 +415,7 @@ namespace de.ahzf.Hermod.HTTP.Common
     /// <summary>
     /// A read-write HTTP request header.
     /// </summary>
-    public class HTTPRequestHeader_RW : AHTTPRequestHeader
+    public class HTTPRequestHeader_RW : HTTPRequestHeader
     {
 
         #region Properties
@@ -379,7 +480,7 @@ namespace de.ahzf.Hermod.HTTP.Common
 
             get
             {
-                return Get<String>("Host");
+                return GetHeaderField<String>("Host");
             }
 
             set
@@ -401,8 +502,8 @@ namespace de.ahzf.Hermod.HTTP.Common
 
             get
             {
-                
-                var _Accept = Get<List<AcceptType>>("Accept");
+
+                var _Accept = GetHeaderField<List<AcceptType>>("Accept");
                 if (_Accept != null)
                     return _Accept;
 
@@ -423,7 +524,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         {
             get
             {
-                return GetNullable<UInt64>("Content-Length");
+                return GetHeaderField_UInt64(HTTPHeaderField.ContentLength);
             }
         }
 
@@ -437,11 +538,11 @@ namespace de.ahzf.Hermod.HTTP.Common
             get
             {
 
-                var _ContentType = Get<HTTPContentType>("Content-Type");
+                var _ContentType = GetHeaderField<HTTPContentType>("Content-Type");
                 if (_ContentType != null)
                     return _ContentType;
 
-                _ContentType = new HTTPContentType(Get<String>("Content-Type"));
+                _ContentType = new HTTPContentType(GetHeaderField<String>("Content-Type"));
 
                 SetHeaderField("Content-Type", _ContentType);
 
@@ -461,11 +562,11 @@ namespace de.ahzf.Hermod.HTTP.Common
             get
             {
 
-                var _Authorization = Get<HTTPBasicAuthentication>("Authorization");
+                var _Authorization = GetHeaderField<HTTPBasicAuthentication>("Authorization");
                 if (_Authorization != null)
                     return _Authorization;
 
-                _Authorization = new HTTPBasicAuthentication(Get<String>("Authorization"));
+                _Authorization = new HTTPBasicAuthentication(GetHeaderField<String>("Authorization"));
 
                 SetHeaderField("Authorization", _Authorization);
 
@@ -487,7 +588,7 @@ namespace de.ahzf.Hermod.HTTP.Common
             
             get
             {
-                return GetNullable<UInt64>("Last-Event-Id");
+                return GetHeaderField_UInt64("Last-Event-Id");
             }
 
             set

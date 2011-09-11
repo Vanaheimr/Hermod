@@ -18,7 +18,6 @@
 #region Usings
 
 using System;
-using de.ahzf.Hermod.TCP;
 using de.ahzf.Hermod.HTTP;
 using de.ahzf.Hermod.HTTP.Common;
 

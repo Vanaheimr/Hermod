@@ -50,7 +50,6 @@
     <Compile Include="HTTP\Client\HTTPClientExtensions.cs" />
     <Compile Include="HTTP\Client\HTTPRequest.cs" />
     <Compile Include="HTTP\Client\HTTPClient.cs" />
-    <Compile Include="HTTP\Common\AHTTPRequestHeader.cs" />
     <Compile Include="HTTP\Common\HTTPHeaderField.cs" />
     <Compile Include="HTTP\Common\AHTTPHeader.cs" />
     <Compile Include="HTTP\Common\HTTPResponseHeader.cs" />

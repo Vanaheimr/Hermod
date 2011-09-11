@@ -26,82 +26,46 @@ namespace de.ahzf.Hermod.HTTP.Common
 {
 
     /// <summary>
-    /// HTTP status codes as defined within RFC 2616 and other resources.
+    /// HTTP content type.
     /// </summary>
     public sealed class HTTPContentType : IComparable, IComparable<HTTPContentType>, IEquatable<HTTPContentType>
     {
 
         #region Properties
 
-        #region MediaType
-
-        private readonly String _MediaType;
-
         /// <summary>
         /// The code of this HTTP media type
         /// </summary>
-        public String MediaType
-        {
-            get
-            {
-                return _MediaType;
-            }
-        }
-        
-        #endregion
-
-        #region CharSet
-
-        private readonly String _CharSet;
+        public String MediaType   { get; private set; }
         
         /// <summary>
         /// The name of this HTTP content type
         /// </summary>
-        public String CharSet
-        {
-            get
-            {
-                return _CharSet;
-            }
-        }
+        public String CharSet     { get; private set; }
 
-        #endregion
-
-        #region Description
-
-        private readonly String _Description;
-        
         /// <summary>
         /// The description of this HTTP content type.
         /// </summary>
-        public String Description
-        {
-            get
-            {
-                return _Description;
-            }
-        }
-
-        #endregion
+        public String Description { get; private set; }
 
         #endregion
 
         #region Constructor(s)
 
-        #region HTTPContentType(myMediaType, CharSet = "UTF-8", Description = null)
+        #region HTTPContentType(MediaType, CharSet = "UTF-8", Description = null)
 
         /// <summary>
         /// Creates a new HTTP content type based on the given media type
         /// and optional a char set or description.
         /// </summary>
-        /// <param name="myMediaType">The media type for the HTTP content type.</param>
+        /// <param name="MediaType">The media type for the HTTP content type.</param>
         /// <param name="CharSet">The char set of the HTTP content type.</param>
         /// <param name="Description">A description of the HTTP content type.</param>
-        public HTTPContentType(String myMediaType, String CharSet = "UTF-8", String Description = null)
+        public HTTPContentType(String MediaType, String CharSet = "UTF-8", String Description = null)
         {
-            _MediaType   = myMediaType;
-            _CharSet     = CharSet;
-            _Description = Description;
+            this.MediaType   = MediaType;
+            this.CharSet     = CharSet;
+            this.Description = Description;
         }
 
         #endregion
@@ -109,12 +73,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         #endregion
 
 
-        #region 1xx Informational
-
-        //private static ContentType _JSON = new ContentType("application/json");
-        //private static ContentType _XML = new ContentType("application/xml");
-        //private static ContentType _XHTML = new ContentType("application/xhtml+xml");
-        //private static ContentType _GEXF = new ContentType("application/gexf+xml");
+        #region Static HTTP content types
 
         public static readonly HTTPContentType TEXT_UTF8       = new HTTPContentType("text/plain",             "UTF-8");
         public static readonly HTTPContentType HTML_UTF8       = new HTTPContentType("text/html",              "UTF-8");
@@ -150,7 +109,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         /// <returns></returns>
         public String GetMediaType()
         {
-            return _MediaType.Split(new[] { '/' })[0];
+            return MediaType.Split(new[] { '/' })[0];
         }
 
         #endregion
@@ -164,7 +123,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         /// <returns></returns>
         public String GetMediaSubType()
         {
-            return _MediaType.Split(new[] { '/' })[1];
+            return MediaType.Split(new[] { '/' })[1];
         }
 
         #endregion
@@ -280,73 +239,91 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #endregion
 
-        #region IComparable Members
+        #region IComparable<HTTPContentType> Members
 
-        public Int32 CompareTo(Object myObject)
+        #region CompareTo(Object)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="Object">An object to compare with.</param>
+        public Int32 CompareTo(Object Object)
         {
 
-            // Check if myObject is null
-            if (myObject == null)
-                throw new ArgumentNullException("myObject must not be null!");
+            if (Object == null)
+                throw new ArgumentNullException("The given object must not be null!");
 
-            // Check if myObject can be casted to an HTTPContentType object
-            var myHTTPContentType = myObject as HTTPContentType;
-            if ((Object) myHTTPContentType == null)
-                throw new ArgumentException("myObject is not of type HTTPContentType!");
+            // Check if the given object is an HTTPContentType.
+            var HTTPContentType = Object as HTTPContentType;
+            if ((Object) HTTPContentType == null)
+                throw new ArgumentException("The given object is not a HTTPContentType!");
 
-            return CompareTo(myHTTPContentType);
+            return CompareTo(HTTPContentType);
 
         }
 
         #endregion
 
-        #region IComparable<HTTPContentType> Members
+        #region CompareTo(HTTPContentType)
 
-        public Int32 CompareTo(HTTPContentType myHTTPContentType)
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPContentType">An object to compare with.</param>
+        public Int32 CompareTo(HTTPContentType HTTPContentType)
         {
 
-            // Check if myHTTPContentType is null
-            if (myHTTPContentType == null)
-                throw new ArgumentNullException("myHTTPContentType must not be null!");
+            if ((Object) HTTPContentType == null)
+                throw new ArgumentNullException("The given HTTPContentType must not be null!");
 
-            return MediaType.CompareTo(myHTTPContentType.MediaType);
+            return MediaType.CompareTo(HTTPContentType.MediaType);
 
         }
+
+        #endregion
 
         #endregion
 
         #region IEquatable<HTTPContentType> Members
 
-        #region Equals(myObject)
+        #region Equals(Object)
 
-        public override Boolean Equals(Object myObject)
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="Object">An object to compare with.</param>
+        /// <returns>true|false</returns>
+        public override Boolean Equals(Object Object)
         {
 
-            // Check if myObject is null
-            if (myObject == null)
-                throw new ArgumentNullException("Parameter myObject must not be null!");
+            if (Object == null)
+                return false;
 
-            // Check if myObject can be cast to HTTPContentType
-            var myHTTPContentType = myObject as HTTPContentType;
-            if ((Object) myHTTPContentType == null)
-                throw new ArgumentException("Parameter myObject could not be casted to type HTTPContentType!");
+            // Check if the given object is an HTTPContentType.
+            var HTTPContentType = Object as HTTPContentType;
+            if ((Object) HTTPContentType == null)
+                return false;
 
-            return this.Equals(myHTTPContentType);
+            return this.Equals(HTTPContentType);
 
         }
 
         #endregion
 
-        #region Equals(myHTTPContentType)
+        #region Equals(HTTPContentType)
 
-        public Boolean Equals(HTTPContentType myHTTPContentType)
+        /// <summary>
+        /// Compares two HTTPContentTypes for equality.
+        /// </summary>
+        /// <param name="HTTPContentType">A HTTPContentType to compare with.</param>
+        /// <returns>True if both match; False otherwise.</returns>
+        public Boolean Equals(HTTPContentType HTTPContentType)
         {
 
-            // Check if myHTTPContentType is null
-            if (myHTTPContentType == null)
-                throw new ArgumentNullException("Parameter myHTTPContentType must not be null!");
+            if ((Object) HTTPContentType == null)
+                return false;
 
-            return MediaType == myHTTPContentType.MediaType;
+            return MediaType == HTTPContentType.MediaType;
 
         }
 
@@ -361,7 +338,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         /// </summary>
         public override Int32 GetHashCode()
         {
-            return MediaType.GetHashCode() ^ CharSet.GetHashCode();
+            return MediaType.GetHashCode();// ^ CharSet.GetHashCode();
         }
 
         #endregion

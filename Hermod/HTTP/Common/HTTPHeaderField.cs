@@ -35,6 +35,8 @@ namespace de.ahzf.Hermod.HTTP.Common
     /// <summary>
     /// Defines a field within the HTTP header.
     /// </summary>
+    /// <seealso cref="http://restpatterns.org"/>
+    /// <seealso cref="http://en.wikipedia.org/wiki/List_of_HTTP_header_fields"/>
     public class HTTPHeaderField : IEquatable<HTTPHeaderField>, IComparable<HTTPHeaderField>, IComparable
     {
 
@@ -154,8 +156,6 @@ namespace de.ahzf.Hermod.HTTP.Common
 
 
         #region General header fields
-
-        // http://restpatterns.org
 
         #region CacheControl
 
@@ -780,6 +780,10 @@ namespace de.ahzf.Hermod.HTTP.Common
                                                       new Uri("http://tools.ietf.org/html/rfc2616"));
 
         #endregion
+
+        #endregion
+
+        #region Request header fields
 
         #endregion
 
@@ -1426,7 +1430,6 @@ namespace de.ahzf.Hermod.HTTP.Common
         #endregion
 
         #endregion
-
 
 
         #region Operator overloading

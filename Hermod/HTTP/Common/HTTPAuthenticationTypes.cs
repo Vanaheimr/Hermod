@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-namespace de.ahzf.Hermod.TCP.Common
+namespace de.ahzf.Hermod.HTTP.Common
 {
 
     public enum HTTPAuthenticationTypes

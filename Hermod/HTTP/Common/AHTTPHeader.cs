@@ -276,6 +276,130 @@ namespace de.ahzf.Hermod.HTTP.Common
         #endregion
 
 
+        #region (protected) TryGetHeaderField(FieldName)
+
+        /// <summary>
+        /// Return a http header field.
+        /// </summary>
+        /// <param name="FieldName">The key of the requested header field.</param>
+        /// <param name="Value">The value of the requested header field.</param>
+        /// <returns>True if the requested header exists; false otherwise.</returns>
+        protected Boolean TryGetHeaderField(String FieldName, out Object Value)
+        {
+            return HeaderFields.TryGetValue(FieldName, out Value);
+        }
+
+        #endregion
+
+        #region (protected) TryGetHeaderField(HeaderField)
+
+        /// <summary>
+        /// Return a http header field.
+        /// </summary>
+        /// <param name="FieldName">The key of the requested header field.</param>
+        /// <param name="Value">The value of the requested header field.</param>
+        /// <returns>True if the requested header exists; false otherwise.</returns>
+        protected Boolean TryGetHeaderField(HTTPHeaderField HeaderField, out Object Value)
+        {
+            return HeaderFields.TryGetValue(HeaderField.Name, out Value);
+        }
+
+        #endregion
+
+        #region TryGet<T>(Key)
+
+        /// <summary>
+        /// Return a http header field.
+        /// </summary>
+        /// <typeparam name="T">The type of the value of the requested header field.</typeparam>
+        /// <param name="Key">The key of the requested header field.</param>
+        /// <param name="Value">The value of the requested header field.</param>
+        /// <returns>True if the requested header exists; false otherwise.</returns>
+        public Boolean TryGet<T>(String Key, out T Value)
+        {
+
+            Object _Object;
+
+            if (HeaderFields.TryGetValue(Key, out _Object))
+            {
+
+                if (_Object is T)
+                {
+                    Value = (T) _Object;
+                    return true;
+                }
+
+                else if (typeof(T).Equals(typeof(Int32)))
+                {
+                    Int32 _Int32;
+                    if (Int32.TryParse(_Object.ToString(), out _Int32))
+                    {
+                        Value = (T) (Object) _Int32;
+                        SetHeaderField(Key, Value);
+                        return true;
+                    }
+                }
+
+                else if (typeof(T).Equals(typeof(UInt32)))
+                {
+                    UInt32 _UInt32;
+                    if (UInt32.TryParse(_Object.ToString(), out _UInt32))
+                    {
+                        Value = (T) (Object) _UInt32;
+                        SetHeaderField(Key, Value);
+                        return true;
+                    }
+                }
+
+                else if (typeof(T).Equals(typeof(Int64)))
+                {
+                    Int64 _Int64;
+                    if (Int64.TryParse(_Object.ToString(), out _Int64))
+                    {
+                        Value = (T) (Object) _Int64;
+                        SetHeaderField(Key, Value);
+                        return true;
+                    }
+                }
+
+                else if (typeof(T).Equals(typeof(UInt64)))
+                {
+                    UInt64 _UInt64;
+                    if (UInt64.TryParse(_Object.ToString(), out _UInt64))
+                    {
+                        Value = (T) (Object) _UInt64;
+                        SetHeaderField(Key, Value);
+                        return true;
+                    }
+                }
+
+                else
+                {
+                    try
+                    {
+                        Value = (T) (Object) _Object;
+                        SetHeaderField(Key, Value);
+                        return true;
+                    }
+                    catch (Exception)
+                    {
+                        Value = default(T);
+                        return false;
+                    }                    
+                }
+
+            }
+
+
+            Value = default(T);
+            return false;
+
+        }
+
+        #endregion
+
+
+
         #region (protected) GetHeaderField(FieldName)
 
         /// <summary>

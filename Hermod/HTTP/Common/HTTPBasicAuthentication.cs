@@ -19,9 +19,6 @@
 
 using System;
 
-using de.ahzf.Hermod;
-using de.ahzf.Hermod.TCP.Common;
-
 #endregion
 
 namespace de.ahzf.Hermod.HTTP.Common
@@ -32,47 +29,9 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #region Properties
 
-        #region Username
-
-        private String _Username;
-
-        public String Username
-        {
-            get
-            {
-                return _Username;
-            }
-        }
-
-        #endregion
-
-        #region Password
-
-        private String _Password;
-
-        public String Password
-        {
-            get
-            {
-                return _Password;
-            }
-        }
-
-        #endregion
-
-        #region HTTPCredentialType
-
-        private HTTPAuthenticationTypes _HTTPCredentialType;
-
-        public HTTPAuthenticationTypes HTTPCredentialType
-        {
-            get
-            {
-                return _HTTPCredentialType;
-            }
-        }
-
-        #endregion
+        public String                  Username           { get; private set; }
+        public String                  Password           { get; private set; }
+        public HTTPAuthenticationTypes HTTPCredentialType { get; private set; }
 
         #endregion
 
@@ -93,14 +52,14 @@ namespace de.ahzf.Hermod.HTTP.Common
             if (splitted[0].ToLower() == "basic")
             {
 
-                _HTTPCredentialType = HTTPAuthenticationTypes.Basic;
+                HTTPCredentialType = HTTPAuthenticationTypes.Basic;
                 var usernamePassword = splitted[1].FromBase64().Split(new[] { ':' });
 
                 if (usernamePassword.IsNullOrEmpty())
                     throw new ArgumentException("invalid username/password " + splitted[1].FromBase64());
 
-                _Username = usernamePassword[0];
-                _Password = usernamePassword[1];
+                Username = usernamePassword[0];
+                Password = usernamePassword[1];
 
             }
             
