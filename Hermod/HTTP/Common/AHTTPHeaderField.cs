@@ -18,7 +18,6 @@
 #region Usings
 
 using System;
-using System.Linq;
 
 #endregion
 
@@ -69,12 +68,23 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #endregion
 
+        #region Type
+
+        /// <summary>
+        /// The C# type of this HTTP header field.
+        /// </summary>
+        public Type Type { get; private set; }
+
+        #endregion
+
         #region StringParser
+
+        public delegate Boolean StringParserDelegate(String arg1, out Object arg2);
 
         /// <summary>
         /// Parse this HTTPHeaderField from a string.
         /// </summary>
-        public Func<String, Boolean> StringParser { get; private set; }
+        public StringParserDelegate StringParser { get; private set; }
 
         #endregion
 
@@ -83,7 +93,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         /// <summary>
         /// A delegate to serialize the value of the header field to a string.
         /// </summary>
-        public Func<String> ValueSerializer { get; private set; }
+        public Func<Object, String> ValueSerializer { get; private set; }
 
         #endregion
 
@@ -102,7 +112,14 @@ namespace de.ahzf.Hermod.HTTP.Common
         /// <param name="Description">A description of the HTTP request header field</param>
         /// <param name="Example">An usage example</param>
         /// <param name="SeeAlso">An additional source of information, e.g. the defining request-for-comment</param>
-        public AHTTPHeaderField(String Name, Func<String> ValueSerializer, String Description = null, String Example = null, Uri SeeAlso = null)
+        public AHTTPHeaderField(String               Name,
+                                String               Description     = null,
+                                String               Example         = null,
+                                Uri                  SeeAlso         = null,
+                                Type                 Type            = null,
+                                StringParserDelegate StringParser    = null,
+                                Func<Object, String> ValueSerializer = null)
+
         {
 
             #region Initial checks
@@ -117,6 +134,9 @@ namespace de.ahzf.Hermod.HTTP.Common
             this.Description     = Description;
             this.Example         = Example;
             this.SeeAlso         = SeeAlso;
+            this.Type            = Type;
+            this.StringParser    = StringParser;
+            this.ValueSerializer = ValueSerializer;
 
         }
 

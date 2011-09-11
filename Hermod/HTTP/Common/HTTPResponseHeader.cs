@@ -18,19 +18,16 @@
 #region Usings
 
 using System;
-using System.IO;
-using System.Web;
-using System.Text;
-using System.Linq;
-using System.Net.Mime;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 
 #endregion
 
 namespace de.ahzf.Hermod.HTTP.Common
 {
 
+    /// <summary>
+    /// A read-only HTTP response header.
+    /// </summary>
     public class HTTPResponseHeader : AHTTPHeader
     {
 
@@ -50,38 +47,6 @@ namespace de.ahzf.Hermod.HTTP.Common
         #endregion
 
 
-        #region Connection
-
-        public String Connection
-        {
-            get
-            {
-                return GetHeaderField<String>("Connection");
-            }
-        }
-
-        #endregion
-
-        
-
-        
-
-        #region CacheControl
-
-        public String CacheControl
-        {
-            get
-            {
-
-                if (HeaderFields.ContainsKey("Cache-Control"))
-                    return HeaderFields["Cache-Control"] as String;
-
-                return null;
-
-            }
-        }
-
-        #endregion
 
         #region Server
 
@@ -89,12 +54,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         {
             get
             {
-
-                if (HeaderFields.ContainsKey("Server"))
-                    return HeaderFields["Server"] as String;
-
-                return null;
-
+                return GetHeaderField("Server");
             }
         }
 
@@ -106,35 +66,30 @@ namespace de.ahzf.Hermod.HTTP.Common
         {
             get
             {
-
-                if (HeaderFields.ContainsKey("Location"))
-                    return HeaderFields["Location"] as String;
-
-                return null;
-
+                return GetHeaderField("Location");
             }
         }
 
         #endregion
 
-        #region KeepAlive
+        //#region KeepAlive
 
-        public Boolean KeepAlive
-        {
-            get
-            {
+        //public Boolean KeepAlive
+        //{
+        //    get
+        //    {
 
-                if (HeaderFields.ContainsKey("Connection"))
-                    if (HeaderFields["Connection"] is String)
-                        if (((String) HeaderFields["Connection"]) == "Keep-Alive")
-                            return true;
+        //        if (HeaderFields.ContainsKey("Connection"))
+        //            if (HeaderFields["Connection"] is String)
+        //                if (((String) HeaderFields["Connection"]) == "Keep-Alive")
+        //                    return true;
 
-                return false;
+        //        return false;
 
-            }
-        }
+        //    }
+        //}
 
-        #endregion
+        //#endregion
 
         #region Date
 
@@ -142,12 +97,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         {
             get
             {
-
-                if (HeaderFields.ContainsKey("Date"))
-                    return HeaderFields["Date"] as String;
-
-                return null;
-
+                return GetHeaderField("Date");
             }
         }
 

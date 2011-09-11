@@ -18,23 +18,23 @@
 #region Usings
 
 using System;
-using System.IO;
-using System.Web;
 using System.Text;
-using System.Linq;
-using System.Net.Mime;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 
 #endregion
 
 namespace de.ahzf.Hermod.HTTP.Common
 {
 
+    /// <summary>
+    /// A read-write HTTP response header.
+    /// </summary>
     public class HTTPResponseHeader_RW : HTTPResponseHeader
     {
 
         #region Properties
+
+        #region HTTPStatusCode
 
         public new HTTPStatusCode HTTPStatusCode
         {
@@ -50,8 +50,29 @@ namespace de.ahzf.Hermod.HTTP.Common
             }
 
         }
-        
 
+        #endregion
+
+        #region General header fields
+
+        #region CacheControl
+
+        public new String CacheControl
+        {
+
+            get
+            {
+                return base.CacheControl;
+            }
+
+            set
+            {
+                SetHeaderField(HTTPResponseHeaderField.CacheControl, value);
+            }
+
+        }
+
+        #endregion
 
         #region Connection
 
@@ -65,45 +86,7 @@ namespace de.ahzf.Hermod.HTTP.Common
 
             set
             {
-                SetHeaderField("Connection", value);
-            }
-
-        }
-
-        #endregion
-
-        #region ContentLength
-
-        public new UInt64? ContentLength
-        {
-
-            get
-            {
-                return base.ContentLength;
-            }
-
-            set
-            {
-                SetHeaderField("Content-Length", value);
-            }
-
-        }
-
-        #endregion
-
-        #region ContentType
-
-        public new HTTPContentType ContentType
-        {
-
-            get
-            {
-                return base.ContentType;
-            }
-
-            set
-            {
-                SetHeaderField("Content-Type", value);
+                SetHeaderField(HTTPResponseHeaderField.Connection, value);
             }
 
         }
@@ -122,85 +105,162 @@ namespace de.ahzf.Hermod.HTTP.Common
 
             set
             {
-                SetHeaderField("Content-Encoding", value);
+                SetHeaderField(HTTPResponseHeaderField.ContentEncoding, value);
             }
 
         }
 
         #endregion
 
+        #region ContentLanguage
 
-        #region CacheControl
-
-        public String CacheControl
+        public new List<String> ContentLanguage
         {
 
             get
             {
-
-                if (HeaderFields.ContainsKey("Cache-Control"))
-                    return HeaderFields["Cache-Control"] as String;
-
-                return null;
-
+                return base.ContentLanguage;
             }
 
             set
             {
-
-                if (value != null)
-                {
-
-                    if (HeaderFields.ContainsKey("Cache-Control"))
-                        HeaderFields["Cache-Control"] = value;
-
-                    else
-                        HeaderFields.Add("Cache-Control", value);
-
-                }
-
-                else
-                    if (HeaderFields.ContainsKey("Cache-Control"))
-                        HeaderFields.Remove("Cache-Control");
-
+                SetHeaderField(HTTPResponseHeaderField.ContentLanguage, value);
             }
 
         }
 
         #endregion
+
+        #region ContentLength
+
+        public new UInt64? ContentLength
+        {
+
+            get
+            {
+                return base.ContentLength;
+            }
+
+            set
+            {
+                SetHeaderField(HTTPResponseHeaderField.ContentLength, value);
+            }
+
+        }
+
+        #endregion
+
+        #region ContentLocation
+
+        public new String ContentLocation
+        {
+
+            get
+            {
+                return base.ContentLocation;
+            }
+
+            set
+            {
+                SetHeaderField(HTTPResponseHeaderField.ContentLocation, value);
+            }
+
+        }
+
+        #endregion
+
+        #region ContentMD5
+
+        public new String ContentMD5
+        {
+
+            get
+            {
+                return base.ContentMD5;
+            }
+
+            set
+            {
+                SetHeaderField(HTTPResponseHeaderField.ContentMD5, value);
+            }
+
+        }
+
+        #endregion
+
+        #region ContentRange
+
+        public new String ContentRange
+        {
+
+            get
+            {
+                return base.ContentRange;
+            }
+
+            set
+            {
+                SetHeaderField(HTTPResponseHeaderField.ContentRange, value);
+            }
+
+        }
+
+        #endregion
+
+        #region ContentType
+
+        public new HTTPContentType ContentType
+        {
+
+            get
+            {
+                return base.ContentType;
+            }
+
+            set
+            {
+                SetHeaderField(HTTPResponseHeaderField.ContentType, value);
+            }
+
+        }
+
+        #endregion
+
+        #region Via
+
+        public new String Via
+        {
+
+            get
+            {
+                return base.Via;
+            }
+
+            set
+            {
+                SetHeaderField(HTTPResponseHeaderField.Via, value);
+            }
+
+        }
+
+        #endregion
+
+        #endregion
+
 
         #region Server
 
-        public String Server
+        public new String Server
         {
 
             get
             {
-
-                if (HeaderFields.ContainsKey("Server"))
-                    return HeaderFields["Server"] as String;
-
-                return null;
-
+                return base.Date;
             }
 
             set
             {
-
-                if (value != null)
-                {
-                    
-                    if (HeaderFields.ContainsKey("Server"))
-                        HeaderFields["Server"] = value;
-                    else
-                        HeaderFields.Add("Server", value);
-
-                }
-
-                else
-                    if (HeaderFields.ContainsKey("Server"))
-                        HeaderFields.Remove("Server");
-
+                SetHeaderField("Server", value);
             }
 
         }
@@ -209,112 +269,74 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #region Location
 
-        public String Location
+        public new String Location
         {
 
             get
             {
-
-                if (HeaderFields.ContainsKey("Location"))
-                    return HeaderFields["Location"] as String;
-
-                return null;
-
+                return base.Date;
             }
 
             set
             {
-
-                if (value != null)
-                {
-
-                    if (HeaderFields.ContainsKey("Location"))
-                        HeaderFields["Location"] = value;
-                    else
-                        HeaderFields.Add("Location", value);
-
-                }
-
-                else
-                    if (HeaderFields.ContainsKey("Location"))
-                        HeaderFields.Remove("Location");
-
+                SetHeaderField("Location", value);
             }
 
         }
 
         #endregion
 
-        #region KeepAlive
+        //#region KeepAlive
 
-        public Boolean KeepAlive
-        {
+        //public Boolean KeepAlive
+        //{
 
-            get
-            {
+        //    get
+        //    {
 
-                if (HeaderFields.ContainsKey("Connection"))
-                    if (HeaderFields["Connection"] is String)
-                        if (((String) HeaderFields["Connection"]) == "Keep-Alive")
-                            return true;
+        //        if (HeaderFields.ContainsKey("Connection"))
+        //            if (HeaderFields["Connection"] is String)
+        //                if (((String) HeaderFields["Connection"]) == "Keep-Alive")
+        //                    return true;
 
-                return false;
+        //        return false;
 
-            }
+        //    }
 
-            set
-            {
+        //    set
+        //    {
 
-                if (value == true)
-                {
-                    if (HeaderFields.ContainsKey("Connection"))
-                        HeaderFields["Connection"] = "Keep-Alive";
-                    else
-                        HeaderFields.Add("Content-Type", value);
-                }
+        //        if (value == true)
+        //        {
+        //            if (HeaderFields.ContainsKey("Connection"))
+        //                HeaderFields["Connection"] = "Keep-Alive";
+        //            else
+        //                HeaderFields.Add("Content-Type", value);
+        //        }
 
-                else
-                    if (HeaderFields.ContainsKey("Connection"))
-                        HeaderFields.Remove("Connection");
+        //        else
+        //            if (HeaderFields.ContainsKey("Connection"))
+        //                HeaderFields.Remove("Connection");
 
-            }
+        //    }
 
-        }
+        //}
 
-        #endregion
+        //#endregion
 
         #region Date
 
-        public String Date
+        public new String Date
         {
 
             get
             {
-
-                if (HeaderFields.ContainsKey("Date"))
-                    return HeaderFields["Date"] as String;
-
-                return null;
-
+                return base.Date;
             }
 
             set
             {
-
-                if (value != null)
-                {
-
-                    if (HeaderFields.ContainsKey("Date"))
-                        HeaderFields["Date"] = value;
-                    else
-                        HeaderFields.Add("Date", value);
-
-                }
-
-                else
-                    if (HeaderFields.ContainsKey("Date"))
-                        HeaderFields.Remove("Date");
-
+                SetHeaderField("Date", value);
             }
 
         }
@@ -355,6 +377,22 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #endregion
 
+        #region Set General header fields
+
+        #region SetCacheControl(CacheControl)
+
+        /// <summary>
+        /// Set the HTTP CacheControl.
+        /// </summary>
+        /// <param name="CacheControl">CacheControl.</param>
+        public HTTPResponseHeader_RW SetCacheControl(String CacheControl)
+        {
+            this.CacheControl = CacheControl;
+            return this;
+        }
+
+        #endregion
+
         #region SetConnection(Connection)
 
         /// <summary>
@@ -364,6 +402,34 @@ namespace de.ahzf.Hermod.HTTP.Common
         public HTTPResponseHeader_RW SetConnection(String Connection)
         {
             this.Connection = Connection;
+            return this;
+        }
+
+        #endregion
+
+        #region SetContentEncoding(ContentEncoding)
+
+        /// <summary>
+        /// Set the HTTP Content-Encoding.
+        /// </summary>
+        /// <param name="ContentEncoding">The encoding of the HTTP content/body.</param>
+        public HTTPResponseHeader_RW SetContentEncoding(Encoding ContentEncoding)
+        {
+            this.ContentEncoding = ContentEncoding;
+            return this;
+        }
+
+        #endregion
+
+        #region SetContentLanguage(ContentLanguages)
+
+        /// <summary>
+        /// Set the HTTP Content-Languages.
+        /// </summary>
+        /// <param name="ContentLanguages">The languages of the HTTP content/body.</param>
+        public HTTPResponseHeader_RW SetContentLanguage(List<String> ContentLanguages)
+        {
+            this.ContentLanguage = ContentLanguages;
             return this;
         }
 
@@ -383,6 +449,48 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #endregion
 
+        #region SetContentLocation(ContentLocation)
+
+        /// <summary>
+        /// Set the HTTP ContentLocation.
+        /// </summary>
+        /// <param name="ContentLocation">ContentLocation.</param>
+        public HTTPResponseHeader_RW SetContentLocation(String ContentLocation)
+        {
+            this.ContentLocation = ContentLocation;
+            return this;
+        }
+
+        #endregion
+
+        #region SetContentMD5(ContentMD5)
+
+        /// <summary>
+        /// Set the HTTP ContentMD5.
+        /// </summary>
+        /// <param name="ContentMD5">ContentMD5.</param>
+        public HTTPResponseHeader_RW SetContentMD5(String ContentMD5)
+        {
+            this.ContentMD5 = ContentMD5;
+            return this;
+        }
+
+        #endregion
+
+        #region SetContentRange(ContentRange)
+
+        /// <summary>
+        /// Set the HTTP ContentRange.
+        /// </summary>
+        /// <param name="ContentRange">ContentRange.</param>
+        public HTTPResponseHeader_RW SetContentRange(String ContentRange)
+        {
+            this.ContentRange = ContentRange;
+            return this;
+        }
+
+        #endregion
+
         #region SetContentType(ContentType)
 
         /// <summary>
@@ -397,21 +505,21 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #endregion
 
-        #region SetContentEncoding(ContentEncoding)
+        #region SetVia(Via)
 
         /// <summary>
-        /// Set the HTTP Content-Encoding.
+        /// Set the HTTP Via.
         /// </summary>
-        /// <param name="ContentEncoding">The encoding of the HTTP content/body.</param>
-        public HTTPResponseHeader_RW SetContentType(Encoding ContentEncoding)
+        /// <param name="Via">Via.</param>
+        public HTTPResponseHeader_RW SetVia(String Via)
         {
-            this.ContentEncoding = ContentEncoding;
+            this.Via = Via;
             return this;
         }
 
         #endregion
 
-
+        #endregion
 
     }
 

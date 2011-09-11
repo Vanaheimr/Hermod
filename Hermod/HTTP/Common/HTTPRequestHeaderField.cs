@@ -44,7 +44,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         /// <param name="Example">An usage example</param>
         /// <param name="SeeAlso">An additional source of information, e.g. the defining request-for-comment</param>
         public HTTPRequestHeaderField(String Name, String Description = null, String Example = null, Uri SeeAlso = null)
-            : base(Name, null, Description, Example, SeeAlso)
+            : base(Name, Description, Example, SeeAlso)
         { }
 
         #endregion

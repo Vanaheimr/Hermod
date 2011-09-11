@@ -274,33 +274,33 @@ namespace de.ahzf.Hermod.HTTP.Common
         #endregion
 
 
-        #region (protected) SetHeaderField(Key, Value)
+        //#region (protected) SetHeaderField(Key, Value)
 
-        /// <summary>
-        /// Sets a http header field.
-        /// </summary>
-        /// <param name="Key">The key of the requested header field.</typeparam>
-        /// <param name="Value">The value of the requested header field.</typeparam>
-        protected void SetHeaderField(String Key, Object Value)
-        {
+        ///// <summary>
+        ///// Sets a http header field.
+        ///// </summary>
+        ///// <param name="Key">The key of the requested header field.</typeparam>
+        ///// <param name="Value">The value of the requested header field.</typeparam>
+        //protected void SetHeaderField(String Key, Object Value)
+        //{
 
-            if (Value != null)
-            {
+        //    if (Value != null)
+        //    {
 
-                if (HeaderFields.ContainsKey(Key))
-                    HeaderFields[Key] = Value;
-                else
-                    HeaderFields.Add(Key, Value);
+        //        if (HeaderFields.ContainsKey(Key))
+        //            HeaderFields[Key] = Value;
+        //        else
+        //            HeaderFields.Add(Key, Value);
 
-            }
+        //    }
 
-            else
-                if (HeaderFields.ContainsKey(Key))
-                    HeaderFields.Remove(Key);
+        //    else
+        //        if (HeaderFields.ContainsKey(Key))
+        //            HeaderFields.Remove(Key);
 
-        }
+        //}
 
-        #endregion
+        //#endregion
 
 
         #region TryGet(Key)

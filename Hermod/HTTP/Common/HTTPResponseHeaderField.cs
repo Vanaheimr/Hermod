@@ -18,7 +18,6 @@
 #region Usings
 
 using System;
-using System.Linq;
 
 #endregion
 
@@ -43,8 +42,16 @@ namespace de.ahzf.Hermod.HTTP.Common
         /// <param name="Description">A description of the HTTP request header field</param>
         /// <param name="Example">An usage example</param>
         /// <param name="SeeAlso">An additional source of information, e.g. the defining request-for-comment</param>
-        public HTTPResponseHeaderField(String Name, String Description = null, String Example = null, Uri SeeAlso = null)
-            : base(Name, null,  Description, Example, SeeAlso)
+        public HTTPResponseHeaderField(String               Name,
+                                       String               Description     = null,
+                                       String               Example         = null,
+                                       Uri                  SeeAlso         = null,
+                                       Type                 Type            = null,
+                                       StringParserDelegate StringParser    = null,
+                                       Func<Object, String> ValueSerializer = null)
+
+            : base(Name, Description, Example, SeeAlso, Type, StringParser, ValueSerializer)
+
         { }
 
         #endregion
@@ -55,6 +62,8 @@ namespace de.ahzf.Hermod.HTTP.Common
         #region General header fields
 
         // http://restpatterns.org
+
+        #region CacheControl
 
         /// <summary>
         /// The Cache-Control general-header field is used to specify
@@ -71,7 +80,10 @@ namespace de.ahzf.Hermod.HTTP.Common
                                                       "further connections.",
                                                       "Cache-Control: no-cache",
                                                       new Uri("http://tools.ietf.org/html/rfc2616"));
+        
+        #endregion
 
+        #region Connection
 
         /// <summary>
         /// The Connection general-header field allows the sender
@@ -94,7 +106,10 @@ namespace de.ahzf.Hermod.HTTP.Common
                                                       "in every message.",
                                                       "Connection: close",
                                                       new Uri("http://tools.ietf.org/html/rfc2616"));
+        
+        #endregion
 
+        #region ContentEncoding
 
         /// <summary>
         /// The Content-Encoding entity-header field is used as a modifier
@@ -121,6 +136,9 @@ namespace de.ahzf.Hermod.HTTP.Common
                                                       "Content-Encoding: gzip",
                                                       new Uri("http://tools.ietf.org/html/rfc2616"));
 
+        #endregion
+
+        #region ContentLanguage
 
         /// <summary>
         /// The Content-Language entity-header field describes the natural
@@ -134,6 +152,9 @@ namespace de.ahzf.Hermod.HTTP.Common
                                                       "Content-Language: en, de",
                                                       new Uri("http://tools.ietf.org/html/rfc2616"));
 
+        #endregion
+
+        #region ContentLength
 
         /// <summary>
         /// The Content-Length entity-header field indicates the size of
@@ -150,8 +171,13 @@ namespace de.ahzf.Hermod.HTTP.Common
                                                       "entity-body that would have been sent if the request had been " +
                                                       "a GET request.",
                                                       "Content-Length: 3495",
-                                                      new Uri("http://tools.ietf.org/html/rfc2616"));
+                                                      new Uri("http://tools.ietf.org/html/rfc2616"),
+                                                      typeof(UInt64?),
+                                                      (String s, out Object o) => { UInt64 Value; if (UInt64.TryParse(s, out Value)) { o = Value; return true; } o = null; return false; });
 
+        #endregion
+
+        #region ContentLocation
 
         /// <summary>
         /// The Content-Location entity-header field MAY be used to supply
@@ -171,7 +197,10 @@ namespace de.ahzf.Hermod.HTTP.Common
                                                       "is interpreted relative to the Request-URI.",
                                                       "Content-Location: ../test.html",
                                                       new Uri("http://tools.ietf.org/html/rfc2616"));
+        
+        #endregion
 
+        #region ContentMD5
 
         /// <summary>
         /// The Content-MD5 entity-header field, is an MD5 digest of the
@@ -192,6 +221,9 @@ namespace de.ahzf.Hermod.HTTP.Common
                                                       "MD5-Digest: <base64 of 128 bit MD5 digest as per RFC 1864>",
                                                       new Uri("http://tools.ietf.org/html/rfc2616"));
 
+        #endregion
+
+        #region ContentRange
 
         /// <summary>
         /// The Content-Range entity-header is sent with a partial
@@ -240,6 +272,9 @@ namespace de.ahzf.Hermod.HTTP.Common
                                                       "Content-Range: bytes 21010-47021/47022",
                                                       new Uri("http://tools.ietf.org/html/rfc2616"));
 
+        #endregion
+
+        #region ContentType
 
         /// <summary>
         /// The Content-Type entity-header field indicates the media
@@ -256,6 +291,9 @@ namespace de.ahzf.Hermod.HTTP.Common
                                                       "Content-Type: text/html; charset=ISO-8859-4",
                                                       new Uri("http://tools.ietf.org/html/rfc2616"));
 
+        #endregion
+
+        #region Via
 
         /// <summary>
         /// The Via general-header field MUST be used by gateways
@@ -273,7 +311,7 @@ namespace de.ahzf.Hermod.HTTP.Common
                                                       "Via: 1.0 fred, 1.1 nowhere.com (Apache/1.1)",
                                                       new Uri("http://tools.ietf.org/html/rfc2616"));
 
-
+        #endregion
 
         #endregion
 
