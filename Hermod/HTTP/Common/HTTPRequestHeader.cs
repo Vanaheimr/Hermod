@@ -26,8 +26,10 @@ using System.Collections.Generic;
 namespace de.ahzf.Hermod.HTTP.Common
 {
 
+    #region HTTPRequestHeader
+
     /// <summary>
-    /// A http request header.
+    /// A read-only HTTP request header.
     /// </summary>
     public class HTTPRequestHeader : AHTTPRequestHeader
     {
@@ -305,5 +307,260 @@ namespace de.ahzf.Hermod.HTTP.Common
 
     }
 
-}
+    #endregion
 
+    #region HTTPRequestHeader_RW
+
+    /// <summary>
+    /// A read-write HTTP request header.
+    /// </summary>
+    public class HTTPRequestHeader_RW : AHTTPRequestHeader
+    {
+
+        #region Properties
+
+        #region Non-http header fields
+
+        /// <summary>
+        /// The http method.
+        /// </summary>
+        public new HTTPMethod HTTPMethod
+        {
+
+            get
+            {
+                return base.HTTPMethod;
+            }
+
+            set
+            {
+                base.HTTPMethod = value;
+            }
+
+        }
+
+        /// <summary>
+        /// The parsed minimal URL.
+        /// </summary>
+        public String Url { get; private set; }
+
+        /// <summary>
+        /// Optional SVNParameters.
+        /// </summary>
+        public String SVNParameters { get; set; }
+
+        /// <summary>
+        /// The http protocol field.
+        /// </summary>
+        public String Protocol { get; set; }
+
+        /// <summary>
+        /// The http protocol name field.
+        /// </summary>
+        public String ProtocolName { get; set; }
+
+        /// <summary>
+        /// The http protocol version.
+        /// </summary>
+        public Version ProtocolVersion { get; set; }
+
+        #endregion
+
+
+        // http header fields
+
+        #region Host
+
+        /// <summary>
+        /// The host header.
+        /// </summary>
+        public String Host
+        {
+
+            get
+            {
+                return Get<String>("Host");
+            }
+
+            set
+            {
+                SetHeaderField("Host", value);
+            }
+
+        }
+
+        #endregion
+
+        #region Accept
+
+        /// <summary>
+        /// The http content types accepted by the client.
+        /// </summary>
+        public new List<AcceptType> Accept
+        {
+
+            get
+            {
+                
+                var _Accept = Get<List<AcceptType>>("Accept");
+                if (_Accept != null)
+                    return _Accept;
+
+                _Accept = new List<AcceptType>();
+                SetHeaderField("Accept", _Accept);
+
+                return _Accept;
+
+            }
+
+        }
+
+        #endregion
+
+        #region ContentLength
+
+        public UInt64? ContentLength
+        {
+            get
+            {
+                return GetNullable<UInt64>("Content-Length");
+            }
+        }
+
+        #endregion
+
+        #region ContentType
+
+        public HTTPContentType ContentType
+        {
+
+            get
+            {
+
+                var _ContentType = Get<HTTPContentType>("Content-Type");
+                if (_ContentType != null)
+                    return _ContentType;
+
+                _ContentType = new HTTPContentType(Get<String>("Content-Type"));
+
+                SetHeaderField("Content-Type", _ContentType);
+
+                return _ContentType;
+
+            }
+
+        }
+
+        #endregion
+
+        #region Authorization
+
+        public HTTPBasicAuthentication Authorization
+        {
+
+            get
+            {
+
+                var _Authorization = Get<HTTPBasicAuthentication>("Authorization");
+                if (_Authorization != null)
+                    return _Authorization;
+
+                _Authorization = new HTTPBasicAuthentication(Get<String>("Authorization"));
+
+                SetHeaderField("Authorization", _Authorization);
+
+                return _Authorization;
+
+            }
+
+        }
+
+        #endregion
+
+        #region LastEventId
+
+        /// <summary>
+        /// The last event id.
+        /// </summary>
+        public UInt64? LastEventId
+        {
+            
+            get
+            {
+                return GetNullable<UInt64>("Last-Event-Id");
+            }
+
+            set
+            {
+                if (value != null && value.HasValue)
+                    SetHeaderField("Last-Event-Id", value.Value);
+                else
+                    throw new Exception("Could not set the HTTP request header 'Last-Event-Id' field!");
+            }
+
+        }
+
+        #endregion
+
+        #region KeepAlive
+
+        public Boolean KeepAlive
+        {
+
+            get
+            {
+
+                String _Connection;
+                if (TryGet<String>("Connection", out _Connection))
+                    if (_Connection != null)
+                        return _Connection.ToLower().Contains("keep-alive");
+                
+                return false;
+
+            }
+
+        }
+
+        #endregion
+
+        #endregion
+
+        #region Constructor(s)
+
+        #region HTTPRequestHeader_RW()
+
+        /// <summary>
+        /// Create a new http request header.
+        /// </summary>
+        public HTTPRequestHeader_RW()
+            : base()
+        {
+            this.RawUrl          = "/";
+            this.ProtocolName    = "HTTP";
+            this.ProtocolVersion = new Version(1, 1);
+        }
+
+        #endregion
+
+        #endregion
+
+
+        #region SetHeaderField(Key, Value)
+
+        /// <summary>
+        /// Sets a http header field.
+        /// </summary>
+        /// <param name="Key">The key of the requested header field.</typeparam>
+        /// <param name="Value">The value of the requested header field.</typeparam>
+        public new void SetHeaderField(String Key, Object Value)
+        {
+            base.SetHeaderField(Key, Value);
+        }
+
+        #endregion
+
+    }
+
+    #endregion
+
+}

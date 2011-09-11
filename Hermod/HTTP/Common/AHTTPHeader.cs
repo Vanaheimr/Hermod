@@ -50,30 +50,6 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #region Properties
 
-        #region RAWHTTPHeader
-
-        /// <summary>
-        /// Return a string representation of this HTTPHeader.
-        /// </summary>
-        public String RAWHTTPHeader
-        {
-            get
-            {
-                
-                if (HeaderFields.Count > 0)
-                    return (from   _KeyValuePair in HeaderFields
-                            where  _KeyValuePair.Key   != null
-                            where  _KeyValuePair.Value != null
-                            select _KeyValuePair.Key + ": " + _KeyValuePair.Value).
-                            Aggregate((a, b) => a + Environment.NewLine + b);
-
-                return null;
-
-            }
-        }
-
-        #endregion
-
         #region HTTPStatusCode
 
         /// <summary>
@@ -83,7 +59,6 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #endregion
 
-
         #region General header fields
 
         #region CacheControl
@@ -92,7 +67,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         {
             get
             {
-                return GetHeaderField(HTTPResponseHeaderField.CacheControl);
+                return GetHeaderField(HTTPHeaderField.CacheControl);
             }
         }
 
@@ -104,7 +79,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         {
             get
             {
-                return GetHeaderField(HTTPResponseHeaderField.Connection);
+                return GetHeaderField(HTTPHeaderField.Connection);
             }
         }
 
@@ -128,7 +103,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         {
             get
             {
-                return GetHeaderField<List<String>>(HTTPResponseHeaderField.ContentLanguage);
+                return GetHeaderField<List<String>>(HTTPHeaderField.ContentLanguage);
             }
         }
 
@@ -140,7 +115,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         {
             get
             {
-                return GetHeaderField<UInt64>(HTTPResponseHeaderField.ContentLength);
+                return GetHeaderField<UInt64>(HTTPHeaderField.ContentLength);
             }
         }
 
@@ -152,7 +127,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         {
             get
             {
-                return GetHeaderField(HTTPResponseHeaderField.ContentLocation);
+                return GetHeaderField(HTTPHeaderField.ContentLocation);
             }
         }
 
@@ -164,7 +139,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         {
             get
             {
-                return GetHeaderField(HTTPResponseHeaderField.ContentMD5);
+                return GetHeaderField(HTTPHeaderField.ContentMD5);
             }
         }
 
@@ -176,7 +151,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         {
             get
             {
-                return GetHeaderField(HTTPResponseHeaderField.ContentRange);
+                return GetHeaderField(HTTPHeaderField.ContentRange);
             }
         }
 
@@ -194,17 +169,53 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #endregion
 
+        #region Date
+
+        public String Date
+        {
+            get
+            {
+                return GetHeaderField(HTTPHeaderField.Date);
+            }
+        }
+
+        #endregion
+
         #region Via
 
         public String Via
         {
             get
             {
-                return GetHeaderField(HTTPResponseHeaderField.Via);
+                return GetHeaderField(HTTPHeaderField.Via);
             }
         }
 
         #endregion
+
+        #endregion
+
+        #region RAWHTTPHeader
+
+        /// <summary>
+        /// Return a string representation of this HTTPHeader.
+        /// </summary>
+        public String RAWHTTPHeader
+        {
+            get
+            {
+                
+                if (HeaderFields.Count > 0)
+                    return (from   _KeyValuePair in HeaderFields
+                            where  _KeyValuePair.Key   != null
+                            where  _KeyValuePair.Value != null
+                            select _KeyValuePair.Key + ": " + _KeyValuePair.Value).
+                            Aggregate((a, b) => a + Environment.NewLine + b);
+
+                return null;
+
+            }
+        }
 
         #endregion
 
@@ -311,7 +322,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         /// Return the value of the given HTTP header field.
         /// </summary>
         /// <param name="HeaderField">The HTTP header field.</param>
-        protected String GetHeaderField(HTTPResponseHeaderField HeaderField)
+        protected String GetHeaderField(HTTPHeaderField HeaderField)
         {
 
             Object Value;
@@ -331,7 +342,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         /// </summary>
         /// <typeparam name="T">The expected type of the field value.</typeparam>
         /// <param name="HeaderField">The HTTP header field.</param>
-        protected T GetHeaderField<T>(HTTPResponseHeaderField HeaderField)
+        protected T GetHeaderField<T>(HTTPHeaderField HeaderField)
         {
 
             Object Value;
@@ -413,6 +424,35 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #endregion
 
+        #region (protected) GetHeaderField_UInt64(HeaderField)
+
+        /// <summary>
+        /// Return the given HTTP header field.
+        /// </summary>
+        /// <typeparam name="T">The expected type of the field value.</typeparam>
+        /// <param name="HeaderField">The HTTP header field.</param>
+        protected UInt64? GetHeaderField_UInt64(HTTPHeaderField HeaderField)
+        {
+
+            Object Value;
+            if (HeaderFields.TryGetValue(HeaderField.Name, out Value))
+            {
+
+                if (Value is UInt64?)
+                    return (UInt64?)Value;
+
+                UInt64 UInt64Value;
+                if (UInt64.TryParse(Value.ToString(), out UInt64Value))
+                    return UInt64Value;
+
+            }
+
+            return null;
+
+        }
+
+        #endregion
+
 
         #region (protected) SetHeaderField(FieldName, Value)
 
@@ -451,7 +491,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         /// </summary>
         /// <param name="FieldName">The name of the header field.</param>
         /// <param name="Value">The value. NULL will remove the field from the header.</param>
-        protected void SetHeaderField(HTTPResponseHeaderField HeaderField, Object Value)
+        protected void SetHeaderField(HTTPHeaderField HeaderField, Object Value)
         {
 
             if (Value != null)

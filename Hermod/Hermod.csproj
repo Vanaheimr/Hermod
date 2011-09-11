@@ -51,11 +51,9 @@
     <Compile Include="HTTP\Client\HTTPRequest.cs" />
     <Compile Include="HTTP\Client\HTTPClient.cs" />
     <Compile Include="HTTP\Common\AHTTPRequestHeader.cs" />
-    <Compile Include="HTTP\Common\AHTTPHeaderField.cs" />
+    <Compile Include="HTTP\Common\HTTPHeaderField.cs" />
     <Compile Include="HTTP\Common\AHTTPHeader.cs" />
-    <Compile Include="HTTP\Common\HTTPResponseHeaderField.cs" />
     <Compile Include="HTTP\Common\HTTPResponseHeader.cs" />
-    <Compile Include="HTTP\Common\HTTPRequestHeader_RW.cs" />
     <Compile Include="HTTP\Server\Attributes\HTTPEventMappingAttribute.cs" />
     <Compile Include="HTTP\Server\AHTTPService.cs" />
     <Compile Include="HTTP\Server\Interfaces\IHTTPBaseService.cs" />
@@ -68,8 +66,6 @@
     <Compile Include="HTTP\Common\HTTPContentType.cs" />
     <Compile Include="HTTP\Common\HTTPMethod.cs" />
     <Compile Include="HTTP\Common\HTTPRequestHeader.cs" />
-    <Compile Include="HTTP\Common\HTTPRequestHeaderField.cs" />
-    <Compile Include="HTTP\Common\HTTPResponseHeader_RW.cs" />
     <Compile Include="HTTP\Common\HTTPStatusCode.cs" />
     <Compile Include="HTTP\Common\HTTPVersion.cs" />
     <Compile Include="ExtentionMethods\Extensions.cs" />
