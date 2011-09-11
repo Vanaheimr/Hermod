@@ -89,7 +89,6 @@ namespace de.ahzf.Hermod.Demo
 
             #endregion
 
-
             var _client1     = new HTTPClient(IPv4Address.Localhost, IPPort.HTTP);
             var _request1    = _client1.GET    ("/HelloWorld").
                                         Host   ("localhost").

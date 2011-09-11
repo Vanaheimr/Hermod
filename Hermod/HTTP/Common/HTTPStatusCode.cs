@@ -28,59 +28,35 @@ namespace de.ahzf.Hermod.HTTP.Common
     /// <summary>
     /// HTTP status codes as defined within RFC 2616 and other resources.
     /// </summary>
-    public class HTTPStatusCode : IComparable, IComparable<HTTPStatusCode>, IEquatable<HTTPStatusCode>
+    public class HTTPStatusCode : IEquatable<HTTPStatusCode>, IComparable<HTTPStatusCode>, IComparable
     {
 
         #region Properties
 
         #region Code
 
-        private readonly UInt32 _Code;
-
         /// <summary>
         /// The code of this HTTP status code
         /// </summary>
-        public UInt32 Code
-        {
-            get
-            {
-                return _Code;
-            }
-        }
+        public UInt32 Code { get; private set; }
         
         #endregion
 
         #region Name
 
-        private readonly String _Name;
-        
         /// <summary>
         /// The name of this HTTP status code
         /// </summary>
-        public String Name
-        {
-            get
-            {
-                return _Name;
-            }
-        }
+        public String Name { get; private set; }
 
         #endregion
 
         #region Description
 
-        private readonly String _Description;
-        
         /// <summary>
         /// A description of this HTTP status code
         /// </summary>
-        public String Description
-        {
-            get
-            {
-                return _Description;
-            }
-        }
+        public String Description { get; private set; }
 
         #endregion
 
@@ -180,16 +156,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         {
             get
             {
-                switch (_Code)
-                {
-
-                    case 401: // Unauthorized
-                        return "HTTP/1.1 401 " + _Name + Environment.NewLine + "WWW-Authenticate: Basic realm=\"Intern\"";
-
-                    default:
-                        return "HTTP/1.1 " + _Code + " " + _Name;
-
-                }
+                return "HTTP/1.1 " + Code + " " + Name;
             }
         }
 
@@ -199,35 +166,19 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #region Constructor(s)
 
-        #region HTTPStatusCode(myCode, myName)
+        #region HTTPStatusCode(Code, Name, Description = null)
 
         /// <summary>
-        /// Creates a new HTTP status coded based on a code and name
+        /// Creates a new HTTP status coded based on a code, name and an optional description.
         /// </summary>
-        /// <param name="myCode">The code of the HTTP status code</param>
-        /// <param name="myName">The name of the HTTP status code</param>
-        public HTTPStatusCode(UInt32 myCode, String myName)
+        /// <param name="Code">The code of the HTTP status code</param>
+        /// <param name="Name">The name of the HTTP status code</param>
+        /// <param name="Description">An optional description of the HTTP status code</param>
+        public HTTPStatusCode(UInt32 Code, String Name, String Description = null)
         {
-            _Code        = myCode;
-            _Name        = myName;
-            _Description = null;
-        }
-
-        #endregion
-
-        #region HTTPStatusCode(myCode, myName, myDescription)
-
-        /// <summary>
-        /// Creates a new HTTP status coded based on a code, name and a description
-        /// </summary>
-        /// <param name="myCode">The code of the HTTP status code</param>
-        /// <param name="myName">The name of the HTTP status code</param>
-        /// <param name="myDescription">A description of the HTTP status code</param>
-        public HTTPStatusCode(UInt32 myCode, String myName, String myDescription)
-        {
-            _Code        = myCode;
-            _Name        = myName;
-            _Description = myDescription;
+            this.Code        = Code;
+            this.Name        = Name;
+            this.Description = Description;
         }
 
         #endregion

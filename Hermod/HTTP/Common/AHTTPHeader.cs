@@ -61,7 +61,7 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #region General header fields
 
-        #region CacheControl
+        #region Cache-Control
 
         public String CacheControl
         {
@@ -85,7 +85,7 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #endregion
 
-        #region ContentEncoding
+        #region Content-Encoding
 
         public Encoding ContentEncoding
         {
@@ -97,9 +97,9 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #endregion
 
-        #region ContentLanguage
+        #region Content-Language
 
-        public new List<String> ContentLanguage
+        public List<String> ContentLanguage
         {
             get
             {
@@ -109,7 +109,7 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #endregion
 
-        #region ContentLength
+        #region Content-Length
 
         public UInt64? ContentLength
         {
@@ -121,7 +121,7 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #endregion
 
-        #region ContentLocation
+        #region Content-Location
 
         public String ContentLocation
         {
@@ -133,7 +133,7 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #endregion
 
-        #region ContentMD5
+        #region Content-MD5
 
         public String ContentMD5
         {
@@ -145,7 +145,7 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #endregion
 
-        #region ContentRange
+        #region Content-Range
 
         public String ContentRange
         {
@@ -157,13 +157,24 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #endregion
 
-        #region ContentType
+        #region Content-Type
 
         public HTTPContentType ContentType
         {
             get
             {
-                return GetHeaderField<HTTPContentType>("Content-Type");
+             //   return GetHeaderField<HTTPContentType>("Content-Type");
+
+                var _ContentType = GetHeaderField<HTTPContentType>("Content-Type");
+                if (_ContentType != null)
+                    return _ContentType;
+
+                _ContentType = new HTTPContentType(GetHeaderField<String>("Content-Type"));
+
+                SetHeaderField("Content-Type", _ContentType);
+
+                return _ContentType;
+
             }
         }
 

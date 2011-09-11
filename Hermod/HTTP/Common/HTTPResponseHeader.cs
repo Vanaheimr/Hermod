@@ -850,6 +850,20 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #endregion
 
+        #region SetDate(DateTime)
+
+        /// <summary>
+        /// Set the HTTP Date.
+        /// </summary>
+        /// <param name="DateTime">DateTime.</param>
+        public HTTPResponseHeader_RW SetVia(DateTime DateTime)
+        {
+            this.Date = DateTime.ToString();
+            return this;
+        }
+
+        #endregion
+
         #region SetVia(Via)
 
         /// <summary>

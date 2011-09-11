@@ -28,7 +28,7 @@ namespace de.ahzf.Hermod.HTTP.Common
     /// <summary>
     /// A HTTP version identifier.
     /// </summary>
-    public class HTTPVersion : IComparable, IComparable<HTTPVersion>, IEquatable<HTTPVersion>
+    public class HTTPVersion : IEquatable<HTTPVersion>, IComparable<HTTPVersion>, IComparable
     {
 
         #region Properties
@@ -52,7 +52,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         /// <summary>
         /// Create a new HTTP version identifier.
         /// </summary>
-        /// <param name="Major">The majro number.</param>
+        /// <param name="Major">The major number.</param>
         /// <param name="Minor">The minor number.</param>
         public HTTPVersion(UInt16 Major, UInt16 Minor)
         {
@@ -70,12 +70,12 @@ namespace de.ahzf.Hermod.HTTP.Common
         /// <summary>
         /// HTTP 1.0
         /// </summary>
-        public static readonly HTTPVersion HTTPVersion10 = new HTTPVersion(1, 0);
+        public static readonly HTTPVersion HTTP_1_0 = new HTTPVersion(1, 0);
 
         /// <summary>
         /// HTTP 1.1
         /// </summary>
-        public static readonly HTTPVersion HTTPVersion11 = new HTTPVersion(1, 1);
+        public static readonly HTTPVersion HTTP_1_1 = new HTTPVersion(1, 1);
 
         #endregion
 
@@ -302,7 +302,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         public Boolean Equals(HTTPVersion HTTPVersion)
         {
 
-            if (HTTPVersion == null)
+            if ((Object) HTTPVersion == null)
                 return false;
 
             if (Major != HTTPVersion.Major)
@@ -327,7 +327,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
         {
-            return Major + Minor;
+            return (Major.ToString() + Minor.ToString()).GetHashCode();
         }
 
         #endregion

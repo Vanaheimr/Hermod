@@ -333,6 +333,15 @@ namespace de.ahzf.Hermod
 
         #endregion
 
+
+        public static String DoubleNewLine
+        {
+            get
+            {
+                return Environment.NewLine + Environment.NewLine;
+            }
+        }
+
     }
 
 }

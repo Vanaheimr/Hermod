@@ -18,19 +18,16 @@
 #region Usings
 
 using System;
-using System.Linq;
-using System.Net;
-
-using de.ahzf.Hermod.Sockets.TCP;
-using de.ahzf.Hermod.Datastructures;
-using de.ahzf.Hermod.HTTP.Common;
-using System.Net.Sockets;
 using System.IO;
-using System.Threading;
+using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Diagnostics;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.Collections.Generic;
-using System.Diagnostics;
+
+using de.ahzf.Hermod.HTTP.Common;
 
 #endregion
 
@@ -301,9 +298,15 @@ namespace de.ahzf.Hermod.HTTP
         /// <param name="Quality"></param>
         public HTTPRequest Accept(HTTPContentType HTTPContentType, Double Quality = 1)
         {
+
+            if (this.HTTPRequestHeader.Accept == null)
+                this.HTTPRequestHeader.Accept = new List<AcceptType>();
+
             this.HTTPRequestHeader.Accept.Clear();
             this.HTTPRequestHeader.Accept.Add(new AcceptType(HTTPContentType, Quality));
+            
             return this;
+
         }
 
         #endregion
@@ -317,8 +320,14 @@ namespace de.ahzf.Hermod.HTTP
         /// <param name="Quality"></param>
         public HTTPRequest AddAccept(HTTPContentType HTTPContentType, Double Quality = 1)
         {
+            
+            if (this.HTTPRequestHeader.Accept == null)
+                this.HTTPRequestHeader.Accept = new List<AcceptType>();
+
             this.HTTPRequestHeader.Accept.Add(new AcceptType(HTTPContentType, Quality));
+            
             return this;
+
         }
 
         #endregion
