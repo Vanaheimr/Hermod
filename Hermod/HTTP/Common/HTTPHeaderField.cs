@@ -97,8 +97,10 @@ namespace de.ahzf.Hermod.HTTP.Common
     /// <summary>
     /// Defines a field within the HTTP header.
     /// </summary>
+    /// <seealso cref="http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html"/>
     /// <seealso cref="http://restpatterns.org"/>
     /// <seealso cref="http://en.wikipedia.org/wiki/List_of_HTTP_header_fields"/>
+    /// <seealso cref="http://www.and.org/texts/server-http"/>
     public class HTTPHeaderField : IEquatable<HTTPHeaderField>, IComparable<HTTPHeaderField>, IComparable
     {
 
@@ -2109,6 +2111,20 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #endregion
 
+        #region Cookie
+
+        /// <summary>
+        /// Send a HTTP cookie.
+        /// </summary>
+        /// <example>Cookie: UserID=JohnDoe; Max-Age=3600; Version=1</example>
+        /// <seealso cref="http://en.wikipedia.org/wiki/HTTP_cookie"/>
+        public static readonly HTTPHeaderField Cookie = new HTTPHeaderField("Cookie",
+                                                                            typeof(String),
+                                                                            HeaderFieldType.Request,
+                                                                            RequestPathSemantic.EndToEnd);
+
+        #endregion
+
         #endregion
 
         #region Response header fields
@@ -2516,6 +2532,36 @@ namespace de.ahzf.Hermod.HTTP.Common
                                                                                      typeof(String),
                                                                                      HeaderFieldType.Response,
                                                                                      RequestPathSemantic.EndToEnd);
+
+        #endregion
+
+        #region Refresh
+
+        /// <summary>
+        /// Used in redirection, or when a new resource has been created. This
+        /// refresh redirects after 5 seconds. This is a proprietary, non-standard
+        /// header extension introduced by Netscape and supported by most web browsers.
+        /// </summary>
+        /// <example>Refresh: 5; url=http://www.w3.org/pub/WWW/People.html </example>
+        /// <seealso cref="http://en.wikipedia.org/wiki/List_of_HTTP_header_fields"/>
+        public static readonly HTTPHeaderField Refresh = new HTTPHeaderField("Refresh",
+                                                                             typeof(String),
+                                                                             HeaderFieldType.Response,
+                                                                             RequestPathSemantic.EndToEnd);
+
+        #endregion
+
+        #region Set-Cookie
+
+        /// <summary>
+        /// Set a HTTP cookie.
+        /// </summary>
+        /// <example>Set-Cookie: UserID=JohnDoe; Max-Age=3600; Version=1</example>
+        /// <seealso cref="http://en.wikipedia.org/wiki/HTTP_cookie"/>
+        public static readonly HTTPHeaderField SetCookie = new HTTPHeaderField("Set-Cookie",
+                                                                               typeof(String),
+                                                                               HeaderFieldType.Response,
+                                                                               RequestPathSemantic.EndToEnd);
 
         #endregion
 
