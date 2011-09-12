@@ -19,8 +19,6 @@
 
 using System;
 
-using de.ahzf.Hermod.HTTP.Common;
-
 #endregion
 
 namespace de.ahzf.Hermod.HTTP

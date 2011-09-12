@@ -20,8 +20,6 @@
 using System;
 using System.Collections.Generic;
 
-using de.ahzf.Hermod.HTTP.Common;
-
 #endregion
 
 namespace de.ahzf.Hermod.HTTP
@@ -81,7 +79,7 @@ namespace de.ahzf.Hermod.HTTP
         public HTTPErrorAttribute(HTTPMethods HTTPMethod, String UriTemplate, HTTPStatusCode myHTTPStatusCode)
         {
             
-            this.HTTPMethod     = de.ahzf.Hermod.HTTP.Common.HTTPMethod.ParseEnum(HTTPMethod);
+            this.HTTPMethod     = de.ahzf.Hermod.HTTP.HTTPMethod.ParseEnum(HTTPMethod);
 
             if (this.HTTPMethod == null)
                 throw new ArgumentNullException("Invalid HTTPMethod!");

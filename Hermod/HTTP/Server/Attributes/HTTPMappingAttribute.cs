@@ -18,7 +18,6 @@
 #region Usings
 
 using System;
-using de.ahzf.Hermod.HTTP.Common;
 
 #endregion
 
@@ -73,7 +72,7 @@ namespace de.ahzf.Hermod.HTTP
         public HTTPMappingAttribute(HTTPMethods HTTPMethod, String UriTemplate)
         {
             
-            this.HTTPMethod  = de.ahzf.Hermod.HTTP.Common.HTTPMethod.ParseEnum(HTTPMethod);
+            this.HTTPMethod  = de.ahzf.Hermod.HTTP.HTTPMethod.ParseEnum(HTTPMethod);
 
             if (this.HTTPMethod == null)
                 throw new ArgumentNullException("Invalid HTTPMethod!");

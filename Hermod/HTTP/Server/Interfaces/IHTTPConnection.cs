@@ -22,7 +22,6 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 
-using de.ahzf.Hermod.HTTP.Common;
 using de.ahzf.Hermod.Sockets.TCP;
 
 #endregion

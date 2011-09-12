@@ -27,7 +27,6 @@ using System.Collections.Generic;
 
 using de.ahzf.Hermod;
 using de.ahzf.Hermod.HTTP;
-using de.ahzf.Hermod.HTTP.Common;
 using System.Threading;
 
 #endregion
@@ -95,7 +94,7 @@ namespace de.ahzf.Hermod.HTTP
 
                 Encoding.UTF8.GetBytes("Incoming http connection from '" + IHTTPConnection.RemoteSocket + "'" +
                                         Environment.NewLine + Environment.NewLine +
-                                        IHTTPConnection.RequestHeader.RAWHTTPHeader +
+                                        IHTTPConnection.RequestHeader.RawHTTPHeader +
                                         Environment.NewLine + Environment.NewLine +
                                         "Method => " + IHTTPConnection.RequestHeader.HTTPMethod + Environment.NewLine +
                                         "URL => " + IHTTPConnection.RequestHeader.Url + Environment.NewLine +

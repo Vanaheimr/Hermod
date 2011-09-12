@@ -23,7 +23,7 @@ using System.Collections.Generic;
 
 #endregion
 
-namespace de.ahzf.Hermod.HTTP.Common
+namespace de.ahzf.Hermod.HTTP
 {
 
     #region HTTPResponseHeader
@@ -42,7 +42,7 @@ namespace de.ahzf.Hermod.HTTP.Common
         {
             get
             {
-                var _RAWHTTPHeader = HTTPStatusCode.SimpleString + Environment.NewLine + RAWHTTPHeader + Environment.NewLine + Environment.NewLine;
+                var _RAWHTTPHeader = HTTPStatusCode.SimpleString + Environment.NewLine + RawHTTPHeader + Environment.NewLine + Environment.NewLine;
                 return _RAWHTTPHeader;
             }
         }

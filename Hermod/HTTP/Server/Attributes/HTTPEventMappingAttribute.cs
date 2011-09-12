@@ -18,7 +18,6 @@
 #region Usings
 
 using System;
-using de.ahzf.Hermod.HTTP.Common;
 
 #endregion
 

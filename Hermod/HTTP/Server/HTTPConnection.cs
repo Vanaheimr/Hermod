@@ -18,19 +18,18 @@
 #region Usings
 
 using System;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Reflection;
 using System.Diagnostics;
 using System.Net.Sockets;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens;
 
-using de.ahzf.Hermod.Sockets.TCP;
-using de.ahzf.Hermod.HTTP.Common;
-using System.Reflection;
-using System.IO;
 using de.ahzf.Hermod.Tools;
+using de.ahzf.Hermod.Sockets.TCP;
 
 #endregion
 
@@ -252,8 +251,9 @@ namespace de.ahzf.Hermod.HTTP
                     #region Get and check callback...
 
                     var _ParsedCallback = URLMapping.GetHandler(RequestHeader.Host,
-                                                                RequestHeader.RawUrl,
-                                                                RequestHeader.HTTPMethod, _ContentType);
+                                                                RequestHeader.Url,
+                                                                RequestHeader.HTTPMethod,
+                                                                _ContentType);
 
                     if (_ParsedCallback == null || _ParsedCallback.Item1 == null)// || _ParsedCallback.Item1.MethodCallback == null)
                     {
@@ -261,7 +261,7 @@ namespace de.ahzf.Hermod.HTTP
                         SendErrorpage(HTTPStatusCode.InternalServerError,
                                       RequestHeader,
                                       RequestBody,
-                                      ErrorReason: "Could not find a valid handler for URL: " + RequestHeader.RawUrl);
+                                      ErrorReason: "Could not find a valid handler for URL: " + RequestHeader.Url);
 
                         return;
 
@@ -367,7 +367,7 @@ namespace de.ahzf.Hermod.HTTP
                                 SendErrorpage(HTTPStatusCode.InternalServerError,
                                               RequestHeader,
                                               RequestBody,
-                                              ErrorReason: "Could not invoke method for URL: " + RequestHeader.RawUrl);
+                                              ErrorReason: "Could not invoke method for URL: " + RequestHeader.Url);
 
                                 return;
 
@@ -540,7 +540,7 @@ namespace de.ahzf.Hermod.HTTP
             #region Send a customized errorpage...
 
             var __ErrorHandler = URLMapping.GetErrorHandler("*",
-                                                            RequestHeader.RawUrl,
+                                                            RequestHeader.Url,
                                                             RequestHeader.HTTPMethod,
                                                             null,
                                                             ResponseHeader.HTTPStatusCode);
@@ -563,7 +563,7 @@ namespace de.ahzf.Hermod.HTTP
                     SendErrorpage(HTTPStatusCode.InternalServerError,
                                   RequestHeader,
                                   RequestBody,
-                                  ErrorReason: "Could not invoke errorpage for URL: " + RequestHeader.RawUrl);
+                                  ErrorReason: "Could not invoke errorpage for URL: " + RequestHeader.Url);
 
                 }
 
@@ -597,7 +597,7 @@ namespace de.ahzf.Hermod.HTTP
 
                 _StringBuilder.AppendLine("    <h3>Raw request header:</h3>");
                 _StringBuilder.AppendLine("    <pre>");
-                _StringBuilder.AppendLine(RequestHeader.RAWHTTPHeader);
+                _StringBuilder.AppendLine(RequestHeader.RawHTTPHeader);
                 _StringBuilder.AppendLine("    </pre>");
 
                 if (LastException != null)

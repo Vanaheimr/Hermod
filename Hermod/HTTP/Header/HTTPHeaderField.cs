@@ -22,7 +22,7 @@ using de.ahzf.Hermod;
 
 #endregion
 
-namespace de.ahzf.Hermod.HTTP.Common
+namespace de.ahzf.Hermod.HTTP
 {
 
     #region (enum)  HeaderFieldType
@@ -1771,9 +1771,10 @@ namespace de.ahzf.Hermod.HTTP.Common
         /// <example>Max-Forwards: 10</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
         public static readonly HTTPHeaderField MaxForwards = new HTTPHeaderField("Max-Forwards",
-                                                                                 typeof(String),
+                                                                                 typeof(UInt64?),
                                                                                  HeaderFieldType.Request,
-                                                                                 RequestPathSemantic.EndToEnd);
+                                                                                 RequestPathSemantic.EndToEnd,
+                                                                                 StringParsers.NullableUInt64);
 
         #endregion
 

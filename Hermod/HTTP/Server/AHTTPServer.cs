@@ -23,7 +23,6 @@ using System.Reflection;
 using System.Collections.Generic;
 
 using de.ahzf.Hermod.Tools;
-using de.ahzf.Hermod.HTTP.Common;
 
 #endregion
 

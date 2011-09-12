@@ -22,7 +22,7 @@ using System.Globalization;
 
 #endregion
 
-namespace de.ahzf.Hermod.HTTP.Common
+namespace de.ahzf.Hermod.HTTP
 {
 
     /// <summary>

@@ -24,7 +24,7 @@ using System.Collections.Generic;
 
 #endregion
 
-namespace de.ahzf.Hermod.HTTP.Common
+namespace de.ahzf.Hermod.HTTP
 {
 
     /// <summary>
@@ -50,12 +50,58 @@ namespace de.ahzf.Hermod.HTTP.Common
 
         #region Properties
 
+        #region Non-HTTP header fields
+
+        #region RawHTTPHeader
+
+        /// <summary>
+        /// Return a string representation of this HTTPHeader.
+        /// </summary>
+        public String RawHTTPHeader
+        {
+            get
+            {
+
+                if (HeaderFields.Count > 0)
+                    return (from   _KeyValuePair in HeaderFields
+                            where  _KeyValuePair.Key   != null
+                            where  _KeyValuePair.Value != null
+                            select _KeyValuePair.Key + ": " + _KeyValuePair.Value).
+                            Aggregate((a, b) => a + Environment.NewLine + b);
+
+                return null;
+
+            }
+        }
+
+        #endregion
+
         #region HTTPStatusCode
 
         /// <summary>
         /// The HTTP status code.
         /// </summary>
         public HTTPStatusCode HTTPStatusCode { get; protected set; }
+
+        #endregion
+
+        #region ProtocolName
+
+        /// <summary>
+        /// The http protocol name field.
+        /// </summary>
+        public String  ProtocolName    { get; protected set; }
+
+        #endregion
+
+        #region ProtocolVersion
+
+        /// <summary>
+        /// The http protocol version.
+        /// </summary>
+        public Version ProtocolVersion { get; protected set; }
+
+        #endregion
 
         #endregion
 
@@ -203,30 +249,6 @@ namespace de.ahzf.Hermod.HTTP.Common
         }
 
         #endregion
-
-        #endregion
-
-        #region RAWHTTPHeader
-
-        /// <summary>
-        /// Return a string representation of this HTTPHeader.
-        /// </summary>
-        public String RAWHTTPHeader
-        {
-            get
-            {
-                
-                if (HeaderFields.Count > 0)
-                    return (from   _KeyValuePair in HeaderFields
-                            where  _KeyValuePair.Key   != null
-                            where  _KeyValuePair.Value != null
-                            select _KeyValuePair.Key + ": " + _KeyValuePair.Value).
-                            Aggregate((a, b) => a + Environment.NewLine + b);
-
-                return null;
-
-            }
-        }
 
         #endregion
 

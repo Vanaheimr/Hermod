@@ -19,12 +19,11 @@
 
 using System;
 using System.Linq;
+using System.Threading;
 
 using de.ahzf.Hermod.HTTP;
 using de.ahzf.Hermod.Sockets.TCP;
 using de.ahzf.Hermod.Datastructures;
-using System.Threading;
-using de.ahzf.Hermod.HTTP.Common;
 
 #endregion
 
