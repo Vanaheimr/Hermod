@@ -18,6 +18,7 @@
 #region Usings
 
 using System;
+using System.IO;
 using System.Text;
 using System.Collections.Generic;
 
@@ -33,6 +34,8 @@ namespace de.ahzf.Hermod.HTTP
     {
 
         #region Properties
+
+        #region Non-http header fields
 
         #region HTTPStatusCode
 
@@ -50,6 +53,52 @@ namespace de.ahzf.Hermod.HTTP
             }
 
         }
+
+        #endregion
+
+        #region Content
+
+        /// <summary>
+        /// The HTTP body/content as an array of bytes.
+        /// </summary>
+        public new Byte[] Content
+        {
+
+            get
+            {
+                return base.Content;
+            }
+
+            set
+            {
+                base.Content = value;
+            }
+
+        }
+
+        #endregion
+
+        #region ContentStream
+
+        /// <summary>
+        /// The HTTP body/content as a stream.
+        /// </summary>
+        public new Stream ContentStream
+        {
+
+            get
+            {
+                return base.ContentStream;
+            }
+
+            set
+            {
+                base.ContentStream = value;
+            }
+
+        }
+
+        #endregion
 
         #endregion
 
@@ -502,15 +551,24 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region HTTPResponseHeader_RW()
+        #region HTTPResponseBuilder()
 
+        /// <summary>
+        /// Create a new HTTP response.
+        /// </summary>
         public HTTPResponseBuilder()
-        { }
+        {
+            this.HTTPStatusCode  = HTTPStatusCode.OK;
+            this.ProtocolName    = "HTTP";
+            this.ProtocolVersion = new Version(1, 1);
+        }
 
         #endregion
 
         #endregion
 
+
+        #region Set non-http header fields
 
         #region SetHTTPStatusCode(HTTPStatusCode)
 
@@ -526,7 +584,55 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
-        #region Set General header fields
+        #region SetContent(...)
+
+        #region SetContent(ByteArray)
+
+        /// <summary>
+        /// The HTTP content/body.
+        /// </summary>
+        /// <param name="ByteArray">The HTTP content/body.</param>
+        public HTTPResponseBuilder SetContent(Byte[] ByteArray)
+        {
+            this.Content = ByteArray;
+            return this;
+        }
+
+        #endregion
+
+        #region SetContent(String)
+
+        /// <summary>
+        /// The HTTP content/body.
+        /// </summary>
+        /// <param name="String">The HTTP content/body.</param>
+        public HTTPResponseBuilder SetContent(String String)
+        {
+            this.Content = String.ToUTF8Bytes();
+            return this;
+        }
+
+        #endregion
+
+        #endregion
+
+        #region SetContentStream(ContentStream)
+
+        /// <summary>
+        /// The HTTP content/body as a stream.
+        /// </summary>
+        /// <param name="Stream">The HTTP content/body as a stream.</param>
+        public HTTPResponseBuilder SetContent(Stream ContentStream)
+        {
+            this.ContentStream = ContentStream;
+            return this;
+        }
+
+        #endregion
+
+        #endregion
+
+        #region Set general header fields
 
         #region SetCacheControl(CacheControl)
 

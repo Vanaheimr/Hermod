@@ -18,10 +18,9 @@
 #region Usings
 
 using System;
-using System.Web;
-using System.Linq;
-using System.Collections.Generic;
+using System.IO;
 using System.Text;
+using System.Collections.Generic;
 
 #endregion
 
@@ -37,6 +36,25 @@ namespace de.ahzf.Hermod.HTTP
         #region Properties
 
         #region Non-http header fields
+
+        #region HTTPStatusCode
+
+        public new HTTPStatusCode HTTPStatusCode
+        {
+
+            get
+            {
+                return base.HTTPStatusCode;
+            }
+
+            set
+            {
+                base.HTTPStatusCode = value;
+            }
+
+        }
+
+        #endregion
 
         #region HTTPMethod
 
@@ -129,7 +147,7 @@ namespace de.ahzf.Hermod.HTTP
         #region Content
 
         /// <summary>
-        /// The http protocol version.
+        /// The HTTP body/content as an array of bytes.
         /// </summary>
         public new Byte[] Content
         {
@@ -142,6 +160,28 @@ namespace de.ahzf.Hermod.HTTP
             set
             {
                 base.Content = value;
+            }
+
+        }
+
+        #endregion
+
+        #region ContentStream
+
+        /// <summary>
+        /// The HTTP body/content as a stream.
+        /// </summary>
+        public new Stream ContentStream
+        {
+
+            get
+            {
+                return base.ContentStream;
+            }
+
+            set
+            {
+                base.ContentStream = value;
             }
 
         }
@@ -230,7 +270,20 @@ namespace de.ahzf.Hermod.HTTP
 
         #region ContentLength
 
-        // This header field value is controlled by the library!
+        public new UInt64? ContentLength
+        {
+
+            get
+            {
+                return base.ContentLength;
+            }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.ContentLength, value);
+            }
+
+        }
 
         #endregion
 
@@ -900,11 +953,11 @@ namespace de.ahzf.Hermod.HTTP
         #region HTTPRequestBuilder()
 
         /// <summary>
-        /// Create a new http request.
+        /// Create a new HTTP request.
         /// </summary>
         public HTTPRequestBuilder()
-            : base()
         {
+            this.HTTPStatusCode  = HTTPStatusCode.OK;
             this.HTTPMethod      = HTTPMethod.GET;
             this.Url             = "/";
             this.ProtocolName    = "HTTP";
@@ -915,7 +968,22 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
-        #region Set Non-http header fields
+
+        #region Set non-http header fields
+
+        #region SetHTTPStatusCode(HTTPStatusCode)
+
+        /// <summary>
+        /// Set the HTTP status code.
+        /// </summary>
+        /// <param name="HTTPStatusCode">A HTTP status code.</param>
+        public HTTPRequestBuilder SetHTTPStatusCode(HTTPStatusCode HTTPStatusCode)
+        {
+            this.HTTPStatusCode = HTTPStatusCode;
+            return this;
+        }
+
+        #endregion
 
         #region SetHTTPMethod(HTTPMethod)
 
@@ -991,9 +1059,23 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
+        #region SetContentStream(ContentStream)
+
+        /// <summary>
+        /// The HTTP content/body as a stream.
+        /// </summary>
+        /// <param name="Stream">The HTTP content/body as a stream.</param>
+        public HTTPRequestBuilder SetContent(Stream ContentStream)
+        {
+            this.ContentStream = ContentStream;
+            return this;
+        }
+
         #endregion
 
-        #region Set General header fields
+        #endregion
+
+        #region Set general header fields
 
         #region SetCacheControl(CacheControl)
 
@@ -1053,7 +1135,15 @@ namespace de.ahzf.Hermod.HTTP
 
         #region SetContentLength(ContentLength)
 
-        // This header field value is controlled by the library!
+        /// <summary>
+        /// Set the HTTP Content-Length.
+        /// </summary>
+        /// <param name="ContentLength">The length of the HTTP content/body.</param>
+        public HTTPRequestBuilder SetContentLength(UInt64? ContentLength)
+        {
+            this.ContentLength = ContentLength;
+            return this;
+        }
 
         #endregion
 
@@ -1143,7 +1233,7 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
-        #region Set Request header fields
+        #region Set request header fields
 
         #region SetAccept(AcceptTypes)
 

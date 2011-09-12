@@ -120,8 +120,8 @@ namespace de.ahzf.Hermod.Demo
                               UserAgent         = "Hermod µHTTP Client",
                               Content           = "This the HTTP content...".ToUTF8Bytes()
                           };
-            var QueryString = new QueryString("a=");
-            var s = _req23a.ToString();
+
+
             Console.ReadLine();
             Console.WriteLine("done!");
 

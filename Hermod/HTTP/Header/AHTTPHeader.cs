@@ -18,6 +18,7 @@
 #region Usings
 
 using System;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Collections.Generic;
@@ -106,9 +107,18 @@ namespace de.ahzf.Hermod.HTTP
         #region Content
 
         /// <summary>
-        /// The HTTP body/content.
+        /// The HTTP body/content as an array of bytes.
         /// </summary>
         public Byte[] Content { get; protected set; }
+
+        #endregion
+
+        #region ContentStream
+
+        /// <summary>
+        /// The HTTP body/content as a stream.
+        /// </summary>
+        public Stream ContentStream { get; protected set; }
 
         #endregion
 
