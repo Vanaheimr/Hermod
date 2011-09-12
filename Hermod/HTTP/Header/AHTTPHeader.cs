@@ -100,7 +100,7 @@ namespace de.ahzf.Hermod.HTTP
         /// <summary>
         /// The HTTP protocol version.
         /// </summary>
-        public Version ProtocolVersion { get; protected set; }
+        public HTTPVersion ProtocolVersion { get; protected set; }
 
         #endregion
 

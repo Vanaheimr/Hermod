@@ -534,7 +534,10 @@ namespace de.ahzf.Hermod.HTTP
 
             var _ProtocolArray  = _HTTPMethodHeader[2].Split(_SlashSeperator, 2, StringSplitOptions.RemoveEmptyEntries);
             ProtocolName        = _ProtocolArray[0].ToUpper();
-            ProtocolVersion     = new Version(_ProtocolArray[1]);
+
+            HTTPVersion _HTTPVersion = null;
+            if (HTTPVersion.TryParseVersionString(_ProtocolArray[1], out _HTTPVersion))
+                ProtocolVersion = _HTTPVersion;
 
             #endregion
 

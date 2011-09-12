@@ -55,7 +55,7 @@
     <Compile Include="HTTP\Header\Request\QueryString.cs" />
     <Compile Include="HTTP\HTTPResponseBuilder.cs" />
     <Compile Include="HTTP\HTTPRequestBuilder.cs" />
-    <Compile Include="HTTP\Header\Response\HTTPResponseHeader.cs" />
+    <Compile Include="HTTP\HTTPResponseHeader.cs" />
     <Compile Include="HTTP\Server\Attributes\HTTPEventMappingAttribute.cs" />
     <Compile Include="HTTP\Server\AHTTPService.cs" />
     <Compile Include="HTTP\Server\Interfaces\IHTTPBaseService.cs" />
@@ -67,7 +67,7 @@
     <Compile Include="HTTP\Header\Request\HTTPBasicAuthentication.cs" />
     <Compile Include="HTTP\Header\General\HTTPContentType.cs" />
     <Compile Include="HTTP\Header\Request\HTTPMethod.cs" />
-    <Compile Include="HTTP\Header\Request\HTTPRequestHeader.cs" />
+    <Compile Include="HTTP\HTTPRequestHeader.cs" />
     <Compile Include="HTTP\Header\General\HTTPStatusCode.cs" />
     <Compile Include="HTTP\Header\General\HTTPVersion.cs" />
     <Compile Include="ExtentionMethods\Extensions.cs" />
@@ -121,7 +121,9 @@
     <Compile Include="Tools\AutoDiscovery.cs" />
     <Compile Include="Tools\AutoDiscoveryException.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="HTTP\Header\Response\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

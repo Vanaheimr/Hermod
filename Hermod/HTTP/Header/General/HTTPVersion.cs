@@ -93,10 +93,7 @@ namespace de.ahzf.Hermod.HTTP
 
             HTTPVersion = null;
 
-            if (!VersionString.StartsWith("HTTP/"))
-                return false;
-
-            var _MajorMinor = VersionString.Substring(5).Split(new Char[] { '.' }, StringSplitOptions.RemoveEmptyEntries);
+            var _MajorMinor = VersionString.Split(new Char[] { '.' }, StringSplitOptions.RemoveEmptyEntries);
 
             if (_MajorMinor.Length != 2)
                 return false;
@@ -339,7 +336,7 @@ namespace de.ahzf.Hermod.HTTP
         /// </summary>
         public override String ToString()
         {
-            return String.Format("HTTP/{0}.{1}", Major, Minor);
+            return String.Format("{0}.{1}", Major, Minor);
         }
 
         #endregion

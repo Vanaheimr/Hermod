@@ -127,7 +127,7 @@ namespace de.ahzf.Hermod.HTTP
         /// <summary>
         /// The http protocol version.
         /// </summary>
-        public new Version ProtocolVersion
+        public new HTTPVersion ProtocolVersion
         {
 
             get
@@ -961,7 +961,7 @@ namespace de.ahzf.Hermod.HTTP
             this.HTTPMethod      = HTTPMethod.GET;
             this.Url             = "/";
             this.ProtocolName    = "HTTP";
-            this.ProtocolVersion = new Version(1, 1);
+            this.ProtocolVersion = new HTTPVersion(1, 1);
         }
 
         #endregion
@@ -1019,7 +1019,7 @@ namespace de.ahzf.Hermod.HTTP
         /// Set the protocol version.
         /// </summary>
         /// <param name="ProtocolVersion">The protocol version.</param>
-        public HTTPRequestBuilder SetProtocolVersion(Version ProtocolVersion)
+        public HTTPRequestBuilder SetProtocolVersion(HTTPVersion ProtocolVersion)
         {
             this.ProtocolVersion = ProtocolVersion;
             return this;

@@ -560,7 +560,7 @@ namespace de.ahzf.Hermod.HTTP
         {
             this.HTTPStatusCode  = HTTPStatusCode.OK;
             this.ProtocolName    = "HTTP";
-            this.ProtocolVersion = new Version(1, 1);
+            this.ProtocolVersion = new HTTPVersion(1, 1);
         }
 
         #endregion

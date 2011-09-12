@@ -103,7 +103,7 @@ namespace de.ahzf.Hermod.Demo
             var _req23a = new HTTPRequestBuilder().
                               SetHTTPMethod      (HTTPMethod.GET).
                               SetProtocolName    ("µHTTP").
-                              SetProtocolVersion (new Version(2, 0)).
+                              SetProtocolVersion (new HTTPVersion(2, 0)).
                               SetHost            ("localhorst").
                               SetUserAgent       ("Hermod µHTTP Client").
                               SetContent         ("This the HTTP content...");
@@ -115,7 +115,7 @@ namespace de.ahzf.Hermod.Demo
             var _req23b = new HTTPRequestBuilder() {
                               HTTPMethod        = HTTPMethod.GET,
                               ProtocolName      = "µHTTP",
-                              ProtocolVersion   = new Version(2, 0),
+                              ProtocolVersion   = new HTTPVersion(2, 0),
                               Host              = "localhorst",
                               UserAgent         = "Hermod µHTTP Client",
                               Content           = "This the HTTP content...".ToUTF8Bytes()
