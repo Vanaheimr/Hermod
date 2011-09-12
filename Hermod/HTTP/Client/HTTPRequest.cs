@@ -46,7 +46,7 @@ namespace de.ahzf.Hermod.HTTP
         public HTTPClient           HTTPClient        { get; private set; }
 
 
-        public HTTPRequestHeader_RW HTTPRequestHeader { get; private set; }
+        public HTTPRequestBuilder HTTPRequestHeader { get; private set; }
 
 
         public Byte[]               ResponseBody      { get; protected set; }
@@ -101,7 +101,7 @@ namespace de.ahzf.Hermod.HTTP
             #endregion
 
             this.HTTPClient                   = HTTPClient;
-            this.HTTPRequestHeader            = new HTTPRequestHeader_RW();
+            this.HTTPRequestHeader            = new HTTPRequestBuilder();
             this.HTTPRequestHeader.HTTPMethod = (HTTPMethod == null) ? HTTPMethod.GET : HTTPMethod;
             this.URLPattern                   = URLPattern;
 

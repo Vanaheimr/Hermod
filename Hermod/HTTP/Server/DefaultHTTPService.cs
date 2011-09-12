@@ -146,7 +146,7 @@ namespace de.ahzf.Hermod.HTTP
 
             return new HTTPResponse(
 
-                new HTTPResponseHeader_RW()
+                new HTTPResponseBuilder()
                 {
                     HTTPStatusCode = HTTPStatusCode.OK,
                     CacheControl   = "no-cache",
@@ -173,7 +173,7 @@ namespace de.ahzf.Hermod.HTTP
 
             return new HTTPResponse(
 
-                new HTTPResponseHeader_RW()
+                new HTTPResponseBuilder()
                 {
                     HTTPStatusCode = HTTPStatusCode.OK,
                     CacheControl   = "no-cache",

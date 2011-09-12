@@ -88,7 +88,7 @@ namespace de.ahzf.Hermod.HTTP
         #region ProtocolName
 
         /// <summary>
-        /// The http protocol name field.
+        /// The HTTP protocol name field.
         /// </summary>
         public String  ProtocolName    { get; protected set; }
 
@@ -97,9 +97,18 @@ namespace de.ahzf.Hermod.HTTP
         #region ProtocolVersion
 
         /// <summary>
-        /// The http protocol version.
+        /// The HTTP protocol version.
         /// </summary>
         public Version ProtocolVersion { get; protected set; }
+
+        #endregion
+
+        #region Content
+
+        /// <summary>
+        /// The HTTP body/content.
+        /// </summary>
+        public Byte[] Content { get; protected set; }
 
         #endregion
 
@@ -215,11 +224,15 @@ namespace de.ahzf.Hermod.HTTP
                 if (_ContentType != null)
                     return _ContentType;
 
-                _ContentType = new HTTPContentType(GetHeaderField<String>("Content-Type"));
+                var _ContentTypeString = GetHeaderField<String>("Content-Type");
+                if (_ContentTypeString != null)
+                {
+                    _ContentType = new HTTPContentType(_ContentTypeString);
+                    SetHeaderField("Content-Type", _ContentType);
+                    return _ContentType;
+                }
 
-                SetHeaderField("Content-Type", _ContentType);
-
-                return _ContentType;
+                return null;
 
             }
         }

@@ -43,6 +43,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="QueryStringTests.cs" />
     <Compile Include="IPAddressFactoryTests.cs" />
     <Compile Include="IPv4AddressTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

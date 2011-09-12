@@ -83,7 +83,7 @@ namespace de.ahzf.Hermod.HTTP
 
         public Byte[]             RequestBody    { get; protected set; }
 
-        public HTTPResponseHeader_RW ResponseHeader { get; protected set; }
+        public HTTPResponseBuilder ResponseHeader { get; protected set; }
 
         public NetworkStream      ResponseStream { get; protected set; }
 
@@ -117,7 +117,7 @@ namespace de.ahzf.Hermod.HTTP
         public HTTPConnection(TcpClient myTCPClientConnection)
             : base(myTCPClientConnection)
         {
-            ResponseHeader = new HTTPResponseHeader_RW();
+            ResponseHeader = new HTTPResponseBuilder();
             ResponseStream = myTCPClientConnection.GetStream();
         }
 
@@ -392,7 +392,7 @@ namespace de.ahzf.Hermod.HTTP
 
                             WriteToResponseStream(new HTTPResponse(
                     
-                                new HTTPResponseHeader_RW()
+                                new HTTPResponseBuilder()
                                 {
                                     HTTPStatusCode = HTTPStatusCode.InternalServerError,
                                     CacheControl   = "no-cache",
@@ -446,7 +446,7 @@ namespace de.ahzf.Hermod.HTTP
 
         #region (private) WriteToResponseStream(myHTTPResponseHeader, myContent = null)
 
-        private void WriteToResponseStream(HTTPResponseHeader_RW myHTTPResponseHeader, Byte[] myContent = null)
+        private void WriteToResponseStream(HTTPResponseBuilder myHTTPResponseHeader, Byte[] myContent = null)
         {
 
             if (myContent != null)
@@ -491,9 +491,9 @@ namespace de.ahzf.Hermod.HTTP
 
         #region (private) GetAuthenticationRequiredHeader()
 
-        private HTTPResponseHeader_RW GetAuthenticationRequiredHeader()
+        private HTTPResponseBuilder GetAuthenticationRequiredHeader()
         {
-            return (new HTTPResponseHeader_RW()
+            return (new HTTPResponseBuilder()
             {
                 HTTPStatusCode = HTTPStatusCode.Unauthorized
             }).SetHTTPStatusCode(HTTPStatusCode.Unauthorized);

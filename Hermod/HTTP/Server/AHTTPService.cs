@@ -84,7 +84,7 @@ namespace de.ahzf.Hermod.HTTP
 
             return new HTTPResponse(
 
-                new HTTPResponseHeader_RW()
+                new HTTPResponseBuilder()
                 {
                     HTTPStatusCode = HTTPStatusCode.OK,
                     CacheControl   = "no-cache",
@@ -119,7 +119,7 @@ namespace de.ahzf.Hermod.HTTP
 
             return new HTTPResponse(
 
-                    new HTTPResponseHeader_RW()
+                    new HTTPResponseBuilder()
                     {
                         HTTPStatusCode = HTTPStatusCode.NotAcceptable,
                         ContentType    = HTTPContentType.TEXT_UTF8,
@@ -186,7 +186,7 @@ namespace de.ahzf.Hermod.HTTP
 
                 return new HTTPResponse(
 
-                    new HTTPResponseHeader_RW()
+                    new HTTPResponseBuilder()
                         {
                             HTTPStatusCode = HTTPStatusCode.OK,
                             ContentType    = _ResponseContentType,
@@ -217,7 +217,7 @@ namespace de.ahzf.Hermod.HTTP
 
                 return new HTTPResponse(
 
-                    new HTTPResponseHeader_RW()
+                    new HTTPResponseBuilder()
                         {
                             HTTPStatusCode = HTTPStatusCode.NotFound,
                             ContentType    = HTTPContentType.HTML_UTF8,

@@ -52,6 +52,9 @@
     <Compile Include="HTTP\Client\HTTPClient.cs" />
     <Compile Include="HTTP\Header\HTTPHeaderField.cs" />
     <Compile Include="HTTP\Header\AHTTPHeader.cs" />
+    <Compile Include="HTTP\Header\Request\QueryString.cs" />
+    <Compile Include="HTTP\HTTPResponseBuilder.cs" />
+    <Compile Include="HTTP\HTTPRequestBuilder.cs" />
     <Compile Include="HTTP\Header\Response\HTTPResponseHeader.cs" />
     <Compile Include="HTTP\Server\Attributes\HTTPEventMappingAttribute.cs" />
     <Compile Include="HTTP\Server\AHTTPService.cs" />
@@ -62,11 +65,11 @@
     <Compile Include="HTTP\Header\Request\AcceptType.cs" />
     <Compile Include="HTTP\Header\Request\HTTPAuthenticationTypes.cs" />
     <Compile Include="HTTP\Header\Request\HTTPBasicAuthentication.cs" />
-    <Compile Include="HTTP\Header\HTTPContentType.cs" />
+    <Compile Include="HTTP\Header\General\HTTPContentType.cs" />
     <Compile Include="HTTP\Header\Request\HTTPMethod.cs" />
     <Compile Include="HTTP\Header\Request\HTTPRequestHeader.cs" />
-    <Compile Include="HTTP\Header\HTTPStatusCode.cs" />
-    <Compile Include="HTTP\Header\HTTPVersion.cs" />
+    <Compile Include="HTTP\Header\General\HTTPStatusCode.cs" />
+    <Compile Include="HTTP\Header\General\HTTPVersion.cs" />
     <Compile Include="ExtentionMethods\Extensions.cs" />
     <Compile Include="HTTP\Server\Attributes\AuthenticationAttributes.cs" />
     <Compile Include="HTTP\Server\Attributes\HTTPServiceAttribute.cs" />

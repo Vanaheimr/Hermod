@@ -99,6 +99,29 @@ namespace de.ahzf.Hermod.Demo
                 ContinueWith(RequestTask => { RequestTask.Result.Accept(HTTPContentType.HTML_UTF8); return RequestTask.Result.Execute().Result; }).
                 ContinueWith(RequestTask => { Console.WriteLine("Response: " + Environment.NewLine + RequestTask.Result.ResponseBody.ToUTF8String()); });
 
+
+            var _req23a = new HTTPRequestBuilder().
+                              SetHTTPMethod      (HTTPMethod.GET).
+                              SetProtocolName    ("µHTTP").
+                              SetProtocolVersion (new Version(2, 0)).
+                              SetHost            ("localhorst").
+                              SetUserAgent       ("Hermod µHTTP Client").
+                              SetContent         ("This the HTTP content...");
+
+            _req23a.QueryString.Add("name",   "alice").
+                                Add("friend", "bob").
+                                Add("friend", "carol");
+
+            var _req23b = new HTTPRequestBuilder() {
+                              HTTPMethod        = HTTPMethod.GET,
+                              ProtocolName      = "µHTTP",
+                              ProtocolVersion   = new Version(2, 0),
+                              Host              = "localhorst",
+                              UserAgent         = "Hermod µHTTP Client",
+                              Content           = "This the HTTP content...".ToUTF8Bytes()
+                          };
+            var QueryString = new QueryString("a=");
+            var s = _req23a.ToString();
             Console.ReadLine();
             Console.WriteLine("done!");
 

@@ -63,33 +63,19 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
-        #region ClientTimeout
 
-        /// <summary>
-        /// Will set the ClientTimeout for all incoming client connections
-        /// </summary>
-        public UInt32 ClientTimeout { get; private set; }
+        #region UserAgent
 
-        #endregion
-
-        #region KeepAlive
-
-        public UInt32 KeepAlive { get; set; }
-
-        #endregion
-
-        #region DefaultClientName
-
-        private const String _DefaultClientName = "Hermod HTTP Client v0.1";
+        private const String _UserAgent = "Hermod HTTP Client v0.1";
 
         /// <summary>
         /// The default server name.
         /// </summary>
-        public virtual String DefaultClientName
+        public virtual String UserAgent
         {
             get
             {
-                return _DefaultClientName;
+                return _UserAgent;
             }
         }
 
@@ -130,22 +116,6 @@ namespace de.ahzf.Hermod.HTTP
         #endregion
                      
         #endregion
-
-
-        #region SetKeepAlive(KeepAlive)
-
-        /// <summary>
-        /// Set the keep-alive value.
-        /// </summary>
-        /// <param name="KeepAlive">A keep-alive value.</param>
-        public HTTPClient SetKeepAlive(UInt32 KeepAlive)
-        {
-            this.KeepAlive = KeepAlive;
-            return this;
-        }
-
-        #endregion
-
 
 
         #region CreateRequest(HTTPMethod, URLPattern = "/")
