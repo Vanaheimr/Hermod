@@ -37,7 +37,7 @@ namespace de.ahzf.Hermod.HTTP
         /// </summary>
         /// <returns>Some HTML and JavaScript</returns>
         [HTTPMapping(HTTPMethods.GET, "/"), NoAuthentication]
-        HTTPResponse GetRoot();
+        HTTPResponseBuilder GetRoot();
 
         #endregion
 
@@ -49,7 +49,7 @@ namespace de.ahzf.Hermod.HTTP
         /// <returns>internal resources</returns>
         [NoAuthentication]
         [HTTPMapping(HTTPMethods.GET, "/resources/{myResource}")]
-        HTTPResponse GetResources(String myResource);
+        HTTPResponseBuilder GetResources(String myResource);
 
         /// <summary>
         /// Get /favicon.ico
@@ -57,7 +57,7 @@ namespace de.ahzf.Hermod.HTTP
         /// <returns>Some HTML and JavaScript.</returns>
         [NoAuthentication]
         [HTTPMapping(HTTPMethods.GET, "/favicon.ico")]
-        HTTPResponse GetFavicon();
+        HTTPResponseBuilder GetFavicon();
 
         /// <summary>
         /// Get /robots.txt
@@ -65,7 +65,7 @@ namespace de.ahzf.Hermod.HTTP
         /// <returns>Some search engine info.</returns>
         [NoAuthentication]
         [HTTPMapping(HTTPMethods.GET, "/robots.txt")]
-        HTTPResponse GetRobotsTxt();
+        HTTPResponseBuilder GetRobotsTxt();
 
         /// <summary>
         /// Get /humans.txt
@@ -73,7 +73,7 @@ namespace de.ahzf.Hermod.HTTP
         /// <returns>Some search engine info.</returns>
         [NoAuthentication]
         [HTTPMapping(HTTPMethods.GET, "/humans.txt")]
-        HTTPResponse GetHumansTxt();
+        HTTPResponseBuilder GetHumansTxt();
 
         #endregion
 

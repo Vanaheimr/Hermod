@@ -77,7 +77,6 @@
     <Compile Include="HTTP\Server\Attributes\HTTPMappingAttribute.cs" />
     <Compile Include="HTTP\Server\AHTTPServer.cs" />
     <Compile Include="HTTP\Server\HTTPConnection.cs" />
-    <Compile Include="HTTP\Server\HTTPResponse.cs" />
     <Compile Include="HTTP\Server\HTTPServer.cs" />
     <Compile Include="HTTP\Server\Interfaces\IHTTPConnection.cs" />
     <Compile Include="HTTP\Server\Interfaces\IHTTPService.cs" />

@@ -37,20 +37,20 @@ namespace de.ahzf.Hermod.Demo
         /// </summary>
         /// <returns>Some plain text.</returns>
         [HTTPMapping(HTTPMethods.GET, "/raw")]
-        HTTPResponse GetRAWRequestHeader();
+        HTTPResponseBuilder GetRAWRequestHeader();
 
         #endregion
 
         #region /HelloWorld
 
         [HTTPMapping(HTTPMethods.OPTIONS, "/HelloWorld")]
-        HTTPResponse HelloWorld_OPTIONS();
+        HTTPResponseHeader HelloWorld_OPTIONS();
 
         [HTTPMapping(HTTPMethods.HEAD,    "/HelloWorld}")]
-        HTTPResponse HelloWorld_HEAD();
+        HTTPResponseBuilder HelloWorld_HEAD();
 
         [HTTPMapping(HTTPMethods.GET,     "/HelloWorld")]
-        HTTPResponse HelloWorld_GET();
+        HTTPResponseBuilder HelloWorld_GET();
 
         #endregion
 

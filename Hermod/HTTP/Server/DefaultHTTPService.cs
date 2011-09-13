@@ -40,7 +40,7 @@ namespace de.ahzf.Hermod.HTTP
         /// </summary>
         /// <returns>Some plain text.</returns>
         [HTTPMapping(HTTPMethods.GET, "/raw")]
-        HTTPResponse GetRAWRequestHeader();
+        HTTPResponseBuilder GetRAWRequestHeader();
 
     }
 
@@ -141,64 +141,24 @@ namespace de.ahzf.Hermod.HTTP
 
         #region GetRoot()
 
-        public HTTPResponse GetRoot()
+        public HTTPResponseBuilder GetRoot()
         {
 
-            return new HTTPResponse(
-
-                new HTTPResponseBuilder()
+            return new HTTPResponseBuilder()
                 {
                     HTTPStatusCode = HTTPStatusCode.OK,
                     CacheControl   = "no-cache",
-                    ContentType    = HTTPContentType.HTML_UTF8
-                },
-
-                HTMLBuilder("Hello world!", _StringBuilder =>
-                {
-
-                    _StringBuilder.Append("<p><a href=\"/raw\">Look at your raw http request header!</a></p><br /><br />");
-
-                }).ToUTF8Bytes()
-
-            );
+                    ContentType    = HTTPContentType.HTML_UTF8,
+                    Content        = HTMLBuilder("Hello world!", _StringBuilder => {
+                                         _StringBuilder.Append("<p><a href=\"/raw\">Look at your raw http request header!</a></p><br /><br />");
+                                     }).ToUTF8Bytes()
+                };
 
         }
 
         #endregion
 
-        #region GetRAWRequestHeader()
-
-        public HTTPResponse GetRAWRequestHeader()
-        {
-
-            return new HTTPResponse(
-
-                new HTTPResponseBuilder()
-                {
-                    HTTPStatusCode = HTTPStatusCode.OK,
-                    CacheControl   = "no-cache",
-                    Connection     = "close",
-                    ContentType    = HTTPContentType.TEXT_UTF8
-                },
-
-                Encoding.UTF8.GetBytes("Incoming http connection from '" + IHTTPConnection.RemoteSocket + "'" +
-                                        Environment.NewLine + Environment.NewLine +
-                                        IHTTPConnection.RequestHeader.RawHTTPHeader +
-                                        Environment.NewLine + Environment.NewLine +
-                                        "Method => " + IHTTPConnection.RequestHeader.HTTPMethod + Environment.NewLine +
-                                        "URL => " + IHTTPConnection.RequestHeader.Url + Environment.NewLine +
-                                        "QueryString => " + IHTTPConnection.RequestHeader.QueryString + Environment.NewLine +
-                                        "Protocol => " + IHTTPConnection.RequestHeader.ProtocolName + Environment.NewLine +
-                                        "Version => " + IHTTPConnection.RequestHeader.ProtocolVersion + Environment.NewLine +
-                                        Environment.NewLine + Environment.NewLine +
-                                        IHTTPConnection.ResponseHeader.HTTPStatusCode
-                                        )
-
-            );
-
-        }
-
-        #endregion
+        
 
     }
 

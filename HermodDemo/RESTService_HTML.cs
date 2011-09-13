@@ -48,7 +48,7 @@ namespace de.ahzf.Hermod.Demo
         {
             get
             {
-                return new List<HTTPContentType>() { HTTPContentType.HTML_UTF8 };
+                return new HTTPContentType[1] { HTTPContentType.HTML_UTF8 };
             }
         }
 
@@ -120,27 +120,19 @@ namespace de.ahzf.Hermod.Demo
 
         #region GetRoot()
 
-        public HTTPResponse GetRoot()
+        public HTTPResponseBuilder GetRoot()
         {
 
-            return new HTTPResponse(
-
-                new HTTPResponseBuilder()
+            return new HTTPResponseBuilder()
                 {
                     HTTPStatusCode = HTTPStatusCode.OK,
-                    CacheControl   = "no-cache",
-                    ContentType    = HTTPContentType.HTML_UTF8
-                },
-
-                HTML5Builder("Hello World!", _StringBuilder =>
-                {
-
-                    _StringBuilder.Append("<p><a href=\"/robots.txt\">Look at the '/robots.txt'!</a></p><br /><br />");
-                    _StringBuilder.Append("<p><a href=\"/raw\">Look at your raw http request header!</a></p><br /><br />");
-
-                }).ToUTF8Bytes()
-
-            );
+                    ContentType    = HTTPContentType.HTML_UTF8,
+                    Content        = HTML5Builder("Hello World!", _StringBuilder => {
+                                         _StringBuilder.Append("<p><a href=\"/robots.txt\">Look at the '/robots.txt'!</a></p><br /><br />");
+                                         _StringBuilder.Append("<p><a href=\"/raw\">Look at your raw http request header!</a></p><br /><br />");
+                                     }).ToUTF8Bytes(),
+                    CacheControl   = "no-cache"
+                };
 
         }
 
@@ -151,26 +143,19 @@ namespace de.ahzf.Hermod.Demo
 
         #region HelloWorld_OPTIONS()
 
-        public HTTPResponse HelloWorld_OPTIONS()
+        public HTTPResponseHeader HelloWorld_OPTIONS()
         {
 
-            return new HTTPResponse(
-
-                new HTTPResponseBuilder()
+            return new HTTPResponseBuilder()
                 {
-
                     HTTPStatusCode = HTTPStatusCode.OK,
-                    CacheControl = "no-cache",
-
-                    Allow = new List<HTTPMethod> {
-                                          HTTPMethod.OPTIONS,
-                                          HTTPMethod.HEAD,
-                                          HTTPMethod.GET
-                                      }
-
-                }
-
-            );
+                    Allow          = new List<HTTPMethod> {
+                                             HTTPMethod.OPTIONS,
+                                             HTTPMethod.HEAD,
+                                             HTTPMethod.GET
+                                         },
+                    CacheControl   = "no-cache"
+                };
 
         }
 
@@ -178,25 +163,16 @@ namespace de.ahzf.Hermod.Demo
 
         #region HelloWorld_HEAD()
 
-        public HTTPResponse HelloWorld_HEAD()
+        public HTTPResponseBuilder HelloWorld_HEAD()
         {
 
-            var _RequestHeader = IHTTPConnection.RequestHeader;
-            var _Content = Encoding.UTF8.GetBytes("Hello world!");
-
-            return new HTTPResponse(
-
-                new HTTPResponseBuilder()
+            return new HTTPResponseBuilder()
                 {
                     HTTPStatusCode = HTTPStatusCode.OK,
-                    CacheControl   = "no-cache",
-                    ContentLength  = (UInt64) _Content.Length,
-                    ContentType    = HTTPContentType.TEXT_UTF8
-                },
-
-                _Content
-
-            );
+                    ContentType    = HTTPContentType.TEXT_UTF8,
+                    Content        = Encoding.UTF8.GetBytes("Hello world!"),
+                    CacheControl   = "no-cache"
+                };
 
         }
 
@@ -204,25 +180,16 @@ namespace de.ahzf.Hermod.Demo
 
         #region HelloWorld_GET()
 
-        public HTTPResponse HelloWorld_GET()
+        public HTTPResponseBuilder HelloWorld_GET()
         {
 
-            var _RequestHeader = IHTTPConnection.RequestHeader;
-            var _Content = Encoding.UTF8.GetBytes(HTML5Builder("Hello world!", sb => sb.AppendLine("Hello world!")));
-
-            return new HTTPResponse(
-
-                new HTTPResponseBuilder()
+            return new HTTPResponseBuilder()
                 {
                     HTTPStatusCode = HTTPStatusCode.OK,
-                    CacheControl   = "no-cache",
-                    ContentLength  = (UInt64) _Content.Length,
-                    ContentType    = HTTPContentType.HTML_UTF8
-                },
-
-                _Content
-
-            );
+                    ContentType    = HTTPContentType.HTML_UTF8,
+                    Content        = HTML5Builder("Hello world!", sb => sb.AppendLine("Hello world!")).ToUTF8Bytes(),
+                    CacheControl   = "no-cache"
+                };
 
         }
 

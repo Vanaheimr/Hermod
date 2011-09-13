@@ -316,7 +316,7 @@ namespace de.ahzf.Hermod.HTTP
                     //    else
                     //    {
                     //        responseBodyBytes = Encoding.UTF8.GetBytes("Authentication other than Basic currently not supported");
-                    //        responseHeader = new HTTPResponseHeader() { HttpStatusCode = HTTPStatusCode.InternalServerError, ContentLength = responseBodyBytes.ULongLength() };
+                    //        responseHeader = new HTTPResponseBuilderHeader() { HttpStatusCode = HTTPStatusCode.InternalServerError, ContentLength = responseBodyBytes.ULongLength() };
                     //        responseHeaderBytes = responseHeader.ToBytes();
 
                     //        Debug.WriteLine("!!!Authentication other than Basic currently not supported!!!");
@@ -332,7 +332,7 @@ namespace de.ahzf.Hermod.HTTP
                     //    #region The server does not have authentication but the Interface explicitly needs authentication
 
                     //    responseBodyBytes = Encoding.UTF8.GetBytes("Authentication not supported for this server!");
-                    //    responseHeader = new HTTPResponseHeader() { HttpStatusCode = HTTPStatusCode.InternalServerError, ContentLength = responseBodyBytes.ULongLength() };
+                    //    responseHeader = new HTTPResponseBuilderHeader() { HttpStatusCode = HTTPStatusCode.InternalServerError, ContentLength = responseBodyBytes.ULongLength() };
                     //    responseHeaderBytes = responseHeader.ToBytes();
 
                     //    #endregion
@@ -359,9 +359,9 @@ namespace de.ahzf.Hermod.HTTP
                         try
                         {
 
-                            var _HTTPResponse = _ParsedCallback.Item1.Invoke(_HTTPServiceInterface, _ParsedCallback.Item2.ToArray()) as HTTPResponse;
+                            var _HTTPResponseBuilder = _ParsedCallback.Item1.Invoke(_HTTPServiceInterface, _ParsedCallback.Item2.ToArray()) as HTTPResponseBuilder;
 
-                            if (_HTTPResponse == null || _HTTPResponse.ResponseHeader == null)
+                            if (_HTTPResponseBuilder == null)
                             {
 
                                 SendErrorpage(HTTPStatusCode.InternalServerError,
@@ -374,15 +374,15 @@ namespace de.ahzf.Hermod.HTTP
                             }
 
                             // If the ServerName had not been set, set it now!
-                            if (_HTTPResponse.ResponseHeader.Server == null)
-                                _HTTPResponse.ResponseHeader.Server = ServerName;
+                            if (_HTTPResponseBuilder.Server == null)
+                                _HTTPResponseBuilder.Server = ServerName;
 
-                            ResponseHeader = _HTTPResponse.ResponseHeader;
+                            ResponseHeader = _HTTPResponseBuilder;
 
                             // If there is no client and server error...
-                            if (!_HTTPResponse.ResponseHeader.HTTPStatusCode.IsClientError &&
-                                !_HTTPResponse.ResponseHeader.HTTPStatusCode.IsServerError)
-                                 WriteToResponseStream(_HTTPResponse);
+                            if (!_HTTPResponseBuilder.HTTPStatusCode.IsClientError &&
+                                !_HTTPResponseBuilder.HTTPStatusCode.IsServerError)
+                                 WriteToResponseStream(_HTTPResponseBuilder);
 
 
                         }
@@ -390,18 +390,15 @@ namespace de.ahzf.Hermod.HTTP
                         catch (Exception e)
                         {
 
-                            WriteToResponseStream(new HTTPResponse(
+                            WriteToResponseStream(
                     
                                 new HTTPResponseBuilder()
                                 {
                                     HTTPStatusCode = HTTPStatusCode.InternalServerError,
                                     CacheControl   = "no-cache",
-                                    ContentType    = HTTPContentType.TEXT_UTF8
-                                },
-
-                                e.ToString().ToUTF8Bytes()
-
-                            ));
+                                    ContentType    = HTTPContentType.TEXT_UTF8,
+                                    Content        = e.ToString().ToUTF8Bytes()
+                                });
 
                         }
 
@@ -444,45 +441,45 @@ namespace de.ahzf.Hermod.HTTP
         #endregion
 
 
-        #region (private) WriteToResponseStream(myHTTPResponseHeader, myContent = null)
+        #region (private) WriteToResponseStream(myHTTPResponseBuilderHeader)
 
-        private void WriteToResponseStream(HTTPResponseBuilder myHTTPResponseHeader, Byte[] myContent = null)
+        private void WriteToResponseStream(HTTPResponseBuilder HTTPResponseBuilderHeader)
         {
 
-            if (myContent != null)
-                myHTTPResponseHeader.ContentLength = (UInt64)myContent.LongLength;
+            if (HTTPResponseBuilderHeader.Content != null)
+                HTTPResponseBuilderHeader.ContentLength = (UInt64) HTTPResponseBuilderHeader.Content.LongLength;
 
-            if (myHTTPResponseHeader != null)
-                WriteToResponseStream(Encoding.UTF8.GetBytes(myHTTPResponseHeader.GetResponseHeader));
+            if (HTTPResponseBuilderHeader != null)
+                WriteToResponseStream(Encoding.UTF8.GetBytes(HTTPResponseBuilderHeader.GetResponseHeader));
 
-            if (myContent != null)
-                WriteToResponseStream(myContent);
+            if (HTTPResponseBuilderHeader.Content != null)
+                WriteToResponseStream(HTTPResponseBuilderHeader.Content);
 
         }
 
         #endregion
 
-        #region (private) WriteToResponseStream(myHTTPResponse, myReadTimeout = 1000)
+        #region (private) WriteToResponseStream(myHTTPResponseBuilder, myReadTimeout = 1000)
 
-        private void WriteToResponseStream(HTTPResponse myHTTPResponse, Int32 myReadTimeout = 1000)
+        private void WriteToResponseStream(HTTPResponseBuilder myHTTPResponseBuilder, Int32 myReadTimeout = 1000)
         {
 
-            if (myHTTPResponse.Content != null)
-                ResponseHeader.ContentLength = (UInt64) myHTTPResponse.Content.LongLength;
-            else if (myHTTPResponse.ContentStream != null)
-                ResponseHeader.ContentLength = (UInt64) myHTTPResponse.ContentStream.Length;
+            if (myHTTPResponseBuilder.Content != null)
+                ResponseHeader.ContentLength = (UInt64) myHTTPResponseBuilder.Content.LongLength;
+            else if (myHTTPResponseBuilder.ContentStream != null)
+                ResponseHeader.ContentLength = (UInt64) myHTTPResponseBuilder.ContentStream.Length;
             // else ContentLength will still be 0!
 
             WriteToResponseStream(Encoding.UTF8.GetBytes(ResponseHeader.GetResponseHeader));
 
-            if (myHTTPResponse.Content != null)
-                WriteToResponseStream(myHTTPResponse.Content);
-            else if (myHTTPResponse.ContentStream != null)
-                WriteToResponseStream(myHTTPResponse.ContentStream, myReadTimeout);
+            if (myHTTPResponseBuilder.Content != null)
+                WriteToResponseStream(myHTTPResponseBuilder.Content);
+            else if (myHTTPResponseBuilder.ContentStream != null)
+                WriteToResponseStream(myHTTPResponseBuilder.ContentStream, myReadTimeout);
 
-            if (myHTTPResponse.ResponseHeader.HTTPStatusCode.IsClientError ||
-                myHTTPResponse.ResponseHeader.HTTPStatusCode.IsServerError)
-                Console.WriteLine("HTTPStatusCode: " + myHTTPResponse.ResponseHeader.HTTPStatusCode);
+            if (myHTTPResponseBuilder.HTTPStatusCode.IsClientError ||
+                myHTTPResponseBuilder.HTTPStatusCode.IsServerError)
+                Console.WriteLine("HTTPStatusCode: " + myHTTPResponseBuilder.HTTPStatusCode);
 
         }
 
@@ -555,9 +552,9 @@ namespace de.ahzf.Hermod.HTTP
                 Array.Copy(_ParamArray, 0, _Parameters, 2, _ParamArray.Count());
 
                 var _Response      = __ErrorHandler.Item1.Invoke(_HTTPServiceInterface, _Parameters);
-                var _HTTPResponse  = _Response as HTTPResponse;
+                var _HTTPResponseBuilder  = _Response as HTTPResponseBuilder;
 
-                if (_Response == null || _HTTPResponse == null)
+                if (_Response == null || _HTTPResponseBuilder == null)
                 {
 
                     SendErrorpage(HTTPStatusCode.InternalServerError,
@@ -567,7 +564,7 @@ namespace de.ahzf.Hermod.HTTP
 
                 }
 
-                WriteToResponseStream(_HTTPResponse);
+                WriteToResponseStream(_HTTPResponseBuilder);
 
             }
 
@@ -634,10 +631,10 @@ namespace de.ahzf.Hermod.HTTP
 
                 ResponseHeader.ContentLength = (UInt64) _XHTMLErrorpage.LongCount();
                 ResponseHeader.ContentType   = HTTPContentType.HTML_UTF8;
+                ResponseHeader.Content       = _XHTMLErrorpage;
 
                 WriteToResponseStream(
-                    ResponseHeader,
-                    _XHTMLErrorpage
+                    ResponseHeader
                 );
 
             }

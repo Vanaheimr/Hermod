@@ -79,33 +79,27 @@ namespace de.ahzf.Hermod.HTTP
 
         #region GetRAWRequestHeader()
 
-        public HTTPResponse GetRAWRequestHeader()
+        public HTTPResponseBuilder GetRAWRequestHeader()
         {
 
-            return new HTTPResponse(
-
-                new HTTPResponseBuilder()
+            return new HTTPResponseBuilder()
                 {
                     HTTPStatusCode = HTTPStatusCode.OK,
                     CacheControl   = "no-cache",
                     Connection     = "close",
-                    ContentType    = HTTPContentType.TEXT_UTF8
-                },
-
-                Encoding.UTF8.GetBytes("Incoming http connection from '" + IHTTPConnection.RemoteSocket + "'" +
-                                        Environment.NewLine + Environment.NewLine +
-                                        IHTTPConnection.RequestHeader.RawHTTPHeader +
-                                        Environment.NewLine + Environment.NewLine +
-                                        "Method => " + IHTTPConnection.RequestHeader.HTTPMethod + Environment.NewLine +
-                                        "URL => " + IHTTPConnection.RequestHeader.Url + Environment.NewLine +
-                                        "QueryString => " + IHTTPConnection.RequestHeader.QueryString + Environment.NewLine +
-                                        "Protocol => " + IHTTPConnection.RequestHeader.ProtocolName + Environment.NewLine +
-                                        "Version => " + IHTTPConnection.RequestHeader.ProtocolVersion + Environment.NewLine +
-                                        Environment.NewLine + Environment.NewLine +
-                                        IHTTPConnection.ResponseHeader.HTTPStatusCode
-                                        )
-
-            );
+                    ContentType    = HTTPContentType.TEXT_UTF8,
+                    Content        = ("Incoming http connection from '" + IHTTPConnection.RemoteSocket + "'" +
+                                       Environment.NewLine + Environment.NewLine +
+                                       IHTTPConnection.RequestHeader.RawHTTPHeader +
+                                       Environment.NewLine + Environment.NewLine +
+                                       "Method => " + IHTTPConnection.RequestHeader.HTTPMethod + Environment.NewLine +
+                                       "URL => " + IHTTPConnection.RequestHeader.Url + Environment.NewLine +
+                                       "QueryString => " + IHTTPConnection.RequestHeader.QueryString + Environment.NewLine +
+                                       "Protocol => " + IHTTPConnection.RequestHeader.ProtocolName + Environment.NewLine +
+                                       "Version => " + IHTTPConnection.RequestHeader.ProtocolVersion + Environment.NewLine +
+                                       Environment.NewLine + Environment.NewLine +
+                                       IHTTPConnection.ResponseHeader.HTTPStatusCode).ToUTF8Bytes()
+                };
 
         }
 
@@ -114,23 +108,18 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Error406_NotAcceptable()
 
-        protected HTTPResponse Error406_NotAcceptable()
+        protected HTTPResponseBuilder Error406_NotAcceptable()
         {
 
-            return new HTTPResponse(
-
-                    new HTTPResponseBuilder()
+            return new HTTPResponseBuilder()
                     {
                         HTTPStatusCode = HTTPStatusCode.NotAcceptable,
                         ContentType    = HTTPContentType.TEXT_UTF8,
                         ContentLength  = 0,
                         CacheControl   = "no-cache",
                         Connection     = "close",
-                    },
-
-                    new Byte[0]
-
-                );
+                        Content        = new Byte[0]
+                    };
 
         }
 
@@ -143,7 +132,7 @@ namespace de.ahzf.Hermod.HTTP
         /// Returns internal resources embedded within the assembly.
         /// </summary>
         /// <param name="myResource">The path and name of the resource.</param>
-        public HTTPResponse GetResources(String myResource)
+        public HTTPResponseBuilder GetResources(String myResource)
         {
 
             #region Initial checks
@@ -184,20 +173,15 @@ namespace de.ahzf.Hermod.HTTP
                     default:     _ResponseContentType = HTTPContentType.OCTETSTREAM;     break;
                 }
 
-                return new HTTPResponse(
-
-                    new HTTPResponseBuilder()
+                return new HTTPResponseBuilder()
                         {
                             HTTPStatusCode = HTTPStatusCode.OK,
                             ContentType    = _ResponseContentType,
                             ContentLength  = (UInt64) _ResourceContent.Length,
                             CacheControl   = "no-cache",
                             Connection     = "close",
-                        },
-
-                    _ResourceContent
-
-                );
+                            ContentStream  = _ResourceContent
+                        };
 
             }
 
@@ -215,20 +199,16 @@ namespace de.ahzf.Hermod.HTTP
                 else
                     _ResourceContent = new MemoryStream(UTF8Encoding.UTF8.GetBytes("Error 404 - File not found!"));
 
-                return new HTTPResponse(
-
-                    new HTTPResponseBuilder()
+                return new HTTPResponseBuilder()
                         {
                             HTTPStatusCode = HTTPStatusCode.NotFound,
                             ContentType    = HTTPContentType.HTML_UTF8,
                             ContentLength  = (UInt64) _ResourceContent.Length,
                             CacheControl   = "no-cache",
                             Connection     = "close",
-                        },
+                            ContentStream  = _ResourceContent
 
-                    _ResourceContent
-
-                );
+                        };
 
             }
 
@@ -244,7 +224,7 @@ namespace de.ahzf.Hermod.HTTP
         /// Get /favicon.ico
         /// </summary>
         /// <returns>Some HTML and JavaScript.</returns>
-        public HTTPResponse GetFavicon()
+        public HTTPResponseBuilder GetFavicon()
         {
             return GetResources("favicon.ico");
         }
@@ -257,7 +237,7 @@ namespace de.ahzf.Hermod.HTTP
         /// Get /robots.txt
         /// </summary>
         /// <returns>Some search engine info.</returns>
-        public HTTPResponse GetRobotsTxt()
+        public HTTPResponseBuilder GetRobotsTxt()
         {
             return GetResources("robots.txt");
         }
@@ -270,7 +250,7 @@ namespace de.ahzf.Hermod.HTTP
         /// Get /humans.txt
         /// </summary>
         /// <returns>Some search engine info.</returns>
-        public HTTPResponse GetHumansTxt()
+        public HTTPResponseBuilder GetHumansTxt()
         {
             return GetResources("humans.txt");
         }
