@@ -40,7 +40,7 @@ namespace de.ahzf.Hermod.HTTP
         /// </summary>
         /// <returns>Some plain text.</returns>
         [HTTPMapping(HTTPMethods.GET, "/raw")]
-        HTTPResponseBuilder GetRAWRequestHeader();
+        HTTPResponseHeader GetRAWRequestHeader();
 
     }
 
@@ -56,7 +56,26 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Properties
 
+        #region IHTTPConnection
+
         public IHTTPConnection IHTTPConnection { get; set; }
+
+        #endregion
+
+        #region HTTPContentTypes
+
+        /// <summary>
+        /// The supported HTTP ContentTypes.
+        /// </summary>
+        public IEnumerable<HTTPContentType> HTTPContentTypes
+        {
+            get
+            {
+                return new HTTPContentType[1] { HTTPContentType.TEXT_UTF8 };
+            }
+        }
+
+        #endregion
 
         #endregion
 
@@ -88,20 +107,7 @@ namespace de.ahzf.Hermod.HTTP
         #endregion
 
 
-        #region HTTPContentTypes
-
-        /// <summary>
-        /// The supported HTTP ContentTypes.
-        /// </summary>
-        public IEnumerable<HTTPContentType> HTTPContentTypes
-        {
-            get
-            {
-                return new List<HTTPContentType>() { HTTPContentType.TEXT_UTF8 };
-            }
-        }
-
-        #endregion
+        
 
 
         #region (private) HTMLBuilder(myHeadline, myFunc)
@@ -141,7 +147,7 @@ namespace de.ahzf.Hermod.HTTP
 
         #region GetRoot()
 
-        public HTTPResponseBuilder GetRoot()
+        public HTTPResponseHeader GetRoot()
         {
 
             return new HTTPResponseBuilder()
@@ -157,8 +163,6 @@ namespace de.ahzf.Hermod.HTTP
         }
 
         #endregion
-
-        
 
     }
 

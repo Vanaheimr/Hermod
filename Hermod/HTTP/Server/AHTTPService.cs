@@ -60,15 +60,15 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
-        #region AHTTPService(myIHTTPConnection)
+        #region AHTTPService(IHTTPConnection)
 
         /// <summary>
-        /// Creates a new AHTTPService.
+        /// Creates a new abstract HTTPService.
         /// </summary>
-        /// <param name="myIHTTPConnection">The http connection for this request.</param>
-        public AHTTPService(IHTTPConnection myIHTTPConnection, String ResourcePath)
+        /// <param name="IHTTPConnection">The http connection for this request.</param>
+        public AHTTPService(IHTTPConnection IHTTPConnection, String ResourcePath)
         {
-            this.IHTTPConnection = myIHTTPConnection;
+            this.IHTTPConnection = IHTTPConnection;
             this.ResourcePath    = ResourcePath;
         }
 
@@ -79,7 +79,7 @@ namespace de.ahzf.Hermod.HTTP
 
         #region GetRAWRequestHeader()
 
-        public HTTPResponseBuilder GetRAWRequestHeader()
+        public HTTPResponseHeader GetRAWRequestHeader()
         {
 
             return new HTTPResponseBuilder()
@@ -108,7 +108,7 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Error406_NotAcceptable()
 
-        protected HTTPResponseBuilder Error406_NotAcceptable()
+        protected HTTPResponseHeader Error406_NotAcceptable()
         {
 
             return new HTTPResponseBuilder()
@@ -132,7 +132,7 @@ namespace de.ahzf.Hermod.HTTP
         /// Returns internal resources embedded within the assembly.
         /// </summary>
         /// <param name="myResource">The path and name of the resource.</param>
-        public HTTPResponseBuilder GetResources(String myResource)
+        public HTTPResponseHeader GetResources(String myResource)
         {
 
             #region Initial checks
@@ -224,7 +224,7 @@ namespace de.ahzf.Hermod.HTTP
         /// Get /favicon.ico
         /// </summary>
         /// <returns>Some HTML and JavaScript.</returns>
-        public HTTPResponseBuilder GetFavicon()
+        public HTTPResponseHeader GetFavicon()
         {
             return GetResources("favicon.ico");
         }
@@ -237,7 +237,7 @@ namespace de.ahzf.Hermod.HTTP
         /// Get /robots.txt
         /// </summary>
         /// <returns>Some search engine info.</returns>
-        public HTTPResponseBuilder GetRobotsTxt()
+        public HTTPResponseHeader GetRobotsTxt()
         {
             return GetResources("robots.txt");
         }
@@ -250,7 +250,7 @@ namespace de.ahzf.Hermod.HTTP
         /// Get /humans.txt
         /// </summary>
         /// <returns>Some search engine info.</returns>
-        public HTTPResponseBuilder GetHumansTxt()
+        public HTTPResponseHeader GetHumansTxt()
         {
             return GetResources("humans.txt");
         }

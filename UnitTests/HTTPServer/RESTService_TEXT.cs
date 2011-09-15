@@ -87,7 +87,7 @@ namespace de.ahzf.Hermod.UnitTests
         
         #region GetRoot()
 
-        public HTTPResponseBuilder GetRoot()
+        public HTTPResponseHeader GetRoot()
         {
 
             return new HTTPResponseBuilder()
@@ -127,7 +127,7 @@ namespace de.ahzf.Hermod.UnitTests
 
         #region HelloWorld_HEAD()
 
-        public HTTPResponseBuilder HelloWorld_HEAD()
+        public HTTPResponseHeader HelloWorld_HEAD()
         {
 
             var _RequestHeader = IHTTPConnection.RequestHeader;
@@ -146,7 +146,7 @@ namespace de.ahzf.Hermod.UnitTests
 
         #region HelloWorld_GET()
 
-        public HTTPResponseBuilder HelloWorld_GET()
+        public HTTPResponseHeader HelloWorld_GET()
         {
 
             return new HTTPResponseBuilder()

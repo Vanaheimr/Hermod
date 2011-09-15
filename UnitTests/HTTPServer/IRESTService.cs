@@ -37,7 +37,7 @@ namespace de.ahzf.Hermod.UnitTests
         /// </summary>
         /// <returns>Some plain text.</returns>
         [HTTPMapping(HTTPMethods.GET, "/raw")]
-        HTTPResponseBuilder GetRAWRequestHeader();
+        HTTPResponseHeader GetRAWRequestHeader();
 
         #endregion
 
@@ -47,10 +47,10 @@ namespace de.ahzf.Hermod.UnitTests
         HTTPResponseHeader HelloWorld_OPTIONS();
 
         [HTTPMapping(HTTPMethods.HEAD,    "/HelloWorld}")]
-        HTTPResponseBuilder HelloWorld_HEAD();
+        HTTPResponseHeader HelloWorld_HEAD();
 
         [HTTPMapping(HTTPMethods.GET,     "/HelloWorld")]
-        HTTPResponseBuilder HelloWorld_GET();
+        HTTPResponseHeader HelloWorld_GET();
 
         #endregion
 
