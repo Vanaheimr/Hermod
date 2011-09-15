@@ -410,7 +410,7 @@ namespace de.ahzf.Hermod.Sockets.UDP
         /// <summary>
         /// Stops the listener.
         /// </summary>
-        public void Stop()
+        public void Shutdown()
         {
 
             if (_ListenerThread == null)

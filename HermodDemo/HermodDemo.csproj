@@ -78,17 +78,18 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="RESTService_HTML.cs" />
     <Compile Include="CustomTCPConnection.cs" />
     <Compile Include="HermodDemo.cs" />
-    <Compile Include="IRESTService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RESTService_TEXT.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Hermod\Hermod.csproj">
       <Project>{EAB20045-3D15-4220-BB56-B22FF6630AC9}</Project>
       <Name>Hermod</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\UnitTests\UnitTests.csproj">
+      <Project>{E9033C3A-8176-4449-A35A-C8F1E0DC464C}</Project>
+      <Name>UnitTests</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

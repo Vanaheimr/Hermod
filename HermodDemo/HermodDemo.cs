@@ -24,6 +24,7 @@ using System.Threading;
 using de.ahzf.Hermod.HTTP;
 using de.ahzf.Hermod.Sockets.TCP;
 using de.ahzf.Hermod.Datastructures;
+using de.ahzf.Hermod.UnitTests;
 
 #endregion
 
@@ -79,7 +80,7 @@ namespace de.ahzf.Hermod.Demo
             Console.WriteLine(_HTTPServer1);
 
             // This service uses a custom HTTPService defined within IRESTService.cs
-            var _HTTPServer2 = new HTTPServer<IRESTService>(IPv4Address.Localhost, IPPort.HTTP, Autostart: true)
+            var _HTTPServer2 = new HTTPServer<IRESTService>(IPv4Address.Any, IPPort.HTTP, Autostart: true)
                                    {
                                        ServerName = "Customized Hermod Demo"
                                    };
@@ -121,6 +122,8 @@ namespace de.ahzf.Hermod.Demo
                               Content           = "This the HTTP content...".ToUTF8Bytes()
                           };
 
+
+            var Response = new TCPClientRequest("localhost", 80).Send("GETTT / HTTP/1.1").FinishCurrentRequest().Response;
 
             Console.ReadLine();
             Console.WriteLine("done!");

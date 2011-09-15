@@ -425,7 +425,7 @@ namespace de.ahzf.Hermod.Sockets.TCP
         /// <summary>
         /// Stop the TCPSocketListener
         /// </summary>
-        public void Stop()
+        public void Shutdown()
         {
 
             _StopRequested = true;

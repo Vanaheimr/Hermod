@@ -24,17 +24,37 @@ using System;
 namespace de.ahzf.Hermod.Datastructures
 {
 
+    /// <summary>
+    /// A generic server interface.
+    /// </summary>
     public interface IServer : IDisposable
     {
 
+        /// <summary>
+        /// The server is running and ready for serving requests.
+        /// </summary>
         Boolean    IsRunning { get; }
+        
+        /// <summary>
+        /// The listening IP address.
+        /// </summary>
         IIPAddress IPAddress { get; }
+
+        /// <summary>
+        /// The listening IP port.
+        /// </summary>
         IPPort     Port      { get; }
 
-        void Start();
-        void Stop();
 
-        String     ToString();
+        /// <summary>
+        /// Start the server.
+        /// </summary>
+        void Start();
+
+        /// <summary>
+        /// Shutdown the server.
+        /// </summary>
+        void Shutdown();
 
     }
 

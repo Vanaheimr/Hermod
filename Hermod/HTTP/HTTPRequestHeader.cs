@@ -89,22 +89,28 @@ namespace de.ahzf.Hermod.HTTP
                 var _AcceptString = GetHeaderField<String>("Accept");
                     _Accept       = new List<AcceptType>();
 
-                if (_AcceptString.Contains(","))
+                if (!_AcceptString.IsNullOrEmpty())
                 {
-                    
-                    UInt32 place = 0;
 
-                    foreach (var acc in _AcceptString.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
-                        _Accept.Add(new AcceptType(acc.Trim(), place++));
+                    if (_AcceptString.Contains(","))
+                    {
+
+                        UInt32 place = 0;
+
+                        foreach (var acc in _AcceptString.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                            _Accept.Add(new AcceptType(acc.Trim(), place++));
+
+                    }
+
+                    else
+                        _Accept.Add(new AcceptType(_AcceptString.Trim()));
+
+                    SetHeaderField("Accept", _Accept);
+                    return _Accept;
 
                 }
-
                 else
-                    _Accept.Add(new AcceptType(_AcceptString.Trim()));
-
-                SetHeaderField("Accept", _Accept);
-
-                return _Accept;
+                    return new List<AcceptType>();
 
             }
 
@@ -535,9 +541,20 @@ namespace de.ahzf.Hermod.HTTP
             var _ProtocolArray  = _HTTPMethodHeader[2].Split(_SlashSeperator, 2, StringSplitOptions.RemoveEmptyEntries);
             ProtocolName        = _ProtocolArray[0].ToUpper();
 
+            if (ProtocolName.ToUpper() != "HTTP")
+            {
+                this.HTTPStatusCode = HTTPStatusCode.InternalServerError;
+                return;
+            }
+
             HTTPVersion _HTTPVersion = null;
             if (HTTPVersion.TryParseVersionString(_ProtocolArray[1], out _HTTPVersion))
                 ProtocolVersion = _HTTPVersion;
+            if (ProtocolVersion != HTTPVersion.HTTP_1_1)
+            {
+                this.HTTPStatusCode = HTTPStatusCode.HTTPVersionNotSupported;
+                return;
+            }
 
             #endregion
 

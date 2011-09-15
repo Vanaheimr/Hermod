@@ -34,7 +34,7 @@ namespace de.ahzf.Hermod.HTTP
     ///  This http server will listen on a port and maps incoming urls to methods of HTTPServiceInterface. 
     /// </summary>
     /// <typeparam name="HTTPServiceInterface">A http service interface.</typeparam>
-    public class HTTPServer<HTTPServiceInterface> : AHTTPServer<HTTPServiceInterface>
+    public class HTTPServer<HTTPServiceInterface> : AHTTPServer<HTTPServiceInterface>,  IServer
         where HTTPServiceInterface : IHTTPService
     {
 
@@ -314,7 +314,44 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
-        
+
+        #region Start()
+
+        /// <summary>
+        /// Start the server.
+        /// </summary>
+        public void Start()
+        {
+            _TCPServer.Start();
+        }
+
+        #endregion
+
+        #region Shutdown()
+
+        /// <summary>
+        /// Shutdown the server.
+        /// </summary>
+        public void Shutdown()
+        {
+            _TCPServer.Shutdown();
+        }
+
+        #endregion
+
+        #region Dispose()
+
+        /// <summary>
+        /// Dispose this HTTP server.
+        /// </summary>
+        public void Dispose()
+        {
+            Shutdown();
+        }
+
+        #endregion
+
+
         #region ToString()
 
         /// <summary>

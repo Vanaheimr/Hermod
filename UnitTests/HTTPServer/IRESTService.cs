@@ -22,7 +22,7 @@ using de.ahzf.Hermod.HTTP;
 
 #endregion
 
-namespace de.ahzf.Hermod.Demo
+namespace de.ahzf.Hermod.UnitTests
 {
 
     //[HTTPService(Host: "localhost:8080", ForceAuthentication: true)]

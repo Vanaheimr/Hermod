@@ -28,7 +28,7 @@ using de.ahzf.Hermod.HTTP;
 
 #endregion
 
-namespace de.ahzf.Hermod.Demo
+namespace de.ahzf.Hermod.UnitTests
 {
 
     /// <summary>
