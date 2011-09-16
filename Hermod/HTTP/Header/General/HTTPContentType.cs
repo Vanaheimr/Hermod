@@ -75,6 +75,8 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Static HTTP content types
 
+        public static readonly HTTPContentType ALL             = new HTTPContentType("*/*",                    "UTF-8");
+
         public static readonly HTTPContentType TEXT_UTF8       = new HTTPContentType("text/plain",             "UTF-8");
         public static readonly HTTPContentType HTML_UTF8       = new HTTPContentType("text/html",              "UTF-8");
         public static readonly HTTPContentType CSS_UTF8        = new HTTPContentType("text/css",               "UTF-8");

@@ -410,7 +410,7 @@ namespace de.ahzf.Hermod.HTTP
         /// <summary>
         /// The http content types accepted by the client.
         /// </summary>
-        public new List<AcceptType> Accept
+        public new AcceptTypes Accept
         {
 
             get

@@ -60,64 +60,71 @@ namespace de.ahzf.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPContentType">The accepted content type.</param>
         /// <param name="Quality">The preference of the content type.</param>
-        public AcceptType(HTTPContentType HTTPContentType, Double Quality = 1)
+        public AcceptType(HTTPContentType HTTPContentType, Double Quality)
         {
+
+            #region Initial checks
+
+            if (HTTPContentType == null)
+                throw new ArgumentNullException("The given HTTPContentType must not be null!");
+
+            #endregion
+
             this.ContentType = HTTPContentType;
             this.Quality     = Quality;
+
         }
 
         #endregion
 
-        #region AcceptType(AcceptString, placeOfOccurence = 0)
+        #region AcceptType(AcceptString, Quality)
+
+        public AcceptType(String AcceptString, Double Quality)
+        {
+
+            #region Initial checks
+
+            if (AcceptString.IsNullOrEmpty())
+                throw new ArgumentNullException("The given Accept string must not be null or empty!");
+
+            #endregion
+
+            this.ContentType = new HTTPContentType(AcceptString);
+            this.Quality     = Quality;
+
+        }
+
+        #endregion
+
+        #region AcceptType(AcceptString)
 
         /// <summary>
         /// Parse the string representation of a HTTP accept header field.
         /// </summary>
         /// <param name="AcceptString"></param>
-        /// <param name="placeOfOccurence"></param>
-        public AcceptType(String AcceptString, UInt32 placeOfOccurence = 0)
+        public AcceptType(String AcceptString)
         {
 
             this.Quality = 1;
 
-            var SplittedAcceptString = AcceptString.Split(';');
-
-            Double _Quality;
+            var SplittedAcceptString = AcceptString.Split(new Char[1] { ';' }, StringSplitOptions.RemoveEmptyEntries);
 
             switch (SplittedAcceptString.Length)
             {
 
-                case 1: ContentType = new HTTPContentType(AcceptString); break;
+                case 1:
+                    ContentType = new HTTPContentType(AcceptString);
+                    Quality     = 1.0;
+                    break;
 
-                case 2: ContentType = new HTTPContentType(SplittedAcceptString[0]);
-
-                        if (Double.TryParse(SplittedAcceptString[1].Replace("q=", "").Trim(),
-                                            NumberStyles.Any,
-                                            new CultureInfo("en"),
-                                            out _Quality))
-                        {
-                            this.Quality = _Quality;
-                        }
-
-                        break;
-
-                case 3: ContentType = new HTTPContentType(SplittedAcceptString[0]);
-
-                        if (Double.TryParse(SplittedAcceptString[2].Replace("q=", "").Trim(),
-                                            NumberStyles.Any,
-                                            new CultureInfo("en"),
-                                            out _Quality))
-                        {
-                            this.Quality = _Quality;
-                        }
-
-                        break;
+                case 2:
+                    this.ContentType = new HTTPContentType(SplittedAcceptString[0]);
+                    this.Quality     = Double.Parse(SplittedAcceptString[1].Substring(2));
+                    break;
 
                 default: throw new ArgumentException("Could not parse the given AcceptString!");
 
             }
-
-            _PlaceOfOccurence = placeOfOccurence;
 
         }
 

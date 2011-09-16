@@ -216,7 +216,7 @@ namespace de.ahzf.Hermod.HTTP
 
                     #endregion
 
-                    var _ContentType = RequestHeader.GetBestMatchingAcceptHeader(Implementations.Keys.ToArray());
+                    var _ContentType = RequestHeader.Accept.BestMatchingContentType(Implementations.Keys.ToArray());
                     var _X = Implementations[_ContentType];
 
                     #region Invoke upper-layer protocol constructor
@@ -441,45 +441,37 @@ namespace de.ahzf.Hermod.HTTP
         #endregion
 
 
-        #region (private) WriteToResponseStream(myHTTPResponseBuilderHeader)
+        #region (private) WriteToResponseStream(myHTTPResponseBuilderHeader, ReadTimeout = 1000)
 
-        private void WriteToResponseStream(HTTPResponseBuilder HTTPResponseBuilderHeader)
+        private void WriteToResponseStream(HTTPResponseBuilder HTTPResponseBuilder, Int32 ReadTimeout = 1000)
         {
 
-            if (HTTPResponseBuilderHeader.Content != null)
-                HTTPResponseBuilderHeader.ContentLength = (UInt64) HTTPResponseBuilderHeader.Content.LongLength;
+            if (HTTPResponseBuilder.Content != null)
+            {
 
-            if (HTTPResponseBuilderHeader != null)
-                WriteToResponseStream(Encoding.UTF8.GetBytes(HTTPResponseBuilderHeader.GetResponseHeader));
+                // Set the Content-Length if it was not set before
+                if (!HTTPResponseBuilder.ContentLength.HasValue)
+                    HTTPResponseBuilder.ContentLength = (UInt64) HTTPResponseBuilder.Content.LongLength;
 
-            if (HTTPResponseBuilderHeader.Content != null)
-                WriteToResponseStream(HTTPResponseBuilderHeader.Content);
+                WriteToResponseStream(HTTPResponseBuilder.GetResponseHeader.ToUTF8Bytes());
+                WriteToResponseStream(HTTPResponseBuilder.Content);
 
-        }
+            }
 
-        #endregion
+            else if (HTTPResponseBuilder.ContentStream != null)
+            {
 
-        #region (private) WriteToResponseStream(myHTTPResponseBuilder, myReadTimeout = 1000)
+                // Set the Content-Length if it was not set before
+                if (!HTTPResponseBuilder.ContentLength.HasValue)
+                    HTTPResponseBuilder.ContentLength = (UInt64) HTTPResponseBuilder.ContentStream.Length;
 
-        private void WriteToResponseStream(HTTPResponseBuilder myHTTPResponseBuilder, Int32 myReadTimeout = 1000)
-        {
+                WriteToResponseStream(HTTPResponseBuilder.GetResponseHeader.ToUTF8Bytes());
+                WriteToResponseStream(HTTPResponseBuilder.ContentStream, ReadTimeout);
 
-            if (myHTTPResponseBuilder.Content != null)
-                ResponseHeader.ContentLength = (UInt64) myHTTPResponseBuilder.Content.LongLength;
-            else if (myHTTPResponseBuilder.ContentStream != null)
-                ResponseHeader.ContentLength = (UInt64) myHTTPResponseBuilder.ContentStream.Length;
-            // else ContentLength will still be 0!
+            }
 
-            WriteToResponseStream(Encoding.UTF8.GetBytes(ResponseHeader.GetResponseHeader));
-
-            if (myHTTPResponseBuilder.Content != null)
-                WriteToResponseStream(myHTTPResponseBuilder.Content);
-            else if (myHTTPResponseBuilder.ContentStream != null)
-                WriteToResponseStream(myHTTPResponseBuilder.ContentStream, myReadTimeout);
-
-            if (myHTTPResponseBuilder.HTTPStatusCode.IsClientError ||
-                myHTTPResponseBuilder.HTTPStatusCode.IsServerError)
-                Console.WriteLine("HTTPStatusCode: " + myHTTPResponseBuilder.HTTPStatusCode);
+            else
+                WriteToResponseStream(HTTPResponseBuilder.GetResponseHeader.ToUTF8Bytes());
 
         }
 
@@ -490,10 +482,9 @@ namespace de.ahzf.Hermod.HTTP
 
         private HTTPResponseBuilder GetAuthenticationRequiredHeader()
         {
-            return (new HTTPResponseBuilder()
-            {
+            return new HTTPResponseBuilder() {
                 HTTPStatusCode = HTTPStatusCode.Unauthorized
-            }).SetHTTPStatusCode(HTTPStatusCode.Unauthorized);
+            };
         }
 
         #endregion

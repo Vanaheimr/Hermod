@@ -71,46 +71,32 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Accept
 
-        protected List<AcceptType> _Accept;
+        protected AcceptTypes _Accept;
 
         /// <summary>
         /// The http content types accepted by the client.
         /// </summary>
-        public IEnumerable<AcceptType> Accept
+        public AcceptTypes Accept
         {
 
             get
             {
 
-                _Accept = GetHeaderField<List<AcceptType>>("Accept");
+                _Accept = GetHeaderField<AcceptTypes>("Accept");
                 if (_Accept != null)
                     return _Accept;
 
                 var _AcceptString = GetHeaderField<String>("Accept");
-                    _Accept       = new List<AcceptType>();
 
                 if (!_AcceptString.IsNullOrEmpty())
                 {
-
-                    if (_AcceptString.Contains(","))
-                    {
-
-                        UInt32 place = 0;
-
-                        foreach (var acc in _AcceptString.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
-                            _Accept.Add(new AcceptType(acc.Trim(), place++));
-
-                    }
-
-                    else
-                        _Accept.Add(new AcceptType(_AcceptString.Trim()));
-
+                    _Accept = new AcceptTypes(_AcceptString);
                     SetHeaderField("Accept", _Accept);
                     return _Accept;
-
                 }
+
                 else
-                    return new List<AcceptType>();
+                    return new AcceptTypes();
 
             }
 
@@ -576,50 +562,7 @@ namespace de.ahzf.Hermod.HTTP
         #endregion
 
 
-        #region GetBestMatchingAcceptHeader
-
-        /// <summary>
-        /// Will return the best matching content type OR the first given!
-        /// </summary>
-        /// <param name="myContentTypes"></param>
-        /// <returns></returns>        
-        public HTTPContentType GetBestMatchingAcceptHeader(params HTTPContentType[] myContentTypes)
-        {
-
-            UInt32 pos = 0;
-            var _ListOfFoundAcceptHeaders = new List<AcceptType>();
-
-            foreach (var _ContentType in myContentTypes)
-            {
-
-                var _AcceptType = new AcceptType(_ContentType.MediaType, pos++);
-                    
-                var _Match = Accept.ToList().Find(_AType => _AType.Equals(_AcceptType));
-
-                if (_Match != null)
-                {
-
-                    if (_Match.ContentType.GetMediaSubType() == "*") // this was a * and we will set the quality to lowest
-                        _AcceptType.Quality = 0;
-
-                    _ListOfFoundAcceptHeaders.Add(_AcceptType);
-
-                }
-
-            }
-
-            _ListOfFoundAcceptHeaders.Sort();
-
-            if (!_ListOfFoundAcceptHeaders.IsNullOrEmpty())
-                return _ListOfFoundAcceptHeaders.First().ContentType;
-            else if (!myContentTypes.IsNullOrEmpty())
-                return myContentTypes.First();
-            else
-                return null;
-
-        }
-
-        #endregion
+        
 
     }
 

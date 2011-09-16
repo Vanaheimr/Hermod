@@ -202,6 +202,7 @@ namespace de.ahzf.Hermod.HTTP
                                 if (_HTTPMethod != null)
                                     throw new Exception("URI '" + _URITemplate + "' is already registered as HTTP method!");
 
+                                _HTTPMethod              = HTTPMethod.GET;
                                 _EventIdentification     = _HTTPEventMappingAttribute.EventIdentification;
                                 _URITemplate             = _HTTPEventMappingAttribute.UriTemplate;
                                 _MaxNumberOfCachedEvents = _HTTPEventMappingAttribute.MaxNumberOfCachedEvents;
@@ -254,8 +255,10 @@ namespace de.ahzf.Hermod.HTTP
                             {
                                 if (AssociatedContentType != HTTPContentType.EVENTSTREAM)
                                     AddMethodCallback(_MethodInfo, _Host, _URITemplate, _HTTPMethod, AssociatedContentType, NeedsExplicitAuthentication);
-                                else if (_EventIdentification != null)
-                                    AddEventSource(_MethodInfo, _Host, _URITemplate, _EventIdentification, _MaxNumberOfCachedEvents, _IsSharedEventSource, NeedsExplicitAuthentication);
+
+                                else
+                                    if (_EventIdentification != null)
+                                        AddEventSource(_MethodInfo, _Host, _URITemplate, _EventIdentification, _MaxNumberOfCachedEvents, _IsSharedEventSource, NeedsExplicitAuthentication);
                             }
 
                         #endregion

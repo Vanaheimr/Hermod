@@ -298,10 +298,10 @@ namespace de.ahzf.Hermod.HTTP
         {
 
             if (this.HTTPRequestHeader.Accept == null)
-                this.HTTPRequestHeader.Accept = new List<AcceptType>();
+                this.HTTPRequestHeader.Accept = new AcceptTypes();
 
             this.HTTPRequestHeader.Accept.Clear();
-            this.HTTPRequestHeader.Accept.Add(new AcceptType(HTTPContentType, Quality));
+            this.HTTPRequestHeader.Accept.Add(HTTPContentType, Quality);
             
             return this;
 
@@ -320,9 +320,9 @@ namespace de.ahzf.Hermod.HTTP
         {
             
             if (this.HTTPRequestHeader.Accept == null)
-                this.HTTPRequestHeader.Accept = new List<AcceptType>();
+                this.HTTPRequestHeader.Accept = new AcceptTypes();
 
-            this.HTTPRequestHeader.Accept.Add(new AcceptType(HTTPContentType, Quality));
+            this.HTTPRequestHeader.Accept.Add(HTTPContentType, Quality);
             
             return this;
 

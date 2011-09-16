@@ -207,7 +207,6 @@ namespace de.ahzf.Hermod.HTTP
                             CacheControl   = "no-cache",
                             Connection     = "close",
                             ContentStream  = _ResourceContent
-
                         };
 
             }

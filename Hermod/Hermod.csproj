@@ -52,6 +52,7 @@
     <Compile Include="HTTP\Client\HTTPClient.cs" />
     <Compile Include="HTTP\Header\HTTPHeaderField.cs" />
     <Compile Include="HTTP\Header\AHTTPHeader.cs" />
+    <Compile Include="HTTP\Header\Request\AcceptTypes.cs" />
     <Compile Include="HTTP\Header\Request\QueryString.cs" />
     <Compile Include="HTTP\HTTPResponseBuilder.cs" />
     <Compile Include="HTTP\HTTPRequestBuilder.cs" />
