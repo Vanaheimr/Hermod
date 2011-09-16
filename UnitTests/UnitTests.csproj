@@ -44,6 +44,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="HTTPClientTests.cs" />
+    <Compile Include="HTTPServer\RESTService.cs" />
     <Compile Include="HTTPServer\TCPClientRequest.cs" />
     <Compile Include="HTTPServer\IRESTService.cs" />
     <Compile Include="QueryStringTests.cs" />

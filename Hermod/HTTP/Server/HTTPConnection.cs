@@ -210,19 +210,19 @@ namespace de.ahzf.Hermod.HTTP
                     if (RequestHeader.HTTPStatusCode != HTTPStatusCode.OK)
                     {
                         SendErrorpage(RequestHeader.HTTPStatusCode,
-                                    RequestHeader,
-                                    RequestBody);
+                                      RequestHeader,
+                                      RequestBody);
                     }
 
                     #endregion
 
-                    var _ContentType = RequestHeader.Accept.BestMatchingContentType(Implementations.Keys.ToArray());
-                    var _X = Implementations[_ContentType];
+                    var BestContentType = RequestHeader.Accept.BestMatchingContentType(Implementations.Keys.ToArray());
+                    var BestImpl        = Implementations[BestContentType];
 
                     #region Invoke upper-layer protocol constructor
 
                     // Get constructor for HTTPServiceType
-                    var _Type = _X.GetType().
+                    var _Type = BestImpl.GetType().
                                 GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
                                                null,
                                                new Type[] {
@@ -253,7 +253,7 @@ namespace de.ahzf.Hermod.HTTP
                     var _ParsedCallback = URLMapping.GetHandler(RequestHeader.Host,
                                                                 RequestHeader.Url,
                                                                 RequestHeader.HTTPMethod,
-                                                                _ContentType);
+                                                                BestContentType);
 
                     if (_ParsedCallback == null || _ParsedCallback.Item1 == null)// || _ParsedCallback.Item1.MethodCallback == null)
                     {
@@ -450,7 +450,7 @@ namespace de.ahzf.Hermod.HTTP
             {
 
                 // Set the Content-Length if it was not set before
-                if (!HTTPResponseBuilder.ContentLength.HasValue)
+                if (HTTPResponseBuilder.ContentLength == 0)
                     HTTPResponseBuilder.ContentLength = (UInt64) HTTPResponseBuilder.Content.LongLength;
 
                 WriteToResponseStream(HTTPResponseBuilder.GetResponseHeader.ToUTF8Bytes());
@@ -462,7 +462,7 @@ namespace de.ahzf.Hermod.HTTP
             {
 
                 // Set the Content-Length if it was not set before
-                if (!HTTPResponseBuilder.ContentLength.HasValue)
+                if (HTTPResponseBuilder.ContentLength == 0)
                     HTTPResponseBuilder.ContentLength = (UInt64) HTTPResponseBuilder.ContentStream.Length;
 
                 WriteToResponseStream(HTTPResponseBuilder.GetResponseHeader.ToUTF8Bytes());

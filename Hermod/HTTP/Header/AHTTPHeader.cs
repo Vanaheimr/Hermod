@@ -714,16 +714,7 @@ namespace de.ahzf.Hermod.HTTP
         /// </summary>
         public IEnumerator<String> GetEnumerator()
         {
-            foreach (var field in HeaderFields)
-            {
-
-                if (field.Key == "Accept")
-                    yield return field.Key + ": " + (field.Value as List<AcceptType>).Select(at => at.ToString()).Aggregate((a, b) => a + ", " + b);
-
-                else
-                    yield return field.Key + ": " + field.Value.ToString();
-
-            }
+            return (from HeaderField in HeaderFields select HeaderField.Key + ": " + HeaderField.Value.ToString()).GetEnumerator();
         }
 
         /// <summary>
@@ -731,18 +722,7 @@ namespace de.ahzf.Hermod.HTTP
         /// </summary>
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
         {
-
-            foreach (var field in HeaderFields)
-            {
-
-                if (field.Key == "Accept")
-                    yield return field.Key + ": " + (field.Value as List<AcceptType>).Select(at => at.ToString()).Aggregate((a, b) => a + ", " + b);
-
-                else
-                    yield return field.Key + ": " + field.Value.ToString();
-
-            }
-
+            return (from HeaderField in HeaderFields select HeaderField.Key + ": " + HeaderField.Value.ToString()).GetEnumerator();
         }
 
         #endregion

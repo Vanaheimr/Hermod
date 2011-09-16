@@ -120,6 +120,10 @@ namespace de.ahzf.Hermod.HTTP
 
             var MatchingAcceptHeaders = new AcceptTypes();
 
+            // If no Accept-headerfield was given -> return anything.
+            if (List.IsNullOrEmpty())
+                return HTTPContentType.ALL;
+
             foreach (var AcceptType in List)
             {
 
@@ -130,8 +134,6 @@ namespace de.ahzf.Hermod.HTTP
                     MatchingAcceptHeaders.Add(AcceptType.ContentType, AcceptType.Quality);
 
             }
-
-          //  MatchingAcceptHeaders.Sort();
 
             var MaxQuality  = (from Matching in MatchingAcceptHeaders select Matching.Quality).Max();
             var BestMatches =  from Matching in MatchingAcceptHeaders where Matching.Quality == MaxQuality select Matching;
@@ -158,6 +160,13 @@ namespace de.ahzf.Hermod.HTTP
         {
             return List.GetEnumerator();
         }
+
+
+        public override String ToString()
+        {
+            return String.Join(",", List.Select(a => a.ContentType.MediaType.ToString() + ";q=" + a.Quality.ToString().Replace(',', '.')));
+        }
+
 
     }
 
