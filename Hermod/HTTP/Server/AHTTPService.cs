@@ -46,6 +46,11 @@ namespace de.ahzf.Hermod.HTTP
         public Assembly        CallingAssembly { get; protected set; }
         public String          ResourcePath    { get; private   set; }
 
+        /// <summary>
+        /// Returns an enumeration of all associated content types.
+        /// </summary>
+        public IEnumerable<HTTPContentType> HTTPContentTypes { get; private set; }
+
         #endregion
 
         #region Constructor(s)
@@ -60,16 +65,110 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
-        #region AHTTPService(IHTTPConnection)
+        #region AHTTPService(HTTPContentType)
+
+        /// <summary>
+        /// Creates a new abstract HTTPService.
+        /// </summary>
+        /// <param name="HTTPContentType">A content type.</param>
+        public AHTTPService(HTTPContentType HTTPContentType)
+        {
+
+            #region Initial checks
+
+            if (HTTPContentType == null)
+                throw new ArgumentNullException("The given HTTPContentType must not be null!");
+
+            #endregion
+
+            this.HTTPContentTypes = new HTTPContentType[1] { HTTPContentType };
+
+        }
+
+        #endregion
+
+        #region AHTTPService(HTTPContentTypes)
+
+        /// <summary>
+        /// Creates a new abstract HTTPService.
+        /// </summary>
+        /// <param name="HTTPContentType">A content type.</param>
+        public AHTTPService(IEnumerable<HTTPContentType> HTTPContentTypes)
+        {
+
+            #region Initial checks
+
+            if (HTTPContentTypes == null)
+                throw new ArgumentNullException("The given HTTPContentTypes must not be null!");
+
+            #endregion
+
+            this.HTTPContentTypes = HTTPContentTypes;
+
+        }
+
+        #endregion
+
+        #region AHTTPService(IHTTPConnection, HTTPContentType, ResourcePath)
 
         /// <summary>
         /// Creates a new abstract HTTPService.
         /// </summary>
         /// <param name="IHTTPConnection">The http connection for this request.</param>
-        public AHTTPService(IHTTPConnection IHTTPConnection, String ResourcePath)
+        /// <param name="HTTPContentType">A content type.</param>
+        /// <param name="ResourcePath">The path to internal resources.</param>
+        public AHTTPService(IHTTPConnection IHTTPConnection, HTTPContentType HTTPContentType, String ResourcePath)
         {
-            this.IHTTPConnection = IHTTPConnection;
-            this.ResourcePath    = ResourcePath;
+
+            #region Initial checks
+
+            if (IHTTPConnection == null)
+                throw new ArgumentNullException("The given IHTTPConnection must not be null!");
+
+            if (HTTPContentType == null)
+                throw new ArgumentNullException("The given HTTPContentType must not be null!");
+
+            if (ResourcePath.IsNullOrEmpty())
+                throw new ArgumentNullException("The given ResourcePath must not be null or empty!");
+
+            #endregion
+
+            this.IHTTPConnection  = IHTTPConnection;
+            this.HTTPContentTypes = new HTTPContentType[1] { HTTPContentType };
+            this.ResourcePath     = ResourcePath;
+
+        }
+
+        #endregion
+
+        #region AHTTPService(IHTTPConnection, HTTPContentTypes, ResourcePath)
+
+        /// <summary>
+        /// Creates a new abstract HTTPService.
+        /// </summary>
+        /// <param name="IHTTPConnection">The http connection for this request.</param>
+        /// <param name="HTTPContentTypes">An enumeration of content types.</param>
+        /// <param name="ResourcePath">The path to internal resources.</param>
+        public AHTTPService(IHTTPConnection IHTTPConnection, IEnumerable<HTTPContentType> HTTPContentTypes, String ResourcePath)
+        {
+
+            #region Initial checks
+
+            if (IHTTPConnection == null)
+                throw new ArgumentNullException("The given IHTTPConnection must not be null!");
+
+            if (HTTPContentTypes.IsNullOrEmpty())
+                throw new ArgumentNullException("The given HTTPContentTypes must not be null or empty!");
+
+            if (ResourcePath.IsNullOrEmpty())
+                throw new ArgumentNullException("The given ResourcePath must not be null or empty!");
+
+            #endregion
+
+            this.IHTTPConnection  = IHTTPConnection;
+            this.HTTPContentTypes = HTTPContentTypes;
+            this.ResourcePath     = ResourcePath;
+
         }
 
         #endregion
@@ -106,6 +205,38 @@ namespace de.ahzf.Hermod.HTTP
         #endregion
 
 
+        #region Error400_BadRequest()
+
+        protected HTTPResponseHeader Error400_BadRequest()
+        {
+
+            return new HTTPResponseBuilder()
+            {
+                HTTPStatusCode = HTTPStatusCode.BadRequest,
+                CacheControl   = "no-cache",
+                Connection     = "close",
+            };
+
+        }
+
+        #endregion
+
+        #region Error404_NotFound()
+
+        protected HTTPResponseHeader Error404_NotFound()
+        {
+
+            return new HTTPResponseBuilder()
+                    {
+                        HTTPStatusCode = HTTPStatusCode.NotFound,
+                        CacheControl   = "no-cache",
+                        Connection     = "close",
+                    };
+
+        }
+
+        #endregion
+
         #region Error406_NotAcceptable()
 
         protected HTTPResponseHeader Error406_NotAcceptable()
@@ -114,12 +245,25 @@ namespace de.ahzf.Hermod.HTTP
             return new HTTPResponseBuilder()
                     {
                         HTTPStatusCode = HTTPStatusCode.NotAcceptable,
-                        ContentType    = HTTPContentType.TEXT_UTF8,
-                        ContentLength  = 0,
                         CacheControl   = "no-cache",
                         Connection     = "close",
-                        Content        = new Byte[0]
                     };
+
+        }
+
+        #endregion
+
+        #region Error409_Conflict()
+
+        protected HTTPResponseHeader Error409_Conflict()
+        {
+
+            return new HTTPResponseBuilder()
+            {
+                HTTPStatusCode = HTTPStatusCode.Conflict,
+                CacheControl   = "no-cache",
+                Connection     = "close",
+            };
 
         }
 
@@ -197,13 +341,12 @@ namespace de.ahzf.Hermod.HTTP
                 if (_AllResources.Contains(this.ResourcePath + ".errorpages.Error404.html"))
                     _ResourceContent = this.CallingAssembly.GetManifestResourceStream(this.ResourcePath + ".errorpages.Error404.html");
                 else
-                    _ResourceContent = new MemoryStream(UTF8Encoding.UTF8.GetBytes("Error 404 - File not found!"));
+                    _ResourceContent = new MemoryStream("Error 404 - File not found!".ToUTF8Bytes());
 
                 return new HTTPResponseBuilder()
                         {
                             HTTPStatusCode = HTTPStatusCode.NotFound,
                             ContentType    = HTTPContentType.HTML_UTF8,
-                            ContentLength  = (UInt64) _ResourceContent.Length,
                             CacheControl   = "no-cache",
                             Connection     = "close",
                             ContentStream  = _ResourceContent

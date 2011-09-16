@@ -37,25 +37,6 @@ namespace de.ahzf.Hermod.UnitTests
     public class RESTService : AHTTPService, IRESTService
     {
 
-        #region Properties
-
-        #region HTTPContentTypes
-
-        /// <summary>
-        /// Returns an enumeration of all associated content types.
-        /// </summary>
-        public IEnumerable<HTTPContentType> HTTPContentTypes
-        {
-            get
-            {
-                return new HTTPContentType[1] { HTTPContentType.ALL };
-            }
-        }
-
-        #endregion
-
-        #endregion
-
         #region Constructor(s)
 
         #region RESTService()
@@ -64,18 +45,19 @@ namespace de.ahzf.Hermod.UnitTests
         /// Creates a new RESTService_HTML.
         /// </summary>
         public RESTService()
+            : base(HTTPContentType.ALL)
         { }
 
         #endregion
 
-        #region RESTService(myIHTTPConnection)
+        #region RESTService(IHTTPConnection)
 
         /// <summary>
         /// Creates a new RESTService_HTML.
         /// </summary>
-        /// <param name="myIHTTPConnection">The http connection for this request.</param>
-        public RESTService(IHTTPConnection myIHTTPConnection)
-            : base(myIHTTPConnection, "HermodDemo.resources.")
+        /// <param name="IHTTPConnection">The http connection for this request.</param>
+        public RESTService(IHTTPConnection IHTTPConnection)
+            : base(IHTTPConnection, HTTPContentType.ALL, "HermodDemo.resources.")
         {
             this.CallingAssembly = Assembly.GetExecutingAssembly();
         }

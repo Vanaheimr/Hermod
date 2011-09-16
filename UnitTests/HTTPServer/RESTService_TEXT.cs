@@ -37,25 +37,6 @@ namespace de.ahzf.Hermod.UnitTests
     public class RESTService_TEXT : AHTTPService, IRESTService
     {
 
-        #region Properties
-
-        #region HTTPContentTypes
-
-        /// <summary>
-        /// Returns an enumeration of all associated content types.
-        /// </summary>
-        public IEnumerable<HTTPContentType> HTTPContentTypes
-        {
-            get
-            {
-                return new HTTPContentType[1] { HTTPContentType.TEXT_UTF8 };
-            }
-        }
-
-        #endregion
-
-        #endregion
-
         #region Constructor(s)
 
         #region RESTService_TEXT()
@@ -64,6 +45,7 @@ namespace de.ahzf.Hermod.UnitTests
         /// Creates a new RESTService_TEXT.
         /// </summary>
         public RESTService_TEXT()
+            : base(HTTPContentType.TEXT_UTF8)
         { }
 
         #endregion
@@ -75,7 +57,7 @@ namespace de.ahzf.Hermod.UnitTests
         /// </summary>
         /// <param name="IHTTPConnection">The http connection for this request.</param>
         public RESTService_TEXT(IHTTPConnection IHTTPConnection)
-            : base(IHTTPConnection, "HermodDemo.resources.")
+            : base(IHTTPConnection, HTTPContentType.TEXT_UTF8, "HermodDemo.resources.")
         {
             this.CallingAssembly = Assembly.GetExecutingAssembly();
         }

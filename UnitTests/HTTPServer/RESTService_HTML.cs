@@ -37,25 +37,6 @@ namespace de.ahzf.Hermod.UnitTests
     public class RESTService_HTML : AHTTPService, IRESTService
     {
 
-        #region Properties
-
-        #region HTTPContentTypes
-
-        /// <summary>
-        /// Returns an enumeration of all associated content types.
-        /// </summary>
-        public IEnumerable<HTTPContentType> HTTPContentTypes
-        {
-            get
-            {
-                return new HTTPContentType[1] { HTTPContentType.HTML_UTF8 };
-            }
-        }
-
-        #endregion
-
-        #endregion
-
         #region Constructor(s)
 
         #region RESTService_HTML()
@@ -64,18 +45,19 @@ namespace de.ahzf.Hermod.UnitTests
         /// Creates a new RESTService_HTML.
         /// </summary>
         public RESTService_HTML()
+            : base(HTTPContentType.HTML_UTF8)
         { }
 
         #endregion
 
-        #region RESTService_HTML(myIHTTPConnection)
+        #region RESTService_HTML(IHTTPConnection)
 
         /// <summary>
         /// Creates a new RESTService_HTML.
         /// </summary>
-        /// <param name="myIHTTPConnection">The http connection for this request.</param>
-        public RESTService_HTML(IHTTPConnection myIHTTPConnection)
-            : base(myIHTTPConnection, "HermodDemo.resources.")
+        /// <param name="IHTTPConnection">The http connection for this request.</param>
+        public RESTService_HTML(IHTTPConnection IHTTPConnection)
+            : base(IHTTPConnection, HTTPContentType.HTML_UTF8, "HermodDemo.resources.")
         {
             this.CallingAssembly = Assembly.GetExecutingAssembly();
         }

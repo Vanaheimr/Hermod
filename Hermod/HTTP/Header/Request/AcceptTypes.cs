@@ -109,7 +109,7 @@ namespace de.ahzf.Hermod.HTTP
 
 
 
-        #region BestMatchingContentType
+        #region BestMatchingContentType(AvailableContentTypes)
 
         /// <summary>
         /// Will return the best matching content type OR the first given!
@@ -135,13 +135,27 @@ namespace de.ahzf.Hermod.HTTP
 
             }
 
-            var MaxQuality  = (from Matching in MatchingAcceptHeaders select Matching.Quality).Max();
-            var BestMatches =  from Matching in MatchingAcceptHeaders where Matching.Quality == MaxQuality select Matching;
+            var MaxQuality  = (from   Matching
+                               in     MatchingAcceptHeaders
+                               select Matching.Quality).Max();
+
+            var BestMatches =  from   Matching
+                               in     MatchingAcceptHeaders
+                               where  Matching.Quality == MaxQuality
+                               select Matching;
+
+            if (BestMatches.Count() > 1)
+                BestMatches = from   Matching
+                              in     MatchingAcceptHeaders
+                              where  Matching.Quality == MaxQuality
+                              where  Matching.ContentType.MediaType != "*/*"
+                              select Matching;
+
 
             if (BestMatches.IsNullOrEmpty())
-                return null;
-            else// if (hm.Count() == 1)
-                return MatchingAcceptHeaders.First().ContentType;
+                return HTTPContentType.ALL;
+            else
+                return BestMatches.First().ContentType;
 
         }
 

@@ -247,7 +247,6 @@ namespace de.ahzf.Hermod.HTTP
 
                     //ToDo: Add HTTP pipelining!
 
-
                     #region Get and check callback...
 
                     var _ParsedCallback = URLMapping.GetHandler(RequestHeader.Host,
