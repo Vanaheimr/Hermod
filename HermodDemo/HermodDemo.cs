@@ -39,6 +39,23 @@ namespace de.ahzf.Hermod.Demo
     public class HermodDemo
     {
 
+        private static void WriteRequest(HTTPRequestBuilder Request)
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("Request:");
+            Console.ForegroundColor = ConsoleColor.Gray;
+            Console.WriteLine(Request.EntireRequestHeader + Environment.NewLine);
+        }
+
+        private static void WriteResponse(HTTPResponse Response)
+        {
+            Console.ForegroundColor = ConsoleColor.Blue;
+            Console.WriteLine("Response:");
+            Console.WriteLine(Response.RawHTTPHeader + Environment.NewLine);
+            Console.ForegroundColor = ConsoleColor.Gray;
+            Console.WriteLine(Response.Content.ToUTF8String() + Environment.NewLine);
+        }
+
         /// <summary>
         /// Main.
         /// </summary>
@@ -90,15 +107,40 @@ namespace de.ahzf.Hermod.Demo
             #endregion
 
             var _client1     = new HTTPClient(IPv4Address.Localhost, IPPort.HTTP);
-            var _request1    = _client1.GET    ("/HelloWorld").
-                                        Host   ("localhost").
-                                        AddAccept (HTTPContentType.TEXT_UTF8);
-            var _request1Str = _request1.ToString();
-            Console.WriteLine("Request:" + Environment.NewLine + _request1.HTTPHeader.Aggregate((a, b) => a + Environment.NewLine + b));
-            _request1.Execute().
-                ContinueWith(RequestTask => { Console.WriteLine("Response: " + Environment.NewLine + RequestTask.Result.ResponseBody.ToUTF8String()); return RequestTask.Result; }).
-                ContinueWith(RequestTask => { RequestTask.Result.Accept(HTTPContentType.HTML_UTF8); return RequestTask.Result.Execute().Result; }).
-                ContinueWith(RequestTask => { Console.WriteLine("Response: " + Environment.NewLine + RequestTask.Result.ResponseBody.ToUTF8String()); });
+
+            var _request0    = _client1.GET("/HelloWorld").
+                                        SetHost("localhorst").
+                                        AddAccept(HTTPContentType.TEXT_UTF8, 1);
+
+            var _request1    = _client1.GET("/HelloWorld").
+                                        SetHost("localhorst").
+                                        AddAccept(HTTPContentType.HTML_UTF8, 1);
+
+            //WriteRequest(_request0.EntireRequestHeader);
+
+            //_client1.Execute(_request0, response => WriteResponse(response.Content.ToUTF8String())).
+            //         ContinueWith(HTTPClient => { WriteRequest(_request1.EntireRequestHeader); return HTTPClient.Result; }).
+            //         ContinueWith(HTTPClient => HTTPClient.Result.Execute(_request1, response => WriteResponse(response.Content.ToUTF8String()))).
+            //         Wait();
+
+            var _client2 = new HTTPClient(IPv4Address.Parse("188.40.47.229"), IPPort.HTTP);
+            var _requestA = _client2.GET("/").
+                                     SetProtocolVersion(HTTPVersion.HTTP_1_1).
+                                     SetHost("www.ahzf.de").
+                                     SetUserAgent("Hermod HTTP Client v0.1").
+                                     SetConnection("keep-alive").
+                                     AddAccept(HTTPContentType.HTML_UTF8, 1);
+
+            var _requestB = _client2.GET("/nfgj").
+                                     SetProtocolVersion(HTTPVersion.HTTP_1_1).
+                                     SetHost("www.ahzf.de").
+                                     SetUserAgent("Hermod HTTP Client v0.1").
+                                     SetConnection("keep-alive").
+                                     AddAccept(HTTPContentType.HTML_UTF8, 1);
+
+            WriteRequest(_requestA);
+            _client2.Execute(_requestA, response => WriteResponse(response)).
+                ContinueWith(Client => Client.Result.Execute(_requestB, response => WriteResponse(response)));
 
 
             var _req23a = new HTTPRequestBuilder().
@@ -123,7 +165,7 @@ namespace de.ahzf.Hermod.Demo
                           };
 
 
-            var Response = new TCPClientRequest("localhost", 80).Send("GETTT / HTTP/1.1").FinishCurrentRequest().Response;
+//            var Response = new TCPClientRequest("localhost", 80).Send("GETTT / HTTP/1.1").FinishCurrentRequest().Response;
 
             Console.ReadLine();
             Console.WriteLine("done!");

@@ -22,6 +22,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Collections.Generic;
+using System.ComponentModel;
 
 #endregion
 
@@ -29,36 +30,26 @@ namespace de.ahzf.Hermod.HTTP
 {
 
     /// <summary>
-    /// An abstract HTTP header.
+    /// An abstract HTTP protocol data unit builder.
+    /// A HTTP pdu has three parts:
+    ///  - First a request/response specific first line
+    ///  - A collection of key-value pairs of type &lt;string,object&gt;
+    ///    for any kind of metadata
+    ///  - A body hosting the transmitted content
     /// </summary>
-    public abstract class AHTTPHeader : IEnumerable<String>
+    public abstract class AHTTPPDUBuilder : AHTTPBasePDU, IEnumerable<KeyValuePair<String, Object>>, INotifyPropertyChanged
     {
-
-        #region Data
-
-        /// <summary>
-        /// All header fields.
-        /// </summary>
-        protected readonly IDictionary<String, Object> HeaderFields;
-
-        protected readonly String[] _LineSeperator;
-        protected readonly Char[]   _ColonSeperator;
-        protected readonly Char[]   _SlashSeperator;
-        protected readonly Char[]   _SpaceSeperator;
-        protected readonly Char[]   _URLSeperator;
-
-        #endregion
 
         #region Properties
 
         #region Non-HTTP header fields
 
-        #region RawHTTPHeader
+        #region ConstructedHTTPHeader
 
         /// <summary>
         /// Return a string representation of this HTTPHeader.
         /// </summary>
-        public String RawHTTPHeader
+        public String ConstructedHTTPHeader
         {
             get
             {
@@ -82,43 +73,119 @@ namespace de.ahzf.Hermod.HTTP
         /// <summary>
         /// The HTTP status code.
         /// </summary>
-        public HTTPStatusCode HTTPStatusCode { get; protected set; }
+        public new HTTPStatusCode HTTPStatusCode
+        {
+
+            get
+            {
+                return _HTTPStatusCode;
+            }
+
+            set
+            {
+                SetProperty(ref _HTTPStatusCode, value, "HTTPStatusCode");
+            }
+
+        }
 
         #endregion
 
         #region ProtocolName
 
+        private String _ProtocolName;
+
         /// <summary>
         /// The HTTP protocol name field.
         /// </summary>
-        public String  ProtocolName    { get; protected set; }
+        public String ProtocolName
+        {
+
+            get
+            {
+                return _ProtocolName;
+            }
+
+            set
+            {
+                SetProperty(ref _ProtocolName, value, "ProtocolName");
+            }
+
+        }
 
         #endregion
 
         #region ProtocolVersion
 
+        private HTTPVersion _ProtocolVersion;
+
         /// <summary>
         /// The HTTP protocol version.
         /// </summary>
-        public HTTPVersion ProtocolVersion { get; protected set; }
+        public HTTPVersion ProtocolVersion
+        {
+
+            get
+            {
+                return _ProtocolVersion;
+            }
+
+            set
+            {
+                SetProperty(ref _ProtocolVersion, value, "ProtocolVersion");
+            }
+
+        }
 
         #endregion
 
         #region Content
 
+        private Byte[] _Content;
+
         /// <summary>
         /// The HTTP body/content as an array of bytes.
         /// </summary>
-        public Byte[] Content { get; protected set; }
+        public Byte[] Content
+        {
+
+            get
+            {
+                return _Content;
+            }
+
+            set
+            {
+                SetProperty(ref _Content, value, "Content");
+                ContentLength = (UInt64) _Content.LongLength;
+            }
+
+        }
 
         #endregion
 
         #region ContentStream
 
+        private Stream _ContentStream;
+
         /// <summary>
         /// The HTTP body/content as a stream.
         /// </summary>
-        public Stream ContentStream { get; protected set; }
+        public Stream ContentStream
+        {
+
+            get
+            {
+                return _ContentStream;
+            }
+
+            set
+            {
+                SetProperty(ref _ContentStream, value, "ContentStream");
+                // Setting the Content-Length might break lazyness!
+                //ContentLength = (UInt64) _ContentStream.Length;
+            }
+
+        }
 
         #endregion
 
@@ -130,10 +197,17 @@ namespace de.ahzf.Hermod.HTTP
 
         public String CacheControl
         {
+
             get
             {
                 return GetHeaderField(HTTPHeaderField.CacheControl);
             }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.CacheControl, value);
+            }
+
         }
 
         #endregion
@@ -142,10 +216,17 @@ namespace de.ahzf.Hermod.HTTP
 
         public String Connection
         {
+
             get
             {
                 return GetHeaderField(HTTPHeaderField.Connection);
             }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.Connection, value);
+            }
+
         }
 
         #endregion
@@ -154,10 +235,17 @@ namespace de.ahzf.Hermod.HTTP
 
         public Encoding ContentEncoding
         {
+
             get
             {
                 return GetHeaderField<Encoding>("Content-Encoding");
             }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.ContentEncoding, value);
+            }
+
         }
 
         #endregion
@@ -166,10 +254,17 @@ namespace de.ahzf.Hermod.HTTP
 
         public List<String> ContentLanguage
         {
+
             get
             {
                 return GetHeaderField<List<String>>(HTTPHeaderField.ContentLanguage);
             }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.ContentLanguage, value);
+            }
+
         }
 
         #endregion
@@ -178,10 +273,17 @@ namespace de.ahzf.Hermod.HTTP
 
         public UInt64? ContentLength
         {
+
             get
             {
-                return GetHeaderField<UInt64>(HTTPHeaderField.ContentLength);
+                return GetHeaderField_UInt64(HTTPHeaderField.ContentLength);
             }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.ContentLength, value);
+            }
+
         }
 
         #endregion
@@ -190,10 +292,17 @@ namespace de.ahzf.Hermod.HTTP
 
         public String ContentLocation
         {
+
             get
             {
                 return GetHeaderField(HTTPHeaderField.ContentLocation);
             }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.ContentLocation, value);
+            }
+
         }
 
         #endregion
@@ -202,10 +311,17 @@ namespace de.ahzf.Hermod.HTTP
 
         public String ContentMD5
         {
+
             get
             {
                 return GetHeaderField(HTTPHeaderField.ContentMD5);
             }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.ContentMD5, value);
+            }
+
         }
 
         #endregion
@@ -214,10 +330,17 @@ namespace de.ahzf.Hermod.HTTP
 
         public String ContentRange
         {
+
             get
             {
                 return GetHeaderField(HTTPHeaderField.ContentRange);
             }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.ContentRange, value);
+            }
+
         }
 
         #endregion
@@ -226,6 +349,7 @@ namespace de.ahzf.Hermod.HTTP
 
         public HTTPContentType ContentType
         {
+
             get
             {
              //   return GetHeaderField<HTTPContentType>("Content-Type");
@@ -245,6 +369,12 @@ namespace de.ahzf.Hermod.HTTP
                 return null;
 
             }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.ContentType, value);
+            }
+
         }
 
         #endregion
@@ -253,10 +383,17 @@ namespace de.ahzf.Hermod.HTTP
 
         public String Date
         {
+
             get
             {
                 return GetHeaderField(HTTPHeaderField.Date);
             }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.Date, value);
+            }
+
         }
 
         #endregion
@@ -265,13 +402,52 @@ namespace de.ahzf.Hermod.HTTP
 
         public String Via
         {
+
             get
             {
                 return GetHeaderField(HTTPHeaderField.Via);
             }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.Via, value);
+            }
+
         }
 
         #endregion
+
+        #region Transfer-Encoding
+
+        public String TransferEncoding
+        {
+
+            get
+            {
+                return GetHeaderField(HTTPHeaderField.TransferEncoding);
+            }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.TransferEncoding, value);
+            }
+
+        }
+
+        #endregion
+
+        #endregion
+
+        #endregion
+
+        #region Events
+
+        #region PropertyChanged
+
+        /// <summary>
+        /// Raise an event whenever a property is changed.
+        /// </summary>
+        public event PropertyChangedEventHandler PropertyChanged;
 
         #endregion
 
@@ -279,57 +455,76 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region AHTTPHeader()
+        #region AHTTPPDUBuilder()
 
         /// <summary>
         /// Creates a new HTTP header.
         /// </summary>
-        public AHTTPHeader()
-        {
-
-            _LineSeperator  = new String[] { Environment.NewLine };
-            _ColonSeperator = new Char[]   { ':' };
-            _SlashSeperator = new Char[]   { '/' };
-            _SpaceSeperator = new Char[]   { ' ' };
-            _URLSeperator   = new Char[]   { '?', '!' };
-
-            HeaderFields    = new Dictionary<String, Object>(StringComparer.OrdinalIgnoreCase);
-
-        }
+        public AHTTPPDUBuilder()
+        { }
 
         #endregion
 
         #endregion
 
 
-        #region (protected) ParseHeader(HTTPHeaderLines)
+        #region (protected) SetProperty<T>(ref Field, NewValue, PropertyName)
 
         /// <summary>
-        /// Parse an HTTP header.
+        /// Change a property value and raises an PropertyChanged event.
         /// </summary>
-        /// <param name="HTTPHeaderLines">An enumeration of strings.</param>
-        protected void ParseHeader(IEnumerable<String> HTTPHeaderLines)
+        /// <typeparam name="T">The type of the property.</typeparam>
+        /// <param name="Field">The internal field.</param>
+        /// <param name="NewValue">The new value of the property.</param>
+        /// <param name="PropertyName">The name of the property.</param>
+        protected void SetProperty<T>(ref T Field, T NewValue, String PropertyName)
         {
 
-            if (HTTPHeaderLines.Count() == 0)
+            if (!EqualityComparer<T>.Default.Equals(Field, NewValue))
             {
-                this.HTTPStatusCode = HTTPStatusCode.BadRequest;
-                return;
+
+                Field = NewValue;
+
+                // Take a copy of the handler for concurrency issues!
+                var handler = PropertyChanged;
+                if (handler != null)
+                {
+                    handler(this, new PropertyChangedEventArgs(PropertyName));
+                }
+
             }
-
-            String[] _KeyValuePairs = null;
-
-            foreach (var _Line in HTTPHeaderLines)
-            {
-                _KeyValuePairs = _Line.Split(_ColonSeperator, 2, StringSplitOptions.RemoveEmptyEntries);
-                HeaderFields.Add(_KeyValuePairs[0].Trim(), _KeyValuePairs[1].Trim());
-            }
-
-            this.HTTPStatusCode = HTTPStatusCode.OK;
 
         }
 
         #endregion
+
+
+        #region PrepareImmutability()
+
+        /// <summary>
+        /// Prepares the immutability of an HTTP PDU, e.g. calculates
+        /// and set the Content-Length header.
+        /// </summary>
+        protected virtual void PrepareImmutability()
+        {
+
+            #region Set the Content-Length if it was not set before
+
+            if (ContentLength == 0)
+            {
+                if (Content != null)
+                    ContentLength = (UInt64) Content.LongLength;
+
+                else if (ContentStream != null)
+                    ContentLength = (UInt64) ContentStream.Length;
+            }
+
+            #endregion
+
+        }
+
+        #endregion
+
 
 
         #region (protected) TryGetHeaderField(FieldName)
@@ -619,7 +814,7 @@ namespace de.ahzf.Hermod.HTTP
             {
 
                 if (Value is UInt64?)
-                    return (UInt64?)Value;
+                    return (UInt64?) Value;
 
                 UInt64 UInt64Value;
                 if (UInt64.TryParse(Value.ToString(), out UInt64Value))
@@ -712,9 +907,9 @@ namespace de.ahzf.Hermod.HTTP
         /// <summary>
         /// Return an enumeration of all header lines.
         /// </summary>
-        public IEnumerator<String> GetEnumerator()
+        public IEnumerator<KeyValuePair<String, Object>> GetEnumerator()
         {
-            return (from HeaderField in HeaderFields select HeaderField.Key + ": " + HeaderField.Value.ToString()).GetEnumerator();
+            return HeaderFields.GetEnumerator();
         }
 
         /// <summary>
@@ -722,7 +917,7 @@ namespace de.ahzf.Hermod.HTTP
         /// </summary>
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
         {
-            return (from HeaderField in HeaderFields select HeaderField.Key + ": " + HeaderField.Value.ToString()).GetEnumerator();
+            return HeaderFields.GetEnumerator();
         }
 
         #endregion

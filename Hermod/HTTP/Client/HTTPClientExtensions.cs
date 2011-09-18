@@ -32,107 +32,107 @@ namespace de.ahzf.Hermod.HTTP
 
         #region RFC 2616 - HTTP/1.1
 
-        #region DELETE(this HTTPClient, URLPattern = "/")
+        #region DELETE(this HTTPClient, UrlPath = "/")
 
         /// <summary>
         /// Create a new HTTP DELETE request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="URLPattern">An URL pattern.</param>
+        /// <param name="UrlPath">An URL path.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest DELETE(this HTTPClient HTTPClient, String URLPattern = "/")
+        public static HTTPRequestBuilder DELETE(this HTTPClient HTTPClient, String UrlPath = "/")
         {
-            return HTTPClient.CreateRequest(HTTPMethod.DELETE, URLPattern);
+            return HTTPClient.CreateRequest(HTTPMethod.DELETE, UrlPath);
         }
 
         #endregion
 
-        #region GET(this HTTPClient, URLPattern = "/")
+        #region GET(this HTTPClient, UrlPath = "/")
 
         /// <summary>
         /// Create a new HTTP GET request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="URLPattern">An URL pattern.</param>
+        /// <param name="UrlPath">An URL path.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest GET(this HTTPClient HTTPClient, String URLPattern = "/")
+        public static HTTPRequestBuilder GET(this HTTPClient HTTPClient, String UrlPath = "/")
         {
-            return HTTPClient.CreateRequest(HTTPMethod.GET, URLPattern);
+            return HTTPClient.CreateRequest(HTTPMethod.GET, UrlPath);
         }
 
         #endregion
 
-        #region HEAD(this HTTPClient, URLPattern = "/")
+        #region HEAD(this HTTPClient, UrlPath = "/")
 
         /// <summary>
         /// Create a new HTTP HEAD request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="URLPattern">An URL pattern.</param>
+        /// <param name="UrlPath">An URL path.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest HEAD(this HTTPClient HTTPClient, String URLPattern = "/")
+        public static HTTPRequestBuilder HEAD(this HTTPClient HTTPClient, String UrlPath = "/")
         {
-            return HTTPClient.CreateRequest(HTTPMethod.HEAD, URLPattern);
+            return HTTPClient.CreateRequest(HTTPMethod.HEAD, UrlPath);
         }
 
         #endregion
 
-        #region OPTIONS(this HTTPClient, URLPattern = "/")
+        #region OPTIONS(this HTTPClient, UrlPath = "/")
 
         /// <summary>
         /// Create a new HTTP OPTIONS request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="URLPattern">An URL pattern.</param>
+        /// <param name="UrlPath">An URL path.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest OPTIONS(this HTTPClient HTTPClient, String URLPattern = "/")
+        public static HTTPRequestBuilder OPTIONS(this HTTPClient HTTPClient, String UrlPath = "/")
         {
-            return HTTPClient.CreateRequest(HTTPMethod.OPTIONS, URLPattern);
+            return HTTPClient.CreateRequest(HTTPMethod.OPTIONS, UrlPath);
         }
 
         #endregion
 
-        #region POST(this HTTPClient, URLPattern = "/")
+        #region POST(this HTTPClient, UrlPath = "/")
 
         /// <summary>
         /// Create a new HTTP POST request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="URLPattern">An URL pattern.</param>
+        /// <param name="UrlPath">An URL path.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest POST(this HTTPClient HTTPClient, String URLPattern = "/")
+        public static HTTPRequestBuilder POST(this HTTPClient HTTPClient, String UrlPath = "/")
         {
-            return HTTPClient.CreateRequest(HTTPMethod.POST, URLPattern);
+            return HTTPClient.CreateRequest(HTTPMethod.POST, UrlPath);
         }
 
         #endregion
 
-        #region PUT(this HTTPClient, URLPattern = "/")
+        #region PUT(this HTTPClient, UrlPath = "/")
 
         /// <summary>
         /// Create a new HTTP PUT request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="URLPattern">An URL pattern.</param>
+        /// <param name="UrlPath">An URL path.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest PUT(this HTTPClient HTTPClient, String URLPattern = "/")
+        public static HTTPRequestBuilder PUT(this HTTPClient HTTPClient, String UrlPath = "/")
         {
-            return HTTPClient.CreateRequest(HTTPMethod.PUT, URLPattern);
+            return HTTPClient.CreateRequest(HTTPMethod.PUT, UrlPath);
         }
 
         #endregion
 
-        #region TRACE(this HTTPClient, URLPattern = "/")
+        #region TRACE(this HTTPClient, UrlPath = "/")
 
         /// <summary>
         /// Create a new HTTP TRACE request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="URLPattern">An URL pattern.</param>
+        /// <param name="UrlPath">An URL path.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest TRACE(this HTTPClient HTTPClient, String URLPattern = "/")
+        public static HTTPRequestBuilder TRACE(this HTTPClient HTTPClient, String UrlPath = "/")
         {
-            return HTTPClient.CreateRequest(HTTPMethod.TRACE, URLPattern);
+            return HTTPClient.CreateRequest(HTTPMethod.TRACE, UrlPath);
         }
 
         #endregion
@@ -141,32 +141,32 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Additional methods
 
-        #region PATCH(this HTTPClient, URLPattern = "/")
+        #region PATCH(this HTTPClient, UrlPath = "/")
 
         /// <summary>
         /// Create a new HTTP PATCH request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="URLPattern">An URL pattern.</param>
+        /// <param name="UrlPath">An URL path.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest PATCH(this HTTPClient HTTPClient, String URLPattern = "/")
+        public static HTTPRequestBuilder PATCH(this HTTPClient HTTPClient, String UrlPath = "/")
         {
-            return HTTPClient.CreateRequest(HTTPMethod.PATCH, URLPattern);
+            return HTTPClient.CreateRequest(HTTPMethod.PATCH, UrlPath);
         }
 
         #endregion
 
-        #region TRAVERSE(this HTTPClient, URLPattern = "/")
+        #region TRAVERSE(this HTTPClient, UrlPath = "/")
 
         /// <summary>
         /// Create a new HTTP TRAVERSE request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="URLPattern">An URL pattern.</param>
+        /// <param name="UrlPath">An URL path.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest TRAVERSE(this HTTPClient HTTPClient, String URLPattern = "/")
+        public static HTTPRequestBuilder TRAVERSE(this HTTPClient HTTPClient, String UrlPath = "/")
         {
-            return HTTPClient.CreateRequest(HTTPMethod.TRAVERSE, URLPattern);
+            return HTTPClient.CreateRequest(HTTPMethod.TRAVERSE, UrlPath);
         }
 
         #endregion

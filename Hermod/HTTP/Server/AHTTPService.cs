@@ -178,7 +178,7 @@ namespace de.ahzf.Hermod.HTTP
 
         #region GetRAWRequestHeader()
 
-        public HTTPResponseHeader GetRAWRequestHeader()
+        public HTTPResponse GetRAWRequestHeader()
         {
 
             return new HTTPResponseBuilder()
@@ -189,13 +189,13 @@ namespace de.ahzf.Hermod.HTTP
                     ContentType    = HTTPContentType.TEXT_UTF8,
                     Content        = ("Incoming http connection from '" + IHTTPConnection.RemoteSocket + "'" +
                                        Environment.NewLine + Environment.NewLine +
-                                       IHTTPConnection.RequestHeader.RawHTTPHeader +
+                                       IHTTPConnection.InHTTPRequest.RawHTTPHeader +
                                        Environment.NewLine + Environment.NewLine +
-                                       "Method => " + IHTTPConnection.RequestHeader.HTTPMethod + Environment.NewLine +
-                                       "URL => " + IHTTPConnection.RequestHeader.Url + Environment.NewLine +
-                                       "QueryString => " + IHTTPConnection.RequestHeader.QueryString + Environment.NewLine +
-                                       "Protocol => " + IHTTPConnection.RequestHeader.ProtocolName + Environment.NewLine +
-                                       "Version => " + IHTTPConnection.RequestHeader.ProtocolVersion + Environment.NewLine +
+                                       "Method => " + IHTTPConnection.InHTTPRequest.HTTPMethod + Environment.NewLine +
+                                       "URL => " + IHTTPConnection.InHTTPRequest.UrlPath + Environment.NewLine +
+                                       "QueryString => " + IHTTPConnection.InHTTPRequest.QueryString + Environment.NewLine +
+                                       "Protocol => " + IHTTPConnection.InHTTPRequest.ProtocolName + Environment.NewLine +
+                                       "Version => " + IHTTPConnection.InHTTPRequest.ProtocolVersion + Environment.NewLine +
                                        Environment.NewLine + Environment.NewLine +
                                        IHTTPConnection.ResponseHeader.HTTPStatusCode).ToUTF8Bytes()
                 };
@@ -207,7 +207,7 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Error400_BadRequest()
 
-        protected HTTPResponseHeader Error400_BadRequest()
+        protected HTTPResponse Error400_BadRequest()
         {
 
             return new HTTPResponseBuilder()
@@ -223,7 +223,7 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Error404_NotFound()
 
-        protected HTTPResponseHeader Error404_NotFound()
+        protected HTTPResponse Error404_NotFound()
         {
 
             return new HTTPResponseBuilder()
@@ -239,7 +239,7 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Error406_NotAcceptable()
 
-        protected HTTPResponseHeader Error406_NotAcceptable()
+        protected HTTPResponse Error406_NotAcceptable()
         {
 
             return new HTTPResponseBuilder()
@@ -255,7 +255,7 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Error409_Conflict()
 
-        protected HTTPResponseHeader Error409_Conflict()
+        protected HTTPResponse Error409_Conflict()
         {
 
             return new HTTPResponseBuilder()
@@ -276,7 +276,7 @@ namespace de.ahzf.Hermod.HTTP
         /// Returns internal resources embedded within the assembly.
         /// </summary>
         /// <param name="myResource">The path and name of the resource.</param>
-        public HTTPResponseHeader GetResources(String myResource)
+        public HTTPResponse GetResources(String myResource)
         {
 
             #region Initial checks
@@ -366,7 +366,7 @@ namespace de.ahzf.Hermod.HTTP
         /// Get /favicon.ico
         /// </summary>
         /// <returns>Some HTML and JavaScript.</returns>
-        public HTTPResponseHeader GetFavicon()
+        public HTTPResponse GetFavicon()
         {
             return GetResources("favicon.ico");
         }
@@ -379,7 +379,7 @@ namespace de.ahzf.Hermod.HTTP
         /// Get /robots.txt
         /// </summary>
         /// <returns>Some search engine info.</returns>
-        public HTTPResponseHeader GetRobotsTxt()
+        public HTTPResponse GetRobotsTxt()
         {
             return GetResources("robots.txt");
         }
@@ -392,7 +392,7 @@ namespace de.ahzf.Hermod.HTTP
         /// Get /humans.txt
         /// </summary>
         /// <returns>Some search engine info.</returns>
-        public HTTPResponseHeader GetHumansTxt()
+        public HTTPResponse GetHumansTxt()
         {
             return GetResources("humans.txt");
         }

@@ -19,6 +19,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Diagnostics;
+using System.Threading;
+using System.Net.Sockets;
 
 #endregion
 
@@ -28,24 +32,10 @@ namespace de.ahzf.Hermod.HTTP
     /// <summary>
     /// A read-only HTTP response header.
     /// </summary>
-    public class HTTPResponseHeader : AHTTPHeader
+    public class HTTPResponse : AHTTPPDU
     {
 
         #region Properties
-
-        #region GetResponseHeader
-
-        public String GetResponseHeader
-        {
-            get
-            {
-                var _RAWHTTPHeader = HTTPStatusCode.SimpleString + Environment.NewLine + RawHTTPHeader + Environment.NewLine + Environment.NewLine;
-                return _RAWHTTPHeader;
-            }
-        }
-
-        #endregion
-
 
         #region Age
 
@@ -197,16 +187,36 @@ namespace de.ahzf.Hermod.HTTP
 
         #region HTTPResponseHeader()
 
-        public HTTPResponseHeader()
+        public HTTPResponse()
         { }
 
         #endregion
 
         #region HTTPResponseHeader(HTTPHeader)
 
-        public HTTPResponseHeader(String HTTPHeader)
+        public HTTPResponse(String HTTPHeader)
         {
-            ParseHeader(HTTPHeader.Split(_LineSeperator, StringSplitOptions.RemoveEmptyEntries).Skip(1));
+            ParseHeader(HTTPHeader);
+        }
+
+        #endregion
+
+        #region HTTPResponseHeader(HTTPHeader, Content)
+
+        public HTTPResponse(String HTTPHeader, Byte[] Content)
+        {
+            if (ParseHeader(HTTPHeader))
+                base.Content = Content;
+        }
+
+        #endregion
+
+        #region HTTPResponseHeader(HTTPHeader, ContentStream)
+
+        public HTTPResponse(String HTTPHeader, Stream ContentStream)
+        {
+            if (ParseHeader(HTTPHeader))
+                base.ContentStream = ContentStream;
         }
 
         #endregion

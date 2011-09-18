@@ -102,7 +102,7 @@ namespace de.ahzf.Hermod.UnitTests
 
         #region GetRoot()
 
-        public HTTPResponseHeader GetRoot()
+        public HTTPResponse GetRoot()
         {
 
             return new HTTPResponseBuilder()
@@ -125,7 +125,7 @@ namespace de.ahzf.Hermod.UnitTests
 
         #region HelloWorld_OPTIONS()
 
-        public HTTPResponseHeader HelloWorld_OPTIONS()
+        public HTTPResponse HelloWorld_OPTIONS()
         {
 
             return new HTTPResponseBuilder()
@@ -145,7 +145,7 @@ namespace de.ahzf.Hermod.UnitTests
 
         #region HelloWorld_HEAD()
 
-        public HTTPResponseHeader HelloWorld_HEAD()
+        public HTTPResponse HelloWorld_HEAD()
         {
 
             return new HTTPResponseBuilder()
@@ -162,7 +162,7 @@ namespace de.ahzf.Hermod.UnitTests
 
         #region HelloWorld_GET()
 
-        public HTTPResponseHeader HelloWorld_GET()
+        public HTTPResponse HelloWorld_GET()
         {
 
             return new HTTPResponseBuilder()

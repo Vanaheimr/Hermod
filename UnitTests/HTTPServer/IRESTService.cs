@@ -37,20 +37,20 @@ namespace de.ahzf.Hermod.UnitTests
         /// </summary>
         /// <returns>Some plain text.</returns>
         [HTTPMapping(HTTPMethods.GET, "/raw")]
-        HTTPResponseHeader GetRAWRequestHeader();
+        HTTPResponse GetRAWRequestHeader();
 
         #endregion
 
         #region /HelloWorld
 
         [HTTPMapping(HTTPMethods.OPTIONS, "/HelloWorld")]
-        HTTPResponseHeader HelloWorld_OPTIONS();
+        HTTPResponse HelloWorld_OPTIONS();
 
         [HTTPMapping(HTTPMethods.HEAD,    "/HelloWorld}")]
-        HTTPResponseHeader HelloWorld_HEAD();
+        HTTPResponse HelloWorld_HEAD();
 
         [HTTPMapping(HTTPMethods.GET,     "/HelloWorld")]
-        HTTPResponseHeader HelloWorld_GET();
+        HTTPResponse HelloWorld_GET();
 
         #endregion
 

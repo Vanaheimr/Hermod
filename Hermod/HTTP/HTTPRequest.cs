@@ -31,12 +31,28 @@ namespace de.ahzf.Hermod.HTTP
     /// <summary>
     /// A read-only HTTP request header.
     /// </summary>
-    public class HTTPRequestHeader : AHTTPHeader
+    public class HTTPRequest : AHTTPPDU
     {
 
         #region Properties
 
         #region Non-HTTP header fields
+
+        public String EntireRequestHeader
+        {
+            get
+            {
+                return HTTPRequestLine + Environment.NewLine + ConstructedHTTPHeader;
+            }
+        }
+
+        public String HTTPRequestLine
+        {
+            get
+            {
+                return HTTPMethod.ToString() + " " + this.UrlPath + " " + ProtocolName + "/" + ProtocolVersion;
+            }
+        }
 
         #region HTTPMethod
 
@@ -52,7 +68,7 @@ namespace de.ahzf.Hermod.HTTP
         /// <summary>
         /// The minimal URL (this means e.g. without the query string).
         /// </summary>
-        public String Url { get; protected set; }
+        public String UrlPath { get; protected set; }
 
         #endregion
 
@@ -444,48 +460,39 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region HTTPRequestHeader()
+        #region HTTPRequest()
 
         /// <summary>
         /// Create a new http request header.
         /// </summary>
-        public HTTPRequestHeader()
+        public HTTPRequest()
         {
             QueryString = new QueryString();
         }
 
         #endregion
 
-        #region HTTPRequestHeader(HTTPHeader)
+        #region HTTPRequest(HTTPHeader)
 
         /// <summary>
         /// Create a new http request header based on the given string representation.
         /// </summary>
         /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
         /// <param name="HTTPStatusCode">HTTPStatusCode.OK is the header could be parsed.</param>
-        public HTTPRequestHeader(String HTTPHeader)
-            : base()
+        public HTTPRequest(String HTTPHeader)
         {
 
-            #region Split the request into lines
-
-            var _HTTPRequestLines = HTTPHeader.Split(_LineSeperator, StringSplitOptions.RemoveEmptyEntries);
-            if (_HTTPRequestLines.Length == 0)
-            {
-                HTTPStatusCode = HTTPStatusCode.BadRequest;
+            if (!ParseHeader(HTTPHeader))
                 return;
-            }
-
-            #endregion
 
             #region Parse HTTPMethod (first line of the http request)
 
-            var _HTTPMethodHeader = _HTTPRequestLines[0].Split(_SpaceSeperator, StringSplitOptions.RemoveEmptyEntries);
+            var _HTTPMethodHeader = FirstPDULine.Split(_SpaceSeperator, StringSplitOptions.RemoveEmptyEntries);
 
             // e.g: PROPFIND /file/file Name HTTP/1.1
             if (_HTTPMethodHeader.Length != 3)
             {
-                HTTPStatusCode = HTTPStatusCode.BadRequest;
+                this.HTTPStatusCode = HTTPStatusCode.BadRequest;
                 return;
             }
 
@@ -494,7 +501,7 @@ namespace de.ahzf.Hermod.HTTP
             HTTPMethod _HTTPMethod = null;
             if (!HTTPMethod.TryParseString(_HTTPMethodHeader[0], out _HTTPMethod))
             {
-                HTTPStatusCode = HTTPStatusCode.MethodNotAllowed;
+                this.HTTPStatusCode = HTTPStatusCode.MethodNotAllowed;
                 return;
             }
 
@@ -506,10 +513,10 @@ namespace de.ahzf.Hermod.HTTP
 
             var RawUrl     = _HTTPMethodHeader[1];
             var _ParsedURL = RawUrl.Split(_URLSeperator, 2, StringSplitOptions.RemoveEmptyEntries);            
-            Url            = _ParsedURL[0];
+            UrlPath            = _ParsedURL[0];
             
-            if (Url == "" || Url == null)
-                Url = "/";
+            if (UrlPath == "" || UrlPath == null)
+                UrlPath = "/";
 
             // Parse QueryString after '?'
             if (RawUrl.IndexOf('?') > -1)
@@ -517,7 +524,7 @@ namespace de.ahzf.Hermod.HTTP
                 //var a = HttpUtility.ParseQueryString(_ParsedURL[1]);
                 //foreach (var b in a.AllKeys)
                 //    QueryString.Add(b, a[b]);
-                QueryString = new QueryString(_ParsedURL[1]);
+                this.QueryString = new QueryString(_ParsedURL[1]);
             }
 
             #endregion
@@ -544,12 +551,6 @@ namespace de.ahzf.Hermod.HTTP
 
             #endregion
 
-            #region Parse remaining header lines
-
-            ParseHeader(_HTTPRequestLines.Skip(1));
-
-            #endregion
-
             if (!HeaderFields.ContainsKey("Host"))
                 HeaderFields.Add("Host", "*");
 
@@ -560,9 +561,6 @@ namespace de.ahzf.Hermod.HTTP
         #endregion
 
         #endregion
-
-
-        
 
     }
 

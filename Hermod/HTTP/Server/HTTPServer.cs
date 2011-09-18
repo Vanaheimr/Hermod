@@ -34,12 +34,15 @@ namespace de.ahzf.Hermod.HTTP
     ///  This http server will listen on a port and maps incoming urls to methods of HTTPServiceInterface. 
     /// </summary>
     /// <typeparam name="HTTPServiceInterface">A http service interface.</typeparam>
-    public class HTTPServer<HTTPServiceInterface> : AHTTPServer<HTTPServiceInterface>,  IServer
+    public class HTTPServer<HTTPServiceInterface> : AHTTPServer<HTTPServiceInterface>, IServer
         where HTTPServiceInterface : IHTTPService
     {
 
         #region Data
 
+        /// <summary>
+        /// The internal TCP server.
+        /// </summary>
         private readonly TCPServer<HTTPConnection<HTTPServiceInterface>> _TCPServer;
 
         #endregion
@@ -208,16 +211,43 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Events
 
+        #region OnExceptionOccured
+
+        private event ExceptionOccuredHandler _OnExceptionOccured;
+
+        public event ExceptionOccuredHandler OnExceptionOccured
+        {
+
+            add
+            {
+                _OnExceptionOccured           += value;
+                _TCPServer.OnExceptionOccured += value;
+            }
+
+            remove
+            {
+                _OnExceptionOccured           -= value;
+                _TCPServer.OnExceptionOccured -= value;
+            }
+
+        }
+
+        #endregion
+
+        #region OnNewHTTPService
+
         /// <summary>
-        /// A delegate called for every new http connection.
+        /// A delegate definition for every incoming HTTP connection.
         /// </summary>
         /// <param name="HTTPServiceInterfaceType">The interface of the associated http connections.</param>
         public delegate void NewHTTPServiceHandler(HTTPServiceInterface HTTPServiceInterfaceType);
 
         /// <summary>
-        /// An event called for every incoming http connection.
+        /// An event called for every incoming HTTP connection.
         /// </summary>
         public event NewHTTPServiceHandler OnNewHTTPService;
+
+        #endregion
 
         #endregion
 
@@ -282,9 +312,11 @@ namespace de.ahzf.Hermod.HTTP
                                          {
                                              NewHTTPConnection.ProcessHTTP();
                                          }
-                                         catch (Exception e)
+                                         catch (Exception Exception)
                                          {
-                                             //ToDo: Do error logging!
+                                             var OnExceptionOccured_Local = _OnExceptionOccured;
+                                             if (OnExceptionOccured_Local != null)
+                                                 OnExceptionOccured_Local(this, Exception);
                                          }
                           
                                      },

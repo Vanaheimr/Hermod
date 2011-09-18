@@ -36,11 +36,11 @@ namespace de.ahzf.Hermod.HTTP
     public interface IHTTPConnection : ITCPConnection
     {
 
-        HTTPRequestHeader   RequestHeader   { get; }
+        HTTPRequest   InHTTPRequest   { get; }
         //ToDo: Change this to a Stream!
         Byte[]              RequestBody     { get; }
         
-        HTTPResponseBuilder  ResponseHeader  { get; }
+        HTTPResponse        ResponseHeader  { get; }
         NetworkStream       ResponseStream  { get; }
         
         String              ServerName      { get; }
@@ -50,11 +50,10 @@ namespace de.ahzf.Hermod.HTTP
         String              ErrorReason     { get; set; }
         Exception           LastException   { get; set; }
         
-        void SendErrorpage(HTTPStatusCode    myHTTPStatusCode,
-                           HTTPRequestHeader myRequestHeader,
-                           Byte[]            myRequestBody,
-                           String            ErrorReason   = null,
-                           Exception         LastException = null);
+        void SendErrorpage(HTTPStatusCode HTTPStatusCode,
+                           HTTPRequest    RequestHeader,
+                           String         ErrorReason   = null,
+                           Exception      LastException = null);
 
     }
 

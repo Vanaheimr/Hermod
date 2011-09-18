@@ -18,11 +18,13 @@
 #region Usings
 
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Net.Sockets;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Collections.Concurrent;
-using System.Reflection;
-using System.Net.Sockets;
+
 using de.ahzf.Hermod.Datastructures;
 
 #endregion
@@ -39,7 +41,6 @@ namespace de.ahzf.Hermod.Sockets.TCP
     public class TCPServer<TCPConnectionType> : IServer
         where TCPConnectionType : class, ITCPConnection, new()
     {
-
 
         #region Data
 
@@ -175,11 +176,43 @@ namespace de.ahzf.Hermod.Sockets.TCP
 
         #region Events
 
-        public delegate void ExceptionOccuredHandler(Object mySender, Exception myException);
-        public event         ExceptionOccuredHandler OnExceptionOccured;
+        #region ExceptionOccured
 
+        private event ExceptionOccuredHandler _OnExceptionOccured;
+
+        private List<ExceptionOccuredHandler> MyEventStorage = new List<ExceptionOccuredHandler>();
+        public event ExceptionOccuredHandler OnExceptionOccured
+        {
+
+            add
+            {
+                MyEventStorage.Add(value);
+                _OnExceptionOccured += value;
+            }
+
+            remove
+            {
+                MyEventStorage.Remove(value);
+                _OnExceptionOccured -= value;
+            }
+
+        }
+
+        #endregion
+
+        #region NewConnection
+
+        /// <summary>
+        /// A delegate definition for every incoming TCP connection.
+        /// </summary>
         public delegate void NewConnectionHandler(TCPConnectionType myTCPConnectionType);
-        public event         NewConnectionHandler OnNewConnection;
+
+        /// <summary>
+        /// A event called for every incoming connection.
+        /// </summary>
+        public event NewConnectionHandler OnNewConnection;
+
+        #endregion
 
         #endregion
 
@@ -286,7 +319,7 @@ namespace de.ahzf.Hermod.Sockets.TCP
 
                     // Wait for a new/pending client connection
                     while (!_StopRequested && !_TCPListener.Pending())
-                        Thread.Sleep(10);
+                        Thread.Sleep(5);
 
                     // Break when a server stop was requested
                     if (_StopRequested)
@@ -297,9 +330,11 @@ namespace de.ahzf.Hermod.Sockets.TCP
                     Task.Factory.StartNew(() => {
                         ProcessNewClientConnection(_NewTCPClient);
                     });
-                    
+
                 }
-                
+
+                #region Shutdown
+
                 // Request all client connections to finish!
                 foreach (var _SocketConnection in _SocketConnections)
                     _SocketConnection.Value.StopRequested = true;
@@ -309,13 +344,20 @@ namespace de.ahzf.Hermod.Sockets.TCP
                 while (_SocketConnections.Count > 0)
                     Thread.Sleep(10);
 
+                #endregion
+
             }
 
-            catch (Exception ex)
+            #region Exception handling
+
+            catch (Exception Exception)
             {
-                if (OnExceptionOccured != null)
-                    OnExceptionOccured(this, ex);
+                var OnExceptionOccured_Local = _OnExceptionOccured;
+                if (OnExceptionOccured_Local != null)
+                    OnExceptionOccured_Local(this, Exception);
             }
+
+            #endregion
 
             _IsRunning = false;
 
@@ -323,19 +365,20 @@ namespace de.ahzf.Hermod.Sockets.TCP
 
         #endregion
 
-        #region (private, threaded) ProcessNewClientConnection(myTCPClient)
+        #region (private, threaded) ProcessNewClientConnection(TCPClient)
 
         /// <summary>
         /// Processes a new client connection
         /// </summary>
-        /// <param name="myTCPClient">A new client connection</param>
-        private void ProcessNewClientConnection(TcpClient myTCPClient)
+        /// <param name="TCPClient">A new client connection</param>
+        private void ProcessNewClientConnection(TcpClient TCPClient)
         {
 
+            #region Create a new thread-local instance of the upper-layer protocol stack
+
             // Invoke constructor of TCPConnectionType
-            // Create a new thread-local instance of the upper-layer protocol stack
-            var _TCPConnection  = new ThreadLocal<TCPConnectionType>(
-                                      () => _Constructor.Invoke(new Object[] { myTCPClient }) as TCPConnectionType
+            var _TCPConnection = new ThreadLocal<TCPConnectionType>(
+                                      () => _Constructor.Invoke(new Object[] { TCPClient }) as TCPConnectionType
                                   );
 
             if (_TCPConnection.Value == null)
@@ -344,36 +387,47 @@ namespace de.ahzf.Hermod.Sockets.TCP
             _TCPConnection.Value.Timeout       = ClientTimeout;
             _TCPConnection.Value.StopRequested = false;
 
-            // Store the new connection
+            // Copy ExceptionOccured event handlers
+            foreach (var ExceptionOccuredHandler in MyEventStorage)
+                _TCPConnection.Value.OnExceptionOccured += ExceptionOccuredHandler;
+
+            #endregion
+
+            #region Store the new connection
+
             _SocketConnections.AddOrUpdate(_TCPConnection.Value.RemoteSocket,
                                            _TCPConnection.Value,
                                            (RemoteEndPoint, TCPConnection) => TCPConnection);
 
+            #endregion
+
             try
             {
 
-                // Start upper-layer protocol processing savely!
-                var OnNewConnection2 = OnNewConnection;
-                if (OnNewConnection2 != null)
-                    OnNewConnection2(_TCPConnection.Value);
+                // Call delegates for upper-layer protocol processing
+                var OnNewConnection_Local = OnNewConnection;
+                if (OnNewConnection_Local != null)
+                    OnNewConnection_Local(_TCPConnection.Value);
 
             }
-            catch (Exception ex)
+            catch (Exception Exception)
             {
 
-                //_TCPConnection.Value.ExceptionThrown(this, ex);
-                //_TCPConnection.Value.StopRequested = true;
-
-                //if (OnExceptionOccured != null)
-                //    OnExceptionOccured(this, ex);
+                // Call delegates for exception handling
+                var OnExceptionOccured_Local = _OnExceptionOccured;
+                if (OnExceptionOccured_Local != null)
+                    OnExceptionOccured_Local(this, Exception);
 
             }
 
-            // Remove stored client connection
+            #region Remove and close client connection
+
             var _ATCPConnectionType = default(TCPConnectionType);
             _SocketConnections.TryRemove(_TCPConnection.Value.RemoteSocket, out _ATCPConnectionType);
 
             _TCPConnection.Dispose();
+
+            #endregion
 
         }
 

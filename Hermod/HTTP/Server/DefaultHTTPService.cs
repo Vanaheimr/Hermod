@@ -40,7 +40,7 @@ namespace de.ahzf.Hermod.HTTP
         /// </summary>
         /// <returns>Some plain text.</returns>
         [HTTPMapping(HTTPMethods.GET, "/raw")]
-        HTTPResponseHeader GetRAWRequestHeader();
+        HTTPResponse GetRAWRequestHeader();
 
     }
 
@@ -147,7 +147,7 @@ namespace de.ahzf.Hermod.HTTP
 
         #region GetRoot()
 
-        public HTTPResponseHeader GetRoot()
+        public HTTPResponse GetRoot()
         {
 
             return new HTTPResponseBuilder()

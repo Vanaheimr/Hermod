@@ -53,7 +53,7 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region AcceptType(HTTPContentType, Quality = 1)
+        #region AcceptType(HTTPContentType, Quality)
 
         /// <summary>
         /// Create a new HTTP accept header field.

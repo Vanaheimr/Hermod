@@ -69,7 +69,7 @@ namespace de.ahzf.Hermod.UnitTests
 
         #region GetRoot()
 
-        public HTTPResponseHeader GetRoot()
+        public HTTPResponse GetRoot()
         {
             return Error406_NotAcceptable();
         }
@@ -80,7 +80,7 @@ namespace de.ahzf.Hermod.UnitTests
 
         #region HelloWorld_OPTIONS()
 
-        public HTTPResponseHeader HelloWorld_OPTIONS()
+        public HTTPResponse HelloWorld_OPTIONS()
         {
             return Error406_NotAcceptable();
         }
@@ -89,7 +89,7 @@ namespace de.ahzf.Hermod.UnitTests
 
         #region HelloWorld_HEAD()
 
-        public HTTPResponseHeader HelloWorld_HEAD()
+        public HTTPResponse HelloWorld_HEAD()
         {
             return Error406_NotAcceptable();
         }
@@ -98,7 +98,7 @@ namespace de.ahzf.Hermod.UnitTests
 
         #region HelloWorld_GET()
 
-        public HTTPResponseHeader HelloWorld_GET()
+        public HTTPResponse HelloWorld_GET()
         {
             return Error406_NotAcceptable();
         }

@@ -50,7 +50,49 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
-        #region AcceptTypes()
+        #region AcceptTypes(FirstAcceptType, MoreAcceptTypes)
+
+        public AcceptTypes(AcceptType FirstAcceptType, params AcceptType[] MoreAcceptTypes)
+        {
+
+            #region Initial checks
+
+            if (FirstAcceptType == null)
+                throw new ArgumentNullException("The given AcceptType must not be null!");
+
+            #endregion
+
+            this.List = new List<AcceptType>() { FirstAcceptType };
+
+            if (MoreAcceptTypes != null && MoreAcceptTypes.Length > 0)
+                this.List.AddRange(MoreAcceptTypes);
+
+        }
+
+        #endregion
+
+        #region AcceptTypes(FirstAcceptType, MoreAcceptTypes)
+
+        public AcceptTypes(HTTPContentType FirstHTTPContentType, params HTTPContentType[] MoreHTTPContentTypes)
+        {
+
+            #region Initial checks
+
+            if (FirstHTTPContentType == null)
+                throw new ArgumentNullException("The given HTTPContentType must not be null!");
+
+            #endregion
+
+            this.List = new List<AcceptType>() { new AcceptType(FirstHTTPContentType, 1) };
+
+            if (MoreHTTPContentTypes != null && MoreHTTPContentTypes.Length > 0)
+                this.List.AddRange(from _HTTPContentType in MoreHTTPContentTypes select new AcceptType(_HTTPContentType, 1));
+
+        }
+
+        #endregion
+
+        #region AcceptTypes(AcceptsString)
 
         public AcceptTypes(String AcceptsString)
         {
@@ -102,9 +144,32 @@ namespace de.ahzf.Hermod.HTTP
         }
 
 
+        public void Add(AcceptType AcceptType)
+        {
+
+            #region Initial checks
+
+            if (AcceptType == null)
+                throw new ArgumentNullException("The given AcceptType must not be null!");
+
+            #endregion
+
+            List.Add(AcceptType);
+
+        }
+
         public void Add(HTTPContentType HTTPContentType, Double Quality = 1)
         {
+
+            #region Initial checks
+
+            if (HTTPContentType == null)
+                throw new ArgumentNullException("The given HTTPContentType must not be null!");
+
+            #endregion
+            
             List.Add(new AcceptType(HTTPContentType, Quality));
+
         }
 
 

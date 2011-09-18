@@ -41,9 +41,27 @@ namespace de.ahzf.Hermod.Sockets.TCP
         Boolean    StopRequested       { get; set; }
         UInt32     Timeout             { get; set; }
 
-        void WriteToResponseStream(String myText);
-        void WriteToResponseStream(Byte[] myContent);
-        void WriteToResponseStream(Stream myInputStream, Int32 myReadTimeout = 1000);
+        event ExceptionOccuredHandler OnExceptionOccured;
+
+        /// <summary>
+        /// Writes some UTF-8 text to the underlying stream.
+        /// </summary>
+        /// <param name="Text">Some UTF-8 text.</param>
+        void WriteToResponseStream(String Text);
+
+        /// <summary>
+        /// Writes the given byte array to the underlying stream.
+        /// </summary>
+        /// <param name="Content">An array of bytes.</param>
+        void WriteToResponseStream(Byte[] Content);
+
+        /// <summary>
+        /// Reads the given input stream and writes its content to the underlying stream.
+        /// </summary>
+        /// <param name="InputStream">A data source.</param>
+        /// <param name="ReadTimeout">A read timeout on the source.</param>
+        /// <param name="BufferSize">The buffer size for reading.</param>
+        void WriteToResponseStream(Stream InputStream, Int32 ReadTimeout = 1000, Int32 BufferSize = 65535);
 
         void Close();
 

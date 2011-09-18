@@ -21,6 +21,8 @@ using System;
 using System.IO;
 using System.Text;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Threading.Tasks;
 
 #endregion
 
@@ -30,48 +32,49 @@ namespace de.ahzf.Hermod.HTTP
     /// <summary>
     /// A read-write HTTP request header.
     /// </summary>
-    public class HTTPRequestBuilder : HTTPRequestHeader
+    public class HTTPRequestBuilder : AHTTPPDUBuilder
     {
 
         #region Properties
 
         #region Non-http header fields
 
-        #region HTTPStatusCode
+        public HTTPClient HTTPClient { get; private set; }
 
-        public new HTTPStatusCode HTTPStatusCode
+        public String EntireRequestHeader
         {
-
             get
             {
-                return base.HTTPStatusCode;
+                return HTTPRequestLine + Environment.NewLine + ConstructedHTTPHeader;
             }
-
-            set
-            {
-                base.HTTPStatusCode = value;
-            }
-
         }
 
-        #endregion
+        public String HTTPRequestLine
+        {
+            get
+            {
+                return HTTPMethod.ToString() + " " + this._UrlPath + " " + ProtocolName + "/" + ProtocolVersion;
+            }
+        }
 
         #region HTTPMethod
+
+        private HTTPMethod _HTTPMethod;
 
         /// <summary>
         /// The http method.
         /// </summary>
-        public new HTTPMethod HTTPMethod
+        public HTTPMethod HTTPMethod
         {
 
             get
             {
-                return base.HTTPMethod;
+                return _HTTPMethod;
             }
 
             set
             {
-                base.HTTPMethod = value;
+                SetProperty(ref _HTTPMethod, value, "HTTPMethod");
             }
 
         }
@@ -80,323 +83,41 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Url
 
+        private String _UrlPath;
+
         /// <summary>
         /// The minimal URL (this means e.g. without the query string).
         /// </summary>
-        public new String Url
+        public String UrlPath
         {
 
             get
             {
-                return base.Url;
+                return _UrlPath;
             }
 
             set
             {
-                base.Url = value;
+                SetProperty(ref _UrlPath, value, "UrlPath");
             }
 
         }
 
         #endregion
 
-        #region ProtocolName
+        #region QueryString
+
+        private readonly QueryString _QueryString;
 
         /// <summary>
-        /// The http protocol name field.
+        /// The HTTP query string.
         /// </summary>
-        public new String ProtocolName
+        public QueryString QueryString
         {
-            
             get
             {
-                return base.ProtocolName;
+                return _QueryString;
             }
-
-            set
-            {
-                base.ProtocolName = value;
-            }
-
-        }
-
-        #endregion
-
-        #region ProtocolVersion
-
-        /// <summary>
-        /// The http protocol version.
-        /// </summary>
-        public new HTTPVersion ProtocolVersion
-        {
-
-            get
-            {
-                return base.ProtocolVersion;
-            }
-
-            set
-            {
-                base.ProtocolVersion = value;
-            }
-
-        }
-
-        #endregion
-
-        #region Content
-
-        /// <summary>
-        /// The HTTP body/content as an array of bytes.
-        /// </summary>
-        public new Byte[] Content
-        {
-
-            get
-            {
-                return base.Content;
-            }
-
-            set
-            {
-                base.Content = value;
-            }
-
-        }
-
-        #endregion
-
-        #region ContentStream
-
-        /// <summary>
-        /// The HTTP body/content as a stream.
-        /// </summary>
-        public new Stream ContentStream
-        {
-
-            get
-            {
-                return base.ContentStream;
-            }
-
-            set
-            {
-                base.ContentStream = value;
-            }
-
-        }
-
-        #endregion
-
-        #endregion
-
-        #region General header fields
-
-        #region CacheControl
-
-        public new String CacheControl
-        {
-
-            get
-            {
-                return base.CacheControl;
-            }
-
-            set
-            {
-                SetHeaderField(HTTPHeaderField.CacheControl, value);
-            }
-
-        }
-
-        #endregion
-
-        #region Connection
-
-        public new String Connection
-        {
-
-            get
-            {
-                return base.Connection;
-            }
-
-            set
-            {
-                SetHeaderField(HTTPHeaderField.Connection, value);
-            }
-
-        }
-
-        #endregion
-
-        #region ContentEncoding
-
-        public new Encoding ContentEncoding
-        {
-
-            get
-            {
-                return base.ContentEncoding;
-            }
-
-            set
-            {
-                SetHeaderField(HTTPHeaderField.ContentEncoding, value);
-            }
-
-        }
-
-        #endregion
-
-        #region ContentLanguage
-
-        public new List<String> ContentLanguage
-        {
-
-            get
-            {
-                return base.ContentLanguage;
-            }
-
-            set
-            {
-                SetHeaderField(HTTPHeaderField.ContentLanguage, value);
-            }
-
-        }
-
-        #endregion
-
-        #region ContentLength
-
-        public new UInt64? ContentLength
-        {
-
-            get
-            {
-                return base.ContentLength;
-            }
-
-            set
-            {
-                SetHeaderField(HTTPHeaderField.ContentLength, value);
-            }
-
-        }
-
-        #endregion
-
-        #region ContentLocation
-
-        public new String ContentLocation
-        {
-
-            get
-            {
-                return base.ContentLocation;
-            }
-
-            set
-            {
-                SetHeaderField(HTTPHeaderField.ContentLocation, value);
-            }
-
-        }
-
-        #endregion
-
-        #region ContentMD5
-
-        public new String ContentMD5
-        {
-
-            get
-            {
-                return base.ContentMD5;
-            }
-
-            set
-            {
-                SetHeaderField(HTTPHeaderField.ContentMD5, value);
-            }
-
-        }
-
-        #endregion
-
-        #region ContentRange
-
-        public new String ContentRange
-        {
-
-            get
-            {
-                return base.ContentRange;
-            }
-
-            set
-            {
-                SetHeaderField(HTTPHeaderField.ContentRange, value);
-            }
-
-        }
-
-        #endregion
-
-        #region ContentType
-
-        public new HTTPContentType ContentType
-        {
-
-            get
-            {
-                return base.ContentType;
-            }
-
-            set
-            {
-                SetHeaderField(HTTPHeaderField.ContentType, value);
-            }
-
-        }
-
-        #endregion
-
-        #region Date
-
-        public new String Date
-        {
-
-            get
-            {
-                return base.Date;
-            }
-
-            set
-            {
-                SetHeaderField(HTTPHeaderField.Date, value);
-            }
-
-        }
-
-        #endregion
-
-        #region Via
-
-        public new String Via
-        {
-
-            get
-            {
-                return base.Via;
-            }
-
-            set
-            {
-                SetHeaderField(HTTPHeaderField.Via, value);
-            }
-
         }
 
         #endregion
@@ -410,18 +131,17 @@ namespace de.ahzf.Hermod.HTTP
         /// <summary>
         /// The http content types accepted by the client.
         /// </summary>
-        public new AcceptTypes Accept
+        public AcceptTypes Accept
         {
 
             get
             {
-                return base._Accept;
+                return GetHeaderField<AcceptTypes>(HTTPHeaderField.Accept);
             }
 
             set
             {
                 SetHeaderField(HTTPHeaderField.Accept, value);
-                base._Accept = value;
             }
 
         }
@@ -430,12 +150,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Accept-Charset
 
-        public new String AcceptCharset
+        public String AcceptCharset
         {
 
             get
             {
-                return base.AcceptCharset;
+                return GetHeaderField(HTTPHeaderField.AcceptCharset);
             }
 
             set
@@ -449,12 +169,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Accept-Encoding
 
-        public new String AcceptEncoding
+        public String AcceptEncoding
         {
 
             get
             {
-                return base.AcceptEncoding;
+                return GetHeaderField(HTTPHeaderField.AcceptEncoding);
             }
 
             set
@@ -468,12 +188,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Accept-Language
 
-        public new String AcceptLanguage
+        public String AcceptLanguage
         {
 
             get
             {
-                return base.AcceptLanguage;
+                return GetHeaderField(HTTPHeaderField.AcceptLanguage);
             }
 
             set
@@ -487,12 +207,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Accept-Ranges
 
-        public new String AcceptRanges
+        public String AcceptRanges
         {
 
             get
             {
-                return base.AcceptRanges;
+                return GetHeaderField(HTTPHeaderField.AcceptRanges);
             }
 
             set
@@ -506,12 +226,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Authorization
 
-        public new HTTPBasicAuthentication Authorization
+        public HTTPBasicAuthentication Authorization
         {
 
             get
             {
-                return base.Authorization;
+                return GetHeaderField<HTTPBasicAuthentication>(HTTPHeaderField.Authorization);
             }
 
             set
@@ -525,12 +245,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Depth
 
-        public new String Depth
+        public String Depth
         {
 
             get
             {
-                return base.Depth;
+                return GetHeaderField(HTTPHeaderField.Depth);
             }
 
             set
@@ -544,12 +264,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Destination
 
-        public new String Destination
+        public String Destination
         {
 
             get
             {
-                return base.Destination;
+                return GetHeaderField(HTTPHeaderField.Destination);
             }
 
             set
@@ -563,12 +283,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Expect
 
-        public new String Expect
+        public String Expect
         {
 
             get
             {
-                return base.Expect;
+                return GetHeaderField(HTTPHeaderField.Expect);
             }
 
             set
@@ -582,12 +302,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region From
 
-        public new String From
+        public String From
         {
 
             get
             {
-                return base.From;
+                return GetHeaderField(HTTPHeaderField.From);
             }
 
             set
@@ -601,12 +321,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Host
 
-        public new String Host
+        public String Host
         {
 
             get
             {
-                return base.Host;
+                return GetHeaderField(HTTPHeaderField.Host);
             }
 
             set
@@ -620,12 +340,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region If
 
-        public new String If
+        public String If
         {
 
             get
             {
-                return base.If;
+                return GetHeaderField(HTTPHeaderField.If);
             }
 
             set
@@ -639,12 +359,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region If-Match
 
-        public new String IfMatch
+        public String IfMatch
         {
 
             get
             {
-                return base.IfMatch;
+                return GetHeaderField(HTTPHeaderField.IfMatch);
             }
 
             set
@@ -658,12 +378,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region If-Modified-Since
 
-        public new String IfModifiedSince
+        public String IfModifiedSince
         {
 
             get
             {
-                return base.IfModifiedSince;
+                return GetHeaderField(HTTPHeaderField.IfModifiedSince);
             }
 
             set
@@ -677,12 +397,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region If-None-Match
 
-        public new String IfNoneMatch
+        public String IfNoneMatch
         {
 
             get
             {
-                return base.IfNoneMatch;
+                return GetHeaderField(HTTPHeaderField.IfNoneMatch);
             }
 
             set
@@ -696,12 +416,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region If-Range
 
-        public new String IfRange
+        public String IfRange
         {
 
             get
             {
-                return base.IfRange;
+                return GetHeaderField(HTTPHeaderField.IfRange);
             }
 
             set
@@ -715,12 +435,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region If-Unmodified-Since
 
-        public new String IfUnmodifiedSince
+        public String IfUnmodifiedSince
         {
 
             get
             {
-                return base.IfUnmodifiedSince;
+                return GetHeaderField(HTTPHeaderField.IfModifiedSince);
             }
 
             set
@@ -734,12 +454,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Lock-Token
 
-        public new String LockToken
+        public String LockToken
         {
 
             get
             {
-                return base.LockToken;
+                return GetHeaderField(HTTPHeaderField.LockToken);
             }
 
             set
@@ -753,12 +473,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Max-Forwards
 
-        public new UInt64? MaxForwards
+        public UInt64? MaxForwards
         {
 
             get
             {
-                return base.MaxForwards;
+                return GetHeaderField_UInt64(HTTPHeaderField.MaxForwards);
             }
 
             set
@@ -772,12 +492,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Overwrite
 
-        public new String Overwrite
+        public String Overwrite
         {
 
             get
             {
-                return base.Overwrite;
+                return GetHeaderField(HTTPHeaderField.Overwrite);
             }
 
             set
@@ -791,12 +511,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Proxy-Authorization
 
-        public new String ProxyAuthorization
+        public String ProxyAuthorization
         {
 
             get
             {
-                return base.ProxyAuthorization;
+                return GetHeaderField(HTTPHeaderField.ProxyAuthorization);
             }
 
             set
@@ -810,12 +530,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Range
 
-        public new String Range
+        public String Range
         {
 
             get
             {
-                return base.Range;
+                return GetHeaderField(HTTPHeaderField.Range);
             }
 
             set
@@ -829,12 +549,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Referer
 
-        public new String Referer
+        public String Referer
         {
 
             get
             {
-                return base.Referer;
+                return GetHeaderField(HTTPHeaderField.Referer);
             }
 
             set
@@ -848,12 +568,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region TE
 
-        public new String TE
+        public String TE
         {
 
             get
             {
-                return base.TE;
+                return GetHeaderField(HTTPHeaderField.TE);
             }
 
             set
@@ -867,12 +587,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Timeout
 
-        public new UInt64? Timeout
+        public UInt64? Timeout
         {
 
             get
             {
-                return base.Timeout;
+                return GetHeaderField_UInt64(HTTPHeaderField.Timeout);
             }
 
             set
@@ -886,12 +606,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region User-Agent
 
-        public new String UserAgent
+        public String UserAgent
         {
 
             get
             {
-                return base.UserAgent;
+                return GetHeaderField(HTTPHeaderField.ContentLocation);
             }
 
             set
@@ -905,12 +625,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region LastEventId
 
-        public new UInt64? LastEventId
+        public UInt64? LastEventId
         {
             
             get
             {
-                return base.LastEventId;
+                return GetHeaderField_UInt64(HTTPHeaderField.LastEventId);
             }
 
             set
@@ -927,12 +647,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Cookie
 
-        public new String Cookie
+        public String Cookie
         {
 
             get
             {
-                return base.Cookie;
+                return GetHeaderField(HTTPHeaderField.Cookie);
             }
 
             set
@@ -959,12 +679,42 @@ namespace de.ahzf.Hermod.HTTP
         {
             this.HTTPStatusCode  = HTTPStatusCode.OK;
             this.HTTPMethod      = HTTPMethod.GET;
-            this.Url             = "/";
+            this.UrlPath         = "/";
+            this._QueryString    = new QueryString();
+            this.Accept          = new AcceptTypes();
             this.ProtocolName    = "HTTP";
             this.ProtocolVersion = new HTTPVersion(1, 1);
         }
 
         #endregion
+
+        #region HTTPRequestBuilder(HTTPClient)
+
+        /// <summary>
+        /// Create a new HTTP request for the given HTTPClient.
+        /// </summary>
+        public HTTPRequestBuilder(HTTPClient HTTPClient)
+            : this()
+        {
+            this.HTTPClient = HTTPClient;
+        }
+
+        #endregion
+
+        #endregion
+
+
+        #region (operator) HTTPRequestBuilder => HTTPRequestHeader
+
+        /// <summary>
+        /// Declare an explicit conversion from a HTTPRequestBuilder to an HTTPRequestHeader
+        /// </summary>
+        /// <param name="HTTPRequestBuilder"></param>
+        /// <returns></returns>
+        public static implicit operator HTTPRequest(HTTPRequestBuilder Builder)
+        {
+            return Builder.AsImmutable();
+        }
 
         #endregion
 
@@ -1241,9 +991,38 @@ namespace de.ahzf.Hermod.HTTP
         /// Set the HTTP Accept header field.
         /// </summary>
         /// <param name="AcceptTypes">AcceptTypes.</param>
-        public HTTPRequestBuilder SetAccept(List<AcceptType> AcceptTypes)
+        public HTTPRequestBuilder SetAccept(AcceptTypes AcceptTypes)
         {
             this.Accept = Accept;
+            return this;
+        }
+
+        #endregion
+
+        #region AddAccept(AcceptType)
+
+        /// <summary>
+        /// Add an AcceptType to the Accept header field.
+        /// </summary>
+        /// <param name="AcceptType">An AcceptType.</param>
+        public HTTPRequestBuilder AddAccept(AcceptType AcceptType)
+        {
+            this.Accept.Add(AcceptType);
+            return this;
+        }
+
+        #endregion
+
+        #region AddAccept(HTTPContentType, Quality = 1)
+
+        /// <summary>
+        /// Add a HTTPContentType and its quality to the Accept header field.
+        /// </summary>
+        /// <param name="HTTPContentType">A HTTPContentType.</param>
+        /// <param name="Quality">The quality of the HTTPContentType.</param>
+        public HTTPRequestBuilder AddAccept(HTTPContentType HTTPContentType, Double Quality = 1)
+        {
+            this.Accept.Add(HTTPContentType, Quality);
             return this;
         }
 
@@ -1612,6 +1391,38 @@ namespace de.ahzf.Hermod.HTTP
         }
 
         #endregion
+
+        #endregion
+
+
+        #region PrepareImmutability()
+
+        /// <summary>
+        /// Prepares the immutability of an HTTP PDU, e.g. calculates
+        /// and set the Content-Length header.
+        /// </summary>
+        protected override void PrepareImmutability()
+        {
+
+            base.PrepareImmutability();
+
+        }
+
+        #endregion
+
+        #region AsImmutable()
+
+        /// <summary>
+        /// Converts this HTTPRequestBuilder into an immutable HTTPRequest.
+        /// </summary>
+        public HTTPRequest AsImmutable()
+        {
+
+            PrepareImmutability();
+
+            return new HTTPRequest();
+
+        }
 
         #endregion
 

@@ -20,6 +20,7 @@
 using System;
 using System.IO;
 using System.Text;
+using System.Linq;
 using System.Collections.Generic;
 
 #endregion
@@ -30,285 +31,27 @@ namespace de.ahzf.Hermod.HTTP
     /// <summary>
     /// A read-write HTTP response header.
     /// </summary>
-    public class HTTPResponseBuilder : HTTPResponseHeader
+    public class HTTPResponseBuilder : AHTTPPDUBuilder
     {
 
         #region Properties
 
         #region Non-http header fields
 
-        #region HTTPStatusCode
+        public String RawHTTPHeader { get; private set; }
 
-        public new HTTPStatusCode HTTPStatusCode
+        protected String FirstPDULine { get; set; }
+
+        #region HTTPHeader
+
+        public String HTTPHeader
         {
-            
             get
             {
-                return base.HTTPStatusCode;
+                return HTTPStatusCode.SimpleString + Environment.NewLine +
+                       ConstructedHTTPHeader       + Environment.NewLine +
+                       Environment.NewLine;
             }
-
-            set
-            {
-                base.HTTPStatusCode = value;
-            }
-
-        }
-
-        #endregion
-
-        #region Content
-
-        /// <summary>
-        /// The HTTP body/content as an array of bytes.
-        /// </summary>
-        public new Byte[] Content
-        {
-
-            get
-            {
-                return base.Content;
-            }
-
-            set
-            {
-                base.Content = value;
-            }
-
-        }
-
-        #endregion
-
-        #region ContentStream
-
-        /// <summary>
-        /// The HTTP body/content as a stream.
-        /// </summary>
-        public new Stream ContentStream
-        {
-
-            get
-            {
-                return base.ContentStream;
-            }
-
-            set
-            {
-                base.ContentStream = value;
-            }
-
-        }
-
-        #endregion
-
-        #endregion
-
-        #region General header fields
-
-        #region CacheControl
-
-        public new String CacheControl
-        {
-
-            get
-            {
-                return base.CacheControl;
-            }
-
-            set
-            {
-                SetHeaderField(HTTPHeaderField.CacheControl, value);
-            }
-
-        }
-
-        #endregion
-
-        #region Connection
-
-        public new String Connection
-        {
-
-            get
-            {
-                return base.Connection;
-            }
-
-            set
-            {
-                SetHeaderField(HTTPHeaderField.Connection, value);
-            }
-
-        }
-
-        #endregion
-
-        #region ContentEncoding
-
-        public new Encoding ContentEncoding
-        {
-
-            get
-            {
-                return base.ContentEncoding;
-            }
-
-            set
-            {
-                SetHeaderField(HTTPHeaderField.ContentEncoding, value);
-            }
-
-        }
-
-        #endregion
-
-        #region ContentLanguage
-
-        public new List<String> ContentLanguage
-        {
-
-            get
-            {
-                return base.ContentLanguage;
-            }
-
-            set
-            {
-                SetHeaderField(HTTPHeaderField.ContentLanguage, value);
-            }
-
-        }
-
-        #endregion
-
-        #region ContentLength
-
-        public new UInt64? ContentLength
-        {
-
-            get
-            {
-                return base.ContentLength;
-            }
-
-            set
-            {
-                SetHeaderField(HTTPHeaderField.ContentLength, value);
-            }
-
-        }
-
-        #endregion
-
-        #region ContentLocation
-
-        public new String ContentLocation
-        {
-
-            get
-            {
-                return base.ContentLocation;
-            }
-
-            set
-            {
-                SetHeaderField(HTTPHeaderField.ContentLocation, value);
-            }
-
-        }
-
-        #endregion
-
-        #region ContentMD5
-
-        public new String ContentMD5
-        {
-
-            get
-            {
-                return base.ContentMD5;
-            }
-
-            set
-            {
-                SetHeaderField(HTTPHeaderField.ContentMD5, value);
-            }
-
-        }
-
-        #endregion
-
-        #region ContentRange
-
-        public new String ContentRange
-        {
-
-            get
-            {
-                return base.ContentRange;
-            }
-
-            set
-            {
-                SetHeaderField(HTTPHeaderField.ContentRange, value);
-            }
-
-        }
-
-        #endregion
-
-        #region ContentType
-
-        public new HTTPContentType ContentType
-        {
-
-            get
-            {
-                return base.ContentType;
-            }
-
-            set
-            {
-                SetHeaderField(HTTPHeaderField.ContentType, value);
-            }
-
-        }
-
-        #endregion
-
-        #region Date
-
-        public new String Date
-        {
-
-            get
-            {
-                return base.Date;
-            }
-
-            set
-            {
-                SetHeaderField(HTTPHeaderField.Date, value);
-            }
-
-        }
-
-        #endregion
-
-        #region Via
-
-        public new String Via
-        {
-
-            get
-            {
-                return base.Via;
-            }
-
-            set
-            {
-                SetHeaderField(HTTPHeaderField.Via, value);
-            }
-
         }
 
         #endregion
@@ -319,12 +62,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Age
 
-        public new UInt64? Age
+        public UInt64? Age
         {
 
             get
             {
-                return base.Age;
+                return GetHeaderField_UInt64(HTTPHeaderField.Age);
             }
 
             set
@@ -338,12 +81,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Allow
 
-        public new List<HTTPMethod> Allow
+        public List<HTTPMethod> Allow
         {
 
             get
             {
-                return base.Allow;
+                return GetHeaderField<List<HTTPMethod>>(HTTPHeaderField.Age);
             }
 
             set
@@ -357,12 +100,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region DAV
 
-        public new String DAV
+        public String DAV
         {
 
             get
             {
-                return base.DAV;
+                return GetHeaderField(HTTPHeaderField.Age);
             }
 
             set
@@ -376,12 +119,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region ETag
 
-        public new String ETag
+        public String ETag
         {
 
             get
             {
-                return base.ETag;
+                return GetHeaderField(HTTPHeaderField.ETag);
             }
 
             set
@@ -395,12 +138,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Expires
 
-        public new String Expires
+        public String Expires
         {
 
             get
             {
-                return base.Expires;
+                return GetHeaderField(HTTPHeaderField.Expires);
             }
 
             set
@@ -414,12 +157,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region LastModified
 
-        public new String LastModified
+        public String LastModified
         {
 
             get
             {
-                return base.LastModified;
+                return GetHeaderField(HTTPHeaderField.LastModified);
             }
 
             set
@@ -433,12 +176,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Location
 
-        public new String Location
+        public String Location
         {
 
             get
             {
-                return base.Location;
+                return GetHeaderField(HTTPHeaderField.Location);
             }
 
             set
@@ -452,12 +195,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region ProxyAuthenticate
 
-        public new String ProxyAuthenticate
+        public String ProxyAuthenticate
         {
 
             get
             {
-                return base.ProxyAuthenticate;
+                return GetHeaderField(HTTPHeaderField.ProxyAuthenticate);
             }
 
             set
@@ -471,12 +214,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region RetryAfter
 
-        public new String RetryAfter
+        public String RetryAfter
         {
 
             get
             {
-                return base.RetryAfter;
+                return GetHeaderField(HTTPHeaderField.RetryAfter);
             }
 
             set
@@ -490,12 +233,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Server
 
-        public new String Server
+        public String Server
         {
 
             get
             {
-                return base.Server;
+                return GetHeaderField(HTTPHeaderField.Server);
             }
 
             set
@@ -509,12 +252,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Vary
 
-        public new String Vary
+        public String Vary
         {
 
             get
             {
-                return base.Vary;
+                return GetHeaderField(HTTPHeaderField.Vary);
             }
 
             set
@@ -528,12 +271,12 @@ namespace de.ahzf.Hermod.HTTP
 
         #region WWWAuthenticate
 
-        public new String WWWAuthenticate
+        public String WWWAuthenticate
         {
 
             get
             {
-                return base.WWWAuthenticate;
+                return GetHeaderField(HTTPHeaderField.WWWAuthenticate);
             }
 
             set
@@ -565,6 +308,31 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
+        #region HTTPResponseHeader(HTTPHeader)
+
+        public HTTPResponseBuilder(String HTTPHeader)
+            : this()
+        {
+            ParseHeader(HTTPHeader);
+        }
+
+        #endregion
+
+        #endregion
+
+
+        #region (operator) HTTPResponseBuilder => HTTPResponseHeader
+
+        /// <summary>
+        /// Declare an explicit conversion from a HTTPResponseBuilder to an HTTPResponseHeader
+        /// </summary>
+        /// <param name="HTTPRequestBuilder"></param>
+        /// <returns></returns>
+        public static implicit operator HTTPResponse(HTTPResponseBuilder Builder)
+        {
+            return Builder.AsImmutable();
+        }
+        
         #endregion
 
 
@@ -579,6 +347,34 @@ namespace de.ahzf.Hermod.HTTP
         public HTTPResponseBuilder SetHTTPStatusCode(HTTPStatusCode HTTPStatusCode)
         {
             this.HTTPStatusCode = HTTPStatusCode;
+            return this;
+        }
+
+        #endregion
+
+        #region SetProtocolName(ProtocolName)
+
+        /// <summary>
+        /// Set the protocol name.
+        /// </summary>
+        /// <param name="ProtocolName">The protocol name.</param>
+        public HTTPResponseBuilder SetProtocolName(String ProtocolName)
+        {
+            this.ProtocolName = ProtocolName;
+            return this;
+        }
+
+        #endregion
+
+        #region SetProtocolVersion(ProtocolVersion)
+
+        /// <summary>
+        /// Set the protocol version.
+        /// </summary>
+        /// <param name="ProtocolVersion">The protocol version.</param>
+        public HTTPResponseBuilder SetProtocolVersion(HTTPVersion ProtocolVersion)
+        {
+            this.ProtocolVersion = ProtocolVersion;
             return this;
         }
 
@@ -787,6 +583,45 @@ namespace de.ahzf.Hermod.HTTP
         }
 
         #endregion
+
+        #endregion
+
+
+        #region PrepareImmutability()
+
+        /// <summary>
+        /// Prepares the immutability of an HTTP PDU, e.g. calculates
+        /// and set the Content-Length header.
+        /// </summary>
+        protected override void PrepareImmutability()
+        {
+
+            base.PrepareImmutability();
+
+        }
+
+        #endregion
+
+        #region AsImmutable()
+
+        /// <summary>
+        /// Converts this HTTPResponseBuilder into an immutable HTTPResponse.
+        /// </summary>
+        public HTTPResponse AsImmutable()
+        {
+
+            PrepareImmutability();
+
+            if (Content != null)
+                return new HTTPResponse(HTTPHeader, Content);
+
+            else if (ContentStream != null)
+                return new HTTPResponse(HTTPHeader, ContentStream);
+
+            else
+                return new HTTPResponse(HTTPHeader);
+
+        }
 
         #endregion
 

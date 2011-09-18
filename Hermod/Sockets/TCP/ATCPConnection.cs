@@ -99,6 +99,12 @@ namespace de.ahzf.Hermod.Sockets.TCP
 
         #endregion
 
+        #region Events
+
+        public event ExceptionOccuredHandler OnExceptionOccured;
+
+        #endregion
+
         #region Constructor(s)
 
         #region ATCPConnection()
@@ -133,58 +139,66 @@ namespace de.ahzf.Hermod.Sockets.TCP
         #endregion
 
 
-        #region OnExceptionOccured
+        #region WriteToResponseStream(Text)
 
-        public delegate void ExceptionOccuredHandler(Object mySender, Exception myException);
-
-        public event TCPServer.ExceptionOccuredHandler OnExceptionOccured
-        {
-            add    { throw new NotImplementedException(); }
-            remove { throw new NotImplementedException(); }
-        }
-
-        #endregion
-
-
-        #region WriteToResponseStream(myText)
-
+        /// <summary>
+        /// Writes some UTF-8 text to the underlying stream.
+        /// </summary>
+        /// <param name="Text">Some UTF-8 text.</param>
         public void WriteToResponseStream(String Text)
         {
-            WriteToResponseStream(Encoding.UTF8.GetBytes(Text));
+            WriteToResponseStream(Text.ToUTF8Bytes());
         }
 
         #endregion
 
         #region WriteToResponseStream(Content)
 
+        /// <summary>
+        /// Writes the given byte array to the underlying stream.
+        /// </summary>
+        /// <param name="Content">An array of bytes.</param>
         public void WriteToResponseStream(Byte[] Content)
         {
             if (IsConnected)
                 if (Content != null)
-                    TCPClientConnection.GetStream().Write(Content, 0, Content.Length);
+                {
+                    var Stream = TCPClientConnection.GetStream();
+                    if (Stream != null)
+                        Stream.Write(Content, 0, Content.Length);
+                }
         }
 
         #endregion
 
-        #region WriteToResponseStream(InputStream, ReadTimeout = 1000)
+        #region WriteToResponseStream(InputStream, ReadTimeout = 1000, BufferSize = 65535)
 
-        public void WriteToResponseStream(Stream InputStream, Int32 ReadTimeout = 1000)
+        /// <summary>
+        /// Reads the given input stream and writes its content to the underlying stream.
+        /// </summary>
+        /// <param name="InputStream">A data source.</param>
+        /// <param name="ReadTimeout">A read timeout on the source.</param>
+        /// <param name="BufferSize">The buffer size for reading.</param>
+        public void WriteToResponseStream(Stream InputStream, Int32 ReadTimeout = 1000, Int32 BufferSize = 65535)
         {
 
             if (IsConnected)
             {
 
-                var _Buffer = new Byte[65535];
+                var _Buffer = new Byte[BufferSize];
                 var _BytesRead = 0;
 
                 if (InputStream.CanTimeout && ReadTimeout != 1000)
                     InputStream.ReadTimeout = ReadTimeout;
 
-                do
-                {
-                    _BytesRead = InputStream.Read(_Buffer, 0, _Buffer.Length);
-                    TCPClientConnection.GetStream().Write(_Buffer, 0, _BytesRead);
-                } while (_BytesRead != 0);
+                var Stream = TCPClientConnection.GetStream();
+
+                if (Stream != null)
+                    do
+                    {
+                        _BytesRead = InputStream.Read(_Buffer, 0, _Buffer.Length);
+                        Stream.Write(_Buffer, 0, _BytesRead);
+                    } while (_BytesRead != 0);
 
             }
 
