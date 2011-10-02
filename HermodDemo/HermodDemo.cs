@@ -140,7 +140,7 @@ namespace de.ahzf.Hermod.Demo
 
             WriteRequest(_requestA);
             _client2.Execute(_requestA, response => WriteResponse(response)).
-                ContinueWith(Client => Client.Result.Execute(_requestB, response => WriteResponse(response)));
+                     ContinueWith(Client => Client.Result.Execute(_requestB, response => WriteResponse(response)));
 
 
             var _req23a = new HTTPRequestBuilder().

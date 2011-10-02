@@ -320,7 +320,7 @@ namespace de.ahzf.Hermod.HTTP
 
                 #endregion
 
-                #region Read till timeout...
+                #region ...or read till timeout!
 
                 else
                 {
@@ -352,7 +352,7 @@ namespace de.ahzf.Hermod.HTTP
 
                 #endregion
 
-                // Verbindung schließen
+                #region Close connection if requested!
 
                 if (_HTTPResponse.Connection == "close")
                 {
@@ -361,8 +361,15 @@ namespace de.ahzf.Hermod.HTTP
                     TCPStream = null;
                 }
 
+                #endregion
+
+
+                #region Call HTTPResponse delegates
+
                 if (HTTPResponseDelegate != null)
                     HTTPResponseDelegate(_HTTPResponse);
+
+                #endregion
 
                 return this;
 
