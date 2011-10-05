@@ -92,7 +92,7 @@ namespace de.ahzf.Hermod.HTTP
         /// <summary>
         /// Creates a new abstract HTTPService.
         /// </summary>
-        /// <param name="HTTPContentType">A content type.</param>
+        /// <param name="HTTPContentTypes">A content type.</param>
         public AHTTPService(IEnumerable<HTTPContentType> HTTPContentTypes)
         {
 

@@ -392,13 +392,20 @@ namespace de.ahzf.Hermod.HTTP
         public override String ToString()
         {
 
-            var _TypeName    = this.GetType().Name;
-            var _GenericType = this.GetType().GetGenericArguments()[0].Name;
+            var _TypeName         = this.GetType().Name;
+            var _GenericArguments = this.GetType().GetGenericArguments();
+            var _GenericTypeName  = "";
+
+            if (_GenericArguments.Length > 0)
+            {
+                _GenericTypeName  = String.Concat("<", _GenericArguments[0].Name, ">");
+                _TypeName         = _TypeName.Remove(_TypeName.Length - 2);
+            }
 
             var _Running = "";
             if (_TCPServer.IsRunning) _Running = " (running)";
 
-            return String.Concat(_TypeName.Remove(_TypeName.Length - 2), "<", _GenericType, "> ", _TCPServer.IPAddress.ToString(), ":", _TCPServer.Port, _Running);
+            return String.Concat(_TypeName, _GenericTypeName, " at ", _TCPServer.IPAddress.ToString(), ":", _TCPServer.Port, _Running);
 
         }
 
