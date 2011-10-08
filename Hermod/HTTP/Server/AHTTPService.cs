@@ -310,6 +310,9 @@ namespace de.ahzf.Hermod.HTTP
                     case "html": _ResponseContentType = HTTPContentType.HTML_UTF8;       break;
                     case "css":  _ResponseContentType = HTTPContentType.CSS_UTF8;        break;
                     case "gif":  _ResponseContentType = HTTPContentType.GIF;             break;
+                    case "jpg":  _ResponseContentType = HTTPContentType.JPG;             break;
+                    case "jpeg": _ResponseContentType = HTTPContentType.JPEG;            break;
+                    case "png":  _ResponseContentType = HTTPContentType.PNG;             break;
                     case "ico":  _ResponseContentType = HTTPContentType.ICO;             break;
                     case "swf":  _ResponseContentType = HTTPContentType.SWF;             break;
                     case "js":   _ResponseContentType = HTTPContentType.JAVASCRIPT_UTF8; break;

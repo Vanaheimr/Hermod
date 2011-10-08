@@ -36,7 +36,7 @@ namespace de.ahzf.Hermod.HTTP
     public interface IHTTPConnection : ITCPConnection
     {
 
-        HTTPRequest   InHTTPRequest   { get; }
+        HTTPRequest         InHTTPRequest   { get; }
         //ToDo: Change this to a Stream!
         Byte[]              RequestBody     { get; }
         
