@@ -308,7 +308,7 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
-        #region HTTPResponseHeader(HTTPHeader)
+        #region HTTPResponseBuilder(HTTPHeader)
 
         public HTTPResponseBuilder(String HTTPHeader)
             : this()
@@ -321,10 +321,10 @@ namespace de.ahzf.Hermod.HTTP
         #endregion
 
 
-        #region (operator) HTTPResponseBuilder => HTTPResponseHeader
+        #region (operator) HTTPResponseBuilder => HTTPResponse
 
         /// <summary>
-        /// Declare an explicit conversion from a HTTPResponseBuilder to an HTTPResponseHeader
+        /// Declare an explicit conversion from a HTTPResponseBuilder to an HTTPResponse
         /// </summary>
         /// <param name="HTTPRequestBuilder"></param>
         /// <returns></returns>

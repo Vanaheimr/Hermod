@@ -185,14 +185,14 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region HTTPResponseHeader()
+        #region HTTPResponse()
 
         public HTTPResponse()
         { }
 
         #endregion
 
-        #region HTTPResponseHeader(HTTPHeader)
+        #region HTTPResponse(HTTPHeader)
 
         public HTTPResponse(String HTTPHeader)
         {
@@ -201,7 +201,7 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
-        #region HTTPResponseHeader(HTTPHeader, Content)
+        #region HTTPResponse(HTTPHeader, Content)
 
         public HTTPResponse(String HTTPHeader, Byte[] Content)
         {
@@ -211,7 +211,7 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
-        #region HTTPResponseHeader(HTTPHeader, ContentStream)
+        #region HTTPResponse(HTTPHeader, ContentStream)
 
         public HTTPResponse(String HTTPHeader, Stream ContentStream)
         {
