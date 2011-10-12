@@ -215,6 +215,7 @@ namespace de.ahzf.Hermod.HTTP
                 HTTPStatusCode = HTTPStatusCode.BadRequest,
                 CacheControl   = "no-cache",
                 Connection     = "close",
+                Content        = "Error 400 - Bad Request".ToUTF8Bytes()
             };
 
         }
@@ -227,11 +228,12 @@ namespace de.ahzf.Hermod.HTTP
         {
 
             return new HTTPResponseBuilder()
-                    {
-                        HTTPStatusCode = HTTPStatusCode.NotFound,
-                        CacheControl   = "no-cache",
-                        Connection     = "close",
-                    };
+            {
+                HTTPStatusCode = HTTPStatusCode.NotFound,
+                CacheControl   = "no-cache",
+                Connection     = "close",
+                Content        = "Error 404 - Not found".ToUTF8Bytes()
+            };
 
         }
 
@@ -243,11 +245,12 @@ namespace de.ahzf.Hermod.HTTP
         {
 
             return new HTTPResponseBuilder()
-                    {
-                        HTTPStatusCode = HTTPStatusCode.NotAcceptable,
-                        CacheControl   = "no-cache",
-                        Connection     = "close",
-                    };
+            {
+                HTTPStatusCode = HTTPStatusCode.NotAcceptable,
+                CacheControl   = "no-cache",
+                Connection     = "close",
+                Content        = "Error 406 - Not Acceptable".ToUTF8Bytes()
+            };
 
         }
 
@@ -263,6 +266,7 @@ namespace de.ahzf.Hermod.HTTP
                 HTTPStatusCode = HTTPStatusCode.Conflict,
                 CacheControl   = "no-cache",
                 Connection     = "close",
+                Content        = "Error 409 - Conflict".ToUTF8Bytes()
             };
 
         }
