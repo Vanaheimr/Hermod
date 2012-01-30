@@ -71,6 +71,14 @@ namespace de.ahzf.Hermod.Sockets.UDP
 
         #endregion
 
+
+        public void Reply(Byte[] Data)
+        {
+
+            var _ReplyPacket = new UDPPacket(Data, this.RemoteSocket, this.LocalSocket);
+
+        }
+
     }
 
 }

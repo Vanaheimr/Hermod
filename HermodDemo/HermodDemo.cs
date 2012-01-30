@@ -25,6 +25,7 @@ using de.ahzf.Hermod.HTTP;
 using de.ahzf.Hermod.Sockets.TCP;
 using de.ahzf.Hermod.Datastructures;
 using de.ahzf.Hermod.UnitTests;
+using de.ahzf.Hermod.Sockets.UDP;
 
 #endregion
 
@@ -103,6 +104,16 @@ namespace de.ahzf.Hermod.Demo
                                    };
 
             Console.WriteLine(_HTTPServer2);
+
+            #endregion
+
+            #region UDP Servers
+
+            var _UDPServer1 = new UDPServer(new IPPort(5555), NewPacket =>
+            {
+                //NewPacket.Data = new Byte[10];
+             //   NewPacket.Close();
+            }, true);
 
             #endregion
 

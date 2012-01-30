@@ -496,7 +496,7 @@ namespace de.ahzf.Hermod.Sockets.UDP
 
         #endregion
 
-        #region UDPServer(myIPSocket, myNewConnectionHandler = null, Autostart = false)
+        #region UDPServer(myIPSocket, NewConnectionHandler = null, Autostart = false)
 
         /// <summary>
         /// Initialize the UDP server using the given parameters.
