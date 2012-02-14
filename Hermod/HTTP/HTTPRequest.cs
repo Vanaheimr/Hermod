@@ -23,6 +23,8 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Text;
 
+using de.ahzf.Illias.Commons;
+
 #endregion
 
 namespace de.ahzf.Hermod.HTTP

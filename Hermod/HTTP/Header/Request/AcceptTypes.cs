@@ -22,6 +22,8 @@ using System.Linq;
 using System.Globalization;
 using System.Collections.Generic;
 
+using de.ahzf.Illias.Commons;
+
 #endregion
 
 namespace de.ahzf.Hermod.HTTP

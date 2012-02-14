@@ -21,6 +21,7 @@ using System;
 using System.Linq;
 using System.Threading;
 
+using de.ahzf.Illias.Commons;
 using de.ahzf.Hermod.HTTP;
 using de.ahzf.Hermod.Sockets.TCP;
 using de.ahzf.Hermod.Datastructures;

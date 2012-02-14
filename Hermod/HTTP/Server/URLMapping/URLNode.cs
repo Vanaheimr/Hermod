@@ -23,6 +23,8 @@ using System.Reflection;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 
+using de.ahzf.Illias.Commons;
+
 #endregion
 
 namespace de.ahzf.Hermod.HTTP

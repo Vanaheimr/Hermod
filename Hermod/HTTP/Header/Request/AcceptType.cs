@@ -20,6 +20,8 @@
 using System;
 using System.Globalization;
 
+using de.ahzf.Illias.Commons;
+
 #endregion
 
 namespace de.ahzf.Hermod.HTTP

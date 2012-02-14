@@ -28,7 +28,7 @@ using System.Net.Sockets;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens;
 
-using de.ahzf.Hermod.Tools;
+using de.ahzf.Illias.Commons;
 using de.ahzf.Hermod.Sockets.TCP;
 
 #endregion
