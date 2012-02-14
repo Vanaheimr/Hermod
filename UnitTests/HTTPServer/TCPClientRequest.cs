@@ -23,6 +23,7 @@ using System.Net.Sockets;
 using de.ahzf.Hermod.HTTP;
 using de.ahzf.Hermod.Datastructures;
 
+using de.ahzf.Illias.Commons;
 using NUnit.Framework;
 using System.Collections.Generic;
 using System.Threading;

@@ -21,6 +21,8 @@ using System;
 using System.Text;
 using System.Collections.Generic;
 
+using de.ahzf.Illias.Commons;
+
 #endregion
 
 namespace de.ahzf.Hermod.HTTP

@@ -74,7 +74,6 @@
     <Compile Include="HTTP\HTTPRequest.cs" />
     <Compile Include="HTTP\Header\General\HTTPStatusCode.cs" />
     <Compile Include="HTTP\Header\General\HTTPVersion.cs" />
-    <Compile Include="ExtentionMethods\Extensions.cs" />
     <Compile Include="HTTP\Server\Attributes\AuthenticationAttributes.cs" />
     <Compile Include="HTTP\Server\Attributes\HTTPServiceAttribute.cs" />
     <Compile Include="HTTP\Server\Attributes\HTTPErrorAttribute.cs" />
@@ -121,11 +120,15 @@
     <Compile Include="Sockets\UDP\UDPClient.cs" />
     <Compile Include="Sockets\UDP\UDPPacket.cs" />
     <Compile Include="Sockets\UDP\UDPServer.cs" />
-    <Compile Include="Tools\AutoDiscovery.cs" />
-    <Compile Include="Tools\AutoDiscoveryException.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="HTTP\Header\Response\" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Illias\Commons\Commons.csproj">
+      <Project>{16C85DF8-5DE6-4A9F-9FC7-7CA5B0440DF3}</Project>
+      <Name>Commons</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
