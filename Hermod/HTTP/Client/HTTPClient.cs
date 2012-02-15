@@ -59,21 +59,49 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
-        #region IPAdress
+        #region RemoteIPAddress
 
         /// <summary>
-        /// The IPAddress to which the HTTPClient connects.
+        /// The IP address to connect to.
         /// </summary>
-        public IIPAddress IPAddress { get; private set; }
+        public IIPAddress RemoteIPAddress { get; set; }
 
         #endregion
 
-        #region Port
+        #region RemotePort
 
         /// <summary>
-        /// The port to which the HTTPClient connects.
+        /// The IP port to connect to.
         /// </summary>
-        public IPPort Port { get; private set; }
+        public IPPort RemotePort { get; set; }
+
+        #endregion
+
+        #region RemoteSocket
+
+        /// <summary>
+        /// The IP socket to connect to.
+        /// </summary>
+        public IPSocket RemoteSocket
+        {
+
+            get
+            {
+                return new IPSocket(RemoteIPAddress, RemotePort);
+            }
+
+            set
+            {
+
+                if (value == null)
+                    throw new ArgumentNullException("The remote socket must not be null!");
+
+                this.RemoteIPAddress = value.IPAddress;
+                this.RemotePort      = value.Port;
+
+            }
+
+        }
 
         #endregion
 
@@ -106,25 +134,31 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region HTTPClient()
+        #region HTTPClient(IPAddress = null, Port = null)
 
         /// <summary>
-        /// Create a new HTTP client.
+        /// Create a new HTTPClient using the given optional parameters.
         /// </summary>
-        public HTTPClient()
-        { }
+        /// <param name="RemoteIPAddress">The IP address to connect to.</param>
+        /// <param name="RemotePort">The IP port to connect to.</param>
+        public HTTPClient(IIPAddress RemoteIPAddress = null, IPPort RemotePort = null)
+        {
+            this.RemoteIPAddress = RemoteIPAddress;
+            this.RemotePort      = RemotePort;
+        }
 
         #endregion
 
-        #region HTTPClient(IPAddress, Port)
+        #region HTTPClient(Socket)
 
         /// <summary>
-        /// Create a new HTTP client.
+        /// Create a new HTTPClient using the given optional parameters.
         /// </summary>
-        public HTTPClient(IIPAddress IPAddress, IPPort Port)
+        /// <param name="RemoteSocket">The IP socket to connect to.</param>
+        public HTTPClient(IPSocket RemoteSocket)
         {
-            this.IPAddress = IPAddress;
-            this.Port      = Port;
+            this.RemoteIPAddress = RemoteSocket.IPAddress;
+            this.RemotePort      = RemoteSocket.Port;
         }
 
         #endregion
@@ -172,7 +206,7 @@ namespace de.ahzf.Hermod.HTTP
 
                 // Init TcpClient
                 if (TCPClient == null)
-                    TCPClient = new TcpClient(this.IPAddress.ToString(), this.Port.ToInt32());
+                    TCPClient = new TcpClient(this.RemoteIPAddress.ToString(), this.RemotePort.ToInt32());
                     //TCPClient.ReceiveTimeout = 5000;
 
                 // Open stream for reading and writting
@@ -396,7 +430,7 @@ namespace de.ahzf.Hermod.HTTP
             var _TypeName    = this.GetType().Name;
             var _GenericType = this.GetType().GetGenericArguments()[0].Name;
 
-            return String.Concat(IPAddress.ToString(), ":", Port);
+            return String.Concat(RemoteIPAddress.ToString(), ":", RemotePort);
 
         }
 
