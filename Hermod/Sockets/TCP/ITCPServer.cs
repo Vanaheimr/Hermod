@@ -25,44 +25,30 @@ namespace de.ahzf.Hermod.Datastructures
 {
 
     /// <summary>
-    /// A generic server interface.
+    /// A TCP server interface.
     /// </summary>
-    public interface IServer : IDisposable
+    public interface ITCPServer : IServer
     {
 
         /// <summary>
-        /// The server is running and ready for serving requests.
+        /// The current number of connected clients.
         /// </summary>
-        Boolean    IsRunning { get; }
-        
-        /// <summary>
-        /// The listening IP address.
-        /// </summary>
-        IIPAddress IPAddress { get; }
+        UInt64 NumberOfClients { get; }
 
         /// <summary>
-        /// The listening IP port.
+        /// The maximum number of pending client connections.
         /// </summary>
-        IPPort     Port      { get; }
-
+        UInt32 MaxClientConnections { get; }
 
         /// <summary>
-        /// Start the server.
+        /// Will set the ClientTimeout for all incoming client connections
         /// </summary>
-        void Start();
+        UInt32 ClientTimeout { get; }
 
         /// <summary>
-        /// Shutdown the server.
+        /// An exception has occured.
         /// </summary>
-        void Shutdown();
-
-        /// <summary>
-        /// The shutdown of the server was requested.
-        /// </summary>
-        Boolean StopRequested { get; }
-
-
-        String ToString();
+        event ExceptionOccuredHandler OnExceptionOccured;
 
     }
 

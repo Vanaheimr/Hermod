@@ -19,50 +19,28 @@
 
 using System;
 
+using de.ahzf.Hermod.Datastructures;
+
 #endregion
 
-namespace de.ahzf.Hermod.Datastructures
+namespace de.ahzf.Hermod.HTTP
 {
 
     /// <summary>
-    /// A generic server interface.
+    /// The HTTP server interface.
     /// </summary>
-    public interface IServer : IDisposable
+    public interface IHTTPServer : ITCPServer
     {
 
         /// <summary>
-        /// The server is running and ready for serving requests.
+        /// The HTTP server name.
         /// </summary>
-        Boolean    IsRunning { get; }
-        
-        /// <summary>
-        /// The listening IP address.
-        /// </summary>
-        IIPAddress IPAddress { get; }
+        String ServerName { get; set; }
 
         /// <summary>
-        /// The listening IP port.
+        /// The default HTTP server name.
         /// </summary>
-        IPPort     Port      { get; }
-
-
-        /// <summary>
-        /// Start the server.
-        /// </summary>
-        void Start();
-
-        /// <summary>
-        /// Shutdown the server.
-        /// </summary>
-        void Shutdown();
-
-        /// <summary>
-        /// The shutdown of the server was requested.
-        /// </summary>
-        Boolean StopRequested { get; }
-
-
-        String ToString();
+        String DefaultServerName { get; }
 
     }
 

@@ -60,6 +60,7 @@
     <Compile Include="HTTP\HTTPResponseBuilder.cs" />
     <Compile Include="HTTP\HTTPRequestBuilder.cs" />
     <Compile Include="HTTP\HTTPResponse.cs" />
+    <Compile Include="HTTP\IHTTPServer.cs" />
     <Compile Include="HTTP\Server\Attributes\HTTPEventMappingAttribute.cs" />
     <Compile Include="HTTP\Server\AHTTPService.cs" />
     <Compile Include="HTTP\Server\Interfaces\IHTTPBaseService.cs" />
@@ -110,6 +111,7 @@
     <Compile Include="Sockets\RawIP\UDP\UDPHeader.cs" />
     <Compile Include="Sockets\RawIP\WinsockIoctl.cs" />
     <Compile Include="Sockets\TCP\ATCPConnection.cs" />
+    <Compile Include="Sockets\TCP\ITCPServer.cs" />
     <Compile Include="Sockets\TCP\ITCPConnection.cs" />
     <Compile Include="Sockets\TCP\TCPConnection.cs" />
     <Compile Include="Sockets\TCP\TCPServer.cs" />

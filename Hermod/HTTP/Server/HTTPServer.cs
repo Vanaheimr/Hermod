@@ -31,10 +31,11 @@ namespace de.ahzf.Hermod.HTTP
     #region HTTPServer<DefaultHTTPService>
 
     /// <summary>
-    ///  This http server will listen on a port and maps incoming urls to methods of HTTPServiceInterface. 
+    ///  This http server will listen on a tcp port and maps incoming urls
+    ///  to methods of HTTPServiceInterface.
     /// </summary>
     /// <typeparam name="HTTPServiceInterface">A http service interface.</typeparam>
-    public class HTTPServer<HTTPServiceInterface> : AHTTPServer<HTTPServiceInterface>, IServer
+    public class HTTPServer<HTTPServiceInterface> : AHTTPServer<HTTPServiceInterface>, IHTTPServer
         where HTTPServiceInterface : IHTTPService
     {
 
@@ -113,7 +114,7 @@ namespace de.ahzf.Hermod.HTTP
 
         /// <summary>
         /// The HTTPServer was requested to stop and will no
-        /// longer accept new client connections
+        /// longer accept new client connections.
         /// </summary>
         public Boolean StopRequested
         {
@@ -133,7 +134,7 @@ namespace de.ahzf.Hermod.HTTP
         #region NumberOfClients
 
         /// <summary>
-        /// The current number of connected clients
+        /// The current number of connected clients.
         /// </summary>
         public UInt64 NumberOfClients
         {
@@ -153,7 +154,7 @@ namespace de.ahzf.Hermod.HTTP
         #region MaxClientConnections
 
         /// <summary>
-        /// The maximum number of pending client connections
+        /// The maximum number of pending client connections.
         /// </summary>
         public UInt32 MaxClientConnections
         {
@@ -215,6 +216,9 @@ namespace de.ahzf.Hermod.HTTP
 
         private event ExceptionOccuredHandler _OnExceptionOccured;
 
+        /// <summary>
+        /// An exception has occured.
+        /// </summary>
         public event ExceptionOccuredHandler OnExceptionOccured
         {
 
@@ -265,7 +269,7 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
-        #region HTTPServer(Port, NewHTTPServiceHandler = null, myAutoStart = false)
+        #region HTTPServer(Port, NewHTTPServiceHandler = null, AutoStart = false)
 
         /// <summary>
         /// Initialize the HTTPServer using IPAddress.Any and the given parameters.
