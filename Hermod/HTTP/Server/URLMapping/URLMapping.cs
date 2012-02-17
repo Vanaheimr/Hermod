@@ -206,9 +206,32 @@ namespace de.ahzf.Hermod.HTTP
 
             #region Get best matchin URLNode
 
-            var _RegexList = from __URLNode in _HostNode.URLNodes.Values select new { URLNode = __URLNode, Regex = __URLNode.URLRegex };
-            var _Matches   = from _RegexTupel in _RegexList select new { URLNode = _RegexTupel.URLNode, Match = _RegexTupel.Regex.Match(myURL) };
-            var _BestMatch = (from _Match in _Matches orderby 100*_Match.Match.Length+_Match.URLNode.ParameterCount descending select new { URLNode = _Match.URLNode, Match = _Match.Match }).First();
+            var _RegexList    = from   __URLNode
+                                in     _HostNode.URLNodes.Values
+                                select new {
+                                    URLNode = __URLNode,
+                                    Regex   = __URLNode.URLRegex
+                                };
+
+            var _AllTemplates = from   _RegexTupel
+                                in     _RegexList
+                                select new {
+                                    URLNode = _RegexTupel.URLNode,
+                                    Match   = _RegexTupel.Regex.Match(myURL)
+                                };
+            
+            var _Matches      = from    _Match
+                                in      _AllTemplates
+                                where   _Match.Match.Success
+                                orderby 100*_Match.URLNode.SortLength +
+                                            _Match.URLNode.ParameterCount
+                                        descending
+                                select  new {
+                                    URLNode = _Match.URLNode,
+                                    Match   = _Match.Match
+                                };
+            
+            var _BestMatch    = _Matches.First();
 
             Console.WriteLine(myHTTPMethod + "\t" + myURL + " => " + _BestMatch.URLNode.URLTemplate);
             //_Matches.ForEach(_m => { if (_m.Match.Success) Console.WriteLine("Match Length:'" + _m.Match.Length + "'+" + _m.URLNode.ParameterCount + " Groups[1]:'" + _m.Match.Groups[1] + "' URLTemplate:'" + _m.URLNode.URLTemplate + "'"); });

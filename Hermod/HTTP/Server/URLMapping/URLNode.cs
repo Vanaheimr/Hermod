@@ -41,32 +41,37 @@ namespace de.ahzf.Hermod.HTTP
         /// <summary>
         /// The url for this service.
         /// </summary>
-        public String URLTemplate { get; private set; }
+        public String     URLTemplate        { get; private set; }
 
         /// <summary>
         /// The url for this service.
         /// </summary>
-        public Regex URLRegex { get; private set; }
+        public Regex      URLRegex           { get; private set; }
 
         /// <summary>
-        /// The numner of parameters within this URLNode.
+        /// The number of parameters within this URLNode for shorting best-matching URLs.
         /// </summary>
-        public UInt16 ParameterCount { get; private set; }
+        public UInt16     ParameterCount     { get; private set; }
+
+        /// <summary>
+        /// The lenght of the minimalized URL template for shorting best-matching URLs.
+        /// </summary>
+        public UInt16     SortLength         { get; private set; }
 
         /// <summary>
         /// The method handler.
         /// </summary>
-        public MethodInfo MethodHandler { get; private set; }
+        public MethodInfo MethodHandler      { get; private set; }
 
         /// <summary>
         /// This and all subordinated nodes demand an explicit url authentication.
         /// </summary>
-        public Boolean URLAuthentication { get; private set; }
+        public Boolean    URLAuthentication  { get; private set; }
 
         /// <summary>
         /// A general error handling method.
         /// </summary>
-        public MethodInfo URLErrorHandler { get; private set; }
+        public MethodInfo URLErrorHandler    { get; private set; }
 
         /// <summary>
         /// Error handling methods for specific http status codes.
@@ -76,7 +81,7 @@ namespace de.ahzf.Hermod.HTTP
         /// <summary>
         /// A mapping from HTTPMethods to HTTPMethodNodes.
         /// </summary>
-        public ConcurrentDictionary<HTTPMethod, HTTPMethodNode> HTTPMethods { get; private set; }
+        public ConcurrentDictionary<HTTPMethod, HTTPMethodNode> HTTPMethods      { get; private set; }
 
         #endregion
 
@@ -94,20 +99,22 @@ namespace de.ahzf.Hermod.HTTP
         public URLNode(String URLTemplate, MethodInfo MethodHandler = null, Boolean URLAuthentication = false, MethodInfo URLErrorHandler = null)
         {
 
-            this.URLTemplate        = URLTemplate;
-            this.MethodHandler      = MethodHandler;
-            this.URLAuthentication  = URLAuthentication;
-            this.URLErrorHandler    = URLErrorHandler;
-            this.URLErrorHandlers   = new ConcurrentDictionary<HTTPStatusCode, MethodInfo>();
-            this.HTTPMethods        = new ConcurrentDictionary<HTTPMethod, HTTPMethodNode>();
+            this.URLTemplate           = URLTemplate;
+            this.MethodHandler         = MethodHandler;
+            this.URLAuthentication     = URLAuthentication;
+            this.URLErrorHandler       = URLErrorHandler;
+            this.URLErrorHandlers      = new ConcurrentDictionary<HTTPStatusCode, MethodInfo>();
+            this.HTTPMethods           = new ConcurrentDictionary<HTTPMethod, HTTPMethodNode>();
 
-            var _ReplaceLastParameter = new Regex(@"\{[^/]+\}$");
-            this.ParameterCount = (UInt16) _ReplaceLastParameter.Matches(URLTemplate).Count;
-            var URLTemplate2 = _ReplaceLastParameter.Replace(URLTemplate, "([^\n]+)");
+            var _ReplaceLastParameter  = new Regex(@"\{[^/]+\}$");
+            this.ParameterCount        = (UInt16) _ReplaceLastParameter.Matches(URLTemplate).Count;
+            var URLTemplate2           = _ReplaceLastParameter.Replace(URLTemplate, "([^\n]+)");
+            var URLTemplateWithoutVars = _ReplaceLastParameter.Replace(URLTemplate, "");
 
             var _ReplaceAllParameters  = new Regex(@"\{[^/]+\}");
-            this.ParameterCount += (UInt16) _ReplaceAllParameters.Matches(URLTemplate2).Count;
-            this.URLRegex = new Regex("^"+_ReplaceAllParameters.Replace(URLTemplate2, "([^/]+)"));
+            this.ParameterCount       += (UInt16) _ReplaceAllParameters.Matches(URLTemplate2).Count;
+            this.URLRegex              = new Regex("^" + _ReplaceAllParameters.Replace(URLTemplate2, "([^/]+)"));
+            this.SortLength            = (UInt16) _ReplaceAllParameters.Replace(URLTemplateWithoutVars, "").Length;
 
         }
 
@@ -117,6 +124,9 @@ namespace de.ahzf.Hermod.HTTP
 
         #region ToString()
 
+        /// <summary>
+        /// Return a string represtentation of this object.
+        /// </summary>
         public override String ToString()
         {
 
