@@ -87,13 +87,13 @@
       <Project>{16C85DF8-5DE6-4A9F-9FC7-7CA5B0440DF3}</Project>
       <Name>Commons</Name>
     </ProjectReference>
+    <ProjectReference Include="..\HermodUnitTests\HermodUnitTests.csproj">
+      <Project>{A39FCA19-7716-4A16-8449-D14B7251128A}</Project>
+      <Name>HermodUnitTests</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Hermod\Hermod.csproj">
       <Project>{EAB20045-3D15-4220-BB56-B22FF6630AC9}</Project>
       <Name>Hermod</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\UnitTests\UnitTests.csproj">
-      <Project>{E9033C3A-8176-4449-A35A-C8F1E0DC464C}</Project>
-      <Name>UnitTests</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
