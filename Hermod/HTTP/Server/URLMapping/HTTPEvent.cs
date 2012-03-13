@@ -61,8 +61,8 @@ namespace de.ahzf.Hermod.HTTP
         public HTTPEvent(UInt64 myId, String myData)
         {
             Subevent = "";
-            Id = myId;
-            Data = myData;
+            Id       = myId;
+            Data     = myData;
         }
 
         #endregion
@@ -78,8 +78,8 @@ namespace de.ahzf.Hermod.HTTP
         public HTTPEvent(String mySubevent, UInt64 myId, String myData)
         {
             Subevent = mySubevent;
-            Id = myId;
-            Data = myData;
+            Id       = myId;
+            Data     = myData;
         }
 
         #endregion
