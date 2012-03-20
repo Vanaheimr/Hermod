@@ -25,6 +25,7 @@ using System.Collections.Generic;
 
 using de.ahzf.Hermod.Sockets.TCP;
 using de.ahzf.Hermod.Datastructures;
+using de.ahzf.Illias.Commons.Collections;
 
 #endregion
 
@@ -45,8 +46,8 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Data
 
-        private          Int64                 IdCounter;
-        private readonly LinkedList<HTTPEvent> Eventlist;
+        private          Int64              IdCounter;
+        private readonly TSQueue<HTTPEvent> ListOfEvents;
 
         #endregion
 
@@ -60,7 +61,20 @@ namespace de.ahzf.Hermod.HTTP
         /// <summary>
         /// Maximum number of cached events.
         /// </summary>
-        public UInt32 MaxNumberOfCachedEvents { get; set; }
+        public UInt64 MaxNumberOfCachedEvents
+        {
+            
+            get
+            {
+                return ListOfEvents.MaxNumberOfElements;
+            }
+
+            set
+            {
+                ListOfEvents.MaxNumberOfElements = value;
+            }
+
+        }
 
         #endregion
 
@@ -79,8 +93,7 @@ namespace de.ahzf.Hermod.HTTP
                 throw new ArgumentNullException("The EventIdentification must not be null or zero!");
 
             this.EventIdentification = EventIdentification;
-
-            Eventlist = new LinkedList<HTTPEvent>();
+            this.ListOfEvents        = new TSQueue<HTTPEvent>();
 
         }
 
@@ -95,9 +108,9 @@ namespace de.ahzf.Hermod.HTTP
         /// Submit a new event.
         /// </summary>
         /// <param name="Data">The attached event data.</param>
-        public void Submit(String Data)
+        public void Submit(params String[] Data)
         {
-            Eventlist.AddLast(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter), Data));
+            ListOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter), Data));
         }
 
         #endregion
@@ -109,9 +122,9 @@ namespace de.ahzf.Hermod.HTTP
         /// </summary>
         /// <param name="Subevent">A subevent identification.</param>
         /// <param name="Data">The attached event data.</param>
-        public void Submit(String Subevent, String Data)
+        public void Submit(String Subevent, params String[] Data)
         {
-            Eventlist.AddLast(new HTTPEvent(Subevent, (UInt64) Interlocked.Increment(ref IdCounter), Data));
+            ListOfEvents.Push(new HTTPEvent(Subevent, (UInt64)Interlocked.Increment(ref IdCounter), Data));
         }
 
         #endregion
@@ -125,7 +138,7 @@ namespace de.ahzf.Hermod.HTTP
         /// <param name="LastEventId">The Last-Event-Id header value.</param>
         public IEnumerable<HTTPEvent> GetEvents(UInt64 LastEventId = 0)
         {
-            return from   Eventsss in Eventlist
+            return from   Eventsss in ListOfEvents
                    where  Eventsss.Id > LastEventId
                    select Eventsss;
         }

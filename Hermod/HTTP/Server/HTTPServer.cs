@@ -28,6 +28,82 @@ using de.ahzf.Hermod.Datastructures;
 namespace de.ahzf.Hermod.HTTP
 {
 
+    #region HTTPServer -> HTTPServer<DefaultHTTPService>
+
+    /// <summary>
+    /// A HTTP server serving a default HTTP service.
+    /// </summary>
+    public class HTTPServer : HTTPServer<IDefaultHTTPService>
+    {
+
+        #region Constructor(s)
+
+        #region HTTPServer(Port, NewHTTPConnectionHandler = null, AutoStart = false)
+
+        /// <summary>
+        /// Initialize the HTTPServer using IPAddress.Any and the given parameters.
+        /// </summary>
+        /// <param name="Port">The listening port</param>
+        /// <param name="NewHTTPConnectionHandler">A delegate called for every new http connection.</param>
+        /// <param name="Autostart">Autostart the http server.</param>
+        public HTTPServer(IPPort Port, NewHTTPServiceHandler NewHTTPConnectionHandler = null, Boolean Autostart = false)
+            : this(IPv4Address.Any, Port, NewHTTPConnectionHandler, Autostart)
+        { }
+
+        #endregion
+
+        #region HTTPServer(IIPAddress, Port, NewHTTPConnectionHandler = null, AutoStart = false)
+
+        /// <summary>
+        /// Initialize the HTTPServer using the given parameters.
+        /// </summary>
+        /// <param name="IIPAddress">The listening IP address(es)</param>
+        /// <param name="Port">The listening port</param>
+        /// <param name="NewHTTPConnectionHandler">A delegate called for every new http connection.</param>
+        /// <param name="Autostart">Autostart the http server.</param>
+        public HTTPServer(IIPAddress IIPAddress, IPPort Port, NewHTTPServiceHandler NewHTTPConnectionHandler = null, Boolean Autostart = false)
+            : base(IIPAddress, Port, NewHTTPConnectionHandler, Autostart)
+        { }
+
+        #endregion
+
+        #region HTTPServer(IPSocket, NewHTTPConnectionHandler = null, Autostart = false)
+
+        /// <summary>
+        /// Initialize the HTTPServer using the given parameters.
+        /// </summary>
+        /// <param name="IPSocket">The listening IPSocket.</param>
+        /// <param name="NewHTTPConnectionHandler">A delegate called for every new http connection.</param>
+        /// <param name="Autostart">Autostart the http server.</param></param>
+        public HTTPServer(IPSocket IPSocket, NewHTTPServiceHandler NewHTTPConnectionHandler = null, Boolean Autostart = false)
+            : this(IPSocket.IPAddress, IPSocket.Port, NewHTTPConnectionHandler, Autostart)
+        { }
+
+        #endregion
+
+        #endregion
+
+        #region ToString()
+
+        /// <summary>
+        /// Return a string represtentation of this object.
+        /// </summary>
+        public override String ToString()
+        {
+
+            var _Running = "";
+            if (IsRunning) _Running = " (running)";
+
+            return String.Concat(this.GetType().Name, " ", IPAddress.ToString(), ":", Port, _Running);
+
+        }
+
+        #endregion
+
+    }
+
+    #endregion
+
     #region HTTPServer<DefaultHTTPService>
 
     /// <summary>
@@ -410,82 +486,6 @@ namespace de.ahzf.Hermod.HTTP
             if (_TCPServer.IsRunning) _Running = " (running)";
 
             return String.Concat(_TypeName, _GenericTypeName, " at ", _TCPServer.IPAddress.ToString(), ":", _TCPServer.Port, _Running);
-
-        }
-
-        #endregion
-
-    }
-
-    #endregion
-
-    #region HTTPServer -> HTTPServer<DefaultHTTPService>
-
-    /// <summary>
-    /// A HTTP server serving a default HTTP service.
-    /// </summary>
-    public class HTTPServer : HTTPServer<IDefaultHTTPService>
-    {
-
-        #region Constructor(s)
-
-        #region HTTPServer(Port, NewHTTPConnectionHandler = null, AutoStart = false)
-
-        /// <summary>
-        /// Initialize the HTTPServer using IPAddress.Any and the given parameters.
-        /// </summary>
-        /// <param name="Port">The listening port</param>
-        /// <param name="NewHTTPConnectionHandler">A delegate called for every new http connection.</param>
-        /// <param name="Autostart">Autostart the http server.</param>
-        public HTTPServer(IPPort Port, NewHTTPServiceHandler NewHTTPConnectionHandler = null, Boolean Autostart = false)
-            : this(IPv4Address.Any, Port, NewHTTPConnectionHandler, Autostart)
-        { }
-
-        #endregion
-
-        #region HTTPServer(IIPAddress, Port, NewHTTPConnectionHandler = null, AutoStart = false)
-
-        /// <summary>
-        /// Initialize the HTTPServer using the given parameters.
-        /// </summary>
-        /// <param name="IIPAddress">The listening IP address(es)</param>
-        /// <param name="Port">The listening port</param>
-        /// <param name="NewHTTPConnectionHandler">A delegate called for every new http connection.</param>
-        /// <param name="Autostart">Autostart the http server.</param>
-        public HTTPServer(IIPAddress IIPAddress, IPPort Port, NewHTTPServiceHandler NewHTTPConnectionHandler = null, Boolean Autostart = false)
-            : base(IIPAddress, Port, NewHTTPConnectionHandler, Autostart)
-        { }
-
-        #endregion
-
-        #region HTTPServer(IPSocket, NewHTTPConnectionHandler = null, Autostart = false)
-
-        /// <summary>
-        /// Initialize the HTTPServer using the given parameters.
-        /// </summary>
-        /// <param name="IPSocket">The listening IPSocket.</param>
-        /// <param name="NewHTTPConnectionHandler">A delegate called for every new http connection.</param>
-        /// <param name="Autostart">Autostart the http server.</param></param>
-        public HTTPServer(IPSocket IPSocket, NewHTTPServiceHandler NewHTTPConnectionHandler = null, Boolean Autostart = false)
-            : this(IPSocket.IPAddress, IPSocket.Port, NewHTTPConnectionHandler, Autostart)
-        { }
-
-        #endregion
-
-        #endregion
-
-        #region ToString()
-
-        /// <summary>
-        /// Return a string represtentation of this object.
-        /// </summary>
-        public override String ToString()
-        {
-
-            var _Running = "";
-            if (IsRunning) _Running = " (running)";
-
-            return String.Concat(this.GetType().Name, " ", IPAddress.ToString(), ":", Port, _Running);
 
         }
 

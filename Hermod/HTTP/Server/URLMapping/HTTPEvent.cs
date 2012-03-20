@@ -18,6 +18,8 @@
 #region Usings
 
 using System;
+using System.Linq;
+using System.Collections.Generic;
 
 #endregion
 
@@ -25,89 +27,190 @@ namespace de.ahzf.Hermod.HTTP
 {
 
     /// <summary>
-    /// A HTTP event.
+    /// A single HTTP event.
     /// </summary>
-    public struct HTTPEvent : IEquatable<HTTPEvent>, IComparable<HTTPEvent>
+    public class HTTPEvent : IEquatable<HTTPEvent>,
+                             IComparable<HTTPEvent>,
+                             IComparable
     {
 
-        #region Data
+        #region Properties
+
+        #region Subevent
 
         /// <summary>
         /// The subevent identification of this HTTP event.
         /// </summary>
-        public readonly String Subevent;
+        public String Subevent { get; private set; }
+
+        #endregion
+
+        #region Id
 
         /// <summary>
-        /// The id of this HTTP event.
+        /// The identification of this HTTP event.
         /// </summary>
-        public readonly UInt64 Id;
+        public UInt64 Id { get; private set; }
+
+        #endregion
+
+        #region Data
+
+        private readonly String[] _Data;
 
         /// <summary>
         /// The attached data of this HTTP event.
         /// </summary>
-        public readonly String Data;
+        public IEnumerable<String> Data
+        {
+            get
+            {
+                return _Data;
+            }
+        }
+
+        #endregion
 
         #endregion
 
         #region Constructor(s)
 
-        #region HTTPEvent(myId, myData)
+        #region HTTPEvent(Id, Data)
 
         /// <summary>
         /// Create a new HTTP event based on the given parameters.
         /// </summary>
-        /// <param name="myId">The id of the event.</param>
-        /// <param name="myData">The attached data of the event.</param>
-        public HTTPEvent(UInt64 myId, String myData)
+        /// <param name="Id">The id of the event.</param>
+        /// <param name="Data">The attached data of the event.</param>
+        public HTTPEvent(UInt64 Id, params String[] Data)
         {
-            Subevent = "";
-            Id       = myId;
-            Data     = myData;
+            this.Subevent = "";
+            this.Id       = Id;
+            this._Data    = Data;
         }
 
         #endregion
 
-        #region HTTPEvent(mySubevent, myId, myData)
+        #region HTTPEvent(Subevent, Id, Data)
 
         /// <summary>
         /// Create a new HTTP event based on the given parameters.
         /// </summary>
-        /// <param name="mySubevent">The subevent.</param>
-        /// <param name="myId">The id of the event.</param>
-        /// <param name="myData">The attached data of the event.</param>
-        public HTTPEvent(String mySubevent, UInt64 myId, String myData)
+        /// <param name="Subevent">The subevent.</param>
+        /// <param name="Id">The id of the event.</param>
+        /// <param name="Data">The attached data of the event.</param>
+        public HTTPEvent(String Subevent, UInt64 Id, params String[] Data)
         {
-            Subevent = mySubevent;
-            Id       = myId;
-            Data     = myData;
+            this.Subevent = Subevent;
+            this.Id       = Id;
+            this._Data    = Data;
         }
 
         #endregion
 
         #endregion
 
-        #region IEquatable Members
+        #region IEquatable<HTTPEvent> Members
+
+        #region Equals(Object)
 
         /// <summary>
-        /// Compare two objects.
+        /// Compares two instances of this object.
         /// </summary>
-        /// <param name="OtherHTTPEvent">Another HTTP event.</param>
+        /// <param name="Object">An object to compare with.</param>
+        /// <returns>true|false</returns>
+        public override Boolean Equals(Object Object)
+        {
+
+            if (Object == null)
+                return false;
+
+            // Check if the given object is a HTTPEvent.
+            var HTTPEvent = Object as HTTPEvent;
+            if ((Object) HTTPEvent == null)
+                return false;
+
+            return this.Equals(HTTPEvent);
+
+        }
+
+        #endregion
+
+        #region Equals(VertexId)
+
+        /// <summary>
+        /// Compares two HTTPEvents for equality.
+        /// </summary>
+        /// <param name="HTTPEvent">A HTTPEvent to compare with.</param>
+        /// <returns>True if both match; False otherwise.</returns>
         public Boolean Equals(HTTPEvent OtherHTTPEvent)
         {
-            return Id == OtherHTTPEvent.Id;
+
+            if ((Object) OtherHTTPEvent == null)
+                return false;
+
+            return Id.Equals(OtherHTTPEvent.Id);
+
         }
 
         #endregion
 
-        #region IComparable Members
+        #endregion
+
+        #region IComparable<HTTPEvent> Members
+
+        #region CompareTo(Object)
 
         /// <summary>
-        /// Compare two objects.
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="Object">An object to compare with.</param>
+        public Int32 CompareTo(Object Object)
+        {
+
+            if (Object == null)
+                throw new ArgumentNullException("The given object must not be null!");
+
+            // Check if the given object is a HTTPEvent.
+            var HTTPEvent = Object as HTTPEvent;
+            if ((Object) HTTPEvent == null)
+                throw new ArgumentException("The given object is not a HTTPEvent!");
+
+            return CompareTo(HTTPEvent);
+
+        }
+
+        #endregion
+
+        #region CompareTo(OtherHTTPEvent)
+
+        /// <summary>
+        /// Compares two instances of this object.
         /// </summary>
         /// <param name="OtherHTTPEvent">Another HTTP event.</param>
         public Int32 CompareTo(HTTPEvent OtherHTTPEvent)
         {
+
+            if ((Object) OtherHTTPEvent == null)
+                throw new ArgumentNullException("HTTPEvent", "The given HTTPEvent must not be null!");
+
             return Id.CompareTo(OtherHTTPEvent.Id);
+
+        }
+
+        #endregion
+
+        #endregion
+
+        #region GetHashCode()
+
+        /// <summary>
+        /// Return the HashCode of this object.
+        /// </summary>
+        /// <returns>The HashCode of this object.</returns>
+        public override Int32 GetHashCode()
+        {
+            return Subevent.GetHashCode() ^ Id.GetHashCode();
         }
 
         #endregion
@@ -119,10 +222,20 @@ namespace de.ahzf.Hermod.HTTP
         /// </summary>
         public override String ToString()
         {
-            if (Subevent != "")
-                return String.Format("event:{1}{0}id:{2}{0}data:{3}{0}", Environment.NewLine, Subevent, Id, Data);
+
+            if (Subevent == "")
+                return String.Format("id:{1}{0}data:{2}{0}{0}",
+                                       Environment.NewLine,
+                                       Id,
+                                       _Data.Aggregate((a, b) => { return a + Environment.NewLine + "data:" + b; }));
+
             else
-                return String.Format("id:{2}{0}data:{3}{0}{0}", Environment.NewLine, Id, Data);
+                return String.Format("event:{1}{0}id:{2}{0}data:{3}{0}{0}",
+                                       Environment.NewLine,
+                                       Subevent,
+                                       Id,
+                                       _Data.Aggregate((a, b) => { return a + Environment.NewLine + "data:" + b; }));
+
         }
 
         #endregion

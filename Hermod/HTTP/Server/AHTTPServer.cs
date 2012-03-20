@@ -37,15 +37,6 @@ namespace de.ahzf.Hermod.HTTP
         where HTTPServiceInterface : IHTTPService
     {
 
-        #region Data
-
-        /// <summary>
-        /// A mapping from URLTemplates onto C# methods.
-        /// </summary>
-        protected readonly URLMapping URLMapping;
-
-        #endregion
-
         #region Properties
 
         /// <summary>
@@ -62,6 +53,11 @@ namespace de.ahzf.Hermod.HTTP
         /// An associated HTTP security object.
         /// </summary>
         public HTTPSecurity HTTPSecurity { get; set; }
+
+        /// <summary>
+        /// A mapping from URLTemplates onto C# methods.
+        /// </summary>
+        public URLMapping URLMapping { get; protected set; }
 
         #endregion
 
