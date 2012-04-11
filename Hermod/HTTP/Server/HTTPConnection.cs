@@ -42,7 +42,7 @@ namespace de.ahzf.Hermod.HTTP
     /// </summary>
     /// <typeparam name="HTTPServiceInterface">the instance</typeparam>
     public class HTTPConnection<HTTPServiceInterface> : ATCPConnection, IHTTPConnection
-        where HTTPServiceInterface : IHTTPService
+        where HTTPServiceInterface : class, IHTTPService
     {
 
         #region Data

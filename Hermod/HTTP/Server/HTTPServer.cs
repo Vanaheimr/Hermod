@@ -112,7 +112,7 @@ namespace de.ahzf.Hermod.HTTP
     /// </summary>
     /// <typeparam name="HTTPServiceInterface">A http service interface.</typeparam>
     public class HTTPServer<HTTPServiceInterface> : AHTTPServer<HTTPServiceInterface>, IHTTPServer
-        where HTTPServiceInterface : IHTTPService
+        where HTTPServiceInterface : class, IHTTPService
     {
 
         #region Data

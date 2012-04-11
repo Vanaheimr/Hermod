@@ -34,7 +34,7 @@ namespace de.ahzf.Hermod.HTTP
     /// </summary>
     /// <typeparam name="HTTPServiceInterface">An interface inheriting from IHTTPService and defining URLMappings.</typeparam>
     public abstract class AHTTPServer<HTTPServiceInterface>
-        where HTTPServiceInterface : IHTTPService
+        where HTTPServiceInterface : class, IHTTPService
     {
 
         #region Properties
