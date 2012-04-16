@@ -246,7 +246,7 @@ namespace de.ahzf.Hermod.HTTP
 
 
                     // Invoke constructor of HTTPServiceType
-                    _HTTPServiceInterface = (HTTPServiceInterface) _Type.Invoke(new Object[] { this });
+                    _HTTPServiceInterface = _Type.Invoke(new Object[] { this }) as HTTPServiceInterface;
 
                     if (_HTTPServiceInterface == null)
                         throw new ArgumentException("A http connection of type '" + typeof(HTTPServiceInterface).Name + "' could not be created!");
