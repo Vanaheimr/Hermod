@@ -60,6 +60,7 @@
     <Compile Include="HTTP\HTTPResponseBuilder.cs" />
     <Compile Include="HTTP\HTTPRequestBuilder.cs" />
     <Compile Include="HTTP\HTTPResponse.cs" />
+    <Compile Include="HTTP\HTTPResult.cs" />
     <Compile Include="HTTP\IHTTPServer.cs" />
     <Compile Include="HTTP\Server\Attributes\HTTPEventMappingAttribute.cs" />
     <Compile Include="HTTP\Server\AHTTPService.cs" />

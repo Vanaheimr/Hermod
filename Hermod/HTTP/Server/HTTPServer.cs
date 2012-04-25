@@ -401,7 +401,8 @@ namespace de.ahzf.Hermod.HTTP
                           
                                      },
                                  // Don't do it now, do it a bit later...
-                                 Autostart: false);
+                                 Autostart: false,
+                                 ThreadDescription: "HTTPServer<" + typeof(HTTPServiceInterface).Name + ">");
 
             if (Autostart)
                 _TCPServer.Start();

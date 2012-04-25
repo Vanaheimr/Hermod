@@ -222,7 +222,7 @@ namespace de.ahzf.Hermod.HTTP
             if (BestMatches.IsNullOrEmpty())
                 return HTTPContentType.ALL;
             else
-                return BestMatches.First().ContentType;
+                return BestMatches.Reverse().First().ContentType;
 
         }
 

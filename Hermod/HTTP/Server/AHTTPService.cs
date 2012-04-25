@@ -35,6 +35,106 @@ using de.ahzf.Hermod.HTTP;
 namespace de.ahzf.Hermod.HTTP
 {
 
+    public static class HTTPErrors
+    {
+
+        #region HTTPErrorResponse(StatusCode, Reasons = null)
+
+        /// <summary>
+        /// Return a HTTP error response using the best-matching content type.
+        /// </summary>
+        /// <param name="HTTPRequest">The HTTP request.</param>
+        /// <param name="StatusCode">A HTTP status code.</param>
+        /// <param name="Reasons">Optional application side reasons for this error.</param>
+        public static HTTPResponse HTTPErrorResponse(HTTPRequest HTTPRequest, HTTPStatusCode StatusCode, String Reasons = null)
+        {
+
+            #region Initial checks
+
+            if (StatusCode == null)
+                return HTTPErrorResponse(HTTPRequest, HTTPStatusCode.InternalServerError, "Calling the HTTPError lead to an error!");
+
+            var Content     = String.Empty;
+            var ContentType = HTTPRequest.Accept.BestMatchingContentType(HTTPContentType.JSON_UTF8,
+                                                                         HTTPContentType.HTML_UTF8,
+                                                                         HTTPContentType.TEXT_UTF8,
+                                                                         HTTPContentType.XML_UTF8);
+
+            #endregion
+
+            #region JSON_UTF8
+
+            // {
+            //     "error": {
+            //         "code"    : 400
+            //         "message" : "Bad Request"
+            //         "reason"  : "The first paramter is not a valid number!"
+            //     }
+            // }
+            if (ContentType == HTTPContentType.JSON_UTF8)
+                Content = (Reasons == null) ? "{ \"error\": { \"code\" : " + StatusCode.Code + ", \"message\" : \"" + StatusCode.Name + "\" } }" :
+                                              "{ \"error\": { \"code\" : " + StatusCode.Code + ", \"message\" : \"" + StatusCode.Name + "\", \"reasons\" : \"" + Reasons + "\" } }";
+
+            #endregion
+
+            #region HTML_UTF8
+
+            //<!doctype html>
+            //<html>
+            //  <head>
+            //    <meta charset="UTF-8">
+            //    <title>Error 400 - Bad Request</title>
+            //  </head>
+            //  <body>
+            //    <h1>Error 400 - Bad Request</h1>
+            //    The first paramter is not a valid number!
+            //  </body>
+            //</html>
+            else if (ContentType == HTTPContentType.HTML_UTF8)
+                Content = (Reasons == null) ? "<!doctype html><html><head><meta charset=\"UTF-8\"><title>Error " + StatusCode.Code + " - " + StatusCode.Name + "</title></head><body><h1>Error " + StatusCode.Code + " - " + StatusCode.Name + "</h1></body></html>" :
+                                              "<!doctype html><html><head><meta charset=\"UTF-8\"><title>Error " + StatusCode.Code + " - " + StatusCode.Name + "</title></head><body><h1>Error " + StatusCode.Code + " - " + StatusCode.Name + "</h1>" + Reasons + "</body></html>";
+
+            #endregion
+
+            #region TEXT_UTF8
+
+            // Error 400 - Bad Request
+            // The first paramter is not a valid number!
+            else if (ContentType == HTTPContentType.TEXT_UTF8)
+                Content = (Reasons == null) ? "Error " + StatusCode.Code + " - " + StatusCode.Name :
+                                              "Error " + StatusCode.Code + " - " + StatusCode.Name + Environment.NewLine + Reasons;
+
+            #endregion
+
+            #region XML_UTF8
+
+            // <?xml version="1.0" encoding="UTF-8"?>
+            // <error>
+            //     <code>400</code>
+            //     <message>Bad Request</message>
+            //     <reason>The first paramter is not a valid number!</message>
+            // </error>
+            else if (ContentType == HTTPContentType.XML_UTF8)
+                Content = (Reasons == null) ? "<?xml version=\"1.0\" encoding=\"UTF-8\"?><error><code>" + StatusCode.Code + "</code><message>" + StatusCode.Name + "</message></error></xml>" :
+                                              "<?xml version=\"1.0\" encoding=\"UTF-8\"?><error><code>" + StatusCode.Code + "</code><message>" + StatusCode.Name + "</message><reasons>" + Reasons + "</reasons></error></xml>";
+
+            #endregion
+
+            return new HTTPResponseBuilder()
+            {
+                HTTPStatusCode = StatusCode,
+                CacheControl   = "no-cache",
+                Connection     = "close",
+                Content        = Content.ToUTF8Bytes()
+            };
+
+        }
+
+        #endregion
+
+    }
+
+
     /// <summary>
     /// Default abstract HTTP service implementation.
     /// </summary>
@@ -179,6 +279,9 @@ namespace de.ahzf.Hermod.HTTP
 
         #region GetRAWRequestHeader()
 
+        /// <summary>
+        /// Return the RAW request header.
+        /// </summary>
         public HTTPResponse GetRAWRequestHeader()
         {
 
@@ -206,82 +309,16 @@ namespace de.ahzf.Hermod.HTTP
         #endregion
 
 
-        #region Error400_BadRequest()
-
-        protected HTTPResponse Error400_BadRequest()
-        {
-
-            return new HTTPResponseBuilder()
-            {
-                HTTPStatusCode = HTTPStatusCode.BadRequest,
-                CacheControl   = "no-cache",
-                Connection     = "close",
-                Content        = "Error 400 - Bad Request".ToUTF8Bytes()
-            };
-
-        }
-
-        #endregion
-
-        #region Error404_NotFound()
-
-        protected HTTPResponse Error404_NotFound()
-        {
-
-            return new HTTPResponseBuilder()
-            {
-                HTTPStatusCode = HTTPStatusCode.NotFound,
-                CacheControl   = "no-cache",
-                Connection     = "close",
-                Content        = "Error 404 - Not found".ToUTF8Bytes()
-            };
-
-        }
-
-        #endregion
-
-        #region Error406_NotAcceptable()
-
-        protected HTTPResponse Error406_NotAcceptable()
-        {
-
-            return new HTTPResponseBuilder()
-            {
-                HTTPStatusCode = HTTPStatusCode.NotAcceptable,
-                CacheControl   = "no-cache",
-                Connection     = "close",
-                Content        = "Error 406 - Not Acceptable".ToUTF8Bytes()
-            };
-
-        }
-
-        #endregion
-
-        #region Error409_Conflict()
-
-        protected HTTPResponse Error409_Conflict()
-        {
-
-            return new HTTPResponseBuilder()
-            {
-                HTTPStatusCode = HTTPStatusCode.Conflict,
-                CacheControl   = "no-cache",
-                Connection     = "close",
-                Content        = "Error 409 - Conflict".ToUTF8Bytes()
-            };
-
-        }
-
-        #endregion
 
 
-        #region GetResources(myResource)
+
+        #region GetResources(ResourceName)
 
         /// <summary>
         /// Returns internal resources embedded within the assembly.
         /// </summary>
-        /// <param name="myResource">The path and name of the resource.</param>
-        public HTTPResponse GetResources(String myResource)
+        /// <param name="ResourceName">The path and name of the resource.</param>
+        public HTTPResponse GetResources(String ResourceName)
         {
 
             #region Initial checks
@@ -295,21 +332,21 @@ namespace de.ahzf.Hermod.HTTP
 
             var _AllResources = CallingAssembly.GetManifestResourceNames();
 
-            myResource = myResource.Replace('/', '.');
+            ResourceName = ResourceName.Replace('/', '.');
 
             #endregion
 
             #region Return internal assembly resources...
 
-            if (_AllResources.Contains(this.ResourcePath + myResource))
+            if (_AllResources.Contains(this.ResourcePath + ResourceName))
             {
 
-                var _ResourceContent = CallingAssembly.GetManifestResourceStream(this.ResourcePath + myResource);
+                var _ResourceContent = CallingAssembly.GetManifestResourceStream(this.ResourcePath + ResourceName);
 
                 HTTPContentType _ResponseContentType = null;
 
                 // Get the apropriate content type based on the suffix of the requested resource
-                switch (myResource.Remove(0, myResource.LastIndexOf(".") + 1))
+                switch (ResourceName.Remove(0, ResourceName.LastIndexOf(".") + 1))
                 {
                     case "htm":  _ResponseContentType = HTTPContentType.HTML_UTF8;       break;
                     case "html": _ResponseContentType = HTTPContentType.HTML_UTF8;       break;
@@ -325,7 +362,8 @@ namespace de.ahzf.Hermod.HTTP
                     default:     _ResponseContentType = HTTPContentType.OCTETSTREAM;     break;
                 }
 
-                return new HTTPResponseBuilder()
+                return
+                    new HTTPResponseBuilder()
                         {
                             HTTPStatusCode = HTTPStatusCode.OK,
                             ContentType    = _ResponseContentType,
@@ -347,11 +385,11 @@ namespace de.ahzf.Hermod.HTTP
                 Stream _ResourceContent = null;
 
                 if (_AllResources.Contains(this.ResourcePath + ".errorpages.Error404.html"))
-                    _ResourceContent = this.CallingAssembly.GetManifestResourceStream(this.ResourcePath + ".errorpages.Error404.html");
-                else
-                    _ResourceContent = new MemoryStream("Error 404 - File not found!".ToUTF8Bytes());
+                {
 
-                return new HTTPResponseBuilder()
+                    _ResourceContent = this.CallingAssembly.GetManifestResourceStream(this.ResourcePath + ".errorpages.Error404.html");
+
+                    return new HTTPResponseBuilder()
                         {
                             HTTPStatusCode = HTTPStatusCode.NotFound,
                             ContentType    = HTTPContentType.HTML_UTF8,
@@ -359,6 +397,11 @@ namespace de.ahzf.Hermod.HTTP
                             Connection     = "close",
                             ContentStream  = _ResourceContent
                         };
+
+                }
+
+                else
+                    return HTTPErrors.HTTPErrorResponse(IHTTPConnection.InHTTPRequest, HTTPStatusCode.NotFound);
 
             }
 

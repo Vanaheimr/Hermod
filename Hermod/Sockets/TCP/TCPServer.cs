@@ -218,7 +218,7 @@ namespace de.ahzf.Hermod.Sockets.TCP
 
         #region Constructor(s)
 
-        #region TCPServer(Port, NewConnectionHandler = null, Autostart = false)
+        #region TCPServer(Port, NewConnectionHandler = null, Autostart = false, ThreadDescription = "...")
 
         /// <summary>
         /// Initialize the TCPServer using IPAddress.Any and the given parameters.
@@ -226,13 +226,13 @@ namespace de.ahzf.Hermod.Sockets.TCP
         /// <param name="Port">The listening port</param>
         /// <param name="NewConnectionHandler">A delegate called for every new tcp connection.</param>
         /// <param name="Autostart">Autostart the tcp server.</param>
-        public TCPServer(IPPort Port, NewConnectionHandler NewConnectionHandler = null, Boolean Autostart = false)
-            : this(IPv4Address.Any, Port, NewConnectionHandler, Autostart)
+        public TCPServer(IPPort Port, NewConnectionHandler NewConnectionHandler = null, Boolean Autostart = false, String ThreadDescription = "...")
+            : this(IPv4Address.Any, Port, NewConnectionHandler, Autostart, ThreadDescription)
         { }
 
         #endregion
 
-        #region TCPServer(IIPAddress, Port, NewConnectionHandler = null, Autostart = false)
+        #region TCPServer(IIPAddress, Port, NewConnectionHandler = null, Autostart = false, ThreadDescription = "...")
 
         /// <summary>
         /// Initialize the TCPServer using the given parameters.
@@ -241,7 +241,7 @@ namespace de.ahzf.Hermod.Sockets.TCP
         /// <param name="Port">The listening port</param>
         /// <param name="NewConnectionHandler">A delegate called for every new tcp connection.</param>
         /// <param name="Autostart">Autostart the tcp server.</param>
-        public TCPServer(IIPAddress IIPAddress, IPPort Port, NewConnectionHandler NewConnectionHandler = null, Boolean Autostart = false)
+        public TCPServer(IIPAddress IIPAddress, IPPort Port, NewConnectionHandler NewConnectionHandler = null, Boolean Autostart = false, String ThreadDescription = "...")
         {
 
             _IPAddress          = IIPAddress;
@@ -267,7 +267,7 @@ namespace de.ahzf.Hermod.Sockets.TCP
             _ListenerThread = new Thread(() =>
             {
 
-                Thread.CurrentThread.Name         = "TCPServer thread";
+                Thread.CurrentThread.Name         = "TCPServer<" + ThreadDescription + ">";
                 Thread.CurrentThread.Priority     = ThreadPriority.AboveNormal;
                 Thread.CurrentThread.IsBackground = true;
                 Listen();

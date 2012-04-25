@@ -63,7 +63,8 @@ namespace de.ahzf.Hermod.HTTP
         #region Additional methods
 
         PATCH,
-        TRAVERSE
+        TRAVERSE,
+        FILTER
 
         #endregion
 
@@ -184,6 +185,7 @@ namespace de.ahzf.Hermod.HTTP
 
         public static readonly HTTPMethod PATCH         = new HTTPMethod("PATCH");
         public static readonly HTTPMethod TRAVERSE      = new HTTPMethod("TRAVERSE");
+        public static readonly HTTPMethod FILTER        = new HTTPMethod("FILTER");
 
         #endregion
 
