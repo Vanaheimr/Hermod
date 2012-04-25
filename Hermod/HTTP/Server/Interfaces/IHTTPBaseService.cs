@@ -48,8 +48,8 @@ namespace de.ahzf.Hermod.HTTP
         /// </summary>
         /// <returns>internal resources</returns>
         [NoAuthentication]
-        [HTTPMapping(HTTPMethods.GET, "/resources/{myResource}")]
-        HTTPResponse GetResources(String myResource);
+        [HTTPMapping(HTTPMethods.GET, "/resources/{Resource}")]
+        HTTPResponse GetResources(String Resource);
 
         /// <summary>
         /// Get /favicon.ico

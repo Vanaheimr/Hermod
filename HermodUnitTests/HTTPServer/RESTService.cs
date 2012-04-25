@@ -71,7 +71,7 @@ namespace de.ahzf.Hermod.UnitTests
 
         public HTTPResponse GetRoot()
         {
-            return Error406_NotAcceptable();
+            return HTTPErrors.HTTPErrorResponse(IHTTPConnection.InHTTPRequest, HTTPStatusCode.NotAcceptable);
         }
 
         #endregion
@@ -82,7 +82,7 @@ namespace de.ahzf.Hermod.UnitTests
 
         public HTTPResponse HelloWorld_OPTIONS()
         {
-            return Error406_NotAcceptable();
+            return HTTPErrors.HTTPErrorResponse(IHTTPConnection.InHTTPRequest, HTTPStatusCode.NotAcceptable);
         }
 
         #endregion
@@ -91,7 +91,7 @@ namespace de.ahzf.Hermod.UnitTests
 
         public HTTPResponse HelloWorld_HEAD()
         {
-            return Error406_NotAcceptable();
+            return HTTPErrors.HTTPErrorResponse(IHTTPConnection.InHTTPRequest, HTTPStatusCode.NotAcceptable);
         }
 
         #endregion
@@ -100,7 +100,7 @@ namespace de.ahzf.Hermod.UnitTests
 
         public HTTPResponse HelloWorld_GET()
         {
-            return Error406_NotAcceptable();
+            return HTTPErrors.HTTPErrorResponse(IHTTPConnection.InHTTPRequest, HTTPStatusCode.NotAcceptable);
         }
 
         #endregion

@@ -308,6 +308,45 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
+        #region (protected) TryGetParameter_UInt64(Name, out HTTPResult)
+
+        /// <summary>
+        /// Try to return a single optional HTTP parameter as UInt64.
+        /// </summary>
+        /// <param name="Name">The name of the parameter.</param>
+        /// <param name="HTTPResult">The HTTPResult.</param>
+        /// <returns>True if the parameter exist; False otherwise.</returns>
+        protected Boolean TryGetParameter_UInt64(String Name, out HTTPResult<UInt64> HTTPResult)
+        {
+
+            List<String> _StringValues = null;
+
+            if (IHTTPConnection.InHTTPRequest.QueryString != null)
+                if (IHTTPConnection.InHTTPRequest.QueryString.TryGetValue(Name, out _StringValues))
+                {
+
+                    UInt64 _Value;
+
+                    if (UInt64.TryParse(_StringValues[0], out _Value))
+                    {
+                        HTTPResult = new HTTPResult<UInt64>(_Value);
+                        return true;
+                    }
+
+                    else
+                    {
+                        HTTPResult = new HTTPResult<UInt64>(IHTTPConnection.InHTTPRequest, HTTPStatusCode.BadRequest, "The given optional parameter '" + Name + "' is invalid!");
+                        return true;
+                    }
+
+                }
+
+            HTTPResult = new HTTPResult<UInt64>(default(UInt64));
+            return false;
+
+        }
+
+        #endregion
 
 
 
