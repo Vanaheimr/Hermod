@@ -96,7 +96,7 @@ namespace de.ahzf.Hermod.HTTP
 
             // Error 400 - Bad Request
             // The first paramter is not a valid number!
-            else if (ContentType == HTTPContentType.TEXT_UTF8)
+            else if (ContentType == HTTPContentType.TEXT_UTF8 || ContentType == HTTPContentType.ALL)
                 Content = (Reasons == null) ? "Error " + StatusCode.Code + " - " + StatusCode.Name :
                                               "Error " + StatusCode.Code + " - " + StatusCode.Name + Environment.NewLine + Reasons;
 
@@ -113,6 +113,65 @@ namespace de.ahzf.Hermod.HTTP
             else if (ContentType == HTTPContentType.XML_UTF8)
                 Content = (Reasons == null) ? "<?xml version=\"1.0\" encoding=\"UTF-8\"?><error><code>" + StatusCode.Code + "</code><message>" + StatusCode.Name + "</message></error></xml>" :
                                               "<?xml version=\"1.0\" encoding=\"UTF-8\"?><error><code>" + StatusCode.Code + "</code><message>" + StatusCode.Name + "</message><reasons>" + Reasons + "</reasons></error></xml>";
+
+            #endregion
+
+            #region GEXF+XML
+
+            // <?xml version="1.0" encoding="UTF-8"?>
+            // <gexf xmlns=\"http://www.gexf.net/1.2draft\" version="1.2">
+            //   <meta lastmodifieddate="2009-03-20">
+            //     <creator>Vanaheimr Walkyr</creator>
+            //     <description>HTTP Error</description>
+            //   </meta>
+            //   <graph mode="static" defaultedgetype="directed">
+            //     <attributes class="edge">
+            //       <attribute id="0" title="Reasons" type="string"/>
+            //     </attributes>
+            //     <nodes>
+            //       <node id="Request" label="Request" />
+            //       <node id="Error"   label="Error 400 - Bad Request" />
+            //     </nodes>
+            //     <edges>
+            //       <edge id="0" source="Request" target="Error">
+            //         <attvalues>
+            //           <attvalue for="0" value="The first paramter is not a valid number!"/>
+            //         </attvalues>
+            //       <edge>
+            //     </edges>
+            //   </graph>
+            // </gexf>
+            //     <reason></message>
+            else if (ContentType == HTTPContentType.GEXF_UTF8)
+                Content = (Reasons == null) ? 
+                    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+                    "<gexf xmlns=\"http://www.gexf.net/1.2draft\" version=\"1.2\">" +
+                    "<meta lastmodifieddate=\"2009-03-20\"><creator>Vanaheimr Walkyr</creator><description>HTTP Error</description></meta>" +
+                    "<graph mode=\"static\" defaultedgetype=\"directed\">" +
+                    "<nodes>" +
+                      "<node id=\"Request\" label=\"Request\" />" +
+                      "<node id=\"Error\"   label=\"Error " + StatusCode.Code + " - " + StatusCode.Name + "\" />" +
+                    "</nodes><edges>" +
+                      "<edge id=\"0\" source=\"Request\" target=\"Error\" />" +
+                    "</edges></graph></gexf>" :
+
+                    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+                    "<gexf xmlns=\"http://www.gexf.net/1.2draft\" version=\"1.2\">" +
+                    "<meta lastmodifieddate=\"2009-03-20\"><creator>Vanaheimr Walkyr</creator><description>HTTP Error</description></meta>" +
+                    "<graph mode=\"static\" defaultedgetype=\"directed\">" +
+                    "<attributes class=\"edge\">" +
+                    "  <attribute id=\"0\" title=\"Reasons\" type=\"string\" />" +
+                    "</attributes> " +
+                    "<nodes>" +
+                      "<node id=\"Request\" label=\"Request\" />" +
+                      "<node id=\"Error\"   label=\"Error " + StatusCode.Code + " - " + StatusCode.Name + "\" />" +
+                    "</nodes><edges>" +
+                      "<edge id=\"0\" source=\"Request\" target=\"Error\">" +
+                        "<attvalues>" +
+                          "<attvalue for=\"0\" value=\"" + Reasons + "\" />" +
+                        "</attvalues>" +
+                      "<edge>" +
+                    "</edges></graph></gexf>";
 
             #endregion
 

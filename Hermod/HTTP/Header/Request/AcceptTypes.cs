@@ -202,6 +202,9 @@ namespace de.ahzf.Hermod.HTTP
 
             }
 
+            if (MatchingAcceptHeaders.IsNullOrEmpty())
+                return HTTPContentType.ALL;
+
             var MaxQuality  = (from   Matching
                                in     MatchingAcceptHeaders
                                select Matching.Quality).Max();
