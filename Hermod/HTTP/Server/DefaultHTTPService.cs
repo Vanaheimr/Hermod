@@ -149,7 +149,7 @@ namespace de.ahzf.Hermod.HTTP
 
         #region GetRoot()
 
-        public HTTPResponse GetRoot()
+        public HTTPResponse GET_Root()
         {
 
             return new HTTPResponseBuilder()

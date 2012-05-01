@@ -64,7 +64,18 @@ namespace de.ahzf.Hermod.HTTP
 
         PATCH,
         TRAVERSE,
-        FILTER
+        
+        // Similar like GET, but with an additional
+        // filter methods within the http body.
+        FILTER,
+
+        // Counts the number of elements which would
+        // be returned by a FILTER.
+        COUNT,
+
+        // Creates a new resource (a replacement for
+        // PUT and POST)
+        CREATE
 
         #endregion
 
@@ -185,7 +196,18 @@ namespace de.ahzf.Hermod.HTTP
 
         public static readonly HTTPMethod PATCH         = new HTTPMethod("PATCH");
         public static readonly HTTPMethod TRAVERSE      = new HTTPMethod("TRAVERSE");
+
+        // Similar like GET, but with an additional
+        // filter methods within the http body.
         public static readonly HTTPMethod FILTER        = new HTTPMethod("FILTER");
+
+        // Counts the number of elements which would
+        // be returned by a FILTER.
+        public static readonly HTTPMethod COUNT         = new HTTPMethod("COUNT");
+            
+        // Creates a new resource (a replacement for
+        // PUT and POST)
+        public static readonly HTTPMethod CREATE        = new HTTPMethod("CREATE");
 
         #endregion
 

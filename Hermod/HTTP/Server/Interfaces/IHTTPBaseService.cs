@@ -37,7 +37,7 @@ namespace de.ahzf.Hermod.HTTP
         /// </summary>
         /// <returns>Some HTML and JavaScript</returns>
         [HTTPMapping(HTTPMethods.GET, "/"), NoAuthentication]
-        HTTPResponse GetRoot();
+        HTTPResponse GET_Root();
 
         #endregion
 

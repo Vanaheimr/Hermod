@@ -20,15 +20,11 @@
 
 using System;
 using System.IO;
-using System.Text;
 using System.Linq;
-using System.Threading;
 using System.Reflection;
 using System.Collections.Generic;
 
 using de.ahzf.Illias.Commons;
-using de.ahzf.Hermod;
-using de.ahzf.Hermod.HTTP;
 
 #endregion
 
@@ -126,6 +122,65 @@ namespace de.ahzf.Hermod.HTTP
                 CacheControl   = "no-cache",
                 Connection     = "close",
                 Content        = Content.ToUTF8Bytes()
+            };
+
+        }
+
+        #endregion
+
+    }
+
+    public static class HTTPTools
+    {
+
+        #region MovedPermanently(Location)
+
+        /// <summary>
+        /// Return a HTTP response redirecting to the given location permanently.
+        /// </summary>
+        /// <param name="Location">The location of the redirect.</param>
+        public static HTTPResponse MovedPermanently(String Location)
+        {
+
+            #region Initial checks
+
+            if (Location == null || Location == "")
+                throw new ArgumentNullException("Location", "The parameter 'Location' must not be null or empty!");
+
+            #endregion
+
+            return new HTTPResponseBuilder()
+            {
+                HTTPStatusCode = HTTPStatusCode.MovedPermanently,
+                CacheControl   = "no-cache",
+                Location       = Location
+            };
+
+        }
+
+        #endregion
+
+        #region MovedTemporarily(Location)
+
+        /// <summary>
+        /// Return a HTTP response redirecting to the given location temporarily.
+        /// </summary>
+        /// <param name="Location">The location of the redirect.</param>
+        public static HTTPResponse MovedTemporarily(String Location)
+        {
+
+            #region Initial checks
+
+            if (Location == null || Location == "")
+                throw new ArgumentNullException("Location", "The parameter 'Location' must not be null or empty!");
+
+            #endregion
+
+            return new HTTPResponseBuilder()
+            {
+                HTTPStatusCode = HTTPStatusCode.TemporaryRedirect,
+                CacheControl   = "no-cache",
+                Location       = Location
             };
 
         }
@@ -316,7 +371,7 @@ namespace de.ahzf.Hermod.HTTP
         /// <param name="Name">The name of the parameter.</param>
         /// <param name="HTTPResult">The HTTPResult.</param>
         /// <returns>True if the parameter exist; False otherwise.</returns>
-        protected Boolean TryGetParameter_UInt64(String Name, out HTTPResult<UInt64> HTTPResult)
+        protected Boolean TryGetParameter_UInt64_(String Name, out HTTPResult<UInt64> HTTPResult)
         {
 
             List<String> _StringValues = null;
@@ -348,6 +403,69 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
+        #region (protected) TryGetParameter_UInt64(Name, out HTTPResult)
+
+        /// <summary>
+        /// Try to return a single optional HTTP parameter as UInt64.
+        /// </summary>
+        /// <param name="Name">The name of the parameter.</param>
+        /// <param name="HTTPResult">The HTTPResult.</param>
+        /// <returns>True if the parameter exist; False otherwise.</returns>
+        protected Boolean TryGetParameter_UInt64(String Name, out UInt64 Result)
+        {
+
+            List<String> _StringValues = null;
+
+            if (IHTTPConnection.InHTTPRequest.QueryString != null)
+                if (IHTTPConnection.InHTTPRequest.QueryString.TryGetValue(Name, out _StringValues))
+                    if (_StringValues.Any())
+                    {
+
+                        UInt64 _Value;
+
+                        if (UInt64.TryParse(_StringValues[0], out _Value))
+                        {
+                            Result = _Value;
+                            return true;
+                        }
+
+                    }
+
+            Result = default(UInt64);
+            return false;
+
+        }
+
+        #endregion
+
+        #region (protected) TryGetParameter_String(Name, out HTTPResult)
+
+        /// <summary>
+        /// Try to return a single optional HTTP parameter as UInt64.
+        /// </summary>
+        /// <param name="Name">The name of the parameter.</param>
+        /// <param name="HTTPResult">The HTTPResult.</param>
+        /// <returns>True if the parameter exist; False otherwise.</returns>
+        protected Boolean TryGetParameter_String(String Name, out String Result)
+        {
+
+            List<String> _StringValues = null;
+
+            if (IHTTPConnection.InHTTPRequest.QueryString != null)
+                if (IHTTPConnection.InHTTPRequest.QueryString.TryGetValue(Name, out _StringValues))
+                    if (_StringValues.Any())
+                        if (_StringValues[0] != null && _StringValues[0] != "")
+                        {
+                            Result = _StringValues[0];
+                            return true;
+                        }
+
+            Result = default(String);
+            return false;
+
+        }
+
+        #endregion
 
 
 

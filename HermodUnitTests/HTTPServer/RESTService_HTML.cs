@@ -103,7 +103,7 @@ namespace de.ahzf.Hermod.UnitTests
 
         #region GetRoot()
 
-        public HTTPResponse GetRoot()
+        public HTTPResponse GET_Root()
         {
 
             return new HTTPResponseBuilder()
