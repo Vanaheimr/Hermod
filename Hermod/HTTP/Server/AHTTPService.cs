@@ -330,7 +330,7 @@ namespace de.ahzf.Hermod.HTTP
         /// Creates a new abstract HTTPService.
         /// </summary>
         /// <param name="IHTTPConnection">The http connection for this request.</param>
-        /// <param name="HTTPContentType">A content type.</param>
+        /// <param name="HTTPContentType">A http content type.</param>
         /// <param name="ResourcePath">The path to internal resources.</param>
         public AHTTPService(IHTTPConnection IHTTPConnection, HTTPContentType HTTPContentType, String ResourcePath)
         {
@@ -362,7 +362,7 @@ namespace de.ahzf.Hermod.HTTP
         /// Creates a new abstract HTTPService.
         /// </summary>
         /// <param name="IHTTPConnection">The http connection for this request.</param>
-        /// <param name="HTTPContentTypes">An enumeration of content types.</param>
+        /// <param name="HTTPContentTypes">An enumeration of http content types.</param>
         /// <param name="ResourcePath">The path to internal resources.</param>
         public AHTTPService(IHTTPConnection IHTTPConnection, IEnumerable<HTTPContentType> HTTPContentTypes, String ResourcePath)
         {
