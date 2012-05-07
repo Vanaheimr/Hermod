@@ -87,7 +87,7 @@
       <Project>{16C85DF8-5DE6-4A9F-9FC7-7CA5B0440DF3}</Project>
       <Name>Commons</Name>
     </ProjectReference>
-    <ProjectReference Include="..\HermodUnitTests\HermodUnitTests.csproj">
+    <ProjectReference Include="..\HermodTests\HermodTests.csproj">
       <Project>{A39FCA19-7716-4A16-8449-D14B7251128A}</Project>
       <Name>HermodUnitTests</Name>
     </ProjectReference>
