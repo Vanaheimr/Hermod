@@ -42,6 +42,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="NetworkArrows\ArrowIPSource.cs" />
     <Compile Include="NetworkArrows\IArrowReceiverExtensions.cs" />
     <Compile Include="NetworkArrows\UDPMulticastReceiverArrow.cs" />
     <Compile Include="NetworkArrows\UDPMulticastSenderArrow.cs" />
@@ -55,6 +56,10 @@
     <ProjectReference Include="..\..\Styx\Styx\Styx.csproj">
       <Project>{3949790D-8591-4101-9E4D-CE7A758E7409}</Project>
       <Name>Styx</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Hermod\Hermod.csproj">
+      <Project>{477EFD16-3627-4473-957D-44CA9A9DFB79}</Project>
+      <Name>Hermod</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

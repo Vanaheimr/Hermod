@@ -21,61 +21,70 @@ using System;
 using System.Text;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
 using System.Threading.Tasks;
 
-using de.ahzf.Illias.Commons;
 using de.ahzf.Styx;
+using de.ahzf.Hermod.Datastructures;
 
 #endregion
 
 namespace de.ahzf.Vanaheimr.Hermod.Multicast
 {
 
-    public struct ArrowIPSource
-    {
-
-        public readonly String Address;
-        public readonly UInt16 Port;
-
-        public ArrowIPSource(String _IPAddress, UInt16 _Port)
-        {
-            Address = _IPAddress;
-            Port    = _Port;
-        }
-
-    }
-
     /// <summary>
-    /// The IdentityArrow is the most basic arrow.
-    /// It simply sends the incoming message to the recipients without any processing.
-    /// This arrow is useful in various test case situations.
+    /// The UDPMulticastReceiverArrow receives messages from
+    /// to the given IP multicast group and forwards them to
+    /// this receivers.
     /// </summary>
     /// <typeparam name="TMessage">The type of the consuming and emitting messages/objects.</typeparam>
     public class UDPMulticastReceiverArrow<TMessage> : AbstractArrow<TMessage, TMessage>
     {
 
+        #region Data
+
         private readonly Socket     MulticastSocket;
         private readonly IPEndPoint IPEndPoint;
         private readonly Task       ReceiverTask;
 
+        #endregion
+
+        #region Properties
+
+        #region HopCount
+
+        /// <summary>
+        /// The minimal acceptable IPv6 hop-count or IPv4 time-to-live value of the
+        /// incoming IP Multicast packets.
+        /// It is best practice for security applications to set the HopCount on the
+        /// sender side to its max value of 255 and configure an accept threshold on
+        /// the receiver side to 255. This way only packets from the local network
+        /// are accepted.
+        /// </summary>
+        public Byte HopCountThreshold { get; set; }
+
+        #endregion
+
+        #endregion
 
         #region Constructor(s)
 
-        #region UDPMulticastReceiverArrow()
+        #region UDPMulticastReceiverArrow(MulticastAddress, IPPort, HopCountThreshold = 255)
 
         /// <summary>
-        /// The IdentityArrow is the most basic arrow.
-        /// It simply sends the incoming message to the recipients without any processing.
-        /// This arrow is useful in various test case situations.
+        /// The UDPMulticastReceiverArrow receives messages from
+        /// to the given IP multicast group and forwards them to
+        /// this receivers.
         /// </summary>
-        public UDPMulticastReceiverArrow(String MulticastAddress, Int32 IPPort)
+        /// <param name="MulticastAddress">The multicast address to join.</param>
+        /// <param name="IPPort">The outgoing IP port to use.</param>
+        /// <param name="HopCountThreshold">The minimal acceptable IPv6 hop-count or IPv4 time-to-live value of the incoming IP Multicast packets.</param>
+        public UDPMulticastReceiverArrow(String MulticastAddress, IPPort IPPort, Byte HopCountThreshold = 255)
         {
 
             this.MulticastSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            this.IPEndPoint      = new IPEndPoint(IPAddress.Parse(MulticastAddress), IPPort);
+            this.IPEndPoint      = new IPEndPoint(IPAddress.Parse(MulticastAddress), IPPort.ToInt32());
 
-            IPEndPoint iep      = new IPEndPoint(IPAddress.Any, IPPort);
+            IPEndPoint iep      = new IPEndPoint(IPAddress.Any, IPPort.ToInt32());
             EndPoint   EndPoint = (EndPoint) iep;
             MulticastSocket.Bind(iep);
             MulticastSocket.SetSocketOption(SocketOptionLevel.IP,
@@ -94,13 +103,15 @@ namespace de.ahzf.Vanaheimr.Hermod.Multicast
 
         #endregion
 
-        #region UDPMulticastReceiverArrow(MessageRecipients.Recipient, params MessageRecipients.Recipients)
+        #region UDPMulticastReceiverArrow(MulticastAddress, IPPort, MessageRecipients.Recipient, params MessageRecipients.Recipients)
 
         /// <summary>
-        /// The IdentityArrow is the most basic arrow.
-        /// It simply sends the incoming message to the recipients without any processing.
-        /// This arrow is useful in various test case situations.
+        /// The UDPMulticastReceiverArrow receives messages from
+        /// to the given IP multicast group and forwards them to
+        /// this receivers.
         /// </summary>
+        /// <param name="MulticastAddress">The multicast address to join.</param>
+        /// <param name="IPPort">The outgoing IP port to use.</param>
         /// <param name="Recipient">A recipient of the processed messages.</param>
         /// <param name="Recipients">The recipients of the processed messages.</param>
         public UDPMulticastReceiverArrow(String MulticastAddress, Int32 IPPort, MessageRecipient<TMessage> Recipient, params MessageRecipient<TMessage>[] Recipients)
@@ -112,13 +123,15 @@ namespace de.ahzf.Vanaheimr.Hermod.Multicast
 
         #endregion
 
-        #region UDPMulticastReceiverArrow(IArrowReceiver.Recipient, params IArrowReceiver.Recipients)
+        #region UDPMulticastReceiverArrow(MulticastAddress, IPPort, IArrowReceiver.Recipient, params IArrowReceiver.Recipients)
 
         /// <summary>
-        /// The IdentityArrow is the most basic arrow.
-        /// It simply sends the incoming message to the recipients without any processing.
-        /// This arrow is useful in various test case situations.
+        /// The UDPMulticastReceiverArrow receives messages from
+        /// to the given IP multicast group and forwards them to
+        /// this receivers.
         /// </summary>
+        /// <param name="MulticastAddress">The multicast address to join.</param>
+        /// <param name="IPPort">The outgoing IP port to use.</param>
         /// <param name="Recipient">A recipient of the processed messages.</param>
         /// <param name="Recipients">The recipients of the processed messages.</param>
         public UDPMulticastReceiverArrow(String MulticastAddress, Int32 IPPort, IArrowReceiver<TMessage> Recipient, params IArrowReceiver<TMessage>[] Recipients)
@@ -132,6 +145,7 @@ namespace de.ahzf.Vanaheimr.Hermod.Multicast
 
         #endregion
 
+
         #region ProcessMessage(MessageIn, out MessageOut)
 
         /// <summary>
@@ -141,19 +155,24 @@ namespace de.ahzf.Vanaheimr.Hermod.Multicast
         /// <param name="MessageOut">The outgoing message.</param>
         protected override Boolean ProcessMessage(TMessage MessageIn, out TMessage MessageOut)
         {
-
             MessageOut = MessageIn;
             return true;
-
         }
 
         #endregion
 
 
+        #region Close()
+
+        /// <summary>
+        /// Close the multicast socket.
+        /// </summary>
         public void Close()
         {
             MulticastSocket.Close();
         }
+
+        #endregion
 
     }
 

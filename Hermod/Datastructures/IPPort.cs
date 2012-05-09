@@ -18,10 +18,6 @@
 #region Usings
 
 using System;
-using System.Text;
-using System.Collections;
-using System.Collections.Generic;
-using System.Runtime.Serialization;
 
 #endregion
 
@@ -29,9 +25,9 @@ namespace de.ahzf.Hermod.Datastructures
 {
 
     /// <summary>
-    /// An IPPort is a combination of an IP Address and a port.
+    /// An IPPort.
     /// </summary>    
-    public class IPPort : IComparable, IComparable<IPPort>, IEquatable<IPPort>
+    public class IPPort : IEquatable<IPPort>, IComparable<IPPort>, IComparable
     {
 
         #region Data
@@ -42,14 +38,14 @@ namespace de.ahzf.Hermod.Datastructures
 
         #region Constructor(s)
 
-        #region IPPort(myUInt16)
+        #region IPPort(Port)
 
         /// <summary>
-        /// Generates a new IPPort.
+        /// Creates a new IPPort.
         /// </summary>
-        public IPPort(UInt16 myUInt16)
+        public IPPort(UInt16 Port)
         {
-            _IPPort = myUInt16;
+            this._IPPort = Port;
         }
 
         #endregion
@@ -63,6 +59,43 @@ namespace de.ahzf.Hermod.Datastructures
         public static readonly IPPort TELNET = new IPPort(23);
         public static readonly IPPort HTTP   = new IPPort(80);
         public static readonly IPPort HTTPS  = new IPPort(443);
+
+        #endregion
+
+
+        #region (static) Parse(UInt16)
+
+        /// <summary>
+        /// Return the IPPort for the given UInt16.
+        /// </summary>
+        public static IPPort Parse(UInt16 UInt16)
+        {
+            return new IPPort(UInt16);
+        }
+
+        #endregion
+
+        #region (static) Parse(Int32)
+
+        /// <summary>
+        /// Return the IPPort for the given UInt16.
+        /// </summary>
+        public static IPPort Parse(Int32 Int32)
+        {
+            return new IPPort((UInt16) Int32);
+        }
+
+        #endregion
+
+        #region (static) Parse(String)
+
+        /// <summary>
+        /// Return the IPPort for the given String.
+        /// </summary>
+        public static IPPort Parse(String String)
+        {
+            return new IPPort(UInt16.Parse(String));
+        }
 
         #endregion
 
@@ -255,7 +288,7 @@ namespace de.ahzf.Hermod.Datastructures
             if ((Object) IPPort == null)
                 throw new ArgumentNullException("The given IPPort must not be null!");
 
-            return _IPPort.CompareTo(IPPort._IPPort);
+            return IPPort.CompareTo(IPPort._IPPort);
 
         }
 
@@ -302,7 +335,7 @@ namespace de.ahzf.Hermod.Datastructures
             if ((Object) IPPort == null)
                 throw new ArgumentNullException("The given IPPort must not be null!");
 
-            return _IPPort.Equals(IPPort._IPPort);
+            return IPPort.Equals(IPPort._IPPort);
 
         }
 

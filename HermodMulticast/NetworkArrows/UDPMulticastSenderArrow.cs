@@ -18,12 +18,12 @@
 #region Usings
 
 using System;
-using System.Net.Sockets;
 using System.Net;
-using System.Text;
+using System.Net.Sockets;
 
 using de.ahzf.Illias.Commons;
 using de.ahzf.Styx;
+using de.ahzf.Hermod.Datastructures;
 
 #endregion
 
@@ -31,97 +31,102 @@ namespace de.ahzf.Vanaheimr.Hermod.Multicast
 {
 
     /// <summary>
-    /// The IdentityArrow is the most basic arrow.
-    /// It simply sends the incoming message to the recipients without any processing.
-    /// This arrow is useful in various test case situations.
+    /// The UDPMulticastSenderArrow sends the incoming message
+    /// to the given IP multicast group.
     /// </summary>
-    /// <typeparam name="TMessage">The type of the consuming and emitting messages/objects.</typeparam>
-    public class UDPMulticastSenderArrow<TMessage> : AbstractArrow<TMessage, TMessage>
+    /// <typeparam name="TMessage">The type of the consuming messages/objects.</typeparam>
+    public class UDPMulticastSenderArrow<TMessage> : AbstractArrowReceiver<TMessage>
     {
+
+        #region Data
 
         private readonly Socket     MulticastSocket;
         private readonly IPEndPoint IPEndPoint;
 
+        #endregion
+
+        #region Properties
+
+        #region HopCount
+
+        /// <summary>
+        /// The IPv6 hop-count or IPv4 time-to-live field
+        /// of the outgoing IP multicast packets.
+        /// </summary>
+        public Byte HopCount
+        {
+            
+            get
+            {
+                return (Byte) this.MulticastSocket.GetSocketOption(SocketOptionLevel.IP,
+                                                                   SocketOptionName.MulticastTimeToLive);
+            }
+
+            set
+            {
+                this.MulticastSocket.SetSocketOption(SocketOptionLevel.IP,
+                                                     SocketOptionName.MulticastTimeToLive,
+                                                     value);
+            }
+
+        }
+
+        #endregion
+
+        #endregion
 
         #region Constructor(s)
 
-        #region UDPMulticastSenderArrow()
+        #region UDPMulticastSenderArrow(MulticastAddress, IPPort, HopCount = 255)
 
         /// <summary>
-        /// The IdentityArrow is the most basic arrow.
-        /// It simply sends the incoming message to the recipients without any processing.
-        /// This arrow is useful in various test case situations.
+        /// The UDPMulticastSenderArrow sends the incoming message
+        /// to the given IP multicast group.
         /// </summary>
-        public UDPMulticastSenderArrow(String MulticastAddress, Int32 IPPort)
+        /// <param name="MulticastAddress">The multicast address to join.</param>
+        /// <param name="IPPort">The outgoing IP port to use.</param>
+        /// <param name="HopCount">The IPv6 hop-count or IPv4 time-to-live field of the outgoing IP multicast packets.</param>
+        public UDPMulticastSenderArrow(String MulticastAddress, IPPort IPPort, Byte HopCount = 255)
         {
             this.MulticastSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            this.IPEndPoint      = new IPEndPoint(IPAddress.Parse(MulticastAddress), IPPort);
-        }
-
-        #endregion
-
-        #region UDPMulticastSenderArrow(MessageRecipients.Recipient, params MessageRecipients.Recipients)
-
-        /// <summary>
-        /// The IdentityArrow is the most basic arrow.
-        /// It simply sends the incoming message to the recipients without any processing.
-        /// This arrow is useful in various test case situations.
-        /// </summary>
-        /// <param name="Recipient">A recipient of the processed messages.</param>
-        /// <param name="Recipients">The recipients of the processed messages.</param>
-        public UDPMulticastSenderArrow(String MulticastAddress, Int32 IPPort, MessageRecipient<TMessage> Recipient, params MessageRecipient<TMessage>[] Recipients)
-            : base(Recipient, Recipients)
-        {
-            this.MulticastSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            this.IPEndPoint      = new IPEndPoint(IPAddress.Parse(MulticastAddress), IPPort);
-        }
-
-        #endregion
-
-        #region UDPMulticastSenderArrow(IArrowReceiver.Recipient, params IArrowReceiver.Recipients)
-
-        /// <summary>
-        /// The IdentityArrow is the most basic arrow.
-        /// It simply sends the incoming message to the recipients without any processing.
-        /// This arrow is useful in various test case situations.
-        /// </summary>
-        /// <param name="Recipient">A recipient of the processed messages.</param>
-        /// <param name="Recipients">The recipients of the processed messages.</param>
-        public UDPMulticastSenderArrow(String MulticastAddress, Int32 IPPort, IArrowReceiver<TMessage> Recipient, params IArrowReceiver<TMessage>[] Recipients)
-            : base(Recipient, Recipients)
-        {
-            this.MulticastSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            this.IPEndPoint      = new IPEndPoint(IPAddress.Parse(MulticastAddress), IPPort);
+            this.IPEndPoint      = new IPEndPoint(IPAddress.Parse(MulticastAddress), IPPort.ToInt32());
+            this.HopCount        = HopCount;
         }
 
         #endregion
 
         #endregion
 
-        #region ProcessMessage(MessageIn, out MessageOut)
+
+        #region ReceiveMessage(Sender, MessageIn)
 
         /// <summary>
-        /// Process the incoming message and return an outgoing message.
+        /// Accepts a message of type S from a sender for further processing
+        /// and delivery to the subscribers.
         /// </summary>
-        /// <param name="MessageIn">The incoming message.</param>
-        /// <param name="MessageOut">The outgoing message.</param>
-        protected override Boolean ProcessMessage(TMessage MessageIn, out TMessage MessageOut)
+        /// <param name="Sender">The sender of the message.</param>
+        /// <param name="MessageIn">The message.</param>
+        /// <returns>True if the message was accepted and could be processed; False otherwise.</returns>
+        public override Boolean ReceiveMessage(Object Sender, TMessage MessageIn)
         {
-
             MulticastSocket.SendTo(MessageIn.ToString().ToUTF8Bytes(), IPEndPoint);
-
-            MessageOut = MessageIn;
             return true;
-
         }
 
         #endregion
 
 
+        #region Close()
+
+        /// <summary>
+        /// Close the multicast socket.
+        /// </summary>
         public void Close()
         {
             MulticastSocket.Close();
         }
+
+        #endregion
 
     }
 

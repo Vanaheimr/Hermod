@@ -21,6 +21,7 @@ using System;
 using System.Net;
 
 using de.ahzf.Styx;
+using de.ahzf.Hermod.Datastructures;
 
 #endregion
 
@@ -49,7 +50,7 @@ namespace de.ahzf.Vanaheimr.Hermod.Multicast
 
             return ArrowReceiver.ReceiveMessage(new ArrowIPSource(
                                                     IPEndPoint.Address.ToString(),
-                                                    (UInt16) IPEndPoint.Port
+                                                    IPPort.Parse(IPEndPoint.Port)
                                                 ),
                                                 Message);
 
