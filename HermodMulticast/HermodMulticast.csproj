@@ -42,7 +42,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Class1.cs" />
+    <Compile Include="NetworkArrows\IArrowReceiverExtensions.cs" />
+    <Compile Include="NetworkArrows\UDPMulticastReceiverArrow.cs" />
+    <Compile Include="NetworkArrows\UDPMulticastSenderArrow.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

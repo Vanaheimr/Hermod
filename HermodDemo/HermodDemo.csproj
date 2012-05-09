@@ -89,7 +89,7 @@
     </ProjectReference>
     <ProjectReference Include="..\HermodTests\HermodTests.csproj">
       <Project>{A39FCA19-7716-4A16-8449-D14B7251128A}</Project>
-      <Name>HermodUnitTests</Name>
+      <Name>HermodTests</Name>
     </ProjectReference>
     <ProjectReference Include="..\Hermod\Hermod.csproj">
       <Project>{EAB20045-3D15-4220-BB56-B22FF6630AC9}</Project>
