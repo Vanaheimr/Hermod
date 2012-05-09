@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Commons", "..\Illias\Common
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HermodTests", "HermodTests\HermodTests.csproj", "{A39FCA19-7716-4A16-8449-D14B7251128A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HermodMulticast", "HermodMulticast\HermodMulticast.csproj", "{18360D99-87C2-479C-AB52-55D0BCA9B000}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -62,6 +64,16 @@ Global
 		{A39FCA19-7716-4A16-8449-D14B7251128A}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{A39FCA19-7716-4A16-8449-D14B7251128A}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{A39FCA19-7716-4A16-8449-D14B7251128A}.Release|x86.ActiveCfg = Release|Any CPU
+		{18360D99-87C2-479C-AB52-55D0BCA9B000}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{18360D99-87C2-479C-AB52-55D0BCA9B000}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{18360D99-87C2-479C-AB52-55D0BCA9B000}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{18360D99-87C2-479C-AB52-55D0BCA9B000}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{18360D99-87C2-479C-AB52-55D0BCA9B000}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{18360D99-87C2-479C-AB52-55D0BCA9B000}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{18360D99-87C2-479C-AB52-55D0BCA9B000}.Release|Any CPU.Build.0 = Release|Any CPU
+		{18360D99-87C2-479C-AB52-55D0BCA9B000}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{18360D99-87C2-479C-AB52-55D0BCA9B000}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{18360D99-87C2-479C-AB52-55D0BCA9B000}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
