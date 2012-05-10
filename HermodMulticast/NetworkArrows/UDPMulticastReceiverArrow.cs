@@ -25,6 +25,7 @@ using System.Threading.Tasks;
 
 using de.ahzf.Styx;
 using de.ahzf.Hermod.Datastructures;
+using System.Threading;
 
 #endregion
 
@@ -37,14 +38,18 @@ namespace de.ahzf.Vanaheimr.Hermod.Multicast
     /// this receivers.
     /// </summary>
     /// <typeparam name="TMessage">The type of the consuming and emitting messages/objects.</typeparam>
-    public class UDPMulticastReceiverArrow<TMessage> : AbstractArrow<TMessage, TMessage>
+    public class UDPMulticastReceiverArrow<TMessage> : AbstractArrowSender<TMessage>
     {
 
         #region Data
 
-        private readonly Socket     MulticastSocket;
-        private readonly IPEndPoint IPEndPoint;
-        private readonly Task       ReceiverTask;
+        private readonly Socket                   MulticastSocket;
+        private readonly IPEndPoint               MulticastIPEndPoint;
+        private          Task                     ReceiverTask;
+        private          EndPoint                 LocalEndPoint;
+        private          IPEndPoint               LocalIPEndPoint;
+        private          CancellationTokenSource  CancellationTokenSource;
+        private          CancellationToken        CancellationToken;
 
         #endregion
 
@@ -81,23 +86,55 @@ namespace de.ahzf.Vanaheimr.Hermod.Multicast
         public UDPMulticastReceiverArrow(String MulticastAddress, IPPort IPPort, Byte HopCountThreshold = 255)
         {
 
-            this.MulticastSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            this.IPEndPoint      = new IPEndPoint(IPAddress.Parse(MulticastAddress), IPPort.ToInt32());
+            this.MulticastSocket         = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            this.MulticastIPEndPoint     = new IPEndPoint(IPAddress.Parse(MulticastAddress), IPPort.ToInt32());
+            this.LocalIPEndPoint         = new IPEndPoint(IPAddress.Any, IPPort.ToInt32());
+            this.LocalEndPoint           = (EndPoint) LocalIPEndPoint;
+            this.CancellationTokenSource = new CancellationTokenSource();
+            this.CancellationToken       = CancellationTokenSource.Token;
 
-            IPEndPoint iep      = new IPEndPoint(IPAddress.Any, IPPort.ToInt32());
-            EndPoint   EndPoint = (EndPoint) iep;
-            MulticastSocket.Bind(iep);
-            MulticastSocket.SetSocketOption(SocketOptionLevel.IP,
-                                            SocketOptionName.AddMembership,
-                                            new MulticastOption(IPAddress.Parse(MulticastAddress)));
-            MulticastSocket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastTimeToLive, 50);
-
-            ReceiverTask = Task.Factory.StartNew(() =>
+            ReceiverTask = Task.Factory.StartNew((Object) =>
             {
-                byte[] data = new byte[1024];
-                int recv = MulticastSocket.ReceiveFrom(data, ref EndPoint);
-                this.ReceiveMessage((TMessage) (Object) Encoding.UTF8.GetString(data, 0, recv), EndPoint as IPEndPoint);
-            }, TaskCreationOptions.LongRunning);
+
+                MulticastSocket.SetSocketOption(SocketOptionLevel.Socket,
+                                                SocketOptionName.ReceiveTimeout, 1000);
+
+                MulticastSocket.Bind(LocalIPEndPoint);
+
+                MulticastSocket.SetSocketOption(SocketOptionLevel.IP,
+                                                SocketOptionName.AddMembership,
+                                                new MulticastOption(IPAddress.Parse(MulticastAddress)));
+
+
+
+                while (!CancellationToken.IsCancellationRequested)
+                {
+
+                    var data = new Byte[1024];
+
+                    try
+                    {
+
+                        int recv = MulticastSocket.ReceiveFrom(data, ref LocalEndPoint);
+
+                        this.ReceiveMessage(new ArrowIPSource(
+                                                (LocalEndPoint as IPEndPoint).Address.ToString(),
+                                                IPPort.Parse((LocalEndPoint as IPEndPoint).Port)
+                                            ),
+                                            (TMessage) (Object) Encoding.UTF8.GetString(data, 0, recv));
+
+                    }
+
+                    // Catch ReadTimeout...
+                    catch (SocketException SocketException)
+                    { }
+
+                }
+
+            }, TaskCreationOptions.LongRunning,
+               CancellationTokenSource.Token,
+               TaskCreationOptions.LongRunning|TaskCreationOptions.AttachedToParent,
+               TaskScheduler.Default);
 
         }
 
@@ -114,11 +151,11 @@ namespace de.ahzf.Vanaheimr.Hermod.Multicast
         /// <param name="IPPort">The outgoing IP port to use.</param>
         /// <param name="Recipient">A recipient of the processed messages.</param>
         /// <param name="Recipients">The recipients of the processed messages.</param>
-        public UDPMulticastReceiverArrow(String MulticastAddress, Int32 IPPort, MessageRecipient<TMessage> Recipient, params MessageRecipient<TMessage>[] Recipients)
-            : base(Recipient, Recipients)
+        public UDPMulticastReceiverArrow(String MulticastAddress, IPPort IPPort, MessageRecipient<TMessage> Recipient, params MessageRecipient<TMessage>[] Recipients)
+            : base()
         {
-            this.MulticastSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            this.IPEndPoint      = new IPEndPoint(IPAddress.Parse(MulticastAddress), IPPort);
+            SendTo(Recipient);
+            SendTo(Recipients);
         }
 
         #endregion
@@ -134,11 +171,11 @@ namespace de.ahzf.Vanaheimr.Hermod.Multicast
         /// <param name="IPPort">The outgoing IP port to use.</param>
         /// <param name="Recipient">A recipient of the processed messages.</param>
         /// <param name="Recipients">The recipients of the processed messages.</param>
-        public UDPMulticastReceiverArrow(String MulticastAddress, Int32 IPPort, IArrowReceiver<TMessage> Recipient, params IArrowReceiver<TMessage>[] Recipients)
-            : base(Recipient, Recipients)
+        public UDPMulticastReceiverArrow(String MulticastAddress, IPPort IPPort, IArrowReceiver<TMessage> Recipient, params IArrowReceiver<TMessage>[] Recipients)
+            : base()
         {
-            this.MulticastSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            this.IPEndPoint      = new IPEndPoint(IPAddress.Parse(MulticastAddress), IPPort);
+            SendTo(Recipient);
+            SendTo(Recipients);
         }
 
         #endregion
@@ -146,20 +183,16 @@ namespace de.ahzf.Vanaheimr.Hermod.Multicast
         #endregion
 
 
-        #region ProcessMessage(MessageIn, out MessageOut)
-
-        /// <summary>
-        /// Process the incoming message and return an outgoing message.
-        /// </summary>
-        /// <param name="MessageIn">The incoming message.</param>
-        /// <param name="MessageOut">The outgoing message.</param>
-        protected override Boolean ProcessMessage(TMessage MessageIn, out TMessage MessageOut)
+        private void StartMulticastServerThread(String MulticastAddress, IPPort IPPort, Byte HopCountThreshold = 255)
         {
-            MessageOut = MessageIn;
-            return true;
-        }
 
-        #endregion
+            
+            
+            
+
+            
+
+        }
 
 
         #region Close()
