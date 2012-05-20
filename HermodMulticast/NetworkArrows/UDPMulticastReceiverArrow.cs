@@ -110,7 +110,7 @@ namespace de.ahzf.Vanaheimr.Hermod.Multicast
                 while (!CancellationToken.IsCancellationRequested)
                 {
 
-                    var data = new Byte[1024];
+                    var data = new Byte[65536];
 
                     try
                     {

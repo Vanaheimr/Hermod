@@ -109,7 +109,7 @@ namespace de.ahzf.Vanaheimr.Hermod.Multicast
         /// <returns>True if the message was accepted and could be processed; False otherwise.</returns>
         public override Boolean ReceiveMessage(Object Sender, TMessage MessageIn)
         {
-            MulticastSocket.SendTo(MessageIn.ToString().ToUTF8Bytes(), IPEndPoint);
+            var sent = MulticastSocket.SendTo(MessageIn.ToString().ToUTF8Bytes(), IPEndPoint);
             return true;
         }
 
