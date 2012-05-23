@@ -44,15 +44,14 @@ namespace de.ahzf.Vanaheimr.Hermod.Multicast
         /// <param name="ArrowReceiver">The receiver of the message.</param>
         /// <param name="Message">The message.</param>
         /// <param name="IPEndPoint">A sender using the Internet Protocol.</param>
-        /// <returns>True if the message was accepted and could be processed; False otherwise.</returns>
-        public static Boolean ReceiveMessage<TMessage>(this IArrowReceiver<TMessage> ArrowReceiver, TMessage Message, IPEndPoint IPEndPoint)
+        public static void ReceiveMessage<TMessage>(this IArrowReceiver<TMessage> ArrowReceiver, TMessage Message, IPEndPoint IPEndPoint)
         {
 
-            return ArrowReceiver.ReceiveMessage(new ArrowIPSource(
-                                                    IPEndPoint.Address.ToString(),
-                                                    IPPort.Parse(IPEndPoint.Port)
-                                                ),
-                                                Message);
+            ArrowReceiver.ReceiveMessage(new ArrowIPSource(
+                                             IPEndPoint.Address.ToString(),
+                                             IPPort.Parse(IPEndPoint.Port)
+                                         ),
+                                         Message);
 
         }
 
