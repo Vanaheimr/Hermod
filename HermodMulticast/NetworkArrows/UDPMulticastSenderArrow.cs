@@ -107,7 +107,7 @@ namespace de.ahzf.Vanaheimr.Hermod.Multicast
         /// <param name="Sender">The sender of the message.</param>
         /// <param name="MessageIn">The message.</param>
         /// <returns>True if the message was accepted and could be processed; False otherwise.</returns>
-        public override Boolean ReceiveMessage(Object Sender, TMessage MessageIn)
+        public override Boolean ReceiveMessage(dynamic Sender, TMessage MessageIn)
         {
             var sent = MulticastSocket.SendTo(MessageIn.ToString().ToUTF8Bytes(), IPEndPoint);
             return true;

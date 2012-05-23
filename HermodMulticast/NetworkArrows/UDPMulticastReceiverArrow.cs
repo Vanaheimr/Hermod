@@ -21,11 +21,11 @@ using System;
 using System.Text;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 
 using de.ahzf.Styx;
 using de.ahzf.Hermod.Datastructures;
-using System.Threading;
 
 #endregion
 
@@ -181,18 +181,6 @@ namespace de.ahzf.Vanaheimr.Hermod.Multicast
         #endregion
 
         #endregion
-
-
-        private void StartMulticastServerThread(String MulticastAddress, IPPort IPPort, Byte HopCountThreshold = 255)
-        {
-
-            
-            
-            
-
-            
-
-        }
 
 
         #region Close()
