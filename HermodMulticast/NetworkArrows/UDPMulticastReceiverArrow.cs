@@ -117,11 +117,11 @@ namespace de.ahzf.Vanaheimr.Hermod.Multicast
 
                         int recv = MulticastSocket.ReceiveFrom(data, ref LocalEndPoint);
 
-                        this.ReceiveMessage(new ArrowIPSource(
-                                                (LocalEndPoint as IPEndPoint).Address.ToString(),
-                                                IPPort.Parse((LocalEndPoint as IPEndPoint).Port)
-                                            ),
-                                            (TMessage) (Object) Encoding.UTF8.GetString(data, 0, recv));
+                        this.NotifyRecipients(new ArrowIPSource(
+                                                 (LocalEndPoint as IPEndPoint).Address.ToString(),
+                                                 IPPort.Parse((LocalEndPoint as IPEndPoint).Port)
+                                             ),
+                                             (TMessage) (Object) Encoding.UTF8.GetString(data, 0, recv));
 
                     }
 
