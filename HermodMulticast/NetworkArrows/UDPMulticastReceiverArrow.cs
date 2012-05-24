@@ -24,7 +24,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
-using de.ahzf.Styx;
+using de.ahzf.Vanaheimr.Styx;
 using de.ahzf.Hermod.Datastructures;
 
 #endregion

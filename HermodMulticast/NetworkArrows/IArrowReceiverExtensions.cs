@@ -20,7 +20,7 @@
 using System;
 using System.Net;
 
-using de.ahzf.Styx;
+using de.ahzf.Vanaheimr.Styx;
 using de.ahzf.Hermod.Datastructures;
 
 #endregion
