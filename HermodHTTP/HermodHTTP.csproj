@@ -5,11 +5,11 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{A39FCA19-7716-4A16-8449-D14B7251128A}</ProjectGuid>
+    <ProjectGuid>{9A00BD39-1385-4DB4-8F38-363BB947CCB4}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>HermodUnitTests</RootNamespace>
-    <AssemblyName>HermodUnitTests</AssemblyName>
+    <RootNamespace>HermodHTTP</RootNamespace>
+    <AssemblyName>HermodHTTP</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -31,11 +31,13 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="nunit.framework">
-      <HintPath>..\..\libs\nunit.framework.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.IdentityModel" />
+    <Reference Include="System.IdentityModel.Selectors" />
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.ServiceModel.Web" />
+    <Reference Include="System.Web" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -43,33 +45,36 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="HTTPClientTests.cs" />
-    <Compile Include="HTTPServer\IRESTService.cs" />
-    <Compile Include="HTTPServer\RESTService.cs" />
-    <Compile Include="HTTPServer\RESTService_HTML.cs" />
-    <Compile Include="HTTPServer\RESTService_TEXT.cs" />
-    <Compile Include="HTTPServer\TCPClientRequest.cs" />
-    <Compile Include="IPAddressFactoryTests.cs" />
-    <Compile Include="IPv4AddressTests.cs" />
+    <Compile Include="AHTTPBasePDU.cs" />
+    <Compile Include="AHTTPPDU.cs" />
+    <Compile Include="AHTTPPDUBuilder.cs" />
+    <Compile Include="General\HTTPContentType.cs" />
+    <Compile Include="General\HTTPStatusCode.cs" />
+    <Compile Include="General\HTTPVersion.cs" />
+    <Compile Include="HTTPHeaderField.cs" />
+    <Compile Include="HTTPRequest.cs" />
+    <Compile Include="HTTPRequestBuilder.cs" />
+    <Compile Include="HTTPResponse.cs" />
+    <Compile Include="HTTPResponseBuilder.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="QueryStringTests.cs" />
+    <Compile Include="Request\AcceptType.cs" />
+    <Compile Include="Request\AcceptTypes.cs" />
+    <Compile Include="Request\HTTPAuthenticationTypes.cs" />
+    <Compile Include="Request\HTTPBasicAuthentication.cs" />
+    <Compile Include="Request\HTTPMethod.cs" />
+    <Compile Include="Request\QueryString.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Response\" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Illias\Commons\Commons.csproj">
       <Project>{16C85DF8-5DE6-4A9F-9FC7-7CA5B0440DF3}</Project>
       <Name>Commons</Name>
     </ProjectReference>
-    <ProjectReference Include="..\HermodHTTPClient\HermodHTTPClient.csproj">
-      <Project>{0AB343E8-AA69-4685-9676-BFA27E418A20}</Project>
-      <Name>HermodHTTPClient</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\HermodHTTPServer\HermodHTTPServer.csproj">
-      <Project>{9CE48DAC-0512-4947-942B-EF4C42C52B47}</Project>
-      <Name>HermodHTTPServer</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\HermodHTTP\HermodHTTP.csproj">
-      <Project>{9A00BD39-1385-4DB4-8F38-363BB947CCB4}</Project>
-      <Name>HermodHTTP</Name>
+    <ProjectReference Include="..\..\Styx\Styx\Styx.csproj">
+      <Project>{3949790D-8591-4101-9E4D-CE7A758E7409}</Project>
+      <Name>Styx</Name>
     </ProjectReference>
     <ProjectReference Include="..\Hermod\Hermod.csproj">
       <Project>{477EFD16-3627-4473-957D-44CA9A9DFB79}</Project>

@@ -176,7 +176,7 @@ namespace de.ahzf.Hermod.HTTP
         /// <returns>A new HTTPRequest object.</returns>
         public HTTPRequestBuilder CreateRequest(HTTPMethod HTTPMethod, String UrlPath = "/")
         {
-            return new HTTPRequestBuilder(this)
+            return new HTTPRequestBuilder()
             {
                 HTTPMethod = HTTPMethod,
                 UrlPath    = UrlPath

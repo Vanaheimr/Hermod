@@ -45,53 +45,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Datastructures\ClientResult.cs" />
     <Compile Include="Datastructures\Delegates.cs" />
     <Compile Include="ExtentionMethods\NetworkingHelpers.cs" />
     <Compile Include="ExtentionMethods\IPAddressHelper.cs" />
-    <Compile Include="HTTP\Client\HTTPClientExtensions.cs" />
-    <Compile Include="HTTP\Client\HTTPClient.cs" />
-    <Compile Include="HTTP\Header\AHTTPPDUBuilder.cs" />
-    <Compile Include="HTTP\Header\AHTTPBasePDU.cs" />
-    <Compile Include="HTTP\Header\HTTPHeaderField.cs" />
-    <Compile Include="HTTP\Header\AHTTPPDU.cs" />
-    <Compile Include="HTTP\Header\Request\AcceptTypes.cs" />
-    <Compile Include="HTTP\Header\Request\QueryString.cs" />
-    <Compile Include="HTTP\HTTPResponseBuilder.cs" />
-    <Compile Include="HTTP\HTTPRequestBuilder.cs" />
-    <Compile Include="HTTP\HTTPResponse.cs" />
-    <Compile Include="HTTP\HTTPResult.cs" />
-    <Compile Include="HTTP\IHTTPServer.cs" />
-    <Compile Include="HTTP\Server\Attributes\HTTPEventMappingAttribute.cs" />
-    <Compile Include="HTTP\Server\AHTTPService.cs" />
-    <Compile Include="HTTP\Server\Interfaces\IHTTPBaseService.cs" />
-    <Compile Include="HTTP\Server\URLMapping\HTTPEvent.cs" />
-    <Compile Include="HTTP\Server\URLMapping\HTTPEventSource.cs" />
     <Compile Include="Interfaces\ILocalSocket.cs" />
-    <Compile Include="HTTP\Header\Request\AcceptType.cs" />
-    <Compile Include="HTTP\Header\Request\HTTPAuthenticationTypes.cs" />
-    <Compile Include="HTTP\Header\Request\HTTPBasicAuthentication.cs" />
-    <Compile Include="HTTP\Header\General\HTTPContentType.cs" />
-    <Compile Include="HTTP\Header\Request\HTTPMethod.cs" />
-    <Compile Include="HTTP\HTTPRequest.cs" />
-    <Compile Include="HTTP\Header\General\HTTPStatusCode.cs" />
-    <Compile Include="HTTP\Header\General\HTTPVersion.cs" />
-    <Compile Include="HTTP\Server\Attributes\AuthenticationAttributes.cs" />
-    <Compile Include="HTTP\Server\Attributes\HTTPServiceAttribute.cs" />
-    <Compile Include="HTTP\Server\Attributes\HTTPErrorAttribute.cs" />
-    <Compile Include="HTTP\Server\Attributes\HTTPMappingAttribute.cs" />
-    <Compile Include="HTTP\Server\AHTTPServer.cs" />
-    <Compile Include="HTTP\Server\HTTPConnection.cs" />
-    <Compile Include="HTTP\Server\HTTPServer.cs" />
-    <Compile Include="HTTP\Server\Interfaces\IHTTPConnection.cs" />
-    <Compile Include="HTTP\Server\Interfaces\IHTTPService.cs" />
-    <Compile Include="HTTP\Server\Security\HTTPSecurity.cs" />
-    <Compile Include="HTTP\Server\DefaultHTTPService.cs" />
-    <Compile Include="HTTP\Server\URLMapping\ContentTypeNode.cs" />
-    <Compile Include="HTTP\Server\URLMapping\HTTPMethodNode.cs" />
-    <Compile Include="HTTP\Server\URLMapping\HostNode.cs" />
-    <Compile Include="HTTP\Server\URLMapping\URLMapping.cs" />
-    <Compile Include="HTTP\Server\URLMapping\URLNode.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Interfaces\IIPAddress.cs" />
     <Compile Include="Datastructures\IPv6Address.cs" />
@@ -125,7 +82,7 @@
     <Compile Include="Sockets\UDP\UDPServer.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="HTTP\Header\Response\" />
+    <Folder Include="HTTP\" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Illias\Commons\Commons.csproj">
