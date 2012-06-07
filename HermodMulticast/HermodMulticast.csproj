@@ -44,8 +44,8 @@
   <ItemGroup>
     <Compile Include="NetworkArrows\ArrowIPSource.cs" />
     <Compile Include="NetworkArrows\IArrowReceiverExtensions.cs" />
-    <Compile Include="NetworkArrows\UDPMulticastReceiverArrow.cs" />
-    <Compile Include="NetworkArrows\UDPMulticastSenderArrow.cs" />
+    <Compile Include="UDPMulticastReceiverArrow.cs" />
+    <Compile Include="UDPMulticastSenderArrow.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
