@@ -335,7 +335,7 @@ namespace de.ahzf.Hermod.Datastructures
             if ((Object) IPPort == null)
                 throw new ArgumentNullException("The given IPPort must not be null!");
 
-            return IPPort.Equals(IPPort._IPPort);
+            return _IPPort.Equals(IPPort._IPPort);
 
         }
 
