@@ -56,7 +56,7 @@ namespace de.ahzf.Hermod.HTTP
         {
             get
             {
-                return (Error != null);
+                return (Error != null || Data == null);
             }
         }
 
