@@ -38,7 +38,7 @@ namespace de.ahzf.Hermod.Sockets.TCP
     /// A multi-threaded TCPServer
     /// </summary>
     /// <typeparam name="TCPConnectionType">A class for processing a new client connection</typeparam>
-    public class TCPServer<TCPConnectionType> : IServer
+    public class TCPServer<TCPConnectionType> : ITCPServer
         where TCPConnectionType : class, ITCPConnection, new()
     {
 

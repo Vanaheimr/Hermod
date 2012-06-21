@@ -515,7 +515,7 @@ namespace de.ahzf.Hermod.HTTP
 
             var RawUrl     = _HTTPMethodHeader[1];
             var _ParsedURL = RawUrl.Split(_URLSeperator, 2, StringSplitOptions.RemoveEmptyEntries);            
-            UrlPath            = _ParsedURL[0];
+            UrlPath        = _ParsedURL[0];
             
             if (UrlPath == "" || UrlPath == null)
                 UrlPath = "/";

@@ -511,7 +511,7 @@ namespace de.ahzf.Hermod.HTTP
             List<String> _StringValues = null;
 
             if (IHTTPConnection.InHTTPRequest.QueryString != null)
-                if (IHTTPConnection.InHTTPRequest.QueryString.TryGetValue(Name, out _StringValues))
+                if (IHTTPConnection.InHTTPRequest.QueryString.TryGetValue(Name.ToLower(), out _StringValues))
                     if (_StringValues.Any())
                         if (_StringValues[0] != null && _StringValues[0] != "")
                         {
