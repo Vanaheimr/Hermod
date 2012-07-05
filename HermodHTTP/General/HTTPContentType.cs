@@ -95,7 +95,6 @@ namespace de.ahzf.Hermod.HTTP
         public static readonly HTTPContentType GIF             = new HTTPContentType("image/gif");
         public static readonly HTTPContentType ICO             = new HTTPContentType("image/ico");
         public static readonly HTTPContentType PNG             = new HTTPContentType("image/png");
-        public static readonly HTTPContentType JPG             = new HTTPContentType("image/jpg");
         public static readonly HTTPContentType JPEG            = new HTTPContentType("image/jpeg");
 
         #endregion

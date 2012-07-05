@@ -658,6 +658,8 @@ namespace de.ahzf.Hermod.HTTP
 
                     #region Get and check callback...
 
+                    Console.Write(InHTTPRequest.HTTPMethod + "\t" + InHTTPRequest.UrlPath + " => " + BestContentType + "\t");
+
                     var _ParsedCallback = URLMapping.GetHandler(InHTTPRequest.Host,
                                                                 InHTTPRequest.UrlPath,
                                                                 InHTTPRequest.HTTPMethod,

@@ -217,48 +217,38 @@ namespace de.ahzf.Hermod.HTTP
         #region ParseEnum(myHTTPMethodsEnum)
 
         /// <summary>
-        /// Tries to find the apropriate HTTPMethod for the given HTTPMethods.
+        /// Tries to find the appropriate HTTPMethod for the given HTTPMethods.
         /// </summary>
         /// <param name="myCode">A HTTPMethod code as string</param>
         /// <returns>A HTTPMethod</returns>
         public static HTTPMethod ParseEnum(HTTPMethods myHTTPMethodsEnum)
         {
 
-            var _HTTPMethod = (from   _FieldInfo in typeof(HTTPMethod).GetFields()
-                               let    __HTTPMethod = _FieldInfo.GetValue(null) as HTTPMethod
-                               where  __HTTPMethod != null
-                               where  __HTTPMethod.MethodName == myHTTPMethodsEnum.ToString()
-                               select __HTTPMethod).FirstOrDefault();
-
-            if (_HTTPMethod != null)
-                return _HTTPMethod;
-
-            return null;
+            return (from   _FieldInfo in typeof(HTTPMethod).GetFields()
+                    let    __HTTPMethod = _FieldInfo.GetValue(null) as HTTPMethod
+                    where  __HTTPMethod != null
+                    where  __HTTPMethod.MethodName == myHTTPMethodsEnum.ToString()
+                    select __HTTPMethod).FirstOrDefault();
 
         }
 
         #endregion
 
-        #region ParseString(myMethodname)
+        #region ParseString(MethodNameAsString)
 
         /// <summary>
-        /// Tries to find the apropriate HTTPMethod for the given HTTPMethods.
+        /// Tries to find the appropriate HTTPMethod for the given string representation.
         /// </summary>
-        /// <param name="myCode">A HTTPMethod code as string</param>
-        /// <returns>A HTTPMethod</returns>
-        public static HTTPMethod ParseString(String myMethodname)
+        /// <param name="MethodNameAsString">A string representation of a HTTPMethod.</param>
+        /// <returns>A HTTPMethod.</returns>
+        public static HTTPMethod ParseString(String MethodNameAsString)
         {
 
-            var _HTTPMethod = (from   _FieldInfo in typeof(HTTPMethod).GetFields()
-                               let    __HTTPMethod = _FieldInfo.GetValue(null) as HTTPMethod
-                               where  __HTTPMethod != null
-                               where  __HTTPMethod.MethodName == myMethodname
-                               select __HTTPMethod).FirstOrDefault();
-
-            if (_HTTPMethod != null)
-                return _HTTPMethod;
-
-            return null;
+            return (from   _FieldInfo in typeof(HTTPMethod).GetFields()
+                    let    __HTTPMethod = _FieldInfo.GetValue(null) as HTTPMethod
+                    where  __HTTPMethod != null
+                    where  __HTTPMethod.MethodName == MethodNameAsString
+                    select __HTTPMethod).FirstOrDefault();
 
         }
 
@@ -277,17 +267,12 @@ namespace de.ahzf.Hermod.HTTP
         {
 
             myHTTPMethod = (from   _FieldInfo in typeof(HTTPMethod).GetFields()
-                            let    _HTTPMethod = _FieldInfo.GetValue(null) as HTTPMethod
-                            where  _HTTPMethod != null
-                            where  _HTTPMethod.MethodName == myHTTPMethodsEnum.ToString()
-                            select _HTTPMethod).FirstOrDefault();
+                            let    __HTTPMethod = _FieldInfo.GetValue(null) as HTTPMethod
+                            where  __HTTPMethod != null
+                            where  __HTTPMethod.MethodName == myHTTPMethodsEnum.ToString()
+                            select __HTTPMethod).FirstOrDefault();
 
-            if (myHTTPMethod != null)
-                return true;
-
-            myHTTPMethod = null;
-
-            return false;
+            return (myHTTPMethod != null) ? true : false;
 
         }
 
@@ -305,17 +290,12 @@ namespace de.ahzf.Hermod.HTTP
         {
 
             myHTTPMethod = (from   _FieldInfo in typeof(HTTPMethod).GetFields()
-                            let    _HTTPMethod = _FieldInfo.GetValue(null) as HTTPMethod
-                            where  _HTTPMethod != null
-                            where  _HTTPMethod.MethodName == myMethodname
-                            select _HTTPMethod).FirstOrDefault();
+                            let    __HTTPMethod = _FieldInfo.GetValue(null) as HTTPMethod
+                            where  __HTTPMethod != null
+                            where  __HTTPMethod.MethodName == myMethodname
+                            select __HTTPMethod).FirstOrDefault();
 
-            if (myHTTPMethod != null)
-                return true;
-
-            myHTTPMethod = null;
-
-            return false;
+            return (myHTTPMethod != null) ? true : false;
 
         }
 

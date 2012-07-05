@@ -233,7 +233,8 @@ namespace de.ahzf.Hermod.HTTP
             
             var _BestMatch    = _Matches.First();
 
-            Console.WriteLine(myHTTPMethod + "\t" + myURL + " => " + _BestMatch.URLNode.URLTemplate);
+            //Console.WriteLine(myHTTPMethod + "\t" + myURL + " => " + _BestMatch.URLNode.URLTemplate);
+            Console.WriteLine(_BestMatch.URLNode.URLTemplate);
             //_Matches.ForEach(_m => { if (_m.Match.Success) Console.WriteLine("Match Length:'" + _m.Match.Length + "'+" + _m.URLNode.ParameterCount + " Groups[1]:'" + _m.Match.Groups[1] + "' URLTemplate:'" + _m.URLNode.URLTemplate + "'"); });
 
             // Copy MethodHandler Parameters
