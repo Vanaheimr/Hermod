@@ -103,7 +103,7 @@ namespace de.ahzf.Hermod.Datastructures
 
             _IPAddressArray = new Byte[_Length];
 
-            Array.Copy(ByteArray, _IPAddressArray, Math.Max(ByteArray.Length, _Length));
+            Array.Copy(ByteArray, _IPAddressArray, _Length);
 
         }
 
