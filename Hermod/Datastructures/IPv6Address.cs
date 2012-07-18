@@ -120,6 +120,19 @@ namespace de.ahzf.Hermod.Datastructures
 
         #endregion
 
+        #region TryParse(IPv6AddressString, out IPv6Address)
+
+        /// <summary>
+        /// Parsed the given string representation into a new IPv6Address.
+        /// </summary>
+        /// <param name="IPv6AddressString">An IPv6Address string representation.</param>
+        public static Boolean TryParse(String IPv6AddressString, out IPv6Address IPv6Address)
+        {
+            throw new ArgumentException("The given string '" + IPv6AddressString + "' is not a valid IPv6Address!");
+        }
+
+        #endregion
+
 
         #region Operator overloading
 

@@ -206,6 +206,49 @@ namespace de.ahzf.Hermod.Datastructures
 
         #endregion
 
+        #region TryParse(IPv4AddressString, out IPv4Address)
+
+        /// <summary>
+        /// Parsed the given string representation into a new IPv4Address.
+        /// </summary>
+        /// <param name="IPv4AddressString">An IPv4Address string representation.</param>
+        public static Boolean TryParse(String IPv4AddressString, out IPv4Address IPv4Address)
+        {
+
+            // This is too simple!
+            var _Match = Regex.Match(IPv4AddressString, @"\b(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\b");
+
+            if (_Match.Success)
+            {
+
+                var _IPv4AddressArray = new Byte[_Length];
+
+                try
+                {
+                    _IPv4AddressArray[0] = Byte.Parse(_Match.Groups[1].Value);
+                    _IPv4AddressArray[1] = Byte.Parse(_Match.Groups[2].Value);
+                    _IPv4AddressArray[2] = Byte.Parse(_Match.Groups[3].Value);
+                    _IPv4AddressArray[3] = Byte.Parse(_Match.Groups[4].Value);
+                }
+                catch (Exception e)
+                {
+                    throw new FormatException("The given string '" + IPv4AddressString + "' is not a valid IPv4Address!", e);
+                }
+
+                IPv4Address = new IPv4Address(_IPv4AddressArray);
+
+                return true;
+
+            }
+
+            IPv4Address = null;
+
+            return false;
+
+        }
+
+        #endregion
+
 
         #region Operator overloading
 

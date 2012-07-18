@@ -89,6 +89,40 @@ namespace de.ahzf.Hermod.Datastructures
 
         #endregion
 
+        #region (static) TryParse(IPAddressString, out IPAddress)
+
+        /// <summary>
+        /// Parsed the given string representation into a new IIPAddress.
+        /// </summary>
+        /// <param name="IPAddressString">A string representation of an IP address.</param>
+        /// <param name="IPAddress">The parsed IP address.</param>
+        public static Boolean TryParse(String IPAddressString, out IIPAddress IPAddress)
+        {
+
+            IPv4Address IPv4Address;
+
+            if (IPAddressString.IndexOf('.') > 0)
+                if (IPv4Address.TryParse(IPAddressString, out IPv4Address))
+                {
+                    IPAddress = IPv4Address;
+                    return true;
+                }
+
+            IPv6Address IPv6Address;
+
+            if (IPAddressString.IndexOf(':') > 0)
+                if (IPv6Address.TryParse(IPAddressString, out IPv6Address))
+                {
+                    IPAddress = IPv6Address;
+                    return true;
+                }
+
+            throw new FormatException("The given string '" + IPAddressString + "' is not a valid IP address!");
+
+        }
+
+        #endregion
+
     }
 
 }
