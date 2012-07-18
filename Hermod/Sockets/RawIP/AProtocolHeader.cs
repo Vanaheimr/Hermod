@@ -25,6 +25,7 @@ public abstract class AProtocolHeader
         /// <returns>Returns a byte array representing the entire packet</returns>
         public byte[ ] BuildPacket(ArrayList headerList, byte[ ] payLoad)
         {
+
             AProtocolHeader protocolHeader;
             byte[ ] newPayload = null;
  
@@ -41,6 +42,7 @@ public abstract class AProtocolHeader
             }
  
             return payLoad;
+
         }
  
         /// <summary>

@@ -5,7 +5,7 @@ using System;
 /// <summary>
 /// This is the IPv4 protocol header.
 /// </summary>
-public class IPv4Header : AProtocolHeader
+public class IPv4Header_old : AProtocolHeader
 {
 
     private byte ipVersion;              // actually only 4 bits
@@ -25,7 +25,7 @@ public class IPv4Header : AProtocolHeader
     /// <summary>
     /// Simple constructor that initializes the members to zero.
     /// </summary>
-    public IPv4Header()
+    public IPv4Header_old()
         : base()
     {
         ipVersion            = 4;
@@ -228,12 +228,12 @@ public class IPv4Header : AProtocolHeader
     /// <param name="ipv4Packet">Byte array containing the binary IPv4 header</param>
     /// <param name="bytesCopied">Number of bytes used in header</param>
     /// <returns>Returns the Ipv4Header object created from the byte array</returns>
-    static public IPv4Header Create(byte[] ipv4Packet, ref int bytesCopied)
+    static public IPv4Header_old Create(byte[] ipv4Packet, ref int bytesCopied)
     {
-        IPv4Header ipv4Header = new IPv4Header();
+        IPv4Header_old ipv4Header = new IPv4Header_old();
 
         // Make sure byte array is large enough to contain an IPv4 header
-        if (ipv4Packet.Length < IPv4Header.Ipv4HeaderLength)
+        if (ipv4Packet.Length < IPv4Header_old.Ipv4HeaderLength)
             return null;
 
         // Decode the data in the array back into the class properties
@@ -311,5 +311,7 @@ public class IPv4Header : AProtocolHeader
         Array.Copy(byteValue, 0, ipv4Packet, 10, byteValue.Length);
 
         return ipv4Packet;
+
     }
+
 }
