@@ -24,31 +24,57 @@ using System;
 namespace de.ahzf.Hermod.HTTP
 {
 
-    #region NeedsAuthenticationAttribute
+    #region AuthenticationAttribute
 
     /// <summary>
-    /// If set to True, this methods of a web interface definition needs authentication. If the server does not provide any, an exception will be thrown.
-    /// If set to False, no authentication is required even if the server expect one.
+    /// The generic HTTP authentication attribute.
     /// </summary>
     [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
-    public class NeedsAuthenticationAttribute : Attribute
+    public class AuthenticationAttribute : Attribute
     {
 
         #region Properties
 
-        public Boolean NeedsAuthentication { get; private set; }
+        /// <summary>
+        /// The authentication type(s).
+        /// </summary>
+        public HTTPAuthenticationTypes AuthenticationType { get; private set; }
+
+        /// <summary>
+        /// The HTTP realm.
+        /// </summary>
+        public String                  Realm              { get; private set; }
 
         #endregion
 
+        #region (internal) AuthenticationAttribute(AuthenticationType)
+
         /// <summary>
-        /// If set to True, this methods of a web interface definition needs authentication. If the server does not provide any, an exception will be thrown.
-        /// If set to False, no authentication is required even if the server expect one.
+        /// The generic HTTP authentication attribute.
         /// </summary>
-        /// <param name="NeedsAuthentication">If set to True, this methods of a web interface definition needs authentication. If the server does not provide any, an exception will be thrown. If set to False, no authentication is required even if the server expect one.</param>
-        public NeedsAuthenticationAttribute(Boolean NeedsAuthentication)
+        /// <param name="AuthenticationType">The authentication type(s).</param>
+        internal AuthenticationAttribute(HTTPAuthenticationTypes AuthenticationType)
         {
-            this.NeedsAuthentication = NeedsAuthentication;
+            this.AuthenticationType = AuthenticationType;
+            this.Realm              = String.Empty;
         }
+
+        #endregion
+
+        #region (internal) AuthenticationAttribute(AuthenticationType, Realm)
+
+        /// <summary>
+        /// The generic HTTP authentication attribute including a realm.
+        /// </summary>
+        /// <param name="AuthenticationType">The authentication type(s).</param>
+        /// <param name="Realm">The HTTP realm.</param>
+        internal AuthenticationAttribute(HTTPAuthenticationTypes AuthenticationType, String Realm)
+        {
+            this.AuthenticationType = AuthenticationType;
+            this.Realm = Realm;
+        }
+
+        #endregion
 
     }
 
@@ -56,22 +82,79 @@ namespace de.ahzf.Hermod.HTTP
 
     #region NoAuthenticationAttribute
 
+    /// <summary>
+    /// No HTTP authentication required.
+    /// </summary>
     [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
-    public class NoAuthenticationAttribute : Attribute
+    public class NoAuthenticationAttribute : AuthenticationAttribute
     {
+
+        /// <summary>
+        /// No HTTP authentication required.
+        /// </summary>
         public NoAuthenticationAttribute()
+            : base(HTTPAuthenticationTypes.None)
         { }
+
+    }
+
+    #endregion
+
+    #region OptionalAuthenticationAttribute
+
+    /// <summary>
+    /// Optional authentication possible.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
+    public class OptionalAuthenticationAttribute : AuthenticationAttribute
+    {
+
+        /// <summary>
+        /// Optional authentication possible.
+        /// </summary>
+        /// <param name="AuthenticationType">The authentication type(s).</param>
+        /// <param name="Realm">The HTTP realm.</param>
+        public OptionalAuthenticationAttribute(HTTPAuthenticationTypes AuthenticationType, String Realm)
+            : base(AuthenticationType, Realm)
+        { }
+
     }
 
     #endregion
 
     #region ForceAuthenticationAttribute
 
+    /// <summary>
+    /// HTTP authentication required.
+    /// </summary>
     [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
-    public class ForceAuthenticationAttribute : Attribute
+    public class ForceAuthenticationAttribute : AuthenticationAttribute
     {
+
+        /// <summary>
+        /// HTTP authentication required.
+        /// </summary>
         public ForceAuthenticationAttribute()
+            : base(HTTPAuthenticationTypes.Basic | HTTPAuthenticationTypes.Digest | HTTPAuthenticationTypes.Mutual)
         { }
+
+        /// <summary>
+        /// HTTP authentication required.
+        /// </summary>
+        /// <param name="Realm">The HTTP realm.</param>
+        public ForceAuthenticationAttribute(String Realm)
+            : base(HTTPAuthenticationTypes.Basic | HTTPAuthenticationTypes.Digest | HTTPAuthenticationTypes.Mutual, Realm)
+        { }
+
+        /// <summary>
+        /// HTTP authentication required.
+        /// </summary>
+        /// <param name="AuthenticationType">The authentication type(s).</param>
+        /// <param name="Realm">The HTTP realm.</param>
+        public ForceAuthenticationAttribute(HTTPAuthenticationTypes AuthenticationType, String Realm)
+            : base(AuthenticationType, Realm)
+        { }
+
     }
 
     #endregion

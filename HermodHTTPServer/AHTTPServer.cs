@@ -231,17 +231,6 @@ namespace de.ahzf.Hermod.HTTP
 
                             #endregion
 
-                            #region NeedsAuthentication
-
-                            var _NeedsAuthenticationAttribute = _Attribute as NeedsAuthenticationAttribute;
-                            if (_NeedsAuthenticationAttribute != null)
-                            {
-                                NeedsExplicitAuthentication = _NeedsAuthenticationAttribute.NeedsAuthentication;
-                                continue;
-                            }
-
-                            #endregion
-
                         }
 
                         #region Add MethodCallback or EventSource

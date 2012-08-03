@@ -15,14 +15,42 @@
  * limitations under the License.
  */
 
+#region Usings
+
+using System;
+
+#endregion
+
 namespace de.ahzf.Hermod.HTTP
 {
 
+    /// <summary>
+    /// Different authentication types for HTTP authentication.
+    /// </summary>
+    [Flags]
     public enum HTTPAuthenticationTypes
     {
+
+        /// <summary>
+        /// No authentication required.
+        /// </summary>
         None,
+
+        /// <summary>
+        /// Basic username+password authentication required.
+        /// </summary>
         Basic,
-        Digest
+
+        /// <summary>
+        /// Digest authentication required.
+        /// </summary>
+        Digest,
+
+        /// <summary>
+        /// Mutual authentication required.
+        /// </summary>
+        Mutual
+
     }
 
 }
