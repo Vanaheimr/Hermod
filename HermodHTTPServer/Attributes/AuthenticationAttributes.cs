@@ -47,6 +47,19 @@ namespace de.ahzf.Hermod.HTTP
 
         #endregion
 
+        #region (internal) AuthenticationAttribute()
+
+        /// <summary>
+        /// The generic HTTP authentication attribute.
+        /// </summary>
+        internal AuthenticationAttribute()
+        {
+            this.AuthenticationType = HTTPAuthenticationTypes.Basic | HTTPAuthenticationTypes.Digest | HTTPAuthenticationTypes.Mutual;
+            this.Realm              = String.Empty;
+        }
+
+        #endregion
+
         #region (internal) AuthenticationAttribute(AuthenticationType)
 
         /// <summary>
@@ -105,9 +118,38 @@ namespace de.ahzf.Hermod.HTTP
     /// <summary>
     /// Optional authentication possible.
     /// </summary>
+    /// <seealso cref="http://tools.ietf.org/html/draft-oiwa-httpbis-auth-extension-00#section-3"/>
+    /// <remarks>Servers MAY send HTTP successful responses (response code 200, 206 and others) containing the Optional-WWW-Authenticate header as a replacement of a 401 response when it is an authentication-initializing response.  The Optional-WWW-Authenticate header MUST NOT be contained in 401 responses.</remarks>
+    /// <example>HTTP/1.1 200 OK\r\nOptional-WWW-Authenticate: Basic realm="xxxx"</example>
     [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
     public class OptionalAuthenticationAttribute : AuthenticationAttribute
     {
+
+        #region OptionalAuthenticationAttribute()
+
+        /// <summary>
+        /// Optional authentication possible.
+        /// </summary>
+        public OptionalAuthenticationAttribute()
+            : base()
+        { }
+
+        #endregion
+
+        #region OptionalAuthenticationAttribute(AuthenticationType)
+
+        /// <summary>
+        /// Optional authentication possible.
+        /// </summary>
+        /// <param name="AuthenticationType">The authentication type(s).</param>
+        /// <param name="Realm">The HTTP realm.</param>
+        public OptionalAuthenticationAttribute(HTTPAuthenticationTypes AuthenticationType)
+            : base(AuthenticationType)
+        { }
+
+        #endregion
+
+        #region OptionalAuthenticationAttribute(AuthenticationType, Realm)
 
         /// <summary>
         /// Optional authentication possible.
@@ -117,6 +159,8 @@ namespace de.ahzf.Hermod.HTTP
         public OptionalAuthenticationAttribute(HTTPAuthenticationTypes AuthenticationType, String Realm)
             : base(AuthenticationType, Realm)
         { }
+
+        #endregion
 
     }
 
@@ -131,12 +175,18 @@ namespace de.ahzf.Hermod.HTTP
     public class ForceAuthenticationAttribute : AuthenticationAttribute
     {
 
+        #region ForceAuthenticationAttribute()
+
         /// <summary>
         /// HTTP authentication required.
         /// </summary>
         public ForceAuthenticationAttribute()
-            : base(HTTPAuthenticationTypes.Basic | HTTPAuthenticationTypes.Digest | HTTPAuthenticationTypes.Mutual)
+            : base()
         { }
+
+        #endregion
+
+        #region ForceAuthenticationAttribute(Realm)
 
         /// <summary>
         /// HTTP authentication required.
@@ -146,6 +196,10 @@ namespace de.ahzf.Hermod.HTTP
             : base(HTTPAuthenticationTypes.Basic | HTTPAuthenticationTypes.Digest | HTTPAuthenticationTypes.Mutual, Realm)
         { }
 
+        #endregion
+
+        #region ForceAuthenticationAttribute(AuthenticationType, Realm)
+
         /// <summary>
         /// HTTP authentication required.
         /// </summary>
@@ -154,6 +208,8 @@ namespace de.ahzf.Hermod.HTTP
         public ForceAuthenticationAttribute(HTTPAuthenticationTypes AuthenticationType, String Realm)
             : base(AuthenticationType, Realm)
         { }
+
+        #endregion
 
     }
 

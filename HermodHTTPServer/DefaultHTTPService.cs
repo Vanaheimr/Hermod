@@ -148,7 +148,8 @@ namespace de.ahzf.Hermod.HTTP
 
 
         #region GetRoot()
-
+        
+        [OptionalAuthentication]
         public HTTPResponse GET_Root()
         {
 
