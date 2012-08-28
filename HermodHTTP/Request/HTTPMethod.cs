@@ -38,10 +38,26 @@ namespace de.ahzf.Hermod.HTTP
 
         CONNECT,
 
+        /// <summary>
+        /// Delete the given resource.
+        /// </summary>
         DELETE,
+
+        /// <summary>
+        /// Return the given resource.
+        /// </summary>
         GET,
+
+        /// <summary>
+        /// Return only the headers (not including the body) of the given resource.
+        /// </summary>
         HEAD,
+
+        /// <summary>
+        /// Return a list of valid HTTP verbs for the given resource.
+        /// </summary>
         OPTIONS,
+
         POST,
         PUT,
         TRACE,
@@ -62,20 +78,35 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Additional methods
 
+        /// <summary>
+        /// Patch the given resource.
+        /// </summary>
         PATCH,
+
+        /// <summary>
+        /// Traverse the given resource.
+        /// </summary>
         TRAVERSE,
         
-        // Similar like GET, but with an additional
-        // filter methods within the http body.
+        /// <summary>
+        /// Similar like GET, but with an additional filter methods within the http body.
+        /// </summary>
         FILTER,
 
-        // Counts the number of elements which would
-        // be returned by a FILTER.
+        /// <summary>
+        /// Counts the number of elements which would be returned by a FILTER.
+        /// </summary>
         COUNT,
 
-        // Creates a new resource (a replacement for
-        // PUT and POST)
-        CREATE
+        /// <summary>
+        /// Creates a new resource (a replacement for PUT and POST)
+        /// </summary>
+        CREATE,
+
+        /// <summary>
+        /// Edits a resource, e.g. return a HTML page for editing.
+        /// </summary>
+        EDIT
 
         #endregion
 
@@ -170,12 +201,30 @@ namespace de.ahzf.Hermod.HTTP
 
         public static readonly HTTPMethod CONNECT       = new HTTPMethod("CONNECT");
 
+        /// <summary>
+        /// Delete the given resource.
+        /// </summary>
         public static readonly HTTPMethod DELETE        = new HTTPMethod("DELETE",  IsIdempotent: true);
+
+        /// <summary>
+        /// Return the given resource.
+        /// </summary>
         public static readonly HTTPMethod GET           = new HTTPMethod("GET",     IsIdempotent: true, IsSafe: true);
+
+        /// <summary>
+        /// Return only the headers (not including the body) of the given resource.
+        /// </summary>
         public static readonly HTTPMethod HEAD          = new HTTPMethod("HEAD",    IsIdempotent: true, IsSafe: true);
+
+        /// <summary>
+        /// Return a list of valid HTTP verbs for the given resource.
+        /// </summary>
         public static readonly HTTPMethod OPTIONS       = new HTTPMethod("OPTIONS", IsIdempotent: true);
+
         public static readonly HTTPMethod POST          = new HTTPMethod("POST");
+
         public static readonly HTTPMethod PUT           = new HTTPMethod("PUT",     IsIdempotent: true);
+
         public static readonly HTTPMethod TRACE         = new HTTPMethod("TRACE",   IsIdempotent: true);
 
         #endregion
@@ -194,20 +243,35 @@ namespace de.ahzf.Hermod.HTTP
 
         #region Additional methods
 
+        /// <summary>
+        /// Patch the given resource.
+        /// </summary>
         public static readonly HTTPMethod PATCH         = new HTTPMethod("PATCH");
+
+        /// <summary>
+        /// Traverse the given resource.
+        /// </summary>
         public static readonly HTTPMethod TRAVERSE      = new HTTPMethod("TRAVERSE");
 
-        // Similar like GET, but with an additional
-        // filter methods within the http body.
-        public static readonly HTTPMethod FILTER        = new HTTPMethod("FILTER");
+        /// <summary>
+        /// Similar like GET, but with an additional filter methods within the http body.
+        /// </summary>
+        public static readonly HTTPMethod FILTER        = new HTTPMethod("FILTER", IsIdempotent: true, IsSafe: true);
 
-        // Counts the number of elements which would
-        // be returned by a FILTER.
-        public static readonly HTTPMethod COUNT         = new HTTPMethod("COUNT");
+        /// <summary>
+        /// Counts the number of elements which would be returned by a FILTER.
+        /// </summary>
+        public static readonly HTTPMethod COUNT         = new HTTPMethod("COUNT",  IsIdempotent: true, IsSafe: true);
             
-        // Creates a new resource (a replacement for
-        // PUT and POST)
+        /// <summary>
+        /// Creates a new resource (a replacement for PUT and POST)
+        /// </summary>
         public static readonly HTTPMethod CREATE        = new HTTPMethod("CREATE");
+
+        /// <summary>
+        /// Edits a resource, e.g. return a HTML page for editing.
+        /// </summary>
+        public static readonly HTTPMethod EDIT          = new HTTPMethod("EDIT");
 
         #endregion
 
