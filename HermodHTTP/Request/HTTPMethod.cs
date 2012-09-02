@@ -104,6 +104,11 @@ namespace de.ahzf.Hermod.HTTP
         CREATE,
 
         /// <summary>
+        /// Add a new resource to a collection of resources (a replacement for PUT and POST)
+        /// </summary>
+        ADD,
+
+        /// <summary>
         /// Edits a resource, e.g. return a HTML page for editing.
         /// </summary>
         EDIT
@@ -267,6 +272,11 @@ namespace de.ahzf.Hermod.HTTP
         /// Creates a new resource (a replacement for PUT and POST)
         /// </summary>
         public static readonly HTTPMethod CREATE        = new HTTPMethod("CREATE");
+
+        /// <summary>
+        /// Add a new resource to a collection of resources (a replacement for PUT and POST)
+        /// </summary>
+        public static readonly HTTPMethod ADD           = new HTTPMethod("ADD");
 
         /// <summary>
         /// Edits a resource, e.g. return a HTML page for editing.
