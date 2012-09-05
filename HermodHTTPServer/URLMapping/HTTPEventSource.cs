@@ -124,7 +124,7 @@ namespace de.ahzf.Hermod.HTTP
         /// <param name="Data">The attached event data.</param>
         public void Submit(String Subevent, params String[] Data)
         {
-            ListOfEvents.Push(new HTTPEvent(Subevent, (UInt64)Interlocked.Increment(ref IdCounter), Data));
+            ListOfEvents.Push(new HTTPEvent(Subevent, (UInt64) Interlocked.Increment(ref IdCounter), Data));
         }
 
         #endregion

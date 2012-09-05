@@ -42,6 +42,9 @@ namespace de.ahzf.Hermod.HTTP
         /// </summary>
         String DefaultServerName { get; }
 
+
+        URLMapping URLMapping { get; }
+
     }
 
 }

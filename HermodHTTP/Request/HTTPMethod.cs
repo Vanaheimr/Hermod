@@ -99,6 +99,11 @@ namespace de.ahzf.Hermod.HTTP
         COUNT,
 
         /// <summary>
+        /// Composes a new resource (e.g. send a html form to compose a new resource)
+        /// </summary>
+        COMPOSE,
+
+        /// <summary>
         /// Creates a new resource (a replacement for PUT and POST)
         /// </summary>
         CREATE,
@@ -272,6 +277,11 @@ namespace de.ahzf.Hermod.HTTP
         /// Creates a new resource (a replacement for PUT and POST)
         /// </summary>
         public static readonly HTTPMethod CREATE        = new HTTPMethod("CREATE");
+
+        /// <summary>
+        /// Composes a new resource (e.g. send a html form to compose a new resource)
+        /// </summary>
+        public static readonly HTTPMethod COMPOSE       = new HTTPMethod("COMPOSE");
 
         /// <summary>
         /// Add a new resource to a collection of resources (a replacement for PUT and POST)
