@@ -144,8 +144,8 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        
-        #region ProcessHTTP()
+
+        #region ProcessHTTP_new()
 
         public void ProcessHTTP_new()
         {
@@ -173,6 +173,10 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
             }
 
         }
+
+        #endregion
+
+        #region (private) StreamReadCallback(...)
 
         private void StreamReadCallback(IAsyncResult ar)
         {
@@ -243,263 +247,267 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
             
         }
 
-        private void ProcessHTTP1()
-        {
+        #endregion
 
-                #region Get HTTP header and body
+        //private void ProcessHTTP1()
+        //{
 
-                var     _MemoryStream       = new MemoryStream();
-                var     _Buffer             = new Byte[65535];
-                Byte[]  _ByteArray          = null;
-                Boolean _EndOfHTTPHeader    = false;
-                long    _Length             = 0;
-                long    _ReadPosition       = 6;
+        //        #region Get HTTP header and body
 
-                try
-                {
+        //        var     _MemoryStream       = new MemoryStream();
+        //        var     _Buffer             = new Byte[65535];
+        //        Byte[]  _ByteArray          = null;
+        //        Boolean _EndOfHTTPHeader    = false;
+        //        long    _Length             = 0;
+        //        long    _ReadPosition       = 6;
 
-                    // Create a new HTTPRequestHeader
-                    var HeaderBytes = new Byte[_ReadPosition - 1];
-                    Array.Copy(_ByteArray, 0, HeaderBytes, 0, _ReadPosition - 1);
+        //        try
+        //        {
 
-                    InHTTPRequest = new HTTPRequest(HeaderBytes.ToUTF8String());
+        //            // Create a new HTTPRequestHeader
+        //            var HeaderBytes = new Byte[_ReadPosition - 1];
+        //            Array.Copy(_ByteArray, 0, HeaderBytes, 0, _ReadPosition - 1);
 
-                    // The parsing of the http header failed!
-                    if (InHTTPRequest.HTTPStatusCode != HTTPStatusCode.OK)
-                    {
-                        SendErrorpage(InHTTPRequest.HTTPStatusCode, InHTTPRequest);
-                        return;
-                    }
+        //            InHTTPRequest = new HTTPRequest(HeaderBytes.ToUTF8String());
 
-                    // Copy only the number of bytes given within
-                    // the HTTP header element 'ContentType'!
-                    if (InHTTPRequest.ContentLength.HasValue)
-                    {
-                        RequestBody = new Byte[InHTTPRequest.ContentLength.Value];
-                        Array.Copy(_ByteArray, _ReadPosition + 1, RequestBody, 0, (Int64) InHTTPRequest.ContentLength.Value);
-                    }
-                    else
-                        RequestBody = new Byte[0];
+        //            // The parsing of the http header failed!
+        //            if (InHTTPRequest.HTTPStatusCode != HTTPStatusCode.OK)
+        //            {
+        //                SendErrorpage(InHTTPRequest.HTTPStatusCode, InHTTPRequest);
+        //                return;
+        //            }
 
-                    #endregion
+        //            // Copy only the number of bytes given within
+        //            // the HTTP header element 'ContentType'!
+        //            if (InHTTPRequest.ContentLength.HasValue)
+        //            {
+        //                RequestBody = new Byte[InHTTPRequest.ContentLength.Value];
+        //                Array.Copy(_ByteArray, _ReadPosition + 1, RequestBody, 0, (Int64) InHTTPRequest.ContentLength.Value);
+        //            }
+        //            else
+        //                RequestBody = new Byte[0];
 
-                    var BestContentType = InHTTPRequest.Accept.BestMatchingContentType(Implementations.Keys.ToArray());
-                    var BestImpl        = Implementations[BestContentType];
+        //            #endregion
 
-                    #region Invoke upper-layer protocol constructor
+        //            var BestContentType = InHTTPRequest.Accept.BestMatchingContentType(Implementations.Keys.ToArray());
+        //            var BestImpl        = Implementations[BestContentType];
 
-                    // Get constructor for HTTPServiceType
-                    var _Type = BestImpl.GetType().
-                                GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
-                                               null,
-                                               new Type[] {
-                                                   typeof(IHTTPConnection)
-                                               },
-                                               null);
+        //            #region Invoke upper-layer protocol constructor
 
-                    if (_Type == null)
-                        throw new ArgumentException("A appropriate constructor for type '" + typeof(HTTPServiceInterface).Name + "' could not be found!");
+        //            // Get constructor for HTTPServiceType
+        //            var _Type = BestImpl.GetType().
+        //                        GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+        //                                       null,
+        //                                       new Type[] {
+        //                                           typeof(IHTTPConnection)
+        //                                       },
+        //                                       null);
 
+        //            if (_Type == null)
+        //                throw new ArgumentException("A appropriate constructor for type '" + typeof(HTTPServiceInterface).Name + "' could not be found!");
 
-                    // Invoke constructor of HTTPServiceType
-                    _HTTPServiceInterface = _Type.Invoke(new Object[] { this }) as HTTPServiceInterface;
 
-                    if (_HTTPServiceInterface == null)
-                        throw new ArgumentException("A http connection of type '" + typeof(HTTPServiceInterface).Name + "' could not be created!");
+        //            // Invoke constructor of HTTPServiceType
+        //            _HTTPServiceInterface = _Type.Invoke(new Object[] { this }) as HTTPServiceInterface;
 
-                    if (NewHTTPServiceHandler != null)
-                        NewHTTPServiceHandler(_HTTPServiceInterface);
+        //            if (_HTTPServiceInterface == null)
+        //                throw new ArgumentException("A http connection of type '" + typeof(HTTPServiceInterface).Name + "' could not be created!");
 
-                    #endregion
+        //            if (NewHTTPServiceHandler != null)
+        //                NewHTTPServiceHandler(_HTTPServiceInterface);
 
-                    //ToDo: Add HTTP pipelining!
+        //            #endregion
 
-                    #region Get and check callback...
+        //            //ToDo: Add HTTP pipelining!
 
-                    var _ParsedCallback = URLMapping.GetHandler(InHTTPRequest.Host,
-                                                                InHTTPRequest.UrlPath,
-                                                                InHTTPRequest.HTTPMethod,
-                                                                BestContentType);
+        //            #region Get and check callback...
 
-                    if (_ParsedCallback == null || _ParsedCallback.Item1 == null)// || _ParsedCallback.Item1.MethodCallback == null)
-                    {
+        //            var _ParsedCallback = URLMapping.GetHandler(InHTTPRequest.Host,
+        //                                                        InHTTPRequest.UrlPath,
+        //                                                        InHTTPRequest.HTTPMethod,
+        //                                                        BestContentType);
 
-                        SendErrorpage(HTTPStatusCode.InternalServerError,
-                                      InHTTPRequest,
-                                      ErrorReason: "Could not find a valid handler for URL: " + InHTTPRequest.UrlPath);
+        //            if (_ParsedCallback == null || _ParsedCallback.Item1 == null)// || _ParsedCallback.Item1.MethodCallback == null)
+        //            {
 
-                        return;
+        //                SendErrorpage(HTTPStatusCode.InternalServerError,
+        //                              InHTTPRequest,
+        //                              ErrorReason: "Could not find a valid handler for URL: " + InHTTPRequest.UrlPath);
 
-                    }
+        //                return;
 
-                    #endregion
+        //            }
 
-                    #region Check authentication
+        //            #endregion
 
-                    var IsAuthenticated = false;
+        //            #region Check authentication
 
-                    #region Check HTTPSecurity
+        //            var IsAuthenticated = false;
 
-                    var _AuthenticationAttribute      = _ParsedCallback.Item1.GetCustomAttributes(typeof(AuthenticationAttribute),      false);
-                    var _ForceAuthenticationAttribute = _ParsedCallback.Item1.GetCustomAttributes(typeof(ForceAuthenticationAttribute), false);
+        //            #region Check HTTPSecurity
 
-                    // the server switched on authentication AND the method does not explicit allow not authentication
-                    //if (HTTPSecurity != null && !(_ParsedCallback.Item1.GetCustomAttributes(NeedsExplicitAuthenticationAttribute) .NeedsExplicitAuthentication.HasValue && !_ParsedCallback.Item1.NeedsExplicitAuthentication.Value))
-                    //{
+        //            var _AuthenticationAttribute      = _ParsedCallback.Item1.GetCustomAttributes(typeof(AuthenticationAttribute),      false);
+        //            var _ForceAuthenticationAttribute = _ParsedCallback.Item1.GetCustomAttributes(typeof(ForceAuthenticationAttribute), false);
 
-                    //    #region Authentication
+        //            // the server switched on authentication AND the method does not explicit allow not authentication
+        //            //if (HTTPSecurity != null && !(_ParsedCallback.Item1.GetCustomAttributes(NeedsExplicitAuthenticationAttribute) .NeedsExplicitAuthentication.HasValue && !_ParsedCallback.Item1.NeedsExplicitAuthentication.Value))
+        //            //{
 
-                    //    if (HTTPSecurity.CredentialType == HttpClientCredentialType.Basic)
-                    //    {
+        //            //    #region Authentication
 
-                    //        if (requestHeader.Authorization == null)
-                    //        {
+        //            //    if (HTTPSecurity.CredentialType == HttpClientCredentialType.Basic)
+        //            //    {
 
-                    //            #region No authorisation info was sent
+        //            //        if (requestHeader.Authorization == null)
+        //            //        {
 
-                    //            responseHeader = GetAuthenticationRequiredHeader();
-                    //            responseHeaderBytes = responseHeader.ToBytes();
+        //            //            #region No authorisation info was sent
 
-                    //            #endregion
+        //            //            responseHeader = GetAuthenticationRequiredHeader();
+        //            //            responseHeaderBytes = responseHeader.ToBytes();
 
-                    //        }
-                    //        else if (!Authorize(_HTTPWebContext.RequestHeader.Authorization))
-                    //        {
+        //            //            #endregion
 
-                    //            #region Authorization failed
+        //            //        }
+        //            //        else if (!Authorize(_HTTPWebContext.RequestHeader.Authorization))
+        //            //        {
 
-                    //            responseHeader = GetAuthenticationRequiredHeader();
-                    //            responseHeaderBytes = responseHeader.ToBytes();
+        //            //            #region Authorization failed
 
-                    //            #endregion
+        //            //            responseHeader = GetAuthenticationRequiredHeader();
+        //            //            responseHeaderBytes = responseHeader.ToBytes();
 
-                    //        }
-                    //        else
-                    //        {
-                    //            authenticated = true;
-                    //        }
+        //            //            #endregion
 
-                    //    }
+        //            //        }
+        //            //        else
+        //            //        {
+        //            //            authenticated = true;
+        //            //        }
 
-                    //    else
-                    //    {
-                    //        responseBodyBytes = Encoding.UTF8.GetBytes("Authentication other than Basic currently not supported");
-                    //        responseHeader = new HTTPResponseBuilderHeader() { HttpStatusCode = HTTPStatusCode.InternalServerError, ContentLength = responseBodyBytes.ULongLength() };
-                    //        responseHeaderBytes = responseHeader.ToBytes();
+        //            //    }
 
-                    //        Debug.WriteLine("!!!Authentication other than Basic currently not supported!!!");
-                    //    }
+        //            //    else
+        //            //    {
+        //            //        responseBodyBytes = Encoding.UTF8.GetBytes("Authentication other than Basic currently not supported");
+        //            //        responseHeader = new HTTPResponseBuilderHeader() { HttpStatusCode = HTTPStatusCode.InternalServerError, ContentLength = responseBodyBytes.ULongLength() };
+        //            //        responseHeaderBytes = responseHeader.ToBytes();
 
-                    //    #endregion
+        //            //        Debug.WriteLine("!!!Authentication other than Basic currently not supported!!!");
+        //            //    }
 
-                    //}
+        //            //    #endregion
 
-                    //else if (parsedCallback.Item1.NeedsExplicitAuthentication.HasValue && parsedCallback.Item1.NeedsExplicitAuthentication.Value)
-                    //{
+        //            //}
 
-                    //    #region The server does not have authentication but the Interface explicitly needs authentication
+        //            //else if (parsedCallback.Item1.NeedsExplicitAuthentication.HasValue && parsedCallback.Item1.NeedsExplicitAuthentication.Value)
+        //            //{
 
-                    //    responseBodyBytes = Encoding.UTF8.GetBytes("Authentication not supported for this server!");
-                    //    responseHeader = new HTTPResponseBuilderHeader() { HttpStatusCode = HTTPStatusCode.InternalServerError, ContentLength = responseBodyBytes.ULongLength() };
-                    //    responseHeaderBytes = responseHeader.ToBytes();
+        //            //    #region The server does not have authentication but the Interface explicitly needs authentication
 
-                    //    #endregion
+        //            //    responseBodyBytes = Encoding.UTF8.GetBytes("Authentication not supported for this server!");
+        //            //    responseHeader = new HTTPResponseBuilderHeader() { HttpStatusCode = HTTPStatusCode.InternalServerError, ContentLength = responseBodyBytes.ULongLength() };
+        //            //    responseHeaderBytes = responseHeader.ToBytes();
 
-                    //    Debug.WriteLine("!!!Authentication not supported for this server!!!");
+        //            //    #endregion
 
-                    //}
+        //            //    Debug.WriteLine("!!!Authentication not supported for this server!!!");
 
-                    //else
-                    //    authenticated = true;
+        //            //}
 
-                    #endregion
+        //            //else
+        //            //    authenticated = true;
 
-                    //HACK: authenticated = true!!!!!!!!!!!!!!
-                    IsAuthenticated = true;
+        //            #endregion
 
-                    #endregion
+        //            //HACK: authenticated = true!!!!!!!!!!!!!!
+        //            IsAuthenticated = true;
 
-                    #region Invoke callback within the upper-layer protocol
+        //            #endregion
 
-                    if (IsAuthenticated)
-                    {
+        //            #region Invoke callback within the upper-layer protocol
 
-                        try
-                        {
+        //            if (IsAuthenticated)
+        //            {
 
-                            var _HTTPResponse = _ParsedCallback.Item1.Invoke(_HTTPServiceInterface, _ParsedCallback.Item2.ToArray()) as HTTPResponse;
-                            if (_HTTPResponse == null)
-                            {
+        //                try
+        //                {
 
-                                SendErrorpage(HTTPStatusCode.InternalServerError,
-                                              InHTTPRequest,
-                                              ErrorReason: "Could not invoke method for URL: " + InHTTPRequest.UrlPath);
+        //                    var _HTTPResponse = _ParsedCallback.Item1.Invoke(_HTTPServiceInterface, _ParsedCallback.Item2.ToArray()) as HTTPResponse;
+        //                    if (_HTTPResponse == null)
+        //                    {
 
-                                return;
+        //                        SendErrorpage(HTTPStatusCode.InternalServerError,
+        //                                      InHTTPRequest,
+        //                                      ErrorReason: "Could not invoke method for URL: " + InHTTPRequest.UrlPath);
 
-                            }
+        //                        return;
 
-                            ResponseHeader = _HTTPResponse;
+        //                    }
 
-                            #region In case of errors => send errorpage
+        //                    ResponseHeader = _HTTPResponse;
 
-                            if (ResponseHeader.HTTPStatusCode.IsClientError ||
-                                ResponseHeader.HTTPStatusCode.IsServerError)
-                            {
+        //                    #region In case of errors => send errorpage
 
-                                SendErrorpage(ResponseHeader.HTTPStatusCode,
-                                              InHTTPRequest,
-                                              LastException: LastException);
+        //                    if (ResponseHeader.HTTPStatusCode.IsClientError ||
+        //                        ResponseHeader.HTTPStatusCode.IsServerError)
+        //                    {
 
-                                return;
+        //                        SendErrorpage(ResponseHeader.HTTPStatusCode,
+        //                                      InHTTPRequest,
+        //                                      LastException: LastException);
 
-                            }
+        //                        return;
 
-                            #endregion
+        //                    }
 
-                            else
-                                WriteToResponseStream(_HTTPResponse);
+        //                    #endregion
 
-                        }
+        //                    else
+        //                        WriteToResponseStream(_HTTPResponse);
 
-                        catch (Exception e)
-                        {
+        //                }
 
-                            WriteToResponseStream(
+        //                catch (Exception e)
+        //                {
+
+        //                    WriteToResponseStream(
                     
-                                new HTTPResponseBuilder()
-                                {
-                                    HTTPStatusCode = HTTPStatusCode.InternalServerError,
-                                    CacheControl   = "no-cache",
-                                    ContentType    = HTTPContentType.TEXT_UTF8,
-                                    Content        = e.ToString().ToUTF8Bytes()
-                                });
+        //                        new HTTPResponseBuilder()
+        //                        {
+        //                            HTTPStatusCode = HTTPStatusCode.InternalServerError,
+        //                            CacheControl   = "no-cache",
+        //                            ContentType    = HTTPContentType.TEXT_UTF8,
+        //                            Content        = e.ToString().ToUTF8Bytes()
+        //                        });
 
-                        }
+        //                }
 
-                    }
+        //            }
 
-                    #endregion
+        //            #endregion
 
-                }
+        //        }
 
-                catch (SocketException Exception)
-                {
-                    Debug.WriteLine("The remote host has disconnected: " + Exception);
-                }
+        //        catch (SocketException Exception)
+        //        {
+        //            Debug.WriteLine("The remote host has disconnected: " + Exception);
+        //        }
 
-                catch (Exception Exception)
-                {
+        //        catch (Exception Exception)
+        //        {
 
-                    Debug.WriteLine("General ProcessHTTP() exception: " + Exception);
+        //            Debug.WriteLine("General ProcessHTTP() exception: " + Exception);
 
-                    SendErrorpage(ResponseHeader.HTTPStatusCode,
-                                  InHTTPRequest,
-                                  LastException: Exception);
+        //            SendErrorpage(ResponseHeader.HTTPStatusCode,
+        //                          InHTTPRequest,
+        //                          LastException: Exception);
 
-                }
+        //        }
 
-        }
+        //}
+
+        #region ProcessHTTP()
 
         public void ProcessHTTP()
         {
@@ -723,6 +731,12 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
                                 return;
                             }
 
+                        }
+
+                        else
+                        {
+                            SendErrorpage(HTTPStatusCode.NotImplemented, InHTTPRequest, "Please use HTTP basic authentication!");
+                            return;
                         }
 
 
