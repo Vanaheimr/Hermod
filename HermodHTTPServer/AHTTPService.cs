@@ -28,7 +28,7 @@ using de.ahzf.Illias.Commons;
 
 #endregion
 
-namespace de.ahzf.Hermod.HTTP
+namespace de.ahzf.Vanaheimr.Hermod.HTTP
 {
 
     public static class HTTPErrors

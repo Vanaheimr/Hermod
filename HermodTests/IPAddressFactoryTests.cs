@@ -1,6 +1,6 @@
 ﻿/*
- * Copyright (c) 2010-2011, Achim 'ahzf' Friedland <achim@graph-database.org>
- * This file is part of Pipes.NET
+ * Copyright (c) 2010-2012, Achim 'ahzf' Friedland <achim@graph-database.org>
+ * This file is part of Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,13 +19,13 @@
 
 using System;
 
-using de.ahzf.Hermod.Datastructures;
+using de.ahzf.Vanaheimr.Hermod.Datastructures;
 
 using NUnit.Framework;
 
 #endregion
 
-namespace de.ahzf.Hermod.UnitTests
+namespace de.ahzf.Vanaheimr.Hermod.UnitTests
 {
 
     /// <summary>

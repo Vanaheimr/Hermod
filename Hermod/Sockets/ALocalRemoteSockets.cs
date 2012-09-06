@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2010-2012, Achim 'ahzf' Friedland <achim@graph-database.org>
- * This file is part of Hermod
+ * This file is part of Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,11 +20,11 @@
 using System;
 using System.Net;
 
-using de.ahzf.Hermod.Datastructures;
+using de.ahzf.Vanaheimr.Hermod.Datastructures;
 
 #endregion
 
-namespace de.ahzf.Hermod.Sockets
+namespace de.ahzf.Vanaheimr.Hermod.Sockets
 {
 
     /// <summary>

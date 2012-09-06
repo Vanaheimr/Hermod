@@ -23,7 +23,7 @@ using System.Net.Sockets;
 
 using de.ahzf.Illias.Commons;
 using de.ahzf.Vanaheimr.Styx;
-using de.ahzf.Hermod.Datastructures;
+using de.ahzf.Vanaheimr.Hermod.Datastructures;
 
 #endregion
 

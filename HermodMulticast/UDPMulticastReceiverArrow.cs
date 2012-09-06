@@ -25,7 +25,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using de.ahzf.Vanaheimr.Styx;
-using de.ahzf.Hermod.Datastructures;
+using de.ahzf.Vanaheimr.Hermod.Datastructures;
 
 #endregion
 

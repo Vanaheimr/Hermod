@@ -1,6 +1,6 @@
 ﻿/*
- * Copyright (c) 2010-2011, Achim 'ahzf' Friedland <achim@graph-database.org>
- * This file is part of Hermod
+ * Copyright (c) 2010-2012, Achim 'ahzf' Friedland <achim@graph-database.org>
+ * This file is part of Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,11 +24,11 @@ using System.Linq;
 using System.Reflection;
 using System.Collections.Generic;
 
-using de.ahzf.Hermod.HTTP;
+using de.ahzf.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
-namespace de.ahzf.Hermod.UnitTests
+namespace de.ahzf.Vanaheimr.Hermod.UnitTests
 {
 
     /// <summary>

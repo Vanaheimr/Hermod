@@ -21,7 +21,7 @@ using System;
 using System.Net;
 
 using de.ahzf.Vanaheimr.Styx;
-using de.ahzf.Hermod.Datastructures;
+using de.ahzf.Vanaheimr.Hermod.Datastructures;
 
 #endregion
 

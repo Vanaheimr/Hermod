@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2010-2012, Achim 'ahzf' Friedland <achim@graph-database.org>
- * This file is part of Hermod
+ * This file is part of Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-namespace de.ahzf.Hermod.Sockets.RawIP
+namespace de.ahzf.Vanaheimr.Hermod.Sockets.RawIP
 {
 
     public class WinsockIoctl

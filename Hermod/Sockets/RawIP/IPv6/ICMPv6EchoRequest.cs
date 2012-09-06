@@ -4,7 +4,7 @@
 /// broken out from the base ICMPv6 header that is common across all of its functions
 /// (such as Multicast Listener Discovery, Neighbor Discovery, etc.).
 /// </summary>
-using de.ahzf.Hermod.Datastructures;
+using de.ahzf.Vanaheimr.Hermod.Datastructures;
 using System;
 class Icmpv6EchoRequest : AProtocolHeader
 {
