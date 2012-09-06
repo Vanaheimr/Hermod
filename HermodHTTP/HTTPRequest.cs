@@ -181,7 +181,12 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
                 if (_Authorization != null)
                     return _Authorization;
 
-                _Authorization = new HTTPBasicAuthentication(GetHeaderField<String>("Authorization"));
+                var _AuthString = GetHeaderField<String>("Authorization");
+
+                if (_AuthString == null)
+                    return null;
+
+                _Authorization = new HTTPBasicAuthentication(_AuthString);
 
                 SetHeaderField("Authorization", _Authorization);
 

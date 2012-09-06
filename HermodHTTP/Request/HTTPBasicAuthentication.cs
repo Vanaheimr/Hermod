@@ -42,14 +42,21 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create the credentials based on a base64 encoded string which comes from a HTTP header Authentication:
         /// </summary>
-        /// <param name="myHTTPHeaderCredential"></param>
-        public HTTPBasicAuthentication(String myHTTPHeaderCredential)
+        /// <param name="HTTPHeaderCredential"></param>
+        public HTTPBasicAuthentication(String HTTPHeaderCredential)
         {
 
-            var splitted = myHTTPHeaderCredential.Split(new[] { ' ' });
+            #region Initial checks
+
+            if (HTTPHeaderCredential.IsNullOrEmpty())
+                throw new ArgumentNullException("HTTPHeaderCredential", "The given credential string must not be null or empty!");
+
+            #endregion
+
+            var splitted = HTTPHeaderCredential.Split(new[] { ' ' });
 
             if (splitted.IsNullOrEmpty())
-                throw new ArgumentException("invalid credentials " + myHTTPHeaderCredential);
+                throw new ArgumentException("invalid credentials " + HTTPHeaderCredential);
 
             if (splitted[0].ToLower() == "basic")
             {

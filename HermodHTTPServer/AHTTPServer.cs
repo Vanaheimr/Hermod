@@ -30,7 +30,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// An abstract HTTP server.
+    /// An abstract generic HTTP server.
     /// </summary>
     /// <typeparam name="HTTPServiceInterface">An interface inheriting from IHTTPService and defining URLMappings.</typeparam>
     public abstract class AHTTPServer<HTTPServiceInterface>
@@ -273,7 +273,12 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethod"></param>
         /// <param name="HTTPContentType"></param>
         /// <param name="NeedsExplicitAuthentication"></param>
-        public void AddMethodCallback(MethodInfo MethodInfo, String Host, String URITemplate, HTTPMethod HTTPMethod, HTTPContentType HTTPContentType = null, Boolean NeedsExplicitAuthentication = false)
+        public void AddMethodCallback(MethodInfo       MethodInfo,
+                                      String           Host,
+                                      String           URITemplate,
+                                      HTTPMethod       HTTPMethod,
+                                      HTTPContentType  HTTPContentType             = null,
+                                      Boolean          NeedsExplicitAuthentication = false)
         {
             URLMapping.AddHandler(MethodInfo, Host, URITemplate, HTTPMethod, HTTPContentType, NeedsExplicitAuthentication);
         }
@@ -292,7 +297,13 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events (0 means infinite).</param>
         /// <param name="IsSharedEventSource"></param>
         /// <param name="NeedsExplicitAuthentication"></param>
-        public void AddEventSource(MethodInfo MethodInfo, String Host, String URITemplate, String EventIdentification, UInt32 MaxNumberOfCachedEvents, Boolean IsSharedEventSource = false, Boolean NeedsExplicitAuthentication = false)
+        public void AddEventSource(MethodInfo  MethodInfo,
+                                   String      Host,
+                                   String      URITemplate,
+                                   String      EventIdentification,
+                                   UInt32      MaxNumberOfCachedEvents,
+                                   Boolean     IsSharedEventSource          = false,
+                                   Boolean     NeedsExplicitAuthentication  = false)
         {
             URLMapping.AddEventSource(MethodInfo, Host, URITemplate, EventIdentification, MaxNumberOfCachedEvents, IsSharedEventSource, NeedsExplicitAuthentication);
         }

@@ -338,10 +338,13 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
                     var IsAuthenticated = false;
 
-                    //#region Check HTTPSecurity
+                    #region Check HTTPSecurity
 
-                    //// the server switched on authentication AND the method does not explicit allow not authentication
-                    //if (HTTPSecurity != null && !(parsedCallback.Item1.NeedsExplicitAuthentication.HasValue && !parsedCallback.Item1.NeedsExplicitAuthentication.Value))
+                    var _AuthenticationAttribute      = _ParsedCallback.Item1.GetCustomAttributes(typeof(AuthenticationAttribute),      false);
+                    var _ForceAuthenticationAttribute = _ParsedCallback.Item1.GetCustomAttributes(typeof(ForceAuthenticationAttribute), false);
+
+                    // the server switched on authentication AND the method does not explicit allow not authentication
+                    //if (HTTPSecurity != null && !(_ParsedCallback.Item1.GetCustomAttributes(NeedsExplicitAuthenticationAttribute) .NeedsExplicitAuthentication.HasValue && !_ParsedCallback.Item1.NeedsExplicitAuthentication.Value))
                     //{
 
                     //    #region Authentication
@@ -409,9 +412,9 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
                     //else
                     //    authenticated = true;
 
-                    //#endregion
+                    #endregion
 
-                    // HACK: authenticated = true!!!!!!!!!!!!!!
+                    //HACK: authenticated = true!!!!!!!!!!!!!!
                     IsAuthenticated = true;
 
                     #endregion
@@ -680,143 +683,105 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
                     #region Check authentication
 
-                    var IsAuthenticated = false;
+                    var _AuthenticationAttributes      = _ParsedCallback.Item1.GetCustomAttributes(typeof(AuthenticationAttribute),      false);
+                    var _ForceAuthenticationAttributes = _ParsedCallback.Item1.GetCustomAttributes(typeof(ForceAuthenticationAttribute), false);
 
-                    //#region Check HTTPSecurity
-
-                    //// the server switched on authentication AND the method does not explicit allow not authentication
-                    //if (HTTPSecurity != null && !(parsedCallback.Item1.NeedsExplicitAuthentication.HasValue && !parsedCallback.Item1.NeedsExplicitAuthentication.Value))
+                    //if (_AuthenticationAttributes.Any())
                     //{
 
-                    //    #region Authentication
+                    //    var _AuthenticationAttribute = _AuthenticationAttributes[0] as AuthenticationAttribute;
 
-                    //    if (HTTPSecurity.CredentialType == HttpClientCredentialType.Basic)
+                    //    if (_AuthenticationAttribute.AuthenticationType == HTTPAuthenticationTypes.Basic)
                     //    {
-
-                    //        if (requestHeader.Authorization == null)
-                    //        {
-
-                    //            #region No authorisation info was sent
-
-                    //            responseHeader = GetAuthenticationRequiredHeader();
-                    //            responseHeaderBytes = responseHeader.ToBytes();
-
-                    //            #endregion
-
-                    //        }
-                    //        else if (!Authorize(_HTTPWebContext.RequestHeader.Authorization))
-                    //        {
-
-                    //            #region Authorization failed
-
-                    //            responseHeader = GetAuthenticationRequiredHeader();
-                    //            responseHeaderBytes = responseHeader.ToBytes();
-
-                    //            #endregion
-
-                    //        }
-                    //        else
-                    //        {
-                    //            authenticated = true;
-                    //        }
-
                     //    }
-
-                    //    else
-                    //    {
-                    //        responseBodyBytes = Encoding.UTF8.GetBytes("Authentication other than Basic currently not supported");
-                    //        responseHeader = new HTTPResponseBuilderHeader() { HttpStatusCode = HTTPStatusCode.InternalServerError, ContentLength = responseBodyBytes.ULongLength() };
-                    //        responseHeaderBytes = responseHeader.ToBytes();
-
-                    //        Debug.WriteLine("!!!Authentication other than Basic currently not supported!!!");
-                    //    }
-
-                    //    #endregion
 
                     //}
 
-                    //else if (parsedCallback.Item1.NeedsExplicitAuthentication.HasValue && parsedCallback.Item1.NeedsExplicitAuthentication.Value)
-                    //{
+                    if (_ForceAuthenticationAttributes.Any())
+                    {
 
-                    //    #region The server does not have authentication but the Interface explicitly needs authentication
+                        var _ForceAuthenticationAttribute = _ForceAuthenticationAttributes[0] as ForceAuthenticationAttribute;
 
-                    //    responseBodyBytes = Encoding.UTF8.GetBytes("Authentication not supported for this server!");
-                    //    responseHeader = new HTTPResponseBuilderHeader() { HttpStatusCode = HTTPStatusCode.InternalServerError, ContentLength = responseBodyBytes.ULongLength() };
-                    //    responseHeaderBytes = responseHeader.ToBytes();
+                        if (_ForceAuthenticationAttribute.AuthenticationType == HTTPAuthenticationTypes.Basic)
+                        {
 
-                    //    #endregion
+                            var CurrentAuthentication = InHTTPRequest.Authorization;
 
-                    //    Debug.WriteLine("!!!Authentication not supported for this server!!!");
+                            if (CurrentAuthentication == null)
+                            {
+                                SendAuthenticationRequiredHeader(HTTPAuthenticationTypes.Basic, _ForceAuthenticationAttribute.Realm);
+                                return;
+                            }
 
-                    //}
+                            else if (CurrentAuthentication.Username == "test" && CurrentAuthentication.Password == "123")
+                            {
+                            }
 
-                    //else
-                    //    authenticated = true;
+                            else
+                            {
+                                SendAuthenticationRequiredHeader(HTTPAuthenticationTypes.Basic, _ForceAuthenticationAttribute.Realm);
+                                return;
+                            }
 
-                    //#endregion
+                        }
 
-                    // HACK: authenticated = true!!!!!!!!!!!!!!
-                    IsAuthenticated = true;
+
+                    }
 
                     #endregion
 
                     #region Invoke callback within the upper-layer protocol
 
-                    if (IsAuthenticated)
+                    try
                     {
 
-                        try
+                        var _HTTPResponse = _ParsedCallback.Item1.Invoke(_HTTPServiceInterface, _ParsedCallback.Item2.ToArray()) as HTTPResponse;
+                        if (_HTTPResponse == null)
                         {
 
-                            var _HTTPResponse = _ParsedCallback.Item1.Invoke(_HTTPServiceInterface, _ParsedCallback.Item2.ToArray()) as HTTPResponse;
-                            if (_HTTPResponse == null)
-                            {
+                            SendErrorpage(HTTPStatusCode.InternalServerError,
+                                            InHTTPRequest,
+                                            ErrorReason: "Could not invoke method for URL: " + InHTTPRequest.UrlPath);
 
-                                SendErrorpage(HTTPStatusCode.InternalServerError,
-                                              InHTTPRequest,
-                                              ErrorReason: "Could not invoke method for URL: " + InHTTPRequest.UrlPath);
-
-                                return;
-
-                            }
-
-                            ResponseHeader = _HTTPResponse;
-
-                            #region In case of errors => send errorpage
-
-                            if (ResponseHeader.HTTPStatusCode.IsClientError ||
-                                ResponseHeader.HTTPStatusCode.IsServerError)
-                            {
-
-                                SendErrorpage(ResponseHeader.HTTPStatusCode,
-                                              InHTTPRequest,
-                                              LastException: LastException);
-
-                                return;
-
-                            }
-
-                            #endregion
-
-                            else
-                                WriteToResponseStream(_HTTPResponse);
+                            return;
 
                         }
 
-                        catch (Exception e)
+                        ResponseHeader = _HTTPResponse;
+
+                        #region In case of errors => send errorpage
+
+                        if (ResponseHeader.HTTPStatusCode.IsClientError ||
+                            ResponseHeader.HTTPStatusCode.IsServerError)
                         {
 
-                            WriteToResponseStream(
+                            SendErrorpage(ResponseHeader.HTTPStatusCode,
+                                            InHTTPRequest,
+                                            LastException: LastException);
+
+                            return;
+
+                        }
+
+                        #endregion
+
+                        else
+                            WriteToResponseStream(_HTTPResponse);
+
+                    }
+
+                    catch (Exception e)
+                    {
+
+                        WriteToResponseStream(
                     
-                                new HTTPResponseBuilder()
-                                {
-                                    HTTPStatusCode = HTTPStatusCode.InternalServerError,
-                                    CacheControl   = "no-cache",
-                                    ContentType    = HTTPContentType.TEXT_UTF8,
-                                    Content        = e.ToString().ToUTF8Bytes()
-                                });
-
-                        }
+                            new HTTPResponseBuilder()
+                            {
+                                HTTPStatusCode = HTTPStatusCode.InternalServerError,
+                                CacheControl   = "no-cache",
+                                ContentType    = HTTPContentType.TEXT_UTF8,
+                                Content        = e.ToString().ToUTF8Bytes()
+                            });
 
                     }
 
@@ -865,13 +830,16 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (private) GetAuthenticationRequiredHeader()
+        #region (private) SendAuthenticationRequiredHeader(HTTPAuthenticationType, Realm)
 
-        private HTTPResponseBuilder GetAuthenticationRequiredHeader()
+        private void SendAuthenticationRequiredHeader(HTTPAuthenticationTypes HTTPAuthenticationType, String Realm)
         {
-            return new HTTPResponseBuilder() {
-                HTTPStatusCode = HTTPStatusCode.Unauthorized
-            };
+            WriteToResponseStream(
+                new HTTPResponseBuilder() {
+                    HTTPStatusCode  = HTTPStatusCode.Unauthorized,
+                    WWWAuthenticate = HTTPAuthenticationType.ToString() + " realm=\"" + Realm + "\""
+                }
+            );
         }
 
         #endregion
