@@ -584,7 +584,7 @@ namespace de.ahzf.Hermod.HTTP
                             HTTPStatusCode = HTTPStatusCode.OK,
                             ContentType    = _ResponseContentType,
                             ContentLength  = (UInt64) _ResourceContent.Length,
-                            CacheControl   = "no-cache",
+                            CacheControl   = "max-age=600",
                             Connection     = "close",
                             ContentStream  = _ResourceContent
                         };
