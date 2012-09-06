@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2011 Achim 'ahzf' Friedland <achim@ahzf.de>
+ * Copyright (c) 2011-2012 Achim 'ahzf' Friedland <achim@ahzf.de>
  * This file is part of Loki <http://www.github.com/ahzf/Loki>
  * 
  * This program is free software; you can redistribute it and/or modify
