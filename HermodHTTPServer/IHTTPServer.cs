@@ -42,8 +42,15 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         /// </summary>
         String DefaultServerName { get; }
 
-
+        /// <summary>
+        /// The URL mapping object.
+        /// </summary>
         URLMapping URLMapping { get; }
+
+        /// <summary>
+        /// The HTTP security object.
+        /// </summary>
+        HTTPSecurity HTTPSecurity { get; set; }
 
     }
 

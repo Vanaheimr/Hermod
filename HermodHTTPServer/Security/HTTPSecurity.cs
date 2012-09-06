@@ -19,6 +19,7 @@
 
 using System.ServiceModel;
 using System.IdentityModel.Selectors;
+using System;
 
 #endregion
 
@@ -30,43 +31,31 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
         #region Properties
 
-        #region CredentialType
-
-        private HttpClientCredentialType _CredentialType;
-        
-        public HttpClientCredentialType CredentialType
-        {
-            get
-            {
-                return _CredentialType;
-            }
-        }
-
-        #endregion
-
-        #region UserNamePasswordValidator
-
-        private UserNamePasswordValidator _UserNamePasswordValidator;
-        
-        public UserNamePasswordValidator UserNamePasswordValidator
-        {
-            get
-            {
-                return _UserNamePasswordValidator;
-            }
-        }
-
-        #endregion
+        /// <summary>
+        /// A username + password verifier.
+        /// </summary>
+        public Func<String, String, Boolean> Verify { get; private set; }
 
         #endregion
 
         #region Constructor(s)
 
-        public HTTPSecurity(HttpClientCredentialType  myCredentialType,
-                            UserNamePasswordValidator myUserNamePasswordValidator)
+        /// <summary>
+        /// Create a new HTTP security object.
+        /// </summary>
+        /// <param name="Verify">A username + password verifier.</param>
+        public HTTPSecurity(Func<String, String, Boolean> Verify)
         {
-            _CredentialType            = myCredentialType;
-            _UserNamePasswordValidator = myUserNamePasswordValidator;
+
+            #region Initial checks
+
+            if (Verify == null)
+                throw new ArgumentNullException("Verify", "Verify must not be null!");
+
+            #endregion
+
+            this.Verify = Verify;
+
         }
 
         #endregion

@@ -47,7 +47,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The HTTP server name.
         /// </summary>
-        public String       ServerName   { get; set; }
+        public String ServerName { get; set; }
 
         /// <summary>
         /// An associated HTTP security object.

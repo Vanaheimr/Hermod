@@ -721,9 +721,9 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
                                 return;
                             }
 
-                            else if (CurrentAuthentication.Username == "test" && CurrentAuthentication.Password == "123")
-                            {
-                            }
+                            else if (HTTPSecurity != null &&
+                                     HTTPSecurity.Verify(CurrentAuthentication.Username, CurrentAuthentication.Password))
+                            { }
 
                             else
                             {
@@ -843,7 +843,6 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-
         #region (private) SendAuthenticationRequiredHeader(HTTPAuthenticationType, Realm)
 
         private void SendAuthenticationRequiredHeader(HTTPAuthenticationTypes HTTPAuthenticationType, String Realm)
@@ -854,27 +853,6 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
                     WWWAuthenticate = HTTPAuthenticationType.ToString() + " realm=\"" + Realm + "\""
                 }
             );
-        }
-
-        #endregion
-
-        #region (private) Authorize(myHTTPCredentials)
-
-        private Boolean Authorize(HTTPBasicAuthentication myHTTPCredentials)
-        {
-
-            try
-            {
-                HTTPSecurity.UserNamePasswordValidator.Validate(myHTTPCredentials.Username, myHTTPCredentials.Password);
-                return true;
-            }
-
-            catch (SecurityTokenException ste)
-            {
-                Debug.WriteLine("Authorize failed with " + ste.ToString());
-                return false;
-            }
-
         }
 
         #endregion
