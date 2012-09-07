@@ -636,8 +636,16 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
                     #endregion
 
-                    var BestContentType = InHTTPRequest.Accept.BestMatchingContentType(Implementations.Keys.ToArray());
-                    var BestImpl        = Implementations[BestContentType];
+                    var InputContentType  = InHTTPRequest.ContentType;
+                    var OutputContentType = InHTTPRequest.Accept.BestMatchingContentType(Implementations.Keys.ToArray());
+
+                    HTTPServiceInterface BestImpl;
+
+                    if (InputContentType == HTTPContentType.XWWWFormUrlEncoded)
+                        BestImpl = Implementations[InputContentType];
+                    else
+                        BestImpl = Implementations[OutputContentType];
+
 
                     #region Invoke upper-layer protocol constructor
 
@@ -669,12 +677,12 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
                     #region Get and check callback...
 
-                    Console.Write(InHTTPRequest.HTTPMethod + "\t" + InHTTPRequest.UrlPath + " => " + BestContentType + "\t");
+                    Console.Write(InHTTPRequest.HTTPMethod + "\t" + InHTTPRequest.UrlPath + " => " + OutputContentType + "\t");
 
                     var _ParsedCallback = URLMapping.GetHandler(InHTTPRequest.Host,
                                                                 InHTTPRequest.UrlPath,
                                                                 InHTTPRequest.HTTPMethod,
-                                                                BestContentType);
+                                                                OutputContentType);
 
                     if (_ParsedCallback == null || _ParsedCallback.Item1 == null)// || _ParsedCallback.Item1.MethodCallback == null)
                     {

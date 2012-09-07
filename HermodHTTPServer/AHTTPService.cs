@@ -319,6 +319,29 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region (protected) GetRequestBodyString(HTTPContentType)
+
+        protected HTTPResult<String> GetRequestBodyAsUTF8String(HTTPContentType HTTPContentType)
+        {
+
+            if (IHTTPConnection.InHTTPRequest.ContentType != HTTPContentType)
+                return new HTTPResult<String>(HTTPErrors.HTTPErrorResponse(IHTTPConnection.InHTTPRequest, HTTPStatusCode.BadRequest));
+
+            if (IHTTPConnection.RequestBody == null || IHTTPConnection.RequestBody.Length == 0)
+                return new HTTPResult<String>(HTTPErrors.HTTPErrorResponse(IHTTPConnection.InHTTPRequest, HTTPStatusCode.BadRequest));
+
+            var RequestBodyString = IHTTPConnection.RequestBody.ToUTF8String();
+
+            if (RequestBodyString.IsNullOrEmpty())
+                return new HTTPResult<String>(HTTPErrors.HTTPErrorResponse(IHTTPConnection.InHTTPRequest, HTTPStatusCode.BadRequest));
+
+            return new HTTPResult<String>(RequestBodyString);
+
+        }
+
+        #endregion
+
+
 
         #region GetResources(ResourceName)
 

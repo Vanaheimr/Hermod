@@ -75,27 +75,29 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
         #region Static HTTP content types
 
-        public static readonly HTTPContentType ALL             = new HTTPContentType("*/*",                     "UTF-8");
+        public static readonly HTTPContentType ALL                  = new HTTPContentType("*/*",                                    "UTF-8");
 
-        public static readonly HTTPContentType TEXT_UTF8       = new HTTPContentType("text/plain",              "UTF-8");
-        public static readonly HTTPContentType HTML_UTF8       = new HTTPContentType("text/html",               "UTF-8");
-        public static readonly HTTPContentType CSS_UTF8        = new HTTPContentType("text/css",                "UTF-8");
-        public static readonly HTTPContentType JAVASCRIPT_UTF8 = new HTTPContentType("text/javascript",         "UTF-8");
+        public static readonly HTTPContentType TEXT_UTF8            = new HTTPContentType("text/plain",                             "UTF-8");
+        public static readonly HTTPContentType HTML_UTF8            = new HTTPContentType("text/html",                              "UTF-8");
+        public static readonly HTTPContentType CSS_UTF8             = new HTTPContentType("text/css",                               "UTF-8");
+        public static readonly HTTPContentType JAVASCRIPT_UTF8      = new HTTPContentType("text/javascript",                        "UTF-8");
 
-        public static readonly HTTPContentType JSON_UTF8       = new HTTPContentType("application/json",        "UTF-8");
-        public static readonly HTTPContentType XML_UTF8        = new HTTPContentType("application/xml",         "UTF-8");
-        public static readonly HTTPContentType GEXF_UTF8       = new HTTPContentType("application/gexf+xml",    "UTF-8");
-        public static readonly HTTPContentType GRAPHML_UTF8    = new HTTPContentType("application/graphml+xml", "UTF-8");
-        public static readonly HTTPContentType FORM            = new HTTPContentType("application/x-www-form-urlencoded");
-        public static readonly HTTPContentType SWF             = new HTTPContentType("application/x-shockwave-flash");
-        public static readonly HTTPContentType PDF             = new HTTPContentType("application/pdf");
-        public static readonly HTTPContentType OCTETSTREAM     = new HTTPContentType("application/octet-stream");
-        public static readonly HTTPContentType EVENTSTREAM     = new HTTPContentType("text/event-stream",       "UTF-8");
+        public static readonly HTTPContentType JSON_UTF8            = new HTTPContentType("application/json",                       "UTF-8");
+        public static readonly HTTPContentType XML_UTF8             = new HTTPContentType("application/xml",                        "UTF-8");
+        public static readonly HTTPContentType GEXF_UTF8            = new HTTPContentType("application/gexf+xml",                   "UTF-8");
+        public static readonly HTTPContentType GRAPHML_UTF8         = new HTTPContentType("application/graphml+xml",                "UTF-8");
+        public static readonly HTTPContentType FORM                 = new HTTPContentType("application/x-www-form-urlencoded");
+        public static readonly HTTPContentType SWF                  = new HTTPContentType("application/x-shockwave-flash");
+        public static readonly HTTPContentType PDF                  = new HTTPContentType("application/pdf");
+        public static readonly HTTPContentType OCTETSTREAM          = new HTTPContentType("application/octet-stream");
+        public static readonly HTTPContentType EVENTSTREAM          = new HTTPContentType("text/event-stream",                      "UTF-8");
+        
+        public static readonly HTTPContentType XWWWFormUrlEncoded   = new HTTPContentType("application/x-www-form-urlencoded",      "UTF-8");
 
-        public static readonly HTTPContentType GIF             = new HTTPContentType("image/gif");
-        public static readonly HTTPContentType ICO             = new HTTPContentType("image/ico");
-        public static readonly HTTPContentType PNG             = new HTTPContentType("image/png");
-        public static readonly HTTPContentType JPEG            = new HTTPContentType("image/jpeg");
+        public static readonly HTTPContentType GIF                  = new HTTPContentType("image/gif");
+        public static readonly HTTPContentType ICO                  = new HTTPContentType("image/ico");
+        public static readonly HTTPContentType PNG                  = new HTTPContentType("image/png");
+        public static readonly HTTPContentType JPEG                 = new HTTPContentType("image/jpeg");
 
         #endregion
 
