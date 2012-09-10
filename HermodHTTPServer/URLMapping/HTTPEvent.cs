@@ -223,7 +223,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         public override String ToString()
         {
 
-            if (String.IsNullOrWhiteSpace(Subevent))
+            if (Subevent == null || Subevent.Trim() == "")
                 return String.Format("id:{1}{0}data:{2}{0}{0}",
                                        Environment.NewLine,
                                        Id,
