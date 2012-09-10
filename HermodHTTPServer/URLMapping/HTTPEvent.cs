@@ -227,14 +227,13 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
                 return String.Format("id:{1}{0}data:{2}{0}{0}",
                                        Environment.NewLine,
                                        Id,
-                                       _Data.Aggregate((a, b) => { return a + Environment.NewLine + "data:" + b; }));
+                                       _Data.Aggregate((a, b) => { return a + Environment.NewLine + "data: __" + b; }));
 
             else
-                return String.Format("id:{1}{0}event:{2}{0}data:{3}{0}{0}",
-                                       Environment.NewLine,
-                                       Id,
-                                       Subevent,
-                                       _Data.Aggregate((a, b) => { return a + Environment.NewLine + "data:" + b; }));
+                return String.Concat("id:",    Id,       Environment.NewLine,
+                                     "event:", Subevent, Environment.NewLine,
+                                     _Data.Aggregate("data: ", (a, b) => { return a + Environment.NewLine + "data:" + b; }), Environment.NewLine,
+                                     Environment.NewLine);
 
         }
 
