@@ -218,9 +218,11 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
                 var _ContentTypeString = GetHeaderField<String>("Content-Type");
                 if (_ContentTypeString != null)
                 {
-                    _ContentType = new HTTPContentType(_ContentTypeString);
-                    SetHeaderField("Content-Type", _ContentType);
-                    return _ContentType;
+                    if (HTTPContentType.TryParseString(_ContentTypeString, out _ContentType))
+                    {
+                        SetHeaderField("Content-Type", _ContentType);
+                        return _ContentType;
+                    }
                 }
 
                 return null;

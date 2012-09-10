@@ -137,10 +137,15 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         public static Boolean TryParseString(String myString, out HTTPContentType myHTTPContentType)
         {
 
+            var Split = myString.Split(new String[1] { "; " }, StringSplitOptions.None);
+
+            var MediaType = Split[0];
+            var CharSet   = (Split.Length > 1) ? Split[1] : "UTF-8";
+
             myHTTPContentType = (from   _FieldInfo in typeof(HTTPContentType).GetFields()
                                  let    _HTTPContentType = _FieldInfo.GetValue(null) as HTTPContentType
                                  where  _HTTPContentType != null
-                                 where  _HTTPContentType.MediaType == myString
+                                 where  _HTTPContentType.MediaType == MediaType
                                  select _HTTPContentType).FirstOrDefault();
 
             if (myHTTPContentType != null)
