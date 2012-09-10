@@ -232,7 +232,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
             else
                 return String.Concat("id:",    Id,       Environment.NewLine,
                                      "event:", Subevent, Environment.NewLine,
-                                     _Data.Aggregate("data: ", (a, b) => { return a + Environment.NewLine + "data:" + b; }), Environment.NewLine,
+                                     "data: ", _Data.Aggregate((a, b) => { return a + Environment.NewLine + "data:" + b; }), Environment.NewLine,
                                      Environment.NewLine);
 
         }
