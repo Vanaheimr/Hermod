@@ -223,17 +223,17 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         public override String ToString()
         {
 
-            if (Subevent == "")
+            if (String.IsNullOrWhiteSpace(Subevent))
                 return String.Format("id:{1}{0}data:{2}{0}{0}",
                                        Environment.NewLine,
                                        Id,
                                        _Data.Aggregate((a, b) => { return a + Environment.NewLine + "data:" + b; }));
 
             else
-                return String.Format("event:{1}{0}id:{2}{0}data:{3}{0}{0}",
+                return String.Format("id:{1}{0}event:{2}{0}data:{3}{0}{0}",
                                        Environment.NewLine,
-                                       Subevent,
                                        Id,
+                                       Subevent,
                                        _Data.Aggregate((a, b) => { return a + Environment.NewLine + "data:" + b; }));
 
         }
