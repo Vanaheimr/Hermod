@@ -171,13 +171,15 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            return new HTTPResponseBuilder()
+            var x = new HTTPResponseBuilder()
             {
                 HTTPStatusCode = StatusCode,
                 CacheControl   = "no-cache",
                 Connection     = "close",
                 Content        = Content.ToUTF8Bytes()
             };
+
+            return x;
 
         }
 

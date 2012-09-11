@@ -116,8 +116,9 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
         public Exception          LastException  { get; set; }
 
-        #endregion
+        public IHTTPServer        HTTPServer     { get; set; }
 
+        #endregion
 
         #region Constructor(s)
 
@@ -615,7 +616,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
                     var HeaderBytes = new Byte[_ReadPosition - 1];
                     Array.Copy(_ByteArray, 0, HeaderBytes, 0, _ReadPosition - 1);
 
-                    InHTTPRequest = new HTTPRequest(HeaderBytes.ToUTF8String());
+                    InHTTPRequest = new HTTPRequest(RemoteHost, RemotePort, HeaderBytes.ToUTF8String());
 
                     // The parsing of the http header failed!
                     if (InHTTPRequest.HTTPStatusCode != HTTPStatusCode.OK)
@@ -677,14 +678,12 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
                     #region Get and check callback...
 
-                    Console.Write(InHTTPRequest.HTTPMethod + "\t" + InHTTPRequest.UrlPath + " => " + OutputContentType + "\t");
+                    var _ParsedCallbackWithParameters = URLMapping.GetHandler(InHTTPRequest.Host,
+                                                                              InHTTPRequest.UrlPath,
+                                                                              InHTTPRequest.HTTPMethod,
+                                                                              OutputContentType);
 
-                    var _ParsedCallback = URLMapping.GetHandler(InHTTPRequest.Host,
-                                                                InHTTPRequest.UrlPath,
-                                                                InHTTPRequest.HTTPMethod,
-                                                                OutputContentType);
-
-                    if (_ParsedCallback == null || _ParsedCallback.Item1 == null)// || _ParsedCallback.Item1.MethodCallback == null)
+                    if (_ParsedCallbackWithParameters == null || _ParsedCallbackWithParameters.Item1 == null)// || _ParsedCallback.Item1.MethodCallback == null)
                     {
 
                         SendErrorpage(HTTPStatusCode.InternalServerError,
@@ -699,8 +698,8 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
                     #region Check authentication
 
-                    var _AuthenticationAttributes      = _ParsedCallback.Item1.GetCustomAttributes(typeof(AuthenticationAttribute),      false);
-                    var _ForceAuthenticationAttributes = _ParsedCallback.Item1.GetCustomAttributes(typeof(ForceAuthenticationAttribute), false);
+                    var _AuthenticationAttributes      = _ParsedCallbackWithParameters.Item1.GetCustomAttributes(typeof(AuthenticationAttribute),      false);
+                    var _ForceAuthenticationAttributes = _ParsedCallbackWithParameters.Item1.GetCustomAttributes(typeof(ForceAuthenticationAttribute), false);
 
                     //if (_AuthenticationAttributes.Any())
                     //{
@@ -757,19 +756,23 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
                     try
                     {
 
-                        var _HTTPResponse = _ParsedCallback.Item1.Invoke(_HTTPServiceInterface, _ParsedCallback.Item2.ToArray()) as HTTPResponse;
+                        var _HTTPResponse = _ParsedCallbackWithParameters.Item1.Invoke(_HTTPServiceInterface, _ParsedCallbackWithParameters.Item2.ToArray()) as HTTPResponse;
+
+                        HTTPServer.LogRequest(InHTTPRequest, OutputContentType, _HTTPResponse);
+
                         if (_HTTPResponse == null)
                         {
 
                             SendErrorpage(HTTPStatusCode.InternalServerError,
-                                            InHTTPRequest,
-                                            ErrorReason: "Could not invoke method for URL: " + InHTTPRequest.UrlPath);
+                                          InHTTPRequest,
+                                          ErrorReason: "Could not invoke method for URL: " + InHTTPRequest.UrlPath);
 
                             return;
 
                         }
 
                         ResponseHeader = _HTTPResponse;
+
 
                         #region In case of errors => send errorpage
 

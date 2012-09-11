@@ -61,6 +61,12 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Events
+
+        public event LogRequestDelegate OnLogRequest;
+
+        #endregion
+
         #region Constructor(s)
 
         #region AHTTPServer()
@@ -260,6 +266,15 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
+
+
+        public void LogRequest(HTTPRequest Request, HTTPContentType BestMatchingAcceptType, HTTPResponse HTTPResponse)
+        {
+            if (OnLogRequest != null)
+            {
+                OnLogRequest(Request, BestMatchingAcceptType, HTTPResponse);
+            }
+        }
 
 
         #region AddMethodCallback(Host, URITemplate, HTTPMethod, MethodInfo, HTTPContentType = null, NeedsExplicitAuthentication = false)

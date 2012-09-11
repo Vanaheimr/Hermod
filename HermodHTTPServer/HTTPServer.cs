@@ -382,6 +382,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
                                  NewHTTPConnection =>
                                      {
                           
+                                         NewHTTPConnection.HTTPServer            = this;
                                          NewHTTPConnection.ServerName            = ServerName;
                                          NewHTTPConnection.HTTPSecurity          = HTTPSecurity;
                                          NewHTTPConnection.URLMapping            = URLMapping;

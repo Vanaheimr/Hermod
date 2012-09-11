@@ -71,7 +71,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         public HTTPResult(T Result)
         {
             this.Error = null;
-            this.Data = Result;
+            this.Data  = Result;
         }
 
         #endregion
@@ -84,8 +84,8 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         /// <param name="Error">The HTTPResponse for this error.</param>
         public HTTPResult(HTTPResponse HTTPResponse)
         {
-            this.Error  = HTTPResponse;
-            this.Data = default(T);
+            this.Error = HTTPResponse;
+            this.Data  = default(T);
         }
 
         #endregion
@@ -100,8 +100,8 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         /// <param name="Error">The HTTPResponse for this error.</param>
         public HTTPResult(HTTPRequest HTTPRequest, HTTPStatusCode HTTPStatusCode, String Reasons = null)
         {
-            this.Error  = HTTPErrors.HTTPErrorResponse(HTTPRequest, HTTPStatusCode, Reasons);
-            this.Data = default(T);
+            this.Error = HTTPErrors.HTTPErrorResponse(HTTPRequest, HTTPStatusCode, Reasons);
+            this.Data  = default(T);
         }
 
         #endregion

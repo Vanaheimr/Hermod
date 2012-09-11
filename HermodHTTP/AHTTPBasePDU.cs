@@ -86,7 +86,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
                 return _HTTPStatusCode;
             }
 
-            protected set
+            set
             {
                 _HTTPStatusCode = value;
             }

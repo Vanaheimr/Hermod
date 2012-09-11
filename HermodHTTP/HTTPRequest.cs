@@ -24,6 +24,7 @@ using System.Collections.Generic;
 using System.Text;
 
 using de.ahzf.Illias.Commons;
+using de.ahzf.Vanaheimr.Hermod.Datastructures;
 
 #endregion
 
@@ -39,6 +40,24 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         #region Properties
 
         #region Non-HTTP header fields
+
+        #region RemoteHost
+
+        /// <summary>
+        /// The remote IP host.
+        /// </summary>
+        public IIPAddress RemoteHost { get; private set; }
+
+        #endregion
+
+        #region RemotePort
+
+        /// <summary>
+        /// The remote IP port.
+        /// </summary>
+        public IPPort RemotePort { get; private set; }
+
+        #endregion
 
         public String EntireRequestHeader
         {
@@ -485,9 +504,11 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         /// Create a new http request header based on the given string representation.
         /// </summary>
         /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
-        /// <param name="HTTPStatusCode">HTTPStatusCode.OK is the header could be parsed.</param>
-        public HTTPRequest(String HTTPHeader)
+        public HTTPRequest(IIPAddress RemoteHost, IPPort RemotePort, String HTTPHeader)
         {
+
+            this.RemoteHost = RemoteHost;
+            this.RemotePort = RemotePort;
 
             if (!ParseHeader(HTTPHeader))
                 return;

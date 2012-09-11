@@ -303,7 +303,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         /// </summary>
         public HTTPResponseBuilder()
         {
-            this.HTTPStatusCode  = HTTPStatusCode.OK;
+            this.HTTPStatusCode  = HTTPStatusCode.ImATeapot;
             this.ProtocolName    = "HTTP";
             this.ProtocolVersion = new HTTPVersion(1, 1);
         }

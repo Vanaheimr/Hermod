@@ -73,20 +73,21 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The HTTP status code.
         /// </summary>
-        public new HTTPStatusCode HTTPStatusCode
-        {
+        //public HTTPStatusCode HTTPStatusCode
+        //{
 
-            get
-            {
-                return _HTTPStatusCode;
-            }
+        //    get
+        //    {
+        //        return _HTTPStatusCode;
+        //    }
 
-            set
-            {
-                SetProperty(ref _HTTPStatusCode, value, "HTTPStatusCode");
-            }
+        //    set
+        //    {
+        //        SetProperty(ref _HTTPStatusCode, value, "HTTPStatusCode");
+        //        _HTTPStatusCode = value;
+        //    }
 
-        }
+        //}
 
         #endregion
 
