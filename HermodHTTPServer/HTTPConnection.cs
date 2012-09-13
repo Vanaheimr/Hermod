@@ -628,8 +628,13 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
                     // the HTTP header element 'ContentType'!
                     if (RequestHeader.ContentLength.HasValue)
                     {
+
+                        if (_ByteArray.Length < _ReadPosition + 1 + (Int64) RequestHeader.ContentLength.Value)
+                            throw new Exception("Client sent less data than expected within the content length header field!");
+
                         RequestBody = new Byte[RequestHeader.ContentLength.Value];
                         Array.Copy(_ByteArray, _ReadPosition + 1, RequestBody, 0, (Int64) RequestHeader.ContentLength.Value);
+
                     }
                     else
                         RequestBody = new Byte[0];
