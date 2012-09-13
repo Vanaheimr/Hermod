@@ -268,11 +268,11 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        public void LogRequest(HTTPRequest Request, HTTPContentType BestMatchingAcceptType, HTTPResponse HTTPResponse)
+        public void LogRequest(DateTime ServerTime, HTTPRequest Request, HTTPContentType BestMatchingAcceptType, HTTPResponse HTTPResponse)
         {
             if (OnLogRequest != null)
             {
-                OnLogRequest(Request, BestMatchingAcceptType, HTTPResponse);
+                OnLogRequest(ServerTime, Request, BestMatchingAcceptType, HTTPResponse);
             }
         }
 

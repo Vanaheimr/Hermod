@@ -310,7 +310,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
                 #endregion
 
-                var _HTTPResponse = new HTTPResponseBuilder(HeaderBytes.ToUTF8String());
+                var _HTTPResponse = new HTTPResponse(HeaderBytes.ToUTF8String());
 
                 #region Read 'Content-Length' bytes...
 
@@ -318,8 +318,6 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
                 // the HTTP header element 'Content-Length'!
                 if (_HTTPResponse.ContentLength.HasValue)
                 {
-
-                    _HTTPResponse.ContentStream = new MemoryStream();
 
                     _MemoryStream.Seek(4, SeekOrigin.Current);
                     var _Read        = _MemoryStream.Read(_Buffer, 0, _Buffer.Length);
@@ -349,7 +347,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
                     }
 
-                    _HTTPResponse.Content = ((MemoryStream) _HTTPResponse.ContentStream).ToArray();
+                    _HTTPResponse.ContentStreamToArray();
 
                 }
 
@@ -359,8 +357,6 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
                 else
                 {
-
-                    _HTTPResponse.ContentStream = new MemoryStream();
 
                     _MemoryStream.Seek(4, SeekOrigin.Current);
                     _HTTPResponse.ContentStream.Write(_Buffer, 0, _MemoryStream.Read(_Buffer, 0, _Buffer.Length));
@@ -381,7 +377,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
                     }
 
-                    _HTTPResponse.Content = ((MemoryStream)_HTTPResponse.ContentStream).ToArray();
+                    _HTTPResponse.ContentStreamToArray();
 
                 }
 

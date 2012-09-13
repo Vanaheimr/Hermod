@@ -325,15 +325,15 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         {
 
             if (IHTTPConnection.InHTTPRequest.ContentType != HTTPContentType)
-                return new HTTPResult<String>(HTTPErrors.HTTPErrorResponse(IHTTPConnection.InHTTPRequest, HTTPStatusCode.BadRequest));
+                return new HTTPResult<String>(IHTTPConnection.InHTTPRequest, HTTPStatusCode.BadRequest);
 
             if (IHTTPConnection.RequestBody == null || IHTTPConnection.RequestBody.Length == 0)
-                return new HTTPResult<String>(HTTPErrors.HTTPErrorResponse(IHTTPConnection.InHTTPRequest, HTTPStatusCode.BadRequest));
+                return new HTTPResult<String>(IHTTPConnection.InHTTPRequest, HTTPStatusCode.BadRequest);
 
             var RequestBodyString = IHTTPConnection.RequestBody.ToUTF8String();
 
             if (RequestBodyString.IsNullOrEmpty())
-                return new HTTPResult<String>(HTTPErrors.HTTPErrorResponse(IHTTPConnection.InHTTPRequest, HTTPStatusCode.BadRequest));
+                return new HTTPResult<String>(IHTTPConnection.InHTTPRequest, HTTPStatusCode.BadRequest);
 
             return new HTTPResult<String>(RequestBodyString);
 
@@ -432,7 +432,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
                 }
 
                 else
-                    return HTTPErrors.HTTPErrorResponse(IHTTPConnection.InHTTPRequest, HTTPStatusCode.NotFound);
+                    return new HTTPResult<Object>(IHTTPConnection.InHTTPRequest, HTTPStatusCode.NotFound).Error;
 
             }
 

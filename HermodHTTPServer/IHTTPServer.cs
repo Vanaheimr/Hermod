@@ -26,7 +26,7 @@ using de.ahzf.Vanaheimr.Hermod.Datastructures;
 namespace de.ahzf.Vanaheimr.Hermod.HTTP
 {
 
-    public delegate void LogRequestDelegate(HTTPRequest Request, HTTPContentType BestMatchingAcceptType, HTTPResponse HTTPResponse);
+    public delegate void LogRequestDelegate(DateTime ServerTime, HTTPRequest Request, HTTPContentType BestMatchingAcceptType, HTTPResponse HTTPResponse);
 
     /// <summary>
     /// The HTTP server interface.
@@ -55,7 +55,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         HTTPSecurity HTTPSecurity { get; set; }
 
         event LogRequestDelegate OnLogRequest;
-        void LogRequest(HTTPRequest Request, HTTPContentType BestMatchingAcceptType, HTTPResponse HTTPResponse);
+        void LogRequest(DateTime ServerTime, HTTPRequest Request, HTTPContentType BestMatchingAcceptType, HTTPResponse HTTPResponse);
 
     }
 

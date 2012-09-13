@@ -312,11 +312,11 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
         #region HTTPResponseBuilder(HTTPHeader)
 
-        public HTTPResponseBuilder(String HTTPHeader)
-            : this()
-        {
-            ParseHeader(HTTPHeader);
-        }
+        //public HTTPResponseBuilder(String HTTPHeader)
+        //    : this()
+        //{
+        //    ParseHeader(HTTPHeader);
+        //}
 
         #endregion
 

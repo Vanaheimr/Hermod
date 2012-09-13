@@ -38,13 +38,13 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPRequest">The HTTP request.</param>
         /// <param name="StatusCode">A HTTP status code.</param>
         /// <param name="Reasons">Optional application side reasons for this error.</param>
-        public static HTTPResponse HTTPErrorResponse(HTTPRequest HTTPRequest, HTTPStatusCode StatusCode, String Reasons = null)
+        public static HTTPResponse HTTPErrorResponse_old(HTTPRequest HTTPRequest, HTTPStatusCode StatusCode, String Reasons = null)
         {
 
             #region Initial checks
 
             if (StatusCode == null)
-                return HTTPErrorResponse(HTTPRequest, HTTPStatusCode.InternalServerError, "Calling the HTTPError lead to an error!");
+                return HTTPErrorResponse_old(HTTPRequest, HTTPStatusCode.InternalServerError, "Calling the HTTPError lead to an error!");
 
             var Content     = String.Empty;
             var ContentType = HTTPRequest.Accept.BestMatchingContentType(HTTPContentType.JSON_UTF8,

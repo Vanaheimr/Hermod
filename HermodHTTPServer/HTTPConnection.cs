@@ -137,7 +137,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         public HTTPConnection(TcpClient myTCPClientConnection)
             : base(myTCPClientConnection)
         {
-            ResponseHeader = new HTTPResponseBuilder();
+            ResponseHeader = null;// new HTTPResponseBuilder();
             ResponseStream = myTCPClientConnection.GetStream();
         }
 
@@ -756,23 +756,12 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
                     try
                     {
 
-                        var _HTTPResponse = _ParsedCallbackWithParameters.Item1.Invoke(_HTTPServiceInterface, _ParsedCallbackWithParameters.Item2.ToArray()) as HTTPResponse;
+                        ResponseHeader = _ParsedCallbackWithParameters.Item1.Invoke(_HTTPServiceInterface, _ParsedCallbackWithParameters.Item2.ToArray()) as HTTPResponse;
 
-                        HTTPServer.LogRequest(InHTTPRequest, OutputContentType, _HTTPResponse);
+                        if (ResponseHeader == null)
+                            ResponseHeader = new HTTPResult<Object>(InHTTPRequest, HTTPStatusCode.InternalServerError, "Could not invoke method for URL: " + InHTTPRequest.UrlPath).Error;
 
-                        if (_HTTPResponse == null)
-                        {
-
-                            SendErrorpage(HTTPStatusCode.InternalServerError,
-                                          InHTTPRequest,
-                                          ErrorReason: "Could not invoke method for URL: " + InHTTPRequest.UrlPath);
-
-                            return;
-
-                        }
-
-                        ResponseHeader = _HTTPResponse;
-
+                        HTTPServer.LogRequest(DateTime.Now, InHTTPRequest, OutputContentType, ResponseHeader);
 
                         #region In case of errors => send errorpage
 
@@ -781,8 +770,8 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
                         {
 
                             SendErrorpage(ResponseHeader.HTTPStatusCode,
-                                            InHTTPRequest,
-                                            LastException: LastException);
+                                          InHTTPRequest,
+                                          LastException: LastException);
 
                             return;
 
@@ -790,8 +779,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
                         #endregion
 
-                        else
-                            WriteToResponseStream(_HTTPResponse);
+                        WriteToResponseStream(ResponseHeader);
 
                     }
 

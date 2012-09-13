@@ -19,6 +19,8 @@
 
 using System;
 
+using de.ahzf.Illias.Commons;
+
 #endregion
 
 namespace de.ahzf.Vanaheimr.Hermod.HTTP
@@ -100,8 +102,11 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         /// <param name="Error">The HTTPResponse for this error.</param>
         public HTTPResult(HTTPRequest HTTPRequest, HTTPStatusCode HTTPStatusCode, String Reasons = null)
         {
-            this.Error = HTTPErrors.HTTPErrorResponse(HTTPRequest, HTTPStatusCode, Reasons);
-            this.Data  = default(T);
+            Error = null;
+            Data  = default(T);
+            //this.Error = HTTPErrors.HTTPErrorResponse(HTTPRequest, HTTPStatusCode, Reasons);
+            Error = HTTPErrorResponse(HTTPRequest, HTTPStatusCode, Reasons);
+            Data  = default(T);
         }
 
         #endregion
@@ -117,6 +122,93 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         #endregion
 
         #endregion
+
+
+
+        public HTTPResponse HTTPErrorResponse(HTTPRequest HTTPRequest, HTTPStatusCode StatusCode, String Reasons = null)
+        {
+
+            #region Initial checks
+
+            if (StatusCode == null)
+                return HTTPErrorResponse(HTTPRequest, HTTPStatusCode.InternalServerError, "Calling the HTTPError lead to an error!");
+
+            var Content = String.Empty;
+            var ContentType = HTTPRequest.Accept.BestMatchingContentType(HTTPContentType.JSON_UTF8,
+                                                                         HTTPContentType.HTML_UTF8,
+                                                                         HTTPContentType.TEXT_UTF8,
+                                                                         HTTPContentType.XML_UTF8);
+
+            #endregion
+
+            #region JSON_UTF8
+
+            // {
+            //     "error": {
+            //         "code"    : 400
+            //         "message" : "Bad Request"
+            //         "reason"  : "The first paramter is not a valid number!"
+            //     }
+            // }
+            if (ContentType == HTTPContentType.JSON_UTF8)
+                Content = (Reasons == null) ? "{ \"error\": { \"code\" : " + StatusCode.Code + ", \"message\" : \"" + StatusCode.Name + "\" } }" :
+                                              "{ \"error\": { \"code\" : " + StatusCode.Code + ", \"message\" : \"" + StatusCode.Name + "\", \"reasons\" : \"" + Reasons + "\" } }";
+
+            #endregion
+
+            #region HTML_UTF8
+
+            //<!doctype html>
+            //<html>
+            //  <head>
+            //    <meta charset="UTF-8">
+            //    <title>Error 400 - Bad Request</title>
+            //  </head>
+            //  <body>
+            //    <h1>Error 400 - Bad Request</h1>
+            //    The first paramter is not a valid number!
+            //  </body>
+            //</html>
+            else if (ContentType == HTTPContentType.HTML_UTF8)
+                Content = (Reasons == null) ? "<!doctype html><html><head><meta charset=\"UTF-8\"><title>Error " + StatusCode.Code + " - " + StatusCode.Name + "</title></head><body><h1>Error " + StatusCode.Code + " - " + StatusCode.Name + "</h1></body></html>" :
+                                              "<!doctype html><html><head><meta charset=\"UTF-8\"><title>Error " + StatusCode.Code + " - " + StatusCode.Name + "</title></head><body><h1>Error " + StatusCode.Code + " - " + StatusCode.Name + "</h1>" + Reasons + "</body></html>";
+
+            #endregion
+
+            #region TEXT_UTF8
+
+            // Error 400 - Bad Request
+            // The first paramter is not a valid number!
+            else if (ContentType == HTTPContentType.TEXT_UTF8 || ContentType == HTTPContentType.ALL)
+                Content = (Reasons == null) ? "Error " + StatusCode.Code + " - " + StatusCode.Name :
+                                              "Error " + StatusCode.Code + " - " + StatusCode.Name + Environment.NewLine + Reasons;
+
+            #endregion
+
+            #region XML_UTF8
+
+            // <?xml version="1.0" encoding="UTF-8"?>
+            // <error>
+            //     <code>400</code>
+            //     <message>Bad Request</message>
+            //     <reason>The first paramter is not a valid number!</message>
+            // </error>
+            else if (ContentType == HTTPContentType.XML_UTF8)
+                Content = (Reasons == null) ? "<?xml version=\"1.0\" encoding=\"UTF-8\"?><error><code>" + StatusCode.Code + "</code><message>" + StatusCode.Name + "</message></error></xml>" :
+                                              "<?xml version=\"1.0\" encoding=\"UTF-8\"?><error><code>" + StatusCode.Code + "</code><message>" + StatusCode.Name + "</message><reasons>" + Reasons + "</reasons></error></xml>";
+
+            #endregion
+
+            return new HTTPResponseBuilder()
+            {
+                HTTPStatusCode = StatusCode,
+                CacheControl   = "no-cache",
+                Connection     = "close",
+                Content        = Content.ToUTF8Bytes()
+            };
+
+        }
+
 
     }
 

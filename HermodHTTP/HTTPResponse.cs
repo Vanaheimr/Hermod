@@ -18,10 +18,11 @@
 #region Usings
 
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Diagnostics;
+using System.Linq;
 using System.Threading;
+using System.Diagnostics;
+using System.Collections.Generic;
 using System.Net.Sockets;
 
 #endregion
@@ -196,7 +197,8 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
         public HTTPResponse(String HTTPHeader)
         {
-            ParseHeader(HTTPHeader);
+            if (ParseResponseHeader(HTTPHeader))
+                base.ContentStream = new MemoryStream();
         }
 
         #endregion
@@ -205,7 +207,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
         public HTTPResponse(String HTTPHeader, Byte[] Content)
         {
-            if (ParseHeader(HTTPHeader))
+            if (ParseResponseHeader(HTTPHeader))
                 base.Content = Content;
         }
 
@@ -215,13 +217,77 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
         public HTTPResponse(String HTTPHeader, Stream ContentStream)
         {
-            if (ParseHeader(HTTPHeader))
+            if (ParseResponseHeader(HTTPHeader))
                 base.ContentStream = ContentStream;
         }
 
         #endregion
 
         #endregion
+
+
+        #region ParseResponseHeader(HTTPHeader)
+
+        protected Boolean ParseResponseHeader(String HTTPHeader)
+        {
+
+            //this.HTTPStatusCode = HTTPStatusCode.BadRequest;
+
+            RawHTTPHeader = HTTPHeader;
+
+            var _HTTPHeaderLines = HTTPHeader.Split(_LineSeperator, StringSplitOptions.RemoveEmptyEntries);
+            if (_HTTPHeaderLines.Length == 0)
+            {
+                HTTPStatusCode = HTTPStatusCode.BadRequest;
+                return false;
+            }
+
+            FirstPDULine = _HTTPHeaderLines.FirstOrDefault();
+            var SplittedFirstLine = FirstPDULine.Split(' ');
+
+            if (SplittedFirstLine.Length < 3)
+            {
+                HTTPStatusCode = HTTPStatusCode.BadRequest;
+                return false;
+            }
+
+            HTTPStatusCode = HTTPStatusCode.ParseString(SplittedFirstLine[1]);
+
+            if (HTTPStatusCode != HTTPStatusCode.BadRequest)
+            {
+
+                String[] _KeyValuePairs = null;
+
+                foreach (var _Line in _HTTPHeaderLines.Skip(1))
+                {
+
+                    _KeyValuePairs = _Line.Split(_ColonSeperator, 2, StringSplitOptions.RemoveEmptyEntries);
+
+                    if (_KeyValuePairs.Length == 2)
+                        HeaderFields.Add(_KeyValuePairs[0].Trim(), _KeyValuePairs[1].Trim());
+                    else
+                    {
+                        HTTPStatusCode = HTTPStatusCode.BadRequest;
+                        return false;
+                    }
+
+                }
+
+            }
+
+            //this.HTTPStatusCode = HTTPStatusCode.OK;
+            return true;
+
+        }
+
+        #endregion
+
+
+
+        public void ContentStreamToArray()
+        {
+            Content = ((MemoryStream) ContentStream).ToArray();
+        }
 
     }
 

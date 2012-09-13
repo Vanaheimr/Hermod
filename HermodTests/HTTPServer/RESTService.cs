@@ -71,7 +71,7 @@ namespace de.ahzf.Vanaheimr.Hermod.UnitTests
 
         public HTTPResponse GET_Root()
         {
-            return HTTPErrors.HTTPErrorResponse(IHTTPConnection.InHTTPRequest, HTTPStatusCode.NotAcceptable);
+            return new HTTPResult<Object>(IHTTPConnection.InHTTPRequest, HTTPStatusCode.NotAcceptable).Error;
         }
 
         #endregion
@@ -82,7 +82,7 @@ namespace de.ahzf.Vanaheimr.Hermod.UnitTests
 
         public HTTPResponse HelloWorld_OPTIONS()
         {
-            return HTTPErrors.HTTPErrorResponse(IHTTPConnection.InHTTPRequest, HTTPStatusCode.NotAcceptable);
+            return new HTTPResult<Object>(IHTTPConnection.InHTTPRequest, HTTPStatusCode.NotAcceptable).Error;
         }
 
         #endregion
@@ -91,7 +91,7 @@ namespace de.ahzf.Vanaheimr.Hermod.UnitTests
 
         public HTTPResponse HelloWorld_HEAD()
         {
-            return HTTPErrors.HTTPErrorResponse(IHTTPConnection.InHTTPRequest, HTTPStatusCode.NotAcceptable);
+            return new HTTPResult<Object>(IHTTPConnection.InHTTPRequest, HTTPStatusCode.NotAcceptable).Error;
         }
 
         #endregion
@@ -100,7 +100,7 @@ namespace de.ahzf.Vanaheimr.Hermod.UnitTests
 
         public HTTPResponse HelloWorld_GET()
         {
-            return HTTPErrors.HTTPErrorResponse(IHTTPConnection.InHTTPRequest, HTTPStatusCode.NotAcceptable);
+            return new HTTPResult<Object>(IHTTPConnection.InHTTPRequest, HTTPStatusCode.NotAcceptable).Error;
         }
 
         #endregion

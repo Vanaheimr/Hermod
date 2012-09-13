@@ -166,7 +166,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         /// Parse an HTTP header.
         /// </summary>
         /// <param name="HTTPHeaderLines">An enumeration of strings.</param>
-        protected Boolean ParseHeader(String HTTPHeader)
+        protected Boolean ParseHeader(String HTTPHeader)//, Boolean ExternalHeader)
         {
 
             this.HTTPStatusCode = HTTPStatusCode.BadRequest;
