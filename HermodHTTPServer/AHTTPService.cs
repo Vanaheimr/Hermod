@@ -200,13 +200,13 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
                     ContentType    = HTTPContentType.TEXT_UTF8,
                     Content        = ("Incoming http connection from '" + IHTTPConnection.RemoteSocket + "'" +
                                        Environment.NewLine + Environment.NewLine +
-                                       IHTTPConnection.InHTTPRequest.RawHTTPHeader +
+                                       IHTTPConnection.RequestHeader.RawHTTPHeader +
                                        Environment.NewLine + Environment.NewLine +
-                                       "Method => " + IHTTPConnection.InHTTPRequest.HTTPMethod + Environment.NewLine +
-                                       "URL => " + IHTTPConnection.InHTTPRequest.UrlPath + Environment.NewLine +
-                                       "QueryString => " + IHTTPConnection.InHTTPRequest.QueryString + Environment.NewLine +
-                                       "Protocol => " + IHTTPConnection.InHTTPRequest.ProtocolName + Environment.NewLine +
-                                       "Version => " + IHTTPConnection.InHTTPRequest.ProtocolVersion + Environment.NewLine +
+                                       "Method => " + IHTTPConnection.RequestHeader.HTTPMethod + Environment.NewLine +
+                                       "URL => " + IHTTPConnection.RequestHeader.UrlPath + Environment.NewLine +
+                                       "QueryString => " + IHTTPConnection.RequestHeader.QueryString + Environment.NewLine +
+                                       "Protocol => " + IHTTPConnection.RequestHeader.ProtocolName + Environment.NewLine +
+                                       "Version => " + IHTTPConnection.RequestHeader.ProtocolVersion + Environment.NewLine +
                                        Environment.NewLine + Environment.NewLine +
                                        IHTTPConnection.ResponseHeader.HTTPStatusCode).ToUTF8Bytes()
                 };
@@ -228,8 +228,8 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
             List<String> _StringValues = null;
 
-            if (IHTTPConnection.InHTTPRequest.QueryString != null)
-                if (IHTTPConnection.InHTTPRequest.QueryString.TryGetValue(Name, out _StringValues))
+            if (IHTTPConnection.RequestHeader.QueryString != null)
+                if (IHTTPConnection.RequestHeader.QueryString.TryGetValue(Name, out _StringValues))
                 {
 
                     UInt64 _Value;
@@ -242,7 +242,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
                     else
                     {
-                        HTTPResult = new HTTPResult<UInt64>(IHTTPConnection.InHTTPRequest, HTTPStatusCode.BadRequest, "The given optional parameter '" + Name + "' is invalid!");
+                        HTTPResult = new HTTPResult<UInt64>(IHTTPConnection.RequestHeader, HTTPStatusCode.BadRequest, "The given optional parameter '" + Name + "' is invalid!");
                         return true;
                     }
 
@@ -268,8 +268,8 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
             List<String> _StringValues = null;
 
-            if (IHTTPConnection.InHTTPRequest.QueryString != null)
-                if (IHTTPConnection.InHTTPRequest.QueryString.TryGetValue(Name, out _StringValues))
+            if (IHTTPConnection.RequestHeader.QueryString != null)
+                if (IHTTPConnection.RequestHeader.QueryString.TryGetValue(Name, out _StringValues))
                     if (_StringValues.Any())
                     {
 
@@ -303,8 +303,8 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
             List<String> _StringValues = null;
 
-            if (IHTTPConnection.InHTTPRequest.QueryString != null)
-                if (IHTTPConnection.InHTTPRequest.QueryString.TryGetValue(Name.ToLower(), out _StringValues))
+            if (IHTTPConnection.RequestHeader.QueryString != null)
+                if (IHTTPConnection.RequestHeader.QueryString.TryGetValue(Name.ToLower(), out _StringValues))
                     if (_StringValues.Any())
                         if (_StringValues[0] != null && _StringValues[0] != "")
                         {
@@ -324,16 +324,16 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         protected HTTPResult<String> GetRequestBodyAsUTF8String(HTTPContentType HTTPContentType)
         {
 
-            if (IHTTPConnection.InHTTPRequest.ContentType != HTTPContentType)
-                return new HTTPResult<String>(IHTTPConnection.InHTTPRequest, HTTPStatusCode.BadRequest);
+            if (IHTTPConnection.RequestHeader.ContentType != HTTPContentType)
+                return new HTTPResult<String>(IHTTPConnection.RequestHeader, HTTPStatusCode.BadRequest);
 
             if (IHTTPConnection.RequestBody == null || IHTTPConnection.RequestBody.Length == 0)
-                return new HTTPResult<String>(IHTTPConnection.InHTTPRequest, HTTPStatusCode.BadRequest);
+                return new HTTPResult<String>(IHTTPConnection.RequestHeader, HTTPStatusCode.BadRequest);
 
             var RequestBodyString = IHTTPConnection.RequestBody.ToUTF8String();
 
             if (RequestBodyString.IsNullOrEmpty())
-                return new HTTPResult<String>(IHTTPConnection.InHTTPRequest, HTTPStatusCode.BadRequest);
+                return new HTTPResult<String>(IHTTPConnection.RequestHeader, HTTPStatusCode.BadRequest);
 
             return new HTTPResult<String>(RequestBodyString);
 
@@ -432,7 +432,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
                 }
 
                 else
-                    return new HTTPResult<Object>(IHTTPConnection.InHTTPRequest, HTTPStatusCode.NotFound).Error;
+                    return new HTTPResult<Object>(IHTTPConnection.RequestHeader, HTTPStatusCode.NotFound).Error;
 
             }
 

@@ -36,7 +36,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
     public interface IHTTPConnection : ITCPConnection
     {
 
-        HTTPRequest         InHTTPRequest   { get; }
+        HTTPRequest         RequestHeader   { get; }
         //ToDo: Change this to a Stream!
         Byte[]              RequestBody     { get; }
         
@@ -51,7 +51,6 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         Exception           LastException   { get; set; }
         
         void SendErrorpage(HTTPStatusCode HTTPStatusCode,
-                           HTTPRequest    RequestHeader,
                            String         ErrorReason   = null,
                            Exception      LastException = null);
 

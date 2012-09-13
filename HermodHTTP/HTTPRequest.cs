@@ -75,6 +75,8 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
             }
         }
 
+        public HTTPContentType BestMatchingAcceptType { get; set; }
+
         #region HTTPMethod
 
         /// <summary>

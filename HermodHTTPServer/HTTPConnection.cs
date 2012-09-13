@@ -98,25 +98,25 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         /// </summary>
         public IDictionary<HTTPContentType, HTTPServiceInterface> Implementations { get; set; }
 
-        public HTTPRequest        InHTTPRequest  { get; protected set; }
+        public HTTPRequest    RequestHeader   { get; protected set; }
 
-        public Byte[]             RequestBody    { get; protected set; }
+        public Byte[]         RequestBody     { get; protected set; }
 
-        public HTTPResponse       ResponseHeader { get; protected set; }
+        public HTTPResponse   ResponseHeader  { get; protected set; }
 
-        public NetworkStream      ResponseStream { get; protected set; }
+        public NetworkStream  ResponseStream  { get; protected set; }
 
-        public String             ServerName     { get; set; }
+        public String         ServerName      { get; set; }
 
-        public HTTPSecurity       HTTPSecurity   { get; set; }
+        public HTTPSecurity   HTTPSecurity    { get; set; }
 
-        public URLMapping         URLMapping     { get; set; }
+        public URLMapping     URLMapping      { get; set; }
 
-        public String             ErrorReason    { get; set; }
+        public String         ErrorReason     { get; set; }
 
-        public Exception          LastException  { get; set; }
+        public Exception      LastException   { get; set; }
 
-        public IHTTPServer        HTTPServer     { get; set; }
+        public IHTTPServer    HTTPServer      { get; set; }
 
         #endregion
 
@@ -129,16 +129,16 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region HTTPConnection(myTCPClientConnection)
+        #region HTTPConnection(TCPClientConnection)
 
         /// <summary>
         /// Create a new HTTPConnection class using the given TcpClient class
         /// </summary>
-        public HTTPConnection(TcpClient myTCPClientConnection)
-            : base(myTCPClientConnection)
+        public HTTPConnection(TcpClient TCPClientConnection)
+            : base(TCPClientConnection)
         {
-            ResponseHeader = null;// new HTTPResponseBuilder();
-            ResponseStream = myTCPClientConnection.GetStream();
+            ResponseHeader = null;
+            ResponseStream = TCPClientConnection.GetStream();
         }
 
         #endregion
@@ -518,8 +518,6 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
             using (var _HTTPStream = TCPClientConnection.GetStream())
             {
 
-                #region Get HTTP header and body
-
                 var     _MemoryStream       = new MemoryStream();
                 var     _Buffer             = new Byte[65535];
                 Byte[]  _ByteArray          = null;
@@ -529,6 +527,8 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
                 try
                 {
+
+                    //ToDo: Improve reading from very slow and strange HTTP clients
 
                     #region Read from networkstream
 
@@ -596,13 +596,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
                     {
 
                         if (TCPClientConnection.Connected)
-                        {
-
-                            SendErrorpage(HTTPStatusCode.InternalServerError,
-                                          InHTTPRequest,
-                                          ErrorReason: "Could not find the end of a valid HTTP header!");
-
-                        }
+                            SendErrorpage(HTTPStatusCode.InternalServerError, Error: "Could not find the end of a valid HTTP header!");
 
                         return;
 
@@ -612,59 +606,70 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
                     //Debug.WriteLine("Thread[" + Thread.CurrentThread.ManagedThreadId + "]: Valid HTTP header found!");
 
-                    // Create a new HTTPRequestHeader
+                    #region Create a new HTTP request header
+
                     var HeaderBytes = new Byte[_ReadPosition - 1];
                     Array.Copy(_ByteArray, 0, HeaderBytes, 0, _ReadPosition - 1);
 
-                    InHTTPRequest = new HTTPRequest(RemoteHost, RemotePort, HeaderBytes.ToUTF8String());
+                    RequestHeader = new HTTPRequest(RemoteHost, RemotePort, HeaderBytes.ToUTF8String());
 
                     // The parsing of the http header failed!
-                    if (InHTTPRequest.HTTPStatusCode != HTTPStatusCode.OK)
+                    if (RequestHeader.HTTPStatusCode != HTTPStatusCode.OK)
                     {
-                        SendErrorpage(InHTTPRequest.HTTPStatusCode, InHTTPRequest);
+                        SendErrorpage(RequestHeader.HTTPStatusCode);
                         return;
                     }
 
+                    #endregion
+
+                    #region Get HTTP request body
+
                     // Copy only the number of bytes given within
                     // the HTTP header element 'ContentType'!
-                    if (InHTTPRequest.ContentLength.HasValue)
+                    if (RequestHeader.ContentLength.HasValue)
                     {
-                        RequestBody = new Byte[InHTTPRequest.ContentLength.Value];
-                        Array.Copy(_ByteArray, _ReadPosition + 1, RequestBody, 0, (Int64) InHTTPRequest.ContentLength.Value);
+                        RequestBody = new Byte[RequestHeader.ContentLength.Value];
+                        Array.Copy(_ByteArray, _ReadPosition + 1, RequestBody, 0, (Int64) RequestHeader.ContentLength.Value);
                     }
                     else
                         RequestBody = new Byte[0];
 
                     #endregion
 
-                    var InputContentType  = InHTTPRequest.ContentType;
-                    var OutputContentType = InHTTPRequest.Accept.BestMatchingContentType(Implementations.Keys.ToArray());
+                    //ToDo: Fix best-machting HTTP service implementation selection!
 
-                    HTTPServiceInterface BestImpl;
+                    #region Get best-matching HTTP service implementation (based on request content-type or accept-types)
 
-                    if (InputContentType == HTTPContentType.XWWWFormUrlEncoded)
-                        BestImpl = Implementations[InputContentType];
+                    RequestHeader.BestMatchingAcceptType = RequestHeader.Accept.BestMatchingContentType(Implementations.Keys.ToArray());
+
+                    HTTPServiceInterface BestMatchingHTTPServiceImplementation;
+
+                    if (RequestHeader.ContentType == HTTPContentType.XWWWFormUrlEncoded)
+                        BestMatchingHTTPServiceImplementation = Implementations[RequestHeader.ContentType];
                     else
-                        BestImpl = Implementations[OutputContentType];
+                        BestMatchingHTTPServiceImplementation = Implementations[RequestHeader.BestMatchingAcceptType];
 
+                    #endregion
 
-                    #region Invoke upper-layer protocol constructor
+                    #region Get constructor for best-matching HTTP service implementation
 
-                    // Get constructor for HTTPServiceType
-                    var _Type = BestImpl.GetType().
-                                GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
-                                               null,
-                                               new Type[] {
-                                                   typeof(IHTTPConnection)
-                                               },
-                                               null);
+                    var BestMatchingHTTPServiceConstructor = BestMatchingHTTPServiceImplementation.
+                                                             GetType().
+                                                             GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+                                                                            null,
+                                                                            new Type[] {
+                                                                                typeof(IHTTPConnection)
+                                                                            },
+                                                                            null);
 
-                    if (_Type == null)
+                    if (BestMatchingHTTPServiceConstructor == null)
                         throw new ArgumentException("A appropriate constructor for type '" + typeof(HTTPServiceInterface).Name + "' could not be found!");
 
+                    #endregion
 
-                    // Invoke constructor of HTTPServiceType
-                    _HTTPServiceInterface = _Type.Invoke(new Object[] { this }) as HTTPServiceInterface;
+                    #region Invoke best-matching HTTP service implementation constructor
+
+                    _HTTPServiceInterface = BestMatchingHTTPServiceConstructor.Invoke(new Object[] { this }) as HTTPServiceInterface;
 
                     if (_HTTPServiceInterface == null)
                         throw new ArgumentException("A http connection of type '" + typeof(HTTPServiceInterface).Name + "' could not be created!");
@@ -678,20 +683,15 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
                     #region Get and check callback...
 
-                    var _ParsedCallbackWithParameters = URLMapping.GetHandler(InHTTPRequest.Host,
-                                                                              InHTTPRequest.UrlPath,
-                                                                              InHTTPRequest.HTTPMethod,
-                                                                              OutputContentType);
+                    var _ParsedCallbackWithParameters = URLMapping.GetHandler(RequestHeader.Host,
+                                                                              RequestHeader.UrlPath,
+                                                                              RequestHeader.HTTPMethod,
+                                                                              RequestHeader.BestMatchingAcceptType);
 
-                    if (_ParsedCallbackWithParameters == null || _ParsedCallbackWithParameters.Item1 == null)// || _ParsedCallback.Item1.MethodCallback == null)
+                    if (_ParsedCallbackWithParameters == null || _ParsedCallbackWithParameters.Item1 == null)
                     {
-
-                        SendErrorpage(HTTPStatusCode.InternalServerError,
-                                      InHTTPRequest,
-                                      ErrorReason: "Could not find a valid handler for URL: " + InHTTPRequest.UrlPath);
-
+                        SendErrorpage(HTTPStatusCode.InternalServerError, "Could not find a valid handler for URL: " + RequestHeader.UrlPath);
                         return;
-
                     }
 
                     #endregion
@@ -720,7 +720,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
                         if (_ForceAuthenticationAttribute.AuthenticationType == HTTPAuthenticationTypes.Basic)
                         {
 
-                            var CurrentAuthentication = InHTTPRequest.Authorization;
+                            var CurrentAuthentication = RequestHeader.Authorization;
 
                             if (CurrentAuthentication == null)
                             {
@@ -742,7 +742,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
                         else
                         {
-                            SendErrorpage(HTTPStatusCode.NotImplemented, InHTTPRequest, "Please use HTTP basic authentication!");
+                            SendErrorpage(HTTPStatusCode.NotImplemented, "Please use HTTP basic authentication!");
                             return;
                         }
 
@@ -753,69 +753,45 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
                     #region Invoke callback within the upper-layer protocol
 
-                    try
+                    ResponseHeader = _ParsedCallbackWithParameters.Item1.Invoke(_HTTPServiceInterface, _ParsedCallbackWithParameters.Item2.ToArray()) as HTTPResponse;
+
+                    if (ResponseHeader == null)
                     {
-
-                        ResponseHeader = _ParsedCallbackWithParameters.Item1.Invoke(_HTTPServiceInterface, _ParsedCallbackWithParameters.Item2.ToArray()) as HTTPResponse;
-
-                        if (ResponseHeader == null)
-                            ResponseHeader = new HTTPResult<Object>(InHTTPRequest, HTTPStatusCode.InternalServerError, "Could not invoke method for URL: " + InHTTPRequest.UrlPath).Error;
-
-                        HTTPServer.LogRequest(DateTime.Now, InHTTPRequest, OutputContentType, ResponseHeader);
-
-                        #region In case of errors => send errorpage
-
-                        if (ResponseHeader.HTTPStatusCode.IsClientError ||
-                            ResponseHeader.HTTPStatusCode.IsServerError)
-                        {
-
-                            SendErrorpage(ResponseHeader.HTTPStatusCode,
-                                          InHTTPRequest,
-                                          LastException: LastException);
-
-                            return;
-
-                        }
-
-                        #endregion
-
-                        WriteToResponseStream(ResponseHeader);
-
-                    }
-
-                    catch (Exception e)
-                    {
-
-                        WriteToResponseStream(
-                    
-                            new HTTPResponseBuilder()
-                            {
-                                HTTPStatusCode = HTTPStatusCode.InternalServerError,
-                                CacheControl   = "no-cache",
-                                ContentType    = HTTPContentType.TEXT_UTF8,
-                                Content        = e.ToString().ToUTF8Bytes()
-                            });
-
+                        SendErrorpage(HTTPStatusCode.InternalServerError, "Could not invoke method for URL: " + RequestHeader.UrlPath);
+                        return;
                     }
 
                     #endregion
 
+                    #region Call logging delegate
+
+                    HTTPServer.LogAccess(DateTime.Now, RequestHeader, ResponseHeader);
+
+                    #endregion
+
+                    #region In case of errors => Send errorpage
+
+                    if (ResponseHeader.HTTPStatusCode.IsClientError ||
+                        ResponseHeader.HTTPStatusCode.IsServerError)
+                    {
+                        SendErrorpage(ResponseHeader.HTTPStatusCode, LastException: LastException);
+                        return;
+                    }
+
+                    #endregion
+
+                    WriteToResponseStream(ResponseHeader);
+
                 }
 
-                catch (SocketException Exception)
+                catch (SocketException SocketException)
                 {
-                    Debug.WriteLine("The remote host has disconnected: " + Exception);
+                    HTTPServer.LogError(DateTime.Now, RequestHeader, ResponseHeader, LastException: SocketException);
                 }
 
                 catch (Exception Exception)
                 {
-
-                    Debug.WriteLine("General ProcessHTTP() exception: " + Exception);
-
-                    SendErrorpage(ResponseHeader.HTTPStatusCode,
-                                  InHTTPRequest,
-                                  LastException: Exception);
-
+                    SendErrorpage(HTTPStatusCode.InternalServerError, LastException: Exception);
                 }
 
             }
@@ -857,35 +833,44 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region SendErrorpage(myHTTPStatusCode, myHTTPRequest, ErrorReason = null, LastException = null)
+        #region SendErrorpage(HTTPStatusCode, Error = null, LastException = null)
 
-        public void SendErrorpage(HTTPStatusCode myHTTPStatusCode, HTTPRequest myHTTPRequest, String ErrorReason = null, Exception LastException = null)
+        /// <summary>
+        /// Send a HTTP error page.
+        /// </summary>
+        /// <param name="HTTPStatusCode">The HTTP status code.</param>
+        /// <param name="HTTPRequest">The incoming HTTP request.</param>
+        /// <param name="Error">A reason for this error.</param>
+        /// <param name="LastException">The exception causing this error.</param>
+        public void SendErrorpage(HTTPStatusCode HTTPStatusCode, String Error = null, Exception LastException = null)
         {
 
             #region Initial checks
 
-            if (ErrorReason != null && ErrorReason == null)
-                this.ErrorReason = ErrorReason;
+            if (Error != null && this.ErrorReason == null)
+                this.ErrorReason = Error;
 
-            if (LastException != null && LastException == null)
+            if (LastException != null && this.LastException == null)
                 this.LastException = LastException;
 
             #endregion
 
+            HTTPServer.LogError(DateTime.Now, RequestHeader, ResponseHeader, Error, LastException);
+
             #region Send a customized errorpage...
 
             var __ErrorHandler = URLMapping.GetErrorHandler("*",
-                                                            InHTTPRequest.UrlPath,
-                                                            InHTTPRequest.HTTPMethod,
+                                                            RequestHeader.UrlPath,
+                                                            RequestHeader.HTTPMethod,
                                                             null,
-                                                            myHTTPStatusCode);
+                                                            HTTPStatusCode);
 
             if (__ErrorHandler != null && __ErrorHandler.Item1 != null)
             {
 
                 var _ParamArray    = __ErrorHandler.Item2.ToArray();
                 var _Parameters    = new Object[_ParamArray.Count() + 2];
-                    _Parameters[0] = ErrorReason;
+                    _Parameters[0] = Error;
                     _Parameters[1] = LastException;
                 Array.Copy(_ParamArray, 0, _Parameters, 2, _ParamArray.Count());
 
@@ -894,13 +879,8 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
                 if (_Response == null || _HTTPResponseBuilder == null)
                 {
-
-                    SendErrorpage(HTTPStatusCode.InternalServerError,
-                                  InHTTPRequest,
-                                  ErrorReason: "Could not invoke errorpage for URL: " + InHTTPRequest.UrlPath);
-                    
+                    SendErrorpage(HTTPStatusCode.InternalServerError, "Could not invoke errorpage for URL: " + RequestHeader.UrlPath);
                     return;
-
                 }
 
                 WriteToResponseStream(_HTTPResponseBuilder);
@@ -922,18 +902,18 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
                 _StringBuilder.AppendLine("<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">");
                 _StringBuilder.AppendLine("<html xmlns=\"http://www.w3.org/1999/xhtml\">");
                 _StringBuilder.AppendLine("  <head>");
-                _StringBuilder.Append    ("    <title>Error ").Append(myHTTPStatusCode).AppendLine("</title>");
+                _StringBuilder.Append    ("    <title>Error ").Append(HTTPStatusCode).AppendLine("</title>");
                 _StringBuilder.AppendLine("  </head>");
                 _StringBuilder.AppendLine("  <body>");
 
-                _StringBuilder.Append    ("    <h1>Error ").Append(myHTTPStatusCode).AppendLine("</h1>");
+                _StringBuilder.Append    ("    <h1>Error ").Append(HTTPStatusCode).AppendLine("</h1>");
                 _StringBuilder.AppendLine("    <p>");
                 _StringBuilder.AppendLine("      The client reqest from '" + RemoteSocket + "' led to an error!<br /><br />");
                 _StringBuilder.AppendLine("    </p>");
 
                 _StringBuilder.AppendLine("    <h3>Raw request header:</h3>");
                 _StringBuilder.AppendLine("    <pre>");
-                _StringBuilder.AppendLine(InHTTPRequest.RawHTTPHeader);
+                _StringBuilder.AppendLine(RequestHeader.RawHTTPHeader);
                 _StringBuilder.AppendLine("    </pre>");
 
                 if (LastException != null)
@@ -952,11 +932,11 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
                 }
 
-                if (ErrorReason != null)
+                if (Error != null)
                 {
                     _StringBuilder.AppendLine("    <h3>Reason:</h3>");
                     _StringBuilder.AppendLine("    <pre>");
-                    _StringBuilder.AppendLine(ErrorReason);
+                    _StringBuilder.AppendLine(Error);
                     _StringBuilder.AppendLine("    </pre>");
                 }
 
@@ -971,7 +951,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
                 WriteToResponseStream(
                     new HTTPResponseBuilder()
                     {
-                        HTTPStatusCode = myHTTPStatusCode,
+                        HTTPStatusCode = HTTPStatusCode,
                         Server         = ServerName,
                         ContentType    = HTTPContentType.HTML_UTF8,
                         Content        = _HTMLErrorpage

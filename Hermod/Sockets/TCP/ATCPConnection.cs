@@ -140,33 +140,33 @@ namespace de.ahzf.Vanaheimr.Hermod.Sockets.TCP
         #endregion
 
 
-        #region WriteToResponseStream(Text)
+        #region WriteToResponseStream(UTF8Text)
 
         /// <summary>
         /// Writes some UTF-8 text to the underlying stream.
         /// </summary>
-        /// <param name="Text">Some UTF-8 text.</param>
-        public void WriteToResponseStream(String Text)
+        /// <param name="UTF8Text">Some UTF-8 text.</param>
+        public void WriteToResponseStream(String UTF8Text)
         {
-            WriteToResponseStream(Text.ToUTF8Bytes());
+            WriteToResponseStream(UTF8Text.ToUTF8Bytes());
         }
 
         #endregion
 
-        #region WriteToResponseStream(Content)
+        #region WriteToResponseStream(ByteArray)
 
         /// <summary>
         /// Writes the given byte array to the underlying stream.
         /// </summary>
-        /// <param name="Content">An array of bytes.</param>
-        public void WriteToResponseStream(Byte[] Content)
+        /// <param name="ByteArray">An array of bytes.</param>
+        public void WriteToResponseStream(Byte[] ByteArray)
         {
             if (IsConnected)
-                if (Content != null)
+                if (ByteArray != null)
                 {
                     var Stream = TCPClientConnection.GetStream();
                     if (Stream != null)
-                        Stream.Write(Content, 0, Content.Length);
+                        Stream.Write(ByteArray, 0, ByteArray.Length);
                 }
         }
 

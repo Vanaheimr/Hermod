@@ -63,7 +63,8 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
         #region Events
 
-        public event LogRequestDelegate OnLogRequest;
+        public event AccessLogDelegate AccessLog;
+        public event ErrorLogDelegate  ErrorLog;
 
         #endregion
 
@@ -268,12 +269,16 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        public void LogRequest(DateTime ServerTime, HTTPRequest Request, HTTPContentType BestMatchingAcceptType, HTTPResponse HTTPResponse)
+        public void LogAccess(DateTime ServerTime, HTTPRequest Request, HTTPResponse HTTPResponse)
         {
-            if (OnLogRequest != null)
-            {
-                OnLogRequest(ServerTime, Request, BestMatchingAcceptType, HTTPResponse);
-            }
+            if (AccessLog != null)
+                AccessLog(ServerTime, Request, HTTPResponse);
+        }
+
+        public void LogError(DateTime ServerTime, HTTPRequest Request, HTTPResponse HTTPResponse, String Error = null, Exception LastException = null)
+        {
+            if (ErrorLog != null)
+                ErrorLog(ServerTime, Request, HTTPResponse, Error, LastException);
         }
 
 

@@ -113,7 +113,7 @@ namespace de.ahzf.Vanaheimr.Hermod.UnitTests
         public HTTPResponse HelloWorld_HEAD()
         {
 
-            var _RequestHeader = IHTTPConnection.InHTTPRequest;
+            var _RequestHeader = IHTTPConnection.RequestHeader;
 
             return new HTTPResponseBuilder()
                 {
