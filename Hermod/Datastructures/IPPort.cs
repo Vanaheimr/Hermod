@@ -100,6 +100,60 @@ namespace de.ahzf.Vanaheimr.Hermod.Datastructures
         #endregion
 
 
+        #region (static) TryParse(UInt16, out IPPort)
+
+        /// <summary>
+        /// Return the IPPort for the given UInt16.
+        /// </summary>
+        /// <param name="UInt16">The UInt16 to parse.</param>
+        public static Boolean TryParse(UInt16 UInt16, out IPPort IPPort)
+        {
+            IPPort = new IPPort(UInt16);
+            return true;
+        }
+
+        #endregion
+
+        #region (static) TryParse(Int32, out IPPort)
+
+        /// <summary>
+        /// Return the IPPort for the given UInt16.
+        /// </summary>
+        /// <param name="Int32">The Int32 to parse.</param>
+        public static Boolean TryParse(Int32 Int32, out IPPort IPPort)
+        {
+            IPPort = new IPPort((UInt16) Int32);
+            return true;
+        }
+
+        #endregion
+
+        #region (static) TryParse(String, out IPPort)
+
+        /// <summary>
+        /// Return the IPPort for the given String.
+        /// </summary>
+        /// <param name="String">The string to parse.</param>
+        /// <param name="IPPort">The result.</param>
+        public static Boolean TryParse(String String, out IPPort IPPort)
+        {
+
+            UInt16 Port;
+
+            if (UInt16.TryParse(String, out Port))
+            {
+                IPPort = new IPPort(Port);
+                return true;
+            }
+
+            IPPort = null;
+            return false;
+
+        }
+
+        #endregion
+
+
         #region ToUInt16()
 
         /// <summary>
