@@ -641,16 +641,17 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
                     #endregion
 
-                    //ToDo: Fix best-machting HTTP service implementation selection!
+                    //ToDo: Fix best-machting HTTP service implementation selection (based on the request content-type or accept-types)!
 
-                    #region Get best-matching HTTP service implementation (based on request content-type or accept-types)
+                    #region Get best-matching HTTP service implementation (based on the request content-type or accept-types)
 
                     RequestHeader.BestMatchingAcceptType = RequestHeader.Accept.BestMatchingContentType(Implementations.Keys.ToArray());
 
                     HTTPServiceInterface BestMatchingHTTPServiceImplementation;
 
-                    if (RequestHeader.ContentType == HTTPContentType.XWWWFormUrlEncoded)
+                    if (RequestHeader.ContentType != null)
                         BestMatchingHTTPServiceImplementation = Implementations[RequestHeader.ContentType];
+
                     else
                         BestMatchingHTTPServiceImplementation = Implementations[RequestHeader.BestMatchingAcceptType];
 

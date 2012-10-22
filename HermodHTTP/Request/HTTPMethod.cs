@@ -114,6 +114,11 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         ADD,
 
         /// <summary>
+        /// Update a resource (a replacement for PUT)
+        /// </summary>
+        UPDATE,
+
+        /// <summary>
         /// Edits a resource, e.g. return a HTML page for editing.
         /// </summary>
         EDIT
@@ -287,6 +292,11 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         /// Add a new resource to a collection of resources (a replacement for PUT and POST)
         /// </summary>
         public static readonly HTTPMethod ADD           = new HTTPMethod("ADD");
+
+        /// <summary>
+        /// Update a resource (a replacement for PUT)
+        /// </summary>
+        public static readonly HTTPMethod UPDATE        = new HTTPMethod("UPDATE");
 
         /// <summary>
         /// Edits a resource, e.g. return a HTML page for editing.
