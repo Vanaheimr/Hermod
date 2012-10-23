@@ -121,7 +121,12 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Edits a resource, e.g. return a HTML page for editing.
         /// </summary>
-        EDIT
+        EDIT,
+
+        /// <summary>
+        /// Monitors a resource or collection resource for modifications using an eventstream.
+        /// </summary>
+        MONITOR
 
         #endregion
 
@@ -302,6 +307,11 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         /// Edits a resource, e.g. return a HTML page for editing.
         /// </summary>
         public static readonly HTTPMethod EDIT          = new HTTPMethod("EDIT");
+
+        /// <summary>
+        /// Monitors a resource or collection resource for modifications using an eventstream.
+        /// </summary>
+        public static readonly HTTPMethod MONITOR       = new HTTPMethod("MONITOR");
 
         #endregion
 
