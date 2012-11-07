@@ -89,32 +89,33 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         TRAVERSE,
         
         /// <summary>
-        /// Similar like GET, but with an additional filter methods within the http body.
+        /// Similar to a GET request, but with an additional filter methods within the http body.
+        /// This can be implemented via a JavaScript function within the HTTP body.
         /// </summary>
         FILTER,
 
         /// <summary>
-        /// Counts the number of elements which would be returned by a FILTER.
+        /// Counts the number of elements which would be returned by a GET or FILTER request.
         /// </summary>
         COUNT,
 
         /// <summary>
-        /// Composes a new resource (e.g. send a html form to compose a new resource)
+        /// Composes a new resource (e.g. send a html form to compose a new resource).
         /// </summary>
         COMPOSE,
 
         /// <summary>
-        /// Creates a new resource (a replacement for PUT and POST)
+        /// Creates a new resource (a replacement for PUT and POST).
         /// </summary>
         CREATE,
 
         /// <summary>
-        /// Add a new resource to a collection of resources (a replacement for PUT and POST)
+        /// Add a new resource to a collection of resources (a replacement for PUT and POST).
         /// </summary>
         ADD,
 
         /// <summary>
-        /// Update a resource (a replacement for PUT)
+        /// Update a resource (a replacement for PUT).
         /// </summary>
         UPDATE,
 
@@ -126,7 +127,28 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Monitors a resource or collection resource for modifications using an eventstream.
         /// </summary>
-        MONITOR
+        MONITOR,
+
+        /// <summary>
+        /// Maps all elements of a collection resource and may reduce this to a second data structure.
+        /// This can be implemented via two JavaScript functions within the HTTP body.
+        /// </summary>
+        MAPREDUCE,
+
+        /// <summary>
+        /// Subscribe an URI to receive notifications from this resource.
+        /// </summary>
+        SUBSCRIBE,
+
+        /// <summary>
+        /// Unsubscribe an URI to receive notifications from this resource.
+        /// </summary>
+        UNSUBSCRIBE,
+
+        /// <summary>
+        /// Notify a subscriber of an URI about notifications from a resource.
+        /// </summary>
+        NOTIFY
 
         #endregion
 
