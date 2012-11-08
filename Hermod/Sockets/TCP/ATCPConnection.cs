@@ -39,6 +39,12 @@ namespace de.ahzf.Vanaheimr.Hermod.Sockets.TCP
     public abstract class ATCPConnection : ALocalRemoteSockets, ITCPConnection
     {
 
+        #region Data
+
+        private readonly NetworkStream Stream;
+
+        #endregion
+
         #region Properties
 
         #region TCPClientConnection
@@ -77,6 +83,29 @@ namespace de.ahzf.Vanaheimr.Hermod.Sockets.TCP
         /// Milliseconds - should be impemented in ConnectionEstablished logic.
         /// </summary>
         public UInt32 Timeout { get; set; }
+
+        #endregion
+
+        #region NoDelay
+
+        /// <summary>
+        /// Gets or sets a value that disables a delay when send or receive
+        /// buffers are not full.
+        /// </summary>
+        public Boolean NoDelay
+        {
+
+            get
+            {
+                return TCPClientConnection.NoDelay;
+            }
+
+            set
+            {
+                TCPClientConnection.NoDelay = value;
+            }
+
+        }
 
         #endregion
 
@@ -133,11 +162,30 @@ namespace de.ahzf.Vanaheimr.Hermod.Sockets.TCP
             if (RemoteSocket == null)
                 throw new ArgumentNullException("The RemoteEndPoint is invalid!");
 
+            Stream = TCPClientConnection.GetStream();
+
         }
 
         #endregion
 
         #endregion
+
+
+        public Boolean ReadByte(out Byte Byte)
+        {
+
+            var _byte = Stream.ReadByte();
+
+            if (_byte == -1)
+            {
+                Byte = 0;
+                return false;
+            }
+
+            Byte = (Byte) _byte;
+            return true;
+
+        }
 
 
         #region WriteToResponseStream(UTF8Text)
@@ -153,6 +201,20 @@ namespace de.ahzf.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
+        #region WriteToResponseStream(Byte)
+
+        /// <summary>
+        /// Writes the given byte to the underlying stream.
+        /// </summary>
+        /// <param name="Byte">A single byte.</param>
+        public void WriteToResponseStream(Byte Byte)
+        {
+            if (IsConnected)
+                Stream.WriteByte(Byte);
+        }
+
+        #endregion
+
         #region WriteToResponseStream(ByteArray)
 
         /// <summary>
@@ -161,13 +223,8 @@ namespace de.ahzf.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ByteArray">An array of bytes.</param>
         public void WriteToResponseStream(Byte[] ByteArray)
         {
-            if (IsConnected)
-                if (ByteArray != null)
-                {
-                    var Stream = TCPClientConnection.GetStream();
-                    if (Stream != null)
-                        Stream.Write(ByteArray, 0, ByteArray.Length);
-                }
+            if (ByteArray != null && IsConnected)
+                Stream.Write(ByteArray, 0, ByteArray.Length);
         }
 
         #endregion
@@ -192,9 +249,7 @@ namespace de.ahzf.Vanaheimr.Hermod.Sockets.TCP
                 if (InputStream.CanTimeout && ReadTimeout != 1000)
                     InputStream.ReadTimeout = ReadTimeout;
 
-                var Stream = TCPClientConnection.GetStream();
-
-                if (Stream != null)
+                if (IsConnected)
                     do
                     {
                         _BytesRead = InputStream.Read(_Buffer, 0, _Buffer.Length);

@@ -81,9 +81,7 @@
     <Compile Include="Sockets\UDP\UDPPacket.cs" />
     <Compile Include="Sockets\UDP\UDPServer.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="HTTP\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <ProjectReference Include="..\..\Illias\Commons\Commons.csproj">
       <Project>{16C85DF8-5DE6-4A9F-9FC7-7CA5B0440DF3}</Project>
