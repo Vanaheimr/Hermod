@@ -168,7 +168,7 @@ namespace de.ahzf.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// Will set the ClientTimeout for all incoming client connections
         /// </summary>
-        public UInt32 ClientTimeout { get; set; }
+        public Int32 ClientTimeout { get; set; }
 
         #endregion
 
@@ -384,7 +384,7 @@ namespace de.ahzf.Vanaheimr.Hermod.Sockets.TCP
             if (_TCPConnection.Value == null)
                 throw new ArgumentException("A TCPConnectionType of type '" + typeof(TCPConnectionType).FullName + "' could not be created!");
 
-            _TCPConnection.Value.Timeout       = ClientTimeout;
+            _TCPConnection.Value.ReadTimeout   = ClientTimeout;
             _TCPConnection.Value.StopRequested = false;
 
             // Copy ExceptionOccured event handlers

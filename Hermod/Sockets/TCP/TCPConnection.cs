@@ -62,7 +62,8 @@ namespace de.ahzf.Vanaheimr.Hermod.Sockets.TCP
         /// Dispose this object
         /// </summary>
         public override void Dispose()
-        { }
+        {
+        }
 
         #endregion
 

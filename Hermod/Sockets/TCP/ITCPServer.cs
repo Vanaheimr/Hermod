@@ -43,7 +43,7 @@ namespace de.ahzf.Vanaheimr.Hermod.Datastructures
         /// <summary>
         /// Will set the ClientTimeout for all incoming client connections
         /// </summary>
-        UInt32 ClientTimeout { get; }
+        Int32 ClientTimeout { get; }
 
         /// <summary>
         /// An exception has occured.
