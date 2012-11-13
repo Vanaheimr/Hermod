@@ -35,13 +35,61 @@ namespace de.ahzf.Vanaheimr.Hermod.Sockets.TCP
     public interface ITCPConnection : ILocalSocket, IRemoteSocket
     {
 
+        #region Properties
+
+        /// <summary>
+        /// The TCPClient connection to a connected Client
+        /// </summary>
         TcpClient  TCPClientConnection { get; }
+
+        /// <summary>
+        /// Is False if the client is disconnected from the server
+        /// </summary>
         Boolean    IsConnected         { get; }
+
+        /// <summary>
+        /// Gets a value that indicates whether data is available
+        /// on the System.Net.Sockets.NetworkStream to be read.
+        /// </summary>
+        Boolean    DataAvailable       { get; }
+
+        /// <summary>
+        /// Gets or sets the amount of time that a read operation
+        /// blocks waiting for data.
+        /// </summary>
+        Int32      ReadTimeout         { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value that disables a delay when send or receive
+        /// buffers are not full.
+        /// </summary>
+        Boolean    NoDelay             { get; set; }
+
+        /// <summary>
+        /// The connection is keepalive
+        /// </summary>
         Boolean    KeepAlive           { get; set; }
+
+        /// <summary>
+        /// Server was requested to stop.
+        /// </summary>
         Boolean    StopRequested       { get; set; }
-        UInt32     Timeout             { get; set; }
+
+        #endregion
+
+        #region Events
 
         event ExceptionOccuredHandler OnExceptionOccured;
+
+        #endregion
+
+        #region Read(...)
+
+        Boolean ReadByte(out Byte Byte);
+
+        #endregion
+
+        #region Write(...)
 
         /// <summary>
         /// Writes some UTF-8 text to the underlying stream.
@@ -62,6 +110,8 @@ namespace de.ahzf.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ReadTimeout">A read timeout on the source.</param>
         /// <param name="BufferSize">The buffer size for reading.</param>
         void WriteToResponseStream(Stream InputStream, Int32 ReadTimeout = 1000, Int32 BufferSize = 65535);
+
+        #endregion
 
         void Close();
 

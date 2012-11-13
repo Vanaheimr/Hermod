@@ -76,13 +76,42 @@ namespace de.ahzf.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
-        #region Timeout
+        #region DataAvailable
 
         /// <summary>
-        /// The Client ConnectionEstablished should timeout after this Timeout in
-        /// Milliseconds - should be impemented in ConnectionEstablished logic.
+        /// Gets a value that indicates whether data is available
+        /// on the System.Net.Sockets.NetworkStream to be read.
         /// </summary>
-        public UInt32 Timeout { get; set; }
+        public Boolean DataAvailable
+        {
+            get
+            {
+                return this.Stream.DataAvailable;
+            }
+        }
+
+        #endregion
+
+        #region ReadTimeout
+
+        /// <summary>
+        /// Gets or sets the amount of time that a read operation
+        /// blocks waiting for data.
+        /// </summary>
+        public Int32 ReadTimeout
+        {
+
+            get
+            {
+                return this.Stream.ReadTimeout;
+            }
+
+            set
+            {
+                this.Stream.ReadTimeout = value;
+            }
+
+        }
 
         #endregion
 
@@ -112,7 +141,7 @@ namespace de.ahzf.Vanaheimr.Hermod.Sockets.TCP
         #region KeepAlive
 
         /// <summary>
-        ///  The connection is keepalive
+        /// The connection is keepalive
         /// </summary>
         public Boolean KeepAlive { get; set; }
 
@@ -121,7 +150,7 @@ namespace de.ahzf.Vanaheimr.Hermod.Sockets.TCP
         #region StopRequested
 
         /// <summary>
-        /// Server requested stopping
+        /// Server was requested to stop.
         /// </summary>
         public Boolean StopRequested { get; set; }
 
@@ -173,7 +202,7 @@ namespace de.ahzf.Vanaheimr.Hermod.Sockets.TCP
 
         public Boolean ReadByte(out Byte Byte)
         {
-
+            
             var _byte = Stream.ReadByte();
 
             if (_byte == -1)
@@ -275,7 +304,6 @@ namespace de.ahzf.Vanaheimr.Hermod.Sockets.TCP
         }
 
         #endregion
-
 
         #region IDisposable Members
 
