@@ -200,9 +200,27 @@ namespace de.ahzf.Vanaheimr.Hermod.Sockets.TCP
         #endregion
 
 
+        #region ReadByte()
+
+        public Byte ReadByte()
+        {
+
+            var _byte = Stream.ReadByte();
+
+            if (_byte == -1)
+                return 0x00;
+
+            return (Byte) _byte;
+
+        }
+
+        #endregion
+
+        #region ReadByte(out Byte)
+
         public Boolean ReadByte(out Byte Byte)
         {
-            
+
             var _byte = Stream.ReadByte();
 
             if (_byte == -1)
@@ -215,6 +233,43 @@ namespace de.ahzf.Vanaheimr.Hermod.Sockets.TCP
             return true;
 
         }
+
+        #endregion
+
+        #region ReadString(MaxLength)
+
+        public String ReadString(Int32 MaxLength)
+        {
+
+            if (Stream == null)
+                throw new ArgumentNullException();
+
+            while (!Stream.DataAvailable)
+                Thread.Sleep(1);
+
+            Byte read;
+            var array = new Byte[MaxLength];
+            var pos = 0;
+
+            while (Stream.DataAvailable)
+            {
+
+                read = (Byte) Stream.ReadByte();
+
+                array[pos++] = read;
+
+                if (read == 0x00 || pos == MaxLength)
+                    break;
+
+            }
+
+            var str = Encoding.UTF8.GetString(array).Trim();
+
+            return str;
+
+        }
+
+        #endregion
 
 
         #region WriteToResponseStream(UTF8Text)
