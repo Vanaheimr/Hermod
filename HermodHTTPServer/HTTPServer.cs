@@ -252,7 +252,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Will set the ClientTimeout for all incoming client connections
         /// </summary>
-        public UInt32 ClientTimeout
+        public Int32 ClientTimeout
         {
             get
             {
