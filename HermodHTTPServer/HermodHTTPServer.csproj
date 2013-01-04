@@ -73,14 +73,6 @@
     <Compile Include="URLMapping\URLNode.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Illias\Commons\Commons.csproj">
-      <Project>{16C85DF8-5DE6-4A9F-9FC7-7CA5B0440DF3}</Project>
-      <Name>Commons</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\Styx\Styx\Styx.csproj">
-      <Project>{3949790D-8591-4101-9E4D-CE7A758E7409}</Project>
-      <Name>Styx</Name>
-    </ProjectReference>
     <ProjectReference Include="..\HermodHTTP\HermodHTTP.csproj">
       <Project>{9A00BD39-1385-4DB4-8F38-363BB947CCB4}</Project>
       <Name>HermodHTTP</Name>
@@ -88,6 +80,10 @@
     <ProjectReference Include="..\Hermod\Hermod.csproj">
       <Project>{477EFD16-3627-4473-957D-44CA9A9DFB79}</Project>
       <Name>Hermod</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\libs\Styx\libs\Illias\Commons\Commons.csproj">
+      <Project>{16C85DF8-5DE6-4A9F-9FC7-7CA5B0440DF3}</Project>
+      <Name>Commons</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

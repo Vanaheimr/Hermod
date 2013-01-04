@@ -32,7 +32,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="nunit.framework">
-      <HintPath>..\..\libs\nunit.framework.dll</HintPath>
+      <HintPath>..\libs\Styx\libs\Illias\libs\nunit.framework.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -55,10 +55,6 @@
     <Compile Include="QueryStringTests.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Illias\Commons\Commons.csproj">
-      <Project>{16C85DF8-5DE6-4A9F-9FC7-7CA5B0440DF3}</Project>
-      <Name>Commons</Name>
-    </ProjectReference>
     <ProjectReference Include="..\HermodHTTPClient\HermodHTTPClient.csproj">
       <Project>{0AB343E8-AA69-4685-9676-BFA27E418A20}</Project>
       <Name>HermodHTTPClient</Name>
@@ -74,6 +70,14 @@
     <ProjectReference Include="..\Hermod\Hermod.csproj">
       <Project>{477EFD16-3627-4473-957D-44CA9A9DFB79}</Project>
       <Name>Hermod</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\libs\Styx\libs\Illias\Commons\Commons.csproj">
+      <Project>{16C85DF8-5DE6-4A9F-9FC7-7CA5B0440DF3}</Project>
+      <Name>Commons</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\libs\Styx\Styx\Styx.csproj">
+      <Project>{3949790D-8591-4101-9E4D-CE7A758E7409}</Project>
+      <Name>Styx</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

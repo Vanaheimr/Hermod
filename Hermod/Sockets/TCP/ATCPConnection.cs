@@ -22,7 +22,6 @@ using System.IO;
 using System.Net;
 using System.Text;
 using System.Threading;
-using System.Diagnostics;
 using System.Net.Sockets;
 
 using de.ahzf.Illias.Commons;

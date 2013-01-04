@@ -1,0 +1,3 @@
+[submodule "libs/Styx"]
+	path = libs/Styx
+	url = git://github.com/Vanaheimr/Styx.git
