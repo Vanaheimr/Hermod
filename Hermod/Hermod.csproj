@@ -82,7 +82,7 @@
     <Compile Include="Sockets\UDP\UDPServer.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\libs\Styx\libs\Illias\Commons\Commons.csproj">
+    <ProjectReference Include="..\Vanaheimr\Illias\Commons\Commons.csproj">
       <Project>{16C85DF8-5DE6-4A9F-9FC7-7CA5B0440DF3}</Project>
       <Name>Commons</Name>
     </ProjectReference>
