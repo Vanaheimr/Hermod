@@ -102,29 +102,29 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region Submit(Data)
+        #region SubmitEvent(Data)
 
         /// <summary>
         /// Submit a new event.
         /// </summary>
         /// <param name="Data">The attached event data.</param>
-        public void Submit(params String[] Data)
+        public void SubmitEvent(params String[] Data)
         {
             ListOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter), Data));
         }
 
         #endregion
 
-        #region Submit(Subevent, Data)
+        #region SubmitSubEvent(SubEvent, Data)
 
         /// <summary>
         /// Submit a new event.
         /// </summary>
-        /// <param name="Subevent">A subevent identification.</param>
+        /// <param name="SubEvent">A subevent identification.</param>
         /// <param name="Data">The attached event data.</param>
-        public void Submit(String Subevent, params String[] Data)
+        public void SubmitSubEvent(String SubEvent, params String[] Data)
         {
-            ListOfEvents.Push(new HTTPEvent(Subevent, (UInt64) Interlocked.Increment(ref IdCounter), Data));
+            ListOfEvents.Push(new HTTPEvent(SubEvent, (UInt64) Interlocked.Increment(ref IdCounter), Data));
         }
 
         #endregion
