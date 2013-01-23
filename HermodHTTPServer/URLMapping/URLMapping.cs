@@ -165,12 +165,13 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Add an HTTP event source and a method handler for the given parameters.
         /// </summary>
-        internal void AddEventSource(MethodInfo myMethodInfo, String myHost, String myURITemplate, String myEventIdentification, UInt32 MaxNumberOfCachedEvents, Boolean myIsSharedEventSource, Boolean myNeedsExplicitAuthentication)
+        internal void AddEventSource(MethodInfo myMethodInfo, String myHost, String myURITemplate, HTTPMethod myHTTPMethod, String myEventIdentification, UInt32 MaxNumberOfCachedEvents, Boolean myIsSharedEventSource, Boolean myNeedsExplicitAuthentication)
         {
 
-            _EventSources.Add(myEventIdentification, new HTTPEventSource(myEventIdentification) { MaxNumberOfCachedEvents = MaxNumberOfCachedEvents });
+            if (!_EventSources.ContainsKey(myEventIdentification))
+                _EventSources.Add(myEventIdentification, new HTTPEventSource(myEventIdentification) { MaxNumberOfCachedEvents = MaxNumberOfCachedEvents });
 
-            AddHandler(myMethodInfo, myHost, myURITemplate, HTTPMethod.GET, HTTPContentType.EVENTSTREAM, myNeedsExplicitAuthentication);
+            AddHandler(myMethodInfo, myHost, myURITemplate, myHTTPMethod, HTTPContentType.EVENTSTREAM, myNeedsExplicitAuthentication);
 
         }
 

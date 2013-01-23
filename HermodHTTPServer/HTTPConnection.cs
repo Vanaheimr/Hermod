@@ -649,11 +649,19 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
                     HTTPServiceInterface BestMatchingHTTPServiceImplementation;
 
-                    if (RequestHeader.ContentType != null)
-                        BestMatchingHTTPServiceImplementation = Implementations[RequestHeader.ContentType];
+                    if (RequestHeader.ContentType == HTTPContentType.XWWWFormUrlEncoded && RequestHeader.BestMatchingAcceptType == HTTPContentType.EVENTSTREAM)
+                        BestMatchingHTTPServiceImplementation = Implementations[HTTPContentType.EVENTSTREAM];
 
                     else
-                        BestMatchingHTTPServiceImplementation = Implementations[RequestHeader.BestMatchingAcceptType];
+                    {
+
+                        if (RequestHeader.ContentType != null)
+                            BestMatchingHTTPServiceImplementation = Implementations[RequestHeader.ContentType];
+
+                        else
+                            BestMatchingHTTPServiceImplementation = Implementations[RequestHeader.BestMatchingAcceptType];
+
+                    }
 
                     #endregion
 

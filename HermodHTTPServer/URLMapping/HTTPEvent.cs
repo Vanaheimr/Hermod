@@ -224,15 +224,15 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         {
 
             if (Subevent == null || Subevent.Trim() == "")
-                return String.Format("id:{1}{0}data:{2}{0}{0}",
+                return String.Format("id: {1}{0}data: {2}{0}{0}",
                                        Environment.NewLine,
                                        Id,
-                                       _Data.Aggregate((a, b) => { return a + Environment.NewLine + "data: __" + b; }));
+                                       _Data.Aggregate((a, b) => { return a + Environment.NewLine + "data: " + b; }));
 
             else
-                return String.Concat("id:",    Id,       Environment.NewLine,
-                                     "event:", Subevent, Environment.NewLine,
-                                     "data: ", _Data.Aggregate((a, b) => { return a + Environment.NewLine + "data:" + b; }), Environment.NewLine,
+                return String.Concat("id: ",    Id,       Environment.NewLine,
+                                     "event: ", Subevent, Environment.NewLine,
+                                     "data: ",  _Data.Aggregate((a, b) => { return a + Environment.NewLine + "data: " + b; }), Environment.NewLine,
                                      Environment.NewLine);
 
         }
