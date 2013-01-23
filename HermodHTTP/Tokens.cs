@@ -24,11 +24,25 @@ using System;
 namespace de.ahzf.Vanaheimr.Hermod.HTTP
 {
 
+    /// <summary>
+    /// HTTP tokens and well-known.
+    /// </summary>
     public static class Tokens
     {
 
+        /// <summary>
+        /// A token for a 'callback' parameter within the HTTP query string.
+        /// </summary>
         public const String CALLBACK  = "callback";
+
+        /// <summary>
+        /// A token for a 'skip' parameter within the HTTP query string.
+        /// </summary>
         public const String SKIP      = "skip";
+
+        /// <summary>
+        /// A token for a 'take' parameter within the HTTP query string.
+        /// </summary>
         public const String TAKE      = "take";
 
     }
