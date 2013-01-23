@@ -25,6 +25,8 @@ using System.Reflection;
 using System.Collections.Generic;
 
 using de.ahzf.Illias.Commons;
+using System.Text.RegularExpressions;
+using System.Threading;
 
 #endregion
 
@@ -37,27 +39,46 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
     public abstract class AHTTPService
     {
 
+        #region Data
+
+        /// <summary>
+        /// The 'Callback' parameter within the query string
+        /// </summary>
+        protected ThreadLocal<String> Callback;
+
+        /// <summary>
+        /// The 'Skip' parameter within the query string
+        /// </summary>
+        protected ThreadLocal<UInt64> Skip;
+
+        /// <summary>
+        /// The 'Take' parameter within the query string
+        /// </summary>
+        protected ThreadLocal<UInt64> Take;
+
+        #endregion
+
         #region Properties
 
         /// <summary>
         /// The HTTP connection.
         /// </summary>
-        public IHTTPConnection IHTTPConnection { get; set; }
+        public IHTTPConnection               IHTTPConnection    { get; set; }
 
         /// <summary>
         /// The calling assembly.
         /// </summary>
-        public Assembly CallingAssembly { get; protected set; }
+        public Assembly                      CallingAssembly    { get; protected set; }
 
         /// <summary>
         /// The resource path where to find the internal resources to be exported via HTTP '/resources'.
         /// </summary>
-        public String ResourcePath { get; private   set; }
+        public String                        ResourcePath       { get; private   set; }
 
         /// <summary>
         /// An enumeration of all associated content types.
         /// </summary>
-        public IEnumerable<HTTPContentType> HTTPContentTypes { get; private set; }
+        public IEnumerable<HTTPContentType>  HTTPContentTypes   { get; private   set; }
 
         #endregion
 
@@ -341,6 +362,60 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+
+        #region (protected) ParseCallbackParameter()
+
+        /// <summary>
+        /// Parse and check the parameter CALLBACK.
+        /// </summary>
+        protected void ParseCallbackParameter()
+        {
+
+            String _Callback;
+
+            if (TryGetParameter_String(Tokens.CALLBACK, out _Callback))
+                Callback.Value = new Regex("[^a-zA-Z0-9_]").Replace(_Callback, "");
+
+        }
+
+        #endregion
+
+        #region (protected) ParseSkipParameter()
+
+        /// <summary>
+        /// Parse and check the parameter SKIP.
+        /// </summary>
+        protected void ParseSkipParameter()
+        {
+
+            UInt64 _Skip;
+
+            if (TryGetParameter_UInt64(Tokens.SKIP, out _Skip))
+                Skip.Value = _Skip;
+
+        }
+
+        #endregion
+
+        #region (protected) ParseTakeParameter()
+
+        /// <summary>
+        /// Parse and check the parameter TAKE.
+        /// </summary>
+        protected void ParseTakeParameter()
+        {
+
+            UInt64 _Take;
+
+            if (TryGetParameter_UInt64(Tokens.TAKE, out _Take))
+                Take.Value = _Take;
+
+            if (Take.Value == 0)
+                Take.Value = 25;
+
+        }
+
+        #endregion
 
 
         #region GetResources(ResourceName)

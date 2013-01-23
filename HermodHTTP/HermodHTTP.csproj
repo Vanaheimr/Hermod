@@ -63,6 +63,7 @@
     <Compile Include="Request\HTTPBasicAuthentication.cs" />
     <Compile Include="Request\HTTPMethod.cs" />
     <Compile Include="Request\QueryString.cs" />
+    <Compile Include="Tokens.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Response\" />
