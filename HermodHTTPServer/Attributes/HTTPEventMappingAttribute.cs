@@ -63,6 +63,26 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
+        #region HTTPEventMappingAttribute(EventIdentification, UriTemplate, MaxNumberOfCachedEvents = 0, IsSharedEventSource = false)
+
+        /// <summary>
+        /// Creates a new HTTP event mapping.
+        /// </summary>
+        /// <param name="EventIdentification">The internal identification of the HTTP event.</param>
+        /// <param name="UriTemplate">The URI template of this HTTP event mapping.</param>
+        /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events (0 means infinite).</param>
+        /// <param name="IsSharedEventSource">The event source may be accessed via multiple URI templates.</param>
+        public HTTPEventMappingAttribute(String EventIdentification, String UriTemplate, UInt32 MaxNumberOfCachedEvents = 0, Boolean IsSharedEventSource = false)
+        {
+            this.EventIdentification     = EventIdentification;
+            this.UriTemplate             = UriTemplate;
+            this.HTTPMethod              = HTTPMethod.GET;
+            this.MaxNumberOfCachedEvents = MaxNumberOfCachedEvents;
+            this.IsSharedEventSource     = IsSharedEventSource;
+        }
+
+        #endregion
+
         #region HTTPEventMappingAttribute(EventIdentification, UriTemplate, HTTPMethod, MaxNumberOfCachedEvents = 0, IsSharedEventSource = false)
 
         /// <summary>
