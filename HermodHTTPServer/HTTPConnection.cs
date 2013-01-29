@@ -777,8 +777,9 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
                     #region In case of errors => Send errorpage
 
-                    if (ResponseHeader.HTTPStatusCode.IsClientError ||
-                        ResponseHeader.HTTPStatusCode.IsServerError)
+                    if ((ResponseHeader.HTTPStatusCode.IsClientError ||
+                         ResponseHeader.HTTPStatusCode.IsServerError) &&
+                         ResponseHeader == null)
                     {
                         SendErrorpage(ResponseHeader.HTTPStatusCode, LastException: LastException);
                         return;

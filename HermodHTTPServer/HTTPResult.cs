@@ -29,8 +29,8 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A structure to hold a result and an error of an operation.
     /// </summary>
-    /// <typeparam name="T">The type of the result.</typeparam>
-    public struct HTTPResult<T>
+    /// <typeparam name="TData">The type of the result.</typeparam>
+    public struct HTTPResult<TData>
     {
 
         #region Data
@@ -43,7 +43,12 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The result of an operation.
         /// </summary>
-        public readonly T Data;
+        public readonly TData Data;
+
+        /// <summary>
+        /// The current ETag as state or revision of the resource.
+        /// </summary>
+        public readonly String ETag;
 
         #endregion
 
@@ -68,31 +73,33 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region HTTPResult(Result)
+        #region HTTPResult(Result, ETag = null)
 
-        public HTTPResult(T Result)
+        public HTTPResult(TData Result, String ETag = null)
         {
             this.Error = null;
             this.Data  = Result;
+            this.ETag  = ETag;
         }
 
         #endregion
 
-        #region HTTPResult(HTTPResponse)
+        #region HTTPResult(HTTPResponse, ETag = null)
 
         /// <summary>
         /// Create a new HTTPResult when an error occurred.
         /// </summary>
         /// <param name="Error">The HTTPResponse for this error.</param>
-        public HTTPResult(HTTPResponse HTTPResponse)
+        public HTTPResult(HTTPResponse HTTPResponse, String ETag = null)
         {
             this.Error = HTTPResponse;
-            this.Data  = default(T);
+            this.Data  = default(TData);
+            this.ETag  = ETag;
         }
 
         #endregion
 
-        #region HTTPResult(HTTPRequest, HTTPStatusCode, Reasons = null)
+        #region HTTPResult(HTTPRequest, HTTPStatusCode, Reason = null, ETag = null)
 
         /// <summary>
         /// Create a new HTTPResult when an error occurred.
@@ -100,23 +107,24 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPRequest"></param>
         /// <param name="HTTPStatusCode"></param>
         /// <param name="Error">The HTTPResponse for this error.</param>
-        public HTTPResult(HTTPRequest HTTPRequest, HTTPStatusCode HTTPStatusCode, String Reasons = null)
+        public HTTPResult(HTTPRequest HTTPRequest, HTTPStatusCode HTTPStatusCode, String Reason = null, String ETag = null)
         {
-            Error = null;
-            Data  = default(T);
-            //this.Error = HTTPErrors.HTTPErrorResponse(HTTPRequest, HTTPStatusCode, Reasons);
-            Error = HTTPErrorResponse(HTTPRequest, HTTPStatusCode, Reasons);
-            Data  = default(T);
+            this.Error = null;
+            this.Data  = default(TData);
+            this.ETag  = ETag;
+            this.Error = HTTPErrorResponse(HTTPRequest, HTTPStatusCode, Reason, ETag);
+            
         }
 
         #endregion
 
-        #region HTTPResult(HTTPResponse, Data)
+        #region HTTPResult(HTTPResponse, Data, ETag = null)
 
-        public HTTPResult(HTTPResponse HTTPResponse, T Data)
+        public HTTPResult(HTTPResponse HTTPResponse, TData Data, String ETag = null)
         {
             this.Error = HTTPResponse;
             this.Data  = Data;
+            this.ETag  = ETag;
         }
 
         #endregion
@@ -125,7 +133,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
 
 
-        public HTTPResponse HTTPErrorResponse(HTTPRequest HTTPRequest, HTTPStatusCode StatusCode, String Reasons = null)
+        public HTTPResponse HTTPErrorResponse(HTTPRequest HTTPRequest, HTTPStatusCode StatusCode, String Reason = null, String ETag = null)
         {
 
             #region Initial checks
@@ -151,8 +159,8 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
             //     }
             // }
             if (ContentType == HTTPContentType.JSON_UTF8)
-                Content = (Reasons == null) ? "{ \"error\": { \"code\" : " + StatusCode.Code + ", \"message\" : \"" + StatusCode.Name + "\" } }" :
-                                              "{ \"error\": { \"code\" : " + StatusCode.Code + ", \"message\" : \"" + StatusCode.Name + "\", \"reasons\" : \"" + Reasons + "\" } }";
+                Content = (Reason == null) ? "{\r\n  \"error\":\r\n  {\r\n    \"code\": " + StatusCode.Code + ",\r\n    \"message\": \"" + StatusCode.Name + "\"\r\n  }\r\n}" :
+                                             "{\r\n  \"error\":\r\n  {\r\n    \"code\": " + StatusCode.Code + ",\r\n    \"message\": \"" + StatusCode.Name + "\",\r\n    \"reason\": \"" + Reason + "\"\r\n  }\r\n}";
 
             #endregion
 
@@ -170,8 +178,8 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
             //  </body>
             //</html>
             else if (ContentType == HTTPContentType.HTML_UTF8)
-                Content = (Reasons == null) ? "<!doctype html><html><head><meta charset=\"UTF-8\"><title>Error " + StatusCode.Code + " - " + StatusCode.Name + "</title></head><body><h1>Error " + StatusCode.Code + " - " + StatusCode.Name + "</h1></body></html>" :
-                                              "<!doctype html><html><head><meta charset=\"UTF-8\"><title>Error " + StatusCode.Code + " - " + StatusCode.Name + "</title></head><body><h1>Error " + StatusCode.Code + " - " + StatusCode.Name + "</h1>" + Reasons + "</body></html>";
+                Content = (Reason == null) ? "<!doctype html><html><head><meta charset=\"UTF-8\"><title>Error " + StatusCode.Code + " - " + StatusCode.Name + "</title></head><body><h1>Error " + StatusCode.Code + " - " + StatusCode.Name + "</h1></body></html>" :
+                                              "<!doctype html><html><head><meta charset=\"UTF-8\"><title>Error " + StatusCode.Code + " - " + StatusCode.Name + "</title></head><body><h1>Error " + StatusCode.Code + " - " + StatusCode.Name + "</h1>" + Reason + "</body></html>";
 
             #endregion
 
@@ -180,8 +188,8 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
             // Error 400 - Bad Request
             // The first paramter is not a valid number!
             else if (ContentType == HTTPContentType.TEXT_UTF8 || ContentType == HTTPContentType.ALL)
-                Content = (Reasons == null) ? "Error " + StatusCode.Code + " - " + StatusCode.Name :
-                                              "Error " + StatusCode.Code + " - " + StatusCode.Name + Environment.NewLine + Reasons;
+                Content = (Reason == null) ? "Error " + StatusCode.Code + " - " + StatusCode.Name :
+                                              "Error " + StatusCode.Code + " - " + StatusCode.Name + Environment.NewLine + Reason;
 
             #endregion
 
@@ -194,18 +202,23 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
             //     <reason>The first paramter is not a valid number!</message>
             // </error>
             else if (ContentType == HTTPContentType.XML_UTF8)
-                Content = (Reasons == null) ? "<?xml version=\"1.0\" encoding=\"UTF-8\"?><error><code>" + StatusCode.Code + "</code><message>" + StatusCode.Name + "</message></error></xml>" :
-                                              "<?xml version=\"1.0\" encoding=\"UTF-8\"?><error><code>" + StatusCode.Code + "</code><message>" + StatusCode.Name + "</message><reasons>" + Reasons + "</reasons></error></xml>";
+                Content = (Reason == null) ? "<?xml version=\"1.0\" encoding=\"UTF-8\"?><error><code>" + StatusCode.Code + "</code><message>" + StatusCode.Name + "</message></error></xml>" :
+                                              "<?xml version=\"1.0\" encoding=\"UTF-8\"?><error><code>" + StatusCode.Code + "</code><message>" + StatusCode.Name + "</message><reasons>" + Reason + "</reasons></error></xml>";
 
             #endregion
 
-            return new HTTPResponseBuilder()
-            {
-                HTTPStatusCode = StatusCode,
-                CacheControl   = "no-cache",
-                Connection     = "close",
-                Content        = Content.ToUTF8Bytes()
-            };
+            var response = new HTTPResponseBuilder()
+                {
+                    HTTPStatusCode = StatusCode,
+                    CacheControl   = "no-cache",
+                    Connection     = "close",
+                    Content        = Content.ToUTF8Bytes()
+                };
+
+            if (ETag != null)
+                response.ETag = ETag;
+
+            return response;
 
         }
 

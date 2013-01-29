@@ -335,6 +335,27 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         /// </summary>
         public static readonly HTTPMethod MONITOR       = new HTTPMethod("MONITOR");
 
+        /// <summary>
+        /// Maps all elements of a collection resource and may reduce this to a second data structure.
+        /// This can be implemented via two JavaScript functions within the HTTP body.
+        /// </summary>
+        public static readonly HTTPMethod MAPREDUCE     = new HTTPMethod("MAPREDUCE");
+
+        /// <summary>
+        /// Subscribe an URI to receive notifications from this resource.
+        /// </summary>
+        public static readonly HTTPMethod SUBSCRIBE     = new HTTPMethod("SUBSCRIBE");
+
+        /// <summary>
+        /// Unsubscribe an URI to receive notifications from this resource.
+        /// </summary>
+        public static readonly HTTPMethod UNSUBSCRIBE   = new HTTPMethod("UNSUBSCRIBE");
+
+        /// <summary>
+        /// Notify a subscriber of an URI about notifications from a resource.
+        /// </summary>
+        public static readonly HTTPMethod NOTIFY        = new HTTPMethod("NOTIFY");
+
         #endregion
 
 
