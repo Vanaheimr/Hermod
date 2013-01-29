@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2012, Achim 'ahzf' Friedland <achim@graph-database.org>
+ * Copyright (c) 2010-2013, Achim 'ahzf' Friedland <achim@graph-database.org>
  * This file is part of Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -102,29 +102,29 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region Submit(Data)
+        #region SubmitEvent(Data)
 
         /// <summary>
         /// Submit a new event.
         /// </summary>
         /// <param name="Data">The attached event data.</param>
-        public void Submit(params String[] Data)
+        public void SubmitEvent(params String[] Data)
         {
             ListOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter), Data));
         }
 
         #endregion
 
-        #region Submit(Subevent, Data)
+        #region SubmitSubEvent(SubEvent, Data)
 
         /// <summary>
         /// Submit a new event.
         /// </summary>
-        /// <param name="Subevent">A subevent identification.</param>
+        /// <param name="SubEvent">A subevent identification.</param>
         /// <param name="Data">The attached event data.</param>
-        public void Submit(String Subevent, params String[] Data)
+        public void SubmitSubEvent(String SubEvent, params String[] Data)
         {
-            ListOfEvents.Push(new HTTPEvent(Subevent, (UInt64) Interlocked.Increment(ref IdCounter), Data));
+            ListOfEvents.Push(new HTTPEvent(SubEvent, (UInt64) Interlocked.Increment(ref IdCounter), Data));
         }
 
         #endregion

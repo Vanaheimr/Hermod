@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2012, Achim 'ahzf' Friedland <achim@graph-database.org>
+ * Copyright (c) 2010-2013, Achim 'ahzf' Friedland <achim@graph-database.org>
  * This file is part of Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,41 +36,48 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The internal identification of the HTTP event.
         /// </summary>
-        public String  EventIdentification      { get; private set; }
+        public String      EventIdentification      { get; private set; }
 
         /// <summary>
         /// The URI template of this HTTP event mapping.
         /// </summary>
-        public String  UriTemplate              { get; private set; }
+        public String      UriTemplate              { get; private set; }
+
+        /// <summary>
+        /// The HTTP method to use.
+        /// </summary>
+        public HTTPMethod  HTTPMethod               { get; private set; }
 
         /// <summary>
         /// Maximum number of cached events.
         /// Zero means infinite.
         /// </summary>
-        public UInt32  MaxNumberOfCachedEvents  { get; private set; }
+        public UInt32      MaxNumberOfCachedEvents  { get; private set; }
 
         /// <summary>
         /// The event source may be accessed via multiple URI templates.
         /// </summary>
-        public Boolean IsSharedEventSource      { get; private set; }
+        public Boolean     IsSharedEventSource      { get; private set; }
 
         #endregion
 
         #region Constructor(s)
 
-        #region HTTPEventMappingAttribute(EventIdentification, UriTemplate, MaxNumberOfCachedEvents = 0, IsSharedEventSource = false)
+        #region HTTPEventMappingAttribute(EventIdentification, UriTemplate, HTTPMethod, MaxNumberOfCachedEvents = 0, IsSharedEventSource = false)
 
         /// <summary>
         /// Creates a new HTTP event mapping.
         /// </summary>
         /// <param name="EventIdentification">The internal identification of the HTTP event.</param>
         /// <param name="UriTemplate">The URI template of this HTTP event mapping.</param>
+        /// <param name="HTTPMethod">The HTTP method to use.</param>
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events (0 means infinite).</param>
         /// <param name="IsSharedEventSource">The event source may be accessed via multiple URI templates.</param>
-        public HTTPEventMappingAttribute(String EventIdentification, String UriTemplate, UInt32 MaxNumberOfCachedEvents = 0, Boolean IsSharedEventSource = false)
+        public HTTPEventMappingAttribute(String EventIdentification, String UriTemplate, HTTPMethods HTTPMethod, UInt32 MaxNumberOfCachedEvents = 0, Boolean IsSharedEventSource = false)
         {
             this.EventIdentification     = EventIdentification;
             this.UriTemplate             = UriTemplate;
+            this.HTTPMethod              = de.ahzf.Vanaheimr.Hermod.HTTP.HTTPMethod.ParseEnum(HTTPMethod);
             this.MaxNumberOfCachedEvents = MaxNumberOfCachedEvents;
             this.IsSharedEventSource     = IsSharedEventSource;
         }

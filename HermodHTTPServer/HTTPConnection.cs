@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2012, Achim 'ahzf' Friedland <achim@graph-database.org>
+ * Copyright (c) 2010-2013, Achim 'ahzf' Friedland <achim@graph-database.org>
  * This file is part of Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -649,11 +649,19 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
                     HTTPServiceInterface BestMatchingHTTPServiceImplementation;
 
-                    if (RequestHeader.ContentType != null)
-                        BestMatchingHTTPServiceImplementation = Implementations[RequestHeader.ContentType];
+                    if (RequestHeader.ContentType == HTTPContentType.XWWWFormUrlEncoded && RequestHeader.BestMatchingAcceptType == HTTPContentType.EVENTSTREAM)
+                        BestMatchingHTTPServiceImplementation = Implementations[HTTPContentType.EVENTSTREAM];
 
                     else
-                        BestMatchingHTTPServiceImplementation = Implementations[RequestHeader.BestMatchingAcceptType];
+                    {
+
+                        if (RequestHeader.ContentType != null)
+                            BestMatchingHTTPServiceImplementation = Implementations[RequestHeader.ContentType];
+
+                        else
+                            BestMatchingHTTPServiceImplementation = Implementations[RequestHeader.BestMatchingAcceptType];
+
+                    }
 
                     #endregion
 

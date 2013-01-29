@@ -21,30 +21,29 @@ using System;
 
 #endregion
 
-namespace de.ahzf.Vanaheimr.Hermod.Datastructures
+namespace de.ahzf.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// The remote socket is the "other side" of a socket connection.
-    /// It a combination of a remote IPAdress and a remote port.
+    /// HTTP tokens and well-known.
     /// </summary>
-    public interface IRemoteSocket : IDisposable
+    public static class Tokens
     {
 
         /// <summary>
-        /// The remote socket.
+        /// A token for a 'callback' parameter within the HTTP query string.
         /// </summary>
-        IPSocket   RemoteSocket { get; }
+        public const String CALLBACK  = "callback";
 
         /// <summary>
-        /// The remote host.
+        /// A token for a 'skip' parameter within the HTTP query string.
         /// </summary>
-        IIPAddress RemoteHost   { get; }
+        public const String SKIP      = "skip";
 
         /// <summary>
-        /// The remote port.
+        /// A token for a 'take' parameter within the HTTP query string.
         /// </summary>
-        IPPort     RemotePort   { get; }
+        public const String TAKE      = "take";
 
     }
 

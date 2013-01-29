@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2012, Achim 'ahzf' Friedland <achim@graph-database.org>
+ * Copyright (c) 2010-2013, Achim 'ahzf' Friedland <achim@graph-database.org>
  * This file is part of Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -224,15 +224,15 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         {
 
             if (Subevent == null || Subevent.Trim() == "")
-                return String.Format("id:{1}{0}data:{2}{0}{0}",
+                return String.Format("id: {1}{0}data: {2}{0}{0}",
                                        Environment.NewLine,
                                        Id,
-                                       _Data.Aggregate((a, b) => { return a + Environment.NewLine + "data: __" + b; }));
+                                       _Data.Aggregate((a, b) => { return a + Environment.NewLine + "data: " + b; }));
 
             else
-                return String.Concat("id:",    Id,       Environment.NewLine,
-                                     "event:", Subevent, Environment.NewLine,
-                                     "data: ", _Data.Aggregate((a, b) => { return a + Environment.NewLine + "data:" + b; }), Environment.NewLine,
+                return String.Concat("id: ",    Id,       Environment.NewLine,
+                                     "event: ", Subevent, Environment.NewLine,
+                                     "data: ",  _Data.Aggregate((a, b) => { return a + Environment.NewLine + "data: " + b; }), Environment.NewLine,
                                      Environment.NewLine);
 
         }

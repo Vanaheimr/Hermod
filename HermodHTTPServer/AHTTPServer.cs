@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2012, Achim 'ahzf' Friedland <achim@graph-database.org>
+ * Copyright (c) 2010-2013, Achim 'ahzf' Friedland <achim@graph-database.org>
  * This file is part of Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -205,7 +205,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
                                 if (_HTTPMethod != null)
                                     throw new Exception("URI '" + _URITemplate + "' is already registered as HTTP method!");
 
-                                _HTTPMethod              = HTTPMethod.GET;
+                                _HTTPMethod              = _HTTPEventMappingAttribute.HTTPMethod;
                                 _EventIdentification     = _HTTPEventMappingAttribute.EventIdentification;
                                 _URITemplate             = _HTTPEventMappingAttribute.UriTemplate;
                                 _MaxNumberOfCachedEvents = _HTTPEventMappingAttribute.MaxNumberOfCachedEvents;
@@ -250,7 +250,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
                                 else
                                     if (_EventIdentification != null)
-                                        AddEventSource(_MethodInfo, _Host, _URITemplate, _EventIdentification, _MaxNumberOfCachedEvents, _IsSharedEventSource, NeedsExplicitAuthentication);
+                                        AddEventSource(_MethodInfo, _Host, _URITemplate, _HTTPMethod, _EventIdentification, _MaxNumberOfCachedEvents, _IsSharedEventSource, NeedsExplicitAuthentication);
                             }
 
                         #endregion
@@ -305,13 +305,14 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region AddEventSource(MethodInfo, Host, URITemplate, EventIdentification, MaxNumberOfCachedEvents, IsSharedEventSource = false, NeedsExplicitAuthentication = false)
+        #region AddEventSource(MethodInfo, Host, URITemplate, HTTPMethod, EventIdentification, MaxNumberOfCachedEvents, IsSharedEventSource = false, NeedsExplicitAuthentication = false)
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="MethodInfo"></param>
         /// <param name="Host"></param>
+        /// <param name="HTTPMethod">The HTTP methods to use.</param>
         /// <param name="URITemplate"></param>
         /// <param name="EventIdentification"></param>
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events (0 means infinite).</param>
@@ -320,12 +321,13 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         public void AddEventSource(MethodInfo  MethodInfo,
                                    String      Host,
                                    String      URITemplate,
+                                   HTTPMethod  HTTPMethod,
                                    String      EventIdentification,
                                    UInt32      MaxNumberOfCachedEvents,
                                    Boolean     IsSharedEventSource          = false,
                                    Boolean     NeedsExplicitAuthentication  = false)
         {
-            URLMapping.AddEventSource(MethodInfo, Host, URITemplate, EventIdentification, MaxNumberOfCachedEvents, IsSharedEventSource, NeedsExplicitAuthentication);
+            URLMapping.AddEventSource(MethodInfo, Host, URITemplate, HTTPMethod, EventIdentification, MaxNumberOfCachedEvents, IsSharedEventSource, NeedsExplicitAuthentication);
         }
 
         #endregion

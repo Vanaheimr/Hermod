@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2012, Achim 'ahzf' Friedland <achim@graph-database.org>
+ * Copyright (c) 2010-2013, Achim 'ahzf' Friedland <achim@graph-database.org>
  * This file is part of Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -165,12 +165,13 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Add an HTTP event source and a method handler for the given parameters.
         /// </summary>
-        internal void AddEventSource(MethodInfo myMethodInfo, String myHost, String myURITemplate, String myEventIdentification, UInt32 MaxNumberOfCachedEvents, Boolean myIsSharedEventSource, Boolean myNeedsExplicitAuthentication)
+        internal void AddEventSource(MethodInfo myMethodInfo, String myHost, String myURITemplate, HTTPMethod myHTTPMethod, String myEventIdentification, UInt32 MaxNumberOfCachedEvents, Boolean myIsSharedEventSource, Boolean myNeedsExplicitAuthentication)
         {
 
-            _EventSources.Add(myEventIdentification, new HTTPEventSource(myEventIdentification) { MaxNumberOfCachedEvents = MaxNumberOfCachedEvents });
+            if (!_EventSources.ContainsKey(myEventIdentification))
+                _EventSources.Add(myEventIdentification, new HTTPEventSource(myEventIdentification) { MaxNumberOfCachedEvents = MaxNumberOfCachedEvents });
 
-            AddHandler(myMethodInfo, myHost, myURITemplate, HTTPMethod.GET, HTTPContentType.EVENTSTREAM, myNeedsExplicitAuthentication);
+            AddHandler(myMethodInfo, myHost, myURITemplate, myHTTPMethod, HTTPContentType.EVENTSTREAM, myNeedsExplicitAuthentication);
 
         }
 
