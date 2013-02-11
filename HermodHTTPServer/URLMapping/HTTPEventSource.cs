@@ -53,10 +53,16 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
         #region Properties
 
+        #region EventIdentification
+
         /// <summary>
         /// The internal identification of the HTTP event.
         /// </summary>
         public String EventIdentification     { get; private set; }
+
+        #endregion
+
+        #region MaxNumberOfCachedEvents
 
         /// <summary>
         /// Maximum number of cached events.
@@ -78,6 +84,17 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region RetryTime
+
+        /// <summary>
+        /// The retry time of this HTTP event in milliseconds.
+        /// </summary>
+        public UInt64 RetryTime { get; private set; }
+
+        #endregion
+
+        #endregion
+
         #region Constructor(s)
 
         #region HTTPEventSource()
@@ -94,6 +111,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
             this.EventIdentification = EventIdentification;
             this.ListOfEvents        = new TSQueue<HTTPEvent>();
+            this.RetryTime           = 1000;
 
         }
 
@@ -138,9 +156,10 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         /// <param name="LastEventId">The Last-Event-Id header value.</param>
         public IEnumerable<HTTPEvent> GetEvents(UInt64 LastEventId = 0)
         {
-            return from   Eventsss in ListOfEvents
-                   where  Eventsss.Id > LastEventId
-                   select Eventsss;
+            return from    Events in ListOfEvents
+                   where   Events.Id > LastEventId
+                   orderby Events.Id
+                   select  Events;
         }
 
         #endregion
