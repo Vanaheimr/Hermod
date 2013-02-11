@@ -33,7 +33,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
     {
 
         UNKNOWN,
-        
+
         #region RFC 2616 - HTTP/1.1
 
         CONNECT,
@@ -148,7 +148,12 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Notify a subscriber of an URI about notifications from a resource.
         /// </summary>
-        NOTIFY
+        NOTIFY,
+
+        /// <summary>
+        /// Check a resource.
+        /// </summary>
+        CHECK
 
         #endregion
 
@@ -355,6 +360,11 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         /// Notify a subscriber of an URI about notifications from a resource.
         /// </summary>
         public static readonly HTTPMethod NOTIFY        = new HTTPMethod("NOTIFY");
+
+        /// <summary>
+        /// Check a resource.
+        /// </summary>
+        public static readonly HTTPMethod CHECK         = new HTTPMethod("CHECK");
 
         #endregion
 
@@ -603,4 +613,3 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
     }
 
 }
-
