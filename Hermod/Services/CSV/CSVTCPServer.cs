@@ -19,8 +19,10 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Collections.Generic;
 
 using de.ahzf.Vanaheimr.Hermod.Sockets.TCP;
 using de.ahzf.Vanaheimr.Hermod.Datastructures;
@@ -112,7 +114,7 @@ namespace de.ahzf.Vanaheimr.Hermod.Services
         /// <param name="Sender">The message sender.</param>
         /// <param name="Timestamp">The timestamp of the event.</param>
         /// <param name="Values">The received data as an enumeration of strings.</param>
-        public delegate String DataAvailableDelegate(Object Sender, DateTime Timestamp, String[] Values);
+        public delegate IEnumerable<String> DataAvailableDelegate(Object Sender, DateTime Timestamp, String[] Values);
 
         /// <summary>
         /// An event fired whenever new data is available.
@@ -238,7 +240,8 @@ namespace de.ahzf.Vanaheimr.Hermod.Services
                                                                                                Encoding.UTF8.GetString(data).
                                                                                                              Trim().
                                                                                                              Split(SplitCharacters,
-                                                                                                                   StringSplitOptions.RemoveEmptyEntries));
+                                                                                                                   StringSplitOptions.RemoveEmptyEntries)).
+                                                                               Aggregate((a, b) => a + Environment.NewLine + b);
 
                                                                   if (result == String.Empty)
                                                                       result = "protocol error";
