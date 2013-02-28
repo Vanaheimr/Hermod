@@ -439,6 +439,68 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region CORS
+
+        #region Access-Control-Allow-Origin
+
+        public String AccessControlAllowOrigin
+        {
+
+            get
+            {
+                return GetHeaderField(HTTPHeaderField.AccessControlAllowOrigin);
+            }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.AccessControlAllowOrigin, value);
+            }
+
+        }
+
+        #endregion
+
+        #region Access-Control-Allow-Methods
+
+        public String AccessControlAllowMethods
+        {
+
+            get
+            {
+                return GetHeaderField(HTTPHeaderField.AccessControlAllowMethods);
+            }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.AccessControlAllowMethods, value);
+            }
+
+        }
+
+        #endregion
+
+        #region Access-Control-Allow-Headers
+
+        public String AccessControlAllowHeaders
+        {
+
+            get
+            {
+                return GetHeaderField(HTTPHeaderField.AccessControlAllowHeaders);
+            }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.AccessControlAllowHeaders, value);
+            }
+
+        }
+
+        #endregion
+
+        #endregion
+
+
         #endregion
 
         #region Events

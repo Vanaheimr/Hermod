@@ -413,7 +413,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
                                                                                  RequestPathSemantic.EndToEnd);
 
         #endregion
-        
+
         #region Date
 
         /// <summary>
@@ -2563,6 +2563,52 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
                                                                                typeof(String),
                                                                                HeaderFieldType.Response,
                                                                                RequestPathSemantic.EndToEnd);
+
+        #endregion
+
+        #region CORS
+
+        #region Access-Control-Allow-Origin
+
+        /// <summary>
+        /// Access-Control-Allow-Origin.
+        /// </summary>
+        /// <example>Access-Control-Allow-Origin: *</example>
+        /// <seealso cref="http://en.wikipedia.org/wiki/Cross-origin_resource_sharing"/>
+        public static readonly HTTPHeaderField AccessControlAllowOrigin = new HTTPHeaderField("Access-Control-Allow-Origin",
+                                                                                              typeof(String),
+                                                                                              HeaderFieldType.Response,
+                                                                                              RequestPathSemantic.EndToEnd);
+
+        #endregion
+
+        #region Access-Control-Allow-Methods
+
+        /// <summary>
+        /// Access-Control-Allow-Methods.
+        /// </summary>
+        /// <example>Access-Control-Allow-Methods: GET, PUT, POST, DELETE</example>
+        /// <seealso cref="http://en.wikipedia.org/wiki/Cross-origin_resource_sharing"/>
+        public static readonly HTTPHeaderField AccessControlAllowMethods = new HTTPHeaderField("Access-Control-Allow-Methods",
+                                                                                               typeof(String),
+                                                                                               HeaderFieldType.Response,
+                                                                                               RequestPathSemantic.EndToEnd);
+
+        #endregion
+
+        #region Access-Control-Allow-Headers
+
+        /// <summary>
+        /// Access-Control-Allow-Headers.
+        /// </summary>
+        /// <example>Access-Control-Allow-Headers: Content-Type</example>
+        /// <seealso cref="http://en.wikipedia.org/wiki/Cross-origin_resource_sharing"/>
+        public static readonly HTTPHeaderField AccessControlAllowHeaders = new HTTPHeaderField("Access-Control-Allow-Headers",
+                                                                                               typeof(String),
+                                                                                               HeaderFieldType.Response,
+                                                                                               RequestPathSemantic.EndToEnd);
+
+        #endregion
 
         #endregion
 
