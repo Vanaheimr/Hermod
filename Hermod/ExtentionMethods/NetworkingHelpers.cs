@@ -22,7 +22,7 @@ using System.Text;
 
 #endregion
 
-namespace de.ahzf.Vanaheimr.Hermod.Datastructures
+namespace eu.Vanaheimr.Hermod.Datastructures
 {
 
     /// <summary>

@@ -24,13 +24,13 @@ using System.Linq;
 using System.Reflection;
 using System.Collections.Generic;
 
-using de.ahzf.Illias.Commons;
+using eu.Vanaheimr.Illias.Commons;
 using System.Text.RegularExpressions;
 using System.Threading;
 
 #endregion
 
-namespace de.ahzf.Vanaheimr.Hermod.HTTP
+namespace eu.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>

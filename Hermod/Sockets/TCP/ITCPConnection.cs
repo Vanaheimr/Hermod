@@ -22,11 +22,11 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 
-using de.ahzf.Vanaheimr.Hermod.Datastructures;
+using eu.Vanaheimr.Hermod.Datastructures;
 
 #endregion
 
-namespace de.ahzf.Vanaheimr.Hermod.Sockets.TCP
+namespace eu.Vanaheimr.Hermod.Sockets.TCP
 {
 
     /// <summary>

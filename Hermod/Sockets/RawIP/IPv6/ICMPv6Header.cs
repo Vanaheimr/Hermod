@@ -1,5 +1,5 @@
 ﻿using System;
-using de.ahzf.Vanaheimr.Hermod.Datastructures;
+using eu.Vanaheimr.Hermod.Datastructures;
 
 class Icmpv6Header : AProtocolHeader
 {

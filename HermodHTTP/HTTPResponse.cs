@@ -27,7 +27,7 @@ using System.Net.Sockets;
 
 #endregion
 
-namespace de.ahzf.Vanaheimr.Hermod.HTTP
+namespace eu.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>

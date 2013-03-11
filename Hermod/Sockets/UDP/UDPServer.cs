@@ -24,11 +24,11 @@ using System.Reflection;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 
-using de.ahzf.Vanaheimr.Hermod.Datastructures;
+using eu.Vanaheimr.Hermod.Datastructures;
 
 #endregion
 
-namespace de.ahzf.Vanaheimr.Hermod.Sockets.UDP
+namespace eu.Vanaheimr.Hermod.Sockets.UDP
 {
 
     /// <summary>

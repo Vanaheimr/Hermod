@@ -21,7 +21,7 @@ using System.Collections.Generic;
 
 #endregion
 
-namespace de.ahzf.Vanaheimr.Hermod.HTTP
+namespace eu.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>

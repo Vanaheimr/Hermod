@@ -19,11 +19,11 @@
 
 using System;
 
-using de.ahzf.Vanaheimr.Hermod.Datastructures;
+using eu.Vanaheimr.Hermod.Datastructures;
 
 #endregion
 
-namespace de.ahzf.Vanaheimr.Hermod.HTTP
+namespace eu.Vanaheimr.Hermod.HTTP
 {
 
     public delegate void AccessLogDelegate(DateTime ServerTime, HTTPRequest Request, HTTPResponse HTTPResponse);

@@ -1,5 +1,5 @@
 ﻿
-using de.ahzf.Vanaheimr.Hermod.Datastructures;
+using eu.Vanaheimr.Hermod.Datastructures;
 
 public class IPv6FragmentHeader
 {

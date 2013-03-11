@@ -23,11 +23,11 @@ using System.Text;
 using System.Linq;
 using System.Collections.Generic;
 
-using de.ahzf.Illias.Commons;
+using eu.Vanaheimr.Illias.Commons;
 
 #endregion
 
-namespace de.ahzf.Vanaheimr.Hermod.HTTP
+namespace eu.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>

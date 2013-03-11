@@ -23,7 +23,7 @@ using System.Net.Sockets;
 
 #endregion
 
-namespace de.ahzf.Vanaheimr.Hermod.Sockets.UDP
+namespace eu.Vanaheimr.Hermod.Sockets.UDP
 {
 
     /// <summary>

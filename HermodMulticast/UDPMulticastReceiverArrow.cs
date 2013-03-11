@@ -24,12 +24,12 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
-using de.ahzf.Vanaheimr.Styx;
-using de.ahzf.Vanaheimr.Hermod.Datastructures;
+using eu.Vanaheimr.Styx;
+using eu.Vanaheimr.Hermod.Datastructures;
 
 #endregion
 
-namespace de.ahzf.Vanaheimr.Hermod.Multicast
+namespace eu.Vanaheimr.Hermod.Multicast
 {
 
     /// <summary>

@@ -28,12 +28,12 @@ using System.Net.Sockets;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens;
 
-using de.ahzf.Illias.Commons;
-using de.ahzf.Vanaheimr.Hermod.Sockets.TCP;
+using eu.Vanaheimr.Illias.Commons;
+using eu.Vanaheimr.Hermod.Sockets.TCP;
 
 #endregion
 
-namespace de.ahzf.Vanaheimr.Hermod.HTTP
+namespace eu.Vanaheimr.Hermod.HTTP
 {
 
     internal class StreamHelper
@@ -74,9 +74,9 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
 
         #region NewHTTPServiceHandler
 
-        private de.ahzf.Vanaheimr.Hermod.HTTP.HTTPServer<HTTPServiceInterface>.NewHTTPServiceHandler _NewHTTPServiceHandler;
+        private eu.Vanaheimr.Hermod.HTTP.HTTPServer<HTTPServiceInterface>.NewHTTPServiceHandler _NewHTTPServiceHandler;
 
-        public de.ahzf.Vanaheimr.Hermod.HTTP.HTTPServer<HTTPServiceInterface>.NewHTTPServiceHandler NewHTTPServiceHandler
+        public eu.Vanaheimr.Hermod.HTTP.HTTPServer<HTTPServiceInterface>.NewHTTPServiceHandler NewHTTPServiceHandler
         {
 
             get

@@ -21,7 +21,7 @@ using System;
 
 #endregion
 
-namespace de.ahzf.Vanaheimr.Hermod.Datastructures
+namespace eu.Vanaheimr.Hermod.Datastructures
 {
 
     /// <summary>

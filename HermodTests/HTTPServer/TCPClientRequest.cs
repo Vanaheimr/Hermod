@@ -20,17 +20,17 @@
 using System;
 using System.Net.Sockets;
 
-using de.ahzf.Vanaheimr.Hermod.HTTP;
-using de.ahzf.Vanaheimr.Hermod.Datastructures;
+using eu.Vanaheimr.Hermod.HTTP;
+using eu.Vanaheimr.Hermod.Datastructures;
 
-using de.ahzf.Illias.Commons;
+using eu.Vanaheimr.Illias.Commons;
 using NUnit.Framework;
 using System.Collections.Generic;
 using System.Threading;
 
 #endregion
 
-namespace de.ahzf.Vanaheimr.Hermod.UnitTests
+namespace eu.Vanaheimr.Hermod.UnitTests
 {
 
     /// <summary>

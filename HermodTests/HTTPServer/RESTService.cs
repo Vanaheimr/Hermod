@@ -24,11 +24,11 @@ using System.Linq;
 using System.Reflection;
 using System.Collections.Generic;
 
-using de.ahzf.Vanaheimr.Hermod.HTTP;
+using eu.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
-namespace de.ahzf.Vanaheimr.Hermod.UnitTests
+namespace eu.Vanaheimr.Hermod.UnitTests
 {
 
     /// <summary>

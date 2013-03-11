@@ -1,5 +1,5 @@
 ﻿using System;
-using de.ahzf.Vanaheimr.Hermod.Datastructures;
+using eu.Vanaheimr.Hermod.Datastructures;
 public class IcmpHeader : AProtocolHeader
 {
     private byte icmpType;                   // ICMP message type

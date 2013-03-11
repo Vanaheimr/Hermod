@@ -21,13 +21,13 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 
-using de.ahzf.Illias.Commons;
-using de.ahzf.Vanaheimr.Styx;
-using de.ahzf.Vanaheimr.Hermod.Datastructures;
+using eu.Vanaheimr.Illias.Commons;
+using eu.Vanaheimr.Styx;
+using eu.Vanaheimr.Hermod.Datastructures;
 
 #endregion
 
-namespace de.ahzf.Vanaheimr.Hermod.Multicast
+namespace eu.Vanaheimr.Hermod.Multicast
 {
 
     /// <summary>

@@ -24,12 +24,12 @@ using System.Text;
 using System.Threading;
 using System.Net.Sockets;
 
-using de.ahzf.Illias.Commons;
-using de.ahzf.Vanaheimr.Hermod.Datastructures;
+using eu.Vanaheimr.Illias.Commons;
+using eu.Vanaheimr.Hermod.Datastructures;
 
 #endregion
 
-namespace de.ahzf.Vanaheimr.Hermod.Sockets.TCP
+namespace eu.Vanaheimr.Hermod.Sockets.TCP
 {
 
     /// <summary>

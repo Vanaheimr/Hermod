@@ -20,12 +20,12 @@
 using System;
 using System.Net;
 
-using de.ahzf.Vanaheimr.Hermod.Sockets.TCP;
-using de.ahzf.Vanaheimr.Hermod.Datastructures;
+using eu.Vanaheimr.Hermod.Sockets.TCP;
+using eu.Vanaheimr.Hermod.Datastructures;
 
 #endregion
 
-namespace de.ahzf.Vanaheimr.Hermod.HTTP
+namespace eu.Vanaheimr.Hermod.HTTP
 {
 
     #region HTTPServer -> HTTPServer<DefaultHTTPService>

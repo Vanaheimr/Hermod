@@ -22,7 +22,7 @@ using System.Net;
 
 #endregion
 
-namespace de.ahzf.Vanaheimr.Hermod.HTTP
+namespace eu.Vanaheimr.Hermod.HTTP
 {
 
     [AttributeUsage(AttributeTargets.Interface, Inherited = false, AllowMultiple = true)]

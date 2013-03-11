@@ -21,12 +21,12 @@ using System;
 using System.Text;
 using System.Net.Sockets;
 
-using de.ahzf.Vanaheimr.Hermod.Datastructures;
+using eu.Vanaheimr.Hermod.Datastructures;
 using System.Net;
 
 #endregion
 
-namespace de.ahzf.Vanaheimr.Hermod.Sockets.UDP
+namespace eu.Vanaheimr.Hermod.Sockets.UDP
 {
 
     public static class UDPExtensions

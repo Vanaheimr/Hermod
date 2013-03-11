@@ -20,11 +20,11 @@
 using System;
 using System.IO;
 
-using de.ahzf.Vanaheimr.Hermod.Datastructures;
+using eu.Vanaheimr.Hermod.Datastructures;
 
 #endregion
 
-namespace de.ahzf.Vanaheimr.Hermod.Sockets.RawIP.ICMP
+namespace eu.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 {
 
     public interface IICMPPacket : IRemoteSocket

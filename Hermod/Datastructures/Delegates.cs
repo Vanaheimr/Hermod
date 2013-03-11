@@ -21,7 +21,7 @@ using System;
 
 #endregion
 
-namespace de.ahzf.Vanaheimr.Hermod
+namespace eu.Vanaheimr.Hermod
 {
 
     public delegate void ExceptionOccuredHandler(Object Sender, Exception Exception);

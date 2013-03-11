@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-namespace de.ahzf.Vanaheimr.Hermod.HTTP
+namespace eu.Vanaheimr.Hermod.HTTP
 {
 
     public class ClientResult

@@ -19,14 +19,14 @@
 
 using System;
 
-using de.ahzf.Vanaheimr.Hermod.HTTP;
-using de.ahzf.Vanaheimr.Hermod.Datastructures;
+using eu.Vanaheimr.Hermod.HTTP;
+using eu.Vanaheimr.Hermod.Datastructures;
 
 using NUnit.Framework;
 
 #endregion
 
-namespace de.ahzf.Vanaheimr.Hermod.UnitTests
+namespace eu.Vanaheimr.Hermod.UnitTests
 {
 
     /// <summary>

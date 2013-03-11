@@ -19,11 +19,11 @@
 
 using System;
 using System.Net;
-using de.ahzf.Vanaheimr.Hermod.Datastructures;
+using eu.Vanaheimr.Hermod.Datastructures;
 
 #endregion
 
-namespace de.ahzf.Vanaheimr.Hermod.Sockets.UDP
+namespace eu.Vanaheimr.Hermod.Sockets.UDP
 {
 
     /// <summary>

@@ -26,7 +26,7 @@ using System.Net;
 
 #endregion
 
-namespace de.ahzf.Vanaheimr.Hermod.Datastructures
+namespace eu.Vanaheimr.Hermod.Datastructures
 {
 
     /// <summary>

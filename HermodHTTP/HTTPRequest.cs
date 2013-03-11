@@ -23,12 +23,12 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Text;
 
-using de.ahzf.Illias.Commons;
-using de.ahzf.Vanaheimr.Hermod.Datastructures;
+using eu.Vanaheimr.Illias.Commons;
+using eu.Vanaheimr.Hermod.Datastructures;
 
 #endregion
 
-namespace de.ahzf.Vanaheimr.Hermod.HTTP
+namespace eu.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>

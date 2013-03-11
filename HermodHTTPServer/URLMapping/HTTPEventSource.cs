@@ -23,13 +23,13 @@ using System.Linq;
 using System.Threading;
 using System.Collections.Generic;
 
-using de.ahzf.Vanaheimr.Hermod.Sockets.TCP;
-using de.ahzf.Vanaheimr.Hermod.Datastructures;
-using de.ahzf.Illias.Commons.Collections;
+using eu.Vanaheimr.Hermod.Sockets.TCP;
+using eu.Vanaheimr.Hermod.Datastructures;
+using eu.Vanaheimr.Illias.Commons.Collections;
 
 #endregion
 
-namespace de.ahzf.Vanaheimr.Hermod.HTTP
+namespace eu.Vanaheimr.Hermod.HTTP
 {
 
     // In contrast to other popular Comet protocols such as Bayeux or BOSH, Server-Sent Events

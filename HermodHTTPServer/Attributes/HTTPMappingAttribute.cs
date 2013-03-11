@@ -21,7 +21,7 @@ using System;
 
 #endregion
 
-namespace de.ahzf.Vanaheimr.Hermod.HTTP
+namespace eu.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
@@ -72,7 +72,7 @@ namespace de.ahzf.Vanaheimr.Hermod.HTTP
         public HTTPMappingAttribute(HTTPMethods HTTPMethod, String UriTemplate)
         {
             
-            this.HTTPMethod  = de.ahzf.Vanaheimr.Hermod.HTTP.HTTPMethod.ParseEnum(HTTPMethod);
+            this.HTTPMethod  = eu.Vanaheimr.Hermod.HTTP.HTTPMethod.ParseEnum(HTTPMethod);
 
             if (this.HTTPMethod == null)
                 throw new ArgumentNullException("Invalid HTTPMethod!");

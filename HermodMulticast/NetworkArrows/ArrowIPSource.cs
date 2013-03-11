@@ -19,11 +19,11 @@
 
 using System;
 
-using de.ahzf.Vanaheimr.Hermod.Datastructures;
+using eu.Vanaheimr.Hermod.Datastructures;
 
 #endregion
 
-namespace de.ahzf.Vanaheimr.Hermod.Multicast
+namespace eu.Vanaheimr.Hermod.Multicast
 {
 
     public struct ArrowIPSource

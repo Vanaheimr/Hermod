@@ -25,11 +25,11 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 
-using de.ahzf.Vanaheimr.Hermod.Datastructures;
+using eu.Vanaheimr.Hermod.Datastructures;
 
 #endregion
 
-namespace de.ahzf.Vanaheimr.Hermod.Sockets.TCP
+namespace eu.Vanaheimr.Hermod.Sockets.TCP
 {
 
     #region TCPServer<TCPConnection>
