@@ -297,7 +297,14 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="EventSourceIdentification">A string to identify an event source.</param>
         public HTTPEventSource EventSource(String EventSourceIdentification)
         {
-            return _EventSources[EventSourceIdentification];
+
+            HTTPEventSource EventSource = null;
+
+            if (_EventSources.TryGetValue(EventSourceIdentification, out EventSource))
+                return EventSource;
+
+            return null;
+
         }
 
         #endregion
