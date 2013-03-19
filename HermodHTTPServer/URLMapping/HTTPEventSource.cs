@@ -23,6 +23,8 @@ using System.Linq;
 using System.Threading;
 using System.Collections.Generic;
 
+using Newtonsoft.Json.Linq;
+
 using eu.Vanaheimr.Hermod.Sockets.TCP;
 using eu.Vanaheimr.Hermod.Datastructures;
 using eu.Vanaheimr.Illias.Commons.Collections;
@@ -143,6 +145,44 @@ namespace eu.Vanaheimr.Hermod.HTTP
         public void SubmitSubEvent(String SubEvent, params String[] Data)
         {
             ListOfEvents.Push(new HTTPEvent(SubEvent, (UInt64) Interlocked.Increment(ref IdCounter), Data));
+        }
+
+        #endregion
+
+        #region SubmitSubEventWithTimestamp(SubEvent, Data)
+
+        /// <summary>
+        /// Submit a new subevent, using the current time as timestamp.
+        /// </summary>
+        /// <param name="SubEvent">A subevent identification.</param>
+        /// <param name="Data">The attached event data.</param>
+        public void SubmitSubEventWithTimestamp(String SubEvent, params String[] Data)
+        {
+            SubmitSubEventWithTimestamp(SubEvent, DateTime.Now, Data);
+        }
+
+        #endregion
+
+        #region SubmitSubEventWithTimestamp(SubEvent, Timestamp, Data)
+
+        /// <summary>
+        /// Submit a new subevent with a timestamp.
+        /// </summary>
+        /// <param name="SubEvent">A subevent identification.</param>
+        /// <param name="Timestamp">The timestamp of the event.</param>
+        /// <param name="Data">The attached event data.</param>
+        public void SubmitSubEventWithTimestamp(String SubEvent, DateTime Timestamp, params String[] Data)
+        {
+
+            SubmitSubEvent(SubEvent,
+                           new JObject(
+                               new JProperty("Timestamp", Timestamp),
+                               new JProperty("Message",   Data.Aggregate((a, b) => a + " " + b))
+                           ).
+                           ToString().
+                           Replace(Environment.NewLine, " ")
+                          );
+
         }
 
         #endregion
