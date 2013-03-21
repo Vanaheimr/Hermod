@@ -580,10 +580,10 @@ namespace eu.Vanaheimr.Hermod.HTTP
                             Debug.WriteLine("Thread[" + Thread.CurrentThread.ManagedThreadId + " from: " + RemoteHost + ":" + RemotePort + "]: length of stream so far: " + _MemoryStream.Length + " @ " + _EndOfHTTPHeader + ", " + _HTTPStream.DataAvailable + ", " + TCPClientConnection.Connected);
                         }
 
-                        Thread.Sleep(10);
+                        Thread.Sleep(100);
                         _Retries++;
 
-                        if (_Retries > 2)
+                        if (_Retries > 20)
                         {
                             Debug.WriteLine("Thread[" + Thread.CurrentThread.ManagedThreadId + " from: " + RemoteHost + ":" + RemotePort + "]: Closing connection!");
                             TCPClientConnection.Close();
