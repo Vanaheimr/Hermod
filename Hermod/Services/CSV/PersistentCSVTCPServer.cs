@@ -35,7 +35,7 @@ namespace eu.Vanaheimr.Hermod.Services
     /// <summary>
     /// A TCP service accepting incoming CSV lines with an ending 0x00 character.
     /// </summary>
-    public class CSVTCPServer : ICSVTCPServer
+    public class PersistentCSVTCPServer : ICSVTCPServer
     {
 
         #region Data
@@ -145,7 +145,7 @@ namespace eu.Vanaheimr.Hermod.Services
         /// <param name="IPPort">The IP port to bind.</param>
         /// <param name="SplitCharacters">The characters to split the incoming CSV lines.</param>
         /// <param name="ServiceBanner">The identifiying banner of the service.</param>
-        public CSVTCPServer(IPPort IPPort, Char[] SplitCharacters = null, String ServiceBanner = "Vanaheimr Hermod CSV TCP Service v0.2")
+        public PersistentCSVTCPServer(IPPort IPPort, Char[] SplitCharacters = null, String ServiceBanner = "Vanaheimr Hermod pCSV TCP Service v0.2")
         {
 
             this.ServiceBanner    = ServiceBanner;
@@ -159,15 +159,17 @@ namespace eu.Vanaheimr.Hermod.Services
                                                       OnNewConnection(this, DateTime.Now, newTCPConnection.RemoteHost, newTCPConnection.RemotePort);
 
                                                   newTCPConnection.NoDelay = true;
-                                                  newTCPConnection.WriteToResponseStream(ServiceBanner);
+                                                  newTCPConnection.WriteToResponseStream(this.ServiceBanner);
                                                   newTCPConnection.WriteToResponseStream("\r\n");
                                                   newTCPConnection.WriteToResponseStream(0x00);
 
                                                   Byte Byte;
-                                                  var MemoryStream = new MemoryStream();
+                                                  MemoryStream MemStream = new MemoryStream();
 
                                                   try
                                                   {
+
+                                                      #region Read a single line
 
                                                       while (newTCPConnection.IsConnected)
                                                       {
@@ -175,47 +177,61 @@ namespace eu.Vanaheimr.Hermod.Services
                                                           Byte = newTCPConnection.ReadByte();
 
                                                           if (Byte != 0x00)
-                                                              MemoryStream.WriteByte(Byte);
+                                                              MemStream.WriteByte(Byte);
 
                                                           else
                                                           {
 
-                                                              if (OnDataAvailable != null)
+                                                              if (MemStream.Length == 0)
+                                                                  newTCPConnection.Close();
+
+                                                              else if (OnDataAvailable != null)
                                                               {
 
-                                                                  var data     = MemoryStream.ToArray();
-                                                                  var results  = new List<String>();
-
-                                                                  String[] CSVData = null;
-
-                                                                  try
-                                                                  {
-
-                                                                      CSVData = Encoding.UTF8.GetString(data).
-                                                                                              Trim().
-                                                                                              Split(SplitCharacters,
-                                                                                                    StringSplitOptions.RemoveEmptyEntries);
-
-                                                                  }
-                                                                  catch (Exception)
-                                                                  {
-                                                                      results.Add("Invalid CSV string: " + data);
-                                                                  }
+                                                                  var data = MemStream.ToArray();
 
                                                                   if (data.Length > 0)
-                                                                      OnDataAvailable(this,
-                                                                                      results,
-                                                                                      DateTime.Now,
-                                                                                      CSVData);
+                                                                  {
 
-                                                                  if (OnResult != null)
-                                                                      OnResult(this, DateTime.Now, results);
+                                                                      String[] CSVData = null;
 
-                                                                  newTCPConnection.WriteToResponseStream(Encoding.UTF8.GetBytes(results.Aggregate((a, b) => a + "|" + b)));
-                                                                  newTCPConnection.WriteToResponseStream("\r\n");
-                                                                  newTCPConnection.WriteToResponseStream(0x00);
-                                                                  Thread.Sleep(10);
-                                                                  newTCPConnection.Close();
+                                                                      try
+                                                                      {
+
+                                                                          CSVData = Encoding.UTF8.GetString(data).
+                                                                                                  Trim().
+                                                                                                  Split(SplitCharacters,
+                                                                                                        StringSplitOptions.RemoveEmptyEntries);
+
+                                                                      }
+                                                                      catch (Exception)
+                                                                      {
+                                                                          throw new ApplicationException("protocol error - Invalid UTF8 encoding!");
+                                                                      }
+
+                                                                      if (CSVData.Length > 0)
+                                                                      {
+
+                                                                          var results = new List<String>();
+
+                                                                          if (data.Length > 0)
+                                                                              OnDataAvailable(this,
+                                                                                              results,
+                                                                                              DateTime.Now,
+                                                                                              CSVData);
+
+                                                                          if (OnResult != null)
+                                                                              OnResult(this, DateTime.Now, results);
+
+                                                                          newTCPConnection.WriteToResponseStream(Encoding.UTF8.GetBytes(results.Aggregate((a, b) => a + "|" + b)));
+                                                                          newTCPConnection.WriteToResponseStream(0x00);
+
+                                                                      }
+
+                                                                  }
+
+                                                                  MemStream.SetLength(0);
+                                                                  MemStream.Seek(0, SeekOrigin.Begin);
 
                                                               }
 
@@ -223,11 +239,18 @@ namespace eu.Vanaheimr.Hermod.Services
 
                                                       }
 
+                                                      #endregion
+
                                                   }
                                                   catch (Exception e)
                                                   {
+
+                                                      //newTCPConnection.WriteToResponseStream(Encoding.UTF8.GetBytes("protocol error - " + ));
+                                                      //newTCPConnection.WriteToResponseStream(0x00);
+
                                                       if (OnExceptionOccurred != null)
-                                                          OnExceptionOccurred(this, DateTime.Now, e, MemoryStream);
+                                                          OnExceptionOccurred(this, DateTime.Now, e, MemStream);
+
                                                   }
 
                                                   if (OnConnectionClosed != null)
