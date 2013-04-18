@@ -184,7 +184,7 @@ namespace eu.Vanaheimr.Hermod.Services
                                                               {
 
                                                                   var data     = MemoryStream.ToArray();
-                                                                  var results  = new List<String>();
+                                                                  var results  = new List<CSVResult>();
 
                                                                   String[] CSVData = null;
 
@@ -199,7 +199,7 @@ namespace eu.Vanaheimr.Hermod.Services
                                                                   }
                                                                   catch (Exception)
                                                                   {
-                                                                      results.Add("Invalid CSV string: " + data);
+                                                                      results.Add(new CSVResult("Invalid CSV string: " + data, ""));
                                                                   }
 
                                                                   if (data.Length > 0)
@@ -211,7 +211,7 @@ namespace eu.Vanaheimr.Hermod.Services
                                                                   if (OnResult != null)
                                                                       OnResult(this, DateTime.Now, results);
 
-                                                                  newTCPConnection.WriteToResponseStream(Encoding.UTF8.GetBytes(results.Aggregate((a, b) => a + "|" + b)));
+                                                                  newTCPConnection.WriteToResponseStream(Encoding.UTF8.GetBytes(results.Select(r => r.ToString()).Aggregate((a, b) => a + "|" + b)));
                                                                   newTCPConnection.WriteToResponseStream("\r\n");
                                                                   newTCPConnection.WriteToResponseStream(0x00);
                                                                   Thread.Sleep(10);

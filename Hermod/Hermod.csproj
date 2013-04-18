@@ -56,6 +56,7 @@
     <Compile Include="Datastructures\IPv4Address.cs" />
     <Compile Include="Datastructures\IPSocket.cs" />
     <Compile Include="Interfaces\IRemoteSocket.cs" />
+    <Compile Include="Services\CSV\CSVResult.cs" />
     <Compile Include="Services\CSV\Delegates.cs" />
     <Compile Include="Services\CSV\ICSVTCPServer.cs" />
     <Compile Include="Services\CSV\PersistentCSVTCPServer.cs" />

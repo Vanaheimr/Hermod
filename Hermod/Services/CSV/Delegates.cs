@@ -54,7 +54,7 @@ namespace eu.Vanaheimr.Hermod.Services
     /// <param name="Sender">The message sender.</param>
     /// <param name="Timestamp">The timestamp of the event.</param>
     /// <param name="Values">The received data as an enumeration of strings.</param>
-    public delegate void DataAvailableDelegate(ICSVTCPServer Sender, List<String> Results, DateTime Timestamp, String[] Values);
+    public delegate void DataAvailableDelegate(ICSVTCPServer Sender, List<CSVResult> Results, DateTime Timestamp, String[] Values);
 
     /// <summary>
     /// A result is available.
@@ -62,7 +62,7 @@ namespace eu.Vanaheimr.Hermod.Services
     /// <param name="Sender">The sender of this event.</param>
     /// <param name="Timestamp">The timestamp of the event.</param>
     /// <param name="Results">The results.</param>
-    public delegate void ResultDelegate(ICSVTCPServer Sender, DateTime Timestamp, IEnumerable<String> Results);
+    public delegate void ResultDelegate(ICSVTCPServer Sender, DateTime Timestamp, IEnumerable<CSVResult> Results);
 
     /// <summary>
     /// An exception occured.

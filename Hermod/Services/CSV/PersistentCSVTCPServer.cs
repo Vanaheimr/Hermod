@@ -212,7 +212,7 @@ namespace eu.Vanaheimr.Hermod.Services
                                                                       if (CSVData.Length > 0)
                                                                       {
 
-                                                                          var results = new List<String>();
+                                                                          var results = new List<CSVResult>();
 
                                                                           if (data.Length > 0)
                                                                               OnDataAvailable(this,
@@ -223,7 +223,7 @@ namespace eu.Vanaheimr.Hermod.Services
                                                                           if (OnResult != null)
                                                                               OnResult(this, DateTime.Now, results);
 
-                                                                          newTCPConnection.WriteToResponseStream(Encoding.UTF8.GetBytes(results.Aggregate((a, b) => a + "|" + b)));
+                                                                          newTCPConnection.WriteToResponseStream(Encoding.UTF8.GetBytes(results.Select(r => r.ToString()).Aggregate((a, b) => a + "|" + b)));
                                                                           newTCPConnection.WriteToResponseStream(0x00);
 
                                                                       }
