@@ -32,21 +32,28 @@ using eu.Vanaheimr.Hermod.Datastructures;
 namespace eu.Vanaheimr.Hermod.Services
 {
 
+    public enum CSVStatus
+    {
+        OK,
+        warning,
+        ERROR
+    }
+
     public struct CSVResult
     {
 
-        private readonly String Status;
-        private readonly String Processor;
+        private readonly CSVStatus  Status;
+        private readonly String     Message;
 
-        public CSVResult(String _Status, String _Processor = "")
+        public CSVResult(CSVStatus _Status, String _Message = "")
         {
-            Status     = _Status;
-            Processor  = _Processor;
+            Status   = _Status;
+            Message  = _Message;
         }
 
         public override String ToString()
         {
-            return Status + "[" + Processor + "]";
+            return Status + "[" + Message + "]";
         }
 
     }

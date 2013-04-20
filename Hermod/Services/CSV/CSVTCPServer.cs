@@ -199,7 +199,7 @@ namespace eu.Vanaheimr.Hermod.Services
                                                                   }
                                                                   catch (Exception)
                                                                   {
-                                                                      results.Add(new CSVResult("Invalid CSV string: " + data, ""));
+                                                                      results.Add(new CSVResult(CSVStatus.ERROR, "Invalid CSV string: " + data));
                                                                   }
 
                                                                   if (data.Length > 0)
