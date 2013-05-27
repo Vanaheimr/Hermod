@@ -159,6 +159,7 @@ namespace eu.Vanaheimr.Hermod.Services
                                                       OnNewConnection(this, DateTime.Now, newTCPConnection.RemoteHost, newTCPConnection.RemotePort);
 
                                                   newTCPConnection.NoDelay = true;
+                                                  newTCPConnection.ReadTimeout = 300000;
                                                   newTCPConnection.WriteToResponseStream(this.ServiceBanner);
                                                   newTCPConnection.WriteToResponseStream("\r\n");
                                                   newTCPConnection.WriteToResponseStream(0x00);
@@ -177,68 +178,72 @@ namespace eu.Vanaheimr.Hermod.Services
 
                                                           Byte = newTCPConnection.ReadByte();
 
-                                                          if ((Byte == 0x00 || Byte == 0x0d || Byte == 0x0a) &&
-                                                              !EndOfData)
+                                                          if (Byte == 0x00 || Byte == 0x0d || Byte == 0x0a)
                                                           {
 
-                                                              EndOfData = true;
-
-                                                              #region Process data
-
-                                                              if (MemStream.Length == 0)
-                                                                  newTCPConnection.Close();
-
-                                                              else if (OnDataAvailable != null)
+                                                              if (EndOfData == false)
                                                               {
 
-                                                                  var data = MemStream.ToArray();
+                                                                  EndOfData = true;
 
-                                                                  if (data.Length > 0)
+                                                                  #region Process data
+
+                                                                  if (MemStream.Length == 0)
+                                                                      newTCPConnection.Close();
+
+                                                                  else if (OnDataAvailable != null)
                                                                   {
 
-                                                                      String[] CSVData = null;
+                                                                      var data = MemStream.ToArray();
 
-                                                                      try
+                                                                      if (data.Length > 0)
                                                                       {
 
-                                                                          CSVData = Encoding.UTF8.GetString(data).
-                                                                                                  Trim().
-                                                                                                  Split(SplitCharacters,
-                                                                                                        StringSplitOptions.RemoveEmptyEntries);
+                                                                          String[] CSVData = null;
+
+                                                                          try
+                                                                          {
+
+                                                                              CSVData = Encoding.UTF8.GetString(data).
+                                                                                                      Trim().
+                                                                                                      Split(SplitCharacters,
+                                                                                                            StringSplitOptions.RemoveEmptyEntries);
+
+                                                                          }
+                                                                          catch (Exception)
+                                                                          {
+                                                                              throw new ApplicationException("protocol error - Invalid UTF8 encoding!");
+                                                                          }
+
+                                                                          if (CSVData.Length > 0)
+                                                                          {
+
+                                                                              var results = new List<CSVResult>();
+
+                                                                              if (data.Length > 0)
+                                                                                  OnDataAvailable(this,
+                                                                                                  results,
+                                                                                                  DateTime.Now,
+                                                                                                  CSVData);
+
+                                                                              if (OnResult != null)
+                                                                                  OnResult(this, DateTime.Now, results);
+
+                                                                              newTCPConnection.WriteToResponseStream(Encoding.UTF8.GetBytes(results.Select(r => r.ToString()).Aggregate((a, b) => a + "|" + b)));
+                                                                              newTCPConnection.WriteToResponseStream(0x00);
+
+                                                                          }
 
                                                                       }
-                                                                      catch (Exception)
-                                                                      {
-                                                                          throw new ApplicationException("protocol error - Invalid UTF8 encoding!");
-                                                                      }
 
-                                                                      if (CSVData.Length > 0)
-                                                                      {
-
-                                                                          var results = new List<CSVResult>();
-
-                                                                          if (data.Length > 0)
-                                                                              OnDataAvailable(this,
-                                                                                              results,
-                                                                                              DateTime.Now,
-                                                                                              CSVData);
-
-                                                                          if (OnResult != null)
-                                                                              OnResult(this, DateTime.Now, results);
-
-                                                                          newTCPConnection.WriteToResponseStream(Encoding.UTF8.GetBytes(results.Select(r => r.ToString()).Aggregate((a, b) => a + "|" + b)));
-                                                                          newTCPConnection.WriteToResponseStream(0x00);
-
-                                                                      }
+                                                                      MemStream.SetLength(0);
+                                                                      MemStream.Seek(0, SeekOrigin.Begin);
 
                                                                   }
 
-                                                                  MemStream.SetLength(0);
-                                                                  MemStream.Seek(0, SeekOrigin.Begin);
+                                                                  #endregion
 
                                                               }
-
-                                                              #endregion
 
                                                           }
 
