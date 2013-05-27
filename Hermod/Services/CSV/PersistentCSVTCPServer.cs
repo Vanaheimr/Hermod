@@ -159,7 +159,7 @@ namespace eu.Vanaheimr.Hermod.Services
                                                       OnNewConnection(this, DateTime.Now, newTCPConnection.RemoteHost, newTCPConnection.RemotePort);
 
                                                   newTCPConnection.NoDelay = true;
-                                                  newTCPConnection.ReadTimeout = 300000;
+                                                  newTCPConnection.ReadTimeout = 3000000;
                                                   newTCPConnection.WriteToResponseStream(this.ServiceBanner);
                                                   newTCPConnection.WriteToResponseStream("\r\n");
                                                   newTCPConnection.WriteToResponseStream(0x00);
