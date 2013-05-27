@@ -164,7 +164,8 @@ namespace eu.Vanaheimr.Hermod.Services
                                                   newTCPConnection.WriteToResponseStream(0x00);
 
                                                   Byte Byte;
-                                                  MemoryStream MemStream = new MemoryStream();
+                                                  var MemStream  = new MemoryStream();
+                                                  var EndOfData  = false;
 
                                                   try
                                                   {
@@ -176,11 +177,13 @@ namespace eu.Vanaheimr.Hermod.Services
 
                                                           Byte = newTCPConnection.ReadByte();
 
-                                                          if (Byte != 0x00)
-                                                              MemStream.WriteByte(Byte);
-
-                                                          else
+                                                          if ((Byte == 0x00 || Byte == 0x0d || Byte == 0x0a) &&
+                                                              !EndOfData)
                                                           {
+
+                                                              EndOfData = true;
+
+                                                              #region Process data
 
                                                               if (MemStream.Length == 0)
                                                                   newTCPConnection.Close();
@@ -235,6 +238,14 @@ namespace eu.Vanaheimr.Hermod.Services
 
                                                               }
 
+                                                              #endregion
+
+                                                          }
+
+                                                          else
+                                                          {
+                                                              EndOfData = false;
+                                                              MemStream.WriteByte(Byte);
                                                           }
 
                                                       }
