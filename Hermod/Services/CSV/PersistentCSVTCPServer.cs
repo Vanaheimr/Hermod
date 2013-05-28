@@ -229,11 +229,16 @@ namespace eu.Vanaheimr.Hermod.Services
                                                                               if (OnResult != null)
                                                                                   OnResult(this, DateTime.Now, results);
 
-                                                                              newTCPConnection.WriteToResponseStream(Encoding.UTF8.GetBytes(results.Select(r => r.ToString()).Aggregate((a, b) => a + "|" + b)));
-                                                                              newTCPConnection.WriteToResponseStream(0x0a);
-                                                                              newTCPConnection.WriteToResponseStream(0x0d);
+                                                                              var ReturnString = results.Select(r => r.ToString()).Aggregate((a, b) => a + "|" + b);
+
+                                                                              var GlobalResult = "";
+
+                                                                              //ToDo: Find a better solution!
+                                                                              if (ReturnString.StartsWith("OK"))
+                                                                                  GlobalResult = "OK\r\n";
+
+                                                                              newTCPConnection.WriteToResponseStream(Encoding.UTF8.GetBytes(GlobalResult + ReturnString));
                                                                               newTCPConnection.WriteToResponseStream(0x00);
-                                                                              //test!
 
                                                                           }
 
