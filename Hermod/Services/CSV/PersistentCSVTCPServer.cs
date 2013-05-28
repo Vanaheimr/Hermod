@@ -159,7 +159,7 @@ namespace eu.Vanaheimr.Hermod.Services
                                                       OnNewConnection(this, DateTime.Now, newTCPConnection.RemoteHost, newTCPConnection.RemotePort);
 
                                                   newTCPConnection.NoDelay = true;
-                                                  newTCPConnection.ReadTimeout = 3000000;
+                                                  newTCPConnection.ReadTimeout = 300000;
                                                   newTCPConnection.WriteToResponseStream(this.ServiceBanner);
                                                   newTCPConnection.WriteToResponseStream("\r\n");
                                                   newTCPConnection.WriteToResponseStream(0x00);
@@ -230,7 +230,10 @@ namespace eu.Vanaheimr.Hermod.Services
                                                                                   OnResult(this, DateTime.Now, results);
 
                                                                               newTCPConnection.WriteToResponseStream(Encoding.UTF8.GetBytes(results.Select(r => r.ToString()).Aggregate((a, b) => a + "|" + b)));
+                                                                              newTCPConnection.WriteToResponseStream(0x0a);
+                                                                              newTCPConnection.WriteToResponseStream(0x0d);
                                                                               newTCPConnection.WriteToResponseStream(0x00);
+                                                                              //test!
 
                                                                           }
 
