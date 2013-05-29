@@ -269,7 +269,7 @@ namespace eu.Vanaheimr.Hermod.Services
                                                       //newTCPConnection.WriteToResponseStream(0x00);
 
                                                       if (OnExceptionOccurred != null)
-                                                          OnExceptionOccurred(this, DateTime.Now, e, MemStream);
+                                                          OnExceptionOccurred(this, DateTime.Now, newTCPConnection.RemoteHost, newTCPConnection.RemotePort, e, MemStream);
 
                                                   }
 

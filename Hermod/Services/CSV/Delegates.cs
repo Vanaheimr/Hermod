@@ -69,9 +69,11 @@ namespace eu.Vanaheimr.Hermod.Services
     /// </summary>
     /// <param name="Sender">The sender of this event.</param>
     /// <param name="Timestamp">The timestamp of the event.</param>
+    /// <param name="RemoteIPAddress">The IP address of the remote TCP client.</param>
+    /// <param name="RemotePort">The IP port of the remote TCP client.</param>
     /// <param name="Exception">The exception.</param>
     /// <param name="CurrentBuffer">The state of the receive buffer when the exception occured.</param>
-    public delegate void ExceptionOccurredDelegate(ICSVTCPServer Sender, DateTime Timestamp, Exception Exception, MemoryStream CurrentBuffer);
+    public delegate void ExceptionOccurredDelegate(ICSVTCPServer Sender, DateTime Timestamp, IIPAddress RemoteIPAddress, IPPort RemotePort, Exception Exception, MemoryStream CurrentBuffer);
 
     /// <summary>
     /// Service stopped delegate.

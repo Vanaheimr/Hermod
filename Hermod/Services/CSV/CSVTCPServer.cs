@@ -227,7 +227,7 @@ namespace eu.Vanaheimr.Hermod.Services
                                                   catch (Exception e)
                                                   {
                                                       if (OnExceptionOccurred != null)
-                                                          OnExceptionOccurred(this, DateTime.Now, e, MemoryStream);
+                                                          OnExceptionOccurred(this, DateTime.Now, newTCPConnection.RemoteHost, newTCPConnection.RemotePort, e, MemoryStream);
                                                   }
 
                                                   if (OnConnectionClosed != null)
