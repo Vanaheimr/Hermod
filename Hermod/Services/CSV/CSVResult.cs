@@ -42,8 +42,8 @@ namespace eu.Vanaheimr.Hermod.Services
     public struct CSVResult
     {
 
-        private readonly CSVStatus  Status;
-        private readonly String     Message;
+        public readonly CSVStatus  Status;
+        public readonly String     Message;
 
         public CSVResult(CSVStatus _Status, String _Message = "")
         {
