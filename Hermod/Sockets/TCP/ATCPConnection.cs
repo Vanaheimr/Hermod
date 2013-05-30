@@ -94,8 +94,8 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         #region ReadTimeout
 
         /// <summary>
-        /// Gets or sets the amount of time that a read operation
-        /// blocks waiting for data.
+        /// Gets or sets the amount of time, in milliseconds, that a read operation
+        /// blocks waiting for data. On default the read operation does not time out.
         /// </summary>
         public Int32 ReadTimeout
         {

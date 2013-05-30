@@ -176,113 +176,120 @@ namespace eu.Vanaheimr.Hermod.Services
                                                       while (newTCPConnection.IsConnected)
                                                       {
 
-                                                          Byte = newTCPConnection.ReadByte();
-
-                                                          #region Check for CSV line ending
-
-                                                          if (Byte == 0x00)
-                                                              EndOfCSVLine = 2;
-
-                                                          else if (Byte == 0x0d)
-                                                              EndOfCSVLine = 1;
-
-                                                          else if (EndOfCSVLine == 1)
+                                                          if (newTCPConnection.ReadByte(out Byte))
                                                           {
-                                                              if (Byte == 0x0a)
+
+                                                              #region Check for CSV line ending
+
+                                                              if (Byte == 0x00)
                                                                   EndOfCSVLine = 2;
-                                                              else
-                                                                  throw new IOException("Protocol Error: Invalid CSV line ending!");
-                                                          }
 
-                                                          #endregion
+                                                              else if (Byte == 0x0d)
+                                                                  EndOfCSVLine = 1;
+
+                                                              else if (EndOfCSVLine == 1)
+                                                              {
+                                                                  if (Byte == 0x0a)
+                                                                      EndOfCSVLine = 2;
+                                                                  else
+                                                                      throw new IOException("Protocol Error: Invalid CSV line ending!");
+                                                              }
+
+                                                              #endregion
 
 
-                                                          if (EndOfCSVLine == 0)
-                                                              MemStream.WriteByte(Byte);
+                                                              if (EndOfCSVLine == 0)
+                                                                  MemStream.WriteByte(Byte);
 
 
-                                                          #region Process data
+                                                              #region Process data
 
-                                                          else if (EndOfCSVLine == 2)
-                                                          {
-
-                                                              if (MemStream.Length > 0 && OnDataAvailable != null)
+                                                              else if (EndOfCSVLine == 2)
                                                               {
 
-                                                                  #region Check UTF8 encoding
-
-                                                                  var CSVLine = String.Empty;
-
-                                                                  try
-                                                                  {
-                                                                      CSVLine = Encoding.UTF8.GetString(MemStream.ToArray());
-                                                                  }
-                                                                  catch (Exception)
-                                                                  {
-                                                                      throw new IOException("Protocol Error: Invalid UTF8 encoding!");
-                                                                  }
-
-                                                                  #endregion
-
-                                                                  #region Check CSV separation
-
-                                                                  String[] CSVArray = null;
-
-                                                                  try
+                                                                  if (MemStream.Length > 0 && OnDataAvailable != null)
                                                                   {
 
-                                                                      CSVArray = CSVLine.Trim().
-                                                                                         Split(SplitCharacters,
-                                                                                               StringSplitOptions.RemoveEmptyEntries);
+                                                                      #region Check UTF8 encoding
+
+                                                                      var CSVLine = String.Empty;
+
+                                                                      try
+                                                                      {
+                                                                          CSVLine = Encoding.UTF8.GetString(MemStream.ToArray());
+                                                                      }
+                                                                      catch (Exception)
+                                                                      {
+                                                                          throw new IOException("Protocol Error: Invalid UTF8 encoding!");
+                                                                      }
+
+                                                                      #endregion
+
+                                                                      #region Check CSV separation
+
+                                                                      String[] CSVArray = null;
+
+                                                                      try
+                                                                      {
+
+                                                                          CSVArray = CSVLine.Trim().
+                                                                                             Split(SplitCharacters,
+                                                                                                   StringSplitOptions.RemoveEmptyEntries);
+
+                                                                      }
+                                                                      catch (Exception)
+                                                                      {
+                                                                          throw new IOException("Protocol Error: Invalid CSV data!");
+                                                                      }
+
+                                                                      if (CSVArray.Length < 2)
+                                                                          throw new IOException("Protocol Error: Invalid CSV data!");
+
+                                                                      #endregion
+
+                                                                      #region Call OnDataAvailable delegate
+
+                                                                      var ResultList = new List<CSVResult>();
+
+                                                                      OnDataAvailable(this,
+                                                                                      ResultList,
+                                                                                      DateTime.Now,
+                                                                                      CSVArray);
+
+                                                                      #endregion
+
+                                                                      #region Call OnResult delegate
+
+                                                                      if (OnResult != null)
+                                                                          OnResult(this, DateTime.Now, ResultList);
+
+                                                                      #endregion
+
+                                                                      #region Generate result string
+
+                                                                      var GlobalResult = (ResultList.Select(r => r.Status > 0).Aggregate((a, b) => a || b)) ? CSVStatus.ERROR : CSVStatus.OK;
+                                                                      var ReturnString = ResultList.Select(r => r.ToString()).Aggregate((a, b) => a + "|" + b);
+
+                                                                      newTCPConnection.WriteToResponseStream(Encoding.UTF8.GetBytes(GlobalResult.ToString() + "\r\n" + ReturnString));
+                                                                      newTCPConnection.WriteToResponseStream(0x00);
+
+                                                                      #endregion
 
                                                                   }
-                                                                  catch (Exception)
-                                                                  {
-                                                                      throw new IOException("Protocol Error: Invalid CSV data!");
-                                                                  }
 
-                                                                  if (CSVArray.Length < 2)
-                                                                      throw new IOException("Protocol Error: Invalid CSV data!");
-
-                                                                  #endregion
-
-                                                                  #region Call OnDataAvailable delegate
-
-                                                                  var ResultList = new List<CSVResult>();
-
-                                                                  OnDataAvailable(this,
-                                                                                  ResultList,
-                                                                                  DateTime.Now,
-                                                                                  CSVArray);
-
-                                                                  #endregion
-
-                                                                  #region Call OnResult delegate
-
-                                                                  if (OnResult != null)
-                                                                      OnResult(this, DateTime.Now, ResultList);
-
-                                                                  #endregion
-
-                                                                  #region Generate result string
-
-                                                                  var GlobalResult = (ResultList.Select(r => r.Status > 0).Aggregate((a, b) => a || b)) ? CSVStatus.ERROR : CSVStatus.OK;
-                                                                  var ReturnString =  ResultList.Select(r => r.ToString()).Aggregate((a, b) => a + "|" + b);
-
-                                                                  newTCPConnection.WriteToResponseStream(Encoding.UTF8.GetBytes(GlobalResult.ToString() + "\r\n" + ReturnString));
-                                                                  newTCPConnection.WriteToResponseStream(0x00);
-
-                                                                  #endregion
+                                                                  MemStream.SetLength(0);
+                                                                  MemStream.Seek(0, SeekOrigin.Begin);
+                                                                  EndOfCSVLine = 0;
 
                                                               }
 
-                                                              MemStream.SetLength(0);
-                                                              MemStream.Seek(0, SeekOrigin.Begin);
-                                                              EndOfCSVLine = 0;
+                                                              #endregion
 
                                                           }
 
-                                                          #endregion
+                                                          else
+                                                          {
+                                                          }
 
                                                       }
 
