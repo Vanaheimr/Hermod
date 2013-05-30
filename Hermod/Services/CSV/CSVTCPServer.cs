@@ -289,6 +289,7 @@ namespace eu.Vanaheimr.Hermod.Services
 
                                                           else
                                                           {
+                                                              Thread.Sleep(100);
                                                           }
 
                                                       }
