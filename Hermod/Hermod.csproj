@@ -59,7 +59,6 @@
     <Compile Include="Services\CSV\CSVResult.cs" />
     <Compile Include="Services\CSV\Delegates.cs" />
     <Compile Include="Services\CSV\ICSVTCPServer.cs" />
-    <Compile Include="Services\CSV\PersistentCSVTCPServer.cs" />
     <Compile Include="Services\CSV\CSVTCPServer.cs" />
     <Compile Include="Sockets\IServer.cs" />
     <Compile Include="Sockets\IICMPPacket.cs" />
