@@ -19,7 +19,7 @@
 
 using System;
 using System.IO;
-using System.Net;
+using System.Text;
 using System.Net.Sockets;
 
 using eu.Vanaheimr.Hermod.Datastructures;
@@ -36,11 +36,6 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
     {
 
         #region Properties
-
-        /// <summary>
-        /// The TCPClient connection to a connected Client
-        /// </summary>
-        TcpClient  TCPClientConnection { get; }
 
         /// <summary>
         /// Is False if the client is disconnected from the server
@@ -85,7 +80,40 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
         #region Read(...)
 
-        Boolean ReadByte(out Byte Byte);
+        /// <summary>
+        /// Read a byte value from the TCP connection.
+        /// </summary>
+        /// <param name="SleepingTimeMS">When no data is currently available wait at least this amount of time [milliseconds].</param>
+        /// <param name="MaxInitialWaitingTimeMS">When no data is currently available wait at most this amount of time [milliseconds].</param>
+        /// <returns>The read byte OR 0x00 if nothing could be read.</returns>
+        Byte Read(UInt16 SleepingTimeMS = 5, UInt16 MaxInitialWaitingTimeMS = 500);
+
+        /// <summary>
+        /// Try to read a byte value from the TCP connection.
+        /// </summary>
+        /// <param name="Byte">The byte value OR 0x00 if nothing could be read.</param>
+        /// <param name="SleepingTimeMS">When no data is currently available wait at least this amount of time [milliseconds].</param>
+        /// <param name="MaxInitialWaitingTimeMS">When no data is currently available wait at most this amount of time [milliseconds].</param>
+        /// <returns>True, if the byte value is valid; False otherwise.</returns>
+        TCPClientResponse TryRead(out Byte Byte, UInt16 SleepingTimeMS = 5, UInt16 MaxInitialWaitingTimeMS = 500);
+
+        /// <summary>
+        /// Read multiple byte values from the TCP connection into the given buffer.
+        /// </summary>
+        /// <param name="Buffer">An array of byte values.</param>
+        /// <param name="SleepingTimeMS">When no data is currently available wait at least this amount of time [milliseconds].</param>
+        /// <param name="MaxInitialWaitingTimeMS">When no data is currently available wait at most this amount of time [milliseconds].</param>
+        /// <returns>The number of read bytes.</returns>
+        Int32 Read(Byte[] Buffer, UInt16 SleepingTimeMS = 5, UInt16 MaxInitialWaitingTimeMS = 500);
+
+            /// <summary>
+        /// Read a string value from the TCP connection.
+        /// </summary>
+        /// <param name=param name="MaxLength">The maximal length of the string.</param>
+        /// <param name="Encoding">The character encoding of the string (default: UTF8).</param>
+        /// <param name="SleepingTimeMS">When no data is currently available wait at least this amount of time [milliseconds].</param>
+        /// <param name="MaxInitialWaitingTimeMS">When no data is currently available wait at most this amount of time [milliseconds].</param>
+        String ReadString(Int32 MaxLength = 1024, Encoding Encoding = null, UInt16 SleepingTimeMS = 5, UInt16 MaxInitialWaitingTimeMS = 500);
 
         #endregion
 

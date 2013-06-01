@@ -32,6 +32,14 @@ using eu.Vanaheimr.Hermod.Datastructures;
 namespace eu.Vanaheimr.Hermod.Sockets.TCP
 {
 
+    public enum TCPClientResponse
+    {
+        CanNotRead,
+        DataAvailable,
+        ClientClose,
+        Timeout
+    }
+
     /// <summary>
     /// An abstract class for all TCP connections.
     /// </summary>
@@ -40,37 +48,41 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
         #region Data
 
-        private readonly NetworkStream Stream;
+        protected readonly TcpClient      TCPClientConnection;
+        protected readonly NetworkStream  Stream;
 
         #endregion
 
         #region Properties
 
-        #region TCPClientConnection
-
-        /// <summary>
-        /// The TCPClient connection to a connected Client
-        /// </summary>
-        public TcpClient TCPClientConnection { get; protected set; }
-
-        #endregion
-
         #region IsConnected
 
         /// <summary>
-        /// Is False if the client is disconnected from the server
+        /// Check if the client is still connected to the server.
         /// </summary>
         public Boolean IsConnected
         {
+
             get
             {
 
-                if (TCPClientConnection != null)
-                    return TCPClientConnection.Connected;
+                if (TCPClientConnection == null)
+                    return false;
 
-                return false;
+                // This is not working as expected! Damn you Microsoft! Perhaps
+                // you better hire some good networking people!
+                //return TCPClientConnection.Connected;
+
+                // A better, but not really smart way to check if the
+                // TCP connection is/was closed
+                if (TCPClientConnection.Client.Poll(1, SelectMode.SelectRead) &&
+                    TCPClientConnection.Available == 0)
+                    return false;
+
+                return true;
 
             }
+
         }
 
         #endregion
@@ -182,7 +194,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         /// </summary>
         public ATCPConnection(TcpClient TCPClientConnection)
         {
-            
+
             this.TCPClientConnection = TCPClientConnection;
             var _IPEndPoint          = this.TCPClientConnection.Client.RemoteEndPoint as IPEndPoint;
             RemoteSocket             = new IPSocket(new IPv4Address(_IPEndPoint.Address), new IPPort((UInt16) _IPEndPoint.Port));
@@ -190,7 +202,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
             if (RemoteSocket == null)
                 throw new ArgumentNullException("The RemoteEndPoint is invalid!");
 
-            Stream = TCPClientConnection.GetStream();
+            this.Stream              = TCPClientConnection.GetStream();
 
         }
 
@@ -199,81 +211,185 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         #endregion
 
 
-        #region ReadByte()
+        #region Read(SleepingTimeMS = 5, MaxInitialWaitingTimeMS = 500)
 
-        public Byte ReadByte()
+        /// <summary>
+        /// Read a byte value from the TCP connection.
+        /// </summary>
+        /// <param name="SleepingTimeMS">When no data is currently available wait at least this amount of time [milliseconds].</param>
+        /// <param name="MaxInitialWaitingTimeMS">When no data is currently available wait at most this amount of time [milliseconds].</param>
+        /// <returns>The read byte OR 0x00 if nothing could be read.</returns>
+        public Byte Read(UInt16 SleepingTimeMS = 5, UInt16 MaxInitialWaitingTimeMS = 500)
         {
 
-            var _byte = Stream.ReadByte();
-
-            if (_byte == -1)
+            if (!Stream.CanRead)
                 return 0x00;
 
-            return (Byte) _byte;
+            var WaitingTimeMS = 0;
+            var Value         = -1;
 
-        }
-
-        #endregion
-
-        #region ReadByte(out Byte)
-
-        public Boolean ReadByte(out Byte Byte)
-        {
-
-            var _byte = Stream.ReadByte();
-
-            if (_byte == -1)
+            while (!Stream.DataAvailable && (WaitingTimeMS < MaxInitialWaitingTimeMS))
             {
-                Byte = 0;
-                return false;
+                Thread.Sleep(SleepingTimeMS);
+                WaitingTimeMS += SleepingTimeMS;
             }
 
-            Byte = (Byte) _byte;
-            return true;
+            if (Stream.DataAvailable)
+                Value = Stream.ReadByte();
+
+            if (Value == -1)
+                return 0x00;
+
+            return (Byte) Value;
 
         }
 
         #endregion
 
-        #region Read(Buffer)
+        #region TryRead(out Byte, SleepingTimeMS = 5, MaxInitialWaitingTimeMS = 500)
 
-        public Int32 Read(Byte[] Buffer)
+        /// <summary>
+        /// Try to read a byte value from the TCP connection.
+        /// </summary>
+        /// <param name="Byte">The byte value OR 0x00 if nothing could be read.</param>
+        /// <param name="SleepingTimeMS">When no data is currently available wait at least this amount of time [milliseconds].</param>
+        /// <param name="MaxInitialWaitingTimeMS">When no data is currently available wait at most this amount of time [milliseconds].</param>
+        /// <returns>True, if the byte value is valid; False otherwise.</returns>
+        public TCPClientResponse TryRead(out Byte Byte, UInt16 SleepingTimeMS = 5, UInt16 MaxInitialWaitingTimeMS = 50)
         {
-            return Stream.Read(Buffer, 0, Buffer.Length);
+
+            Byte = 0x00;
+
+            if (!Stream.CanRead)
+                return TCPClientResponse.CanNotRead;
+
+            var WaitingTimeMS = 0;
+            var Value         = -1;
+
+
+            //if (TCPClientConnection.Client.Poll(1, SelectMode.SelectRead) &&
+            //    TCPClientConnection.Available == 0)
+
+
+            while (TCPClientConnection.Client.Poll(1, SelectMode.SelectRead) == false &&
+                   Stream.DataAvailable == false &&
+                   (WaitingTimeMS < MaxInitialWaitingTimeMS))
+            {
+                Thread.Sleep(SleepingTimeMS);
+                WaitingTimeMS += SleepingTimeMS;
+            }
+
+            if (Stream.DataAvailable)
+                Value = Stream.ReadByte();
+            else
+            {
+                if (WaitingTimeMS >= MaxInitialWaitingTimeMS)
+                    return TCPClientResponse.Timeout;
+                else
+                    return TCPClientResponse.ClientClose;
+            }
+
+            if (Value == -1)
+                return TCPClientResponse.CanNotRead;
+
+            Byte = (Byte) Value;
+
+            return TCPClientResponse.DataAvailable;
+
         }
 
         #endregion
 
-        #region ReadString(MaxLength)
+        #region Read(Buffer, SleepingTimeMS = 5, MaxInitialWaitingTimeMS = 500)
 
-        public String ReadString(Int32 MaxLength)
+        /// <summary>
+        /// Read multiple byte values from the TCP connection into the given buffer.
+        /// </summary>
+        /// <param name="Buffer">An array of byte values.</param>
+        /// <param name="SleepingTimeMS">When no data is currently available wait at least this amount of time [milliseconds].</param>
+        /// <param name="MaxInitialWaitingTimeMS">When no data is currently available wait at most this amount of time [milliseconds].</param>
+        /// <returns>The number of read bytes.</returns>
+        public Int32 Read(Byte[] Buffer, UInt16 SleepingTimeMS = 5, UInt16 MaxInitialWaitingTimeMS = 500)
         {
 
-            if (Stream == null)
-                throw new ArgumentNullException();
+            if (Buffer == null || Buffer.Length < 1)
+                throw new ArgumentNullException("The given buffer is not valid!");
 
-            while (!Stream.DataAvailable)
-                Thread.Sleep(1);
+            if (!Stream.CanRead)
+                return 0;
 
-            Byte read;
-            var array = new Byte[MaxLength];
-            var pos = 0;
+            var WaitingTimeMS = 0;
 
-            while (Stream.DataAvailable)
+            while (!Stream.DataAvailable && (WaitingTimeMS < MaxInitialWaitingTimeMS))
+            {
+                Thread.Sleep(SleepingTimeMS);
+                WaitingTimeMS += SleepingTimeMS;
+            }
+
+            if (Stream.DataAvailable)
+                return Stream.Read(Buffer, 0, Buffer.Length);
+
+            return 0;
+
+        }
+
+        #endregion
+
+        #region ReadString(MaxLength = 1024, Encoding = null, SleepingTimeMS = 5, MaxInitialWaitingTimeMS = 500)
+
+        /// <summary>
+        /// Read a string value from the TCP connection.
+        /// </summary>
+        /// <param name=param name="MaxLength">The maximal length of the string.</param>
+        /// <param name="Encoding">The character encoding of the string (default: UTF8).</param>
+        /// <param name="SleepingTimeMS">When no data is currently available wait at least this amount of time [milliseconds].</param>
+        /// <param name="MaxInitialWaitingTimeMS">When no data is currently available wait at most this amount of time [milliseconds].</param>
+        public String ReadString(Int32 MaxLength = 1024, Encoding Encoding = null, UInt16 SleepingTimeMS = 5, UInt16 MaxInitialWaitingTimeMS = 500)
+        {
+
+            if (!Stream.CanRead)
+                return String.Empty;
+
+            var WaitingTimeMS = 0;
+
+            while (!Stream.DataAvailable && (WaitingTimeMS < MaxInitialWaitingTimeMS))
+            {
+                Thread.Sleep(SleepingTimeMS);
+                WaitingTimeMS += SleepingTimeMS;
+            }
+
+            if (Stream.DataAvailable)
             {
 
-                read = (Byte) Stream.ReadByte();
+                Byte NumberOfBytes;
+                var array = new Byte[MaxLength];
+                var pos = 0;
 
-                array[pos++] = read;
+                while (Stream.DataAvailable)
+                {
 
-                if (read == 0x00 || pos == MaxLength)
-                    break;
+                    NumberOfBytes = (Byte) Stream.ReadByte();
+
+                    array[pos++] = NumberOfBytes;
+
+                    if (NumberOfBytes == 0x00 || pos == MaxLength)
+                        break;
+
+                }
+
+                if (pos > 0)
+                {
+
+                    if (Encoding == null)
+                        Encoding = Encoding.UTF8;
+
+                    return Encoding.GetString(array).Trim();
+
+                }
 
             }
 
-            var str = Encoding.UTF8.GetString(array).Trim();
-
-            return str;
+            return String.Empty;
 
         }
 
