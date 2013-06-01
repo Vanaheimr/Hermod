@@ -189,7 +189,7 @@ namespace eu.Vanaheimr.Hermod.Services
 
                                                           //bytesread = newTCPConnection.Read(Buffer);
 
-                                                          switch (newTCPConnection.TryRead(out Byte, MaxInitialWaitingTimeMS: 10000))
+                                                          switch (newTCPConnection.TryRead(out Byte, MaxInitialWaitingTimeMS: 120000))
                                                           {
 
                                                               case TCPClientResponse.DataAvailable: 

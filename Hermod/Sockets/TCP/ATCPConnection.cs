@@ -219,7 +219,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="SleepingTimeMS">When no data is currently available wait at least this amount of time [milliseconds].</param>
         /// <param name="MaxInitialWaitingTimeMS">When no data is currently available wait at most this amount of time [milliseconds].</param>
         /// <returns>The read byte OR 0x00 if nothing could be read.</returns>
-        public Byte Read(UInt16 SleepingTimeMS = 5, UInt16 MaxInitialWaitingTimeMS = 500)
+        public Byte Read(UInt16 SleepingTimeMS = 5, UInt32 MaxInitialWaitingTimeMS = 500)
         {
 
             if (!Stream.CanRead)
@@ -255,7 +255,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="SleepingTimeMS">When no data is currently available wait at least this amount of time [milliseconds].</param>
         /// <param name="MaxInitialWaitingTimeMS">When no data is currently available wait at most this amount of time [milliseconds].</param>
         /// <returns>True, if the byte value is valid; False otherwise.</returns>
-        public TCPClientResponse TryRead(out Byte Byte, UInt16 SleepingTimeMS = 5, UInt16 MaxInitialWaitingTimeMS = 50)
+        public TCPClientResponse TryRead(out Byte Byte, UInt16 SleepingTimeMS = 5, UInt32 MaxInitialWaitingTimeMS = 50)
         {
 
             Byte = 0x00;
@@ -309,7 +309,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="SleepingTimeMS">When no data is currently available wait at least this amount of time [milliseconds].</param>
         /// <param name="MaxInitialWaitingTimeMS">When no data is currently available wait at most this amount of time [milliseconds].</param>
         /// <returns>The number of read bytes.</returns>
-        public Int32 Read(Byte[] Buffer, UInt16 SleepingTimeMS = 5, UInt16 MaxInitialWaitingTimeMS = 500)
+        public Int32 Read(Byte[] Buffer, UInt16 SleepingTimeMS = 5, UInt32 MaxInitialWaitingTimeMS = 500)
         {
 
             if (Buffer == null || Buffer.Length < 1)
@@ -344,7 +344,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="Encoding">The character encoding of the string (default: UTF8).</param>
         /// <param name="SleepingTimeMS">When no data is currently available wait at least this amount of time [milliseconds].</param>
         /// <param name="MaxInitialWaitingTimeMS">When no data is currently available wait at most this amount of time [milliseconds].</param>
-        public String ReadString(Int32 MaxLength = 1024, Encoding Encoding = null, UInt16 SleepingTimeMS = 5, UInt16 MaxInitialWaitingTimeMS = 500)
+        public String ReadString(Int32 MaxLength = 1024, Encoding Encoding = null, UInt16 SleepingTimeMS = 5, UInt32 MaxInitialWaitingTimeMS = 500)
         {
 
             if (!Stream.CanRead)
