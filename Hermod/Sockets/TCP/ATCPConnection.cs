@@ -235,6 +235,15 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
+        #region Read(Buffer)
+
+        public Int32 Read(Byte[] Buffer)
+        {
+            return Stream.Read(Buffer, 0, Buffer.Length);
+        }
+
+        #endregion
+
         #region ReadString(MaxLength)
 
         public String ReadString(Int32 MaxLength)

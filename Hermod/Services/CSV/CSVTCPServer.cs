@@ -165,6 +165,8 @@ namespace eu.Vanaheimr.Hermod.Services
                                                   newTCPConnection.NoDelay     = true;
 
                                                   Byte Byte;
+                                                  var Buffer        = new Byte[1024];
+                                                  int bytesread = 0;
                                                   var MemStream     = new MemoryStream();
                                                   var EndOfCSVLine  = 0U;
 
@@ -175,6 +177,8 @@ namespace eu.Vanaheimr.Hermod.Services
 
                                                       while (newTCPConnection.IsConnected)
                                                       {
+
+                                                          //bytesread = newTCPConnection.Read(Buffer);
 
                                                           if (newTCPConnection.ReadByte(out Byte))
                                                           {
@@ -289,6 +293,7 @@ namespace eu.Vanaheimr.Hermod.Services
 
                                                           else
                                                           {
+                                                              Console.WriteLine("0x00!!!!!!!!!!!!!!!!!!!!!!!");
                                                               Thread.Sleep(100);
                                                           }
 
