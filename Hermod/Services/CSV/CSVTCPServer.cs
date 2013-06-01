@@ -88,7 +88,7 @@ namespace eu.Vanaheimr.Hermod.Services
         /// <summary>
         /// An event fired whenever a new connection was made.
         /// </summary>
-        public event NewConnectionDelegate OnNewConnection;
+        public event OnNewConnectionDelegate OnNewConnection;
 
         #endregion
 
@@ -97,7 +97,7 @@ namespace eu.Vanaheimr.Hermod.Services
         /// <summary>
         /// An event fired whenever new data is available.
         /// </summary>
-        public event DataAvailableDelegate OnDataAvailable;
+        public event OnDataAvailableDelegate OnDataAvailable;
 
         #endregion
 
@@ -106,7 +106,7 @@ namespace eu.Vanaheimr.Hermod.Services
         /// <summary>
         /// An event fired whenever an result is available.
         /// </summary>
-        public event ResultDelegate OnResult;
+        public event OnResultDelegate OnResult;
 
         #endregion
 
@@ -115,7 +115,7 @@ namespace eu.Vanaheimr.Hermod.Services
         /// <summary>
         /// An event fired whenever an exception occured.
         /// </summary>
-        public event ExceptionOccurredDelegate OnExceptionOccurred;
+        public event OnExceptionOccurredDelegate OnExceptionOccurred;
 
         #endregion
 
@@ -124,7 +124,7 @@ namespace eu.Vanaheimr.Hermod.Services
         /// <summary>
         /// An event fired whenever a connection was closed.
         /// </summary>
-        public event NewConnectionDelegate OnConnectionClosed;
+        public event OnConnectionClosedDelegate OnConnectionClosed;
 
         #endregion
 
@@ -163,7 +163,7 @@ namespace eu.Vanaheimr.Hermod.Services
                                                                               newTCPConnection.RemotePort.ToString();
 
                                                   if (OnNewConnection != null)
-                                                      OnNewConnection(this, DateTime.Now, newTCPConnection.RemoteHost, newTCPConnection.RemotePort);
+                                                      OnNewConnection(this, DateTime.Now, newTCPConnection.RemoteHost + ":" + newTCPConnection.RemotePort);
 
                                                   newTCPConnection.ReadTimeout = 60000;
                                                   newTCPConnection.WriteToResponseStream(this.ServiceBanner);
@@ -356,26 +356,38 @@ namespace eu.Vanaheimr.Hermod.Services
                                                                               var ResultList = new List<CSVResult>();
 
                                                                               OnDataAvailable(this,
-                                                                                              ResultList,
                                                                                               DateTime.Now,
-                                                                                              CSVArray);
+                                                                                              newTCPConnection.RemoteHost.ToString() + ":" + newTCPConnection.RemotePort.ToString(),
+                                                                                              CSVArray,
+                                                                                              ResultList);
 
                                                                               #endregion
 
                                                                               #region Call OnResult delegate
 
-                                                                              if (OnResult != null)
-                                                                                  OnResult(this, DateTime.Now, ResultList);
+                                                                              if (ResultList.Count > 0)
+                                                                                  if (OnResult != null)
+                                                                                      OnResult(this, DateTime.Now, newTCPConnection.RemoteHost.ToString() + ":" + newTCPConnection.RemotePort.ToString(), ResultList);
 
                                                                               #endregion
 
                                                                               #region Generate result string
 
-                                                                              var GlobalResult = (ResultList.Select(r => r.Status > 0).Aggregate((a, b) => a || b)) ? CSVStatus.ERROR : CSVStatus.OK;
-                                                                              var ReturnString = ResultList.Select(r => r.ToString()).Aggregate((a, b) => a + "|" + b);
+                                                                              if (ResultList.Count > 0)
+                                                                              {
 
-                                                                              newTCPConnection.WriteToResponseStream(Encoding.UTF8.GetBytes(GlobalResult.ToString() + "\r\n" + ReturnString));
-                                                                              newTCPConnection.WriteToResponseStream(0x00);
+                                                                                  var GlobalResult = (ResultList.Select(r => r.Status > 0).Aggregate((a, b) => a || b)) ? CSVStatus.ERROR : CSVStatus.OK;
+                                                                                  var ReturnString = ResultList.Select(r => r.ToString()).Aggregate((a, b) => a + "|" + b);
+
+                                                                                  newTCPConnection.WriteToResponseStream(Encoding.UTF8.GetBytes(GlobalResult.ToString() + "\r\n" + ReturnString));
+//                                                                                  newTCPConnection.WriteToResponseStream(0x00);
+
+                                                                              }
+                                                                              else
+                                                                              {
+                                                                                  newTCPConnection.WriteToResponseStream("Unknown data stream '" + CSVArray.Aggregate((a, b) => a + "/" + b) + "'\r\n");
+//                                                                                  newTCPConnection.WriteToResponseStream(0x00);
+                                                                              }
 
                                                                               #endregion
 
@@ -425,7 +437,7 @@ namespace eu.Vanaheimr.Hermod.Services
                                                       {
 
                                                           if (OnExceptionOccurred != null)
-                                                              OnExceptionOccurred(this, DateTime.Now, newTCPConnection.RemoteHost, newTCPConnection.RemotePort, ioe, MemoryStream);
+                                                              OnExceptionOccurred(this, DateTime.Now, newTCPConnection.RemoteHost + ":" + newTCPConnection.RemotePort, ioe, MemoryStream);
 
                                                       }
 
@@ -435,7 +447,7 @@ namespace eu.Vanaheimr.Hermod.Services
                                                   {
 
                                                       if (OnExceptionOccurred != null)
-                                                          OnExceptionOccurred(this, DateTime.Now, newTCPConnection.RemoteHost, newTCPConnection.RemotePort, e, MemoryStream);
+                                                          OnExceptionOccurred(this, DateTime.Now, newTCPConnection.RemoteHost + ":" + newTCPConnection.RemotePort, e, MemoryStream);
 
                                                   }
 
@@ -456,10 +468,10 @@ namespace eu.Vanaheimr.Hermod.Services
                                                   {
 
                                                       if (ServerClose)
-                                                          OnConnectionClosed(this, DateTime.Now, newTCPConnection.RemoteHost, newTCPConnection.RemotePort);
+                                                          OnConnectionClosed(this, DateTime.Now, newTCPConnection.RemoteHost + ":" + newTCPConnection.RemotePort, ConnectionClosedBy.Server);
 
                                                       else
-                                                          OnConnectionClosed(this, DateTime.Now, newTCPConnection.RemoteHost, newTCPConnection.RemotePort);
+                                                          OnConnectionClosed(this, DateTime.Now, newTCPConnection.RemoteHost + ":" + newTCPConnection.RemotePort, ConnectionClosedBy.Client);
 
                                                   }
 

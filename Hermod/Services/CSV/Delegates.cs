@@ -44,36 +44,65 @@ namespace eu.Vanaheimr.Hermod.Services
     /// </summary>
     /// <param name="Sender">The sender of this event.</param>
     /// <param name="Timestamp">The timestamp of the event.</param>
-    /// <param name="RemoteIPAddress">The IP address of the remote TCP client.</param>
-    /// <param name="RemotePort">The IP port of the remote TCP client.</param>
-    public delegate void NewConnectionDelegate(ICSVTCPServer Sender, DateTime Timestamp, IIPAddress RemoteIPAddress, IPPort RemotePort);
+    /// <param name="ConnectionId">The identification of this connection.</param>
+    public delegate void OnNewConnectionDelegate(ICSVTCPServer Sender, DateTime Timestamp, String ConnectionId);
 
     /// <summary>
     /// Data available delegate.
     /// </summary>
     /// <param name="Sender">The message sender.</param>
     /// <param name="Timestamp">The timestamp of the event.</param>
+    /// <param name="ConnectionId">The identification of this connection.</param>
     /// <param name="Values">The received data as an enumeration of strings.</param>
-    public delegate void DataAvailableDelegate(ICSVTCPServer Sender, List<CSVResult> Results, DateTime Timestamp, String[] Values);
+    /// <param name="Results">A list of data processing results.</param>
+    public delegate void OnDataAvailableDelegate(ICSVTCPServer Sender, DateTime Timestamp, String ConnectionId, String[] Values, List<CSVResult> Results);
 
     /// <summary>
     /// A result is available.
     /// </summary>
     /// <param name="Sender">The sender of this event.</param>
     /// <param name="Timestamp">The timestamp of the event.</param>
+    /// <param name="ConnectionId">The identification of this connection.</param>
     /// <param name="Results">The results.</param>
-    public delegate void ResultDelegate(ICSVTCPServer Sender, DateTime Timestamp, IEnumerable<CSVResult> Results);
+    public delegate void OnResultDelegate(ICSVTCPServer Sender, DateTime Timestamp, String ConnectionId, IEnumerable<CSVResult> Results);
 
     /// <summary>
     /// An exception occured.
     /// </summary>
     /// <param name="Sender">The sender of this event.</param>
     /// <param name="Timestamp">The timestamp of the event.</param>
-    /// <param name="RemoteIPAddress">The IP address of the remote TCP client.</param>
-    /// <param name="RemotePort">The IP port of the remote TCP client.</param>
+    /// <param name="ConnectionId">The identification of this connection.</param>
     /// <param name="Exception">The exception.</param>
     /// <param name="CurrentBuffer">The state of the receive buffer when the exception occured.</param>
-    public delegate void ExceptionOccurredDelegate(ICSVTCPServer Sender, DateTime Timestamp, IIPAddress RemoteIPAddress, IPPort RemotePort, Exception Exception, MemoryStream CurrentBuffer);
+    public delegate void OnExceptionOccurredDelegate(ICSVTCPServer Sender, DateTime Timestamp, String ConnectionId, Exception Exception, MemoryStream CurrentBuffer);
+
+
+    /// <summary>
+    /// Wether the connection was closed by the client or the server.
+    /// </summary>
+    public enum ConnectionClosedBy
+    {
+
+        /// <summary>
+        /// The connection was closed by the client.
+        /// </summary>
+        Client,
+
+        /// <summary>
+        /// The connection was closed by the server.
+        /// </summary>
+        Server
+
+    }
+
+    /// <summary>
+    /// Connection closed delegate.
+    /// </summary>
+    /// <param name="Sender">The sender of this event.</param>
+    /// <param name="Timestamp">The timestamp of the event.</param>
+    /// <param name="ConnectionId">The identification of this connection.</param>
+    /// <param name="ClosedBy">Wether the connection was closed by the client or the server.</param>
+    public delegate void OnConnectionClosedDelegate(ICSVTCPServer Sender, DateTime Timestamp, String ConnectionId, ConnectionClosedBy ClosedBy);
 
     /// <summary>
     /// Service stopped delegate.

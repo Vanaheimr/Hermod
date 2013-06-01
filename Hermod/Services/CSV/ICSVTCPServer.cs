@@ -27,15 +27,15 @@ namespace eu.Vanaheimr.Hermod.Services
     public interface ICSVTCPServer
     {
 
-        event NewConnectionDelegate      OnConnectionClosed;
-        event DataAvailableDelegate      OnDataAvailable;
-        event ExceptionOccurredDelegate  OnExceptionOccurred;
-        event NewConnectionDelegate      OnNewConnection;
-        event ResultDelegate             OnResult;
-        event OnStartedDelegate          OnStarted;
-        event OnStoppededDelegate        OnStopped;
+        event OnConnectionClosedDelegate   OnConnectionClosed;
+        event OnDataAvailableDelegate      OnDataAvailable;
+        event OnExceptionOccurredDelegate  OnExceptionOccurred;
+        event OnNewConnectionDelegate      OnNewConnection;
+        event OnResultDelegate             OnResult;
+        event OnStartedDelegate            OnStarted;
+        event OnStoppededDelegate          OnStopped;
 
-        String ServiceBanner { get; set; }
+        String ServiceBanner   { get; set; }
         Char[] SplitCharacters { get; }
 
         void Start();
