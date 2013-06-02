@@ -35,7 +35,7 @@ namespace eu.Vanaheimr.Hermod.Services
     /// <summary>
     /// A TCP service accepting incoming CSV lines with ending 0x00 or 0x0d 0x0a (\r\n) characters.
     /// </summary>
-    public class CSVTCPServer : ICSVTCPServer
+    public class CSVTCPServer
     {
 
         #region Data
@@ -584,7 +584,6 @@ namespace eu.Vanaheimr.Hermod.Services
 
         #endregion
 
-
         #region AddTCPPort(TCPPort)
 
         /// <summary>
@@ -638,7 +637,6 @@ namespace eu.Vanaheimr.Hermod.Services
         }
 
         #endregion
-
 
         #region Stop()
 

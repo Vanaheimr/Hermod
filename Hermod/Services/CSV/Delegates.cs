@@ -37,7 +37,7 @@ namespace eu.Vanaheimr.Hermod.Services
     /// </summary>
     /// <param name="Sender">The sender of this event.</param>
     /// <param name="Timestamp">The timestamp of the event.</param>
-    public delegate void OnStartedDelegate(ICSVTCPServer Sender, DateTime Timestamp);
+    public delegate void OnStartedDelegate(CSVTCPServer Sender, DateTime Timestamp);
 
     /// <summary>
     /// TCP Port added delegate.
@@ -45,7 +45,7 @@ namespace eu.Vanaheimr.Hermod.Services
     /// <param name="Sender">The sender of this event.</param>
     /// <param name="Timestamp">The timestamp of the event.</param>
     /// <param name="TCPPort">The TCPPort to listen.</param>
-    public delegate void OnTCPPortAddedDelegate(ICSVTCPServer Sender, DateTime Timestamp, IPPort TCPPort);
+    public delegate void OnTCPPortAddedDelegate(CSVTCPServer Sender, DateTime Timestamp, IPPort TCPPort);
 
     /// <summary>
     /// TCP Port removed delegate.
@@ -53,7 +53,7 @@ namespace eu.Vanaheimr.Hermod.Services
     /// <param name="Sender">The sender of this event.</param>
     /// <param name="Timestamp">The timestamp of the event.</param>
     /// <param name="TCPPort">The TCPPort to listen.</param>
-    public delegate void OnTCPPortRemovedDelegate(ICSVTCPServer Sender, DateTime Timestamp, IPPort TCPPort);
+    public delegate void OnTCPPortRemovedDelegate(CSVTCPServer Sender, DateTime Timestamp, IPPort TCPPort);
 
     /// <summary>
     /// New connection delegate.
@@ -61,7 +61,7 @@ namespace eu.Vanaheimr.Hermod.Services
     /// <param name="Sender">The sender of this event.</param>
     /// <param name="Timestamp">The timestamp of the event.</param>
     /// <param name="ConnectionId">The identification of this connection.</param>
-    public delegate void OnNewConnectionDelegate(ICSVTCPServer Sender, DateTime Timestamp, String ConnectionId);
+    public delegate void OnNewConnectionDelegate(CSVTCPServer Sender, DateTime Timestamp, String ConnectionId);
 
     /// <summary>
     /// Data available delegate.
@@ -71,7 +71,7 @@ namespace eu.Vanaheimr.Hermod.Services
     /// <param name="ConnectionId">The identification of this connection.</param>
     /// <param name="Values">The received data as an enumeration of strings.</param>
     /// <param name="Results">A list of data processing results.</param>
-    public delegate void OnDataAvailableDelegate(ICSVTCPServer Sender, DateTime Timestamp, String ConnectionId, String[] Values, List<CSVResult> Results);
+    public delegate void OnDataAvailableDelegate(CSVTCPServer Sender, DateTime Timestamp, String ConnectionId, String[] Values, List<CSVResult> Results);
 
     /// <summary>
     /// A result is available.
@@ -80,7 +80,7 @@ namespace eu.Vanaheimr.Hermod.Services
     /// <param name="Timestamp">The timestamp of the event.</param>
     /// <param name="ConnectionId">The identification of this connection.</param>
     /// <param name="Results">The results.</param>
-    public delegate void OnResultDelegate(ICSVTCPServer Sender, DateTime Timestamp, String ConnectionId, IEnumerable<CSVResult> Results);
+    public delegate void OnResultDelegate(CSVTCPServer Sender, DateTime Timestamp, String ConnectionId, IEnumerable<CSVResult> Results);
 
     /// <summary>
     /// An exception occured.
@@ -90,7 +90,7 @@ namespace eu.Vanaheimr.Hermod.Services
     /// <param name="ConnectionId">The identification of this connection.</param>
     /// <param name="Exception">The exception.</param>
     /// <param name="CurrentBuffer">The state of the receive buffer when the exception occured.</param>
-    public delegate void OnExceptionOccurredDelegate(ICSVTCPServer Sender, DateTime Timestamp, String ConnectionId, Exception Exception, MemoryStream CurrentBuffer);
+    public delegate void OnExceptionOccurredDelegate(CSVTCPServer Sender, DateTime Timestamp, String ConnectionId, Exception Exception, MemoryStream CurrentBuffer);
 
 
     /// <summary>
@@ -118,13 +118,13 @@ namespace eu.Vanaheimr.Hermod.Services
     /// <param name="Timestamp">The timestamp of the event.</param>
     /// <param name="ConnectionId">The identification of this connection.</param>
     /// <param name="ClosedBy">Wether the connection was closed by the client or the server.</param>
-    public delegate void OnConnectionClosedDelegate(ICSVTCPServer Sender, DateTime Timestamp, String ConnectionId, ConnectionClosedBy ClosedBy);
+    public delegate void OnConnectionClosedDelegate(CSVTCPServer Sender, DateTime Timestamp, String ConnectionId, ConnectionClosedBy ClosedBy);
 
     /// <summary>
     /// Service stopped delegate.
     /// </summary>
     /// <param name="Sender">The sender of this event.</param>
     /// <param name="Timestamp">The timestamp of the event.</param>
-    public delegate void OnStoppededDelegate(ICSVTCPServer Sender, DateTime Timestamp);
+    public delegate void OnStoppededDelegate(CSVTCPServer Sender, DateTime Timestamp);
 
 }
