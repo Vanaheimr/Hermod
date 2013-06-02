@@ -74,7 +74,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
         #region Events
 
-        event ExceptionOccuredHandler OnExceptionOccured;
+        event OnExceptionOccuredDelegate OnExceptionOccured;
 
         #endregion
 

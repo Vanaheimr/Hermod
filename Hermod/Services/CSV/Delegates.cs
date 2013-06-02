@@ -40,6 +40,22 @@ namespace eu.Vanaheimr.Hermod.Services
     public delegate void OnStartedDelegate(ICSVTCPServer Sender, DateTime Timestamp);
 
     /// <summary>
+    /// TCP Port added delegate.
+    /// </summary>
+    /// <param name="Sender">The sender of this event.</param>
+    /// <param name="Timestamp">The timestamp of the event.</param>
+    /// <param name="TCPPort">The TCPPort to listen.</param>
+    public delegate void OnTCPPortAddedDelegate(ICSVTCPServer Sender, DateTime Timestamp, IPPort TCPPort);
+
+    /// <summary>
+    /// TCP Port removed delegate.
+    /// </summary>
+    /// <param name="Sender">The sender of this event.</param>
+    /// <param name="Timestamp">The timestamp of the event.</param>
+    /// <param name="TCPPort">The TCPPort to listen.</param>
+    public delegate void OnTCPPortRemovedDelegate(ICSVTCPServer Sender, DateTime Timestamp, IPPort TCPPort);
+
+    /// <summary>
     /// New connection delegate.
     /// </summary>
     /// <param name="Sender">The sender of this event.</param>

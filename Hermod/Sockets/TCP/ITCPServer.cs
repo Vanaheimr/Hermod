@@ -48,7 +48,7 @@ namespace eu.Vanaheimr.Hermod.Datastructures
         /// <summary>
         /// An exception has occured.
         /// </summary>
-        event ExceptionOccuredHandler OnExceptionOccured;
+        event OnExceptionOccuredDelegate OnExceptionOccured;
 
     }
 

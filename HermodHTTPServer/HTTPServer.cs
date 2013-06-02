@@ -290,12 +290,12 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region OnExceptionOccured
 
-        private event ExceptionOccuredHandler _OnExceptionOccured;
+        private event OnExceptionOccuredDelegate _OnExceptionOccured;
 
         /// <summary>
         /// An exception has occured.
         /// </summary>
-        public event ExceptionOccuredHandler OnExceptionOccured
+        public event OnExceptionOccuredDelegate OnExceptionOccured
         {
 
             add
@@ -381,14 +381,14 @@ namespace eu.Vanaheimr.Hermod.HTTP
                                  Port,
                                  NewHTTPConnection =>
                                      {
-                          
+
                                          NewHTTPConnection.HTTPServer            = this;
                                          NewHTTPConnection.ServerName            = ServerName;
                                          NewHTTPConnection.HTTPSecurity          = HTTPSecurity;
                                          NewHTTPConnection.URLMapping            = URLMapping;
                                          NewHTTPConnection.NewHTTPServiceHandler = OnNewHTTPService;
                                          NewHTTPConnection.Implementations       = Implementations;
-                          
+
                                          try
                                          {
                                              NewHTTPConnection.ProcessHTTP();
@@ -399,7 +399,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                                              if (OnExceptionOccured_Local != null)
                                                  OnExceptionOccured_Local(this, Exception);
                                          }
-                          
+
                                      },
                                  // Don't do it now, do it a bit later...
                                  Autostart: false,
