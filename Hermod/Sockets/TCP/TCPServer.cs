@@ -45,16 +45,16 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         #region Data
 
         // The internal thread
-        private readonly Thread          _ListenerThread;
+        private readonly Thread                                             _ListenerThread;
 
         // The TCP listener socket
-        private readonly TcpListener     _TCPListener;
+        private readonly TcpListener                                        _TCPListener;
 
         // Store each connection, in order to be able to stop them activily
-        private readonly ConcurrentDictionary<IPSocket, TCPConnectionType> _SocketConnections;
+        private readonly ConcurrentDictionary<IPSocket, TCPConnectionType>  _SocketConnections;
 
         // The constructor for TCPConnectionType
-        private readonly ConstructorInfo _Constructor;
+        private readonly ConstructorInfo                                    _Constructor;
 
         #endregion
 
@@ -250,29 +250,26 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
             _SocketConnections  = new ConcurrentDictionary<IPSocket, TCPConnectionType>();
             _TCPListener        = new TcpListener(new System.Net.IPAddress(_IPAddress.GetBytes()), _Port.ToInt32());
-             ClientTimeout      = 10000;
+             ClientTimeout      = 30000;
 
             // Get constructor for TCPConnectionType
             _Constructor        = typeof(TCPConnectionType).
-                                     GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
-                                                    null,
-                                                    new Type[] {
-                                                       typeof(TcpClient)
-                                                   },
-                                                    null);
+                                      GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+                                                     null,
+                                                     new Type[] {
+                                                         typeof(TcpClient)
+                                                     },
+                                                     null);
 
             if (_Constructor == null)
                  throw new ArgumentException("A appropriate constructor for type '" + typeof(TCPConnectionType).FullName + "' could not be found!");
 
 
-            _ListenerThread = new Thread(() =>
-            {
-
-                Thread.CurrentThread.Name         = "TCPServer<" + ThreadDescription + ">";
-                Thread.CurrentThread.Priority     = ThreadPriority.AboveNormal;
-                Thread.CurrentThread.IsBackground = true;
+            _ListenerThread = new Thread(() => {
+                Thread.CurrentThread.Name          = "TCPServer<" + ThreadDescription + ">";
+                Thread.CurrentThread.Priority      = ThreadPriority.AboveNormal;
+                Thread.CurrentThread.IsBackground  = true;
                 Listen();
-
             });
 
             if (NewConnectionHandler != null)
@@ -457,7 +454,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
             if (_IsRunning)
                 return;
-            
+
             if (MaxClientConnections != _DefaultMaxClientConnections)
                 _MaxClientConnections = MaxClientConnections;
 

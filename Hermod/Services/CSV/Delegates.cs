@@ -29,7 +29,7 @@ using eu.Vanaheimr.Hermod.Datastructures;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.Services
+namespace eu.Vanaheimr.Hermod.Services.CSV
 {
 
     /// <summary>

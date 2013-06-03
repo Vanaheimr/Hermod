@@ -29,11 +29,12 @@ using eu.Vanaheimr.Hermod.Datastructures;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.Services
+namespace eu.Vanaheimr.Hermod.Services.CSV
 {
 
     /// <summary>
-    /// A TCP service accepting incoming CSV lines with ending 0x00 or 0x0d 0x0a (\r\n) characters.
+    /// A TCP service accepting incoming CSV lines
+    /// with ending 0x00 or 0x0d 0x0a (\r\n) characters.
     /// </summary>
     public class CSVTCPServer
     {
@@ -169,11 +170,10 @@ namespace eu.Vanaheimr.Hermod.Services
         /// <summary>
         /// Create a new TCP service accepting incoming CSV lines.
         /// </summary>
-        /// <param name="IPPort">The IP port to bind to.</param>
         /// <param name="SplitCharacters">The characters to split the incoming CSV lines.</param>
         /// <param name="ServiceBanner">The identifiying banner of the service.</param>
-        private CSVTCPServer(Char[]  SplitCharacters  = null,
-                             String  ServiceBanner    = DefaultServiceBanner)
+        private CSVTCPServer(Char[] SplitCharacters  = null,
+                             String ServiceBanner    = DefaultServiceBanner)
         {
 
             this.ServiceBanner          = ServiceBanner;
@@ -528,9 +528,9 @@ namespace eu.Vanaheimr.Hermod.Services
         /// <param name="IPPort">The IP port to bind to.</param>
         /// <param name="SplitCharacters">The characters to split the incoming CSV lines.</param>
         /// <param name="ServiceBanner">The identifiying banner of the service.</param>
-        public CSVTCPServer(IPPort  IPPort,
-                            Char[]  SplitCharacters  = null,
-                            String  ServiceBanner    = DefaultServiceBanner)
+        public CSVTCPServer(IPPort IPPort,
+                            Char[] SplitCharacters  = null,
+                            String ServiceBanner    = DefaultServiceBanner)
 
             : this(SplitCharacters, ServiceBanner)
 
@@ -548,9 +548,9 @@ namespace eu.Vanaheimr.Hermod.Services
         /// <param name="IPPorts">The IP ports to bind to.</param>
         /// <param name="SplitCharacters">The characters to split the incoming CSV lines.</param>
         /// <param name="ServiceBanner">The identifiying banner of the service.</param>
-        public CSVTCPServer(IEnumerable<IPPort>  IPPorts,
-                            Char[]               SplitCharacters  = null,
-                            String               ServiceBanner    = DefaultServiceBanner)
+        public CSVTCPServer(IEnumerable<IPPort> IPPorts,
+                            Char[]              SplitCharacters  = null,
+                            String              ServiceBanner    = DefaultServiceBanner)
 
             : this(SplitCharacters, ServiceBanner)
 
@@ -574,11 +574,18 @@ namespace eu.Vanaheimr.Hermod.Services
         public void Start()
         {
 
-            foreach (var InternalTCPServer in InternalTCPServers)
-                InternalTCPServer.Start();
-
             if (OnStarted != null)
                 OnStarted(this, DateTime.Now);
+
+            foreach (var InternalTCPServer in InternalTCPServers)
+            {
+
+                InternalTCPServer.Start();
+
+                if (OnTCPPortAdded != null)
+                    OnTCPPortAdded(this, DateTime.Now, InternalTCPServer.Port);
+
+            }
 
         }
 
@@ -647,7 +654,14 @@ namespace eu.Vanaheimr.Hermod.Services
         {
 
             foreach (var InternalTCPServer in InternalTCPServers)
+            {
+
                 InternalTCPServer.StopAndWait();
+
+                if (OnTCPPortRemoved != null)
+                    OnTCPPortRemoved(this, DateTime.Now, InternalTCPServer.Port);
+
+            }
 
             if (OnStopped != null)
                 OnStopped(this, DateTime.Now);
