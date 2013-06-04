@@ -195,7 +195,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
                                             if (OnNewConnection != null)
                                                 OnNewConnection(this, DateTime.Now, newTCPConnection.RemoteHost + ":" + newTCPConnection.RemotePort);
 
-                                            newTCPConnection.ReadTimeout = 60000;
+                                            newTCPConnection.ReadTimeout = 180000;
                                             newTCPConnection.WriteToResponseStream(this.ServiceBanner);
                                             newTCPConnection.WriteToResponseStream("\r\n");
                                             //newTCPConnection.WriteToResponseStream(0x00);
@@ -219,7 +219,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 
                                                     //bytesread = newTCPConnection.Read(Buffer);
 
-                                                    switch (newTCPConnection.TryRead(out Byte, MaxInitialWaitingTimeMS: 120000))
+                                                    switch (newTCPConnection.TryRead(out Byte, MaxInitialWaitingTimeMS: 180000))
                                                     {
 
                                                         #region DataAvailable
