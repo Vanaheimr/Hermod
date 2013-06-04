@@ -134,12 +134,12 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 
         #endregion
 
-        #region OnExceptionOccurred
+        #region OnError
 
         /// <summary>
-        /// An event fired whenever an exception occured.
+        /// An event fired whenever an error occured.
         /// </summary>
-        public event OnExceptionOccurredDelegate OnExceptionOccurred;
+        public event OnExceptionOccurredDelegate OnError;
 
         #endregion
 
@@ -480,8 +480,8 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
                                                 else
                                                 {
 
-                                                    if (OnExceptionOccurred != null)
-                                                        OnExceptionOccurred(this, DateTime.Now, newTCPConnection.RemoteHost + ":" + newTCPConnection.RemotePort, ioe, MemoryStream);
+                                                    if (OnError != null)
+                                                        OnError(this, DateTime.Now, newTCPConnection.RemoteHost + ":" + newTCPConnection.RemotePort, ioe, MemoryStream);
 
                                                 }
 
@@ -490,8 +490,8 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
                                             catch (Exception e)
                                             {
 
-                                                if (OnExceptionOccurred != null)
-                                                    OnExceptionOccurred(this, DateTime.Now, newTCPConnection.RemoteHost + ":" + newTCPConnection.RemotePort, e, MemoryStream);
+                                                if (OnError != null)
+                                                    OnError(this, DateTime.Now, newTCPConnection.RemoteHost + ":" + newTCPConnection.RemotePort, e, MemoryStream);
 
                                             }
 
