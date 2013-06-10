@@ -328,7 +328,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
                                                                                     newTCPConnection.WriteToResponseStream("exit\t\tClose the TCP connection\r\n");
                                                                                     newTCPConnection.WriteToResponseStream("quit\t\tClose the TCP connection\r\n");
                                                                                     newTCPConnection.WriteToResponseStream("logout\t\tClose the TCP connection\r\n");
-                                                                                    newTCPConnection.WriteToResponseStream("noop\t\tDo nothing put keep the TCP connection alive\r\n");
+                                                                                    newTCPConnection.WriteToResponseStream("noop\t\tDo nothing, but keep the TCP connection alive\r\n");
                                                                                     newTCPConnection.WriteToResponseStream("GetTime\t\tGet the current server time\r\n");
                                                                                     newTCPConnection.WriteToResponseStream("SetTimeout\tSet the timeout for this TCP connection [milliseconds]\r\n");
                                                                                     newTCPConnection.WriteToResponseStream("help\t\tGet help\r\n");
