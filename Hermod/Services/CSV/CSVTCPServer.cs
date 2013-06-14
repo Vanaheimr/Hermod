@@ -323,6 +323,11 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
                                                                                     newTCPConnection.WriteToResponseStream(DateTime.Now.ToUniversalTime().ToString("o") + "\r\n");
                                                                                     break;
 
+                                                                                case "getconnectionid":
+                                                                                    newTCPConnection.WriteToResponseStream(newTCPConnection.RemoteHost.ToString() + ":" +
+                                                                                                                           newTCPConnection.RemotePort.ToString() + "\r\n");
+                                                                                    break;
+
                                                                                 case "help":
                                                                                     newTCPConnection.WriteToResponseStream("bye\t\tClose the TCP connection\r\n");
                                                                                     newTCPConnection.WriteToResponseStream("exit\t\tClose the TCP connection\r\n");
