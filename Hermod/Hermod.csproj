@@ -8,7 +8,7 @@
     <ProjectGuid>{477EFD16-3627-4473-957D-44CA9A9DFB79}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Hermod</RootNamespace>
+    <RootNamespace>eu.Vanaheimr.Hermod</RootNamespace>
     <AssemblyName>Hermod</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -56,6 +56,8 @@
     <Compile Include="Datastructures\IPv4Address.cs" />
     <Compile Include="Datastructures\IPSocket.cs" />
     <Compile Include="Interfaces\IRemoteSocket.cs" />
+    <Compile Include="Services\CSV\CSVResult.cs" />
+    <Compile Include="Services\CSV\Delegates.cs" />
     <Compile Include="Services\CSV\CSVTCPServer.cs" />
     <Compile Include="Sockets\IServer.cs" />
     <Compile Include="Sockets\IICMPPacket.cs" />

@@ -151,25 +151,25 @@ namespace eu.Vanaheimr.Hermod.HTTP
         public void ProcessHTTP_new()
         {
 
-            using (var _HTTPStream = TCPClientConnection.GetStream())
+            using (var _HTTPStream = Stream)
             {
 
                 var helper = new StreamHelper(_HTTPStream, 65535);
-                
+
                 Debug.WriteLine("New connection " + RemoteHost + ":" + RemotePort + " @ " + Thread.CurrentThread.ManagedThreadId);
 
                 helper.NetworkStream.BeginRead(helper.Buffer, 0, helper.Buffer.Length, StreamReadCallback, helper);
 
-                Int32 ReadPosition = 0;
+                //Int32 ReadPosition = 0;
 
-                while (TCPClientConnection.Connected)
+                while (IsConnected)
                 {
                     Thread.Sleep(1);
                     //helper.DataAvailable.WaitOne();
                 };
 
                 Debug.WriteLine("Closing connection " + RemoteHost + ":" + RemotePort + " @ " + Thread.CurrentThread.ManagedThreadId);
-                TCPClientConnection.Close();
+                Close();
 
             }
 
@@ -515,7 +515,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
             //Console.WriteLine("HTTPConnection from {0}, thread {1}", TCPClientConnection.Client.RemoteEndPoint, Thread.CurrentThread.ManagedThreadId);
 
-            using (var _HTTPStream = TCPClientConnection.GetStream())
+            using (var _HTTPStream = Stream)
             {
 
                 var     _MemoryStream       = new MemoryStream();
@@ -535,7 +535,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                     Int32 _DataRead;
                     UInt32 _Retries = 0;
 
-                    while (!_EndOfHTTPHeader || _HTTPStream.DataAvailable || !TCPClientConnection.Connected)
+                    while (!_EndOfHTTPHeader || _HTTPStream.DataAvailable || !IsConnected)
                     {
 
                         while (_HTTPStream.DataAvailable)
@@ -577,16 +577,16 @@ namespace eu.Vanaheimr.Hermod.HTTP
                         else
                         {
                             //Debug.WriteLine("Thread[" + Thread.CurrentThread.ManagedThreadId + "]: end of network stream!");
-                            Debug.WriteLine("Thread[" + Thread.CurrentThread.ManagedThreadId + " from: " + RemoteHost + ":" + RemotePort + "]: length of stream so far: " + _MemoryStream.Length + " @ " + _EndOfHTTPHeader + ", " + _HTTPStream.DataAvailable + ", " + TCPClientConnection.Connected);
+                            Debug.WriteLine("Thread[" + Thread.CurrentThread.ManagedThreadId + " from: " + RemoteHost + ":" + RemotePort + "]: length of stream so far: " + _MemoryStream.Length + " @ " + _EndOfHTTPHeader + ", " + _HTTPStream.DataAvailable + ", " + IsConnected);
                         }
 
-                        Thread.Sleep(10);
+                        Thread.Sleep(100);
                         _Retries++;
 
-                        if (_Retries > 2)
+                        if (_Retries > 20)
                         {
                             Debug.WriteLine("Thread[" + Thread.CurrentThread.ManagedThreadId + " from: " + RemoteHost + ":" + RemotePort + "]: Closing connection!");
-                            TCPClientConnection.Close();
+                            Close();
                             break;
                         }
 
@@ -595,7 +595,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                     if (!_EndOfHTTPHeader)
                     {
 
-                        if (TCPClientConnection.Connected)
+                        if (IsConnected)
                             SendErrorpage(HTTPStatusCode.InternalServerError, Error: "Could not find the end of a valid HTTP header!");
 
                         return;

@@ -18,37 +18,43 @@
 #region Usings
 
 using System;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Collections.Generic;
+
+using eu.Vanaheimr.Hermod.Sockets.TCP;
+using eu.Vanaheimr.Hermod.Datastructures;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.Datastructures
+namespace eu.Vanaheimr.Hermod.Services
 {
 
-    /// <summary>
-    /// A TCP server interface.
-    /// </summary>
-    public interface ITCPServer : IServer
+    public enum CSVStatus
+    {
+        OK,
+        warning,
+        ERROR
+    }
+
+    public struct CSVResult
     {
 
-        /// <summary>
-        /// The current number of connected clients.
-        /// </summary>
-        UInt64 NumberOfClients { get; }
+        public readonly CSVStatus  Status;
+        public readonly String     Message;
 
-        /// <summary>
-        /// The maximum number of pending client connections.
-        /// </summary>
-        UInt32 MaxClientConnections { get; }
+        public CSVResult(CSVStatus _Status, String _Message = "")
+        {
+            Status   = _Status;
+            Message  = _Message;
+        }
 
-        /// <summary>
-        /// Will set the ClientTimeout for all incoming client connections
-        /// </summary>
-        Int32 ClientTimeout { get; }
-
-        /// <summary>
-        /// An exception has occured.
-        /// </summary>
-        event OnExceptionOccuredDelegate OnExceptionOccured;
+        public override String ToString()
+        {
+            return Status + "[" + Message + "]";
+        }
 
     }
 

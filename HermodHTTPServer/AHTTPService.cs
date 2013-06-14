@@ -487,7 +487,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
             else
             {
-                
+
                 Stream _ResourceContent = null;
 
                 if (_AllResources.Contains(this.ResourcePath + ".errorpages.Error404.html"))

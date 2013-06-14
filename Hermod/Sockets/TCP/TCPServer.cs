@@ -45,16 +45,16 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         #region Data
 
         // The internal thread
-        private readonly Thread          _ListenerThread;
+        private readonly Thread                                             _ListenerThread;
 
         // The TCP listener socket
-        private readonly TcpListener     _TCPListener;
+        private readonly TcpListener                                        _TCPListener;
 
         // Store each connection, in order to be able to stop them activily
-        private readonly ConcurrentDictionary<IPSocket, TCPConnectionType> _SocketConnections;
+        private readonly ConcurrentDictionary<IPSocket, TCPConnectionType>  _SocketConnections;
 
         // The constructor for TCPConnectionType
-        private readonly ConstructorInfo _Constructor;
+        private readonly ConstructorInfo                                    _Constructor;
 
         #endregion
 
@@ -178,10 +178,11 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
         #region ExceptionOccured
 
-        private event ExceptionOccuredHandler _OnExceptionOccured;
+        private event OnExceptionOccuredDelegate _OnExceptionOccured;
 
-        private List<ExceptionOccuredHandler> MyEventStorage = new List<ExceptionOccuredHandler>();
-        public event ExceptionOccuredHandler OnExceptionOccured
+        private List<OnExceptionOccuredDelegate> MyEventStorage = new List<OnExceptionOccuredDelegate>();
+
+        public event OnExceptionOccuredDelegate OnExceptionOccured
         {
 
             add
@@ -200,17 +201,17 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
-        #region NewConnection
+        #region OnNewConnection
 
         /// <summary>
-        /// A delegate definition for every incoming TCP connection.
+        /// A delegate called for every incoming TCP connection.
         /// </summary>
-        public delegate void NewConnectionHandler(TCPConnectionType myTCPConnectionType);
+        public delegate void OnNewClientConnectionDelegate(TCPConnectionType myTCPConnectionType);
 
         /// <summary>
         /// A event called for every incoming connection.
         /// </summary>
-        public event NewConnectionHandler OnNewConnection;
+        public event OnNewClientConnectionDelegate OnNewConnection;
 
         #endregion
 
@@ -226,7 +227,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="Port">The listening port</param>
         /// <param name="NewConnectionHandler">A delegate called for every new tcp connection.</param>
         /// <param name="Autostart">Autostart the tcp server.</param>
-        public TCPServer(IPPort Port, NewConnectionHandler NewConnectionHandler = null, Boolean Autostart = false, String ThreadDescription = "...")
+        public TCPServer(IPPort Port, OnNewClientConnectionDelegate NewConnectionHandler = null, Boolean Autostart = false, String ThreadDescription = "...")
             : this(IPv4Address.Any, Port, NewConnectionHandler, Autostart, ThreadDescription)
         { }
 
@@ -241,7 +242,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="Port">The listening port</param>
         /// <param name="NewConnectionHandler">A delegate called for every new tcp connection.</param>
         /// <param name="Autostart">Autostart the tcp server.</param>
-        public TCPServer(IIPAddress IIPAddress, IPPort Port, NewConnectionHandler NewConnectionHandler = null, Boolean Autostart = false, String ThreadDescription = "...")
+        public TCPServer(IIPAddress IIPAddress, IPPort Port, OnNewClientConnectionDelegate NewConnectionHandler = null, Boolean Autostart = false, String ThreadDescription = "...")
         {
 
             _IPAddress          = IIPAddress;
@@ -249,29 +250,26 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
             _SocketConnections  = new ConcurrentDictionary<IPSocket, TCPConnectionType>();
             _TCPListener        = new TcpListener(new System.Net.IPAddress(_IPAddress.GetBytes()), _Port.ToInt32());
-             ClientTimeout      = 10000;
+             ClientTimeout      = 30000;
 
             // Get constructor for TCPConnectionType
             _Constructor        = typeof(TCPConnectionType).
-                                     GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
-                                                    null,
-                                                    new Type[] {
-                                                       typeof(TcpClient)
-                                                   },
-                                                    null);
+                                      GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+                                                     null,
+                                                     new Type[] {
+                                                         typeof(TcpClient)
+                                                     },
+                                                     null);
 
             if (_Constructor == null)
                  throw new ArgumentException("A appropriate constructor for type '" + typeof(TCPConnectionType).FullName + "' could not be found!");
 
 
-            _ListenerThread = new Thread(() =>
-            {
-
-                Thread.CurrentThread.Name         = "TCPServer<" + ThreadDescription + ">";
-                Thread.CurrentThread.Priority     = ThreadPriority.AboveNormal;
-                Thread.CurrentThread.IsBackground = true;
+            _ListenerThread = new Thread(() => {
+                Thread.CurrentThread.Name          = "TCPServer<" + ThreadDescription + ">";
+                Thread.CurrentThread.Priority      = ThreadPriority.AboveNormal;
+                Thread.CurrentThread.IsBackground  = true;
                 Listen();
-
             });
 
             if (NewConnectionHandler != null)
@@ -292,7 +290,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="IPSocket">The listening IPSocket.</param>
         /// <param name="NewConnectionHandler">A delegate called for every new tcp connection.</param>
         /// <param name="Autostart">Autostart the tcp server.</param>
-        public TCPServer(IPSocket IPSocket, NewConnectionHandler NewConnectionHandler = null, Boolean Autostart = false)
+        public TCPServer(IPSocket IPSocket, OnNewClientConnectionDelegate NewConnectionHandler = null, Boolean Autostart = false)
             : this(IPSocket.IPAddress, IPSocket.Port, NewConnectionHandler, Autostart)
         { }
 
@@ -456,7 +454,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
             if (_IsRunning)
                 return;
-            
+
             if (MaxClientConnections != _DefaultMaxClientConnections)
                 _MaxClientConnections = MaxClientConnections;
 
@@ -568,7 +566,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="Port">The listening port</param>
         /// <param name="NewConnectionHandler">A delegate called for every new tcp connection.</param>
         /// <param name="Autostart">Autostart the tcp server.</param>
-        public TCPServer(IPPort Port, NewConnectionHandler NewConnectionHandler = null, Boolean Autostart = false)
+        public TCPServer(IPPort Port, OnNewClientConnectionDelegate NewConnectionHandler = null, Boolean Autostart = false)
             : base(IPv4Address.Any, Port, NewConnectionHandler, Autostart)
         { }
 
@@ -583,7 +581,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="Port">The listening port.</param>
         /// <param name="NewConnectionHandler">A delegate called for every new tcp connection.</param>
         /// <param name="Autostart">Autostart the tcp server.</param>
-        public TCPServer(IIPAddress IIPAddress, IPPort Port, NewConnectionHandler NewConnectionHandler = null, Boolean Autostart = false)
+        public TCPServer(IIPAddress IIPAddress, IPPort Port, OnNewClientConnectionDelegate NewConnectionHandler = null, Boolean Autostart = false)
             : base(IIPAddress, Port, NewConnectionHandler, Autostart)
         { }
 
@@ -597,7 +595,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="IPSocket">The listening IPSocket.</param>
         /// <param name="NewConnectionHandler">A delegate called for every new tcp connection.</param>
         /// <param name="Autostart">Autostart the tcp server.</param>
-        public TCPServer(IPSocket IPSocket, NewConnectionHandler NewConnectionHandler = null, Boolean Autostart = false)
+        public TCPServer(IPSocket IPSocket, OnNewClientConnectionDelegate NewConnectionHandler = null, Boolean Autostart = false)
             : base(IPSocket, NewConnectionHandler, Autostart)
         { }
 

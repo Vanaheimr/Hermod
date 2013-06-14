@@ -24,6 +24,6 @@ using System;
 namespace eu.Vanaheimr.Hermod
 {
 
-    public delegate void ExceptionOccuredHandler(Object Sender, Exception Exception);
+    public delegate void OnExceptionOccuredDelegate(Object Sender, Exception Exception);
 
 }
