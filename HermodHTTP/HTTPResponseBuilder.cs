@@ -558,15 +558,15 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region SetDate(DateTime)
+        #region SetDate(Date)
 
         /// <summary>
         /// Set the HTTP Date.
         /// </summary>
-        /// <param name="DateTime">DateTime.</param>
-        public HTTPResponseBuilder SetVia(DateTime DateTime)
+        /// <param name="Date">DateTime.</param>
+        public HTTPResponseBuilder SetDate(DateTime Date)
         {
-            this.Date = DateTime.ToString();
+            this.Date = Date;
             return this;
         }
 

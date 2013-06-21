@@ -955,15 +955,15 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region SetDate(DateTime)
+        #region SetDate(Date)
 
         /// <summary>
         /// Set the HTTP Date header field.
         /// </summary>
-        /// <param name="DateTime">DateTime.</param>
-        public HTTPRequestBuilder SetVia(DateTime DateTime)
+        /// <param name="Date">DateTime.</param>
+        public HTTPRequestBuilder SetDate(DateTime Date)
         {
-            this.Date = DateTime.ToString();
+            this.Date = Date;
             return this;
         }
 
@@ -995,7 +995,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="AcceptTypes">AcceptTypes.</param>
         public HTTPRequestBuilder SetAccept(AcceptTypes AcceptTypes)
         {
-            this.Accept = Accept;
+            this.Accept = AcceptTypes;
             return this;
         }
 

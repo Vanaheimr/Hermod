@@ -169,7 +169,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 throw new ArgumentNullException("The given HTTPContentType must not be null!");
 
             #endregion
-            
+
             List.Add(new AcceptType(HTTPContentType, Quality));
 
         }

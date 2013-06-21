@@ -473,7 +473,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <example>Date: Tue, 15 Nov 1994 08:12:31 GMT</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
         public static readonly HTTPHeaderField Date = new HTTPHeaderField("Date",
-                                                                          typeof(String),
+                                                                          typeof(DateTime),
                                                                           HeaderFieldType.General,
                                                                           RequestPathSemantic.EndToEnd);
 

@@ -382,17 +382,17 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region Date
 
-        public String Date
+        public DateTime Date
         {
 
             get
             {
-                return GetHeaderField(HTTPHeaderField.Date);
+                return DateTime.Parse(GetHeaderField(HTTPHeaderField.Date));
             }
 
             set
             {
-                SetHeaderField(HTTPHeaderField.Date, value);
+                SetHeaderField(HTTPHeaderField.Date, value.ToUniversalTime().ToString("r"));
             }
 
         }
