@@ -362,6 +362,45 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region (protected) ParseJSONRequestBody(OnSuccess, OnError, FailWhenNoContent = true)
+
+        protected HTTPResult<T> ParseRequestBody<T>(Func<String, T> OnSuccess, Func<T> OnError, Boolean FailWhenNoContent = true)
+        {
+
+            try
+            {
+
+                #region Check if the request body is null or empty
+
+                var RequestBodyUTF8 = String.Empty;
+
+                if (IHTTPConnection.RequestBody != null)
+                    RequestBodyUTF8 = IHTTPConnection.RequestBody.ToUTF8String().Trim();
+
+                if (RequestBodyUTF8.IsNullOrEmpty())
+                {
+
+                    if (FailWhenNoContent)
+                        return new HTTPResult<T>(IHTTPConnection.RequestHeader, HTTPStatusCode.BadRequest);
+
+                    return new HTTPResult<T>(OnError());
+
+                }
+
+                #endregion
+
+                return new HTTPResult<T>(OnSuccess(RequestBodyUTF8));
+
+            }
+            catch (Exception)
+            {
+                return new HTTPResult<T>(IHTTPConnection.RequestHeader, HTTPStatusCode.BadRequest);
+            }
+
+        }
+
+        #endregion
+
 
         #region (protected) ParseCallbackParameter()
 
