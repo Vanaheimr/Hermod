@@ -62,6 +62,21 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region CREATE(this HTTPClient, UrlPath = "/")
+
+        /// <summary>
+        /// Create a new HTTP CREATE request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="UrlPath">An URL path.</param>
+        /// <returns>A HTTP request object.</returns>
+        public static HTTPRequestBuilder CREATE(this HTTPClient HTTPClient, String UrlPath = "/")
+        {
+            return HTTPClient.CreateRequest(HTTPMethod.CREATE, UrlPath);
+        }
+
+        #endregion
+
         #region HEAD(this HTTPClient, UrlPath = "/")
 
         /// <summary>

@@ -248,6 +248,9 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 var _RequestBytes = (HTTPRequest.EntireRequestHeader + Environment.NewLine + Environment.NewLine).ToUTF8Bytes();
                 TCPStream.Write(_RequestBytes, 0, _RequestBytes.Length);
 
+                if (HTTPRequest.ContentLength > 0)
+                    TCPStream.Write(HTTPRequest.Content, 0, Math.Min((Int32) HTTPRequest.ContentLength, HTTPRequest.Content.Length));
+
                 var _MemoryStream = new MemoryStream();
                 var _Buffer = new Byte[65535];
                 var sw = new Stopwatch();
