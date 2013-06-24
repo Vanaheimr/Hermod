@@ -232,6 +232,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 HTTPStatusCode  = StatusCode,
                 CacheControl    = "no-cache",
                 Connection      = "close",
+                ContentType     = ContentType,
                 Content         = Content.ToUTF8Bytes()
             };
 
