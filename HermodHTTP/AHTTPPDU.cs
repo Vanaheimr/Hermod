@@ -683,6 +683,16 @@ namespace eu.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        public String EntirePDU
+        {
+            get
+            {
+                return RawHTTPHeader + Environment.NewLine + Environment.NewLine +
+                       Encoding.UTF8.GetString(Content, 0, Math.Min(Content.Length, (Int32) ContentLength.Value));
+            }
+        }
+
+
         #region GetEnumerator()
 
         /// <summary>

@@ -66,7 +66,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
             var position = QueryString.IndexOf("?");
             if (position >= 0)
             {
-                
+
                 QueryString = QueryString.Remove(0, position + 1);
 
                 if (String.IsNullOrEmpty(QueryString))
@@ -83,7 +83,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
             {
 
                 var split = keyValuePair.Split(b, StringSplitOptions.RemoveEmptyEntries);
-                
+
                 if (split.Length == 2)
                     Add(HttpUtility.UrlDecode(split[0]),
                         HttpUtility.UrlDecode(split[1]));
@@ -174,6 +174,9 @@ namespace eu.Vanaheimr.Hermod.HTTP
         public override String ToString()
         {
 
+            if (Count == 0)
+                return String.Empty;
+
             var _StringBuilder = new StringBuilder();
 
             foreach (var KeyValuePair in this)
@@ -183,7 +186,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                                    Append("=").
                                    Append(HttpUtility.UrlEncodeUnicode(Value));
 
-            return _StringBuilder.Remove(0, 1).ToString();
+            return '?' + _StringBuilder.Remove(0, 1).ToString();
 
         }
 

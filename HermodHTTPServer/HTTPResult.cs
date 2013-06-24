@@ -46,6 +46,11 @@ namespace eu.Vanaheimr.Hermod.HTTP
         public readonly TData Data;
 
         /// <summary>
+        /// The result of an operation.
+        /// </summary>
+        public readonly Boolean ValidData;
+
+        /// <summary>
         /// The current ETag as state or revision of the resource.
         /// </summary>
         public readonly String ETag;
@@ -73,13 +78,26 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
+        #region HTTPResult()
+
+        public HTTPResult(String ETag)
+        {
+            this.Error      = null;
+            this.Data       = default(TData);
+            this.ValidData  = false;
+            this.ETag       = ETag;
+        }
+
+        #endregion
+
         #region HTTPResult(Result, ETag = null)
 
         public HTTPResult(TData Result, String ETag = null)
         {
-            this.Error = null;
-            this.Data  = Result;
-            this.ETag  = ETag;
+            this.Error      = null;
+            this.Data       = Result;
+            this.ValidData  = true;
+            this.ETag       = ETag;
         }
 
         #endregion
@@ -92,9 +110,10 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="Error">The HTTPResponse for this error.</param>
         public HTTPResult(HTTPResponse HTTPResponse, String ETag = null)
         {
-            this.Error = HTTPResponse;
-            this.Data  = default(TData);
-            this.ETag  = ETag;
+            this.Error      = HTTPResponse;
+            this.Data       = default(TData);
+            this.ValidData  = false;
+            this.ETag       = ETag;
         }
 
         #endregion
@@ -109,11 +128,11 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="Error">The HTTPResponse for this error.</param>
         public HTTPResult(HTTPRequest HTTPRequest, HTTPStatusCode HTTPStatusCode, String Reason = null, String ETag = null)
         {
-            this.Error = null;
-            this.Data  = default(TData);
-            this.ETag  = ETag;
-            this.Error = HTTPErrorResponse(HTTPRequest, HTTPStatusCode, Reason, ETag);
-            
+            this.Error      = null;
+            this.Data       = default(TData);
+            this.ValidData  = false;
+            this.ETag       = ETag;
+            this.Error      = HTTPErrorResponse(HTTPRequest, HTTPStatusCode, Reason, ETag);
         }
 
         #endregion
@@ -122,9 +141,10 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         public HTTPResult(HTTPResponse HTTPResponse, TData Data, String ETag = null)
         {
-            this.Error = HTTPResponse;
-            this.Data  = Data;
-            this.ETag  = ETag;
+            this.Error      = HTTPResponse;
+            this.Data       = Data;
+            this.ValidData  = true;
+            this.ETag       = ETag;
         }
 
         #endregion
@@ -207,13 +227,13 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            var response = new HTTPResponseBuilder()
-                {
-                    HTTPStatusCode = StatusCode,
-                    CacheControl   = "no-cache",
-                    Connection     = "close",
-                    Content        = Content.ToUTF8Bytes()
-                };
+            var response = new HTTPResponseBuilder() {
+                Date            = DateTime.Now,
+                HTTPStatusCode  = StatusCode,
+                CacheControl    = "no-cache",
+                Connection      = "close",
+                Content         = Content.ToUTF8Bytes()
+            };
 
             if (ETag != null)
                 response.ETag = ETag;

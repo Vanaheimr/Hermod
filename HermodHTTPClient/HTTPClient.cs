@@ -44,7 +44,6 @@ namespace eu.Vanaheimr.Hermod.HTTP
         #region Data
 
         private TcpClient TCPClient;
-        private NetworkStream TCPStream;
 
         #endregion
 
@@ -127,8 +126,6 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region Events
 
-        public delegate void NewHTTPServiceHandler(String myHTTPServiceType);
-        public event         NewHTTPServiceHandler OnNewHTTPService;
 
         #endregion
 
@@ -162,7 +159,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
-                     
+
         #endregion
 
 
@@ -188,7 +185,42 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
 
 
-        public Task<HTTPClient> Execute(HTTPRequestBuilder HTTPRequest, Action<HTTPResponse> HTTPResponseDelegate)
+
+        public Task<T> Execute<T>(HTTPRequestBuilder HTTPRequest, Action<HTTPRequest> HTTPRequestDelegate, Func<HTTPRequest, HTTPResponse, T> RequestResponseDelegate)
+        {
+
+            if (HTTPRequestDelegate != null)
+                HTTPRequestDelegate(HTTPRequest);
+
+            return Execute(HTTPRequest, RequestResponseDelegate);
+
+        }
+
+
+        public Task<T> Execute<T>(HTTPRequestBuilder HTTPRequest, Func<HTTPRequest, HTTPResponse, T> RequestResponseDelegate)
+        {
+
+            return Task<T>.Factory.StartNew(() => {
+
+                T _T = default(T);
+                Execute(HTTPRequest, new Action<HTTPRequest, HTTPResponse>((request, response) => _T = RequestResponseDelegate(request, response))).Wait();
+                return _T;
+
+            });
+
+        }
+
+        public Task<HTTPClient> Execute(HTTPRequestBuilder HTTPRequest, Action<HTTPRequest> HTTPRequestDelegate, Action<HTTPRequest, HTTPResponse> RequestResponseDelegate)
+        {
+
+            if (HTTPRequestDelegate != null)
+                HTTPRequestDelegate(HTTPRequest);
+
+            return Execute(HTTPRequest, RequestResponseDelegate);
+
+        }
+
+        public Task<HTTPClient> Execute(HTTPRequestBuilder HTTPRequest, Action<HTTPRequest, HTTPResponse> RequestResponseDelegate)
         {
 
             return Task<HTTPClient>.Factory.StartNew(() =>
@@ -202,27 +234,23 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                 #endregion
 
-                #region Client initialisieren und mit dem Server verbinden
-
-                // Init TcpClient
                 if (TCPClient == null)
                     TCPClient = new TcpClient(this.RemoteIPAddress.ToString(), this.RemotePort.ToInt32());
-                    //TCPClient.ReceiveTimeout = 5000;
 
-                // Open stream for reading and writting
-                if (TCPStream == null)
-                    TCPStream = TCPClient.GetStream();
-
-                #endregion
+                //TCPClient.ReceiveTimeout = 5000;
+                var Timeout = 20000;
 
                 #region Send Request
+
+                // Open stream for reading and writting
+                var TCPStream = TCPClient.GetStream();
 
                 var _RequestBytes = (HTTPRequest.EntireRequestHeader + Environment.NewLine + Environment.NewLine).ToUTF8Bytes();
                 TCPStream.Write(_RequestBytes, 0, _RequestBytes.Length);
 
                 var _MemoryStream = new MemoryStream();
-                var _Buffer       = new Byte[65535];
-                var sw            = new Stopwatch();
+                var _Buffer = new Byte[65535];
+                var sw = new Stopwatch();
 
                 #endregion
 
@@ -230,13 +258,17 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                 sw.Start();
 
-                while (!TCPStream.DataAvailable || sw.ElapsedMilliseconds > 20000)
+                while (!TCPStream.DataAvailable)
+                {
+
+                    if (sw.ElapsedMilliseconds >= Timeout)
+                    {
+                        TCPClient.Close();
+                        throw new ApplicationException("Could not read from the TCP stream!");
+                    }
+
                     Thread.Sleep(1);
 
-                if (!TCPStream.DataAvailable && sw.ElapsedMilliseconds > 20000)
-                {
-                    TCPClient.Close();
-                    throw new ApplicationException("Could not read from the TCP stream!");
                 }
 
                 sw.Stop();
@@ -247,7 +279,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                 TCPStream.ReadTimeout = 2;
 
-                while (!_EndOfHTTPHeader || TCPStream.DataAvailable || !TCPClient.Connected)
+                while (!_EndOfHTTPHeader || TCPStream != null || TCPStream.DataAvailable || !TCPClient.Connected)
                 {
 
                     #region Read the entire stream into the memory <= Rethink this someday!
@@ -267,21 +299,21 @@ namespace eu.Vanaheimr.Hermod.HTTP
                         _MemoryStream.Seek(0, SeekOrigin.Begin);
 
                         int state = 0;
-                        int _int  = 0;
+                        int _int = 0;
                         _EndOfHTTPHeader = false;
 
                         while (!_EndOfHTTPHeader || _int == -1)
                         {
-                            
+
                             _int = _MemoryStream.ReadByte();
 
                             switch (state)
                             {
-                                case 0 : if (_int == 0x0d) state = 1; else state = 0; break;
-                                case 1 : if (_int == 0x0a) state = 2; else state = 0; break;
-                                case 2 : if (_int == 0x0d) state = 3; else state = 0; break;
-                                case 3 : if (_int == 0x0a) _EndOfHTTPHeader = true; else state = 0; break;
-                                default : state = 0; break;
+                                case 0: if (_int == 0x0d) state = 1; else state = 0; break;
+                                case 1: if (_int == 0x0a) state = 2; else state = 0; break;
+                                case 2: if (_int == 0x0d) state = 3; else state = 0; break;
+                                case 3: if (_int == 0x0a) _EndOfHTTPHeader = true; else state = 0; break;
+                                default: state = 0; break;
                             }
 
                         }
@@ -308,9 +340,9 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 _MemoryStream.Seek(0, SeekOrigin.Begin);
                 _MemoryStream.Read(HeaderBytes, 0, HeaderBytes.Length);
 
-                #endregion
-
                 var _HTTPResponse = new HTTPResponse(HeaderBytes.ToUTF8String());
+
+                #endregion
 
                 #region Read 'Content-Length' bytes...
 
@@ -320,8 +352,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 {
 
                     _MemoryStream.Seek(4, SeekOrigin.Current);
-                    var _Read        = _MemoryStream.Read(_Buffer, 0, _Buffer.Length);
-                    var _StillToRead = (Int32) _HTTPResponse.ContentLength.Value - _Read;
+                    var _Read = _MemoryStream.Read(_Buffer, 0, _Buffer.Length);
+                    var _StillToRead = (Int32)_HTTPResponse.ContentLength.Value - _Read;
                     _HTTPResponse.ContentStream.Write(_Buffer, 0, _Read);
                     var _CurrentBufferSize = 0;
 
@@ -332,8 +364,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                         while (TCPStream.DataAvailable)
                         {
-                            _CurrentBufferSize = Math.Min(_Buffer.Length, (Int32) _StillToRead);
-                            _Read              = TCPStream.Read(_Buffer, 0, _CurrentBufferSize);
+                            _CurrentBufferSize = Math.Min(_Buffer.Length, (Int32)_StillToRead);
+                            _Read = TCPStream.Read(_Buffer, 0, _CurrentBufferSize);
                             _HTTPResponse.ContentStream.Write(_Buffer, 0, _Read);
                             _StillToRead -= _Read;
                             Retries = 0;
@@ -385,11 +417,12 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                 #region Close connection if requested!
 
-                if (_HTTPResponse.Connection == "close")
+                if (_HTTPResponse.Connection == null ||
+                    _HTTPResponse.Connection == "close")
                 {
                     TCPClient.Close();
-                    TCPClient = null;
                     TCPStream = null;
+                    TCPClient = null;
                 }
 
                 #endregion
@@ -397,8 +430,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                 #region Call HTTPResponse delegates
 
-                if (HTTPResponseDelegate != null)
-                    HTTPResponseDelegate(_HTTPResponse);
+                if (RequestResponseDelegate != null)
+                    RequestResponseDelegate(HTTPRequest, _HTTPResponse);
 
                 #endregion
 
@@ -420,6 +453,10 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region ToString()
 
+        /// <summary>
+        /// Returns a string representation of this object.
+        /// </summary>
+        /// <returns>A string representation of this object.</returns>
         public override String ToString()
         {
 

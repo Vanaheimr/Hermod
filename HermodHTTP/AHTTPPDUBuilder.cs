@@ -21,8 +21,10 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Collections.Generic;
 using System.ComponentModel;
+using System.Collections.Generic;
+
+using eu.Vanaheimr.Illias.Commons;
 
 #endregion
 
@@ -54,14 +56,11 @@ namespace eu.Vanaheimr.Hermod.HTTP
             get
             {
 
-                if (HeaderFields.Count > 0)
-                    return (from   _KeyValuePair in HeaderFields
-                            where  _KeyValuePair.Key   != null
-                            where  _KeyValuePair.Value != null
-                            select _KeyValuePair.Key + ": " + _KeyValuePair.Value).
-                            Aggregate((a, b) => a + Environment.NewLine + b);
-
-                return null;
+                return (from   _KeyValuePair in HeaderFields
+                        where  _KeyValuePair.Key   != null
+                        where  _KeyValuePair.Value != null
+                        select _KeyValuePair.Key + ": " + _KeyValuePair.Value).
+                        SaveAggregate((a, b) => a + Environment.NewLine + b, String.Empty);
 
             }
         }
@@ -500,7 +499,6 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-
         #endregion
 
         #region Events
@@ -573,7 +571,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
             #region Set the Content-Length if it was not set before
 
-            if (ContentLength == 0)
+            if (ContentLength == null || ContentLength == 0)
             {
                 if (Content != null)
                     ContentLength = (UInt64) Content.LongLength;

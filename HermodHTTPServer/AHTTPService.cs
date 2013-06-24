@@ -236,80 +236,48 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected) TryGetParameter_UInt64(Name, out HTTPResult)
+        #region (protected) TryGetLastQueryParameter_UInt64(ParameterName, OnSuccess = null, OnNotFound = null)
 
         /// <summary>
-        /// Try to return a single optional HTTP parameter as UInt64.
+        /// Try to return a single optional HTTP query parameter as UInt64.
         /// </summary>
-        /// <param name="Name">The name of the parameter.</param>
-        /// <param name="HTTPResult">The HTTPResult.</param>
-        /// <returns>True if the parameter exist; False otherwise.</returns>
-        protected Boolean TryGetParameter_UInt64_(String Name, out HTTPResult<UInt64> HTTPResult)
+        /// <param name="ParameterName">The name of the parameter.</param>
+        /// <param name="OnSuccess">A delegate called whenever a valid value was found.</param>
+        /// <param name="OnNotFound">A delegate called whenever no value was found.</param>
+        protected HTTPResult<UInt64> TryGetLastQueryParameter_UInt64(String ParameterName, Action<UInt64> OnSuccess = null, Func<UInt64> OnNotFound = null)
         {
 
-            List<String> _StringValues = null;
+            List<String> StringValues = null;
 
             if (IHTTPConnection.RequestHeader.QueryString != null)
-                if (IHTTPConnection.RequestHeader.QueryString.TryGetValue(Name, out _StringValues))
+                if (IHTTPConnection.RequestHeader.QueryString.TryGetValue(ParameterName, out StringValues))
                 {
 
-                    UInt64 _Value;
+                    var Value = 0UL;
 
-                    if (UInt64.TryParse(_StringValues[0], out _Value))
-                    {
-                        HTTPResult = new HTTPResult<UInt64>(_Value);
-                        return true;
-                    }
+                    foreach (var StringValue in StringValues)
+                        if (!UInt64.TryParse(StringValue, out Value))
+                            return new HTTPResult<UInt64>(IHTTPConnection.RequestHeader,
+                                                          HTTPStatusCode.BadRequest,
+                                                          "The given optional query parameter '" + ParameterName + "=" + StringValue + "' is invalid!");
 
-                    else
-                    {
-                        HTTPResult = new HTTPResult<UInt64>(IHTTPConnection.RequestHeader, HTTPStatusCode.BadRequest, "The given optional parameter '" + Name + "' is invalid!");
-                        return true;
-                    }
+                    // Return the last parsed value!
+                    if (OnSuccess != null)
+                        OnSuccess(Value);
+
+                    return new HTTPResult<UInt64>(Value);
 
                 }
 
-            HTTPResult = new HTTPResult<UInt64>(default(UInt64));
-            return false;
+            if (OnNotFound != null)
+                return new HTTPResult<UInt64>(OnNotFound());
+
+            return new HTTPResult<UInt64>(default(UInt64));
 
         }
 
         #endregion
 
-        #region (protected) TryGetParameter_UInt64(Name, out HTTPResult)
-
-        /// <summary>
-        /// Try to return a single optional HTTP parameter as UInt64.
-        /// </summary>
-        /// <param name="Name">The name of the parameter.</param>
-        /// <param name="HTTPResult">The HTTPResult.</param>
-        /// <returns>True if the parameter exist; False otherwise.</returns>
-        protected Boolean TryGetParameter_UInt64(String Name, out UInt64 Result)
-        {
-
-            List<String> _StringValues = null;
-
-            if (IHTTPConnection.RequestHeader.QueryString != null)
-                if (IHTTPConnection.RequestHeader.QueryString.TryGetValue(Name, out _StringValues))
-                    if (_StringValues.Any())
-                    {
-
-                        UInt64 _Value;
-
-                        if (UInt64.TryParse(_StringValues[0], out _Value))
-                        {
-                            Result = _Value;
-                            return true;
-                        }
-
-                    }
-
-            Result = default(UInt64);
-            return false;
-
-        }
-
-        #endregion
 
         #region (protected) TryGetParameter_String(Name, out HTTPResult)
 
@@ -362,13 +330,16 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected) ParseJSONRequestBody(OnSuccess, OnError, FailWhenNoContent = true)
+        #region (protected) ParseJSONRequestBody(ExpectedContentType, OnSuccess, OnError, FailWhenNoContent = true)
 
-        protected HTTPResult<T> ParseRequestBody<T>(Func<String, T> OnSuccess, Func<T> OnError, Boolean FailWhenNoContent = true)
+        protected HTTPResult<T> ParseRequestBody<T>(HTTPContentType ExpectedContentType, Func<String, T> OnSuccess, Func<T> OnError, Boolean FailWhenNoContent = true)
         {
 
             try
             {
+
+                if (IHTTPConnection.RequestHeader.ContentType != ExpectedContentType)
+                    return new HTTPResult<T>(IHTTPConnection.RequestHeader, HTTPStatusCode.BadRequest, "HTTP request body content type must be '" + ExpectedContentType.MediaType + "'!");
 
                 #region Check if the request body is null or empty
 
@@ -381,7 +352,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 {
 
                     if (FailWhenNoContent)
-                        return new HTTPResult<T>(IHTTPConnection.RequestHeader, HTTPStatusCode.BadRequest);
+                        return new HTTPResult<T>(IHTTPConnection.RequestHeader, HTTPStatusCode.BadRequest, "HTTP request body missing!");
 
                     return new HTTPResult<T>(OnError());
 
@@ -419,38 +390,33 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected) ParseSkipParameter()
+        #region (protected) ParseSkipParameter(Default = 0)
 
         /// <summary>
         /// Parse and check the parameter SKIP.
         /// </summary>
-        protected void ParseSkipParameter()
+        protected HTTPResult<UInt64> ParseSkipParameter(UInt64 Default = 0)
         {
 
-            UInt64 _Skip;
-
-            if (TryGetParameter_UInt64(Tokens.SKIP, out _Skip))
-                Skip.Value = _Skip;
+            return TryGetLastQueryParameter_UInt64(Tokens.SKIP,
+                                          result => Skip.Value = result,
+                                          ()     => Skip.Value = Default);
 
         }
 
         #endregion
 
-        #region (protected) ParseTakeParameter()
+        #region (protected) ParseTakeParameter(Default)
 
         /// <summary>
         /// Parse and check the parameter TAKE.
         /// </summary>
-        protected void ParseTakeParameter()
+        protected HTTPResult<UInt64> ParseTakeParameter(UInt64 Default)
         {
 
-            UInt64 _Take;
-
-            if (TryGetParameter_UInt64(Tokens.TAKE, out _Take))
-                Take.Value = _Take;
-
-            if (Take.Value == 0)
-                Take.Value = 25;
+            return TryGetLastQueryParameter_UInt64(Tokens.TAKE,
+                                          result => Skip.Value = result,
+                                          ()     => Skip.Value = Default);
 
         }
 

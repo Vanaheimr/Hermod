@@ -253,8 +253,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
             HTTPStatusCode = HTTPStatusCode.ParseString(SplittedFirstLine[1]);
 
-            if (HTTPStatusCode != HTTPStatusCode.BadRequest)
-            {
+            //if (HTTPStatusCode != HTTPStatusCode.BadRequest)
+            //{
 
                 String[] _KeyValuePairs = null;
 
@@ -273,7 +273,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                 }
 
-            }
+            //}
 
             //this.HTTPStatusCode = HTTPStatusCode.OK;
             return true;

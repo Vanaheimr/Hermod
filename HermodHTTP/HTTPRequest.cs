@@ -71,7 +71,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
         {
             get
             {
-                return HTTPMethod.ToString() + " " + this.UrlPath + " " + ProtocolName + "/" + ProtocolVersion;
+                return HTTPMethod.ToString() + " " + this.UrlPath + QueryString + " " + ProtocolName + "/" + ProtocolVersion;
             }
         }
 
@@ -500,17 +500,36 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region HTTPRequest(RemoteHost, RemotePort, HTTPHeader)
+
+        /// <summary>
+        /// Create a new http request header based on the given string representation.
+        /// </summary>
+        /// <param name="RemoteHost">The remote host</param>
+        /// <param name="RemotePort">The remote port</param>
+        /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
+        public HTTPRequest(IIPAddress RemoteHost, IPPort RemotePort, String HTTPHeader)
+            : this(HTTPHeader)
+        {
+
+            this.RemoteHost = RemoteHost;
+            this.RemotePort = RemotePort;
+
+            if (!HeaderFields.ContainsKey("Host"))
+                HeaderFields.Add("Host", "*");
+
+        }
+
+        #endregion
+
         #region HTTPRequest(HTTPHeader)
 
         /// <summary>
         /// Create a new http request header based on the given string representation.
         /// </summary>
         /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
-        public HTTPRequest(IIPAddress RemoteHost, IPPort RemotePort, String HTTPHeader)
+        public HTTPRequest(String HTTPHeader)
         {
-
-            this.RemoteHost = RemoteHost;
-            this.RemotePort = RemotePort;
 
             if (!ParseHeader(HTTPHeader))
                 return;
@@ -542,20 +561,15 @@ namespace eu.Vanaheimr.Hermod.HTTP
             #region Parse URL and QueryString (first line of the http request)
 
             var RawUrl     = _HTTPMethodHeader[1];
-            var _ParsedURL = RawUrl.Split(_URLSeperator, 2, StringSplitOptions.RemoveEmptyEntries);            
+            var _ParsedURL = RawUrl.Split(_URLSeperator, 2, StringSplitOptions.None);
             UrlPath        = _ParsedURL[0];
-            
+
             if (UrlPath == "" || UrlPath == null)
                 UrlPath = "/";
 
             // Parse QueryString after '?'
-            if (RawUrl.IndexOf('?') > -1)
-            {
-                //var a = HttpUtility.ParseQueryString(_ParsedURL[1]);
-                //foreach (var b in a.AllKeys)
-                //    QueryString.Add(b, a[b]);
+            if (RawUrl.IndexOf('?') > -1 && _ParsedURL[1].IsNeitherNullNorEmpty())
                 this.QueryString = new QueryString(_ParsedURL[1]);
-            }
 
             #endregion
 
@@ -581,14 +595,25 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            if (!HeaderFields.ContainsKey("Host"))
-                HeaderFields.Add("Host", "*");
-
             this.HTTPStatusCode = HTTPStatusCode.OK;
 
         }
 
         #endregion
+
+        #endregion
+
+
+        #region ToString()
+
+        /// <summary>
+        /// Returns a string representation of this object.
+        /// </summary>
+        /// <returns>A string representation of this object.</returns>
+        public override String ToString()
+        {
+            return EntireRequestHeader;
+        }
 
         #endregion
 

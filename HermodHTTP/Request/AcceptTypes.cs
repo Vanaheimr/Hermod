@@ -246,11 +246,18 @@ namespace eu.Vanaheimr.Hermod.HTTP
         }
 
 
+        #region ToString()
+
+        /// <summary>
+        /// Returns a string representation of this object.
+        /// </summary>
+        /// <returns>A string representation of this object.</returns>
         public override String ToString()
         {
             return String.Join(",", List.Select(a => a.ContentType.MediaType.ToString() + ";q=" + a.Quality.ToString().Replace(',', '.')));
         }
 
+        #endregion
 
     }
 

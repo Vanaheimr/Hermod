@@ -55,14 +55,14 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region AcceptType(HTTPContentType, Quality)
+        #region AcceptType(HTTPContentType, Quality = 1.0)
 
         /// <summary>
         /// Create a new HTTP accept header field.
         /// </summary>
         /// <param name="HTTPContentType">The accepted content type.</param>
         /// <param name="Quality">The preference of the content type.</param>
-        public AcceptType(HTTPContentType HTTPContentType, Double Quality)
+        public AcceptType(HTTPContentType HTTPContentType, Double Quality = 1.0)
         {
 
             #region Initial checks

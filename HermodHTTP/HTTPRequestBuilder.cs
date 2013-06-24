@@ -41,8 +41,6 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region Non-http header fields
 
-        //public HTTPClient HTTPClient { get; private set; }
-
         public String EntireRequestHeader
         {
             get
@@ -689,19 +687,6 @@ namespace eu.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
-
-        //#region HTTPRequestBuilder(HTTPClient)
-
-        ///// <summary>
-        ///// Create a new HTTP request for the given HTTPClient.
-        ///// </summary>
-        //public HTTPRequestBuilder(HTTPClient HTTPClient)
-        //    : this()
-        //{
-        //    this.HTTPClient = HTTPClient;
-        //}
-
-        //#endregion
 
         #endregion
 
@@ -1422,7 +1407,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
             PrepareImmutability();
 
-            return new HTTPRequest();
+            return new HTTPRequest(EntireRequestHeader);
 
         }
 
