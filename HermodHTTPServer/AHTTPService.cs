@@ -399,8 +399,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
         {
 
             return TryGetLastQueryParameter_UInt64(Tokens.SKIP,
-                                          result => Skip.Value = result,
-                                          ()     => Skip.Value = Default);
+                                                   result => Skip.Value = result,
+                                                   ()     => Skip.Value = Default);
 
         }
 
@@ -415,8 +415,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
         {
 
             return TryGetLastQueryParameter_UInt64(Tokens.TAKE,
-                                          result => Skip.Value = result,
-                                          ()     => Skip.Value = Default);
+                                                   result => Take.Value = result,
+                                                   ()     => Take.Value = Default);
 
         }
 
