@@ -451,6 +451,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         public void Close()
         {
+            if (TCPClient != null)
+                TCPClient.Close();
         }
 
 
