@@ -687,8 +687,13 @@ namespace eu.Vanaheimr.Hermod.HTTP
         {
             get
             {
-                return RawHTTPHeader + Environment.NewLine + Environment.NewLine +
-                       Encoding.UTF8.GetString(Content, 0, Math.Min(Content.Length, (Int32) ContentLength.Value));
+
+                if (Content != null && Content.Length > 0)
+                    return RawHTTPHeader + Environment.NewLine + Environment.NewLine +
+                           Encoding.UTF8.GetString(Content, 0, Math.Min(Content.Length, (Int32) ContentLength.Value));
+
+                return RawHTTPHeader;
+
             }
         }
 
