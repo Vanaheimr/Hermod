@@ -329,14 +329,14 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
                                                                                     break;
 
                                                                                 case "help":
-                                                                                    newTCPConnection.WriteToResponseStream("bye\t\tClose the TCP connection\r\n");
-                                                                                    newTCPConnection.WriteToResponseStream("exit\t\tClose the TCP connection\r\n");
-                                                                                    newTCPConnection.WriteToResponseStream("quit\t\tClose the TCP connection\r\n");
-                                                                                    newTCPConnection.WriteToResponseStream("logout\t\tClose the TCP connection\r\n");
-                                                                                    newTCPConnection.WriteToResponseStream("noop\t\tDo nothing, but keep the TCP connection alive\r\n");
-                                                                                    newTCPConnection.WriteToResponseStream("GetTime\t\tGet the current server time\r\n");
-                                                                                    newTCPConnection.WriteToResponseStream("SetTimeout\tSet the timeout for this TCP connection [milliseconds]\r\n");
-                                                                                    newTCPConnection.WriteToResponseStream("help\t\tGet help\r\n");
+                                                                                    newTCPConnection.WriteToResponseStream("bye        Close the TCP connection\r\n");
+                                                                                    newTCPConnection.WriteToResponseStream("exit        Close the TCP connection\r\n");
+                                                                                    newTCPConnection.WriteToResponseStream("quit        Close the TCP connection\r\n");
+                                                                                    newTCPConnection.WriteToResponseStream("logout        Close the TCP connection\r\n");
+                                                                                    newTCPConnection.WriteToResponseStream("noop        Do nothing, but keep the TCP connection alive\r\n");
+                                                                                    newTCPConnection.WriteToResponseStream("GetTime        Get the current server time\r\n");
+                                                                                    newTCPConnection.WriteToResponseStream("SetTimeout    Set the timeout for this TCP connection [milliseconds]\r\n");
+                                                                                    newTCPConnection.WriteToResponseStream("help        Get help\r\n");
                                                                                     newTCPConnection.WriteToResponseStream("\r\n");
                                                                                     break;
 
