@@ -40,10 +40,6 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region Non-http header fields
 
-        public String RawHTTPHeader { get; private set; }
-
-        protected String FirstPDULine { get; set; }
-
         #region HTTPHeader
 
         public String HTTPHeader
@@ -310,31 +306,21 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region HTTPResponseBuilder(HTTPHeader)
-
-        //public HTTPResponseBuilder(String HTTPHeader)
-        //    : this()
-        //{
-        //    ParseHeader(HTTPHeader);
-        //}
-
-        #endregion
-
         #endregion
 
 
-        #region (operator) HTTPResponseBuilder => HTTPResponse
+        #region (implicit operator) HTTPResponseBuilder => HTTPResponse
 
         /// <summary>
-        /// Declare an explicit conversion from a HTTPResponseBuilder to an HTTPResponse
+        /// Declare an implicit conversion of a HTTPResponseBuilder
+        /// to a HTTPResponse object.
         /// </summary>
-        /// <param name="HTTPRequestBuilder"></param>
-        /// <returns></returns>
-        public static implicit operator HTTPResponse(HTTPResponseBuilder Builder)
+        /// <param name="HTTPRequestBuilder">A HTTPResponseBuilder.</param>
+        public static implicit operator HTTPResponse(HTTPResponseBuilder HTTPResponseBuilder)
         {
-            return Builder.AsImmutable();
+            return HTTPResponseBuilder.AsImmutable();
         }
-        
+
         #endregion
 
 

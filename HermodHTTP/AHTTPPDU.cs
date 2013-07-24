@@ -275,39 +275,6 @@ namespace eu.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (private) ParseHeader(HTTPHeaderLines)
-
-        /// <summary>
-        /// Parse an HTTP header.
-        /// </summary>
-        /// <param name="HTTPHeaderLines">An enumeration of strings.</param>
-        protected Boolean ParseHeader(IEnumerable<String> HTTPHeaderLines)
-        {
-
-            this.HTTPStatusCode = HTTPStatusCode.BadRequest;
-
-            String[] _KeyValuePairs = null;
-
-            foreach (var _Line in HTTPHeaderLines)
-            {
-
-                _KeyValuePairs = _Line.Split(_ColonSeperator, 2, StringSplitOptions.RemoveEmptyEntries);
-
-                if (_KeyValuePairs.Length == 2)
-                    HeaderFields.Add(_KeyValuePairs[0].Trim(), _KeyValuePairs[1].Trim());
-                else
-                    return false;
-
-            }
-
-            this.HTTPStatusCode = HTTPStatusCode.OK;
-            return true;
-
-        }
-
-        #endregion
-
-
         #region (protected) TryGetHeaderField(FieldName)
 
         /// <summary>
@@ -429,7 +396,6 @@ namespace eu.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
-
 
 
         #region (protected) GetHeaderField(FieldName)
@@ -610,63 +576,6 @@ namespace eu.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (protected) SetHeaderField(FieldName, Value)
-
-        /// <summary>
-        /// Set a HTTP header field.
-        /// A field value of NULL will remove the field from the header.
-        /// </summary>
-        /// <param name="FieldName">The name of the header field.</param>
-        /// <param name="Value">The value. NULL will remove the field from the header.</param>
-        protected void SetHeaderField(String FieldName, Object Value)
-        {
-
-            if (Value != null)
-            {
-
-                if (HeaderFields.ContainsKey(FieldName))
-                    HeaderFields[FieldName] = Value;
-                else
-                    HeaderFields.Add(FieldName, Value);
-
-            }
-
-            else
-                if (HeaderFields.ContainsKey(FieldName))
-                    HeaderFields.Remove(FieldName);
-
-        }
-
-        #endregion
-
-        #region (protected) SetHeaderField(HeaderField, Value)
-
-        /// <summary>
-        /// Set a HTTP header field.
-        /// A field value of NULL will remove the field from the header.
-        /// </summary>
-        /// <param name="FieldName">The name of the header field.</param>
-        /// <param name="Value">The value. NULL will remove the field from the header.</param>
-        protected void SetHeaderField(HTTPHeaderField HeaderField, Object Value)
-        {
-
-            if (Value != null)
-            {
-
-                if (HeaderFields.ContainsKey(HeaderField.Name))
-                    HeaderFields[HeaderField.Name] = Value;
-                else
-                    HeaderFields.Add(HeaderField.Name, Value);
-
-            }
-
-            else
-                if (HeaderFields.ContainsKey(HeaderField.Name))
-                    HeaderFields.Remove(HeaderField.Name);
-
-        }
-
-        #endregion
 
         #region (protected) RemoveHeaderField(FieldName)
 

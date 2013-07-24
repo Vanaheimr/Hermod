@@ -42,21 +42,31 @@ namespace eu.Vanaheimr.Hermod.HTTP
         #region Data
 
         /// <summary>
-        /// All header fields.
+        /// The collection of all HTTP headers.
         /// </summary>
         protected readonly IDictionary<String, Object> HeaderFields;
 
-        protected readonly String[] _LineSeperator;
-        protected readonly Char[]   _ColonSeperator;
-        protected readonly Char[]   _SlashSeperator;
-        protected readonly Char[]   _SpaceSeperator;
-        protected readonly Char[]   _URLSeperator;
+        protected readonly String[] _LineSeparator;
+        protected readonly Char[]   _ColonSeparator;
+        protected readonly Char[]   _SlashSeparator;
+        protected readonly Char[]   _SpaceSeparator;
+        protected readonly Char[]   _URLSeparator;
+        protected readonly Char[]   _HashSeparator;
 
         #endregion
 
         #region Properties
 
         #region Non-HTTP header fields
+
+        #region RawHTTPHeader
+
+        /// <summary>
+        /// The RAW, unparsed and unverified HTTP header.
+        /// </summary>
+        public String RawHTTPHeader { get; protected set; }
+
+        #endregion
 
         #region RawPDU
 
@@ -67,49 +77,21 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        public String RawHTTPHeader { get; protected set; }
+        #region FirstPDULine
 
+        /// <summary>
+        /// The first line of a HTTP request or response.
+        /// </summary>
         protected String FirstPDULine { get; set; }
 
-        #region HTTPStatusCode
+        #endregion
 
-        protected HTTPStatusCode _HTTPStatusCode;
+        #region HTTPStatusCode
 
         /// <summary>
         /// The HTTP status code.
         /// </summary>
-        public HTTPStatusCode HTTPStatusCode
-        {
-            
-            get
-            {
-                return _HTTPStatusCode;
-            }
-
-            set
-            {
-                _HTTPStatusCode = value;
-            }
-
-        }
-
-        #endregion
-
-        #region ProtocolName
-
-        /// <summary>
-        /// The HTTP protocol name field.
-        /// </summary>
-        public String  ProtocolName    { get; protected set; }
-
-        #endregion
-
-        #region ProtocolVersion
-
-        /// <summary>
-        /// The HTTP protocol version.
-        /// </summary>
-        public HTTPVersion ProtocolVersion { get; protected set; }
+        public HTTPStatusCode HTTPStatusCode { get; set; }
 
         #endregion
 
@@ -137,63 +119,65 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region AHTTPHeader()
-
         /// <summary>
         /// Creates a new HTTP header.
         /// </summary>
         public AHTTPBasePDU()
         {
 
-            _LineSeperator  = new String[] { Environment.NewLine };
-            _ColonSeperator = new Char[]   { ':' };
-            _SlashSeperator = new Char[]   { '/' };
-            _SpaceSeperator = new Char[]   { ' ' };
-            _URLSeperator   = new Char[]   { '?', '!' };
+            _LineSeparator   = new String[] { Environment.NewLine };
+            _ColonSeparator  = new Char[]   { ':' };
+            _SlashSeparator  = new Char[]   { '/' };
+            _SpaceSeparator  = new Char[]   { ' ' };
+            _URLSeparator    = new Char[]   { '?', '!' };
+            _HashSeparator   = new Char[]   { '#' };
 
-            HeaderFields    = new Dictionary<String, Object>(StringComparer.OrdinalIgnoreCase);
+            HeaderFields     = new Dictionary<String, Object>(StringComparer.OrdinalIgnoreCase);
 
         }
 
         #endregion
 
-        #endregion
 
-
-        #region (protected) ParseHeader(HTTPHeaderLines)
+        #region (protected) TryParseHeader(HTTPHeaderLines)
 
         /// <summary>
-        /// Parse an HTTP header.
+        /// Try to parse a HTTP header.
         /// </summary>
-        /// <param name="HTTPHeaderLines">An enumeration of strings.</param>
-        protected Boolean ParseHeader(String HTTPHeader)//, Boolean ExternalHeader)
+        /// <param name="HTTPHeader">An enumeration of strings.</param>
+        protected Boolean TryParseHeader(String HTTPHeader)
         {
 
-            this.HTTPStatusCode = HTTPStatusCode.BadRequest;
+            this.HTTPStatusCode  = HTTPStatusCode.BadRequest;
+            this.RawHTTPHeader   = HTTPHeader;
 
-            RawHTTPHeader = HTTPHeader;
-
-            var _HTTPHeaderLines = HTTPHeader.Split(_LineSeperator, StringSplitOptions.RemoveEmptyEntries);
-            if (_HTTPHeaderLines.Length == 0)
-            {
-                HTTPStatusCode = HTTPStatusCode.BadRequest;
-                return false;
-            }
-
-            FirstPDULine = _HTTPHeaderLines.First();
-
-            String[] _KeyValuePairs = null;
-
-            foreach (var _Line in _HTTPHeaderLines.Skip(1))
+            try
             {
 
-                _KeyValuePairs = _Line.Split(_ColonSeperator, 2, StringSplitOptions.RemoveEmptyEntries);
+                var Lines = HTTPHeader.Split(_LineSeparator, StringSplitOptions.RemoveEmptyEntries);
 
-                if (_KeyValuePairs.Length == 2)
-                    HeaderFields.Add(_KeyValuePairs[0].Trim(), _KeyValuePairs[1].Trim());
-                else
+                FirstPDULine = Lines.FirstOrDefault();
+                if (FirstPDULine == null)
                     return false;
 
+                String[] KeyValuePair = null;
+
+                foreach (var Line in Lines.Skip(1))
+                {
+
+                    KeyValuePair = Line.Split(_ColonSeparator, 2, StringSplitOptions.RemoveEmptyEntries);
+
+                    if (KeyValuePair.Length == 2)
+                        HeaderFields.Add(KeyValuePair[0].Trim(), KeyValuePair[1].Trim());
+                    else
+                        return false;
+
+                }
+
+            }
+            catch (Exception)
+            {
+                return false;
             }
 
             this.HTTPStatusCode = HTTPStatusCode.OK;
@@ -202,6 +186,66 @@ namespace eu.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
+
+
+        #region (protected) SetHeaderField(FieldName, Value)
+
+        /// <summary>
+        /// Set a HTTP header field.
+        /// A field value of NULL will remove the field from the header.
+        /// </summary>
+        /// <param name="FieldName">The name of the header field.</param>
+        /// <param name="Value">The value. NULL will remove the field from the header.</param>
+        protected void SetHeaderField(String FieldName, Object Value)
+        {
+
+            if (Value != null)
+            {
+
+                if (HeaderFields.ContainsKey(FieldName))
+                    HeaderFields[FieldName] = Value;
+                else
+                    HeaderFields.Add(FieldName, Value);
+
+            }
+
+            else
+                if (HeaderFields.ContainsKey(FieldName))
+                    HeaderFields.Remove(FieldName);
+
+        }
+
+        #endregion
+
+        #region (protected) SetHeaderField(HeaderField, Value)
+
+        /// <summary>
+        /// Set a HTTP header field.
+        /// A field value of NULL will remove the field from the header.
+        /// </summary>
+        /// <param name="FieldName">The name of the header field.</param>
+        /// <param name="Value">The value. NULL will remove the field from the header.</param>
+        protected void SetHeaderField(HTTPHeaderField HeaderField, Object Value)
+        {
+
+            if (Value != null)
+            {
+
+                if (HeaderFields.ContainsKey(HeaderField.Name))
+                    HeaderFields[HeaderField.Name] = Value;
+                else
+                    HeaderFields.Add(HeaderField.Name, Value);
+
+            }
+
+            else
+                if (HeaderFields.ContainsKey(HeaderField.Name))
+                    HeaderFields.Remove(HeaderField.Name);
+
+        }
+
+        #endregion
+
 
     }
 

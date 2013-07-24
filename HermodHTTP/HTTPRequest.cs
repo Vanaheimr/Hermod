@@ -531,12 +531,12 @@ namespace eu.Vanaheimr.Hermod.HTTP
         public HTTPRequest(String HTTPHeader)
         {
 
-            if (!ParseHeader(HTTPHeader))
+            if (!TryParseHeader(HTTPHeader))
                 return;
 
             #region Parse HTTPMethod (first line of the http request)
 
-            var _HTTPMethodHeader = FirstPDULine.Split(_SpaceSeperator, StringSplitOptions.RemoveEmptyEntries);
+            var _HTTPMethodHeader = FirstPDULine.Split(_SpaceSeparator, StringSplitOptions.RemoveEmptyEntries);
 
             // e.g: PROPFIND /file/file Name HTTP/1.1
             if (_HTTPMethodHeader.Length != 3)
@@ -561,7 +561,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
             #region Parse URL and QueryString (first line of the http request)
 
             var RawUrl     = _HTTPMethodHeader[1];
-            var _ParsedURL = RawUrl.Split(_URLSeperator, 2, StringSplitOptions.None);
+            var _ParsedURL = RawUrl.Split(_URLSeparator, 2, StringSplitOptions.None);
             UrlPath        = _ParsedURL[0];
 
             if (UrlPath == "" || UrlPath == null)
@@ -575,7 +575,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
             #region Parse protocol name and -version (first line of the http request)
 
-            var _ProtocolArray  = _HTTPMethodHeader[2].Split(_SlashSeperator, 2, StringSplitOptions.RemoveEmptyEntries);
+            var _ProtocolArray  = _HTTPMethodHeader[2].Split(_SlashSeparator, 2, StringSplitOptions.RemoveEmptyEntries);
             ProtocolName        = _ProtocolArray[0].ToUpper();
 
             if (ProtocolName.ToUpper() != "HTTP")

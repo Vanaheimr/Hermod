@@ -235,7 +235,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
             RawHTTPHeader = HTTPHeader;
 
-            var _HTTPHeaderLines = HTTPHeader.Split(_LineSeperator, StringSplitOptions.RemoveEmptyEntries);
+            var _HTTPHeaderLines = HTTPHeader.Split(_LineSeparator, StringSplitOptions.RemoveEmptyEntries);
             if (_HTTPHeaderLines.Length == 0)
             {
                 HTTPStatusCode = HTTPStatusCode.BadRequest;
@@ -261,7 +261,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 foreach (var _Line in _HTTPHeaderLines.Skip(1))
                 {
 
-                    _KeyValuePairs = _Line.Split(_ColonSeperator, 2, StringSplitOptions.RemoveEmptyEntries);
+                    _KeyValuePairs = _Line.Split(_ColonSeparator, 2, StringSplitOptions.RemoveEmptyEntries);
 
                     if (_KeyValuePairs.Length == 2)
                         HeaderFields.Add(_KeyValuePairs[0].Trim(), _KeyValuePairs[1].Trim());

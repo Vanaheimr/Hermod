@@ -39,8 +39,17 @@ namespace eu.Vanaheimr.Hermod.HTTP
     ///    for any kind of metadata
     ///  - A body hosting the transmitted content
     /// </summary>
-    public abstract class AHTTPPDUBuilder : AHTTPBasePDU, IEnumerable<KeyValuePair<String, Object>>, INotifyPropertyChanged
+    public abstract class AHTTPPDUBuilder : IEnumerable<KeyValuePair<String, Object>>, INotifyPropertyChanged
     {
+
+        #region Data
+
+        /// <summary>
+        /// The collection of all HTTP headers.
+        /// </summary>
+        protected readonly IDictionary<String, Object> HeaderFields;
+
+        #endregion
 
         #region Properties
 
@@ -69,24 +78,25 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region HTTPStatusCode
 
+        private HTTPStatusCode _HTTPStatusCode;
+
         /// <summary>
         /// The HTTP status code.
         /// </summary>
-        //public HTTPStatusCode HTTPStatusCode
-        //{
+        public HTTPStatusCode HTTPStatusCode
+        {
 
-        //    get
-        //    {
-        //        return _HTTPStatusCode;
-        //    }
+            get
+            {
+                return _HTTPStatusCode;
+            }
 
-        //    set
-        //    {
-        //        SetProperty(ref _HTTPStatusCode, value, "HTTPStatusCode");
-        //        _HTTPStatusCode = value;
-        //    }
+            set
+            {
+                SetProperty(ref _HTTPStatusCode, value, "HTTPStatusCode");
+            }
 
-        //}
+        }
 
         #endregion
 
@@ -519,10 +529,12 @@ namespace eu.Vanaheimr.Hermod.HTTP
         #region AHTTPPDUBuilder()
 
         /// <summary>
-        /// Creates a new HTTP header.
+        /// Create a new HTTP header builder.
         /// </summary>
         public AHTTPPDUBuilder()
-        { }
+        {
+            this.HeaderFields = new Dictionary<String, Object>(StringComparer.OrdinalIgnoreCase);
+        }
 
         #endregion
 
@@ -547,11 +559,9 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 Field = NewValue;
 
                 // Take a copy of the handler for concurrency issues!
-                var handler = PropertyChanged;
-                if (handler != null)
-                {
-                    handler(this, new PropertyChangedEventArgs(PropertyName));
-                }
+                var Handler = PropertyChanged;
+                if (Handler != null)
+                    Handler(this, new PropertyChangedEventArgs(PropertyName));
 
             }
 
@@ -560,7 +570,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region PrepareImmutability()
+
+        #region (protected) PrepareImmutability()
 
         /// <summary>
         /// Prepares the immutability of an HTTP PDU, e.g. calculates
@@ -569,8 +580,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
         protected virtual void PrepareImmutability()
         {
 
-            #region Set the Content-Length if it was not set before
-
+            // Set the Content-Length if it was not set before
             if (ContentLength == null || ContentLength == 0)
             {
                 if (Content != null)
@@ -579,8 +589,6 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 else if (ContentStream != null)
                     ContentLength = (UInt64) ContentStream.Length;
             }
-
-            #endregion
 
         }
 
