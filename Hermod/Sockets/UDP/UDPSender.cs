@@ -182,6 +182,26 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #region Constructor(s)
 
+        #region UDPSender(MessageProcessor)
+
+        /// <summary>
+        /// Create a new UDPSender.
+        /// </summary>
+        /// <param name="MessageProcessor">A delegate to tranform the message into an array of bytes.</param>
+        private UDPSender(Func<T, Byte[]>  MessageProcessor)
+        {
+
+            if (MessageProcessor == null)
+                throw new ArgumentNullException("The MessageProcessor must not be null!");
+
+            this.MessageProcessor  = MessageProcessor;
+            this.DotNetSocket      = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            this.UDPSocketFlags    = SocketFlags.None;
+
+        }
+
+        #endregion
+
         #region (private) UDPSender(MessageProcessor, Port)
 
         /// <summary>
@@ -191,16 +211,11 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="Port">The IP port to send the UDP data.</param>
         private UDPSender(Func<T, Byte[]>  MessageProcessor,
                           IPPort           Port)
+
+            : this (MessageProcessor)
+
         {
-
-            if (MessageProcessor == null)
-                throw new ArgumentNullException("The MessageProcessor must not be null!");
-
-            this.MessageProcessor  = MessageProcessor;
-            this.DotNetSocket      = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            this.UDPSocketFlags    = SocketFlags.None;
-            this.Port              = Port;
-
+            this.Port  = Port;
         }
 
         #endregion
@@ -285,6 +300,10 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="Message">The message to send.</param>
         public void Send(T Message)
         {
+
+            if (RemoteIPEndPoint == null)
+                throw new ArgumentNullException("The IP address and port must be defined before sending an UDP packet!");
+
 
             Byte[] UDPPacketData = null;
 
