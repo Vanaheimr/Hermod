@@ -20,6 +20,7 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
+
 using eu.Vanaheimr.Styx;
 using eu.Vanaheimr.Hermod.Datastructures;
 
@@ -28,11 +29,63 @@ using eu.Vanaheimr.Hermod.Datastructures;
 namespace eu.Vanaheimr.Hermod.Sockets.UDP
 {
 
+    // For testing via NetCat use: 'nc -lup 5000'
+
+    #region UDPSender
+
+    /// <summary>
+    /// A generic UDP sender acceptiong Vanaheimr Stxy arrows
+    /// in order to send them through the internet.
+    /// </summary>
+    public class UDPSender : UDPSender<Byte[]>
+    {
+
+        #region UDPSender()
+
+        /// <summary>
+        /// Create a new UDP sender.
+        /// </summary>
+        public UDPSender()
+            : base(Message => Message)
+        { }
+
+        #endregion
+
+        #region UDPSender(Hostname, Port)
+
+        /// <summary>
+        /// Create a new UDP sender.
+        /// </summary>
+        /// <param name="Hostname">The hostname to send the UDP data.</param>
+        /// <param name="Port">The IP port to send the UDP data.</param>
+        public UDPSender(String Hostname, IPPort Port)
+            : base(Message => Message, Hostname, Port)
+        { }
+
+        #endregion
+
+        #region UDPSender(Hostname, Port)
+
+        /// <summary>
+        /// Create a new UDP sender.
+        /// </summary>
+        /// <param name="IPAddress">The IP address to send the UDP data.</param>
+        /// <param name="Port">The IP port to send the UDP data.</param>
+        public UDPSender(IIPAddress IPAddress, IPPort Port)
+            : base(Message => Message, IPAddress, Port)
+        { }
+
+        #endregion
+
+    }
+
+    #endregion
+
     #region UDPSender<T>
 
     /// <summary>
-    /// A generic UDP client acceptiong Vanaheimr Stxy arrows/notifications.
-    /// For testing via NetCat type: 'nc -lup 5000'
+    /// A generic UDP sender acceptiong Vanaheimr Stxy arrows
+    /// in order to send them through the internet.
     /// </summary>
     public class UDPSender<T> : IArrowReceiver<T>,
                                 IArrowReceiver<UDPPacket<T>>,
@@ -188,7 +241,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// Create a new UDPSender.
         /// </summary>
         /// <param name="MessageProcessor">A delegate to tranform the message into an array of bytes.</param>
-        private UDPSender(Func<T, Byte[]>  MessageProcessor)
+        public UDPSender(Func<T, Byte[]>  MessageProcessor)
         {
 
             if (MessageProcessor == null)
@@ -449,45 +502,6 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
             if (DotNetSocket != null)
                 DotNetSocket.Close();
         }
-
-        #endregion
-
-    }
-
-    #endregion
-
-    #region UDPSender
-
-    /// <summary>
-    /// A UDP client acceptiong Vanaheimr Stxy arrows/notifications.
-    /// For testing via NetCat type: 'nc -lup 5000'
-    /// </summary>
-    public class UDPSender : UDPSender<Byte[]>
-    {
-
-        #region UDPClient(Hostname, Port)
-
-        /// <summary>
-        /// Create a new UDPClient.
-        /// </summary>
-        /// <param name="Hostname">The hostname to send the UDP data.</param>
-        /// <param name="Port">The IP port to send the UDP data.</param>
-        public UDPSender(String Hostname, IPPort Port)
-            : base(msg => msg, Hostname, Port)
-        { }
-
-        #endregion
-
-        #region UDPClient(Hostname, Port)
-
-        /// <summary>
-        /// Create a new UDPClient.
-        /// </summary>
-        /// <param name="IPAddress">The IP address to send the UDP data.</param>
-        /// <param name="Port">The IP port to send the UDP data.</param>
-        public UDPSender(IIPAddress IPAddress, IPPort Port)
-            : base(msg => msg, IPAddress, Port)
-        { }
 
         #endregion
 
