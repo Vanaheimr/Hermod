@@ -8,8 +8,8 @@
     <ProjectGuid>{18360D99-87C2-479C-AB52-55D0BCA9B000}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>de.ahzf.Vanaheimr.Hermod.Multicast</RootNamespace>
-    <AssemblyName>HermodMulticast</AssemblyName>
+    <RootNamespace>de.ahzf.Vanaheimr.Hermod.Raw</RootNamespace>
+    <AssemblyName>HermodRawIP</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -21,7 +21,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <DocumentationFile>bin\Debug\HermodMulticast.XML</DocumentationFile>
+    <DocumentationFile>bin\Debug\HermodRawIP.xml</DocumentationFile>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
@@ -42,10 +42,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="NetworkArrows\ArrowIPSource.cs" />
-    <Compile Include="NetworkArrows\IArrowReceiverExtensions.cs" />
-    <Compile Include="UDPMulticastReceiverArrow.cs" />
-    <Compile Include="UDPMulticastSenderArrow.cs" />
+    <Compile Include="RawIP\AProtocolHeader.cs" />
+    <Compile Include="RawIP\IGMP\IGMPHeader.cs" />
+    <Compile Include="RawIP\IPv4\ICMPHeader.cs" />
+    <Compile Include="RawIP\IPv4\IPv4Header.cs" />
+    <Compile Include="RawIP\IPv6\ICMPv6EchoRequest.cs" />
+    <Compile Include="RawIP\IPv6\ICMPv6Header.cs" />
+    <Compile Include="RawIP\IPv6\IPv6FragmentHeader.cs" />
+    <Compile Include="RawIP\IPv6\IPV6Header.cs" />
+    <Compile Include="RawIP\UDP\UDPHeader.cs" />
+    <Compile Include="RawIP\WinsockIoctl.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

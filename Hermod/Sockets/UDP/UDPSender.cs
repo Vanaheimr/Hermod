@@ -28,12 +28,14 @@ using eu.Vanaheimr.Hermod.Datastructures;
 namespace eu.Vanaheimr.Hermod.Sockets.UDP
 {
 
+    #region UDPSender<T>
+
     /// <summary>
-    /// An UDP client acceptiong Vanaheimr Stxy arrows/notifications.
+    /// A generic UDP client acceptiong Vanaheimr Stxy arrows/notifications.
     /// For testing via NetCat type: 'nc -lup 5000'
     /// </summary>
-    public class UDPClient<T> : ITarget<T>,
-                                ITarget<UDPPacket<T>>,
+    public class UDPSender<T> : IArrowReceiver<T>,
+                                IArrowReceiver<UDPPacket<T>>,
                                 IDisposable
     {
 
@@ -180,14 +182,14 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #region Constructor(s)
 
-        #region (private) UDPClient(MessageProcessor, Port)
+        #region (private) UDPSender(MessageProcessor, Port)
 
         /// <summary>
-        /// Create a new UDPClient.
+        /// Create a new UDPSender.
         /// </summary>
         /// <param name="MessageProcessor">A delegate to tranform the message into an array of bytes.</param>
         /// <param name="Port">The IP port to send the UDP data.</param>
-        private UDPClient(Func<T, Byte[]>  MessageProcessor,
+        private UDPSender(Func<T, Byte[]>  MessageProcessor,
                           IPPort           Port)
         {
 
@@ -203,15 +205,15 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #endregion
 
-        #region UDPClient(MessageProcessor, Hostname, Port)
+        #region UDPSender(MessageProcessor, Hostname, Port)
 
         /// <summary>
-        /// Create a new UDPClient.
+        /// Create a new UDPSender.
         /// </summary>
         /// <param name="MessageProcessor">A delegate to tranform the message into an array of bytes.</param>
         /// <param name="Hostname">The hostname to send the UDP data.</param>
         /// <param name="Port">The IP port to send the UDP data.</param>
-        public UDPClient(Func<T, Byte[]>  MessageProcessor,
+        public UDPSender(Func<T, Byte[]>  MessageProcessor,
                          String           Hostname,
                          IPPort           Port)
 
@@ -223,15 +225,15 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #endregion
 
-        #region UDPClient(MessageProcessor, IPAddress, Port)
+        #region UDPSender(MessageProcessor, IPAddress, Port)
 
         /// <summary>
-        /// Create a new UDPClient.
+        /// Create a new UDPSender.
         /// </summary>
         /// <param name="MessageProcessor">A delegate to tranform the message into an array of bytes.</param>
         /// <param name="IPAddress">The IP address to send the UDP data.</param>
         /// <param name="Port">The IP port to send the UDP data.</param>
-        public UDPClient(Func<T, Byte[]>  MessageProcessor,
+        public UDPSender(Func<T, Byte[]>  MessageProcessor,
                          IIPAddress       IPAddress,
                          IPPort           Port)
 
@@ -275,43 +277,138 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         #endregion
 
 
+        #region Send(Message)
+
         /// <summary>
         /// Send the given message to the predefined remote host.
         /// </summary>
         /// <param name="Message">The message to send.</param>
-        public void ProcessNotification(T Message)
+        public void Send(T Message)
         {
 
-            var UDPPacketData = MessageProcessor(Message);
+            Byte[] UDPPacketData = null;
 
-            SocketError SocketErrorCode;
-            DotNetSocket.Send(UDPPacketData, 0, UDPPacketData.Length, UDPSocketFlags, out SocketErrorCode);
+            try
+            {
+                UDPPacketData = MessageProcessor(Message);
+            }
+            catch (Exception e)
+            {
+                ProcessError(this, new Exception("The MessageProcessor lead to an error!", e));
+            }
 
-            if (SocketErrorCode != SocketError.Success)
-                ProcessError(this, new Exception(SocketErrorCode.ToString()));
+            try
+            {
+
+                SocketError SocketErrorCode;
+                DotNetSocket.Send(UDPPacketData, 0, UDPPacketData.Length, UDPSocketFlags, out SocketErrorCode);
+
+                if (SocketErrorCode != SocketError.Success)
+                    ProcessError(this, new Exception("The UDP packet transmission lead to an error: " + SocketErrorCode.ToString()));
+
+            }
+            catch (Exception e)
+            {
+                ProcessError(this, new Exception("The UDP packet transmission lead to an error!", e));
+            }
 
         }
 
-        public void ProcessError(dynamic Sender, Exception ExceptionMessage)
+        #endregion
+
+        #region (ITarget<T>) ProcessArrow(Message)
+
+        /// <summary>
+        /// Send the given message to the predefined remote host.
+        /// </summary>
+        /// <param name="Message">The message to send.</param>
+        void IArrowReceiver<T>.ProcessArrow(T Message)
         {
-            
+            this.Send(Message);
         }
 
-        public void ProcessCompleted(dynamic Sender, string Message)
+        #endregion
+
+        #region Send(UDPPacket)
+
+        /// <summary>
+        /// Send the given UDP packet to the remote host specified within the UDP packet.
+        /// </summary>
+        /// <param name="UDPPacket">The UDP packet to send.</param>
+        public void Send(UDPPacket<T> UDPPacket)
         {
-            
+
+            Byte[] UDPPacketData = null;
+
+            try
+            {
+                UDPPacketData = MessageProcessor(UDPPacket.Message);
+            }
+            catch (Exception e)
+            {
+                ProcessError(this, new Exception("The MessageProcessor lead to an error!", e));
+            }
+
+            try
+            {
+
+                DotNetSocket.SendTo(UDPPacketData,
+                                    UDPSocketFlags,
+                                    new IPEndPoint(System.Net.IPAddress.Parse(UDPPacket.RemoteSocket.IPAddress.ToString()),
+                                                   UDPPacket.RemoteSocket.Port.ToUInt16()));
+
+            }
+            catch (Exception e)
+            {
+                ProcessError(this, new Exception("The UDP packet transmission lead to an error!", e));
+            }
+
         }
 
+        #endregion
 
-        public void ProcessNotification(UDPPacket<T> UDPPacket)
+        #region (ITarget<UDPPacket<T>>) ProcessArrow(UDPPacket)
+
+        /// <summary>
+        /// Send the given UDP packet to the remote host specified within the UDP packet.
+        /// </summary>
+        /// <param name="UDPPacket">The UDP packet to send.</param>
+        void IArrowReceiver<UDPPacket<T>>.ProcessArrow(UDPPacket<T> UDPPacket)
         {
-
-            DotNetSocket.SendTo(MessageProcessor(UDPPacket.Message),
-                                UDPSocketFlags,
-                                new IPEndPoint(System.Net.IPAddress.Parse(UDPPacket.RemoteSocket.IPAddress.ToString()),
-                                               UDPPacket.RemoteSocket.Port.ToUInt16()));
-
+            Send(UDPPacket);
         }
+
+        #endregion
+
+
+        #region ProcessError(Sender, ExceptionMessage)
+
+        /// <summary>
+        /// An error occured at the arrow sender.
+        /// </summary>
+        /// <param name="Sender">The sender of this error message.</param>
+        /// <param name="ExceptionMessage">The exception leading to this error.</param>
+        public virtual void ProcessError(dynamic Sender, Exception ExceptionMessage)
+        {
+            // Error handling should better be part of the application logic!
+            // Overwrite this method to signal the error, e.g. by sending a nice UDP packet.
+        }
+
+        #endregion
+
+        #region ProcessCompleted(Sender, Message)
+
+        /// <summary>
+        /// Close the UDP socket, as no more data will be send.
+        /// </summary>
+        /// <param name="Sender">The sender of this completed message.</param>
+        /// <param name="Message">An optional completion message.</param>
+        public void ProcessCompleted(dynamic Sender, String Message = null)
+        {
+            Close();
+        }
+
+        #endregion
 
 
         #region Close()
@@ -321,8 +418,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// </summary>
         public void Close()
         {
-            if (DotNetSocket != null)
-                DotNetSocket.Close();
+            Dispose();
         }
 
         #endregion
@@ -339,16 +435,45 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
     }
 
+    #endregion
 
+    #region UDPSender
 
-    public class UDPClient : UDPClient<Byte[]>
+    /// <summary>
+    /// A UDP client acceptiong Vanaheimr Stxy arrows/notifications.
+    /// For testing via NetCat type: 'nc -lup 5000'
+    /// </summary>
+    public class UDPSender : UDPSender<Byte[]>
     {
 
-        public UDPClient(String Hostname, IPPort Port)
-            :base(msg => msg, Hostname, Port)
+        #region UDPClient(Hostname, Port)
+
+        /// <summary>
+        /// Create a new UDPClient.
+        /// </summary>
+        /// <param name="Hostname">The hostname to send the UDP data.</param>
+        /// <param name="Port">The IP port to send the UDP data.</param>
+        public UDPSender(String Hostname, IPPort Port)
+            : base(msg => msg, Hostname, Port)
         { }
+
+        #endregion
+
+        #region UDPClient(Hostname, Port)
+
+        /// <summary>
+        /// Create a new UDPClient.
+        /// </summary>
+        /// <param name="IPAddress">The IP address to send the UDP data.</param>
+        /// <param name="Port">The IP port to send the UDP data.</param>
+        public UDPSender(IIPAddress IPAddress, IPPort Port)
+            : base(msg => msg, IPAddress, Port)
+        { }
+
+        #endregion
 
     }
 
+    #endregion
 
 }

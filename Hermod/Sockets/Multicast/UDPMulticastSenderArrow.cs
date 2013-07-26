@@ -34,8 +34,8 @@ namespace eu.Vanaheimr.Hermod.Multicast
     /// The UDPMulticastSenderArrow sends the incoming message
     /// to the given IP multicast group.
     /// </summary>
-    /// <typeparam name="TMessage">The type of the consuming messages/objects.</typeparam>
-    public class UDPMulticastSenderArrow<TMessage> : AbstractArrowReceiver<TMessage>
+    /// <typeparam name="TIn">The type of the consuming messages/objects.</typeparam>
+    public class UDPMulticastSenderArrow<TIn> : AbstractArrowReceiver<TIn>
     {
 
         #region Data
@@ -55,7 +55,7 @@ namespace eu.Vanaheimr.Hermod.Multicast
         /// </summary>
         public Byte HopCount
         {
-            
+
             get
             {
                 return (Byte) this.MulticastSocket.GetSocketOption(SocketOptionLevel.IP,
@@ -98,7 +98,7 @@ namespace eu.Vanaheimr.Hermod.Multicast
         #endregion
 
 
-        #region ReceiveMessage(Sender, MessageIn)
+        #region ReceiveMessage(MessageIn)
 
         /// <summary>
         /// Accepts a message of type S from a sender for further processing
@@ -106,7 +106,7 @@ namespace eu.Vanaheimr.Hermod.Multicast
         /// </summary>
         /// <param name="Sender">The sender of the message.</param>
         /// <param name="MessageIn">The message.</param>
-        public override void ReceiveMessage(dynamic Sender, TMessage MessageIn)
+        public override void ProcessArrow(TIn MessageIn)
         {
             var sent = MulticastSocket.SendTo(MessageIn.ToString().ToUTF8Bytes(), IPEndPoint);
         }

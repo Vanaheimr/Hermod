@@ -7,8 +7,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Dependencies", "Dependencie
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HermodTests", "HermodTests\HermodTests.csproj", "{8F1ABEE3-CFF0-47D6-A872-25112A74CCDA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HermodMulticast", "HermodMulticast\HermodMulticast.csproj", "{18360D99-87C2-479C-AB52-55D0BCA9B000}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "UnitTests", "UnitTests", "{458B7E03-207F-4031-BF6B-C0404D637DA8}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HermodHTTPServer", "HermodHTTPServer\HermodHTTPServer.csproj", "{9CE48DAC-0512-4947-942B-EF4C42C52B47}"
@@ -26,6 +24,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommonsTests", "..\Illias\CommonsTests\CommonsTests.csproj", "{02A5F706-A9AC-46BE-A428-EA6F990D8E21}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StyxTests", "..\Styx\StyxTests\StyxTests.csproj", "{6F2452F5-BF16-4577-9C5A-85C8D7B5289D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HermodRawIP", "HermodRawIP\HermodRawIP.csproj", "{18360D99-87C2-479C-AB52-55D0BCA9B000}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -57,16 +57,6 @@ Global
 		{8F1ABEE3-CFF0-47D6-A872-25112A74CCDA}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{8F1ABEE3-CFF0-47D6-A872-25112A74CCDA}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{8F1ABEE3-CFF0-47D6-A872-25112A74CCDA}.Release|x86.ActiveCfg = Release|Any CPU
-		{18360D99-87C2-479C-AB52-55D0BCA9B000}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{18360D99-87C2-479C-AB52-55D0BCA9B000}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{18360D99-87C2-479C-AB52-55D0BCA9B000}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{18360D99-87C2-479C-AB52-55D0BCA9B000}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{18360D99-87C2-479C-AB52-55D0BCA9B000}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{18360D99-87C2-479C-AB52-55D0BCA9B000}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{18360D99-87C2-479C-AB52-55D0BCA9B000}.Release|Any CPU.Build.0 = Release|Any CPU
-		{18360D99-87C2-479C-AB52-55D0BCA9B000}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{18360D99-87C2-479C-AB52-55D0BCA9B000}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{18360D99-87C2-479C-AB52-55D0BCA9B000}.Release|x86.ActiveCfg = Release|Any CPU
 		{9CE48DAC-0512-4947-942B-EF4C42C52B47}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{9CE48DAC-0512-4947-942B-EF4C42C52B47}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9CE48DAC-0512-4947-942B-EF4C42C52B47}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
@@ -137,6 +127,16 @@ Global
 		{6F2452F5-BF16-4577-9C5A-85C8D7B5289D}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{6F2452F5-BF16-4577-9C5A-85C8D7B5289D}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{6F2452F5-BF16-4577-9C5A-85C8D7B5289D}.Release|x86.ActiveCfg = Release|Any CPU
+		{18360D99-87C2-479C-AB52-55D0BCA9B000}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{18360D99-87C2-479C-AB52-55D0BCA9B000}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{18360D99-87C2-479C-AB52-55D0BCA9B000}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{18360D99-87C2-479C-AB52-55D0BCA9B000}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{18360D99-87C2-479C-AB52-55D0BCA9B000}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{18360D99-87C2-479C-AB52-55D0BCA9B000}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{18360D99-87C2-479C-AB52-55D0BCA9B000}.Release|Any CPU.Build.0 = Release|Any CPU
+		{18360D99-87C2-479C-AB52-55D0BCA9B000}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{18360D99-87C2-479C-AB52-55D0BCA9B000}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{18360D99-87C2-479C-AB52-55D0BCA9B000}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -394,7 +394,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 
                                                                         OnDataAvailable(this,
                                                                                         DateTime.Now,
-                                                                                        newTCPConnection.RemoteHost.ToString() + ":" + newTCPConnection.RemotePort.ToString(),
+                                                                                        "TCP:" + newTCPConnection.RemoteHost.ToString() + ":" + newTCPConnection.RemotePort.ToString(),
                                                                                         CSVArray,
                                                                                         ResultList);
 

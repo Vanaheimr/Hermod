@@ -5,12 +5,12 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("HermodMulticastServer")]
-[assembly: AssemblyDescription("Multicast communication library.")]
+[assembly: AssemblyTitle("HermodRawIP")]
+[assembly: AssemblyDescription("Hermod RAW IP library")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("ahzf.de")]
-[assembly: AssemblyProduct("HermodMulticastServer")]
-[assembly: AssemblyCopyright("Copyright © Achim 'ahzf' Friedland 2010-2012")]
+[assembly: AssemblyProduct("HermodRawIP")]
+[assembly: AssemblyCopyright("Copyright © Achim 'ahzf' Friedland 2010-2013")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

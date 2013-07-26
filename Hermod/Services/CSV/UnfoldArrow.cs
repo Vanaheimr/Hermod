@@ -54,7 +54,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
     /// multiple arrows having a single notification each.
     /// </summary>
     /// <typeparam name="T">The type of the notifications.</typeparam>
-    public class UnfoldArrow<T> : ITarget<IEnumerable<T>>, INotification<T>
+    public class UnfoldArrow<T> : IArrowReceiver<IEnumerable<T>>, INotification<T>
     {
 
         #region Events
@@ -82,7 +82,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
         #endregion
 
 
-        public void ProcessNotification(IEnumerable<T> Messages)
+        public void ProcessArrow(IEnumerable<T> Messages)
         {
 
             foreach (var Message in Messages)

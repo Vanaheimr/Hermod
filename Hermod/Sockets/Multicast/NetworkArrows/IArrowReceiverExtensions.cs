@@ -47,10 +47,11 @@ namespace eu.Vanaheimr.Hermod.Multicast
         public static void ReceiveMessage<TMessage>(this IArrowReceiver<TMessage> ArrowReceiver, TMessage Message, IPEndPoint IPEndPoint)
         {
 
-            ArrowReceiver.ReceiveMessage(new ArrowIPSource(
-                                             IPEndPoint.Address.ToString(),
-                                             IPPort.Parse(IPEndPoint.Port)
-                                         ),
+            ArrowReceiver.ProcessArrow(
+                                         //new ArrowIPSource(
+                                         //    IPEndPoint.Address.ToString(),
+                                         //    IPPort.Parse(IPEndPoint.Port)
+                                         //),
                                          Message);
 
         }

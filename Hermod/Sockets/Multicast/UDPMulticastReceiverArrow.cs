@@ -37,8 +37,8 @@ namespace eu.Vanaheimr.Hermod.Multicast
     /// to the given IP multicast group and forwards them to
     /// this receivers.
     /// </summary>
-    /// <typeparam name="TMessage">The type of the consuming and emitting messages/objects.</typeparam>
-    public class UDPMulticastReceiverArrow<TMessage> : AbstractArrowSender<TMessage>
+    /// <typeparam name="TOut">The type of the consuming and emitting messages/objects.</typeparam>
+    public class UDPMulticastReceiverArrow<TOut> : AbstractArrowSender<TOut>
     {
 
         #region Data
@@ -121,7 +121,7 @@ namespace eu.Vanaheimr.Hermod.Multicast
                                                  (LocalEndPoint as IPEndPoint).Address.ToString(),
                                                  IPPort.Parse((LocalEndPoint as IPEndPoint).Port)
                                              ),
-                                             (TMessage) (Object) Encoding.UTF8.GetString(data, 0, recv));
+                                             (TOut) (Object) Encoding.UTF8.GetString(data, 0, recv));
 
                     }
 
@@ -142,41 +142,41 @@ namespace eu.Vanaheimr.Hermod.Multicast
 
         #region UDPMulticastReceiverArrow(MulticastAddress, IPPort, MessageRecipients.Recipient, params MessageRecipients.Recipients)
 
-        /// <summary>
-        /// The UDPMulticastReceiverArrow receives messages from
-        /// to the given IP multicast group and forwards them to
-        /// this receivers.
-        /// </summary>
-        /// <param name="MulticastAddress">The multicast address to join.</param>
-        /// <param name="IPPort">The outgoing IP port to use.</param>
-        /// <param name="Recipient">A recipient of the processed messages.</param>
-        /// <param name="Recipients">The recipients of the processed messages.</param>
-        public UDPMulticastReceiverArrow(String MulticastAddress, IPPort IPPort, MessageRecipient<TMessage> Recipient, params MessageRecipient<TMessage>[] Recipients)
-            : base()
-        {
-            SendTo(Recipient);
-            SendTo(Recipients);
-        }
+        ///// <summary>
+        ///// The UDPMulticastReceiverArrow receives messages from
+        ///// to the given IP multicast group and forwards them to
+        ///// this receivers.
+        ///// </summary>
+        ///// <param name="MulticastAddress">The multicast address to join.</param>
+        ///// <param name="IPPort">The outgoing IP port to use.</param>
+        ///// <param name="Recipient">A recipient of the processed messages.</param>
+        ///// <param name="Recipients">The recipients of the processed messages.</param>
+        //public UDPMulticastReceiverArrow(String MulticastAddress, IPPort IPPort, MessageRecipient<TMessage> Recipient, params MessageRecipient<TMessage>[] Recipients)
+        //    : base()
+        //{
+        //    SendTo(Recipient);
+        //    SendTo(Recipients);
+        //}
 
         #endregion
 
         #region UDPMulticastReceiverArrow(MulticastAddress, IPPort, IArrowReceiver.Recipient, params IArrowReceiver.Recipients)
 
-        /// <summary>
-        /// The UDPMulticastReceiverArrow receives messages from
-        /// to the given IP multicast group and forwards them to
-        /// this receivers.
-        /// </summary>
-        /// <param name="MulticastAddress">The multicast address to join.</param>
-        /// <param name="IPPort">The outgoing IP port to use.</param>
-        /// <param name="Recipient">A recipient of the processed messages.</param>
-        /// <param name="Recipients">The recipients of the processed messages.</param>
-        public UDPMulticastReceiverArrow(String MulticastAddress, IPPort IPPort, IArrowReceiver<TMessage> Recipient, params IArrowReceiver<TMessage>[] Recipients)
-            : base()
-        {
-            SendTo(Recipient);
-            SendTo(Recipients);
-        }
+        ///// <summary>
+        ///// The UDPMulticastReceiverArrow receives messages from
+        ///// to the given IP multicast group and forwards them to
+        ///// this receivers.
+        ///// </summary>
+        ///// <param name="MulticastAddress">The multicast address to join.</param>
+        ///// <param name="IPPort">The outgoing IP port to use.</param>
+        ///// <param name="Recipient">A recipient of the processed messages.</param>
+        ///// <param name="Recipients">The recipients of the processed messages.</param>
+        //public UDPMulticastReceiverArrow(String MulticastAddress, IPPort IPPort, IArrowReceiver<TMessage> Recipient, params IArrowReceiver<TMessage>[] Recipients)
+        //    : base()
+        //{
+        //    SendTo(Recipient);
+        //    SendTo(Recipients);
+        //}
 
         #endregion
 

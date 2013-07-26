@@ -65,16 +65,10 @@
     <Compile Include="Services\CSV\ProcessUDPPacketArrow.cs" />
     <Compile Include="Sockets\IServer.cs" />
     <Compile Include="Sockets\IICMPPacket.cs" />
-    <Compile Include="Sockets\RawIP\AProtocolHeader.cs" />
-    <Compile Include="Sockets\RawIP\IGMP\IGMPHeader.cs" />
-    <Compile Include="Sockets\RawIP\IPv4\ICMPHeader.cs" />
-    <Compile Include="Sockets\RawIP\IPv4\IPv4Header.cs" />
-    <Compile Include="Sockets\RawIP\IPv6\ICMPv6EchoRequest.cs" />
-    <Compile Include="Sockets\RawIP\IPv6\ICMPv6Header.cs" />
-    <Compile Include="Sockets\RawIP\IPv6\IPv6FragmentHeader.cs" />
-    <Compile Include="Sockets\RawIP\IPv6\IPV6Header.cs" />
-    <Compile Include="Sockets\RawIP\UDP\UDPHeader.cs" />
-    <Compile Include="Sockets\RawIP\WinsockIoctl.cs" />
+    <Compile Include="Sockets\Multicast\NetworkArrows\ArrowIPSource.cs" />
+    <Compile Include="Sockets\Multicast\NetworkArrows\IArrowReceiverExtensions.cs" />
+    <Compile Include="Sockets\Multicast\UDPMulticastReceiverArrow.cs" />
+    <Compile Include="Sockets\Multicast\UDPMulticastSenderArrow.cs" />
     <Compile Include="Sockets\TCP\ATCPConnection.cs" />
     <Compile Include="Sockets\TCP\ITCPServer.cs" />
     <Compile Include="Sockets\TCP\ITCPConnection.cs" />
@@ -82,8 +76,8 @@
     <Compile Include="Sockets\TCP\TCPServer.cs" />
     <Compile Include="Sockets\ALocalRemoteSockets.cs" />
     <Compile Include="Sockets\UDP\UDPPacket.cs" />
-    <Compile Include="Sockets\UDP\UDPServer.cs" />
-    <Compile Include="Sockets\UDP\UDPClient.cs" />
+    <Compile Include="Sockets\UDP\UDPReceiver.cs" />
+    <Compile Include="Sockets\UDP\UDPSender.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Illias\Commons\Commons.csproj">

@@ -32,26 +32,29 @@ using eu.Vanaheimr.Styx;
 namespace eu.Vanaheimr.Hermod.Sockets.UDP
 {
 
+    #region UDPReceiver<TData>
+
     /// <summary>
     /// A class that listens on an UDP socket.
     /// </summary>
-    public class UDPServer<TData> : INotification<UDPPacket<TData>>,
-                                    IServer
+    public class UDPReceiver<TData> : INotification<TData>,
+                                      INotification<UDPPacket<TData>>,
+                                      IServer
     {
 
         #region Data
 
-        private          Thread          ListenerThread;
+        private          Thread             ListenerThread;
 
-        private readonly Socket          LocalDotNetSocket;
+        private readonly Socket             LocalDotNetSocket;
 
-        private readonly IPEndPoint      LocalIPEndPoint;
+        private readonly IPEndPoint         LocalIPEndPoint;
 
-        private          Int32           WaitForChildTaskCreation = 0;
+        private          Int32              WaitForChildTaskCreation = 0;
 
-        private readonly MapperDelegate  Mapper;
+        private readonly MapperDelegate     Mapper; 
 
-        public  readonly IPSocket        LocalSocket;
+        public  readonly IPSocket           LocalSocket;
 
         #endregion
 
@@ -175,8 +178,22 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         public delegate TData MapperDelegate(DateTime Timestamp, IPSocket LocalSocket, IPSocket RemoteSocket, Byte[] Message);
 
-        // INotification<TData>
-        public event NotificationEventHandler<UDPPacket<TData>> OnNotification;
+        event NotificationEventHandler<TData>            OnNotification_Message;
+        event NotificationEventHandler<UDPPacket<TData>> OnNotification_UDPPacket;
+
+        // INotification
+        event NotificationEventHandler<TData> INotification<TData>.OnNotification
+        {
+            add    { OnNotification_Message += value; }
+            remove { OnNotification_Message -= value; }
+        }
+
+        event NotificationEventHandler<UDPPacket<TData>> INotification<UDPPacket<TData>>.OnNotification
+        {
+            add    { OnNotification_UDPPacket += value; }
+            remove { OnNotification_UDPPacket -= value; }
+        }
+
         public event ExceptionEventHandler OnError;
         public event CompletedEventHandler OnCompleted;
 
@@ -184,20 +201,20 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #region Constructor(s)
 
-        #region UDPServer(Port, Mapper = null, Autostart = false)
+        #region UDPReceiver(Port, Mapper = null, Autostart = false)
 
         /// <summary>
         /// Initialize the UDP server using IPAddress.Any and the given parameters
         /// </summary>
-        /// <param name="myPort">The listening port</param>
+        /// <param name="Port">The listening port</param>
         /// <param name="Autostart"></param>
-        public UDPServer(IPPort          Port,
-                         MapperDelegate  Mapper        = null,
-                         UInt32          BufferSize    = 1600,
-                         String          ThreadName    = "UDPServer thread",
-                         ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
-                         Boolean         IsBackground  = true,
-                         Boolean         Autostart     = false)
+        public UDPReceiver(IPPort          Port,
+                           MapperDelegate  Mapper        = null,
+                           UInt32          BufferSize    = 1600,
+                           String          ThreadName    = "UDPServer thread",
+                           ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
+                           Boolean         IsBackground  = true,
+                           Boolean         Autostart     = false)
 
             : this(IPv4Address.Any, Port, Mapper, BufferSize, ThreadName, ThreadPrio, IsBackground, Autostart)
 
@@ -205,7 +222,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #endregion
 
-        #region UDPServer(IPAddress, Port, Mapper = null, Autostart = false)
+        #region UDPReceiver(IPAddress, Port, Mapper = null, Autostart = false)
 
         /// <summary>
         /// Initialize the UDP server using the given parameters
@@ -213,14 +230,14 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="IPAddress">The listening IP address(es)</param>
         /// <param name="Port">The listening port</param>
         /// <param name="Autostart"></param>
-        public UDPServer(IIPAddress      IPAddress,
-                         IPPort          Port,
-                         MapperDelegate  Mapper        = null,
-                         UInt32          BufferSize    = 1600,
-                         String          ThreadName    = "UDPServer thread",
-                         ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
-                         Boolean         IsBackground  = true,
-                         Boolean         Autostart     = false)
+        public UDPReceiver(IIPAddress      IPAddress,
+                           IPPort          Port,
+                           MapperDelegate  Mapper        = null,
+                           UInt32          BufferSize    = 1600,
+                           String          ThreadName    = "UDPServer thread",
+                           ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
+                           Boolean         IsBackground  = true,
+                           Boolean         Autostart     = false)
 
         {
 
@@ -249,7 +266,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #endregion
 
-        #region UDPServer(IPSocket, Mapper = null, Autostart = false)
+        #region UDPReceiver(IPSocket, Mapper = null, Autostart = false)
 
         /// <summary>
         /// Initialize the UDP server using the given parameters.
@@ -257,13 +274,13 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="myIPSocket">The listening IPSocket.</param>
         /// <param name="NewPacketHandler"></param>
         /// <param name="Autostart"></param>
-        public UDPServer(IPSocket        IPSocket,
-                         MapperDelegate  Mapper        = null,
-                         UInt32          BufferSize    = 1600,
-                         String          ThreadName    = "UDPServer thread",
-                         ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
-                         Boolean         IsBackground  = true,
-                         Boolean         Autostart     = false)
+        public UDPReceiver(IPSocket        IPSocket,
+                           MapperDelegate  Mapper        = null,
+                           UInt32          BufferSize    = 1600,
+                           String          ThreadName    = "UDPServer thread",
+                           ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
+                           Boolean         IsBackground  = true,
+                           Boolean         Autostart     = false)
 
             : this(IPSocket.IPAddress, IPSocket.Port, Mapper, BufferSize, ThreadName, ThreadPrio, IsBackground, Autostart)
 
@@ -333,20 +350,24 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
                                 var UDPPacketLocal       = _UDPPacket;
                                 var RemoteSocketLocal    = new IPSocket((IPEndPoint) _RemoteEndPoint);
-                                var OnNotificationLocal  = OnNotification;
+                                var OnNotificationLocal = OnNotification_UDPPacket;
 
                                 Thread.CurrentThread.Name = "UDPPacket from " + RemoteSocketLocal.IPAddress + ":" + RemoteSocketLocal.Port;
 
                                 Interlocked.Exchange(ref WaitForChildTaskCreation, 0);
 
                                 // Start upper-layer protocol processing
-                                if (OnNotification != null)
-                                    OnNotification(new UDPPacket<TData>(
+                                if (OnNotification_Message != null)
+                                    OnNotification_Message(Mapper((DateTime) TimestampLocal, this.LocalSocket, RemoteSocketLocal, UDPPacketLocal));
+
+                                if (OnNotification_UDPPacket != null)
+                                    OnNotification_UDPPacket(new UDPPacket<TData>(
                                                       (DateTime)TimestampLocal,
                                                       this.LocalSocket,
                                                       RemoteSocketLocal,
                                                       Mapper((DateTime) TimestampLocal, this.LocalSocket, RemoteSocketLocal, UDPPacketLocal)
                                                   ));
+
 
                             }, Timestamp);
 
@@ -451,26 +472,27 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
     }
 
+    #endregion
 
-    public class UDPServer : UDPServer<Byte[]>
+    #region UDPReceiver
+
+    public class UDPReceiver : UDPReceiver<Byte[]>
     {
 
-        #region Constructor(s)
-
-        #region UDPServer(Port, Mapper = null, Autostart = false)
+        #region UDPReceiver(Port, Mapper = null, Autostart = false)
 
         /// <summary>
         /// Initialize the UDP server using IPAddress.Any and the given parameters
         /// </summary>
         /// <param name="myPort">The listening port</param>
         /// <param name="Autostart"></param>
-        public UDPServer(IPPort          Port,
-                         MapperDelegate  Mapper        = null,
-                         UInt32          BufferSize    = 1600,
-                         String          ThreadName    = "UDPServer thread",
-                         ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
-                         Boolean         IsBackground  = true,
-                         Boolean         Autostart     = false)
+        public UDPReceiver(IPPort          Port,
+                           MapperDelegate  Mapper        = null,
+                           UInt32          BufferSize    = 1600,
+                           String          ThreadName    = "UDPServer thread",
+                           ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
+                           Boolean         IsBackground  = true,
+                           Boolean         Autostart     = false)
 
             : base(Port,
                    (Mapper == null) ? (Timestamp, LocalSocket, RemoteSocket, Message) => Message : Mapper,
@@ -484,7 +506,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #endregion
 
-        #region UDPServer(IPAddress, Port, Mapper = null, Autostart = false)
+        #region UDPReceiver(IPAddress, Port, Mapper = null, Autostart = false)
 
         /// <summary>
         /// Initialize the UDP server using the given parameters
@@ -492,14 +514,14 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="IPAddress">The listening IP address(es)</param>
         /// <param name="Port">The listening port</param>
         /// <param name="Autostart"></param>
-        public UDPServer(IIPAddress      IPAddress,
-                         IPPort          Port,
-                         MapperDelegate  Mapper        = null,
-                         UInt32          BufferSize    = 1600,
-                         String          ThreadName    = "UDPServer thread",
-                         ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
-                         Boolean         IsBackground  = true,
-                         Boolean         Autostart     = false)
+        public UDPReceiver(IIPAddress      IPAddress,
+                           IPPort          Port,
+                           MapperDelegate  Mapper        = null,
+                           UInt32          BufferSize    = 1600,
+                           String          ThreadName    = "UDPServer thread",
+                           ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
+                           Boolean         IsBackground  = true,
+                           Boolean         Autostart     = false)
 
             : base(IPAddress,
                    Port,
@@ -519,7 +541,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #endregion
 
-        #region UDPServer(IPSocket, Mapper = null, Autostart = false)
+        #region UDPReceiver(IPSocket, Mapper = null, Autostart = false)
 
         /// <summary>
         /// Initialize the UDP server using the given parameters.
@@ -527,13 +549,13 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="myIPSocket">The listening IPSocket.</param>
         /// <param name="NewPacketHandler"></param>
         /// <param name="Autostart"></param>
-        public UDPServer(IPSocket        IPSocket,
-                         MapperDelegate  Mapper        = null,
-                         UInt32          BufferSize    = 1600,
-                         String          ThreadName    = "UDPServer thread",
-                         ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
-                         Boolean         IsBackground  = true,
-                         Boolean         Autostart     = false)
+        public UDPReceiver(IPSocket        IPSocket,
+                           MapperDelegate  Mapper        = null,
+                           UInt32          BufferSize    = 1600,
+                           String          ThreadName    = "UDPServer thread",
+                           ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
+                           Boolean         IsBackground  = true,
+                           Boolean         Autostart     = false)
 
             : base(IPSocket.IPAddress,
                    IPSocket.Port,
@@ -548,9 +570,9 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #endregion
 
-        #endregion
-
     }
 
+    #endregion
 
 }
+
