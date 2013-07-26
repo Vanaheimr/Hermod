@@ -19,63 +19,37 @@
 
 using System;
 using System.Net;
+using System.Threading;
+using System.Reflection;
+using System.Net.Sockets;
+using System.Threading.Tasks;
+
 using eu.Vanaheimr.Hermod.Datastructures;
+using eu.Vanaheimr.Styx;
 
 #endregion
 
 namespace eu.Vanaheimr.Hermod.Sockets.UDP
 {
 
-    /// <summary>
-    /// A class representing a UDP packet
-    /// </summary>
-    public class UDPPacket : AUDPPacket, IUDPPacket
+    public class UDPPacket<TData>
     {
 
-        #region Properties
+        public DateTime ServerTimestamp { get; private set; }
+        public IPSocket LocalSocket     { get; private set; }
+        public IPSocket RemoteSocket    { get; private set; }
+        public TData    Message         { get; private set; }
 
-        /// <summary>
-        /// The UDP packet data.
-        /// </summary>
-        public Byte[] Data { get; private set; }
-
-        #endregion
-
-        #region Constructor(s)
-
-        #region UDPPacket()
-
-        /// <summary>
-        /// Create a new UDP packet.
-        /// </summary>
-        public UDPPacket()
-        { }
-
-        #endregion
-
-        #region UDPPacket(UDPPacketData, LocalSocket, RemoteSocket)
-
-        /// <summary>
-        /// Create a new UDP packet.
-        /// </summary>
-        /// <param name="UDPPacketData">The UDP packet data.</param>
-        /// <param name="LocalSocket">The local socket of this UDP packet.</param>
-        /// <param name="RemoteSocket">The remote socket of this UDP packet.</param>
-        public UDPPacket(Byte[] UDPPacketData, IPSocket LocalSocket, IPSocket RemoteSocket)
-            : base(UDPPacketData, LocalSocket, RemoteSocket)
-        {
-            Data = UDPPacketData;
-        }
-
-        #endregion
-
-        #endregion
-
-
-        public void Reply(Byte[] Data)
+        public UDPPacket(DateTime ServerTimestamp,
+                         IPSocket LocalSocket,
+                         IPSocket RemoteSocket,
+                         TData    Message)
         {
 
-            var _ReplyPacket = new UDPPacket(Data, this.RemoteSocket, this.LocalSocket);
+            this.ServerTimestamp  = ServerTimestamp;
+            this.LocalSocket      = LocalSocket;
+            this.RemoteSocket     = RemoteSocket;
+            this.Message          = Message;
 
         }
 

@@ -20,6 +20,8 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
+using eu.Vanaheimr.Styx;
+using eu.Vanaheimr.Hermod.Datastructures;
 
 #endregion
 
@@ -27,27 +29,150 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 {
 
     /// <summary>
-    /// An UDP Client.
+    /// An UDP client acceptiong Vanaheimr Stxy arrows/notifications.
     /// For testing via NetCat type: 'nc -lup 5000'
     /// </summary>
-    public class UDPClient : IDisposable
+    public class UDPClient<T> : ITarget<T>,
+                                ITarget<UDPPacket<T>>,
+                                IDisposable
     {
 
         #region Data
 
-        private          IPEndPoint _RemoteIPEndPoint;
-        private readonly Socket     _Socket;
+        private readonly Func<T, Byte[]>  MessageProcessor;
+        private readonly Socket           DotNetSocket;
+        private          IPAddress        DotNetIPAddress;
+        private          IPEndPoint       RemoteIPEndPoint;
 
         #endregion
 
         #region Properties
 
-        #region BufferSize
+        #region Hostname
+
+        private String _Hostname;
 
         /// <summary>
-        /// The size of the receive buffer.
+        /// The hostname to send the UDP data.
         /// </summary>
-        public UInt32 BufferSize { get; set; }
+        public String Hostname
+        {
+
+            get
+            {
+                return _Hostname;
+            }
+
+            set
+            {
+
+                if (value == null)
+                    throw new ArgumentNullException("The hostname must not be null!");
+
+                try
+                {
+
+                    var IPAdresses = Dns.GetHostAddresses(value);
+
+                    _IPAddress      = IPv4Address.Parse(IPAdresses[0].ToString());
+                    DotNetIPAddress = IPAdresses[0];
+
+                }
+                catch (Exception e)
+                {
+                    throw new ArgumentException("The DNS lookup of the hostname lead to an error!", e);
+                }
+
+                _Hostname = value;
+
+                if (_Port != null)
+                    SetRemoteIPEndPoint();
+
+            }
+
+        }
+
+        #endregion
+
+        #region IPAddress
+
+        private IIPAddress _IPAddress;
+
+        /// <summary>
+        /// The IP address to send the UDP data.
+        /// </summary>
+        public IIPAddress IPAddress
+        {
+
+            get
+            {
+                return _IPAddress;
+            }
+
+            set
+            {
+
+                if (value == null)
+                    throw new ArgumentNullException("The IPAddress must not be null!");
+
+                try
+                {
+                    DotNetIPAddress = System.Net.IPAddress.Parse(value.ToString());
+                }
+                catch (Exception e)
+                {
+                    throw new ArgumentException("The IPAddress is invalid!", e);
+                }
+
+                _IPAddress = value;
+
+                if (_Port != null)
+                    SetRemoteIPEndPoint();
+
+            }
+
+        }
+
+        #endregion
+
+        #region Port
+
+        private IPPort _Port;
+
+        /// <summary>
+        /// The IP port to send the UDP data.
+        /// </summary>
+        public IPPort Port
+        {
+
+            get
+            {
+                return _Port;
+            }
+
+            set
+            {
+
+                if (value == null)
+                    throw new ArgumentNullException("The port must not be null!");
+
+                _Port = value;
+
+                if (_Hostname != null && DotNetIPAddress != null)
+                    SetRemoteIPEndPoint();
+
+            }
+
+        }
+
+        #endregion
+
+        #region UDPSocketFlags
+
+        /// <summary>
+        /// Specifies socket send behaviors.
+        /// </summary>
+        public SocketFlags UDPSocketFlags { get; set; }
 
         #endregion
 
@@ -55,15 +180,65 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #region Constructor(s)
 
-        #region UDPClient()
+        #region (private) UDPClient(MessageProcessor, Port)
 
         /// <summary>
-        /// Creates a new UDP client.
+        /// Create a new UDPClient.
         /// </summary>
-        public UDPClient()
+        /// <param name="MessageProcessor">A delegate to tranform the message into an array of bytes.</param>
+        /// <param name="Port">The IP port to send the UDP data.</param>
+        private UDPClient(Func<T, Byte[]>  MessageProcessor,
+                          IPPort           Port)
         {
-            this._Socket           = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            this._RemoteIPEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 5000);
+
+            if (MessageProcessor == null)
+                throw new ArgumentNullException("The MessageProcessor must not be null!");
+
+            this.MessageProcessor  = MessageProcessor;
+            this.DotNetSocket      = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            this.UDPSocketFlags    = SocketFlags.None;
+            this.Port              = Port;
+
+        }
+
+        #endregion
+
+        #region UDPClient(MessageProcessor, Hostname, Port)
+
+        /// <summary>
+        /// Create a new UDPClient.
+        /// </summary>
+        /// <param name="MessageProcessor">A delegate to tranform the message into an array of bytes.</param>
+        /// <param name="Hostname">The hostname to send the UDP data.</param>
+        /// <param name="Port">The IP port to send the UDP data.</param>
+        public UDPClient(Func<T, Byte[]>  MessageProcessor,
+                         String           Hostname,
+                         IPPort           Port)
+
+            : this(MessageProcessor, Port)
+
+        {
+            this.Hostname = Hostname;
+        }
+
+        #endregion
+
+        #region UDPClient(MessageProcessor, IPAddress, Port)
+
+        /// <summary>
+        /// Create a new UDPClient.
+        /// </summary>
+        /// <param name="MessageProcessor">A delegate to tranform the message into an array of bytes.</param>
+        /// <param name="IPAddress">The IP address to send the UDP data.</param>
+        /// <param name="Port">The IP port to send the UDP data.</param>
+        public UDPClient(Func<T, Byte[]>  MessageProcessor,
+                         IIPAddress       IPAddress,
+                         IPPort           Port)
+
+            : this(MessageProcessor, Port)
+
+        {
+            this.IPAddress = IPAddress;
         }
 
         #endregion
@@ -71,83 +246,72 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         #endregion
 
 
-        #region Send(UDPPacketData, SocketFlags = SocketFlags.None)
+        #region (private) SetRemoteIPEndPoint(Connect = true)
 
-        /// <summary>
-        /// Send the given packet data to the predefined remote host.
-        /// </summary>
-        /// <param name="UDPPacketData">The UDP packet data.</param>
-        /// <param name="SocketFlags">The socket options.</param>
-        /// <returns>A socket error.</returns>
-        public SocketError Send(Byte[] UDPPacketData, SocketFlags SocketFlags = SocketFlags.None)
+        private void SetRemoteIPEndPoint(Boolean Connect = true)
         {
 
-            if (_Socket == null)
-                throw new Exception("Socket == null!");
-
-            if (_RemoteIPEndPoint == null)
-                throw new Exception("IPEndPoint == null!");
-
-            SocketError SocketErrorCode;
-            _Socket.Send(UDPPacketData, 0, UDPPacketData.Length, SocketFlags, out SocketErrorCode);
-            return SocketErrorCode;
-
-        }
-
-        #endregion
-
-        #region SendTo(UDPPacketData, RemoteIPEndPoint, SocketFlags = SocketFlags.None)
-
-        /// <summary>
-        /// Send the given packet data to the given remote host.
-        /// </summary>
-        /// <param name="UDPPacketData">The UDP packet data.</param>
-        /// <param name="RemoteSocket"></param>
-        /// <param name="SocketFlags">The socket options.</param>
-        public void SendTo(Byte[] UDPPacketData, IPEndPoint RemoteSocket, SocketFlags SocketFlags = SocketFlags.None)
-        {
-
-            if (_Socket == null)
-                throw new Exception("Socket == null!");
-
-            if (_RemoteIPEndPoint == null)
-                throw new Exception("IPEndPoint == null!");
-
-            _Socket.SendTo(UDPPacketData, SocketFlags, RemoteSocket);
-
-        }
-        
-        #endregion
-
-        #region SendAndWaitForReponse(Byte[] UDPPacketData, SocketFlags SocketFlags = SocketFlags.None)
-
-        /// <summary>
-        /// Send the given packet data to the predefined remote host
-        /// and wait for a single response packet.
-        /// </summary>
-        /// <param name="UDPPacketData">The UDP packet data.</param>
-        /// <param name="SocketFlags">The socket options.</param>
-        /// <returns></returns>
-        public Byte[] SendAndWaitForReponse(Byte[] UDPPacketData, SocketFlags SocketFlags = SocketFlags.None)
-        {
-
-            var _SocketError           =  Send(UDPPacketData, SocketFlags);
-            
-            var _UDPRepose             = new Byte[BufferSize];
-            var _RemoteEndPoint        = (EndPoint) _RemoteIPEndPoint;
-            var _NumberOfReceivedBytes = _Socket.ReceiveFrom(_UDPRepose, ref _RemoteEndPoint);
-
-            if (_NumberOfReceivedBytes > 0)
+            try
             {
-                Array.Resize(ref _UDPRepose, _NumberOfReceivedBytes);
-                return _UDPRepose;
+                RemoteIPEndPoint = new IPEndPoint(DotNetIPAddress, _Port.ToUInt16());
+            }
+            catch (Exception e)
+            {
+                throw new ArgumentException("The hostname is invalid!", e);
             }
 
-            return new Byte[0];
-        
+            if (Connect)
+                try
+                {
+                    DotNetSocket.Connect(RemoteIPEndPoint);
+                }
+                catch (Exception e)
+                {
+                    throw new ArgumentException("Could not set the remote endpoint!", e);
+                }
+
         }
 
         #endregion
+
+
+        /// <summary>
+        /// Send the given message to the predefined remote host.
+        /// </summary>
+        /// <param name="Message">The message to send.</param>
+        public void ProcessNotification(T Message)
+        {
+
+            var UDPPacketData = MessageProcessor(Message);
+
+            SocketError SocketErrorCode;
+            DotNetSocket.Send(UDPPacketData, 0, UDPPacketData.Length, UDPSocketFlags, out SocketErrorCode);
+
+            if (SocketErrorCode != SocketError.Success)
+                ProcessError(this, new Exception(SocketErrorCode.ToString()));
+
+        }
+
+        public void ProcessError(dynamic Sender, Exception ExceptionMessage)
+        {
+            
+        }
+
+        public void ProcessCompleted(dynamic Sender, string Message)
+        {
+            
+        }
+
+
+        public void ProcessNotification(UDPPacket<T> UDPPacket)
+        {
+
+            DotNetSocket.SendTo(MessageProcessor(UDPPacket.Message),
+                                UDPSocketFlags,
+                                new IPEndPoint(System.Net.IPAddress.Parse(UDPPacket.RemoteSocket.IPAddress.ToString()),
+                                               UDPPacket.RemoteSocket.Port.ToUInt16()));
+
+        }
 
 
         #region Close()
@@ -157,8 +321,8 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// </summary>
         public void Close()
         {
-            if (_Socket != null)
-                _Socket.Close();
+            if (DotNetSocket != null)
+                DotNetSocket.Close();
         }
 
         #endregion
@@ -167,12 +331,24 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         public void Dispose()
         {
-            if (_Socket != null)
-                _Socket.Close();
+            if (DotNetSocket != null)
+                DotNetSocket.Close();
         }
 
         #endregion
 
     }
+
+
+
+    public class UDPClient : UDPClient<Byte[]>
+    {
+
+        public UDPClient(String Hostname, IPPort Port)
+            :base(msg => msg, Hostname, Port)
+        { }
+
+    }
+
 
 }

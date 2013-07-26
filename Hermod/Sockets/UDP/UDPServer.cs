@@ -25,6 +25,7 @@ using System.Net.Sockets;
 using System.Threading.Tasks;
 
 using eu.Vanaheimr.Hermod.Datastructures;
+using eu.Vanaheimr.Styx;
 
 #endregion
 
@@ -34,28 +35,27 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
     /// <summary>
     /// A class that listens on an UDP socket.
     /// </summary>
-    public class UDPServer<UDPPacketType> : IServer
-        where UDPPacketType : class, IUDPPacket, new()
+    public class UDPServer<TData> : INotification<UDPPacket<TData>>,
+                                    IServer
     {
 
         #region Data
 
-        // The internal thread
-        private readonly Thread          _ListenerThread;
+        private          Thread          ListenerThread;
 
-        private readonly ConstructorInfo _UDPPacketConstructor;
+        private readonly Socket          LocalDotNetSocket;
 
-        private readonly Socket          _LocaldotNetSocket;
+        private readonly IPEndPoint      LocalIPEndPoint;
 
-        private readonly IPEndPoint      _LocalIPEndPoint;
+        private          Int32           WaitForChildTaskCreation = 0;
 
-        private volatile Boolean         _WaitForChildTask;
+        private readonly MapperDelegate  Mapper;
+
+        public  readonly IPSocket        LocalSocket;
 
         #endregion
 
         #region Properties
-
-        public IPSocket LocalSocket { get; private set; }
 
         #region IPAddress
 
@@ -112,8 +112,8 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
             get
             {
 
-                if (_LocaldotNetSocket != null)
-                    return (UInt32) _LocaldotNetSocket.ReceiveTimeout;
+                if (LocalDotNetSocket != null)
+                    return (UInt32) LocalDotNetSocket.ReceiveTimeout;
 
                 return 0;
 
@@ -125,8 +125,8 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
                 if (value > Int32.MaxValue)
                     throw new ArgumentException("The value for the ReceiveTimeout must be smaller than " + Int32.MaxValue + "!");
 
-                if (_LocaldotNetSocket != null)
-                    _LocaldotNetSocket.ReceiveTimeout = (Int32) value;
+                if (LocalDotNetSocket != null)
+                    LocalDotNetSocket.ReceiveTimeout = (Int32) value;
 
             }
 
@@ -136,7 +136,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #region IsRunning
 
-        private volatile Boolean _IsRunning = false;
+        private Int32 _IsRunning = 0;
 
         /// <summary>
         /// True while the server is listening for new clients
@@ -145,7 +145,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         {
             get
             {
-                return _IsRunning;
+                return _IsRunning == 1;
             }
         }
 
@@ -153,7 +153,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #region StopRequested
 
-        private volatile Boolean _StopRequested = false;
+        private Int32 _StopRequested = 0;
 
         /// <summary>
         /// The server was requested to stop and will no
@@ -163,7 +163,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         {
             get
             {
-                return _StopRequested;
+                return _StopRequested == 1;
             }
         }
 
@@ -173,81 +173,74 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #region Events
 
-        public delegate void ExceptionOccuredHandler(Object mySender, Exception myException);
-        public event         ExceptionOccuredHandler OnExceptionOccured;
+        public delegate TData MapperDelegate(DateTime Timestamp, IPSocket LocalSocket, IPSocket RemoteSocket, Byte[] Message);
 
-        public delegate void NewPacketHandler(UDPPacketType myUDPPacketType);
-        public event         NewPacketHandler OnNewPacket;
+        // INotification<TData>
+        public event NotificationEventHandler<UDPPacket<TData>> OnNotification;
+        public event ExceptionEventHandler OnError;
+        public event CompletedEventHandler OnCompleted;
 
         #endregion
 
         #region Constructor(s)
 
-        #region UDPServer(myPort, NewPacketHandler = null, Autostart = false)
+        #region UDPServer(Port, Mapper = null, Autostart = false)
 
         /// <summary>
         /// Initialize the UDP server using IPAddress.Any and the given parameters
         /// </summary>
         /// <param name="myPort">The listening port</param>
-        /// <param name="NewPacketHandler"></param>
         /// <param name="Autostart"></param>
-        public UDPServer(IPPort myPort, NewPacketHandler NewPacketHandler = null, Boolean Autostart = false)
-            : this(IPv4Address.Any, myPort, NewPacketHandler, Autostart)
+        public UDPServer(IPPort          Port,
+                         MapperDelegate  Mapper        = null,
+                         UInt32          BufferSize    = 1600,
+                         String          ThreadName    = "UDPServer thread",
+                         ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
+                         Boolean         IsBackground  = true,
+                         Boolean         Autostart     = false)
+
+            : this(IPv4Address.Any, Port, Mapper, BufferSize, ThreadName, ThreadPrio, IsBackground, Autostart)
+
         { }
 
         #endregion
 
-        #region UDPServer(myIIPAddress, myPort, NewPacketHandler = null, Autostart = false)
+        #region UDPServer(IPAddress, Port, Mapper = null, Autostart = false)
 
         /// <summary>
         /// Initialize the UDP server using the given parameters
         /// </summary>
-        /// <param name="myIIPAddress">The listening IP address(es)</param>
-        /// <param name="myPort">The listening port</param>
-        /// <param name="NewPacketHandler"></param>
+        /// <param name="IPAddress">The listening IP address(es)</param>
+        /// <param name="Port">The listening port</param>
         /// <param name="Autostart"></param>
-        public UDPServer(IIPAddress myIIPAddress, IPPort myPort, NewPacketHandler NewPacketHandler = null, Boolean Autostart = false)
+        public UDPServer(IIPAddress      IPAddress,
+                         IPPort          Port,
+                         MapperDelegate  Mapper        = null,
+                         UInt32          BufferSize    = 1600,
+                         String          ThreadName    = "UDPServer thread",
+                         ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
+                         Boolean         IsBackground  = true,
+                         Boolean         Autostart     = false)
+
         {
 
-            _IPAddress      = myIIPAddress;
-            _Port           = myPort;
+            if (Mapper == null)
+                throw new ArgumentNullException("The mapper delegate must not be null!");
 
-            BufferSize      = 1600;
+            this._IPAddress         = IPAddress;
+            this._Port              = Port;
+            this.Mapper             = Mapper;
+            this.BufferSize         = BufferSize;
 
-            _LocalIPEndPoint    = new IPEndPoint(new System.Net.IPAddress(_IPAddress.GetBytes()), _Port.ToInt32());
-            LocalSocket         = new IPSocket(_LocalIPEndPoint);
-            _LocaldotNetSocket  = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            _LocaldotNetSocket.Bind(_LocalIPEndPoint);
+            this.LocalIPEndPoint    = new IPEndPoint(new System.Net.IPAddress(_IPAddress.GetBytes()), _Port.ToInt32());
+            this.LocalSocket        = new IPSocket(LocalIPEndPoint);
+            this.LocalDotNetSocket  = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            this.LocalDotNetSocket.Bind(LocalIPEndPoint);
 
             // Timeout will throw an exception which is a little bit stupid!
             //ReceiveTimeout  = 1000;
 
-
-            // Get constructor for UDPPacketType
-            _UDPPacketConstructor = typeof(UDPPacketType).
-                                     GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
-                                                    null,
-                                                    new Type[] {
-                                                       typeof(Byte[]),
-                                                       typeof(IPSocket),
-                                                       typeof(IPSocket)
-                                                   },
-                                                    null);
-
-            if (_UDPPacketConstructor == null)
-                throw new ArgumentException("A appropriate constructor for type '" + typeof(UDPPacketType).FullName + "' could not be found!");
-
-
-            _ListenerThread = new Thread(() =>
-            {
-                Thread.CurrentThread.Name         = "UDPServer thread";
-                Thread.CurrentThread.Priority     = ThreadPriority.AboveNormal;
-                Thread.CurrentThread.IsBackground = true;
-                Listen();
-            });
-
-            if (NewPacketHandler != null)
-                OnNewPacket += NewPacketHandler;
+            Listen(ThreadName, ThreadPrio, IsBackground);
 
             if (Autostart)
                 Start();
@@ -256,7 +249,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #endregion
 
-        #region UDPServer(myIPSocket, NewPacketHandler = null, Autostart = false)
+        #region UDPServer(IPSocket, Mapper = null, Autostart = false)
 
         /// <summary>
         /// Initialize the UDP server using the given parameters.
@@ -264,8 +257,16 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="myIPSocket">The listening IPSocket.</param>
         /// <param name="NewPacketHandler"></param>
         /// <param name="Autostart"></param>
-        public UDPServer(IPSocket myIPSocket, NewPacketHandler NewPacketHandler = null, Boolean Autostart = false)
-            : this(myIPSocket.IPAddress, myIPSocket.Port, NewPacketHandler, Autostart)
+        public UDPServer(IPSocket        IPSocket,
+                         MapperDelegate  Mapper        = null,
+                         UInt32          BufferSize    = 1600,
+                         String          ThreadName    = "UDPServer thread",
+                         ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
+                         Boolean         IsBackground  = true,
+                         Boolean         Autostart     = false)
+
+            : this(IPSocket.IPAddress, IPSocket.Port, Mapper, BufferSize, ThreadName, ThreadPrio, IsBackground, Autostart)
+
         { }
 
         #endregion
@@ -278,103 +279,97 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// <summary>
         /// Processes an incoming UDP packet.
         /// </summary>
-        private void Listen()
+        private void Listen(String          ThreadName,
+                            ThreadPriority  ThreadPrio,
+                            Boolean         IsBackground)
         {
 
-            EndPoint _RemoteEndPoint = null;
-            Byte[]   _UDPPacket;
-            Int32    _NumberOfReceivedBytes;
+            if (_IsRunning == 1)
+                return;
 
-            try
-            {
+            this.ListenerThread = new Thread(() => {
 
-                _IsRunning = true;
+                Thread.CurrentThread.Name          = ThreadName;
+                Thread.CurrentThread.Priority      = ThreadPrio;
+                Thread.CurrentThread.IsBackground  = IsBackground;
 
-                // Loop until interrupted
-                while (!_StopRequested)
+                EndPoint _RemoteEndPoint = null;
+                Byte[]   _UDPPacket;
+                Int32    _NumberOfReceivedBytes;
+                DateTime Timestamp;
+
+                try
                 {
 
-                    // Break when a server stop was requested
-                    if (_StopRequested)
-                        break;
+                    Interlocked.Exchange(ref _IsRunning, 1);
 
-                    _UDPPacket      = new Byte[BufferSize];
-                    _RemoteEndPoint = new IPEndPoint(0,0);
-
-                    // Wait for the next packet...
-                    _NumberOfReceivedBytes = _LocaldotNetSocket.ReceiveFrom(_UDPPacket, ref _RemoteEndPoint);
-
-                    if (_NumberOfReceivedBytes > 0)
+                    // Loop until interrupted
+                    while (_StopRequested == 0)
                     {
 
-                        _WaitForChildTask = true;
+                        // Break when a server stop was requested
+                        if (_StopRequested > 0)
+                            break;
 
-                        Task.Factory.StartNew(() =>
+                        _UDPPacket = new Byte[this.BufferSize];
+                        _RemoteEndPoint = new IPEndPoint(0, 0);
+
+                        // Wait for the next packet...
+                        _NumberOfReceivedBytes = LocalDotNetSocket.ReceiveFrom(_UDPPacket, ref _RemoteEndPoint);
+                        Timestamp = DateTime.Now;
+
+                        if (_NumberOfReceivedBytes > 0)
                         {
 
-                            // Create a local copy of the UDPPacket and RemoteEndPoint as we
-                            // do not want to wait till the new thread has accepted the packet
+                            Interlocked.Exchange(ref WaitForChildTaskCreation, 1);
 
-                            //var _UDPPacketCopy      = new Byte[_NumberOfReceivedBytes];
-                            //Array.Copy(_UDPPacket, 0, _UDPPacketCopy, 0, _NumberOfReceivedBytes);
+                            Task.Factory.StartNew(TimestampLocal =>
+                            {
 
-                            //var _UDPPacketCopy = new Byte[_NumberOfReceivedBytes];
-                            //Buffer.BlockCopy(_UDPPacket, 0, _UDPPacketCopy, 0, _NumberOfReceivedBytes);
+                                // Create a local copy of the UDPPacket and RemoteEndPoint as we
+                                // do not want to wait till the new thread has accepted the packet
 
-                            Array.Resize(ref _UDPPacket, _NumberOfReceivedBytes);
-                            
-                            var _UDPPacketCopy = _UDPPacket;
-                            var _RemoteSocket  = new IPSocket((IPEndPoint) _RemoteEndPoint);
+                                Array.Resize(ref _UDPPacket, _NumberOfReceivedBytes);
 
-                            _WaitForChildTask = false;
+                                var UDPPacketLocal       = _UDPPacket;
+                                var RemoteSocketLocal    = new IPSocket((IPEndPoint) _RemoteEndPoint);
+                                var OnNotificationLocal  = OnNotification;
 
-                            ProcessNewPacket(_UDPPacketCopy, _RemoteSocket);
+                                Thread.CurrentThread.Name = "UDPPacket from " + RemoteSocketLocal.IPAddress + ":" + RemoteSocketLocal.Port;
 
-                        });
+                                Interlocked.Exchange(ref WaitForChildTaskCreation, 0);
 
-                        // Wait till the new Task had used some of its time to
-                        // make a copy of the given references.
-                        while (_WaitForChildTask)
-                        { }
+                                // Start upper-layer protocol processing
+                                if (OnNotification != null)
+                                    OnNotification(new UDPPacket<TData>(
+                                                      (DateTime)TimestampLocal,
+                                                      this.LocalSocket,
+                                                      RemoteSocketLocal,
+                                                      Mapper((DateTime) TimestampLocal, this.LocalSocket, RemoteSocketLocal, UDPPacketLocal)
+                                                  ));
+
+                            }, Timestamp);
+
+                            // Wait till the new Task had used some of its time to
+                            // make a copy of the given references.
+                            while (WaitForChildTaskCreation > 0)
+                                Thread.Sleep(1);
+
+                        }
 
                     }
 
                 }
+                catch (Exception ex)
+                {
+                    var OnErrorLocal = OnError;
+                    if (OnErrorLocal != null)
+                        OnErrorLocal(this, ex);
+                }
 
-            }
-            catch (Exception ex)
-            {
-                if (OnExceptionOccured != null)
-                    OnExceptionOccured(this, ex);
-            }
+                Interlocked.Exchange(ref _IsRunning, 0);
 
-            _IsRunning = false;
-
-        }
-
-        #endregion
-
-        #region (private, threaded) ProcessNewPacket(UDPPacketData, RemoteSocket)
-
-        /// <summary>
-        /// Processes a new received packet.
-        /// </summary>
-        private void ProcessNewPacket(Byte[] UDPPacketData, IPSocket RemoteSocket)
-        {
-
-            // Invoke constructor of UDPPacketType
-            // Create a new thread-local instance of the upper-layer protocol stack
-            var _UDPPacketThreadLocal = new ThreadLocal<UDPPacketType>(
-                                            () => _UDPPacketConstructor.Invoke(new Object[] { UDPPacketData, LocalSocket, RemoteSocket }) as UDPPacketType
-                                        );
-
-            if (_UDPPacketThreadLocal.Value == null)
-                throw new ArgumentException("An UDPPacketType of type '" + typeof(UDPPacketType).FullName + "' could not be created!");
-
-
-            // Start upper-layer protocol processing
-            if (OnNewPacket != null)
-                OnNewPacket(_UDPPacketThreadLocal.Value);
+            });
 
         }
 
@@ -389,34 +384,34 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         public void Start()
         {
 
-            if (_IsRunning)
+            if (_IsRunning == 1)
                 return;
 
+            Interlocked.Exchange(ref _StopRequested, 0);
+
             // Start the TCPListenerThread
-            _ListenerThread.Start();
+            ListenerThread.Start();
 
             // Wait until socket has opened
-            while (!_IsRunning)
+            while (_IsRunning != 1)
                 Thread.Sleep(10);
-
-            _StopRequested = false;
 
         }
 
         #endregion
 
-        #region Stop()
+        #region Shutdown()
 
         /// <summary>
-        /// Stops the listener.
+        /// Shutdown the UDP listener.
         /// </summary>
         public void Shutdown()
         {
 
-            if (_ListenerThread == null)
+            if (ListenerThread == null)
                 throw new Exception("You can not stop the listener if it wasn't started before!");
 
-            _StopRequested = true;
+            Interlocked.Exchange(ref _StopRequested, 1);
 
         }
 
@@ -457,77 +452,105 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
     }
 
 
-    #region UDPServer -> UDPServer<UDPPacket>
-
-    /// <summary>
-    /// A multi-threaded UDPServer using the default UDPPacket handler.
-    /// </summary>
-    public class UDPServer : UDPServer<UDPPacket>
+    public class UDPServer : UDPServer<Byte[]>
     {
 
         #region Constructor(s)
 
-        #region UDPServer(myPort, NewConnectionHandler = null, Autostart = false)
+        #region UDPServer(Port, Mapper = null, Autostart = false)
 
         /// <summary>
         /// Initialize the UDP server using IPAddress.Any and the given parameters
         /// </summary>
         /// <param name="myPort">The listening port</param>
-        /// <param name="NewConnectionHandler"></param>
         /// <param name="Autostart"></param>
-        public UDPServer(IPPort myPort, NewPacketHandler NewPacketHandler = null, Boolean Autostart = false)
-            : base(IPv4Address.Any, myPort, NewPacketHandler, Autostart)
+        public UDPServer(IPPort          Port,
+                         MapperDelegate  Mapper        = null,
+                         UInt32          BufferSize    = 1600,
+                         String          ThreadName    = "UDPServer thread",
+                         ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
+                         Boolean         IsBackground  = true,
+                         Boolean         Autostart     = false)
+
+            : base(Port,
+                   (Mapper == null) ? (Timestamp, LocalSocket, RemoteSocket, Message) => Message : Mapper,
+                   BufferSize,
+                   ThreadName,
+                   ThreadPrio,
+                   IsBackground,
+                   Autostart)
+
         { }
 
         #endregion
 
-        #region UDPServer(myIIPAddress, myPort, NewConnectionHandler = null, Autostart = false)
+        #region UDPServer(IPAddress, Port, Mapper = null, Autostart = false)
 
         /// <summary>
         /// Initialize the UDP server using the given parameters
         /// </summary>
-        /// <param name="myIPAddress">The listening IP address(es)</param>
-        /// <param name="myPort">The listening port</param>
-        /// <param name="NewConnectionHandler"></param>
+        /// <param name="IPAddress">The listening IP address(es)</param>
+        /// <param name="Port">The listening port</param>
         /// <param name="Autostart"></param>
-        public UDPServer(IPv4Address myIIPAddress, IPPort myPort, NewPacketHandler NewPacketHandler = null, Boolean Autostart = false)
-            : base(myIIPAddress, myPort, NewPacketHandler, Autostart)
-        { }
+        public UDPServer(IIPAddress      IPAddress,
+                         IPPort          Port,
+                         MapperDelegate  Mapper        = null,
+                         UInt32          BufferSize    = 1600,
+                         String          ThreadName    = "UDPServer thread",
+                         ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
+                         Boolean         IsBackground  = true,
+                         Boolean         Autostart     = false)
 
-        #endregion
+            : base(IPAddress,
+                   Port,
+                   (Mapper == null) ? (Timestamp, LocalSocket, RemoteSocket, Message) => Message : Mapper,
+                   BufferSize,
+                   ThreadName,
+                   ThreadPrio,
+                   IsBackground,
+                   Autostart)
 
-        #region UDPServer(myIPSocket, NewConnectionHandler = null, Autostart = false)
-
-        /// <summary>
-        /// Initialize the UDP server using the given parameters.
-        /// </summary>
-        /// <param name="myIPSocket">The listening IPSocket.</param>
-        /// <param name="NewConnectionHandler"></param>
-        /// <param name="Autostart"></param>
-        public UDPServer(IPSocket myIPSocket, NewPacketHandler NewPacketHandler = null, Boolean Autostart = false)
-            : base(myIPSocket, NewPacketHandler, Autostart)
-        { }
-
-        #endregion
-
-        #endregion
-
-        #region ToString()
-
-        public override String ToString()
         {
 
-            var _Running = "";
-            if (IsRunning) _Running = " (running)";
-
-            return String.Concat(this.GetType().Name, " ", IPAddress.ToString(), ":", Port, _Running);
+            if (Mapper == null)
+                throw new ArgumentNullException("The mapper delegate must not be null!");
 
         }
 
         #endregion
 
+        #region UDPServer(IPSocket, Mapper = null, Autostart = false)
+
+        /// <summary>
+        /// Initialize the UDP server using the given parameters.
+        /// </summary>
+        /// <param name="myIPSocket">The listening IPSocket.</param>
+        /// <param name="NewPacketHandler"></param>
+        /// <param name="Autostart"></param>
+        public UDPServer(IPSocket        IPSocket,
+                         MapperDelegate  Mapper        = null,
+                         UInt32          BufferSize    = 1600,
+                         String          ThreadName    = "UDPServer thread",
+                         ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
+                         Boolean         IsBackground  = true,
+                         Boolean         Autostart     = false)
+
+            : base(IPSocket.IPAddress,
+                   IPSocket.Port,
+                   (Mapper == null) ? (Timestamp, LocalSocket, RemoteSocket, Message) => Message : Mapper,
+                   BufferSize,
+                   ThreadName,
+                   ThreadPrio,
+                   IsBackground,
+                   Autostart)
+
+        { }
+
+        #endregion
+
+        #endregion
+
     }
 
-    #endregion
 
 }

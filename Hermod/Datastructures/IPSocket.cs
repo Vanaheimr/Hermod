@@ -83,6 +83,20 @@ namespace eu.Vanaheimr.Hermod.Datastructures
         #endregion
 
 
+        #region IPv4Address.Localhost / 127.0.0.1
+
+        /// <summary>
+        /// A socket on localhost and the given port.
+        /// </summary>
+        /// <param name="Port">The IP port.</param>
+        public static IPSocket Localhost(IPPort Port)
+        {
+            return new IPSocket(IPv4Address.Localhost, Port);
+        }
+
+        #endregion
+
+
         #region Operator overloading
 
         #region Operator == (myIPSocket1, myIPSocket2)
