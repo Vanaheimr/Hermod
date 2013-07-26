@@ -56,9 +56,13 @@
     <Compile Include="Datastructures\IPv4Address.cs" />
     <Compile Include="Datastructures\IPSocket.cs" />
     <Compile Include="Interfaces\IRemoteSocket.cs" />
+    <Compile Include="Services\CSV\SplitUDPPacketArrow.cs" />
+    <Compile Include="Services\CSV\UnfoldArrow.cs" />
+    <Compile Include="Services\CSV\CSVSplitterArrow.cs" />
     <Compile Include="Services\CSV\CSVResult.cs" />
     <Compile Include="Services\CSV\Delegates.cs" />
     <Compile Include="Services\CSV\CSVTCPServer.cs" />
+    <Compile Include="Services\CSV\ProcessUDPPacketArrow.cs" />
     <Compile Include="Sockets\IServer.cs" />
     <Compile Include="Sockets\IICMPPacket.cs" />
     <Compile Include="Sockets\RawIP\AProtocolHeader.cs" />
@@ -78,6 +82,7 @@
     <Compile Include="Sockets\TCP\TCPServer.cs" />
     <Compile Include="Sockets\UDP\AUDPPacket.cs" />
     <Compile Include="Sockets\ALocalRemoteSockets.cs" />
+    <Compile Include="Sockets\UDP\UDPServer2.cs" />
     <Compile Include="Sockets\UDP\UDPExtensions.cs" />
     <Compile Include="Sockets\UDP\IUDPPacket.cs" />
     <Compile Include="Sockets\UDP\UDPClient.cs" />
@@ -88,6 +93,10 @@
     <ProjectReference Include="..\..\Illias\Commons\Commons.csproj">
       <Project>{16C85DF8-5DE6-4A9F-9FC7-7CA5B0440DF3}</Project>
       <Name>Commons</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Styx\Styx\Styx.csproj">
+      <Project>{3949790D-8591-4101-9E4D-CE7A758E7409}</Project>
+      <Name>Styx</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
