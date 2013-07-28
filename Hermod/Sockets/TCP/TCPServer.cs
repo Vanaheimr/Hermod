@@ -472,18 +472,23 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
-        #region Stop()
+        #region Shutdown(Wait = true)
 
         /// <summary>
-        /// Stop the TCPSocketListener
+        /// Shutdown the TCP listener.
         /// </summary>
-        public void Shutdown()
+        /// <param name="Wait">Wait until the server finally shutted down.</param>
+        public void Shutdown(Boolean Wait = true)
         {
 
             _StopRequested = true;
 
             if (_TCPListener != null)
                 _TCPListener.Stop();
+
+            //if (Wait)
+            //    while (_IsRunning > 0)
+            //        Thread.Sleep(10);
 
         }
 

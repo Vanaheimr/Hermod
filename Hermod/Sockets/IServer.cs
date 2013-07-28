@@ -54,7 +54,7 @@ namespace eu.Vanaheimr.Hermod.Datastructures
         /// <summary>
         /// Shutdown the server.
         /// </summary>
-        void Shutdown();
+        void Shutdown(Boolean Wait = true);
 
         /// <summary>
         /// The shutdown of the server was requested.

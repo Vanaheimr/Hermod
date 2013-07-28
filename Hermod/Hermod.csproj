@@ -67,8 +67,8 @@
     <Compile Include="Sockets\IICMPPacket.cs" />
     <Compile Include="Sockets\Multicast\NetworkArrows\ArrowIPSource.cs" />
     <Compile Include="Sockets\Multicast\NetworkArrows\IArrowReceiverExtensions.cs" />
-    <Compile Include="Sockets\Multicast\UDPMulticastReceiverArrow.cs" />
-    <Compile Include="Sockets\Multicast\UDPMulticastSenderArrow.cs" />
+    <Compile Include="Sockets\UDP\MulticastReceiver.cs" />
+    <Compile Include="Sockets\UDP\UDPMulticastSenderArrow.cs" />
     <Compile Include="Sockets\TCP\ATCPConnection.cs" />
     <Compile Include="Sockets\TCP\ITCPServer.cs" />
     <Compile Include="Sockets\TCP\ITCPConnection.cs" />

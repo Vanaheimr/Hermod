@@ -650,12 +650,12 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 
         #endregion
 
-        #region Stop()
+        #region Shutdown()
 
         /// <summary>
         /// Stop the service.
         /// </summary>
-        public void Stop()
+        public void Shutdown()
         {
 
             foreach (var InternalTCPServer in InternalTCPServers)

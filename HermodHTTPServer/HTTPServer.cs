@@ -441,12 +441,12 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Shutdown()
+        #region Shutdown(Wait = true)
 
         /// <summary>
         /// Shutdown the server.
         /// </summary>
-        public void Shutdown()
+        public void Shutdown(Boolean Wait = true)
         {
             _TCPServer.Shutdown();
         }

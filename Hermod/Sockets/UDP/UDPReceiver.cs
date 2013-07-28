@@ -37,24 +37,20 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
     /// <summary>
     /// A class that listens on an UDP socket.
     /// </summary>
-    public class UDPReceiver<TData> : INotification<TData>,
-                                      INotification<UDPPacket<TData>>,
-                                      IServer
+    public class UDPReceiver<TOut> : INotification<TOut>,
+                                     INotification<UDPPacket<TOut>>,
+                                     IServer
     {
 
         #region Data
 
-        private          Thread             ListenerThread;
-
-        private readonly Socket             LocalDotNetSocket;
-
-        private readonly IPEndPoint         LocalIPEndPoint;
-
-        private          Int32              WaitForChildTaskCreation = 0;
-
-        private readonly MapperDelegate     Mapper; 
-
-        public  readonly IPSocket           LocalSocket;
+        private          Task                     ListenerTask;
+        private readonly Socket                   LocalDotNetSocket;
+        private readonly IPEndPoint               LocalIPEndPoint;
+        private readonly MapperDelegate           Mapper; 
+        private          CancellationTokenSource  CancellationTokenSource;
+        private          CancellationToken        CancellationToken;
+        public  readonly IPSocket                 LocalSocket;
 
         #endregion
 
@@ -156,8 +152,6 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #region StopRequested
 
-        private Int32 _StopRequested = 0;
-
         /// <summary>
         /// The server was requested to stop and will no
         /// longer accept new client connections
@@ -166,29 +160,33 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         {
             get
             {
-                return _StopRequested == 1;
+                return this.CancellationToken.IsCancellationRequested;
             }
         }
 
         #endregion
 
+        public String          ThreadName   { get; private set; }
+        public ThreadPriority  ThreadPrio   { get; private set; }
+        public Boolean         IsBackground { get; private set; }
+
         #endregion
 
         #region Events
 
-        public delegate TData MapperDelegate(DateTime Timestamp, IPSocket LocalSocket, IPSocket RemoteSocket, Byte[] Message);
+        public delegate TOut MapperDelegate(DateTime Timestamp, IPSocket LocalSocket, IPSocket RemoteSocket, Byte[] Message);
 
-        event NotificationEventHandler<TData>            OnNotification_Message;
-        event NotificationEventHandler<UDPPacket<TData>> OnNotification_UDPPacket;
+        event NotificationEventHandler<TOut>            OnNotification_Message;
+        event NotificationEventHandler<UDPPacket<TOut>> OnNotification_UDPPacket;
 
         // INotification
-        event NotificationEventHandler<TData> INotification<TData>.OnNotification
+        event NotificationEventHandler<TOut> INotification<TOut>.OnNotification
         {
             add    { OnNotification_Message += value; }
             remove { OnNotification_Message -= value; }
         }
 
-        event NotificationEventHandler<UDPPacket<TData>> INotification<UDPPacket<TData>>.OnNotification
+        event NotificationEventHandler<UDPPacket<TOut>> INotification<UDPPacket<TOut>>.OnNotification
         {
             add    { OnNotification_UDPPacket += value; }
             remove { OnNotification_UDPPacket -= value; }
@@ -209,14 +207,13 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="Port">The listening port</param>
         /// <param name="Autostart"></param>
         public UDPReceiver(IPPort          Port,
-                           MapperDelegate  Mapper        = null,
-                           UInt32          BufferSize    = 1600,
+                           MapperDelegate  Mapper,
                            String          ThreadName    = "UDPServer thread",
                            ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
                            Boolean         IsBackground  = true,
                            Boolean         Autostart     = false)
 
-            : this(IPv4Address.Any, Port, Mapper, BufferSize, ThreadName, ThreadPrio, IsBackground, Autostart)
+            : this(IPv4Address.Any, Port, Mapper, ThreadName, ThreadPrio, IsBackground, Autostart)
 
         { }
 
@@ -232,8 +229,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="Autostart"></param>
         public UDPReceiver(IIPAddress      IPAddress,
                            IPPort          Port,
-                           MapperDelegate  Mapper        = null,
-                           UInt32          BufferSize    = 1600,
+                           MapperDelegate  Mapper,
                            String          ThreadName    = "UDPServer thread",
                            ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
                            Boolean         IsBackground  = true,
@@ -244,20 +240,25 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
             if (Mapper == null)
                 throw new ArgumentNullException("The mapper delegate must not be null!");
 
-            this._IPAddress         = IPAddress;
-            this._Port              = Port;
-            this.Mapper             = Mapper;
-            this.BufferSize         = BufferSize;
+            this._IPAddress               = IPAddress;
+            this._Port                    = Port;
+            this.Mapper                   = Mapper;
+            this.BufferSize               = BufferSize;
 
-            this.LocalIPEndPoint    = new IPEndPoint(new System.Net.IPAddress(_IPAddress.GetBytes()), _Port.ToInt32());
-            this.LocalSocket        = new IPSocket(LocalIPEndPoint);
-            this.LocalDotNetSocket  = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            this.LocalIPEndPoint          = new IPEndPoint(new System.Net.IPAddress(_IPAddress.GetBytes()), _Port.ToInt32());
+            this.LocalSocket              = new IPSocket(LocalIPEndPoint);
+            this.LocalDotNetSocket        = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             this.LocalDotNetSocket.Bind(LocalIPEndPoint);
+            this.CancellationTokenSource  = new CancellationTokenSource();
+            this.CancellationToken        = CancellationTokenSource.Token;
 
             // Timeout will throw an exception which is a little bit stupid!
-            //ReceiveTimeout  = 1000;
+            ReceiveTimeout                = 5000;
 
-            Listen(ThreadName, ThreadPrio, IsBackground);
+            this.ThreadName               = ThreadName;
+            this.ThreadPrio               = ThreadPrio;
+            this.IsBackground             = IsBackground;
+            this.BufferSize               = 65536;
 
             if (Autostart)
                 Start();
@@ -275,124 +276,17 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="NewPacketHandler"></param>
         /// <param name="Autostart"></param>
         public UDPReceiver(IPSocket        IPSocket,
-                           MapperDelegate  Mapper        = null,
-                           UInt32          BufferSize    = 1600,
+                           MapperDelegate  Mapper,
                            String          ThreadName    = "UDPServer thread",
                            ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
                            Boolean         IsBackground  = true,
                            Boolean         Autostart     = false)
 
-            : this(IPSocket.IPAddress, IPSocket.Port, Mapper, BufferSize, ThreadName, ThreadPrio, IsBackground, Autostart)
+            : this(IPSocket.IPAddress, IPSocket.Port, Mapper, ThreadName, ThreadPrio, IsBackground, Autostart)
 
         { }
 
         #endregion
-
-        #endregion
-
-
-        #region (private, threaded) Listen()
-
-        /// <summary>
-        /// Processes an incoming UDP packet.
-        /// </summary>
-        private void Listen(String          ThreadName,
-                            ThreadPriority  ThreadPrio,
-                            Boolean         IsBackground)
-        {
-
-            if (_IsRunning == 1)
-                return;
-
-            this.ListenerThread = new Thread(() => {
-
-                Thread.CurrentThread.Name          = ThreadName;
-                Thread.CurrentThread.Priority      = ThreadPrio;
-                Thread.CurrentThread.IsBackground  = IsBackground;
-
-                EndPoint _RemoteEndPoint = null;
-                Byte[]   _UDPPacket;
-                Int32    _NumberOfReceivedBytes;
-                DateTime Timestamp;
-
-                try
-                {
-
-                    Interlocked.Exchange(ref _IsRunning, 1);
-
-                    // Loop until interrupted
-                    while (_StopRequested == 0)
-                    {
-
-                        // Break when a server stop was requested
-                        if (_StopRequested > 0)
-                            break;
-
-                        _UDPPacket = new Byte[this.BufferSize];
-                        _RemoteEndPoint = new IPEndPoint(0, 0);
-
-                        // Wait for the next packet...
-                        _NumberOfReceivedBytes = LocalDotNetSocket.ReceiveFrom(_UDPPacket, ref _RemoteEndPoint);
-                        Timestamp = DateTime.Now;
-
-                        if (_NumberOfReceivedBytes > 0)
-                        {
-
-                            Interlocked.Exchange(ref WaitForChildTaskCreation, 1);
-
-                            Task.Factory.StartNew(TimestampLocal =>
-                            {
-
-                                // Create a local copy of the UDPPacket and RemoteEndPoint as we
-                                // do not want to wait till the new thread has accepted the packet
-
-                                Array.Resize(ref _UDPPacket, _NumberOfReceivedBytes);
-
-                                var UDPPacketLocal       = _UDPPacket;
-                                var RemoteSocketLocal    = new IPSocket((IPEndPoint) _RemoteEndPoint);
-                                var OnNotificationLocal = OnNotification_UDPPacket;
-
-                                Thread.CurrentThread.Name = "UDPPacket from " + RemoteSocketLocal.IPAddress + ":" + RemoteSocketLocal.Port;
-
-                                Interlocked.Exchange(ref WaitForChildTaskCreation, 0);
-
-                                // Start upper-layer protocol processing
-                                if (OnNotification_Message != null)
-                                    OnNotification_Message(Mapper((DateTime) TimestampLocal, this.LocalSocket, RemoteSocketLocal, UDPPacketLocal));
-
-                                if (OnNotification_UDPPacket != null)
-                                    OnNotification_UDPPacket(new UDPPacket<TData>(
-                                                      (DateTime)TimestampLocal,
-                                                      this.LocalSocket,
-                                                      RemoteSocketLocal,
-                                                      Mapper((DateTime) TimestampLocal, this.LocalSocket, RemoteSocketLocal, UDPPacketLocal)
-                                                  ));
-
-
-                            }, Timestamp);
-
-                            // Wait till the new Task had used some of its time to
-                            // make a copy of the given references.
-                            while (WaitForChildTaskCreation > 0)
-                                Thread.Sleep(1);
-
-                        }
-
-                    }
-
-                }
-                catch (Exception ex)
-                {
-                    var OnErrorLocal = OnError;
-                    if (OnErrorLocal != null)
-                        OnErrorLocal(this, ex);
-                }
-
-                Interlocked.Exchange(ref _IsRunning, 0);
-
-            });
-
-        }
 
         #endregion
 
@@ -408,31 +302,152 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
             if (_IsRunning == 1)
                 return;
 
-            Interlocked.Exchange(ref _StopRequested, 0);
+            try
+            {
 
-            // Start the TCPListenerThread
-            ListenerThread.Start();
+                this.ListenerTask = Task.Factory.StartNew(() =>
+                {
 
-            // Wait until socket has opened
-            while (_IsRunning != 1)
-                Thread.Sleep(10);
+                    Thread.CurrentThread.Name          = ThreadName;
+                    Thread.CurrentThread.Priority      = ThreadPrio;
+                    Thread.CurrentThread.IsBackground  = IsBackground;
+
+                    EndPoint RemoteEndPoint = null;
+                    Byte[]   UDPPacket;
+                    Int32    NumberOfReceivedBytes;
+                    DateTime Timestamp;
+                    Int32    WaitForChildTaskCreation = 0;
+
+                    Interlocked.Exchange(ref _IsRunning, 1);
+
+                    #region ReceiverLoop
+
+                    while (!CancellationToken.IsCancellationRequested)
+                    {
+
+                        UDPPacket       = new Byte[this.BufferSize];
+                        RemoteEndPoint  = new IPEndPoint(0, 0);
+
+                        try
+                        {
+
+                            // Wait for the next packet...
+                            // Will throw an exception every ReceiveTimeout when no packet was received!
+                            NumberOfReceivedBytes  = LocalDotNetSocket.ReceiveFrom(UDPPacket, ref RemoteEndPoint);
+
+                            if (CancellationToken.IsCancellationRequested)
+                                break;
+
+                            Timestamp              = DateTime.Now;
+
+                            if (NumberOfReceivedBytes > 0)
+                            {
+
+                                Interlocked.Exchange(ref WaitForChildTaskCreation, 1);
+
+                                #region Inner task
+
+                                Task.Factory.StartNew(() =>
+                                {
+
+                                    var RemoteSocketLocal = new IPSocket((IPEndPoint) RemoteEndPoint);
+                                    Thread.CurrentThread.Name = "UDPPacket from " + RemoteSocketLocal.IPAddress + ":" + RemoteSocketLocal.Port;
+
+                                    // Create a local copy of the UDPPacket and RemoteEndPoint as we
+                                    // do not want to wait till the new thread has accepted the packet
+
+                                    Array.Resize(ref UDPPacket, NumberOfReceivedBytes);
+
+                                    var TimestampLocal                  = Timestamp;
+                                    var UDPPacketLocal                  = UDPPacket;
+                                    var OnNotificationLocal             = OnNotification_UDPPacket;
+                                    var OnNotification_Message_Local    = OnNotification_Message;
+                                    var OnNotification_UDPPacket_Local  = OnNotification_UDPPacket;
+
+                                    Interlocked.Exchange(ref WaitForChildTaskCreation, 0);
+
+                                    // Start upper-layer protocol processing
+                                    if (OnNotification_Message_Local != null)
+                                        OnNotification_Message_Local(Mapper(TimestampLocal,
+                                                                            this.LocalSocket,
+                                                                            RemoteSocketLocal,
+                                                                            UDPPacketLocal));
+
+                                    if (OnNotification_UDPPacket_Local != null)
+                                        OnNotification_UDPPacket_Local(new UDPPacket<TOut>(
+                                                                           TimestampLocal,
+                                                                           this.LocalSocket,
+                                                                           RemoteSocketLocal,
+                                                                           Mapper(TimestampLocal,
+                                                                                  this.LocalSocket,
+                                                                                  RemoteSocketLocal,
+                                                                                  UDPPacketLocal)
+                                                                      ));
+
+
+
+                                }, CancellationTokenSource.Token,
+                                   TaskCreationOptions.AttachedToParent,
+                                   TaskScheduler.Default);
+
+                                #endregion
+
+                                // Wait till the new Task had used some of its time to
+                                // make a copy of the given references.
+                                while (WaitForChildTaskCreation > 0)
+                                    Thread.Sleep(1);
+
+                            }
+
+                        }
+                        catch (SocketException e)
+                        { }
+                        catch (Exception e)
+                        {
+                            var OnErrorLocal = OnError;
+                            if (OnErrorLocal != null)
+                                OnErrorLocal(this, e);
+                        }
+
+                    }
+
+                    #endregion
+
+                    Interlocked.Exchange(ref _IsRunning, 0);
+
+                }, CancellationTokenSource.Token,
+                   TaskCreationOptions.LongRunning | TaskCreationOptions.AttachedToParent,
+                   TaskScheduler.Default);
+
+            }
+            catch (Exception ex)
+            {
+                var OnErrorLocal = OnError;
+                if (OnErrorLocal != null)
+                    OnErrorLocal(this, ex);
+            }
 
         }
 
         #endregion
 
-        #region Shutdown()
+        #region Shutdown(Wait = true)
 
         /// <summary>
         /// Shutdown the UDP listener.
         /// </summary>
-        public void Shutdown()
+        /// <param name="Wait">Wait until the server finally shutted down.</param>
+        public void Shutdown(Boolean Wait = true)
         {
 
-            if (ListenerThread == null)
+            if (ListenerTask == null)
                 throw new Exception("You can not stop the listener if it wasn't started before!");
 
-            Interlocked.Exchange(ref _StopRequested, 1);
+            this.CancellationTokenSource.Cancel();
+
+            if (Wait)
+                while (_IsRunning > 0)
+                    Thread.Sleep(10);
 
         }
 
@@ -488,7 +503,6 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="Autostart"></param>
         public UDPReceiver(IPPort          Port,
                            MapperDelegate  Mapper        = null,
-                           UInt32          BufferSize    = 1600,
                            String          ThreadName    = "UDPServer thread",
                            ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
                            Boolean         IsBackground  = true,
@@ -496,7 +510,6 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
             : base(Port,
                    (Mapper == null) ? (Timestamp, LocalSocket, RemoteSocket, Message) => Message : Mapper,
-                   BufferSize,
                    ThreadName,
                    ThreadPrio,
                    IsBackground,
@@ -517,7 +530,6 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         public UDPReceiver(IIPAddress      IPAddress,
                            IPPort          Port,
                            MapperDelegate  Mapper        = null,
-                           UInt32          BufferSize    = 1600,
                            String          ThreadName    = "UDPServer thread",
                            ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
                            Boolean         IsBackground  = true,
@@ -526,7 +538,6 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
             : base(IPAddress,
                    Port,
                    (Mapper == null) ? (Timestamp, LocalSocket, RemoteSocket, Message) => Message : Mapper,
-                   BufferSize,
                    ThreadName,
                    ThreadPrio,
                    IsBackground,
@@ -551,7 +562,6 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="Autostart"></param>
         public UDPReceiver(IPSocket        IPSocket,
                            MapperDelegate  Mapper        = null,
-                           UInt32          BufferSize    = 1600,
                            String          ThreadName    = "UDPServer thread",
                            ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
                            Boolean         IsBackground  = true,
@@ -560,7 +570,6 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
             : base(IPSocket.IPAddress,
                    IPSocket.Port,
                    (Mapper == null) ? (Timestamp, LocalSocket, RemoteSocket, Message) => Message : Mapper,
-                   BufferSize,
                    ThreadName,
                    ThreadPrio,
                    IsBackground,
