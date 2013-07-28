@@ -234,9 +234,9 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="Timestamp">The server timestamp of the UDP packet.</param>
         /// <param name="LocalSocket">The local UDP socket.</param>
         /// <param name="RemoteSocket">The remote UDP socket.</param>
-        /// <param name="Message">The payload of the UDP packet.</param>
+        /// <param name="Payload">The payload of the UDP packet.</param>
         /// <returns>The payload/message of the UDP packet transformed into a custom data structure.</returns>
-        public delegate TOut MapperDelegate(DateTime Timestamp, IPSocket LocalSocket, IPSocket RemoteSocket, Byte[] Message);
+        public delegate TOut MapperDelegate(DateTime Timestamp, IPSocket LocalSocket, IPSocket RemoteSocket, Byte[] Payload);
 
 
 
@@ -319,22 +319,20 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
             this._IPAddress               = IPAddress;
             this._Port                    = Port;
             this.Mapper                   = Mapper;
-            this.BufferSize               = BufferSize;
+            this._ThreadName              = ThreadName;
+            this._ThreadPrio              = ThreadPrio;
+            this._IsBackground            = IsBackground;
+
+            this.BufferSize               = 65536;
+            this.ReceiveTimeout           = 5000;
 
             this.LocalIPEndPoint          = new IPEndPoint(new System.Net.IPAddress(_IPAddress.GetBytes()), _Port.ToInt32());
             this.LocalSocket              = new IPSocket(LocalIPEndPoint);
             this.LocalDotNetSocket        = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             this.LocalDotNetSocket.Bind(LocalIPEndPoint);
+
             this.CancellationTokenSource  = new CancellationTokenSource();
             this.CancellationToken        = CancellationTokenSource.Token;
-
-            // Timeout will throw an exception which is a little bit stupid!
-            ReceiveTimeout                = 5000;
-
-            this._ThreadName              = ThreadName;
-            this._ThreadPrio              = ThreadPrio;
-            this._IsBackground            = IsBackground;
-            this.BufferSize               = 65536;
 
             if (Autostart)
                 Start();
@@ -393,7 +391,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
                     Thread.CurrentThread.IsBackground  = IsBackground;
 
                     EndPoint RemoteEndPoint = null;
-                    Byte[]   UDPPacket;
+                    Byte[]   UDPPayload;
                     Int32    NumberOfReceivedBytes;
                     DateTime Timestamp;
                     Int32    WaitForChildTaskCreation = 0;
@@ -405,7 +403,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
                     while (!CancellationToken.IsCancellationRequested)
                     {
 
-                        UDPPacket       = new Byte[this.BufferSize];
+                        UDPPayload      = new Byte[this.BufferSize];
                         RemoteEndPoint  = new IPEndPoint(0, 0);
 
                         try
@@ -413,7 +411,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
                             // Wait for the next packet...
                             // Will throw an exception every ReceiveTimeout when no packet was received!
-                            NumberOfReceivedBytes  = LocalDotNetSocket.ReceiveFrom(UDPPacket, ref RemoteEndPoint);
+                            NumberOfReceivedBytes  = LocalDotNetSocket.ReceiveFrom(UDPPayload, ref RemoteEndPoint);
 
                             if (CancellationToken.IsCancellationRequested)
                                 break;
@@ -430,38 +428,37 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
                                 Task.Factory.StartNew(() =>
                                 {
 
-                                    var RemoteSocketLocal = new IPSocket((IPEndPoint) RemoteEndPoint);
-                                    Thread.CurrentThread.Name = "UDPPacket from " + RemoteSocketLocal.IPAddress + ":" + RemoteSocketLocal.Port;
-
-                                    // Create a local copy of the UDPPacket and RemoteEndPoint as we
-                                    // do not want to wait till the new thread has accepted the packet
-
-                                    Array.Resize(ref UDPPacket, NumberOfReceivedBytes);
-
-                                    var TimestampLocal                  = Timestamp;
-                                    var UDPPacketLocal                  = UDPPacket;
-                                    var OnNotificationLocal             = OnNotification_UDPPacket;
+                                    // Create a local copies as we do not want to wait
+                                    // till the new thread has accepted the packet
+                                    // (Behaviour may change in .NET 4.5!)
+                                    var Timestamp_Local                 = Timestamp;
+                                    var UDPPayload_Local                = UDPPayload;
                                     var OnNotification_Message_Local    = OnNotification_Message;
                                     var OnNotification_UDPPacket_Local  = OnNotification_UDPPacket;
+                                    var RemoteSocket_Local              = new IPSocket((IPEndPoint) RemoteEndPoint);
+
+                                    Thread.CurrentThread.Name           = "UDPPacket from " + RemoteSocket_Local.IPAddress + ":" + RemoteSocket_Local.Port;
+
+                                    Array.Resize(ref UDPPayload, NumberOfReceivedBytes);
 
                                     Interlocked.Exchange(ref WaitForChildTaskCreation, 0);
 
                                     // Start upper-layer protocol processing
                                     if (OnNotification_Message_Local != null)
-                                        OnNotification_Message_Local(Mapper(TimestampLocal,
+                                        OnNotification_Message_Local(Mapper(Timestamp_Local,
                                                                             this.LocalSocket,
-                                                                            RemoteSocketLocal,
-                                                                            UDPPacketLocal));
+                                                                            RemoteSocket_Local,
+                                                                            UDPPayload_Local));
 
                                     if (OnNotification_UDPPacket_Local != null)
                                         OnNotification_UDPPacket_Local(new UDPPacket<TOut>(
-                                                                           TimestampLocal,
+                                                                           Timestamp_Local,
                                                                            this.LocalSocket,
-                                                                           RemoteSocketLocal,
-                                                                           Mapper(TimestampLocal,
+                                                                           RemoteSocket_Local,
+                                                                           Mapper(Timestamp_Local,
                                                                                   this.LocalSocket,
-                                                                                  RemoteSocketLocal,
-                                                                                  UDPPacketLocal)
+                                                                                  RemoteSocket_Local,
+                                                                                  UDPPayload_Local)
                                                                       ));
 
 
@@ -480,8 +477,10 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
                             }
 
                         }
-                        catch (SocketException e)
-                        { }
+                        catch (SocketException)
+                        {
+                            // Will mainly be called for ReceiveTimeouts!
+                        }
                         catch (Exception e)
                         {
                             var OnErrorLocal = OnError;
@@ -500,11 +499,11 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
                    TaskScheduler.Default);
 
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
                 var OnErrorLocal = OnError;
                 if (OnErrorLocal != null)
-                    OnErrorLocal(this, ex);
+                    OnErrorLocal(this, e);
             }
 
         }
