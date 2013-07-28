@@ -46,10 +46,11 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #region Data
 
-        private          Task                     ListenerTask;
+        private          Task                     ReceiverTask;
         private readonly Socket                   LocalDotNetSocket;
         private readonly IPEndPoint               LocalIPEndPoint;
         public  readonly IPSocket                 LocalSocket;
+        private readonly Func<IPSocket, String>   PacketThreadName;
         private readonly MapperDelegate           Mapper; 
         private          CancellationTokenSource  CancellationTokenSource;
         private          CancellationToken        CancellationToken;
@@ -94,35 +95,52 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #endregion
 
-        #region ThreadName
+        #region ReceiverThreadName
 
-        private readonly String _ThreadName;
+        private readonly String _ReceiverThreadName;
 
         /// <summary>
         /// The name of the UDP receiver thread.
         /// </summary>
-        public String ThreadName
+        public String ReceiverThreadName
         {
             get
             {
-                return _ThreadName;
+                return _ReceiverThreadName;
             }
         }
 
         #endregion
 
-        #region ThreadPrio
+        #region ReceiverThreadPriority
 
-        private readonly ThreadPriority _ThreadPrio;
+        private readonly ThreadPriority _ReceiverThreadPriority;
 
         /// <summary>
         /// The priority of the UDP receiver thread.
         /// </summary>
-        public ThreadPriority ThreadPrio
+        public ThreadPriority ReceiverThreadPriority
         {
             get
             {
-                return _ThreadPrio;
+                return _ReceiverThreadPriority;
+            }
+        }
+
+        #endregion
+
+        #region PacketThreadPriority
+
+        private readonly ThreadPriority _PacketThreadPriority;
+
+        /// <summary>
+        /// The priority of the UDP packet threads.
+        /// </summary>
+        public ThreadPriority PacketThreadPriority
+        {
+            get
+            {
+                return _PacketThreadPriority;
             }
         }
 
@@ -267,31 +285,44 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #region Constructor(s)
 
-        #region UDPReceiver(Port, Mapper, ThreadName = "...", ThreadPrio = AboveNormal, IsBackground = true, Autostart = false)
+        #region UDPReceiver(Port, Mapper, ...)
 
         /// <summary>
         /// Create a new UDP receiver using IPAddress.Any and the given parameters.
         /// </summary>
         /// <param name="Port">The port to listen.</param>
         /// <param name="Mapper">A delegate to transform the incoming UDP packets into a custom data structure.</param>
-        /// <param name="ThreadName">The optional name of the UDP receiver thread.</param>
-        /// <param name="ThreadPrio">The optional priority of the UDP receiver thread.</param>
+        /// <param name="ReceiverThreadName">The optional name of the UDP receiver thread.</param>
+        /// <param name="ReceiverThreadPriority">The optional priority of the UDP receiver thread.</param>
+        /// <param name="PacketThreadName">An optional delegate to set the name of the UDP packet threads.</param>
+        /// <param name="PacketThreadPriority">The optional priority of the UDP packet threads.</param>
         /// <param name="IsBackground">Whether the UDP receiver thread is a background thread or not.</param>
         /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
-        public UDPReceiver(IPPort          Port,
-                           MapperDelegate  Mapper,
-                           String          ThreadName    = "UDPReceiver thread",
-                           ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
-                           Boolean         IsBackground  = true,
-                           Boolean         Autostart     = false)
+        public UDPReceiver(IPPort Port,
+                           MapperDelegate         Mapper,
+                           String                 ReceiverThreadName      = "UDPReceiver thread",
+                           ThreadPriority         ReceiverThreadPriority  = ThreadPriority.AboveNormal,
+                           Func<IPSocket, String> PacketThreadName        = null,
+                           ThreadPriority         PacketThreadPriority    = ThreadPriority.AboveNormal,
+                           Boolean                IsBackground            = true,
+                           Boolean                Autostart               = false)
 
-            : this(IPv4Address.Any, Port, Mapper, ThreadName, ThreadPrio, IsBackground, Autostart)
+
+            : this(IPv4Address.Any,
+                   Port,
+                   Mapper,
+                   ReceiverThreadName,
+                   ReceiverThreadPriority,
+                   PacketThreadName,
+                   PacketThreadPriority,
+                   IsBackground,
+                   Autostart)
 
         { }
 
         #endregion
 
-        #region UDPReceiver(IPAddress, Port, Mapper, ThreadName = "...", ThreadPrio = AboveNormal, IsBackground = true, Autostart = false)
+        #region UDPReceiver(IPAddress, Port, Mapper, ...)
 
         /// <summary>
         /// Create a new UDP receiver listening on the given IP address and port.
@@ -299,17 +330,22 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="IPAddress">The IP address to listen.</param>
         /// <param name="Port">The port to listen.</param>
         /// <param name="Mapper">A delegate to transform the incoming UDP packets into a custom data structure.</param>
-        /// <param name="ThreadName">The optional name of the UDP receiver thread.</param>
-        /// <param name="ThreadPrio">The optional priority of the UDP receiver thread.</param>
+        /// <param name="ReceiverThreadName">The optional name of the UDP receiver thread.</param>
+        /// <param name="ReceiverThreadPriority">The optional priority of the UDP receiver thread.</param>
+        /// <param name="PacketThreadName">An optional delegate to set the name of the UDP packet threads.</param>
+        /// <param name="PacketThreadPriority">The optional priority of the UDP packet threads.</param>
         /// <param name="IsBackground">Whether the UDP receiver thread is a background thread or not.</param>
         /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
-        public UDPReceiver(IIPAddress      IPAddress,
-                           IPPort          Port,
-                           MapperDelegate  Mapper,
-                           String          ThreadName    = "UDPReceiver thread",
-                           ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
-                           Boolean         IsBackground  = true,
-                           Boolean         Autostart     = false)
+        public UDPReceiver(IIPAddress             IPAddress,
+                           IPPort                 Port,
+                           MapperDelegate         Mapper,
+                           String                 ReceiverThreadName      = "UDPReceiver thread",
+                           ThreadPriority         ReceiverThreadPriority  = ThreadPriority.AboveNormal,
+                           Func<IPSocket, String> PacketThreadName        = null,
+                           ThreadPriority         PacketThreadPriority    = ThreadPriority.AboveNormal,
+                           Boolean                IsBackground            = true,
+                           Boolean                Autostart               = false)
+
 
         {
 
@@ -319,8 +355,12 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
             this._IPAddress               = IPAddress;
             this._Port                    = Port;
             this.Mapper                   = Mapper;
-            this._ThreadName              = ThreadName;
-            this._ThreadPrio              = ThreadPrio;
+            this._ReceiverThreadName      = ReceiverThreadName;
+            this._ReceiverThreadPriority  = ReceiverThreadPriority;
+            this.PacketThreadName         = (PacketThreadName == null)
+                                                ? socket => "UDP packet from " + socket.IPAddress + ":" + socket.Port
+                                                : PacketThreadName;
+            this._PacketThreadPriority    = PacketThreadPriority;
             this._IsBackground            = IsBackground;
 
             this.BufferSize               = 65536;
@@ -341,7 +381,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #endregion
 
-        #region UDPReceiver(IPSocket, Mapper, ThreadName = "...", ThreadPrio = AboveNormal, IsBackground = true, Autostart = false)
+        #region UDPReceiver(IPSocket, Mapper, ...)
 
         /// <summary>
         /// Create a new UDP receiver listening on the given IP socket.
@@ -349,18 +389,30 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="IPAddress">The IP address to listen.</param>
         /// <param name="Port">The port to listen.</param>
         /// <param name="Mapper">A delegate to transform the incoming UDP packets into a custom data structure.</param>
-        /// <param name="ThreadName">The optional name of the UDP receiver thread.</param>
-        /// <param name="ThreadPrio">The optional priority of the UDP receiver thread.</param>
+        /// <param name="ReceiverThreadName">The optional name of the UDP receiver thread.</param>
+        /// <param name="ReceiverThreadPriority">The optional priority of the UDP receiver thread.</param>
+        /// <param name="PacketThreadName">An optional delegate to set the name of the UDP packet threads.</param>
+        /// <param name="PacketThreadPriority">The optional priority of the UDP packet threads.</param>
         /// <param name="IsBackground">Whether the UDP receiver thread is a background thread or not.</param>
         /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
-        public UDPReceiver(IPSocket        IPSocket,
-                           MapperDelegate  Mapper,
-                           String          ThreadName    = "UDPReceiver thread",
-                           ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
-                           Boolean         IsBackground  = true,
-                           Boolean         Autostart     = false)
+        public UDPReceiver(IPSocket IPSocket,
+                           MapperDelegate         Mapper,
+                           String                 ReceiverThreadName      = "UDPReceiver thread",
+                           ThreadPriority         ReceiverThreadPriority  = ThreadPriority.AboveNormal,
+                           Func<IPSocket, String> PacketThreadName        = null,
+                           ThreadPriority         PacketThreadPriority    = ThreadPriority.AboveNormal,
+                           Boolean                IsBackground            = true,
+                           Boolean                Autostart               = false)
 
-            : this(IPSocket.IPAddress, IPSocket.Port, Mapper, ThreadName, ThreadPrio, IsBackground, Autostart)
+            : this(IPSocket.IPAddress,
+                   IPSocket.Port,
+                   Mapper,
+                   ReceiverThreadName,
+                   ReceiverThreadPriority,
+                   PacketThreadName,
+                   PacketThreadPriority,
+                   IsBackground,
+                   Autostart)
 
         { }
 
@@ -383,11 +435,11 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
             try
             {
 
-                this.ListenerTask = Task.Factory.StartNew(() =>
+                this.ReceiverTask = Task.Factory.StartNew(() =>
                 {
 
-                    Thread.CurrentThread.Name          = ThreadName;
-                    Thread.CurrentThread.Priority      = ThreadPrio;
+                    Thread.CurrentThread.Name          = ReceiverThreadName;
+                    Thread.CurrentThread.Priority      = ReceiverThreadPriority;
                     Thread.CurrentThread.IsBackground  = IsBackground;
 
                     EndPoint RemoteEndPoint = null;
@@ -398,32 +450,32 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
                     Interlocked.Exchange(ref _IsRunning, 1);
 
-                    #region ReceiverLoop
+                    #region Receiver loop
 
                     while (!CancellationToken.IsCancellationRequested)
                     {
 
-                        UDPPayload      = new Byte[this.BufferSize];
-                        RemoteEndPoint  = new IPEndPoint(0, 0);
+                        UDPPayload     = new Byte[this.BufferSize];
+                        RemoteEndPoint = new IPEndPoint(0, 0);
 
                         try
                         {
 
                             // Wait for the next packet...
                             // Will throw an exception every ReceiveTimeout when no packet was received!
-                            NumberOfReceivedBytes  = LocalDotNetSocket.ReceiveFrom(UDPPayload, ref RemoteEndPoint);
+                            NumberOfReceivedBytes = LocalDotNetSocket.ReceiveFrom(UDPPayload, ref RemoteEndPoint);
 
                             if (CancellationToken.IsCancellationRequested)
                                 break;
 
-                            Timestamp              = DateTime.Now;
+                            Timestamp = DateTime.Now;
 
                             if (NumberOfReceivedBytes > 0)
                             {
 
                                 Interlocked.Exchange(ref WaitForChildTaskCreation, 1);
 
-                                #region Inner task
+                                #region Per packet task(s)...
 
                                 Task.Factory.StartNew(() =>
                                 {
@@ -437,7 +489,9 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
                                     var OnNotification_UDPPacket_Local  = OnNotification_UDPPacket;
                                     var RemoteSocket_Local              = new IPSocket((IPEndPoint) RemoteEndPoint);
 
-                                    Thread.CurrentThread.Name           = "UDPPacket from " + RemoteSocket_Local.IPAddress + ":" + RemoteSocket_Local.Port;
+                                    Thread.CurrentThread.Name           = PacketThreadName(RemoteSocket_Local);
+                                    Thread.CurrentThread.Priority       = PacketThreadPriority;
+                                    Thread.CurrentThread.IsBackground   = IsBackground;
 
                                     Array.Resize(ref UDPPayload, NumberOfReceivedBytes);
 
@@ -550,7 +604,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         public void Shutdown(Boolean Wait = true)
         {
 
-            if (ListenerTask == null)
+            if (ReceiverTask == null)
                 throw new Exception("You can not stop the listener if it wasn't started before!");
 
             this.CancellationTokenSource.Cancel();
@@ -608,7 +662,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
     public class UDPReceiver : UDPReceiver<Byte[]>
     {
 
-        #region UDPReceiver(Port, Mapper = null, ThreadName = "...", ThreadPrio = AboveNormal, IsBackground = true, Autostart = false)
+        #region UDPReceiver(Port, Mapper = null, ...)
 
         /// <summary>
         /// Create a new UDP receiver using IPAddress.Any and the given parameters.
@@ -619,17 +673,21 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="ThreadPrio">The optional priority of the UDP receiver thread.</param>
         /// <param name="IsBackground">Whether the UDP receiver thread is a background thread or not.</param>
         /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
-        public UDPReceiver(IPPort          Port,
-                           MapperDelegate  Mapper        = null,
-                           String          ThreadName    = "UDPReceiver thread",
-                           ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
-                           Boolean         IsBackground  = true,
-                           Boolean         Autostart     = false)
+        public UDPReceiver(IPPort                 Port,
+                           MapperDelegate         Mapper                  = null,
+                           String                 ReceiverThreadName      = "UDPReceiver thread",
+                           ThreadPriority         ReceiverThreadPriority  = ThreadPriority.AboveNormal,
+                           Func<IPSocket, String> PacketThreadName        = null,
+                           ThreadPriority         PacketThreadPriority    = ThreadPriority.AboveNormal,
+                           Boolean                IsBackground            = true,
+                           Boolean                Autostart               = false)
 
             : base(Port,
                    (Mapper == null) ? (Timestamp, LocalSocket, RemoteSocket, Message) => Message : Mapper,
-                   ThreadName,
-                   ThreadPrio,
+                   ReceiverThreadName,
+                   ReceiverThreadPriority,
+                   PacketThreadName,
+                   PacketThreadPriority,
                    IsBackground,
                    Autostart)
 
@@ -637,7 +695,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #endregion
 
-        #region UDPReceiver(IPAddress, Port, Mapper = null, ThreadName = "...", ThreadPrio = AboveNormal, IsBackground = true, Autostart = false)
+        #region UDPReceiver(IPAddress, Port, Mapper = null, ...)
 
         /// <summary>
         /// Create a new UDP receiver listening on the given IP address and port.
@@ -645,23 +703,29 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="IPAddress">The IP address to listen.</param>
         /// <param name="Port">The port to listen.</param>
         /// <param name="Mapper">An optional delegate to transform the incoming UDP packets into a custom data structure.</param>
-        /// <param name="ThreadName">The optional name of the UDP receiver thread.</param>
-        /// <param name="ThreadPrio">The optional priority of the UDP receiver thread.</param>
+        /// <param name="ReceiverThreadName">The optional name of the UDP receiver thread.</param>
+        /// <param name="ReceiverThreadPriority">The optional priority of the UDP receiver thread.</param>
+        /// <param name="PacketThreadName">An optional delegate to set the name of the UDP packet threads.</param>
+        /// <param name="PacketThreadPriority">The optional priority of the UDP packet threads.</param>
         /// <param name="IsBackground">Whether the UDP receiver thread is a background thread or not.</param>
         /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
-        public UDPReceiver(IIPAddress      IPAddress,
-                           IPPort          Port,
-                           MapperDelegate  Mapper        = null,
-                           String          ThreadName    = "UDPReceiver thread",
-                           ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
-                           Boolean         IsBackground  = true,
-                           Boolean         Autostart     = false)
+        public UDPReceiver(IIPAddress             IPAddress,
+                           IPPort                 Port,
+                           MapperDelegate         Mapper                  = null,
+                           String                 ReceiverThreadName      = "UDPReceiver thread",
+                           ThreadPriority         ReceiverThreadPriority  = ThreadPriority.AboveNormal,
+                           Func<IPSocket, String> PacketThreadName        = null,
+                           ThreadPriority         PacketThreadPriority    = ThreadPriority.AboveNormal,
+                           Boolean                IsBackground            = true,
+                           Boolean                Autostart               = false)
 
             : base(IPAddress,
                    Port,
                    (Mapper == null) ? (Timestamp, LocalSocket, RemoteSocket, Message) => Message : Mapper,
-                   ThreadName,
-                   ThreadPrio,
+                   ReceiverThreadName,
+                   ReceiverThreadPriority,
+                   PacketThreadName,
+                   PacketThreadPriority,
                    IsBackground,
                    Autostart)
 
@@ -669,7 +733,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #endregion
 
-        #region UDPReceiver(IPSocket, Mapper = null, ThreadName = "...", ThreadPrio = AboveNormal, IsBackground = true, Autostart = false)
+        #region UDPReceiver(IPSocket, Mapper = null, ...)
 
         /// <summary>
         /// Create a new UDP receiver listening on the given IP socket.
@@ -677,21 +741,27 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="IPAddress">The IP address to listen.</param>
         /// <param name="Port">The port to listen.</param>
         /// <param name="Mapper">An optional delegate to transform the incoming UDP packets into a custom data structure.</param>
-        /// <param name="ThreadName">The optional name of the UDP receiver thread.</param>
-        /// <param name="ThreadPrio">The optional priority of the UDP receiver thread.</param>
+        /// <param name="ReceiverThreadName">The optional name of the UDP receiver thread.</param>
+        /// <param name="ReceiverThreadPriority">The optional priority of the UDP receiver thread.</param>
+        /// <param name="PacketThreadName">An optional delegate to set the name of the UDP packet threads.</param>
+        /// <param name="PacketThreadPriority">The optional priority of the UDP packet threads.</param>
         /// <param name="IsBackground">Whether the UDP receiver thread is a background thread or not.</param>
         /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
-        public UDPReceiver(IPSocket        IPSocket,
-                           MapperDelegate  Mapper        = null,
-                           String          ThreadName    = "UDPReceiver thread",
-                           ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
-                           Boolean         IsBackground  = true,
-                           Boolean         Autostart     = false)
+        public UDPReceiver(IPSocket IPSocket,
+                           MapperDelegate         Mapper                  = null,
+                           String                 ReceiverThreadName      = "UDPReceiver thread",
+                           ThreadPriority         ReceiverThreadPriority  = ThreadPriority.AboveNormal,
+                           Func<IPSocket, String> PacketThreadName        = null,
+                           ThreadPriority         PacketThreadPriority    = ThreadPriority.AboveNormal,
+                           Boolean                IsBackground            = true,
+                           Boolean                Autostart               = false)
 
             : base(IPSocket,
                    (Mapper == null) ? (Timestamp, LocalSocket, RemoteSocket, Message) => Message : Mapper,
-                   ThreadName,
-                   ThreadPrio,
+                   ReceiverThreadName,
+                   ReceiverThreadPriority,
+                   PacketThreadName,
+                   PacketThreadPriority,
                    IsBackground,
                    Autostart)
 
