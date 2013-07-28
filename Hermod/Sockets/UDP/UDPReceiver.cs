@@ -35,8 +35,8 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
     #region UDPReceiver<TOut>
 
     /// <summary>
-    /// A Styx arrow sender that listens on an UDP socket
-    /// and notifies about incoming UDP packets or messages.
+    /// A Styx arrow sender that listens on an UDP
+    /// socket and notifies about incoming UDP packets.
     /// </summary>
     /// <typeparam name="TOut">The type of the Styx arrows to send.</typeparam>
     public class UDPReceiver<TOut> : INotification<TOut>,
@@ -49,10 +49,10 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         private          Task                     ListenerTask;
         private readonly Socket                   LocalDotNetSocket;
         private readonly IPEndPoint               LocalIPEndPoint;
+        public  readonly IPSocket                 LocalSocket;
         private readonly MapperDelegate           Mapper; 
         private          CancellationTokenSource  CancellationTokenSource;
         private          CancellationToken        CancellationToken;
-        public  readonly IPSocket                 LocalSocket;
 
         #endregion
 
@@ -372,7 +372,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         #region Start()
 
         /// <summary>
-        /// Starts the listener.
+        /// Start the UDP receiver.
         /// </summary>
         public void Start()
         {
@@ -510,6 +510,37 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #endregion
 
+        #region Start(Delay, InBackground = true)
+
+        /// <summary>
+        /// Start the UDP receiver after a little delay.
+        /// </summary>
+        /// <param name="Delay">The delay.</param>
+        /// <param name="InBackground">Whether to wait on the main thread or in a background thread.</param>
+        public void Start(TimeSpan Delay, Boolean InBackground = true)
+        {
+
+            if (!InBackground)
+            {
+                Thread.Sleep(Delay);
+                Start();
+            }
+
+            else
+                Task.Factory.StartNew(() =>
+                {
+
+                    Thread.Sleep(Delay);
+                    Start();
+
+                }, CancellationTokenSource.Token,
+                   TaskCreationOptions.AttachedToParent,
+                   TaskScheduler.Default);
+
+        }
+
+        #endregion
+
         #region Shutdown(Wait = true)
 
         /// <summary>
@@ -570,6 +601,10 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
     #region UDPReceiver
 
+    /// <summary>
+    /// A Styx arrow sender that listens on an UDP socket
+    /// and notifies about incoming UDP packets.
+    /// </summary>
     public class UDPReceiver : UDPReceiver<Byte[]>
     {
 

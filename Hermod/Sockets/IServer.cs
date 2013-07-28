@@ -47,9 +47,17 @@ namespace eu.Vanaheimr.Hermod
 
 
         /// <summary>
-        /// Start the server.
+        /// Star the server.
         /// </summary>
         void Start();
+
+        /// <summary>
+        /// Start the server after a little delay.
+        /// </summary>
+        /// <param name="Delay">The delay.</param>
+        /// <param name="InBackground">Whether to wait on the main thread or in a background thread.</param>
+        void Start(TimeSpan Delay, Boolean InBackground = true);
+
 
         /// <summary>
         /// Shutdown the server.

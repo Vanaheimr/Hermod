@@ -441,6 +441,20 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Start(Delay, InBackground = true)
+
+        /// <summary>
+        /// Start the server after a little delay.
+        /// </summary>
+        /// <param name="Delay">The delay.</param>
+        /// <param name="InBackground">Whether to wait on the main thread or in a background thread.</param>
+        public void Start(TimeSpan Delay, Boolean InBackground = true)
+        {
+            _TCPServer.Start(Delay, InBackground);
+        }
+
+        #endregion
+
         #region Shutdown(Wait = true)
 
         /// <summary>

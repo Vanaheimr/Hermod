@@ -56,6 +56,9 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         // The constructor for TCPConnectionType
         private readonly ConstructorInfo                                    _Constructor;
 
+        private          CancellationTokenSource  CancellationTokenSource;
+        private          CancellationToken        CancellationToken;
+
         #endregion
 
         #region Properties
@@ -245,12 +248,15 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         public TCPServer(IIPAddress IIPAddress, IPPort Port, OnNewClientConnectionDelegate NewConnectionHandler = null, Boolean Autostart = false, String ThreadDescription = "...")
         {
 
-            _IPAddress          = IIPAddress;
-            _Port               = Port;
+            _IPAddress                      = IIPAddress;
+            _Port                           = Port;
+            _SocketConnections              = new ConcurrentDictionary<IPSocket, TCPConnectionType>();
+            _TCPListener                    = new TcpListener(new System.Net.IPAddress(_IPAddress.GetBytes()), _Port.ToInt32());
+             ClientTimeout                  = 30000;
 
-            _SocketConnections  = new ConcurrentDictionary<IPSocket, TCPConnectionType>();
-            _TCPListener        = new TcpListener(new System.Net.IPAddress(_IPAddress.GetBytes()), _Port.ToInt32());
-             ClientTimeout      = 30000;
+            this.CancellationTokenSource    = new CancellationTokenSource();
+            this.CancellationToken          = CancellationTokenSource.Token;
+
 
             // Get constructor for TCPConnectionType
             _Constructor        = typeof(TCPConnectionType).
@@ -440,6 +446,37 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         public void Start()
         {
             Start(_DefaultMaxClientConnections);
+        }
+
+        #endregion
+
+        #region Start(Delay, InBackground = true)
+
+        /// <summary>
+        /// Start the UDP receiver after a little delay.
+        /// </summary>
+        /// <param name="Delay">The delay.</param>
+        /// <param name="InBackground">Whether to wait on the main thread or in a background thread.</param>
+        public void Start(TimeSpan Delay, Boolean InBackground = true)
+        {
+
+            if (!InBackground)
+            {
+                Thread.Sleep(Delay);
+                Start();
+            }
+
+            else
+                Task.Factory.StartNew(() =>
+                {
+
+                    Thread.Sleep(Delay);
+                    Start();
+
+                }, CancellationTokenSource.Token,
+                   TaskCreationOptions.AttachedToParent,
+                   TaskScheduler.Default);
+
         }
 
         #endregion

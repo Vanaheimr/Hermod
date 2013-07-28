@@ -252,7 +252,7 @@ namespace eu.Vanaheimr.Hermod.Multicast
         #region Start()
 
         /// <summary>
-        /// Starts the listener.
+        /// Start the multicast receiver.
         /// </summary>
         public void Start()
         {
@@ -369,6 +369,38 @@ namespace eu.Vanaheimr.Hermod.Multicast
         }
 
         #endregion
+
+        #region Start(Delay, InBackground = true)
+
+        /// <summary>
+        /// Start the multicast receiver after a little delay.
+        /// </summary>
+        /// <param name="Delay">The delay.</param>
+        /// <param name="InBackground">Whether to wait on the main thread or in a background thread.</param>
+        public void Start(TimeSpan Delay, Boolean InBackground = true)
+        {
+
+            if (!InBackground)
+            {
+                Thread.Sleep(Delay);
+                Start();
+            }
+
+            else
+                Task.Factory.StartNew(() =>
+                {
+
+                    Thread.Sleep(Delay);
+                    Start();
+
+                }, CancellationTokenSource.Token,
+                   TaskCreationOptions.AttachedToParent,
+                   TaskScheduler.Default);
+
+        }
+
+        #endregion
+
 
         public void Start_old()
         {
