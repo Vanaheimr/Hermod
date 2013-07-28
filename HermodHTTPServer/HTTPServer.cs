@@ -507,6 +507,20 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+
+
+        public string ServiceBanner
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+            set
+            {
+                throw new NotImplementedException();
+            }
+        }
+
     }
 
     #endregion

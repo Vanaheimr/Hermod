@@ -175,6 +175,8 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
+        public String ServiceBanner { get; set; }
+
         #endregion
 
         #region Events

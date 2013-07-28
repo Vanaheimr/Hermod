@@ -484,6 +484,19 @@ namespace eu.Vanaheimr.Hermod.Multicast
             throw new NotImplementedException();
         }
 
+
+
+        public string ServiceBanner
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+            set
+            {
+                throw new NotImplementedException();
+            }
+        }
     }
 
 }

@@ -36,6 +36,12 @@ namespace eu.Vanaheimr.Hermod
         Byte   Length { get; }
 
         /// <summary>
+        /// Whether the IP address is an IPv4 multicast address.
+        /// </summary>
+        Boolean IsMulticast { get; }
+
+
+        /// <summary>
         /// Return a byte array representation of this object.
         /// </summary>
         Byte[] GetBytes();

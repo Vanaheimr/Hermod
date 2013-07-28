@@ -33,13 +33,6 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 {
 
     /// <summary>
-    /// Service started delegate.
-    /// </summary>
-    /// <param name="Sender">The sender of this event.</param>
-    /// <param name="Timestamp">The timestamp of the event.</param>
-    public delegate void OnStartedDelegate(CSVTCPServer Sender, DateTime Timestamp);
-
-    /// <summary>
     /// TCP Port added delegate.
     /// </summary>
     /// <param name="Sender">The sender of this event.</param>
@@ -119,12 +112,5 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
     /// <param name="ConnectionId">The identification of this connection.</param>
     /// <param name="ClosedBy">Wether the connection was closed by the client or the server.</param>
     public delegate void OnConnectionClosedDelegate(CSVTCPServer Sender, DateTime Timestamp, String ConnectionId, ConnectionClosedBy ClosedBy);
-
-    /// <summary>
-    /// Service stopped delegate.
-    /// </summary>
-    /// <param name="Sender">The sender of this event.</param>
-    /// <param name="Timestamp">The timestamp of the event.</param>
-    public delegate void OnStoppededDelegate(CSVTCPServer Sender, DateTime Timestamp);
 
 }

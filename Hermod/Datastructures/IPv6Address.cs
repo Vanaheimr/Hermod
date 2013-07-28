@@ -33,14 +33,15 @@ namespace eu.Vanaheimr.Hermod
 
         #region Data
 
-        private readonly Byte[] _IPAddressArray;
-        private const    Byte   _Length = 16;
+        private readonly Byte[] IPAddressArray;
 
         #endregion
 
         #region Properties
 
         #region Length
+
+        private const Byte _Length = 16;
 
         /// <summary>
         /// The length of an IPv6Address.
@@ -54,6 +55,22 @@ namespace eu.Vanaheimr.Hermod
         }
 
         #endregion
+
+        #region IsMulticast
+
+        /// <summary>
+        /// Whether the IP address is an IPv6 multicast address.
+        /// </summary>
+        public Boolean IsMulticast
+        {
+            get
+            {
+                return new System.Net.IPAddress(IPAddressArray).IsIPv6Multicast;
+            }
+        }
+
+        #endregion
+
 
         #endregion
 
@@ -78,9 +95,9 @@ namespace eu.Vanaheimr.Hermod
         public IPv6Address(Byte[] myByteArray)
         {
 
-            _IPAddressArray = new Byte[_Length];
+            IPAddressArray = new Byte[_Length];
 
-            Array.Copy(myByteArray, _IPAddressArray, Math.Max(myByteArray.Length, _Length));
+            Array.Copy(myByteArray, IPAddressArray, Math.Max(myByteArray.Length, _Length));
 
         }
 
@@ -275,7 +292,7 @@ namespace eu.Vanaheimr.Hermod
             if (myIPAddress == null)
                 throw new ArgumentNullException("Parameter myIPAddress must not be null!");
 
-            var __IPAddress = _IPAddressArray.Equals(myIPAddress._IPAddressArray);
+            var __IPAddress = IPAddressArray.Equals(myIPAddress.IPAddressArray);
 
             return false;
 
@@ -298,7 +315,7 @@ namespace eu.Vanaheimr.Hermod
         /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
         {
-            return _IPAddressArray.GetHashCode();
+            return IPAddressArray.GetHashCode();
         }
 
         #endregion
@@ -313,14 +330,14 @@ namespace eu.Vanaheimr.Hermod
         {
 
             return String.Format("{0}:{1}:{2}:{3}:{4}:{5}:{6}:{7}",
-                                 _IPAddressArray[0].ToString("x2")  + _IPAddressArray[1].ToString("x2"),
-                                 _IPAddressArray[2].ToString("x2")  + _IPAddressArray[3].ToString("x2"),
-                                 _IPAddressArray[4].ToString("x2")  + _IPAddressArray[5].ToString("x2"),
-                                 _IPAddressArray[6].ToString("x2")  + _IPAddressArray[7].ToString("x2"),
-                                 _IPAddressArray[8].ToString("x2")  + _IPAddressArray[9].ToString("x2"),
-                                 _IPAddressArray[10].ToString("x2") + _IPAddressArray[11].ToString("x2"),
-                                 _IPAddressArray[12].ToString("x2") + _IPAddressArray[13].ToString("x2"),
-                                 _IPAddressArray[14].ToString("x2") + _IPAddressArray[15].ToString("x2")
+                                 IPAddressArray[0].ToString("x2")  + IPAddressArray[1].ToString("x2"),
+                                 IPAddressArray[2].ToString("x2")  + IPAddressArray[3].ToString("x2"),
+                                 IPAddressArray[4].ToString("x2")  + IPAddressArray[5].ToString("x2"),
+                                 IPAddressArray[6].ToString("x2")  + IPAddressArray[7].ToString("x2"),
+                                 IPAddressArray[8].ToString("x2")  + IPAddressArray[9].ToString("x2"),
+                                 IPAddressArray[10].ToString("x2") + IPAddressArray[11].ToString("x2"),
+                                 IPAddressArray[12].ToString("x2") + IPAddressArray[13].ToString("x2"),
+                                 IPAddressArray[14].ToString("x2") + IPAddressArray[15].ToString("x2")
                                  
                                  
                                  );

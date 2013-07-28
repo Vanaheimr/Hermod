@@ -19,13 +19,13 @@
 
 using System;
 using System.Net;
+using System.Linq;
 using System.Threading;
-using System.Reflection;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 using eu.Vanaheimr.Styx;
-using eu.Vanaheimr.Hermod;
 
 #endregion
 
@@ -48,7 +48,6 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         private          Task                     ReceiverTask;
         private readonly Socket                   LocalDotNetSocket;
-        private readonly IPEndPoint               LocalIPEndPoint;
         public  readonly IPSocket                 LocalSocket;
         private readonly Func<IPSocket, String>   PacketThreadName;
         private readonly MapperDelegate           Mapper; 
@@ -90,6 +89,24 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
             get
             {
                 return _Port;
+            }
+        }
+
+        #endregion
+
+        #region IsMulticast
+
+        private readonly Boolean _IsMulticast;
+
+        /// <summary>
+        /// Whether this UDP receiver is listening
+        /// on a multicast IP address or not.
+        /// </summary>
+        public Boolean IsMulticast
+        {
+            get
+            {
+                return _IsMulticast;
             }
         }
 
@@ -165,6 +182,12 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
 
         // mutatable
+
+        #region ServiceBanner
+
+        public String ServiceBanner { get; set; }
+
+        #endregion
 
         #region BufferSize
 
@@ -246,6 +269,24 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #region Events
 
+        #region OnStarted
+
+        /// <summary>
+        /// An event fired whenever the service started.
+        /// </summary>
+        public event OnStartedDelegate OnStarted;
+
+        #endregion
+
+        #region OnStoppeded
+
+        /// <summary>
+        /// An event fired whenever the service stopped.
+        /// </summary>
+        public event OnStoppededDelegate OnStopped;
+
+        #endregion
+
         /// <summary>
         /// A delegate to transform the incoming UDP packets into a custom data structure.
         /// </summary>
@@ -322,7 +363,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #endregion
 
-        #region UDPReceiver(IPAddress, Port, Mapper, ...)
+        #region UDPReceiver(IPAddress, Port, Mapper, ...) <= main constructor
 
         /// <summary>
         /// Create a new UDP receiver listening on the given IP address and port.
@@ -346,33 +387,45 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
                            Boolean                IsBackground            = true,
                            Boolean                Autostart               = false)
 
-
         {
 
             if (Mapper == null)
                 throw new ArgumentNullException("The mapper delegate must not be null!");
 
-            this._IPAddress               = IPAddress;
-            this._Port                    = Port;
-            this.Mapper                   = Mapper;
-            this._ReceiverThreadName      = ReceiverThreadName;
-            this._ReceiverThreadPriority  = ReceiverThreadPriority;
-            this.PacketThreadName         = (PacketThreadName == null)
-                                                ? socket => "UDP packet from " + socket.IPAddress + ":" + socket.Port
-                                                : PacketThreadName;
-            this._PacketThreadPriority    = PacketThreadPriority;
-            this._IsBackground            = IsBackground;
+            this._IPAddress                 = IPAddress;
+            this._IsMulticast               = IPAddress.IsMulticast;
+            this._Port                      = Port;
+            this.Mapper                     = Mapper;
+            this._ReceiverThreadName        = ReceiverThreadName;
+            this._ReceiverThreadPriority    = ReceiverThreadPriority;
+            this.PacketThreadName           = (PacketThreadName == null)
+                                                  ? socket => "UDP packet from " + socket.IPAddress + ":" + socket.Port
+                                                  : PacketThreadName;
+            this._PacketThreadPriority      = PacketThreadPriority;
+            this._IsBackground              = IsBackground;
 
-            this.BufferSize               = 65536;
-            this.ReceiveTimeout           = 5000;
-
-            this.LocalIPEndPoint          = new IPEndPoint(new System.Net.IPAddress(_IPAddress.GetBytes()), _Port.ToInt32());
-            this.LocalSocket              = new IPSocket(LocalIPEndPoint);
-            this.LocalDotNetSocket        = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            var LocalIPEndPoint             = new IPEndPoint(new System.Net.IPAddress(_IPAddress.GetBytes()), _Port.ToInt32());
+            this.LocalSocket                = new IPSocket(LocalIPEndPoint);
+            this.LocalDotNetSocket          = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             this.LocalDotNetSocket.Bind(LocalIPEndPoint);
+
+            this.BufferSize                 = 65536;
+            this.ReceiveTimeout             = 5000;
+
+            if (IsMulticast)
+            {
+
+                LocalDotNetSocket.SetSocketOption(SocketOptionLevel.IP,
+                                                  SocketOptionName.AddMembership,
+                                                  new MulticastOption(System.Net.IPAddress.Parse(_IPAddress.ToString()),
+                                                                      System.Net.IPAddress.Any));
+
+            }
 
             this.CancellationTokenSource  = new CancellationTokenSource();
             this.CancellationToken        = CancellationTokenSource.Token;
+
+            this.ServiceBanner            = "UDPReceiver";
 
             if (Autostart)
                 Start();
@@ -395,7 +448,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="PacketThreadPriority">The optional priority of the UDP packet threads.</param>
         /// <param name="IsBackground">Whether the UDP receiver thread is a background thread or not.</param>
         /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
-        public UDPReceiver(IPSocket IPSocket,
+        public UDPReceiver(IPSocket               IPSocket,
                            MapperDelegate         Mapper,
                            String                 ReceiverThreadName      = "UDPReceiver thread",
                            ThreadPriority         ReceiverThreadPriority  = ThreadPriority.AboveNormal,
@@ -438,9 +491,13 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
                 this.ReceiverTask = Task.Factory.StartNew(() =>
                 {
 
+#if __MonoCS__
+                    // Code for Mono C# compiler
+#else
                     Thread.CurrentThread.Name          = ReceiverThreadName;
                     Thread.CurrentThread.Priority      = ReceiverThreadPriority;
                     Thread.CurrentThread.IsBackground  = IsBackground;
+#endif
 
                     EndPoint RemoteEndPoint = null;
                     Byte[]   UDPPayload;
@@ -489,11 +546,15 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
                                     var OnNotification_UDPPacket_Local  = OnNotification_UDPPacket;
                                     var RemoteSocket_Local              = new IPSocket((IPEndPoint) RemoteEndPoint);
 
+#if __MonoCS__
+                                    // Code for Mono C# compiler
+#else
                                     Thread.CurrentThread.Name           = PacketThreadName(RemoteSocket_Local);
                                     Thread.CurrentThread.Priority       = PacketThreadPriority;
                                     Thread.CurrentThread.IsBackground   = IsBackground;
+#endif
 
-                                    Array.Resize(ref UDPPayload, NumberOfReceivedBytes);
+                                    Array.Resize(ref UDPPayload_Local, NumberOfReceivedBytes);
 
                                     Interlocked.Exchange(ref WaitForChildTaskCreation, 0);
 
@@ -560,6 +621,9 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
                     OnErrorLocal(this, e);
             }
 
+            if (OnStarted != null)
+                OnStarted(this, DateTime.Now);
+
         }
 
         #endregion
@@ -604,14 +668,24 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         public void Shutdown(Boolean Wait = true)
         {
 
-            if (ReceiverTask == null)
-                throw new Exception("You can not stop the listener if it wasn't started before!");
+            if (IsMulticast)
+            {
+
+                LocalDotNetSocket.SetSocketOption(SocketOptionLevel.IP,
+                                                  SocketOptionName.DropMembership,
+                                                  new MulticastOption(System.Net.IPAddress.Parse(_IPAddress.ToString()),
+                                                                      System.Net.IPAddress.Any));
+
+            }
 
             this.CancellationTokenSource.Cancel();
 
             if (Wait)
                 while (_IsRunning > 0)
                     Thread.Sleep(10);
+
+            if (OnStopped != null)
+                OnStopped(this, DateTime.Now);
 
         }
 

@@ -18,6 +18,7 @@
 #region Usings
 
 using System;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -34,14 +35,15 @@ namespace eu.Vanaheimr.Hermod
 
         #region Data
 
-        private readonly Byte[] _IPAddressArray;
-        private const    Byte   _Length = 4;
+        private readonly Byte[] IPAddressArray;
 
         #endregion
 
         #region Properties
 
         #region Length
+
+        private const Byte _Length = 4;
 
         /// <summary>
         /// The length of an IPv4Address.
@@ -51,6 +53,22 @@ namespace eu.Vanaheimr.Hermod
             get
             {
                 return _Length;
+            }
+        }
+
+        #endregion
+
+        #region IsMulticast
+
+        /// <summary>
+        /// Whether the IP address is an IPv4 multicast address.
+        /// 224.0.0.0 - 239.255.255.255
+        /// </summary>
+        public Boolean IsMulticast
+        {
+            get
+            {
+                return IPAddressArray[0] >= 224 && IPAddressArray[0] <= 239;
             }
         }
 
@@ -79,12 +97,12 @@ namespace eu.Vanaheimr.Hermod
         public IPv4Address(UInt32 UInt32)
         {
 
-            _IPAddressArray = new Byte[4] {
-                                      (Byte) ( UInt32  & 0xFF),
-                                      (Byte) ((UInt32 >>  8) & 0xFF),
-                                      (Byte) ((UInt32 >> 16) & 0xFF),
-                                      (Byte) ( UInt32 >> 24)
-                                  };
+            IPAddressArray = new Byte[4] {
+                                     (Byte) ( UInt32        & 0xFF),
+                                     (Byte) ((UInt32 >>  8) & 0xFF),
+                                     (Byte) ((UInt32 >> 16) & 0xFF),
+                                     (Byte) ( UInt32 >> 24)
+                                 };
 
         }
 
@@ -101,9 +119,30 @@ namespace eu.Vanaheimr.Hermod
             if (ByteArray.Length != _Length)
                 throw new FormatException("The given byte array length is invalid!");
 
-            _IPAddressArray = new Byte[_Length];
+            IPAddressArray = new Byte[_Length];
 
-            Array.Copy(ByteArray, _IPAddressArray, _Length);
+            Array.Copy(ByteArray, IPAddressArray, _Length);
+
+        }
+
+        #endregion
+
+        #region IPAddress(String)
+
+        /// <summary>
+        /// Generates a new IPv4Address based on the given string representation.
+        /// </summary>
+        public IPv4Address(String IPAddressString)
+        {
+
+            var Splitted = IPAddressString.Split(new Char[1] { '.' }, StringSplitOptions.None);
+
+            if (Splitted.Length != 4)
+                throw new ArgumentException("Invalid IP adddress!");
+
+            IPAddressArray = Splitted.
+                                 Select(part => Byte.Parse(part)).
+                                 ToArray();
 
         }
 
@@ -162,7 +201,7 @@ namespace eu.Vanaheimr.Hermod
 
         public Byte[] GetBytes()
         {
-            return _IPAddressArray;
+            return IPAddressArray;
         }
 
         #endregion
@@ -339,7 +378,7 @@ namespace eu.Vanaheimr.Hermod
             for (var _BytePosition = 0; _BytePosition < 4; _BytePosition++)
             {
                 
-                _Comparision = _IPAddressArray[0].CompareTo(_ByteArray[0]);
+                _Comparision = IPAddressArray[0].CompareTo(_ByteArray[0]);
                 
                 if (_Comparision != 0)
                     return _Comparision;
@@ -475,7 +514,7 @@ namespace eu.Vanaheimr.Hermod
         /// </summary>
         public override String ToString()
         {
-            return String.Format("{0}.{1}.{2}.{3}", _IPAddressArray[0], _IPAddressArray[1], _IPAddressArray[2], _IPAddressArray[3]);
+            return String.Format("{0}.{1}.{2}.{3}", IPAddressArray[0], IPAddressArray[1], IPAddressArray[2], IPAddressArray[3]);
         }
 
         #endregion

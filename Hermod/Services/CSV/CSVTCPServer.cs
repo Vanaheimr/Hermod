@@ -26,6 +26,7 @@ using System.Collections.Generic;
 
 using eu.Vanaheimr.Hermod.Sockets.TCP;
 using eu.Vanaheimr.Hermod.Datastructures;
+using System.Threading.Tasks;
 
 #endregion
 
@@ -36,7 +37,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
     /// A TCP service accepting incoming CSV lines
     /// with ending 0x00 or 0x0d 0x0a (\r\n) characters.
     /// </summary>
-    public class CSVTCPServer
+    public class CSVTCPServer : IServer
     {
 
         #region Data
@@ -52,6 +53,9 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
         /// The internal delegate called for every new TCP connection.
         /// </summary>
         private readonly TCPServer.OnNewClientConnectionDelegate NewConnectionDelegate;
+
+        private          CancellationTokenSource  CancellationTokenSource;
+        private          CancellationToken        CancellationToken;
 
         #endregion
 
@@ -176,10 +180,14 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
                              String ServiceBanner    = DefaultServiceBanner)
         {
 
-            this.ServiceBanner          = ServiceBanner;
-            this.SplitCharacters        = (SplitCharacters != null) ? SplitCharacters : new Char[1] { '/' };
-            this.InternalTCPServers     = new List<TCPServer>();
-            this.NewConnectionDelegate  = newTCPConnection => {
+            this.ServiceBanner            = ServiceBanner;
+            this.SplitCharacters          = (SplitCharacters != null) ? SplitCharacters : new Char[1] { '/' };
+            this.InternalTCPServers       = new List<TCPServer>();
+
+            this.CancellationTokenSource  = new CancellationTokenSource();
+            this.CancellationToken        = CancellationTokenSource.Token;
+
+            this.NewConnectionDelegate    = newTCPConnection => {
 
             Func<IIPAddress, IPPort, String> ConnectionIdBuilder = (IPAddress, Port) =>
                 "TCP:" + newTCPConnection.RemoteIPAddress + ":" + newTCPConnection.RemotePort;
@@ -598,6 +606,39 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 
         #endregion
 
+        #region Start(Delay, InBackground = true)
+
+        /// <summary>
+        /// Start the TCP Server after a little delay.
+        /// </summary>
+        /// <param name="Delay">The delay.</param>
+        /// <param name="InBackground">Whether to wait on the main thread or in a background thread.</param>
+        public void Start(TimeSpan Delay, Boolean InBackground = true)
+        {
+
+            if (!InBackground)
+            {
+                Thread.Sleep(Delay);
+                Start();
+            }
+
+            else
+                Task.Factory.StartNew(() =>
+                {
+
+                    Thread.Sleep(Delay);
+                    Start();
+
+                }, CancellationTokenSource.Token,
+                   TaskCreationOptions.AttachedToParent,
+                   TaskScheduler.Default);
+
+        }
+
+        #endregion
+
+
+
         #region AddTCPPort(TCPPort)
 
         /// <summary>
@@ -676,6 +717,38 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
         }
 
         #endregion
+
+
+        public bool IsRunning
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public IIPAddress IPAddress
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public IPPort Port
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+
+        public void Shutdown(bool Wait = true)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool StopRequested
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public void Dispose()
+        {
+            throw new NotImplementedException();
+        }
 
     }
 

@@ -25,6 +25,22 @@ namespace eu.Vanaheimr.Hermod
 {
 
     /// <summary>
+    /// Service started delegate.
+    /// </summary>
+    /// <param name="Sender">The sender of this event.</param>
+    /// <param name="Timestamp">The timestamp of the event.</param>
+    public delegate void OnStartedDelegate(IServer Sender, DateTime Timestamp);
+
+
+    /// <summary>
+    /// Service stopped delegate.
+    /// </summary>
+    /// <param name="Sender">The sender of this event.</param>
+    /// <param name="Timestamp">The timestamp of the event.</param>
+    public delegate void OnStoppededDelegate(IServer Sender, DateTime Timestamp);
+
+
+    /// <summary>
     /// A generic server interface.
     /// </summary>
     public interface IServer : IDisposable
@@ -44,6 +60,9 @@ namespace eu.Vanaheimr.Hermod
         /// The listening IP port.
         /// </summary>
         IPPort     Port      { get; }
+
+
+        String ServiceBanner { get; set; }
 
 
         /// <summary>
