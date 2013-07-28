@@ -35,48 +35,21 @@ namespace eu.Vanaheimr.Hermod.Sockets
 
         #region Properties
 
-        #region LocalSocket
-
-        private IPSocket _LocalSocket;
+        #region LocalIPAddress
 
         /// <summary>
-        /// The local socket of the UDP packet.
+        /// The local IP address.
         /// </summary>
-        public IPSocket LocalSocket
-        {
-
-            get
-            {
-                return _LocalSocket;
-            }
-
-            set
-            {
-
-                if (value != null)
-                    _LocalSocket = value;
-
-                else
-                    throw new ArgumentException("The LocalSocket must not be null!");
-
-            }
-
-        }
-
-        #endregion
-
-        #region LocalHost
-
-        protected IIPAddress _LocalHost;
-
-        /// <summary>
-        /// The local IP host.
-        /// </summary>
-        public IIPAddress LocalHost
+        public IIPAddress LocalIPAddress
         {
             get
             {
-                return IPv4Address.Parse("127.0.0.1");
+
+                if (LocalSocket != null)
+                    return LocalSocket.IPAddress;
+
+                throw new Exception("The LocalSocket is null!");
+
             }
         }
 
@@ -102,30 +75,29 @@ namespace eu.Vanaheimr.Hermod.Sockets
 
         #endregion
 
+        #region LocalSocket
 
-        #region RemoteSocket
-
-        private IPSocket _RemoteSocket;
+        private IPSocket _LocalSocket;
 
         /// <summary>
-        /// The remote socket of the UDP packet.
+        /// The local socket.
         /// </summary>
-        public IPSocket RemoteSocket
+        public IPSocket LocalSocket
         {
 
             get
             {
-                return _RemoteSocket;
+                return _LocalSocket;
             }
 
             set
             {
-                
+
                 if (value != null)
-                    _RemoteSocket = value;
+                    _LocalSocket = value;
 
                 else
-                    throw new ArgumentException("The RemoteSocket must not be null!");
+                    throw new ArgumentException("The LocalSocket must not be null!");
 
             }
 
@@ -133,12 +105,13 @@ namespace eu.Vanaheimr.Hermod.Sockets
 
         #endregion
 
-        #region RemoteHost
+
+        #region RemoteIPAddress
 
         /// <summary>
-        /// The remote IP host.
+        /// The remote IP address.
         /// </summary>
-        public IIPAddress RemoteHost
+        public IIPAddress RemoteIPAddress
         {
             get
             {
@@ -162,13 +135,43 @@ namespace eu.Vanaheimr.Hermod.Sockets
         {
             get
             {
-                
+
                 if (_RemoteSocket != null)
                     return _RemoteSocket.Port;
 
                 throw new Exception("The RemoteSocket is null!");
 
             }
+        }
+
+        #endregion
+
+        #region RemoteSocket
+
+        private IPSocket _RemoteSocket;
+
+        /// <summary>
+        /// The remote socket.
+        /// </summary>
+        public IPSocket RemoteSocket
+        {
+
+            get
+            {
+                return _RemoteSocket;
+            }
+
+            set
+            {
+
+                if (value != null)
+                    _RemoteSocket = value;
+
+                else
+                    throw new ArgumentException("The RemoteSocket must not be null!");
+
+            }
+
         }
 
         #endregion
@@ -196,8 +199,8 @@ namespace eu.Vanaheimr.Hermod.Sockets
         /// <param name="RemoteSocket">The remote socket of this UDP packet.</param>
         public ALocalRemoteSockets(IPSocket LocalSocket, IPSocket RemoteSocket)
         {
-            this.LocalSocket  = LocalSocket;
-            this.RemoteSocket = RemoteSocket;
+            this.LocalSocket   = LocalSocket;
+            this.RemoteSocket  = RemoteSocket;
         }
 
         #endregion
@@ -222,7 +225,7 @@ namespace eu.Vanaheimr.Hermod.Sockets
         /// </summary>
         public override String ToString()
         {
-            return LocalSocket.ToString() + "(local) <-> " + RemoteSocket.ToString() + "(remote)";
+            return LocalSocket.ToString() + " [local] <-> " + RemoteSocket.ToString() + " [remote]";
         }
 
         #endregion

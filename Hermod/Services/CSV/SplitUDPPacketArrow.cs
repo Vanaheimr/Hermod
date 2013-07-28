@@ -57,7 +57,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         public SplitUDPPacketArrow(INotification<UDPPacket<IEnumerable<T>>> In = null)
 
-            : base(msg => msg.Message.Select(m => new UDPPacket<T>(msg.ServerTimestamp,
+            : base(msg => msg.Payload.Select(m => new UDPPacket<T>(msg.ServerTimestamp,
                                                                    msg.LocalSocket,
                                                                    msg.RemoteSocket,
                                                                    m)))

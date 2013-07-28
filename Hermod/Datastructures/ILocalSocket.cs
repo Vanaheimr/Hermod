@@ -21,35 +21,30 @@ using System;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.Datastructures
+namespace eu.Vanaheimr.Hermod
 {
 
     /// <summary>
-    /// A common interface for all kinds of IP Addresses.
+    /// The local socket is "this side" of a socket connection.
+    /// It is a combination of a local IP address and a local port.
     /// </summary>
-    public interface IIPAddress : IComparable, IComparable<IIPAddress>, IEquatable<IIPAddress>
+    public interface ILocalSocket : IDisposable
     {
 
         /// <summary>
-        /// The length of the IP Address.
+        /// The local IP address.
         /// </summary>
-        Byte   Length { get; }
+        IIPAddress LocalIPAddress   { get; }
 
         /// <summary>
-        /// Return a byte array representation of this object.
+        /// The local port.
         /// </summary>
-        Byte[] GetBytes();
-
+        IPPort     LocalPort        { get; }
 
         /// <summary>
-        /// Return the HashCode of this object.
+        /// The local socket.
         /// </summary>
-        Int32  GetHashCode();
-        
-        /// <summary>
-        /// Return a string representation of this object.
-        /// </summary>
-        String ToString();
+        IPSocket   LocalSocket      { get; }
 
     }
 

@@ -21,30 +21,30 @@ using System;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.Datastructures
+namespace eu.Vanaheimr.Hermod
 {
 
     /// <summary>
-    /// The local socket is "this side" of a socket connection.
-    /// It a combination of a local IPAdress and a local port.
+    /// The remote socket is the "other side" of a socket connection.
+    /// It is a combination of a remote IP address and a remote port.
     /// </summary>
-    public interface ILocalSocket : IDisposable
+    public interface IRemoteSocket : IDisposable
     {
 
         /// <summary>
-        /// The local socket.
+        /// The remote IP address.
         /// </summary>
-        IPSocket   LocalSocket { get; }
+        IIPAddress RemoteIPAddress  { get; }
 
         /// <summary>
-        /// The local host.
+        /// The remote port.
         /// </summary>
-        IIPAddress LocalHost   { get; }
+        IPPort     RemotePort       { get; }
 
         /// <summary>
-        /// The local port.
+        /// The remote socket.
         /// </summary>
-        IPPort     LocalPort   { get; }
+        IPSocket   RemoteSocket     { get; }
 
     }
 

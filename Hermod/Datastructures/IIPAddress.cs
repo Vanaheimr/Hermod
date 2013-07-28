@@ -21,30 +21,35 @@ using System;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.Datastructures
+namespace eu.Vanaheimr.Hermod
 {
 
     /// <summary>
-    /// The remote socket is the "other side" of a socket connection.
-    /// It a combination of a remote IPAdress and a remote port.
+    /// A common interface for all kinds of IP Addresses.
     /// </summary>
-    public interface IRemoteSocket : IDisposable
+    public interface IIPAddress : IComparable, IComparable<IIPAddress>, IEquatable<IIPAddress>
     {
 
         /// <summary>
-        /// The remote socket.
+        /// The length of the IP Address.
         /// </summary>
-        IPSocket   RemoteSocket { get; }
+        Byte   Length { get; }
 
         /// <summary>
-        /// The remote host.
+        /// Return a byte array representation of this object.
         /// </summary>
-        IIPAddress RemoteHost   { get; }
+        Byte[] GetBytes();
+
 
         /// <summary>
-        /// The remote port.
+        /// Return the HashCode of this object.
         /// </summary>
-        IPPort     RemotePort   { get; }
+        Int32  GetHashCode();
+        
+        /// <summary>
+        /// Return a string representation of this object.
+        /// </summary>
+        String ToString();
 
     }
 

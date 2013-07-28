@@ -24,19 +24,21 @@ using System.Reflection;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 
-using eu.Vanaheimr.Hermod.Datastructures;
 using eu.Vanaheimr.Styx;
+using eu.Vanaheimr.Hermod;
 
 #endregion
 
 namespace eu.Vanaheimr.Hermod.Sockets.UDP
 {
 
-    #region UDPReceiver<TData>
+    #region UDPReceiver<TOut>
 
     /// <summary>
-    /// A class that listens on an UDP socket.
+    /// A Styx arrow sender that listens on an UDP socket
+    /// and notifies about incoming UDP packets or messages.
     /// </summary>
+    /// <typeparam name="TOut">The type of the Styx arrows to send.</typeparam>
     public class UDPReceiver<TOut> : INotification<TOut>,
                                      INotification<UDPPacket<TOut>>,
                                      IServer
@@ -55,6 +57,8 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         #endregion
 
         #region Properties
+
+        // readonly
 
         #region IPAddress
 
@@ -90,6 +94,60 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #endregion
 
+        #region ThreadName
+
+        private readonly String _ThreadName;
+
+        /// <summary>
+        /// The name of the UDP receiver thread.
+        /// </summary>
+        public String ThreadName
+        {
+            get
+            {
+                return _ThreadName;
+            }
+        }
+
+        #endregion
+
+        #region ThreadPrio
+
+        private readonly ThreadPriority _ThreadPrio;
+
+        /// <summary>
+        /// The priority of the UDP receiver thread.
+        /// </summary>
+        public ThreadPriority ThreadPrio
+        {
+            get
+            {
+                return _ThreadPrio;
+            }
+        }
+
+        #endregion
+
+        #region IsBackground
+
+        private readonly Boolean _IsBackground;
+
+        /// <summary>
+        /// Whether the UDP receiver thread is a background thread or not.
+        /// </summary>
+        public Boolean IsBackground
+        {
+            get
+            {
+                return _IsBackground;
+            }
+        }
+
+        #endregion
+
+
+        // mutatable
+
         #region BufferSize
 
         /// <summary>
@@ -107,7 +165,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// </summary>
         public UInt32 ReceiveTimeout
         {
-            
+
             get
             {
 
@@ -166,24 +224,32 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #endregion
 
-        public String          ThreadName   { get; private set; }
-        public ThreadPriority  ThreadPrio   { get; private set; }
-        public Boolean         IsBackground { get; private set; }
-
         #endregion
 
         #region Events
 
+        /// <summary>
+        /// A delegate to transform the incoming UDP packets into a custom data structure.
+        /// </summary>
+        /// <param name="Timestamp">The server timestamp of the UDP packet.</param>
+        /// <param name="LocalSocket">The local UDP socket.</param>
+        /// <param name="RemoteSocket">The remote UDP socket.</param>
+        /// <param name="Message">The payload of the UDP packet.</param>
+        /// <returns>The payload/message of the UDP packet transformed into a custom data structure.</returns>
         public delegate TOut MapperDelegate(DateTime Timestamp, IPSocket LocalSocket, IPSocket RemoteSocket, Byte[] Message);
 
-        event NotificationEventHandler<TOut>            OnNotification_Message;
-        event NotificationEventHandler<UDPPacket<TOut>> OnNotification_UDPPacket;
+
+
+        private event NotificationEventHandler<TOut>            OnNotification_Message;
+        private event NotificationEventHandler<UDPPacket<TOut>> OnNotification_UDPPacket;
+
+
 
         // INotification
         event NotificationEventHandler<TOut> INotification<TOut>.OnNotification
         {
-            add    { OnNotification_Message += value; }
-            remove { OnNotification_Message -= value; }
+            add    { OnNotification_Message   += value; }
+            remove { OnNotification_Message   -= value; }
         }
 
         event NotificationEventHandler<UDPPacket<TOut>> INotification<UDPPacket<TOut>>.OnNotification
@@ -192,6 +258,8 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
             remove { OnNotification_UDPPacket -= value; }
         }
 
+
+
         public event ExceptionEventHandler OnError;
         public event CompletedEventHandler OnCompleted;
 
@@ -199,16 +267,20 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #region Constructor(s)
 
-        #region UDPReceiver(Port, Mapper = null, Autostart = false)
+        #region UDPReceiver(Port, Mapper, ThreadName = "...", ThreadPrio = AboveNormal, IsBackground = true, Autostart = false)
 
         /// <summary>
-        /// Initialize the UDP server using IPAddress.Any and the given parameters
+        /// Create a new UDP receiver using IPAddress.Any and the given parameters.
         /// </summary>
-        /// <param name="Port">The listening port</param>
-        /// <param name="Autostart"></param>
+        /// <param name="Port">The port to listen.</param>
+        /// <param name="Mapper">A delegate to transform the incoming UDP packets into a custom data structure.</param>
+        /// <param name="ThreadName">The optional name of the UDP receiver thread.</param>
+        /// <param name="ThreadPrio">The optional priority of the UDP receiver thread.</param>
+        /// <param name="IsBackground">Whether the UDP receiver thread is a background thread or not.</param>
+        /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
         public UDPReceiver(IPPort          Port,
                            MapperDelegate  Mapper,
-                           String          ThreadName    = "UDPServer thread",
+                           String          ThreadName    = "UDPReceiver thread",
                            ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
                            Boolean         IsBackground  = true,
                            Boolean         Autostart     = false)
@@ -219,18 +291,22 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #endregion
 
-        #region UDPReceiver(IPAddress, Port, Mapper = null, Autostart = false)
+        #region UDPReceiver(IPAddress, Port, Mapper, ThreadName = "...", ThreadPrio = AboveNormal, IsBackground = true, Autostart = false)
 
         /// <summary>
-        /// Initialize the UDP server using the given parameters
+        /// Create a new UDP receiver listening on the given IP address and port.
         /// </summary>
-        /// <param name="IPAddress">The listening IP address(es)</param>
-        /// <param name="Port">The listening port</param>
-        /// <param name="Autostart"></param>
+        /// <param name="IPAddress">The IP address to listen.</param>
+        /// <param name="Port">The port to listen.</param>
+        /// <param name="Mapper">A delegate to transform the incoming UDP packets into a custom data structure.</param>
+        /// <param name="ThreadName">The optional name of the UDP receiver thread.</param>
+        /// <param name="ThreadPrio">The optional priority of the UDP receiver thread.</param>
+        /// <param name="IsBackground">Whether the UDP receiver thread is a background thread or not.</param>
+        /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
         public UDPReceiver(IIPAddress      IPAddress,
                            IPPort          Port,
                            MapperDelegate  Mapper,
-                           String          ThreadName    = "UDPServer thread",
+                           String          ThreadName    = "UDPReceiver thread",
                            ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
                            Boolean         IsBackground  = true,
                            Boolean         Autostart     = false)
@@ -255,9 +331,9 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
             // Timeout will throw an exception which is a little bit stupid!
             ReceiveTimeout                = 5000;
 
-            this.ThreadName               = ThreadName;
-            this.ThreadPrio               = ThreadPrio;
-            this.IsBackground             = IsBackground;
+            this._ThreadName              = ThreadName;
+            this._ThreadPrio              = ThreadPrio;
+            this._IsBackground            = IsBackground;
             this.BufferSize               = 65536;
 
             if (Autostart)
@@ -267,17 +343,21 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #endregion
 
-        #region UDPReceiver(IPSocket, Mapper = null, Autostart = false)
+        #region UDPReceiver(IPSocket, Mapper, ThreadName = "...", ThreadPrio = AboveNormal, IsBackground = true, Autostart = false)
 
         /// <summary>
-        /// Initialize the UDP server using the given parameters.
+        /// Create a new UDP receiver listening on the given IP socket.
         /// </summary>
-        /// <param name="myIPSocket">The listening IPSocket.</param>
-        /// <param name="NewPacketHandler"></param>
-        /// <param name="Autostart"></param>
+        /// <param name="IPAddress">The IP address to listen.</param>
+        /// <param name="Port">The port to listen.</param>
+        /// <param name="Mapper">A delegate to transform the incoming UDP packets into a custom data structure.</param>
+        /// <param name="ThreadName">The optional name of the UDP receiver thread.</param>
+        /// <param name="ThreadPrio">The optional priority of the UDP receiver thread.</param>
+        /// <param name="IsBackground">Whether the UDP receiver thread is a background thread or not.</param>
+        /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
         public UDPReceiver(IPSocket        IPSocket,
                            MapperDelegate  Mapper,
-                           String          ThreadName    = "UDPServer thread",
+                           String          ThreadName    = "UDPReceiver thread",
                            ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
                            Boolean         IsBackground  = true,
                            Boolean         Autostart     = false)
@@ -494,16 +574,20 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
     public class UDPReceiver : UDPReceiver<Byte[]>
     {
 
-        #region UDPReceiver(Port, Mapper = null, Autostart = false)
+        #region UDPReceiver(Port, Mapper = null, ThreadName = "...", ThreadPrio = AboveNormal, IsBackground = true, Autostart = false)
 
         /// <summary>
-        /// Initialize the UDP server using IPAddress.Any and the given parameters
+        /// Create a new UDP receiver using IPAddress.Any and the given parameters.
         /// </summary>
-        /// <param name="myPort">The listening port</param>
-        /// <param name="Autostart"></param>
+        /// <param name="Port">The port to listen.</param>
+        /// <param name="Mapper">An optional delegate to transform the incoming UDP packets into a custom data structure.</param>
+        /// <param name="ThreadName">The optional name of the UDP receiver thread.</param>
+        /// <param name="ThreadPrio">The optional priority of the UDP receiver thread.</param>
+        /// <param name="IsBackground">Whether the UDP receiver thread is a background thread or not.</param>
+        /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
         public UDPReceiver(IPPort          Port,
                            MapperDelegate  Mapper        = null,
-                           String          ThreadName    = "UDPServer thread",
+                           String          ThreadName    = "UDPReceiver thread",
                            ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
                            Boolean         IsBackground  = true,
                            Boolean         Autostart     = false)
@@ -519,18 +603,22 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #endregion
 
-        #region UDPReceiver(IPAddress, Port, Mapper = null, Autostart = false)
+        #region UDPReceiver(IPAddress, Port, Mapper = null, ThreadName = "...", ThreadPrio = AboveNormal, IsBackground = true, Autostart = false)
 
         /// <summary>
-        /// Initialize the UDP server using the given parameters
+        /// Create a new UDP receiver listening on the given IP address and port.
         /// </summary>
-        /// <param name="IPAddress">The listening IP address(es)</param>
-        /// <param name="Port">The listening port</param>
-        /// <param name="Autostart"></param>
+        /// <param name="IPAddress">The IP address to listen.</param>
+        /// <param name="Port">The port to listen.</param>
+        /// <param name="Mapper">An optional delegate to transform the incoming UDP packets into a custom data structure.</param>
+        /// <param name="ThreadName">The optional name of the UDP receiver thread.</param>
+        /// <param name="ThreadPrio">The optional priority of the UDP receiver thread.</param>
+        /// <param name="IsBackground">Whether the UDP receiver thread is a background thread or not.</param>
+        /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
         public UDPReceiver(IIPAddress      IPAddress,
                            IPPort          Port,
                            MapperDelegate  Mapper        = null,
-                           String          ThreadName    = "UDPServer thread",
+                           String          ThreadName    = "UDPReceiver thread",
                            ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
                            Boolean         IsBackground  = true,
                            Boolean         Autostart     = false)
@@ -543,32 +631,30 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
                    IsBackground,
                    Autostart)
 
-        {
-
-            if (Mapper == null)
-                throw new ArgumentNullException("The mapper delegate must not be null!");
-
-        }
+        { }
 
         #endregion
 
-        #region UDPReceiver(IPSocket, Mapper = null, Autostart = false)
+        #region UDPReceiver(IPSocket, Mapper = null, ThreadName = "...", ThreadPrio = AboveNormal, IsBackground = true, Autostart = false)
 
         /// <summary>
-        /// Initialize the UDP server using the given parameters.
+        /// Create a new UDP receiver listening on the given IP socket.
         /// </summary>
-        /// <param name="myIPSocket">The listening IPSocket.</param>
-        /// <param name="NewPacketHandler"></param>
-        /// <param name="Autostart"></param>
+        /// <param name="IPAddress">The IP address to listen.</param>
+        /// <param name="Port">The port to listen.</param>
+        /// <param name="Mapper">An optional delegate to transform the incoming UDP packets into a custom data structure.</param>
+        /// <param name="ThreadName">The optional name of the UDP receiver thread.</param>
+        /// <param name="ThreadPrio">The optional priority of the UDP receiver thread.</param>
+        /// <param name="IsBackground">Whether the UDP receiver thread is a background thread or not.</param>
+        /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
         public UDPReceiver(IPSocket        IPSocket,
                            MapperDelegate  Mapper        = null,
-                           String          ThreadName    = "UDPServer thread",
+                           String          ThreadName    = "UDPReceiver thread",
                            ThreadPriority  ThreadPrio    = ThreadPriority.AboveNormal,
                            Boolean         IsBackground  = true,
                            Boolean         Autostart     = false)
 
-            : base(IPSocket.IPAddress,
-                   IPSocket.Port,
+            : base(IPSocket,
                    (Mapper == null) ? (Timestamp, LocalSocket, RemoteSocket, Message) => Message : Mapper,
                    ThreadName,
                    ThreadPrio,

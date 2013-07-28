@@ -52,7 +52,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
                                    PacketIn.ServerTimestamp,
                                    PacketIn.LocalSocket,
                                    PacketIn.RemoteSocket,
-                                   MessageProcessor(PacketIn.Message)),
+                                   MessageProcessor(PacketIn.Payload)),
                    OnError)
 
         {

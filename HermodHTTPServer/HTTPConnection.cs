@@ -156,7 +156,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                 var helper = new StreamHelper(_HTTPStream, 65535);
 
-                Debug.WriteLine("New connection " + RemoteHost + ":" + RemotePort + " @ " + Thread.CurrentThread.ManagedThreadId);
+                Debug.WriteLine("New connection " + RemoteIPAddress + ":" + RemotePort + " @ " + Thread.CurrentThread.ManagedThreadId);
 
                 helper.NetworkStream.BeginRead(helper.Buffer, 0, helper.Buffer.Length, StreamReadCallback, helper);
 
@@ -168,7 +168,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                     //helper.DataAvailable.WaitOne();
                 };
 
-                Debug.WriteLine("Closing connection " + RemoteHost + ":" + RemotePort + " @ " + Thread.CurrentThread.ManagedThreadId);
+                Debug.WriteLine("Closing connection " + RemoteIPAddress + ":" + RemotePort + " @ " + Thread.CurrentThread.ManagedThreadId);
                 Close();
 
             }
@@ -577,7 +577,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                         else
                         {
                             //Debug.WriteLine("Thread[" + Thread.CurrentThread.ManagedThreadId + "]: end of network stream!");
-                            Debug.WriteLine("Thread[" + Thread.CurrentThread.ManagedThreadId + " from: " + RemoteHost + ":" + RemotePort + "]: length of stream so far: " + _MemoryStream.Length + " @ " + _EndOfHTTPHeader + ", " + _HTTPStream.DataAvailable + ", " + IsConnected);
+                            Debug.WriteLine("Thread[" + Thread.CurrentThread.ManagedThreadId + " from: " + RemoteIPAddress + ":" + RemotePort + "]: length of stream so far: " + _MemoryStream.Length + " @ " + _EndOfHTTPHeader + ", " + _HTTPStream.DataAvailable + ", " + IsConnected);
                         }
 
                         Thread.Sleep(100);
@@ -585,7 +585,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                         if (_Retries > 20)
                         {
-                            Debug.WriteLine("Thread[" + Thread.CurrentThread.ManagedThreadId + " from: " + RemoteHost + ":" + RemotePort + "]: Closing connection!");
+                            Debug.WriteLine("Thread[" + Thread.CurrentThread.ManagedThreadId + " from: " + RemoteIPAddress + ":" + RemotePort + "]: Closing connection!");
                             Close();
                             break;
                         }
@@ -611,7 +611,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                     var HeaderBytes = new Byte[_ReadPosition - 1];
                     Array.Copy(_ByteArray, 0, HeaderBytes, 0, _ReadPosition - 1);
 
-                    RequestHeader = new HTTPRequest(RemoteHost, RemotePort, HeaderBytes.ToUTF8String());
+                    RequestHeader = new HTTPRequest(RemoteIPAddress, RemotePort, HeaderBytes.ToUTF8String());
 
                     // The parsing of the http header failed!
                     if (RequestHeader.HTTPStatusCode != HTTPStatusCode.OK)

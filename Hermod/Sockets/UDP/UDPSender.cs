@@ -414,7 +414,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
             try
             {
-                UDPPacketData = MessageProcessor(UDPPacket.Message);
+                UDPPacketData = MessageProcessor(UDPPacket.Payload);
             }
             catch (Exception e)
             {

@@ -18,40 +18,101 @@
 #region Usings
 
 using System;
-using System.Net;
-using System.Threading;
-using System.Reflection;
-using System.Net.Sockets;
-using System.Threading.Tasks;
-
-using eu.Vanaheimr.Hermod.Datastructures;
-using eu.Vanaheimr.Styx;
 
 #endregion
 
 namespace eu.Vanaheimr.Hermod.Sockets.UDP
 {
 
-    public class UDPPacket<TData>
+    /// <summary>
+    /// A generic UDP packet.
+    /// </summary>
+    /// <typeparam name="TData">The type of the message/payload.</typeparam>
+    public class UDPPacket<TData> : AReadOnlyLocalRemoteSockets
     {
 
-        public DateTime ServerTimestamp { get; private set; }
-        public IPSocket LocalSocket     { get; private set; }
-        public IPSocket RemoteSocket    { get; private set; }
-        public TData    Message         { get; private set; }
+        #region Properties
 
-        public UDPPacket(DateTime ServerTimestamp,
-                         IPSocket LocalSocket,
-                         IPSocket RemoteSocket,
-                         TData    Message)
+        #region ServerTimestamp
+
+        private DateTime _ServerTimestamp;
+
+        /// <summary>
+        /// The timestamp of the packet.
+        /// </summary>
+        public DateTime ServerTimestamp
         {
-
-            this.ServerTimestamp  = ServerTimestamp;
-            this.LocalSocket      = LocalSocket;
-            this.RemoteSocket     = RemoteSocket;
-            this.Message          = Message;
-
+            get
+            {
+                return _ServerTimestamp;
+            }
         }
+
+        #endregion
+
+        #region Payload
+
+        private TData _Payload;
+
+        /// <summary>
+        /// The message/payload of the packet.
+        /// </summary>
+        public TData Payload
+        {
+            get
+            {
+                return _Payload;
+            }
+        }
+
+        #endregion
+
+        #endregion
+
+        #region Constructor(s)
+
+        #region UDPPacket(LocalSocket, RemoteSocket, Payload)
+
+        /// <summary>
+        /// Create a new UDP packet.
+        /// </summary>
+        /// <param name="LocalSocket">The local IP socket.</param>
+        /// <param name="RemoteSocket">The remote IP socket.</param>
+        /// <param name="Payload">The message/payload of the packet.</param>
+        public UDPPacket(IPSocket  LocalSocket,
+                         IPSocket  RemoteSocket,
+                         TData     Payload)
+
+            : this(DateTime.Now, LocalSocket, RemoteSocket, Payload)
+
+        { }
+
+        #endregion
+
+        #region UDPPacket(ServerTimestamp, LocalSocket, RemoteSocket, Payload)
+
+        /// <summary>
+        /// Create a new UDP packet.
+        /// </summary>
+        /// <param name="ServerTimestamp">The timestamp of the packet.</param>
+        /// <param name="LocalSocket">The local IP socket.</param>
+        /// <param name="RemoteSocket">The remote IP socket.</param>
+        /// <param name="Payload">The message/payload of the packet.</param>
+        public UDPPacket(DateTime  ServerTimestamp,
+                         IPSocket  LocalSocket,
+                         IPSocket  RemoteSocket,
+                         TData     Payload)
+
+            : base(LocalSocket, RemoteSocket)
+
+        {
+            this._ServerTimestamp  = ServerTimestamp;
+            this._Payload          = Payload;
+        }
+
+        #endregion
+
+        #endregion
 
     }
 

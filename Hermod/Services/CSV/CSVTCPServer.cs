@@ -181,19 +181,22 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
             this.InternalTCPServers     = new List<TCPServer>();
             this.NewConnectionDelegate  = newTCPConnection => {
 
+            Func<IIPAddress, IPPort, String> ConnectionIdBuilder = (IPAddress, Port) =>
+                "TCP:" + newTCPConnection.RemoteIPAddress + ":" + newTCPConnection.RemotePort;
+
                                             #region Initial stuff
 
 #if __MonoCS__
                                             // Code for Mono C# compiler
 #else
                                             Thread.CurrentThread.Name = "CSV TCP from " +
-                                                    newTCPConnection.RemoteHost.ToString() +
+                                                    newTCPConnection.RemoteIPAddress.ToString() +
                                                     ":" +
                                                     newTCPConnection.RemotePort.ToString();
 #endif
 
                                             if (OnNewConnection != null)
-                                                OnNewConnection(this, DateTime.Now, newTCPConnection.RemoteHost + ":" + newTCPConnection.RemotePort);
+                                                OnNewConnection(this, DateTime.Now, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort));
 
                                             newTCPConnection.ReadTimeout = 180000;
                                             newTCPConnection.WriteToResponseStream(this.ServiceBanner);
@@ -324,8 +327,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
                                                                                     break;
 
                                                                                 case "getconnectionid":
-                                                                                    newTCPConnection.WriteToResponseStream(newTCPConnection.RemoteHost.ToString() + ":" +
-                                                                                                                           newTCPConnection.RemotePort.ToString() + "\r\n");
+                                                                                    newTCPConnection.WriteToResponseStream(ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort) + "\r\n");
                                                                                     break;
 
                                                                                 case "help":
@@ -394,7 +396,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 
                                                                         OnDataAvailable(this,
                                                                                         DateTime.Now,
-                                                                                        "TCP:" + newTCPConnection.RemoteHost.ToString() + ":" + newTCPConnection.RemotePort.ToString(),
+                                                                                        ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort),
                                                                                         CSVArray,
                                                                                         ResultList);
 
@@ -404,7 +406,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 
                                                                         if (ResultList.Count > 0)
                                                                             if (OnResult != null)
-                                                                                OnResult(this, DateTime.Now, newTCPConnection.RemoteHost.ToString() + ":" + newTCPConnection.RemotePort.ToString(), ResultList);
+                                                                                OnResult(this, DateTime.Now, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), ResultList);
 
                                                                         #endregion
 
@@ -486,7 +488,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
                                                 {
 
                                                     if (OnError != null)
-                                                        OnError(this, DateTime.Now, newTCPConnection.RemoteHost + ":" + newTCPConnection.RemotePort, ioe, MemoryStream);
+                                                        OnError(this, DateTime.Now, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), ioe, MemoryStream);
 
                                                 }
 
@@ -496,7 +498,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
                                             {
 
                                                 if (OnError != null)
-                                                    OnError(this, DateTime.Now, newTCPConnection.RemoteHost + ":" + newTCPConnection.RemotePort, e, MemoryStream);
+                                                    OnError(this, DateTime.Now, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), e, MemoryStream);
 
                                             }
 
@@ -513,9 +515,9 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 
                                             if (OnConnectionClosed != null)
                                                 OnConnectionClosed(this,
-                                                                    DateTime.Now,
-                                                                    newTCPConnection.RemoteHost + ":" + newTCPConnection.RemotePort,
-                                                                    ServerClose ? ConnectionClosedBy.Server : ConnectionClosedBy.Client);
+                                                                   DateTime.Now,
+                                                                   ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort),
+                                                                   ServerClose ? ConnectionClosedBy.Server : ConnectionClosedBy.Client);
 
                                             #endregion
 
