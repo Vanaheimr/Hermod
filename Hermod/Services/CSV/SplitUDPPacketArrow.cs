@@ -39,7 +39,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// </summary>
         /// <typeparam name="T">The type of the UDP messages.</typeparam>
         /// <param name="In">The arrow sender.</param>
-        public static SplitUDPPacketArrow<T> SplitUDPPacket<T>(this INotification<UDPPacket<IEnumerable<T>>> In)
+        public static SplitUDPPacketArrow<T> SplitUDPPacket<T>(this IArrowSender<UDPPacket<IEnumerable<T>>> In)
         {
             return new SplitUDPPacketArrow<T>(In);
         }
@@ -52,10 +52,10 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
     /// into an enumeration of UDP packets.
     /// </summary>
     /// <typeparam name="T">The type of the UDP messages.</typeparam>
-    public class SplitUDPPacketArrow<T> : NewFuncArrow<UDPPacket<IEnumerable<T>>, IEnumerable<UDPPacket<T>>>
+    public class SplitUDPPacketArrow<T> : FunctionArrow<UDPPacket<IEnumerable<T>>, IEnumerable<UDPPacket<T>>>
     {
 
-        public SplitUDPPacketArrow(INotification<UDPPacket<IEnumerable<T>>> In = null)
+        public SplitUDPPacketArrow(IArrowSender<UDPPacket<IEnumerable<T>>> In = null)
 
             : base(Messages => Messages.Payload.
                                    Select(Message => new UDPPacket<T>(Messages.ServerTimestamp,

@@ -36,7 +36,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
     public static class CSVSplitterArrowExtention
     {
 
-        public static CSVSplitterArrow CSVSplitter(this INotification<Byte[]> In,
+        public static CSVSplitterArrow CSVSplitter(this IArrowSender<Byte[]> In,
                                                    Char[] Separators)
         {
             return new CSVSplitterArrow(Separators, In);
@@ -44,10 +44,10 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 
     }
 
-    public class CSVSplitterArrow : NewFuncArrow<Byte[], String[]>
+    public class CSVSplitterArrow : FunctionArrow<Byte[], String[]>
     {
 
-        public CSVSplitterArrow(Char[] Separators, INotification<Byte[]> In = null)
+        public CSVSplitterArrow(Char[] Separators, IArrowSender<Byte[]> In = null)
             : base(Bytes => {
 
                        return Encoding.UTF8.

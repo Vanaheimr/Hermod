@@ -42,7 +42,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
         /// </summary>
         /// <typeparam name="T">The type of the notifications.</typeparam>
         /// <param name="In">The arrow sender.</param>
-        public static UnfoldArrow<T> Unfold<T>(this INotification<IEnumerable<T>> In)
+        public static UnfoldArrow<T> Unfold<T>(this IArrowSender<IEnumerable<T>> In)
         {
             return new UnfoldArrow<T>(In);
         }
@@ -54,7 +54,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
     /// multiple arrows having a single notification each.
     /// </summary>
     /// <typeparam name="T">The type of the notifications.</typeparam>
-    public class UnfoldArrow<T> : IArrowReceiver<IEnumerable<T>>, INotification<T>
+    public class UnfoldArrow<T> : IArrowReceiver<IEnumerable<T>>, IArrowSender<T>
     {
 
         #region Events
@@ -71,7 +71,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 
         #region SplitterArrow()
 
-        public UnfoldArrow(INotification<IEnumerable<T>> In = null)
+        public UnfoldArrow(IArrowSender<IEnumerable<T>> In = null)
         {
             if (In != null)
                 In.SendTo(this);

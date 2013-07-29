@@ -39,8 +39,8 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
     /// socket and notifies about incoming UDP packets.
     /// </summary>
     /// <typeparam name="TOut">The type of the Styx arrows to send.</typeparam>
-    public class UDPReceiver<TOut> : INotification<TOut>,
-                                     INotification<UDPPacket<TOut>>,
+    public class UDPReceiver<TOut> : IArrowSender<TOut>,
+                                     IArrowSender<UDPPacket<TOut>>,
                                      IServer
     {
 
@@ -305,13 +305,13 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
 
         // INotification
-        event NotificationEventHandler<TOut> INotification<TOut>.OnNotification
+        event NotificationEventHandler<TOut> IArrowSender<TOut>.OnNotification
         {
             add    { OnNotification_Message   += value; }
             remove { OnNotification_Message   -= value; }
         }
 
-        event NotificationEventHandler<UDPPacket<TOut>> INotification<UDPPacket<TOut>>.OnNotification
+        event NotificationEventHandler<UDPPacket<TOut>> IArrowSender<UDPPacket<TOut>>.OnNotification
         {
             add    { OnNotification_UDPPacket += value; }
             remove { OnNotification_UDPPacket -= value; }

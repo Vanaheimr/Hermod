@@ -31,7 +31,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
     public static class UDPPacketArrowExtention
     {
 
-        public static ProcessUDPPacketArrow<TIn, TOut> ProcessUDPPacket<TIn, TOut>(this INotification<UDPPacket<TIn>> In,
+        public static ProcessUDPPacketArrow<TIn, TOut> ProcessUDPPacket<TIn, TOut>(this IArrowSender<UDPPacket<TIn>> In,
                                                                                    Func<TIn, TOut> MessageProcessor,
                                                                                    Func<Exception, Exception> OnError = null)
         {
@@ -41,12 +41,12 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
     }
 
 
-    public class ProcessUDPPacketArrow<TIn, TOut> : NewFuncArrow<UDPPacket<TIn>, UDPPacket<TOut>>
+    public class ProcessUDPPacketArrow<TIn, TOut> : FunctionArrow<UDPPacket<TIn>, UDPPacket<TOut>>
     {
 
         public ProcessUDPPacketArrow(Func<TIn, TOut> MessageProcessor,
                                      Func<Exception, Exception> OnError = null,
-                                     INotification<UDPPacket<TIn>> In = null)
+                                     IArrowSender<UDPPacket<TIn>> In = null)
 
             : base(PacketIn => new UDPPacket<TOut>(
                                    PacketIn.ServerTimestamp,
