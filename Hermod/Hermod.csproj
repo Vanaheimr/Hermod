@@ -58,16 +58,12 @@
     <Compile Include="Datastructures\IPSocket.cs" />
     <Compile Include="Datastructures\IRemoteSocket.cs" />
     <Compile Include="Services\CSV\SplitUDPPacketArrow.cs" />
-    <Compile Include="Services\CSV\UnfoldArrow.cs" />
-    <Compile Include="Services\CSV\CSVSplitterArrow.cs" />
     <Compile Include="Services\CSV\CSVResult.cs" />
     <Compile Include="Services\CSV\Delegates.cs" />
     <Compile Include="Services\CSV\CSVTCPServer.cs" />
     <Compile Include="Services\CSV\ProcessUDPPacketArrow.cs" />
     <Compile Include="Sockets\IServer.cs" />
     <Compile Include="Sockets\IICMPPacket.cs" />
-    <Compile Include="Sockets\Multicast\NetworkArrows\ArrowIPSource.cs" />
-    <Compile Include="Sockets\Multicast\NetworkArrows\IArrowReceiverExtensions.cs" />
     <Compile Include="Sockets\UDP\MulticastReceiver.cs" />
     <Compile Include="Sockets\UDP\UDPMulticastSenderArrow.cs" />
     <Compile Include="Sockets\TCP\ATCPConnection.cs" />

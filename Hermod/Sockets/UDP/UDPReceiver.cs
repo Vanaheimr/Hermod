@@ -26,6 +26,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 
 using eu.Vanaheimr.Styx;
+using eu.Vanaheimr.Styx.Arrows;
 
 #endregion
 
@@ -319,7 +320,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
 
 
-        public event ExceptionEventHandler OnError;
+        public event ExceptionEventHandler OnException;
         public event CompletedEventHandler OnCompleted;
 
         #endregion
@@ -598,7 +599,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
                         }
                         catch (Exception e)
                         {
-                            var OnErrorLocal = OnError;
+                            var OnErrorLocal = OnException;
                             if (OnErrorLocal != null)
                                 OnErrorLocal(this, e);
                         }
@@ -616,7 +617,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
             }
             catch (Exception e)
             {
-                var OnErrorLocal = OnError;
+                var OnErrorLocal = OnException;
                 if (OnErrorLocal != null)
                     OnErrorLocal(this, e);
             }

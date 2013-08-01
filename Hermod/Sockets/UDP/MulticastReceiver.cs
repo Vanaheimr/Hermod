@@ -28,6 +28,7 @@ using System.Threading.Tasks;
 using eu.Vanaheimr.Styx;
 using eu.Vanaheimr.Hermod.Datastructures;
 using eu.Vanaheimr.Hermod.Sockets.UDP;
+using eu.Vanaheimr.Styx.Arrows;
 
 #endregion
 
@@ -178,7 +179,7 @@ namespace eu.Vanaheimr.Hermod.Multicast
             remove { OnNotification_UDPPacket -= value; }
         }
 
-        public event ExceptionEventHandler OnError;
+        public event ExceptionEventHandler OnException;
         public event CompletedEventHandler OnCompleted;
 
         #endregion
@@ -361,7 +362,7 @@ namespace eu.Vanaheimr.Hermod.Multicast
             }
             catch (Exception ex)
             {
-                var OnErrorLocal = OnError;
+                var OnErrorLocal = OnException;
                 if (OnErrorLocal != null)
                     OnErrorLocal(this, ex);
             }

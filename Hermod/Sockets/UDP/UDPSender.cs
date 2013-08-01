@@ -23,6 +23,7 @@ using System.Net.Sockets;
 
 using eu.Vanaheimr.Styx;
 using eu.Vanaheimr.Hermod.Datastructures;
+using eu.Vanaheimr.Styx.Arrows;
 
 #endregion
 
@@ -366,7 +367,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
             }
             catch (Exception e)
             {
-                ProcessError(this, new Exception("The MessageProcessor lead to an error!", e));
+                ProcessException(this, new Exception("The MessageProcessor lead to an error!", e));
             }
 
             try
@@ -376,12 +377,12 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
                 DotNetSocket.Send(UDPPacketData, 0, UDPPacketData.Length, UDPSocketFlags, out SocketErrorCode);
 
                 if (SocketErrorCode != SocketError.Success)
-                    ProcessError(this, new Exception("The UDP packet transmission lead to an error: " + SocketErrorCode.ToString()));
+                    ProcessException(this, new Exception("The UDP packet transmission lead to an error: " + SocketErrorCode.ToString()));
 
             }
             catch (Exception e)
             {
-                ProcessError(this, new Exception("The UDP packet transmission lead to an error!", e));
+                ProcessException(this, new Exception("The UDP packet transmission lead to an error!", e));
             }
 
         }
@@ -418,7 +419,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
             }
             catch (Exception e)
             {
-                ProcessError(this, new Exception("The MessageProcessor lead to an error!", e));
+                ProcessException(this, new Exception("The MessageProcessor lead to an error!", e));
             }
 
             try
@@ -432,7 +433,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
             }
             catch (Exception e)
             {
-                ProcessError(this, new Exception("The UDP packet transmission lead to an error!", e));
+                ProcessException(this, new Exception("The UDP packet transmission lead to an error!", e));
             }
 
         }
@@ -460,7 +461,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// </summary>
         /// <param name="Sender">The sender of this error message.</param>
         /// <param name="ExceptionMessage">The exception leading to this error.</param>
-        public virtual void ProcessError(dynamic Sender, Exception ExceptionMessage)
+        public virtual void ProcessException(dynamic Sender, Exception ExceptionMessage)
         {
             // Error handling should better be part of the application logic!
             // Overwrite this method to signal the error, e.g. by sending a nice UDP packet.
