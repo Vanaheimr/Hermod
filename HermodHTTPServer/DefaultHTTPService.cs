@@ -109,9 +109,6 @@ namespace eu.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        
-
-
         #region (private) HTMLBuilder(myHeadline, myFunc)
 
         public String HTMLBuilder(String myHeadline, Action<StringBuilder> myFunc)

@@ -59,6 +59,50 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// </summary>
         public URLMapping URLMapping { get; protected set; }
 
+        #region CallingAssemblies
+
+        private List<Assembly> _CallingAssemblies;
+
+        public List<Assembly> CallingAssemblies
+        {
+
+            get
+            {
+                return _CallingAssemblies;
+            }
+
+            set
+            {
+
+                if (value == null)
+                    return;
+
+                this._CallingAssemblies = value;
+
+                // Add Hermod to the list of assemblies
+                this._CallingAssemblies.Add(Assembly.GetExecutingAssembly());
+
+                this.AllResources = _CallingAssemblies.
+
+                                        SelectMany(v => v.GetManifestResourceNames().
+
+                                        Select(v2 => new
+                                        {
+                                            Assembly = v,
+                                            Ressource = v2
+                                        })).
+
+                                        ToDictionary(w => w.Ressource,
+                                        w => w.Assembly);
+
+            }
+
+        }
+
+        #endregion
+
+        public IDictionary<String, Assembly> AllResources { get; private set; }
+
         #endregion
 
         #region Events
@@ -77,9 +121,12 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// </summary>
         public AHTTPServer()
         {
-            URLMapping      = new URLMapping();
-            Implementations = new Dictionary<HTTPContentType, HTTPServiceInterface>();
+
+            this.URLMapping       = new URLMapping();
+            this.Implementations  = new Dictionary<HTTPContentType, HTTPServiceInterface>();
+
             ParseInterface();
+
         }
 
         #endregion

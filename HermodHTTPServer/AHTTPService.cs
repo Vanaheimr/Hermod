@@ -63,22 +63,19 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The HTTP connection.
         /// </summary>
-        public IHTTPConnection               IHTTPConnection    { get; set; }
+        public IHTTPConnection                  IHTTPConnection        { get; set; }
 
         /// <summary>
-        /// The calling assembly.
+        /// All embedded ressources.
         /// </summary>
-        public Assembly                      CallingAssembly    { get; protected set; }
-
-        /// <summary>
-        /// The resource path where to find the internal resources to be exported via HTTP '/resources'.
-        /// </summary>
-        public String                        ResourcePath       { get; private   set; }
+        public IDictionary<String, Assembly>    AllResources            { get; set; }
 
         /// <summary>
         /// An enumeration of all associated content types.
         /// </summary>
-        public IEnumerable<HTTPContentType>  HTTPContentTypes   { get; private   set; }
+        public IEnumerable<HTTPContentType>     HTTPContentTypes       { get; private set; }
+
+        public String HTTPRoot { get; set; }
 
         #endregion
 
@@ -90,7 +87,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// Creates a new AHTTPService.
         /// </summary>
         public AHTTPService()
-        { }
+        {
+        }
 
         #endregion
 
@@ -101,6 +99,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPContentType">A content type.</param>
         public AHTTPService(HTTPContentType HTTPContentType)
+            : this()
         {
 
             #region Initial checks
@@ -123,6 +122,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPContentTypes">A content type.</param>
         public AHTTPService(IEnumerable<HTTPContentType> HTTPContentTypes)
+            : this()
         {
 
             #region Initial checks
@@ -138,15 +138,15 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region AHTTPService(IHTTPConnection, HTTPContentType, ResourcePath)
+        #region AHTTPService(IHTTPConnection, HTTPContentType)
 
         /// <summary>
         /// Creates a new abstract HTTPService.
         /// </summary>
         /// <param name="IHTTPConnection">The http connection for this request.</param>
         /// <param name="HTTPContentType">A http content type.</param>
-        /// <param name="ResourcePath">The path to internal resources.</param>
-        public AHTTPService(IHTTPConnection IHTTPConnection, HTTPContentType HTTPContentType, String ResourcePath)
+        public AHTTPService(IHTTPConnection IHTTPConnection, HTTPContentType HTTPContentType)
+            : this()
         {
 
             #region Initial checks
@@ -157,28 +157,24 @@ namespace eu.Vanaheimr.Hermod.HTTP
             if (HTTPContentType == null)
                 throw new ArgumentNullException("The given HTTPContentType must not be null!");
 
-            if (ResourcePath.IsNullOrEmpty())
-                throw new ArgumentNullException("The given ResourcePath must not be null or empty!");
-
             #endregion
 
             this.IHTTPConnection  = IHTTPConnection;
             this.HTTPContentTypes = new HTTPContentType[1] { HTTPContentType };
-            this.ResourcePath     = ResourcePath;
 
         }
 
         #endregion
 
-        #region AHTTPService(IHTTPConnection, HTTPContentTypes, ResourcePath)
+        #region AHTTPService(IHTTPConnection, HTTPContentTypes)
 
         /// <summary>
         /// Creates a new abstract HTTPService.
         /// </summary>
         /// <param name="IHTTPConnection">The http connection for this request.</param>
         /// <param name="HTTPContentTypes">An enumeration of http content types.</param>
-        /// <param name="ResourcePath">The path to internal resources.</param>
-        public AHTTPService(IHTTPConnection IHTTPConnection, IEnumerable<HTTPContentType> HTTPContentTypes, String ResourcePath)
+        public AHTTPService(IHTTPConnection IHTTPConnection, IEnumerable<HTTPContentType> HTTPContentTypes)
+            : this()
         {
 
             #region Initial checks
@@ -189,14 +185,10 @@ namespace eu.Vanaheimr.Hermod.HTTP
             if (HTTPContentTypes.IsNullOrEmpty())
                 throw new ArgumentNullException("The given HTTPContentTypes must not be null or empty!");
 
-            if (ResourcePath.IsNullOrEmpty())
-                throw new ArgumentNullException("The given ResourcePath must not be null or empty!");
-
             #endregion
 
             this.IHTTPConnection  = IHTTPConnection;
             this.HTTPContentTypes = HTTPContentTypes;
-            this.ResourcePath     = ResourcePath;
 
         }
 
@@ -423,6 +415,36 @@ namespace eu.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+
+        protected Stream GetResourceStream(String Resource)
+        {
+
+            Assembly _Assembly;
+
+            if (this.AllResources.TryGetValue(Resource, out _Assembly))
+                return _Assembly.GetManifestResourceStream(Resource);
+
+            return new MemoryStream();
+
+        }
+
+        protected Boolean TryGetResourceStream(String Resource, out Stream ResourceStream)
+        {
+
+            Assembly _Assembly;
+
+            if (this.AllResources.TryGetValue(Resource, out _Assembly))
+            {
+                ResourceStream = _Assembly.GetManifestResourceStream(Resource);
+                return true;
+            }
+
+            ResourceStream = null;
+            return false;
+
+        }
+
+
         #region GetResources(ResourceName)
 
         /// <summary>
@@ -431,28 +453,30 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="ResourceName">The path and name of the resource.</param>
         public HTTPResponse GetResources(String ResourceName)
         {
+            return GetResources(HTTPRoot, ResourceName);
+        }
 
-            #region Initial checks
+        #endregion
 
-            if (CallingAssembly == null)
-                throw new ArgumentNullException("The calling assembly must not be null! Please add the line 'this.CallingAssembly = Assembly.GetExecutingAssembly();' to your constructor(s)!");
+        #region GetResources(Path, ResourceName)
 
-            #endregion
-
-            #region Data
-
-            var _AllResources = CallingAssembly.GetManifestResourceNames();
-
-            ResourceName = ResourceName.Replace('/', '.');
-
-            #endregion
+        /// <summary>
+        /// Returns internal resources embedded within the assembly.
+        /// </summary>
+        /// <param name="ResourceName">The path and name of the resource.</param>
+        public HTTPResponse GetResources(String ResourcePath, String ResourceName)
+        {
 
             #region Return internal assembly resources...
 
-            if (_AllResources.Contains(this.ResourcePath + ResourceName))
-            {
+            ResourcePath = ResourcePath.Replace('/', '.');
+            ResourcePath = (ResourcePath.EndsWith(".")) ? ResourcePath : ResourcePath + ".";
+            ResourceName = ResourceName.Replace('/', '.');
 
-                var _ResourceContent = CallingAssembly.GetManifestResourceStream(this.ResourcePath + ResourceName);
+            Stream _ResourceContent;
+
+            if (TryGetResourceStream(ResourcePath + ResourceName, out _ResourceContent))
+            {
 
                 HTTPContentType _ResponseContentType = null;
 
@@ -474,8 +498,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 }
 
                 return
-                    new HTTPResponseBuilder()
-                        {
+                    new HTTPResponseBuilder() {
                             HTTPStatusCode = HTTPStatusCode.OK,
                             ContentType    = _ResponseContentType,
                             ContentLength  = (UInt64) _ResourceContent.Length,
@@ -493,23 +516,14 @@ namespace eu.Vanaheimr.Hermod.HTTP
             else
             {
 
-                Stream _ResourceContent = null;
-
-                if (_AllResources.Contains(this.ResourcePath + ".errorpages.Error404.html"))
-                {
-
-                    _ResourceContent = this.CallingAssembly.GetManifestResourceStream(this.ResourcePath + ".errorpages.Error404.html");
-
-                    return new HTTPResponseBuilder()
-                        {
-                            HTTPStatusCode = HTTPStatusCode.NotFound,
-                            ContentType    = HTTPContentType.HTML_UTF8,
-                            CacheControl   = "no-cache",
-                            Connection     = "close",
-                            ContentStream  = _ResourceContent
-                        };
-
-                }
+                if (TryGetResourceStream(HTTPRoot + ".errorpages.Error404.html", out _ResourceContent))
+                    return new HTTPResponseBuilder() {
+                        HTTPStatusCode  = HTTPStatusCode.NotFound,
+                        ContentType     = HTTPContentType.HTML_UTF8,
+                        CacheControl    = "no-cache",
+                        Connection      = "close",
+                        ContentStream   = _ResourceContent
+                    };
 
                 else
                     return new HTTPResult<Object>(IHTTPConnection.RequestHeader, HTTPStatusCode.NotFound).Error;
@@ -521,6 +535,35 @@ namespace eu.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
+
+        #region GetResourceStream(Path, ResourceName)
+
+        /// <summary>
+        /// Returns internal resources embedded within the assembly.
+        /// </summary>
+        /// <param name="ResourceName">The path and name of the resource.</param>
+        public Stream GetResourceStream(String ResourcePath, String ResourceName)
+        {
+
+            ResourcePath = ResourcePath.Replace('/', '.');
+            ResourcePath = (ResourcePath.EndsWith(".")) ? ResourcePath : ResourcePath + ".";
+            ResourceName = ResourceName.Replace('/', '.');
+
+            Stream _ResourceContent;
+
+            if (TryGetResourceStream(ResourcePath + ResourceName, out _ResourceContent))
+            {
+                return _ResourceContent;
+            }
+
+            return null;
+
+        }
+
+        #endregion
+
+
+
 
         #region GetFavicon()
 

@@ -39,6 +39,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
         [HTTPMapping(HTTPMethods.GET, "/"), NoAuthentication]
         HTTPResponse GET_Root();
 
+        String HTTPRoot { get; set; }
+
         #endregion
 
         #region Utilities

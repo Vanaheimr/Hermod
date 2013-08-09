@@ -18,6 +18,8 @@
 #region Usings
 
 using System.Collections.Generic;
+using System;
+using System.Reflection;
 
 #endregion
 
@@ -29,16 +31,21 @@ namespace eu.Vanaheimr.Hermod.HTTP
     /// </summary>
     public interface IHTTPService
     {
-        
+
         /// <summary>
         /// The HTTP connection.
         /// </summary>
-        IHTTPConnection              IHTTPConnection  { get; }
+        IHTTPConnection                 IHTTPConnection     { get; }
 
         /// <summary>
         /// A list of supported HTTP content types.
         /// </summary>
-        IEnumerable<HTTPContentType> HTTPContentTypes { get; }
+        IEnumerable<HTTPContentType>    HTTPContentTypes    { get; }
+
+        /// <summary>
+        /// All embedded ressources.
+        /// </summary>
+        IDictionary<String, Assembly>   AllResources        { get; set; }
 
     }
 
