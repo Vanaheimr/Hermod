@@ -42,7 +42,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
     }
 
 
-    public class ProcessUDPPacketArrow<TIn, TOut> : FunctionArrow<UDPPacket<TIn>, UDPPacket<TOut>>
+    public class ProcessUDPPacketArrow<TIn, TOut> : MapArrow<UDPPacket<TIn>, UDPPacket<TOut>>
     {
 
         public ProcessUDPPacketArrow(Func<TIn, TOut> MessageProcessor,

@@ -53,7 +53,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
     /// into an enumeration of UDP packets.
     /// </summary>
     /// <typeparam name="T">The type of the UDP messages.</typeparam>
-    public class SplitUDPPacketArrow<T> : FunctionArrow<UDPPacket<IEnumerable<T>>, IEnumerable<UDPPacket<T>>>
+    public class SplitUDPPacketArrow<T> : MapArrow<UDPPacket<IEnumerable<T>>, IEnumerable<UDPPacket<T>>>
     {
 
         public SplitUDPPacketArrow(IArrowSender<UDPPacket<IEnumerable<T>>> In = null)
