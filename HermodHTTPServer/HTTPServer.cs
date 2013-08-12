@@ -521,6 +521,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
             }
         }
 
+        public event OnStartedDelegate OnStarted;
+
     }
 
     #endregion

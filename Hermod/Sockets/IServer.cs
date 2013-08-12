@@ -50,7 +50,7 @@ namespace eu.Vanaheimr.Hermod
         /// The server is running and ready for serving requests.
         /// </summary>
         Boolean    IsRunning { get; }
-        
+
         /// <summary>
         /// The listening IP address.
         /// </summary>
@@ -64,6 +64,10 @@ namespace eu.Vanaheimr.Hermod
 
         String ServiceBanner { get; set; }
 
+
+
+
+        event OnStartedDelegate OnStarted;
 
         /// <summary>
         /// Star the server.

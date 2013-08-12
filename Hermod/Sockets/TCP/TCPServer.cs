@@ -97,6 +97,8 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
+        public event OnStartedDelegate OnStarted;
+
         #region IsRunning
 
         private volatile Boolean _IsRunning = false;
@@ -506,6 +508,9 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
             // Wait until socket has opened
             while (!_IsRunning)
                 Thread.Sleep(10);
+
+            if (OnStarted != null)
+                OnStarted(this, DateTime.Now);
 
         }
 

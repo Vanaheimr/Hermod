@@ -498,6 +498,11 @@ namespace eu.Vanaheimr.Hermod.Multicast
                 throw new NotImplementedException();
             }
         }
+
+
+        public event OnStartedDelegate OnStarted;
+
+
     }
 
 }

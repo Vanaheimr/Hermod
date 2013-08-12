@@ -30,6 +30,8 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
     public class TCPConnection : ATCPConnection
     {
 
+        public NetworkStream TCPStream { get; private set; }
+
         #region Constructor(s)
 
         #region TCPConnection()
@@ -49,7 +51,9 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         /// </summary>
         public TCPConnection(TcpClient TCPClientConnection)
             : base(TCPClientConnection)
-        { }
+        {
+            this.TCPStream = TCPClientConnection.GetStream();
+        }
 
         #endregion
 
