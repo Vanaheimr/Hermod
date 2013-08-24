@@ -87,12 +87,20 @@
       <Project>{16c85df8-5de6-4a9f-9fc7-7ca5b0440df3}</Project>
       <Name>Commons</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\Styx\Styx.NET4.5\Styx.NET4.5.csproj">
+      <Project>{af76ecc0-2ca5-4cff-9e1e-ff5478c4b6e4}</Project>
+      <Name>Styx.NET4.5</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Styx\Styx\Styx.csproj">
+      <Project>{3949790d-8591-4101-9e4d-ce7a758e7409}</Project>
+      <Name>Styx</Name>
+    </ProjectReference>
     <ProjectReference Include="..\HermodHTTP\HermodHTTP.csproj">
-      <Project>{9A00BD39-1385-4DB4-8F38-363BB947CCB4}</Project>
+      <Project>{9a00bd39-1385-4db4-8f38-363bb947ccb4}</Project>
       <Name>HermodHTTP</Name>
     </ProjectReference>
     <ProjectReference Include="..\Hermod\Hermod.csproj">
-      <Project>{477EFD16-3627-4473-957D-44CA9A9DFB79}</Project>
+      <Project>{477efd16-3627-4473-957d-44ca9a9dfb79}</Project>
       <Name>Hermod</Name>
     </ProjectReference>
   </ItemGroup>

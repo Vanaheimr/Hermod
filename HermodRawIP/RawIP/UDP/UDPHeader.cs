@@ -17,9 +17,8 @@
 
 #region Usings
 
+using eu.Vanaheimr.Hermod;
 using System;
-
-using eu.Vanaheimr.Hermod.Datastructures;
 
 #endregion
 

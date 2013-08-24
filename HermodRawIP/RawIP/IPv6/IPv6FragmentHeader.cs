@@ -1,6 +1,6 @@
 ﻿
-using eu.Vanaheimr.Hermod.Datastructures;
 
+using eu.Vanaheimr.Hermod;
 public class IPv6FragmentHeader
 {
 

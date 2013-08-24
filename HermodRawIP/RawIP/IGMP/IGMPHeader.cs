@@ -1,4 +1,5 @@
-﻿using eu.Vanaheimr.Hermod.Datastructures;
+﻿
+using eu.Vanaheimr.Hermod;
 using System;
 class IgmpHeader : AProtocolHeader
 {
