@@ -99,21 +99,21 @@ namespace eu.Vanaheimr.Hermod
         public static Boolean TryParse(String IPAddressString, out IIPAddress IPAddress)
         {
 
-            IPv4Address IPv4Address;
+            IPv4Address _IPv4Address;
 
             if (IPAddressString.IndexOf('.') > 0)
-                if (IPv4Address.TryParse(IPAddressString, out IPv4Address))
+                if (IPv4Address.TryParse(IPAddressString, out _IPv4Address))
                 {
-                    IPAddress = IPv4Address;
+                    IPAddress = _IPv4Address;
                     return true;
                 }
 
-            IPv6Address IPv6Address;
+            IPv6Address _IPv6Address;
 
             if (IPAddressString.IndexOf(':') > 0)
-                if (IPv6Address.TryParse(IPAddressString, out IPv6Address))
+                if (IPv6Address.TryParse(IPAddressString, out _IPv6Address))
                 {
-                    IPAddress = IPv6Address;
+                    IPAddress = _IPv6Address;
                     return true;
                 }
 
