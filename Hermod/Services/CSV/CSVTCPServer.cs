@@ -22,11 +22,11 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 
+using eu.Vanaheimr.Illias.Commons;
 using eu.Vanaheimr.Hermod.Sockets.TCP;
-using eu.Vanaheimr.Hermod.Datastructures;
-using System.Threading.Tasks;
 
 #endregion
 

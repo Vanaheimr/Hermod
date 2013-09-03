@@ -61,7 +61,6 @@
     <Compile Include="Datastructures\IPSocket.cs" />
     <Compile Include="Datastructures\IRemoteSocket.cs" />
     <Compile Include="Services\CSV\SplitUDPPacketArrow.cs" />
-    <Compile Include="Services\CSV\CSVResult.cs" />
     <Compile Include="Services\CSV\Delegates.cs" />
     <Compile Include="Services\CSV\CSVTCPServer.cs" />
     <Compile Include="Services\CSV\ProcessUDPPacketArrow.cs" />
