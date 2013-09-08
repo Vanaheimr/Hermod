@@ -1381,6 +1381,11 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        public void Set(String Field, Object Value)
+        {
+            SetHeaderField(new HTTPHeaderField(Field, typeof(Object), HeaderFieldType.Request, RequestPathSemantic.both), Value);
+        }
+
 
         #region PrepareImmutability()
 

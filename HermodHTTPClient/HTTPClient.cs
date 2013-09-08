@@ -186,7 +186,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
 
 
-        public Task<T> Execute<T>(HTTPRequestBuilder HTTPRequest, Action<HTTPRequest> HTTPRequestDelegate, Func<HTTPRequest, HTTPResponse, T> RequestResponseDelegate)
+        public Task<T> Execute<T>(HTTPRequest HTTPRequest, Action<HTTPRequest> HTTPRequestDelegate, Func<HTTPRequest, HTTPResponse, T> RequestResponseDelegate)
         {
 
             if (HTTPRequestDelegate != null)
@@ -197,7 +197,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
         }
 
 
-        public Task<T> Execute<T>(HTTPRequestBuilder HTTPRequest, Func<HTTPRequest, HTTPResponse, T> RequestResponseDelegate)
+        public Task<T> Execute<T>(HTTPRequest HTTPRequest, Func<HTTPRequest, HTTPResponse, T> RequestResponseDelegate)
         {
 
             return Task<T>.Factory.StartNew(() => {
@@ -210,7 +210,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         }
 
-        public Task<HTTPClient> Execute(HTTPRequestBuilder HTTPRequest, Action<HTTPRequest> HTTPRequestDelegate, Action<HTTPRequest, HTTPResponse> RequestResponseDelegate)
+        public Task<HTTPClient> Execute(HTTPRequest HTTPRequest, Action<HTTPRequest> HTTPRequestDelegate, Action<HTTPRequest, HTTPResponse> RequestResponseDelegate)
         {
 
             if (HTTPRequestDelegate != null)
@@ -220,7 +220,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         }
 
-        public Task<HTTPClient> Execute(HTTPRequestBuilder HTTPRequest, Action<HTTPRequest, HTTPResponse> RequestResponseDelegate)
+        public Task<HTTPClient> Execute(HTTPRequest HTTPRequest, Action<HTTPRequest, HTTPResponse> RequestResponseDelegate)
         {
 
             return Task<HTTPClient>.Factory.StartNew(() =>
@@ -248,8 +248,13 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 var _RequestBytes = (HTTPRequest.EntireRequestHeader + Environment.NewLine + Environment.NewLine).ToUTF8Bytes();
                 TCPStream.Write(_RequestBytes, 0, _RequestBytes.Length);
 
+                var RequestBodyLength = (Int32) HTTPRequest.ContentLength;
+
+                if (HTTPRequest.Content != null)
+                    RequestBodyLength = Math.Min((Int32) HTTPRequest.ContentLength, HTTPRequest.Content.Length);
+
                 if (HTTPRequest.ContentLength > 0)
-                    TCPStream.Write(HTTPRequest.Content, 0, Math.Min((Int32) HTTPRequest.ContentLength, HTTPRequest.Content.Length));
+                    TCPStream.Write(HTTPRequest.Content, 0, RequestBodyLength);
 
                 var _MemoryStream = new MemoryStream();
                 var _Buffer = new Byte[65535];
