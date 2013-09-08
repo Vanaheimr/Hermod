@@ -68,7 +68,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 return (from   _KeyValuePair in HeaderFields
                         where  _KeyValuePair.Key   != null
                         where  _KeyValuePair.Value != null
-                        select _KeyValuePair.Key + ": " + _KeyValuePair.Value).
+                        where  !String.IsNullOrEmpty(_KeyValuePair.Value.ToString())
+                        select _KeyValuePair.Key + ": " + _KeyValuePair.Value.ToString()).
                         SaveAggregate((a, b) => a + Environment.NewLine + b, String.Empty);
 
             }

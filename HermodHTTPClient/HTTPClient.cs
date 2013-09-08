@@ -256,9 +256,9 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 if (HTTPRequest.ContentLength > 0)
                     TCPStream.Write(HTTPRequest.Content, 0, RequestBodyLength);
 
-                var _MemoryStream = new MemoryStream();
-                var _Buffer = new Byte[65535];
-                var sw = new Stopwatch();
+                var _MemoryStream  = new MemoryStream();
+                var _Buffer        = new Byte[65535];
+                var sw             = new Stopwatch();
 
                 #endregion
 
@@ -266,17 +266,26 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                 sw.Start();
 
-                while (!TCPStream.DataAvailable)
+                try
                 {
 
-                    if (sw.ElapsedMilliseconds >= Timeout)
+                    while (!TCPStream.DataAvailable)
                     {
-                        TCPClient.Close();
-                        throw new ApplicationException("Could not read from the TCP stream!");
+
+                        if (sw.ElapsedMilliseconds >= Timeout)
+                        {
+                            TCPClient.Close();
+                            throw new ApplicationException("Could not read from the TCP stream!");
+                        }
+
+                        Thread.Sleep(1);
+
                     }
 
-                    Thread.Sleep(1);
-
+                }
+                catch (Exception e)
+                {
+                    var f = e.Message + "...";
                 }
 
                 sw.Stop();
@@ -370,7 +379,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                     while (Retries < 10)
                     {
 
-                        while (TCPStream.DataAvailable)
+                        while (TCPStream.DataAvailable && _StillToRead < 0)
                         {
                             _CurrentBufferSize = Math.Min(_Buffer.Length, (Int32)_StillToRead);
                             _Read = TCPStream.Read(_Buffer, 0, _CurrentBufferSize);
@@ -417,7 +426,47 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                     }
 
-                    _HTTPResponse.ContentStreamToArray();
+                    if (_HTTPResponse.TransferEncoding == "chunked")
+                    {
+
+                        var TEContent = ((MemoryStream) _HTTPResponse.ContentStream).ToArray();
+                        var TEMemStram = new MemoryStream();
+                        var LastPos = 0;
+
+                        var i=0;
+                        do
+                        {
+
+                            if (TEContent[i] == '\n' && TEContent[i - 1] == '\r')
+                            {
+
+                                var Byte1 = new Byte[i-1 - LastPos];
+                                Array.Copy(TEContent, LastPos, Byte1, 0, i - 1 - LastPos);
+                                var len = Convert.ToInt32(Byte1.ToUTF8String(), 16);
+                                TEMemStram.Write(TEContent, i + 1, len);
+                                i = i + len + 1;
+
+                                if (TEContent[i] == 0x0d)
+                                    i++;
+
+                                if (TEContent[i] == 0x0a)
+                                    i++;
+
+                                LastPos = i;
+                                i--;
+
+                            }
+
+                            i++;
+
+                        } while (i < TEContent.Length);
+
+                        _HTTPResponse.ContentStreamToArray(TEMemStram);
+
+                    }
+
+                    else
+                        _HTTPResponse.ContentStreamToArray();
 
                 }
 

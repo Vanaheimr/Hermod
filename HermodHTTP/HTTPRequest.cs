@@ -522,13 +522,13 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region HTTPRequest(HTTPHeader)
+        #region HTTPRequest(HTTPHeader, Content = null)
 
         /// <summary>
         /// Create a new http request header based on the given string representation.
         /// </summary>
         /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
-        public HTTPRequest(String HTTPHeader)
+        public HTTPRequest(String HTTPHeader, Byte[] Content = null)
         {
 
             if (!TryParseHeader(HTTPHeader))
@@ -596,6 +596,9 @@ namespace eu.Vanaheimr.Hermod.HTTP
             #endregion
 
             this.HTTPStatusCode = HTTPStatusCode.OK;
+
+            if (Content != null)
+                this.Content = Content;
 
         }
 

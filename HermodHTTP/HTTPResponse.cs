@@ -182,6 +182,18 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region TransferEncoding
+
+        public String TransferEncoding
+        {
+            get
+            {
+                return GetHeaderField(HTTPHeaderField.TransferEncoding);
+            }
+        }
+
+        #endregion
+
         #endregion
 
         #region Constructor(s)
@@ -284,9 +296,14 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
 
 
-        public void ContentStreamToArray()
+        public void ContentStreamToArray(Stream DataStream = null)
         {
-            Content = ((MemoryStream) ContentStream).ToArray();
+
+            if (DataStream == null)
+                Content = ((MemoryStream) ContentStream).ToArray();
+            else
+                Content = ((MemoryStream) DataStream).ToArray();
+
         }
 
     }

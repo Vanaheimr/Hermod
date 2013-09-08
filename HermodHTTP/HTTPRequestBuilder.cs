@@ -133,17 +133,10 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// </summary>
         public AcceptTypes Accept
         {
-
             get
             {
                 return GetHeaderField<AcceptTypes>(HTTPHeaderField.Accept);
             }
-
-            set
-            {
-                SetHeaderField(HTTPHeaderField.Accept, value);
-            }
-
         }
 
         #endregion
@@ -681,7 +674,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
             this.HTTPMethod      = HTTPMethod.GET;
             this.UrlPath         = "/";
             this._QueryString    = new QueryString();
-            this.Accept          = new AcceptTypes();
+            SetHeaderField(HTTPHeaderField.Accept, new AcceptTypes());
             this.ProtocolName    = "HTTP";
             this.ProtocolVersion = new HTTPVersion(1, 1);
         }
@@ -971,20 +964,6 @@ namespace eu.Vanaheimr.Hermod.HTTP
         #endregion
 
         #region Set request header fields
-
-        #region SetAccept(AcceptTypes)
-
-        /// <summary>
-        /// Set the HTTP Accept header field.
-        /// </summary>
-        /// <param name="AcceptTypes">AcceptTypes.</param>
-        public HTTPRequestBuilder SetAccept(AcceptTypes AcceptTypes)
-        {
-            this.Accept = AcceptTypes;
-            return this;
-        }
-
-        #endregion
 
         #region AddAccept(AcceptType)
 
@@ -1411,6 +1390,9 @@ namespace eu.Vanaheimr.Hermod.HTTP
         {
 
             PrepareImmutability();
+
+            if (Content != null)
+                return new HTTPRequest(EntireRequestHeader, Content);
 
             return new HTTPRequest(EntireRequestHeader);
 
