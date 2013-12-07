@@ -18,6 +18,8 @@
 #region Usings
 
 using System;
+
+using eu.Vanaheimr.Hermod;
 using eu.Vanaheimr.Hermod.HTTP;
 
 #endregion
@@ -27,8 +29,19 @@ namespace eu.Vanaheimr.Hermod.UnitTests
 
     //[HTTPService(Host: "localhost:8080", ForceAuthentication: true)]
     [HTTPService(HostAuthentication: true)]
-    public interface IRESTService : IHTTPBaseService
+    public interface IHTTPTestService : IHTTPBaseService
     {
+
+        //#region Properties
+
+        ///// <summary>
+        ///// The internal HTTP server.
+        ///// </summary>
+        //EdarHTTPServer InternalHTTPServer { get; set; }
+
+        //#endregion
+
+
 
         #region GetRAWRequestHeader
 

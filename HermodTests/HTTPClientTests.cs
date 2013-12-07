@@ -20,7 +20,7 @@
 using System;
 
 using eu.Vanaheimr.Hermod.HTTP;
-using eu.Vanaheimr.Hermod.Datastructures;
+using eu.Vanaheimr.Hermod;
 
 using NUnit.Framework;
 
@@ -49,12 +49,12 @@ namespace eu.Vanaheimr.Hermod.UnitTests
 
         #region Start/Stop HTTPServer
 
-        private HTTPServer<IRESTService> _HTTPServer;
+        private HTTPServer<IHTTPService> _HTTPServer;
 
         [TestFixtureSetUp]
         public void Init_HTTPServer()
         {
-            _HTTPServer = new HTTPServer<IRESTService>(IPv4Address.Any, new IPPort(81), Autostart: true);
+            _HTTPServer = new HTTPServer<IHTTPService>(IPv4Address.Any, new IPPort(81), Autostart: true);
         }
 
         [TestFixtureTearDown]

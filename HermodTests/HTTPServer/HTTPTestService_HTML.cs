@@ -18,10 +18,7 @@
 #region Usings
 
 using System;
-using System.IO;
 using System.Text;
-using System.Linq;
-using System.Reflection;
 using System.Collections.Generic;
 
 using eu.Vanaheimr.Illias.Commons;
@@ -33,35 +30,33 @@ namespace eu.Vanaheimr.Hermod.UnitTests
 {
 
     /// <summary>
-    /// A REST service serving HTML.
+    /// A HTTP service serving HTML.
     /// </summary>
-    public class RESTService_HTML : AHTTPService, IRESTService
+    public class HTTPTestService_HTML : AHTTPTestService
     {
 
         #region Constructor(s)
 
-        #region RESTService_HTML()
+        #region HTTPTestService_HTML()
 
         /// <summary>
-        /// Creates a new RESTService_HTML.
+        /// HTML content representation.
         /// </summary>
-        public RESTService_HTML()
+        public HTTPTestService_HTML()
             : base(HTTPContentType.HTML_UTF8)
         { }
 
         #endregion
 
-        #region RESTService_HTML(IHTTPConnection)
+        #region HTTPTestService_HTML(IHTTPConnection)
 
         /// <summary>
-        /// Creates a new RESTService_HTML.
+        /// HTML content representation.
         /// </summary>
         /// <param name="IHTTPConnection">The http connection for this request.</param>
-        public RESTService_HTML(IHTTPConnection IHTTPConnection)
-            : base(IHTTPConnection, HTTPContentType.HTML_UTF8, "HermodDemo.resources.")
-        {
-            this.CallingAssembly = Assembly.GetExecutingAssembly();
-        }
+        public HTTPTestService_HTML(IHTTPConnection IHTTPConnection)
+            : base(IHTTPConnection, HTTPContentType.HTML_UTF8)
+        { }
 
         #endregion
 
@@ -103,7 +98,7 @@ namespace eu.Vanaheimr.Hermod.UnitTests
 
         #region GetRoot()
 
-        public HTTPResponse GET_Root()
+        public override HTTPResponse GET_Root()
         {
 
             return new HTTPResponseBuilder()
@@ -126,7 +121,7 @@ namespace eu.Vanaheimr.Hermod.UnitTests
 
         #region HelloWorld_OPTIONS()
 
-        public HTTPResponse HelloWorld_OPTIONS()
+        public override HTTPResponse HelloWorld_OPTIONS()
         {
 
             return new HTTPResponseBuilder()
@@ -146,7 +141,7 @@ namespace eu.Vanaheimr.Hermod.UnitTests
 
         #region HelloWorld_HEAD()
 
-        public HTTPResponse HelloWorld_HEAD()
+        public override HTTPResponse HelloWorld_HEAD()
         {
 
             return new HTTPResponseBuilder()
@@ -163,7 +158,7 @@ namespace eu.Vanaheimr.Hermod.UnitTests
 
         #region HelloWorld_GET()
 
-        public HTTPResponse HelloWorld_GET()
+        public override HTTPResponse HelloWorld_GET()
         {
 
             return new HTTPResponseBuilder()

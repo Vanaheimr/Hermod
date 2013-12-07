@@ -19,7 +19,7 @@
 
 using System;
 
-using eu.Vanaheimr.Hermod.Datastructures;
+using eu.Vanaheimr.Hermod;
 
 using NUnit.Framework;
 

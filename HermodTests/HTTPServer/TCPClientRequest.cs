@@ -18,15 +18,15 @@
 #region Usings
 
 using System;
+using System.Threading;
 using System.Net.Sockets;
-
-using eu.Vanaheimr.Hermod.HTTP;
-using eu.Vanaheimr.Hermod.Datastructures;
+using System.Collections.Generic;
 
 using eu.Vanaheimr.Illias.Commons;
+using eu.Vanaheimr.Hermod.HTTP;
+using eu.Vanaheimr.Hermod;
+
 using NUnit.Framework;
-using System.Collections.Generic;
-using System.Threading;
 
 #endregion
 
