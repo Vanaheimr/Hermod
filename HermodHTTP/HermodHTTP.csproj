@@ -78,7 +78,7 @@
     </ProjectReference>
     <ProjectReference Include="..\..\Illias\Commons\Commons.csproj">
       <Project>{d3b1af79-161f-4299-8b14-133286d635b8}</Project>
-      <Name>Commons</Name>
+      <Name>Commons %28Dependencies\Commons\Commons%29</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\Styx\Styx.NET4.5\Styx.NET4.5.csproj">
       <Project>{af76ecc0-2ca5-4cff-9e1e-ff5478c4b6e4}</Project>
@@ -90,7 +90,7 @@
     </ProjectReference>
     <ProjectReference Include="..\Hermod\Hermod.csproj">
       <Project>{477EFD16-3627-4473-957D-44CA9A9DFB79}</Project>
-      <Name>Hermod %28Dependencies\Vanaheimr\Hermod\Hermod%29</Name>
+      <Name>Hermod</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
