@@ -75,7 +75,10 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// </summary>
         public IEnumerable<HTTPContentType>     HTTPContentTypes       { get; private set; }
 
-        public String HTTPRoot { get; set; }
+        /// <summary>
+        /// The file system root mapped to HTTP root.
+        /// </summary>
+        public String                           HTTPRoot               { get; set; }
 
         #endregion
 
@@ -466,6 +469,12 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="ResourceName">The path and name of the resource.</param>
         public HTTPResponse GetResources(String ResourcePath, String ResourceName)
         {
+
+            if (ResourcePath == null)
+                return new HTTPResponseBuilder() {
+                            HTTPStatusCode  = HTTPStatusCode.NotFound,
+                            Connection      = "close"
+                        };
 
             #region Return internal assembly resources...
 
