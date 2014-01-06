@@ -70,7 +70,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                         where  _KeyValuePair.Value != null
                         where  !String.IsNullOrEmpty(_KeyValuePair.Value.ToString())
                         select _KeyValuePair.Key + ": " + _KeyValuePair.Value.ToString()).
-                        SaveAggregate((a, b) => a + Environment.NewLine + b, String.Empty);
+                        AggregateOrDefault((a, b) => a + Environment.NewLine + b, String.Empty);
 
             }
         }
