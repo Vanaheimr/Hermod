@@ -36,12 +36,12 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The HTTP method of this HTTP mapping.
         /// </summary>
-        public HTTPMethod HTTPMethod { get; private set; }
+        public HTTPMethod   HTTPMethod      { get; private set; }
 
         /// <summary>
         /// The URI template of this HTTP mapping.
         /// </summary>
-        public String UriTemplate { get; private set; }
+        public String       UriTemplate     { get; private set; }
 
         #endregion
 
@@ -71,12 +71,33 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="UriTemplate">The URI template of this HTTP mapping.</param>
         public HTTPMappingAttribute(HTTPMethods HTTPMethod, String UriTemplate)
         {
-            
-            this.HTTPMethod  = eu.Vanaheimr.Hermod.HTTP.HTTPMethod.ParseEnum(HTTPMethod);
+
+            this.HTTPMethod  = HTTP.HTTPMethod.ParseEnum(HTTPMethod);
 
             if (this.HTTPMethod == null)
                 throw new ArgumentNullException("Invalid HTTPMethod!");
             
+            this.UriTemplate = UriTemplate;
+
+        }
+
+        #endregion
+
+        #region HTTPMappingAttribute(HTTPMethodString, UriTemplate)
+
+        /// <summary>
+        /// Generates a new HTTP mapping.
+        /// </summary>
+        /// <param name="HTTPMethodString">The HTTP method of this HTTP mapping.</param>
+        /// <param name="UriTemplate">The URI template of this HTTP mapping.</param>
+        public HTTPMappingAttribute(String HTTPMethodString, String UriTemplate)
+        {
+
+            this.HTTPMethod = HTTPMethod.ParseString(HTTPMethodString);
+
+            if (this.HTTPMethod == null)
+                this.HTTPMethod = new HTTPMethod(HTTPMethodString);
+
             this.UriTemplate = UriTemplate;
 
         }

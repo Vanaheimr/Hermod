@@ -319,7 +319,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
             if (RequestBodyString.IsNullOrEmpty())
                 return new HTTPResult<String>(IHTTPConnection.RequestHeader, HTTPStatusCode.BadRequest);
 
-            return new HTTPResult<String>(RequestBodyString);
+            return new HTTPResult<String>(Result: RequestBodyString);
 
         }
 
