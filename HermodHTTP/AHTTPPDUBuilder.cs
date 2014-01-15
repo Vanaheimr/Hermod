@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2013, Achim 'ahzf' Friedland <achim@graph-database.org>
+ * Copyright (c) 2010-2014, Achim 'ahzf' Friedland <achim@graphdefined.org>
  * This file is part of Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -70,7 +70,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                         where  _KeyValuePair.Value != null
                         where  !String.IsNullOrEmpty(_KeyValuePair.Value.ToString())
                         select _KeyValuePair.Key + ": " + _KeyValuePair.Value.ToString()).
-                        SaveAggregate((a, b) => a + Environment.NewLine + b, String.Empty);
+                        AggregateOrDefault((a, b) => a + Environment.NewLine + b, String.Empty);
 
             }
         }

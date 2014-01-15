@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2013, Achim 'ahzf' Friedland <achim@graph-database.org>
+ * Copyright (c) 2010-2014, Achim 'ahzf' Friedland <achim@graphdefined.org>
  * This file is part of Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -79,10 +79,21 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region HTTPMethod
 
+        private HTTPMethod _x_HTTPMethod;
+
         /// <summary>
         /// The HTTP method.
         /// </summary>
-        public HTTPMethod HTTPMethod { get; protected set; }
+        public HTTPMethod HTTPMethod
+        {
+            get
+            {
+                return _x_HTTPMethod;
+            }
+            protected set {
+                _x_HTTPMethod = value;
+            }
+        }
 
         #endregion
 
@@ -547,14 +558,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
             // Parse HTTP method
             // Propably not usefull to define here, as we can not send a response having an "Allow-header" here!
-            HTTPMethod _HTTPMethod = null;
-            if (!HTTPMethod.TryParseString(_HTTPMethodHeader[0], out _HTTPMethod))
-            {
-                this.HTTPStatusCode = HTTPStatusCode.MethodNotAllowed;
-                return;
-            }
-
-            this.HTTPMethod = _HTTPMethod;
+            HTTPMethod _HTTPMethod;
+            this.HTTPMethod = (HTTPMethod.TryParseString(_HTTPMethodHeader[0], out _HTTPMethod)) ? _HTTPMethod : new HTTPMethod(_HTTPMethodHeader[0]);
 
             #endregion
 

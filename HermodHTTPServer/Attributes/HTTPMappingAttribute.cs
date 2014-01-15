@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2013, Achim 'ahzf' Friedland <achim@graph-database.org>
+ * Copyright (c) 2010-2014, Achim 'ahzf' Friedland <achim@graphdefined.org>
  * This file is part of Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,12 +36,12 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The HTTP method of this HTTP mapping.
         /// </summary>
-        public HTTPMethod HTTPMethod { get; private set; }
+        public HTTPMethod   HTTPMethod      { get; private set; }
 
         /// <summary>
         /// The URI template of this HTTP mapping.
         /// </summary>
-        public String UriTemplate { get; private set; }
+        public String       UriTemplate     { get; private set; }
 
         #endregion
 
@@ -71,12 +71,33 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="UriTemplate">The URI template of this HTTP mapping.</param>
         public HTTPMappingAttribute(HTTPMethods HTTPMethod, String UriTemplate)
         {
-            
-            this.HTTPMethod  = eu.Vanaheimr.Hermod.HTTP.HTTPMethod.ParseEnum(HTTPMethod);
+
+            this.HTTPMethod  = HTTP.HTTPMethod.ParseEnum(HTTPMethod);
 
             if (this.HTTPMethod == null)
                 throw new ArgumentNullException("Invalid HTTPMethod!");
             
+            this.UriTemplate = UriTemplate;
+
+        }
+
+        #endregion
+
+        #region HTTPMappingAttribute(HTTPMethodString, UriTemplate)
+
+        /// <summary>
+        /// Generates a new HTTP mapping.
+        /// </summary>
+        /// <param name="HTTPMethodString">The HTTP method of this HTTP mapping.</param>
+        /// <param name="UriTemplate">The URI template of this HTTP mapping.</param>
+        public HTTPMappingAttribute(String HTTPMethodString, String UriTemplate)
+        {
+
+            this.HTTPMethod = HTTPMethod.ParseString(HTTPMethodString);
+
+            if (this.HTTPMethod == null)
+                this.HTTPMethod = new HTTPMethod(HTTPMethodString);
+
             this.UriTemplate = UriTemplate;
 
         }
