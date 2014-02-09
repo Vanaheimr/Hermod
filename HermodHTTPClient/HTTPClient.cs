@@ -35,6 +35,25 @@ using eu.Vanaheimr.Hermod.Datastructures;
 namespace eu.Vanaheimr.Hermod.HTTP
 {
 
+
+    public static class Helpers
+    {
+
+        public static Int32 ReadTEBlockLength(this Byte[] TEContent, Int32 Position, Int32 TELength)
+        {
+
+            var TEBlockLength = new Byte[TELength];
+            Array.Copy(TEContent, Position, TEBlockLength, 0, TELength);
+
+            return Convert.ToInt32(TEBlockLength.ToUTF8String(), // Hex-String
+                                   16);
+
+        }
+
+
+    }
+
+
     /// <summary>
     /// A http client.
     /// </summary>
@@ -439,35 +458,56 @@ namespace eu.Vanaheimr.Hermod.HTTP
                     if (_HTTPResponse.TransferEncoding == "chunked")
                     {
 
-                        var TEContent = ((MemoryStream)_HTTPResponse.ContentStream).ToArray();
-                        var TEMemStram = new MemoryStream();
-                        var LastPos = 0;
+                        var TEContent        = ((MemoryStream) _HTTPResponse.ContentStream).ToArray();
+                        var TEString         = TEContent.ToUTF8String();
+                        var ReadBlockLength  = true;
+                        var TEMemStram       = new MemoryStream();
+                        var LastPos          = 0;
 
                         var i = 0;
                         do
                         {
 
-                            if (TEContent[i] == '\n' && TEContent[i - 1] == '\r')
+                            if (i > 2                    &&
+                                ReadBlockLength          &&
+                                TEContent[i - 1] == '\n' &&
+                                TEContent[i - 2] == '\r')
                             {
 
-                                var Byte1 = new Byte[i - 1 - LastPos];
-                                Array.Copy(TEContent, LastPos, Byte1, 0, i - 1 - LastPos);
-                                var len = Convert.ToInt32(Byte1.ToUTF8String(), 16);
-                                TEMemStram.Write(TEContent, i + 1, len);
-                                i = i + len + 1;
+                                var len = TEContent.ReadTEBlockLength(LastPos, i - LastPos - 2);
 
-                                if (TEContent[i] == 0x0d)
-                                    i++;
+                                if (len == 0)
+                                    break;
 
-                                if (TEContent[i] == 0x0a)
-                                    i++;
+                                if (i + len <= TEContent.Length)
+                                {
 
-                                LastPos = i;
-                                i--;
+                                    TEMemStram.Write(TEContent, i, len);
+                                    i = i + len;
+
+                                    if (TEContent[i] == 0x0d)
+                                        i++;
+
+                                    if (TEContent[i] == 0x0a)
+                                        i++;
+
+                                    LastPos = i;
+
+                                    ReadBlockLength = false;
+
+                                }
+                                else
+                                {
+
+                                }
 
                             }
 
-                            i++;
+                            else
+                            {
+                                ReadBlockLength = true;
+                                i++;
+                            }
 
                         } while (i < TEContent.Length);
 
