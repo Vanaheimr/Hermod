@@ -39,17 +39,17 @@ namespace eu.Vanaheimr.Hermod.HTTP
         HTTPRequest         RequestHeader   { get; }
         //ToDo: Change this to a Stream!
         Byte[]              RequestBody     { get; }
-        
+
         HTTPResponse        ResponseHeader  { get; }
         NetworkStream       ResponseStream  { get; }
-        
+
         String              ServerName      { get; }
         HTTPSecurity        HTTPSecurity    { get; set; }
         URLMapping          URLMapping      { get; set; }
 
         String              ErrorReason     { get; set; }
         Exception           LastException   { get; set; }
-        
+
         void SendErrorpage(HTTPStatusCode HTTPStatusCode,
                            String         ErrorReason   = null,
                            Exception      LastException = null);
