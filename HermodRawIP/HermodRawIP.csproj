@@ -63,7 +63,7 @@
       <Name>Commons.NET4.5</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\Illias\Commons\Commons.csproj">
-      <Project>{16c85df8-5de6-4a9f-9fc7-7ca5b0440df3}</Project>
+      <Project>{d3b1af79-161f-4299-8b14-133286d635b8}</Project>
       <Name>Commons</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\Styx\Styx.NET4.5\Styx.NET4.5.csproj">
