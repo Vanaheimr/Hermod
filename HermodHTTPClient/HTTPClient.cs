@@ -239,18 +239,24 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         }
 
-        public Task<HTTPClient> Execute(HTTPRequest HTTPRequest, Action<HTTPRequest, HTTPResponse> RequestResponseDelegate)
+        public Task<HTTPClient> Execute(HTTPRequest                        HTTPRequest,
+                                        Action<HTTPRequest, HTTPResponse>  RequestResponseDelegate  = null,
+                                        UInt32                             Timeout                  = 20000)
         {
 
             return Task<HTTPClient>.Factory.StartNew(
-                () => { Execute_Synced(HTTPRequest, RequestResponseDelegate); return this; },
+                () => { Execute_Synced(HTTPRequest, RequestResponseDelegate, Timeout); return this; },
                 TaskCreationOptions.AttachedToParent);
 
         }
 
 
-        public HTTPResponse Execute_Synced(HTTPRequest HTTPRequest, Action<HTTPRequest, HTTPResponse> RequestResponseDelegate = null)
+        public HTTPResponse Execute_Synced(HTTPRequest                        HTTPRequest,
+                                           Action<HTTPRequest, HTTPResponse>  RequestResponseDelegate  = null,
+                                           UInt32                             Timeout                  = 20000)
         {
+
+            Debug.WriteLine(DateTime.Now + " HTTPClient started...");
 
             #region Data
 
@@ -267,7 +273,6 @@ namespace eu.Vanaheimr.Hermod.HTTP
                     TCPClient = new TcpClient(this.RemoteIPAddress.ToString(), this.RemotePort.ToInt32());
 
                 //TCPClient.ReceiveTimeout = 5000;
-                var Timeout = 20000;
 
                 #region Send Request
 
@@ -277,7 +282,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 var _RequestBytes = (HTTPRequest.EntireRequestHeader + Environment.NewLine + Environment.NewLine).ToUTF8Bytes();
                 TCPStream.Write(_RequestBytes, 0, _RequestBytes.Length);
 
-                var RequestBodyLength = (Int32)HTTPRequest.ContentLength;
+                var RequestBodyLength = (Int32) HTTPRequest.ContentLength;
 
                 if (HTTPRequest.Content != null)
                     RequestBodyLength = Math.Min((Int32)HTTPRequest.ContentLength, HTTPRequest.Content.Length);
@@ -285,9 +290,9 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 if (HTTPRequest.ContentLength > 0)
                     TCPStream.Write(HTTPRequest.Content, 0, RequestBodyLength);
 
-                var _MemoryStream = new MemoryStream();
-                var _Buffer = new Byte[65535];
-                var sw = new Stopwatch();
+                var _MemoryStream  = new MemoryStream();
+                var _Buffer        = new Byte[10485760]; // A smaller value leads to read errors!
+                var sw             = new Stopwatch();
 
                 #endregion
 
@@ -303,19 +308,22 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                         if (sw.ElapsedMilliseconds >= Timeout)
                         {
+                            Debug.WriteLine(DateTime.Now + " HTTPClient timeout after " + Timeout + "ms!");
                             TCPClient.Close();
-                            throw new ApplicationException("Could not read from the TCP stream!");
+                            throw new ApplicationException(DateTime.Now + " Could not read from the TCP stream!");
                         }
 
-                        Thread.Sleep(1);
+                        Thread.Sleep(5);
 
                     }
 
                 }
                 catch (Exception e)
                 {
-                    var f = e.Message + "...";
+                    Debug.WriteLine(DateTime.Now + " " + e.Message);
                 }
+
+                Debug.WriteLine(DateTime.Now + " HTTPClient got first response after " + sw.ElapsedMilliseconds + "ms!");
 
                 sw.Stop();
 
@@ -328,53 +336,85 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 while (!_EndOfHTTPHeader || TCPStream != null || TCPStream.DataAvailable || !TCPClient.Connected)
                 {
 
-                    #region Read the entire stream into the memory <= Rethink this someday!
-
-                    while (TCPStream.DataAvailable)
-                        _MemoryStream.Write(_Buffer, 0, TCPStream.Read(_Buffer, 0, _Buffer.Length));
-
-                    #endregion
-
-                    #region Walk through the stream and search for two consecutive newlines indicating the end of the HTTP header
-
-                    _Length = _MemoryStream.Length;
-
-                    if (_Length > 4)
+                    try
                     {
 
-                        _MemoryStream.Seek(0, SeekOrigin.Begin);
+                        var OldDataSize       = 0L;
+                        var EndOfReadTimeout  = 2000;
 
-                        int state = 0;
-                        int _int = 0;
-                        _EndOfHTTPHeader = false;
+                        #region Read the entire stream into the memory <= Rethink this someday!
 
-                        while (!_EndOfHTTPHeader || _int == -1)
+                        do
                         {
 
-                            _int = _MemoryStream.ReadByte();
-
-                            switch (state)
+                            while (TCPStream.DataAvailable)
                             {
-                                case 0: if (_int == 0x0d) state = 1; else state = 0; break;
-                                case 1: if (_int == 0x0a) state = 2; else state = 0; break;
-                                case 2: if (_int == 0x0d) state = 3; else state = 0; break;
-                                case 3: if (_int == 0x0a) _EndOfHTTPHeader = true; else state = 0; break;
-                                default: state = 0; break;
+                                _MemoryStream.Write(_Buffer, 0, TCPStream.Read(_Buffer, 0, _Buffer.Length));
+                                OldDataSize = _MemoryStream.Length;
+                                sw.Restart();
                             }
+
+                            if (OldDataSize < _MemoryStream.Length)
+                                Debug.WriteLine(DateTime.Now + " Read " + _MemoryStream.Length + " bytes of data (" + sw.ElapsedMilliseconds + "ms)!");
+
+                            Thread.Sleep(5);
+
+                        }
+                        while (TCPStream.DataAvailable || sw.ElapsedMilliseconds < EndOfReadTimeout);
+
+                        Debug.WriteLine(DateTime.Now + " Finally read " + _MemoryStream.Length + " bytes of data (" + sw.ElapsedMilliseconds + "ms)!");
+
+                        sw.Stop();
+
+                        #endregion
+
+                        #region Walk through the stream and search for two consecutive newlines indicating the end of the HTTP header
+
+                        _Length = _MemoryStream.Length;
+
+                        if (_Length > 4)
+                        {
+
+                            _MemoryStream.Seek(0, SeekOrigin.Begin);
+
+                            int state = 0;
+                            int _int = 0;
+                            _EndOfHTTPHeader = false;
+
+                            while (!_EndOfHTTPHeader || _int == -1)
+                            {
+
+                                _int = _MemoryStream.ReadByte();
+
+                                switch (state)
+                                {
+                                    case 0: if (_int == 0x0d) state = 1; else state = 0; break;
+                                    case 1: if (_int == 0x0a) state = 2; else state = 0; break;
+                                    case 2: if (_int == 0x0d) state = 3; else state = 0; break;
+                                    case 3: if (_int == 0x0a) _EndOfHTTPHeader = true; else state = 0; break;
+                                    default: state = 0; break;
+                                }
+
+                            }
+
+                            if (_EndOfHTTPHeader)
+                                break;
 
                         }
 
-                        if (_EndOfHTTPHeader)
-                            break;
+                        #endregion
 
                     }
 
-                    #endregion
+                    catch (Exception e)
+                    {
+                        Debug.WriteLine(DateTime.Now + " " + e.Message);
+                    }
 
                 }
 
                 if (_EndOfHTTPHeader == false)
-                    throw new ApplicationException("Could not find the end of the HTTP protocol header!");
+                    throw new ApplicationException(DateTime.Now + " Could not find the end of the HTTP protocol header!");
 
                 EndOfHeaderPosition = _MemoryStream.Position - 3;
 
@@ -397,35 +437,45 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 if (_HTTPResponse.ContentLength.HasValue)
                 {
 
-                    _MemoryStream.Seek(4, SeekOrigin.Current);
-                    var _Read = _MemoryStream.Read(_Buffer, 0, _Buffer.Length);
-                    var _StillToRead = (Int32)_HTTPResponse.ContentLength.Value - _Read;
-                    _HTTPResponse.ContentStream.Write(_Buffer, 0, _Read);
-                    var _CurrentBufferSize = 0;
-
-                    var Retries = 0;
-
-                    while (Retries < 10)
+                    try
                     {
 
-                        while (TCPStream.DataAvailable && _StillToRead < 0)
+                        _MemoryStream.Seek(4, SeekOrigin.Current);
+                        var _Read = _MemoryStream.Read(_Buffer, 0, _Buffer.Length);
+                        var _StillToRead = (Int32)_HTTPResponse.ContentLength.Value - _Read;
+                        _HTTPResponse.ContentStream.Write(_Buffer, 0, _Read);
+                        var _CurrentBufferSize = 0;
+
+                        var Retries = 0;
+
+                        while (Retries < 10)
                         {
-                            _CurrentBufferSize = Math.Min(_Buffer.Length, (Int32)_StillToRead);
-                            _Read = TCPStream.Read(_Buffer, 0, _CurrentBufferSize);
-                            _HTTPResponse.ContentStream.Write(_Buffer, 0, _Read);
-                            _StillToRead -= _Read;
-                            Retries = 0;
+
+                            while (TCPStream.DataAvailable && _StillToRead < 0)
+                            {
+                                _CurrentBufferSize = Math.Min(_Buffer.Length, (Int32)_StillToRead);
+                                _Read = TCPStream.Read(_Buffer, 0, _CurrentBufferSize);
+                                _HTTPResponse.ContentStream.Write(_Buffer, 0, _Read);
+                                _StillToRead -= _Read;
+                                Retries = 0;
+                            }
+
+                            if (_StillToRead <= 0)
+                                break;
+
+                            Thread.Sleep(10);
+                            Retries++;
+
                         }
 
-                        if (_StillToRead <= 0)
-                            break;
-
-                        Thread.Sleep(10);
-                        Retries++;
+                        _HTTPResponse.ContentStreamToArray();
 
                     }
 
-                    _HTTPResponse.ContentStreamToArray();
+                    catch (Exception e)
+                    {
+                        Debug.WriteLine(DateTime.Now + " " + e.Message);
+                    }
 
                 }
 
@@ -436,87 +486,107 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 else
                 {
 
-                    _MemoryStream.Seek(4, SeekOrigin.Current);
-                    _HTTPResponse.ContentStream.Write(_Buffer, 0, _MemoryStream.Read(_Buffer, 0, _Buffer.Length));
-
-                    var Retries = 0;
-
-                    while (Retries < 10)
+                    try
                     {
 
-                        while (TCPStream.DataAvailable)
+                        _MemoryStream.Seek(4, SeekOrigin.Current);
+                        _HTTPResponse.ContentStream.Write(_Buffer, 0, _MemoryStream.Read(_Buffer, 0, _Buffer.Length));
+
+                        var Retries = 0;
+
+                        while (Retries < 10)
                         {
-                            _HTTPResponse.ContentStream.Write(_Buffer, 0, TCPStream.Read(_Buffer, 0, _Buffer.Length));
-                            Retries = 0;
+
+                            while (TCPStream.DataAvailable)
+                            {
+                                _HTTPResponse.ContentStream.Write(_Buffer, 0, TCPStream.Read(_Buffer, 0, _Buffer.Length));
+                                Retries = 0;
+                            }
+
+                            Thread.Sleep(10);
+                            Retries++;
+
                         }
 
-                        Thread.Sleep(10);
-                        Retries++;
-
-                    }
-
-                    if (_HTTPResponse.TransferEncoding == "chunked")
-                    {
-
-                        var TEContent        = ((MemoryStream) _HTTPResponse.ContentStream).ToArray();
-                        var TEString         = TEContent.ToUTF8String();
-                        var ReadBlockLength  = true;
-                        var TEMemStram       = new MemoryStream();
-                        var LastPos          = 0;
-
-                        var i = 0;
-                        do
+                        if (_HTTPResponse.TransferEncoding == "chunked")
                         {
 
-                            if (i > 2                    &&
-                                ReadBlockLength          &&
-                                TEContent[i - 1] == '\n' &&
-                                TEContent[i - 2] == '\r')
+                            Debug.WriteLine(DateTime.Now + " Chunked encoding detected");
+
+                            var TEContent        = ((MemoryStream) _HTTPResponse.ContentStream).ToArray();
+                            var TEString         = TEContent.ToUTF8String();
+                            var ReadBlockLength  = true;
+                            var TEMemStram       = new MemoryStream();
+                            var LastPos          = 0;
+
+                            var i = 0;
+                            do
                             {
 
-                                var len = TEContent.ReadTEBlockLength(LastPos, i - LastPos - 2);
-
-                                if (len == 0)
-                                    break;
-
-                                if (i + len <= TEContent.Length)
+                                if (i > 2 &&
+                                    ReadBlockLength &&
+                                    TEContent[i - 1] == '\n' &&
+                                    TEContent[i - 2] == '\r')
                                 {
 
-                                    TEMemStram.Write(TEContent, i, len);
-                                    i = i + len;
+                                    var len = TEContent.ReadTEBlockLength(LastPos, i - LastPos - 2);
 
-                                    if (TEContent[i] == 0x0d)
-                                        i++;
+                                    Debug.WriteLine(DateTime.Now + " Chunked encoded block of length " + len + " bytes detected");
 
-                                    if (TEContent[i] == 0x0a)
-                                        i++;
+                                    if (len == 0)
+                                        break;
 
-                                    LastPos = i;
+                                    if (i + len <= TEContent.Length)
+                                    {
 
-                                    ReadBlockLength = false;
+                                        TEMemStram.Write(TEContent, i, len);
+                                        i = i + len;
+
+                                        if (TEContent[i] == 0x0d)
+                                            i++;
+
+                                        if (i < TEContent.Length - 1)
+                                        {
+                                            if (TEContent[i] == 0x0a)
+                                                i++;
+                                        }
+                                        else
+                                        {
+                                        }
+
+                                        LastPos = i;
+
+                                        ReadBlockLength = false;
+
+                                    }
+                                    else
+                                    {
+
+                                    }
 
                                 }
+
                                 else
                                 {
-
+                                    ReadBlockLength = true;
+                                    i++;
                                 }
 
-                            }
+                            } while (i < TEContent.Length);
 
-                            else
-                            {
-                                ReadBlockLength = true;
-                                i++;
-                            }
+                            _HTTPResponse.ContentStreamToArray(TEMemStram);
 
-                        } while (i < TEContent.Length);
+                        }
 
-                        _HTTPResponse.ContentStreamToArray(TEMemStram);
+                        else
+                            _HTTPResponse.ContentStreamToArray();
 
                     }
 
-                    else
-                        _HTTPResponse.ContentStreamToArray();
+                    catch (Exception e)
+                    {
+                        Debug.WriteLine(DateTime.Now + " " + e.Message);
+                    }
 
                 }
 
@@ -548,7 +618,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
             }
             catch (Exception e)
             {
-                    
+                Debug.WriteLine(DateTime.Now + " " + e.Message);
             }
 
             return null;
