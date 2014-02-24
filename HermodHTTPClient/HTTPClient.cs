@@ -434,7 +434,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                 // Copy only the number of bytes given within
                 // the HTTP header element 'Content-Length'!
-                if (_HTTPResponse.ContentLength.HasValue)
+                if (_HTTPResponse.ContentLength.HasValue && _HTTPResponse.ContentLength.Value > 0)
                 {
 
                     try

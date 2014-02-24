@@ -25,19 +25,21 @@ using eu.Vanaheimr.Illias.Commons;
 
 namespace eu.Vanaheimr.Hermod.HTTP
 {
-    
+
     public class HTTPBasicAuthentication
     {
 
         #region Properties
 
-        public String                  Username           { get; private set; }
-        public String                  Password           { get; private set; }
-        public HTTPAuthenticationTypes HTTPCredentialType { get; private set; }
+        public String                   Username            { get; private set; }
+        public String                   Password            { get; private set; }
+        public HTTPAuthenticationTypes  HTTPCredentialType  { get; private set; }
 
         #endregion
 
         #region Constructor(s)
+
+        #region HTTPBasicAuthentication(HTTPHeaderCredential)
 
         /// <summary>
         /// Create the credentials based on a base64 encoded string which comes from a HTTP header Authentication:
@@ -71,10 +73,53 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 Password = usernamePassword[1];
 
             }
-            
+
             else
                 throw new ArgumentException("invalid credentialType " + splitted[0]);
 
+        }
+
+        #endregion
+
+        #region HTTPBasicAuthentication(Username, Password)
+
+        /// <summary>
+        /// Create the credentials based on a base64 encoded string which comes from a HTTP header Authentication:
+        /// </summary>
+        /// <param name="Username">The username.</param>
+        /// <param name="Password">The password.</param>
+        public HTTPBasicAuthentication(String  Username,
+                                       String  Password)
+        {
+
+            #region Initial checks
+
+            if (Username.IsNullOrEmpty())
+                throw new ArgumentNullException("Username", "The given username must not be null or empty!");
+
+            if (Password.IsNullOrEmpty())
+                throw new ArgumentNullException("Password", "The given password must not be null or empty!");
+
+            #endregion
+
+            this.Username  = Username;
+            this.Password  = Password;
+
+        }
+
+        #endregion
+
+        #endregion
+
+
+        #region (override) ToString()
+
+        /// <summary>
+        /// Return a string representation of this object.
+        /// </summary>
+        public override String ToString()
+        {
+            return "Basic " + (Username + ":" + Password).ToBase64();
         }
 
         #endregion

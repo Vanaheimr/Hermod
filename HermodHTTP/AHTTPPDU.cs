@@ -163,7 +163,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
             {
 
                 if (!HeaderFields.ContainsKey(HTTPHeaderField.ContentLength.Name))
-                    return new Nullable<UInt64>();
+                    return new Nullable<UInt64>(0);
 
                 return GetHeaderField<UInt64>(HTTPHeaderField.ContentLength);
 
