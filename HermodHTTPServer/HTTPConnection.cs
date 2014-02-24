@@ -552,7 +552,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                             _ByteArray    = _MemoryStream.ToArray();
                             _ReadPosition = _ReadPosition - 3;
-                        
+
                             while (_ReadPosition < _Length)
                             {
 

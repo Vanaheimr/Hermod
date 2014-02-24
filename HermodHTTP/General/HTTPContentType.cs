@@ -138,10 +138,10 @@ namespace eu.Vanaheimr.Hermod.HTTP
         public static Boolean TryParseString(String myString, out HTTPContentType myHTTPContentType)
         {
 
-            var Split = myString.Split(new String[1] { "; " }, StringSplitOptions.None);
+            var Split = myString.Split(new String[1] { ";" }, StringSplitOptions.None);
 
-            var MediaType = Split[0];
-            var CharSet   = (Split.Length > 1) ? Split[1] : "UTF-8";
+            var MediaType = Split[0].Trim();
+            var CharSet   = (Split.Length > 1) ? Split[1].Trim() : "UTF-8";
 
             myHTTPContentType = (from   _FieldInfo in typeof(HTTPContentType).GetFields()
                                  let    _HTTPContentType = _FieldInfo.GetValue(null) as HTTPContentType

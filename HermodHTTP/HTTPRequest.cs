@@ -592,7 +592,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
             HTTPVersion _HTTPVersion = null;
             if (HTTPVersion.TryParseVersionString(_ProtocolArray[1], out _HTTPVersion))
                 ProtocolVersion = _HTTPVersion;
-            if (ProtocolVersion != HTTPVersion.HTTP_1_1)
+            if (ProtocolVersion != HTTPVersion.HTTP_1_0 && ProtocolVersion != HTTPVersion.HTTP_1_1)
             {
                 this.HTTPStatusCode = HTTPStatusCode.HTTPVersionNotSupported;
                 return;
