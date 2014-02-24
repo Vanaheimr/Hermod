@@ -256,7 +256,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                                            UInt32                             Timeout                  = 20000)
         {
 
-            Debug.WriteLine(DateTime.Now + " HTTPClient started...");
+            //Debug.WriteLine(DateTime.Now + " HTTPClient started...");
 
             #region Data
 
@@ -308,7 +308,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                         if (sw.ElapsedMilliseconds >= Timeout)
                         {
-                            Debug.WriteLine(DateTime.Now + " HTTPClient timeout after " + Timeout + "ms!");
+                            //Debug.WriteLine(DateTime.Now + " HTTPClient timeout after " + Timeout + "ms!");
                             TCPClient.Close();
                             throw new ApplicationException(DateTime.Now + " Could not read from the TCP stream!");
                         }
@@ -323,7 +323,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                     Debug.WriteLine(DateTime.Now + " " + e.Message);
                 }
 
-                Debug.WriteLine(DateTime.Now + " HTTPClient got first response after " + sw.ElapsedMilliseconds + "ms!");
+                //Debug.WriteLine(DateTime.Now + " HTTPClient got first response after " + sw.ElapsedMilliseconds + "ms!");
 
                 sw.Stop();
 
@@ -362,7 +362,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                         }
                         while (TCPStream.DataAvailable || sw.ElapsedMilliseconds < EndOfReadTimeout);
 
-                        Debug.WriteLine(DateTime.Now + " Finally read " + _MemoryStream.Length + " bytes of data (" + sw.ElapsedMilliseconds + "ms)!");
+                        //Debug.WriteLine(DateTime.Now + " Finally read " + _MemoryStream.Length + " bytes of data (" + sw.ElapsedMilliseconds + "ms)!");
 
                         sw.Stop();
 
@@ -511,7 +511,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                         if (_HTTPResponse.TransferEncoding == "chunked")
                         {
 
-                            Debug.WriteLine(DateTime.Now + " Chunked encoding detected");
+                            //Debug.WriteLine(DateTime.Now + " Chunked encoding detected");
 
                             var TEContent        = ((MemoryStream) _HTTPResponse.ContentStream).ToArray();
                             var TEString         = TEContent.ToUTF8String();
@@ -531,7 +531,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                                     var len = TEContent.ReadTEBlockLength(LastPos, i - LastPos - 2);
 
-                                    Debug.WriteLine(DateTime.Now + " Chunked encoded block of length " + len + " bytes detected");
+                                    //Debug.WriteLine(DateTime.Now + " Chunked encoded block of length " + len + " bytes detected");
 
                                     if (len == 0)
                                         break;
