@@ -541,7 +541,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                         while (_HTTPStream.DataAvailable)
                         {
                             _DataRead = _HTTPStream.Read(_Buffer, 0, _Buffer.Length);
-                            Debug.WriteLine("Thread[" + Thread.CurrentThread.ManagedThreadId + "]: Number of bytes read from network stream: " + _DataRead);
+                            //Debug.WriteLine("Thread[" + Thread.CurrentThread.ManagedThreadId + "]: Number of bytes read from network stream: " + _DataRead);
                             _MemoryStream.Write(_Buffer, 0, _DataRead);
                         }
 
@@ -576,8 +576,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                         else
                         {
-                            //Debug.WriteLine("Thread[" + Thread.CurrentThread.ManagedThreadId + "]: end of network stream!");
-                            Debug.WriteLine("Thread[" + Thread.CurrentThread.ManagedThreadId + " from: " + RemoteIPAddress + ":" + RemotePort + "]: length of stream so far: " + _MemoryStream.Length + " @ " + _EndOfHTTPHeader + ", " + _HTTPStream.DataAvailable + ", " + IsConnected);
+                            //Debug.WriteLine("Thread[" + Thread.CurrentThread.ManagedThreadId + " from: " + RemoteIPAddress + ":" + RemotePort + "]: length of stream so far: " + _MemoryStream.Length + " @ " + _EndOfHTTPHeader + ", " + _HTTPStream.DataAvailable + ", " + IsConnected);
                         }
 
                         Thread.Sleep(100);

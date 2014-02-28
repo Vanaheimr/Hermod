@@ -340,7 +340,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                     {
 
                         var OldDataSize       = 0L;
-                        var EndOfReadTimeout  = 2000;
+                        var EndOfReadTimeout  = 500;
 
                         #region Read the entire stream into the memory <= Rethink this someday!
 
