@@ -481,6 +481,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
             ResourcePath = ResourcePath.Replace('/', '.');
             ResourcePath = (ResourcePath.EndsWith(".")) ? ResourcePath : ResourcePath + ".";
             ResourceName = ResourceName.Replace('/', '.');
+            ResourceName = (ResourceName.StartsWith(".")) ? ResourceName.Substring(1) : ResourceName;
 
             Stream _ResourceContent;
 
