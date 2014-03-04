@@ -305,6 +305,25 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region (protected) GetRequestBodyString(HTTPContentType)
 
+        protected String GetRequestBodyAsUTF8String()
+        {
+
+            if (IHTTPConnection.RequestBody == null || IHTTPConnection.RequestBody.Length == 0)
+                return String.Empty;
+
+            var RequestBodyString = IHTTPConnection.RequestBody.ToUTF8String();
+
+            if (RequestBodyString.IsNullOrEmpty())
+                return String.Empty;
+
+            return RequestBodyString;
+
+        }
+
+        #endregion
+
+        #region (protected) GetRequestBodyString(HTTPContentType)
+
         protected HTTPResult<String> GetRequestBodyAsUTF8String(HTTPContentType HTTPContentType)
         {
 
