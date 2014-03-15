@@ -110,7 +110,7 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
                 foreach (var DomainNameTokens in DomainName.Split(new Char[] { '.' }))
                 {
 
-                    // Set Length label for domain segment
+                    // Set Length label for domainname segment
                     DNSPacket[PacketPosition++] = (Byte) (DomainNameTokens.Length & Byte.MaxValue);
 
                     foreach (var Char in Encoding.ASCII.GetBytes(DomainNameTokens))

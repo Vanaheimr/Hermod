@@ -86,7 +86,7 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
         #region Query<T>(DomainName)
 
-        public T Query<T>(String DomainName)
+        public IEnumerable<T> Query<T>(String DomainName)
             where T : ADNSResourceRecord
         {
 
@@ -104,12 +104,32 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
             return Query(DomainName, DNSResourceRecordType).
                        Answers.
                        Where(v => v.GetType() == typeof(T)).
-                       FirstOrDefault() as T;
+                       Select(v => v as T);
 
         }
 
         #endregion
 
+        #region QueryFirst<T>(DomainName)
+
+        public T QueryFirst<T>(String DomainName)
+            where T : ADNSResourceRecord
+        {
+            return Query<T>(DomainName).FirstOrDefault();
+        }
+
+        #endregion
+
+        #region Query<T1, T2>(DomainName, Mapper)
+
+        public IEnumerable<T2> Query<T1, T2>(String DomainName, Func<T1, T2> Mapper)
+            where T1 : ADNSResourceRecord
+        {
+            return Query<T1>(DomainName).Select(v => Mapper(v));
+        }
+
+        #endregion
+        
 
 
         #region ReadResponse(data)
