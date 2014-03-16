@@ -27,6 +27,8 @@ using System.Collections.Generic;
 using eu.Vanaheimr.Illias.Commons;
 using System.Text.RegularExpressions;
 using System.Threading;
+using Newtonsoft.Json.Linq;
+using System.Xml.Linq;
 
 #endregion
 
@@ -344,7 +346,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected) ParseJSONRequestBody(ExpectedContentType, OnSuccess, OnError, FailWhenNoContent = true)
+        #region (protected) ParseRequestBody<T>(ExpectedContentType, OnSuccess, OnError, FailWhenNoContent = true)
 
         protected HTTPResult<T> ParseRequestBody<T>(HTTPContentType ExpectedContentType, Func<String, T> OnSuccess, Func<T> OnError, Boolean FailWhenNoContent = true)
         {
@@ -381,6 +383,58 @@ namespace eu.Vanaheimr.Hermod.HTTP
             {
                 return new HTTPResult<T>(IHTTPConnection.RequestHeader, HTTPStatusCode.BadRequest);
             }
+
+        }
+
+        #endregion
+
+        #region (protected) ParseJSONRequestBody()
+
+        protected HTTPResult<JObject> ParseJSONRequestBody()
+        {
+
+            var RequestBodyString = GetRequestBodyAsUTF8String(HTTPContentType.JSON_UTF8);
+            if (RequestBodyString.HasErrors)
+                return new HTTPResult<JObject>(RequestBodyString.Error);
+
+            JObject RequestBodyJSON;
+
+            try
+            {
+                RequestBodyJSON = JObject.Parse(RequestBodyString.Data);
+            }
+            catch (Exception)
+            {
+                return new HTTPResult<JObject>(IHTTPConnection.RequestHeader, HTTPStatusCode.BadRequest);
+            }
+
+            return new HTTPResult<JObject>(RequestBodyJSON);
+
+        }
+
+        #endregion
+
+        #region (protected) ParseXMLRequestBody()
+
+        protected HTTPResult<XDocument> ParseXMLRequestBody()
+        {
+
+            var RequestBodyString = GetRequestBodyAsUTF8String(HTTPContentType.XMLTEXT_UTF8);
+            if (RequestBodyString.HasErrors)
+                return new HTTPResult<XDocument>(RequestBodyString.Error);
+
+            XDocument RequestBodyXML;
+
+            try
+            {
+                RequestBodyXML = XDocument.Parse(RequestBodyString.Data);
+            }
+            catch (Exception)
+            {
+                return new HTTPResult<XDocument>(IHTTPConnection.RequestHeader, HTTPStatusCode.BadRequest);
+            }
+
+            return new HTTPResult<XDocument>(RequestBodyXML);
 
         }
 
