@@ -89,6 +89,7 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
             var socket         = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             //socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout,    (Int32) QueryTimeout.TotalMilliseconds);
             //socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, (Int32) QueryTimeout.TotalMilliseconds);
+            socket.Connect(endPoint);
             socket.SendTo(QueryPacket.Serialize(), endPoint);
 
             var data = new Byte[512];
