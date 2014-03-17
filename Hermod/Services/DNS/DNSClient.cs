@@ -87,8 +87,8 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
             var serverAddress  = IPAddress.Parse(DNSServer);
             var endPoint       = (EndPoint) new IPEndPoint(serverAddress, this.Port.ToInt32());
             var socket         = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout,    (Int32) QueryTimeout.TotalMilliseconds);
-            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, (Int32) QueryTimeout.TotalMilliseconds);
+            //socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout,    (Int32) QueryTimeout.TotalMilliseconds);
+            //socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, (Int32) QueryTimeout.TotalMilliseconds);
             socket.SendTo(QueryPacket.Serialize(), endPoint);
 
             var data = new Byte[512];
