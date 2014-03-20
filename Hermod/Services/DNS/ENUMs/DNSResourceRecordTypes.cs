@@ -23,6 +23,7 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
     /// </summary>
     public enum DNSResourceRecordTypes : int
     {
+
         A               = 1,
         NS              = 2,
         CNAME           = 5,
@@ -40,7 +41,9 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
         AAAA            = 28,
         CERT            = 37,
         SSHFP           = 44,
+
         ANY             = 255
+
     }
 
 }

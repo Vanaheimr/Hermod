@@ -246,6 +246,13 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
                     Container.Add(new A(ResourceName, ResourceClass, TTL_Seconds, new IPv4Address(new Byte[] { data[position++], data[position++], data[position++], data[position++] })));
                     break;
 
+                case DNSResourceRecordTypes.AAAA:
+                    Container.Add(new AAAA(ResourceName, ResourceClass, TTL_Seconds, new IPv6Address(new Byte[] { data[position++], data[position++], data[position++], data[position++],
+                                                                                                                  data[position++], data[position++], data[position++], data[position++],
+                                                                                                                  data[position++], data[position++], data[position++], data[position++], 
+                                                                                                                  data[position++], data[position++], data[position++], data[position++] })));
+                    break;
+
                 case DNSResourceRecordTypes.SOA:
                     //Extract Text Fields
                     string Server = GetName(data);
