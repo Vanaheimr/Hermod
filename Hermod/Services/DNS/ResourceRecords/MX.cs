@@ -33,8 +33,8 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
         public Int32    Preference;
         public String   Exchange;
 
-        public MX(string _Name, DNSResourceRecordTypes _Type, DNSQueryClasses _Class, TimeSpan _TimeToLive, int _Preference, string _Exchange)
-            : base(_Name, _Type, _Class, _TimeToLive)
+        public MX(String _Name, DNSResourceRecordTypes _Type, DNSQueryClasses _Class, TimeSpan _TimeToLive, Int32 _Preference, String _Exchange)
+            : base(_Name, DNSResourceRecordTypes.MX, _Class, _TimeToLive)
         {
             Preference = _Preference;
             Exchange = _Exchange; 

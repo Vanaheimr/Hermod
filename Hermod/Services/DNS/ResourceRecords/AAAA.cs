@@ -51,7 +51,7 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
                     TimeSpan         TimeToLive,
                     IPv6Address      IPv6Address)
 
-            : base(Name, DNSResourceRecordTypes.A, Class, TimeToLive, IPv6Address.ToString())
+            : base(Name, DNSResourceRecordTypes.AAAA, Class, TimeToLive, IPv6Address.ToString())
 
         {
             this._IPv6Address = IPv6Address;

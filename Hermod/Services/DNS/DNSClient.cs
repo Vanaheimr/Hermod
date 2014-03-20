@@ -24,6 +24,7 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Diagnostics;
 using System.Collections.Generic;
+using System.Reflection;
 
 #endregion
 
@@ -35,6 +36,7 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
         #region Data
 
+        private readonly Dictionary<Byte, Type> RRLookup;
         private int position, length;
 
         #endregion
@@ -51,7 +53,7 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
         #region Constructor(s)
 
         /// <summary>
-        /// Default Constructor with QueryType: A 
+        /// Default Constructor with QueryType: A
         /// </summary>
         public DNSClient()
             : this("8.8.8.8", new IPPort(53))
@@ -63,10 +65,23 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
         public DNSClient(String DNSServer, IPPort Port)
         {
+
             this.Port              = new IPPort(53);
             this.DNSServer         = DNSServer;
             this.QueryTimeout      = TimeSpan.FromSeconds(10);
             this.RecursionDesired  = true;
+
+            //this.RRLookup          = new Dictionary<Byte, Type>();
+
+            //foreach (var _ActualType in typeof(ADNSResourceRecord).
+            //                                Assembly.GetTypes().
+            //                                Where(type => type.IsClass &&
+            //                                     !type.IsAbstract &&
+            //                                      type.IsSubclassOf(typeof(ADNSResourceRecord))))
+            //{
+            //    RRLookup.Add((Byte)((ADNSResourceRecord) Activator.CreateInstance(_ActualType, null)).Type, _ActualType);
+            //}
+
         }
 
         #endregion
@@ -148,7 +163,6 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
         }
 
         #endregion
-        
 
 
         #region ReadResponse(data)
@@ -158,58 +172,52 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
             #region DNS Header
 
-            var ID      = ((data[0] & byte.MaxValue) << 8) + (data[1] & byte.MaxValue);
-            var IS      = (data[2] & 128) == 128;                
-            var OpCode  = (data[2] >> 3 & 15);
-            var AA      = (data[2] & 4) == 4;
-            var TC      = (data[2] & 2) == 2;
-            var RD      = (data[2] & 1) == 1;
-            var RA      = (data[3] & 128) == 128;
-            var Z       = (data[3] & 1);//reserved, not used
-            var RC      = (data[3] & 15);
+            var RequestId       = ((data[0] & byte.MaxValue) << 8) + (data[1] & byte.MaxValue);
+            var IS              = (data[2] & 128) == 128;                
+            var OpCode          = (data[2] >> 3 & 15);
+            var AA              = (data[2] & 4) == 4;
+            var TC              = (data[2] & 2) == 2;
+            var RD              = (data[2] & 1) == 1;
+            var RA              = (data[3] & 128) == 128;
+            var Z               = (data[3] & 1);    //reserved, not used
+            var ResponseCode    = (DNSResponseCodes) (data[3] & 15);
 
             #endregion
 
-            //Counts
-            int QuestionCount   = ((data[4] & byte.MaxValue) << 8) | (data[5] & byte.MaxValue);
-            int AnswerCount     = ((data[6] & byte.MaxValue) << 8) | (data[7] & byte.MaxValue);
-            //Trace.WriteLine("Answer count: " + AnswerCount); 
-            int AuthorityCount  = ((data[8] & byte.MaxValue) << 8) | (data[9] & byte.MaxValue);
-            int AdditionalCount = ((data[10] & byte.MaxValue) << 8) | (data[11] & byte.MaxValue);
+            var QuestionCount   = ((data[4]  & byte.MaxValue) << 8) | (data[5]  & byte.MaxValue);
+            var AnswerCount     = ((data[6]  & byte.MaxValue) << 8) | (data[7]  & byte.MaxValue);
+            var AuthorityCount  = ((data[8]  & byte.MaxValue) << 8) | (data[9]  & byte.MaxValue);
+            var AdditionalCount = ((data[10] & byte.MaxValue) << 8) | (data[11] & byte.MaxValue);
 
-            //Create Response Object
-            var _Response = new DNSResponse(ID, AA, TC, RD, RA, RC); 
+            #region Process Questions
 
-            //FINISHED HEADER
+            position = 12;
 
-            //GET QUESTIONS
-            position=12;
-
-            for(int i=0; i<QuestionCount; ++i)
+            for (var i = 0; i < QuestionCount; ++i)
             {
-
-                string QuestionName = GetName(data);
-
-                //two octec field
-                int TypeID = (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
-                DNSResourceRecordTypes QuestionType = (DNSResourceRecordTypes)TypeID; 
-
-                //two octec field
-                int ClassID = (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
-                DNSQueryClasses QuestionClass = (DNSQueryClasses)ClassID;
-
+                var QuestionName   = GetName(data);
+                var TypeID         = (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
+                var QuestionType   = (DNSResourceRecordTypes) TypeID;
+                var ClassID        = (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
+                var QuestionClass  = (DNSQueryClasses) ClassID;
             }
 
-            for (int i = 0; i < AnswerCount; ++i)
-                GetResourceRecord(data, i, _Response.Answers);
+            #endregion
 
-            for (int i = 0; i < AuthorityCount; ++i)
-                GetResourceRecord(data, i, _Response.Authorities);
+            var Answers            = new List<ADNSResourceRecord>();
+            var Authorities        = new List<ADNSResourceRecord>();
+            var AdditionalRecords  = new List<ADNSResourceRecord>();
 
-            for (int i = 0; i < AdditionalCount; ++i)
-                GetResourceRecord(data, i, _Response.AdditionalRecords);
+            for (var i = 0; i < AnswerCount; ++i)
+                Answers.Add(GetResourceRecord(data, i));
 
-            return _Response;
+            for (var i = 0; i < AuthorityCount; ++i)
+                Authorities.Add(GetResourceRecord(data, i));
+
+            for (var i = 0; i < AdditionalCount; ++i)
+                AdditionalRecords.Add(GetResourceRecord(data, i));
+
+            return new DNSResponse(RequestId, AA, TC, RD, RA, ResponseCode, Answers, Authorities, AdditionalRecords);
 
         }
 
@@ -217,88 +225,65 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
 
 
-        private void GetResourceRecord(Byte[] data, int i, List<ADNSResourceRecord> Container)
+        private ADNSResourceRecord GetResourceRecord(Byte[] data, Int32 i)
         {
 
-            //get resource (answer) name
-            string ResourceName = GetName(data);
+            var ResourceName   = GetName(data);
+            var TypeID         = (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
+            var ResourceType   = (DNSResourceRecordTypes) TypeID;
+            var ClassID        = (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
+            var ResourceClass  = (DNSQueryClasses) ClassID;
+            var TTL_Seconds    = TimeSpan.FromSeconds((data[position++] & byte.MaxValue) << 24 | (data[position++] & byte.MaxValue) << 16 | (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue);
+            var RDLength       = (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
 
-            //get resource type and class, usefull when using the ANY query
-            //type: two octec field
-            int TypeID = (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
-            DNSResourceRecordTypes ResourceType = (DNSResourceRecordTypes)TypeID;
-
-            //type: two octec field
-            int ClassID = (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
-            DNSQueryClasses ResourceClass = (DNSQueryClasses)ClassID;
-
-            //ttl: unsigned integer
-            var TTL_Seconds = TimeSpan.FromSeconds((data[position++] & byte.MaxValue) << 24 | (data[position++] & byte.MaxValue) << 16 | (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue);
-
-            //Get Resource Data Length
-            int RDLength = (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
-
-            //Parse Resource Data: 4 possible formats: A, Text, SOA and MX
             switch(ResourceType) 
             {
 
                 case DNSResourceRecordTypes.A:
-                    Container.Add(new A(ResourceName, ResourceClass, TTL_Seconds, new IPv4Address(new Byte[] { data[position++], data[position++], data[position++], data[position++] })));
-                    break;
+                    return new A(ResourceName, ResourceClass, TTL_Seconds, new IPv4Address(new Byte[] { data[position++], data[position++], data[position++], data[position++] }));
 
                 case DNSResourceRecordTypes.AAAA:
-                    Container.Add(new AAAA(ResourceName, ResourceClass, TTL_Seconds, new IPv6Address(new Byte[] { data[position++], data[position++], data[position++], data[position++],
-                                                                                                                  data[position++], data[position++], data[position++], data[position++],
-                                                                                                                  data[position++], data[position++], data[position++], data[position++], 
-                                                                                                                  data[position++], data[position++], data[position++], data[position++] })));
-                    break;
+                    return new AAAA(ResourceName, ResourceClass, TTL_Seconds, new IPv6Address(new Byte[] { data[position++], data[position++], data[position++], data[position++],
+                                                                                                           data[position++], data[position++], data[position++], data[position++],
+                                                                                                           data[position++], data[position++], data[position++], data[position++], 
+                                                                                                           data[position++], data[position++], data[position++], data[position++] }));
 
                 case DNSResourceRecordTypes.SOA:
-                    //Extract Text Fields
-                    string Server = GetName(data);
-                    string Email  = GetName(data);
-
-                    //32 bit fields
-                    long Serial  = (data[position++] & byte.MaxValue) << 24 | (data[position++] & byte.MaxValue) << 16 | (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
-                    long Refresh = (data[position++] & byte.MaxValue) << 24 | (data[position++] & byte.MaxValue) << 16 | (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
-                    long Retry   = (data[position++] & byte.MaxValue) << 24 | (data[position++] & byte.MaxValue) << 16 | (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
-                    long Expire  = (data[position++] & byte.MaxValue) << 24 | (data[position++] & byte.MaxValue) << 16 | (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
-                    long Minimum = (data[position++] & byte.MaxValue) << 24 | (data[position++] & byte.MaxValue) << 16 | (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
-
-                    Container.Add(new SOA(ResourceName, ResourceType, ResourceClass, TTL_Seconds, Server, Email, Serial, Refresh, Retry, Expire, Minimum));
-
-                    break;
+                    var Server   = GetName(data);
+                    var Email    = GetName(data);
+                    var Serial   = (data[position++] & byte.MaxValue) << 24 | (data[position++] & byte.MaxValue) << 16 | (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
+                    var Refresh  = (data[position++] & byte.MaxValue) << 24 | (data[position++] & byte.MaxValue) << 16 | (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
+                    var Retry    = (data[position++] & byte.MaxValue) << 24 | (data[position++] & byte.MaxValue) << 16 | (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
+                    var Expire   = (data[position++] & byte.MaxValue) << 24 | (data[position++] & byte.MaxValue) << 16 | (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
+                    var Minimum  = (data[position++] & byte.MaxValue) << 24 | (data[position++] & byte.MaxValue) << 16 | (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
+                    return new SOA(ResourceName, ResourceClass, TTL_Seconds, Server, Email, Serial, Refresh, Retry, Expire, Minimum);
 
                 case DNSResourceRecordTypes.CNAME:
-                    Container.Add(new CNAME(ResourceName, ResourceClass, TTL_Seconds, GetName(data)));
-                    break; 
+                    return new CNAME(ResourceName, ResourceClass, TTL_Seconds, GetName(data));
 
                 case DNSResourceRecordTypes.MINFO:
-                    Container.Add(new MINFO(ResourceName, ResourceClass, TTL_Seconds, GetName(data)));
-                    break;
+                    return new MINFO(ResourceName, ResourceClass, TTL_Seconds, GetName(data));
 
                 case DNSResourceRecordTypes.NS:
-                    Container.Add(new NS(ResourceName, ResourceClass, TTL_Seconds, GetName(data)));
-                    break;
+                    return new NS(ResourceName, ResourceClass, TTL_Seconds, GetName(data));
 
                 case DNSResourceRecordTypes.PTR:
-                    Container.Add(new PTR(ResourceName, ResourceClass, TTL_Seconds, GetName(data)));
-                    break;
+                    return new PTR(ResourceName, ResourceClass, TTL_Seconds, GetName(data));
 
                 case DNSResourceRecordTypes.TXT:
-                    Container.Add(new TXT(ResourceName, ResourceClass, TTL_Seconds, GetName(data)));
-                    break;
+                    return new TXT(ResourceName, ResourceClass, TTL_Seconds, GetName(data));
 
                 case DNSResourceRecordTypes.MX:
                     int Rank = (data[position++] << 8) | (data[position++] & byte.MaxValue);
-                    Container.Add(new MX(ResourceName, ResourceType, ResourceClass, TTL_Seconds, Rank, GetName(data)));
-                    break;
+                    return new MX(ResourceName, ResourceType, ResourceClass, TTL_Seconds, Rank, GetName(data));
 
                 default:
                     Trace.WriteLine("Resource type did not match: " + ResourceType.ToString(), "RUY QDNS");
                     break;
 
             }
+
+            return null;
 
         }
 

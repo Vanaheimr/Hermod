@@ -126,11 +126,11 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
         #region DNSResourceRecord(Name, Type, Class, TimeToLive, RText)
 
-        public ADNSResourceRecord(String                  Name,
-                                  DNSResourceRecordTypes  Type,
-                                  DNSQueryClasses         Class,
-                                  TimeSpan                TimeToLive,
-                                  String                  RText)
+        public ADNSResourceRecord(String           Name,
+                                  DNSResourceRecordTypes Type,
+                                  DNSQueryClasses   Class,
+                                  TimeSpan          TimeToLive,
+                                  String            RText)
         {
 
             this._Name        = Name;

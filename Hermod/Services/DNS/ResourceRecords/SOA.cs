@@ -134,19 +134,18 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
         #region Constructor(s)
 
-        public SOA(String   _Name,
-                   DNSResourceRecordTypes    _Type,
+        public SOA(String           _Name,
                    DNSQueryClasses  _Class,
                    TimeSpan         TimeToLive,
-                   String   _Server,
-                   String   _Email,
-                   Int64    _Serial,
-                   Int64    _Refresh,
-                   Int64    _Retry,
-                   Int64    _Expire,
-                   Int64    _Minimum)
+                   String           _Server,
+                   String           _Email,
+                   Int64            _Serial,
+                   Int64            _Refresh,
+                   Int64            _Retry,
+                   Int64            _Expire,
+                   Int64            _Minimum)
 
-            : base(_Name, _Type, _Class, TimeToLive)
+            : base(_Name, DNSResourceRecordTypes.SOA, _Class, TimeToLive)
 
         {
 
