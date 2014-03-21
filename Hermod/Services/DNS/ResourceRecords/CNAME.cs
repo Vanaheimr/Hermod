@@ -18,6 +18,7 @@
 #region Usings
 
 using System;
+using System.IO;
 
 #endregion
 
@@ -50,6 +51,31 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
         #region Constructor
 
+        #region CNAME(Stream)
+
+        public CNAME(Stream  Stream)
+            : base(Stream, DNSResourceRecordTypes.CNAME)
+        {
+            this._Text  = DNSTools.ExtractName(Stream);
+        }
+
+        #endregion
+
+        #region CNAME(Name, Stream)
+
+        public CNAME(String  Name,
+                     Stream  Stream)
+
+            : base(Name, DNSResourceRecordTypes.CNAME, Stream)
+
+        {
+            this._Text  = DNSTools.ExtractName(Stream);
+        }
+
+        #endregion
+
+        #region CNAME(Name, Class, TimeToLive, RText)
+
         public CNAME(String           Name,
                      DNSQueryClasses  Class,
                      TimeSpan         TimeToLive,
@@ -58,8 +84,10 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
             : base(Name, DNSResourceRecordTypes.CNAME, Class, TimeToLive, RText)
 
         {
-            this._Text = RText;
+            this._Text  = RText;
         }
+
+        #endregion
 
         #endregion
 

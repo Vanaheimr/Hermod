@@ -18,6 +18,7 @@
 #region Usings
 
 using System;
+using System.IO;
 
 #endregion
 
@@ -46,6 +47,31 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
         #region Constructor
 
+        #region A(Stream)
+
+        public A(Stream Stream)
+            : base(Stream, DNSResourceRecordTypes.A)
+        {
+            this._IPv4Address    = new IPv4Address(Stream);
+        }
+
+        #endregion
+
+        #region A(Name, Stream)
+
+        public A(String           Name,
+                 Stream           Stream)
+
+            : base(Name, DNSResourceRecordTypes.A, Stream)
+
+        {
+            this._IPv4Address = new IPv4Address(Stream);
+        }
+
+        #endregion
+
+        #region A(Name, Class, TimeToLive, IPv4Address)
+
         public A(String           Name,
                  DNSQueryClasses  Class,
                  TimeSpan         TimeToLive,
@@ -56,6 +82,8 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
         {
             this._IPv4Address = IPv4Address;
         }
+
+        #endregion
 
         #endregion
 

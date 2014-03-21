@@ -18,6 +18,7 @@
 #region Usings
 
 using System;
+using System.IO;
 
 #endregion
 
@@ -50,6 +51,31 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
         #region Constructor
 
+        #region TXT(Stream)
+
+        public TXT(Stream  Stream)
+            : base(Stream, DNSResourceRecordTypes.TXT)
+        {
+            this._Text  = DNSTools.ExtractName(Stream);
+        }
+
+        #endregion
+
+        #region TXT(Name, Stream)
+
+        public TXT(String  Name,
+                   Stream  Stream)
+
+            : base(Name, DNSResourceRecordTypes.TXT, Stream)
+
+        {
+            this._Text  = DNSTools.ExtractName(Stream);
+        }
+
+        #endregion
+
+        #region TXT(Name, Class, TimeToLive, RText)
+
         public TXT(String           Name,
                    DNSQueryClasses  Class,
                    TimeSpan         TimeToLive,
@@ -60,6 +86,8 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
         {
             this._Text = RText;
         }
+
+        #endregion
 
         #endregion
 

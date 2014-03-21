@@ -18,6 +18,7 @@
 #region Usings
 
 using System;
+using System.IO;
 
 #endregion
 
@@ -107,37 +108,75 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
         #region Constructor(s)
 
-        #region DNSResourceRecord(Name, Type, Class, TimeToLive)
+        #region (protected) ADNSResourceRecord(DNSStream, Type)
 
-        public ADNSResourceRecord(String                  Name,
-                                  DNSResourceRecordTypes  Type,
-                                  DNSQueryClasses         Class,
-                                  TimeSpan                TimeToLive)
+        protected ADNSResourceRecord(Stream DNSStream, DNSResourceRecordTypes Type)
         {
 
-            this._Name        = Name;
-            this._Type        = Type;
-            this._Class       = Class;
-            this._TimeToLive  = TimeToLive;
+            this._Name          = DNSTools.ExtractName(DNSStream);
+            this._Type          = (DNSResourceRecordTypes) ((DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue);
+
+            if (_Type != Type)
+                throw new ArgumentException("Invalid DNS RR Type!");
+
+            this._Class         = (DNSQueryClasses) ((DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue);
+            this._TimeToLive    = TimeSpan.FromSeconds((DNSStream.ReadByte() & byte.MaxValue) << 24 | (DNSStream.ReadByte() & byte.MaxValue) << 16 | (DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue);
+
+            var RDLength        = (DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue;
 
         }
 
         #endregion
 
-        #region DNSResourceRecord(Name, Type, Class, TimeToLive, RText)
+        #region (protected) ADNSResourceRecord(Name, Type, DNSStream)
 
-        public ADNSResourceRecord(String           Name,
-                                  DNSResourceRecordTypes Type,
-                                  DNSQueryClasses   Class,
-                                  TimeSpan          TimeToLive,
-                                  String            RText)
+        protected ADNSResourceRecord(String                  Name,
+                                     DNSResourceRecordTypes  Type,
+                                     Stream                  DNSStream)
         {
 
-            this._Name        = Name;
-            this._Type        = Type;
-            this._Class       = Class;
-            this._TimeToLive  = TimeToLive;
-            this._RText       = RText;
+            this._Name          = Name;
+            this._Type          = Type;
+            this._Class         = (DNSQueryClasses) ((DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue);
+            this._TimeToLive    = TimeSpan.FromSeconds((DNSStream.ReadByte() & byte.MaxValue) << 24 | (DNSStream.ReadByte() & byte.MaxValue) << 16 | (DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue);
+
+            var RDLength        = (DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue;
+
+        }
+
+        #endregion
+
+        #region (protected) ADNSResourceRecord(Name, Type, Class, TimeToLive)
+
+        protected ADNSResourceRecord(String                  Name,
+                                     DNSResourceRecordTypes  Type,
+                                     DNSQueryClasses         Class,
+                                     TimeSpan                TimeToLive)
+        {
+
+            this._Name          = Name;
+            this._Type          = Type;
+            this._Class         = Class;
+            this._TimeToLive    = TimeToLive;
+
+        }
+
+        #endregion
+
+        #region (protected) ADNSResourceRecord(Name, Type, Class, TimeToLive, RText)
+
+        protected ADNSResourceRecord(String           Name,
+                                     DNSResourceRecordTypes Type,
+                                     DNSQueryClasses   Class,
+                                     TimeSpan          TimeToLive,
+                                     String            RText)
+        {
+
+            this._Name          = Name;
+            this._Type          = Type;
+            this._Class         = Class;
+            this._TimeToLive    = TimeToLive;
+            this._RText         = RText;
 
         }
 
