@@ -35,6 +35,20 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
     public static class DNSTools
     {
 
+        public static Byte[] ExtractByteArray(Stream DNSStream, UInt32 LengthOfSegment)
+        {
+
+            if (LengthOfSegment > 0)
+            {
+                var ByteArray = new Byte[LengthOfSegment];
+                DNSStream.Read(ByteArray, 0, (Int32) LengthOfSegment);
+                return ByteArray;
+            }
+
+            return new Byte[0];
+
+        }
+
         public static String ExtractName(Stream DNSStream)
         {
 

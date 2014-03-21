@@ -136,7 +136,19 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
             this._Algorithm    = (SSHFP_Algorithm)       (Stream.ReadByte() & Byte.MaxValue);
             this._Typ          = (SSHFP_FingerprintType) (Stream.ReadByte() & Byte.MaxValue);
-            this._Fingerprint  = DNSTools.ExtractName(Stream);
+
+            switch (this._Typ)
+            {
+
+                case SSHFP_FingerprintType.SHA1:
+                    this._Fingerprint  = BitConverter.ToString(DNSTools.ExtractByteArray(Stream, 20));
+                    break;
+
+                case SSHFP_FingerprintType.SHA256:
+                    this._Fingerprint  = BitConverter.ToString(DNSTools.ExtractByteArray(Stream, 32));
+                    break;
+
+            }
 
         }
 
