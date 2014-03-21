@@ -18,6 +18,7 @@
 #region Usings
 
 using System;
+using System.IO;
 
 #endregion
 
@@ -30,15 +31,97 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
     public class MX : ADNSResourceRecord
     {
 
-        public Int32    Preference;
-        public String   Exchange;
+        #region Data
 
-        public MX(String _Name, DNSResourceRecordTypes _Type, DNSQueryClasses _Class, TimeSpan _TimeToLive, Int32 _Preference, String _Exchange)
-            : base(_Name, DNSResourceRecordTypes.MX, _Class, _TimeToLive)
+        public const UInt16 TypeId = 15;
+
+        #endregion
+
+        #region Properties
+
+        #region Preference
+
+        private readonly Int32 _Preference;
+
+        public Int32 Preference
         {
-            Preference = _Preference;
-            Exchange = _Exchange; 
+            get
+            {
+                return _Preference;
+            }
         }
+
+        #endregion
+
+        #region Exchange
+
+        private readonly String _Exchange;
+
+        public String Exchange
+        {
+            get
+            {
+                return _Exchange;
+            }
+        }
+
+        #endregion
+
+        #endregion
+
+        #region Constructor
+
+        #region MX(Stream)
+
+        public MX(Stream  Stream)
+
+            : base(Stream, TypeId)
+
+        {
+
+            this._Preference  = (Stream.ReadByte() << 8) | (Stream.ReadByte() & Byte.MaxValue);
+            this._Exchange    = DNSTools.ExtractName(Stream);
+
+        }
+
+        #endregion
+
+        #region MX(Name, Stream)
+
+        public MX(String  Name,
+                  Stream  Stream)
+
+            : base(Name, TypeId, Stream)
+
+        {
+
+            this._Preference  = (Stream.ReadByte() << 8) | (Stream.ReadByte() & Byte.MaxValue);
+            this._Exchange    = DNSTools.ExtractName(Stream);
+
+        }
+
+        #endregion
+
+        #region MX(Name, Class, TimeToLive, Preference, Exchange)
+
+        public MX(String           Name,
+                  DNSQueryClasses  Class,
+                  TimeSpan         TimeToLive,
+                  Int32            Preference,
+                  String           Exchange)
+
+            : base(Name, TypeId, Class, TimeToLive)
+
+        {
+
+            this._Preference  = Preference;
+            this._Exchange    = Exchange;
+
+        }
+
+        #endregion
+
+        #endregion
 
     }
 

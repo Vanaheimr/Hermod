@@ -31,6 +31,12 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
     public class AAAA : ADNSResourceRecord
     {
 
+        #region Data
+
+        public const UInt16 TypeId = 28;
+
+        #endregion
+
         #region Properties
 
         private readonly IPv6Address _IPv6Address;
@@ -49,8 +55,8 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
         #region AAAA(Stream)
 
-        public AAAA(Stream Stream)
-            : base(Stream, DNSResourceRecordTypes.AAAA)
+        public AAAA(Stream  Stream)
+            : base(Stream, TypeId)
         {
             this._IPv6Address  = new IPv6Address(Stream);
         }
@@ -59,10 +65,10 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
         #region AAAA(Name, Stream)
 
-        public AAAA(String           Name,
-                    Stream           Stream)
+        public AAAA(String  Name,
+                    Stream  Stream)
 
-            : base(Name, DNSResourceRecordTypes.AAAA, Stream)
+            : base(Name, TypeId, Stream)
 
         {
             this._IPv6Address  = new IPv6Address(Stream);
@@ -77,7 +83,7 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
                     TimeSpan         TimeToLive,
                     IPv6Address      IPv6Address)
 
-            : base(Name, DNSResourceRecordTypes.AAAA, Class, TimeToLive, IPv6Address.ToString())
+            : base(Name, TypeId, Class, TimeToLive, IPv6Address.ToString())
 
         {
             this._IPv6Address  = IPv6Address;

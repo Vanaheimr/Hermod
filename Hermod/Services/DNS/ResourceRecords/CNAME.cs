@@ -31,6 +31,12 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
     public class CNAME : ADNSResourceRecord
     {
 
+        #region Data
+
+        public const UInt16 TypeId = 5;
+
+        #endregion
+
         #region Properties
 
         #region Text
@@ -54,7 +60,7 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
         #region CNAME(Stream)
 
         public CNAME(Stream  Stream)
-            : base(Stream, DNSResourceRecordTypes.CNAME)
+            : base(Stream, TypeId)
         {
             this._Text  = DNSTools.ExtractName(Stream);
         }
@@ -66,7 +72,7 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
         public CNAME(String  Name,
                      Stream  Stream)
 
-            : base(Name, DNSResourceRecordTypes.CNAME, Stream)
+            : base(Name, TypeId, Stream)
 
         {
             this._Text  = DNSTools.ExtractName(Stream);
@@ -81,7 +87,7 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
                      TimeSpan         TimeToLive,
                      String           RText)
 
-            : base(Name, DNSResourceRecordTypes.CNAME, Class, TimeToLive, RText)
+            : base(Name, TypeId, Class, TimeToLive, RText)
 
         {
             this._Text  = RText;

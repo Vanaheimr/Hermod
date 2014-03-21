@@ -73,6 +73,7 @@
     <Compile Include="Services\DNS\ENUMs\DNSQueryClasses.cs" />
     <Compile Include="Services\DNS\ResourceRecords\CNAME.cs" />
     <Compile Include="Services\DNS\ResourceRecords\AAAA.cs" />
+    <Compile Include="Services\DNS\ResourceRecords\SSHFP.cs" />
     <Compile Include="Services\DNS\ResourceRecords\NS.cs" />
     <Compile Include="Services\DNS\ResourceRecords\MINFO.cs" />
     <Compile Include="Services\DNS\ResourceRecords\PTR.cs" />

@@ -31,6 +31,12 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
     public class PTR : ADNSResourceRecord
     {
 
+        #region Data
+
+        public const UInt16 TypeId = 12;
+
+        #endregion
+
         #region Properties
 
         #region Text
@@ -54,7 +60,7 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
         #region PTR(Stream)
 
         public PTR(Stream  Stream)
-            : base(Stream, DNSResourceRecordTypes.PTR)
+            : base(Stream, TypeId)
         {
             this._Text  = DNSTools.ExtractName(Stream);
         }
@@ -66,7 +72,7 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
         public PTR(String  Name,
                    Stream  Stream)
 
-            : base(Name, DNSResourceRecordTypes.PTR, Stream)
+            : base(Name, TypeId, Stream)
 
         {
             this._Text  = DNSTools.ExtractName(Stream);
@@ -81,7 +87,7 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
                    TimeSpan         TimeToLive,
                    String           RText)
 
-            : base(Name, DNSResourceRecordTypes.PTR, Class, TimeToLive, RText)
+            : base(Name, TypeId, Class, TimeToLive, RText)
 
         {
             this._Text = RText;

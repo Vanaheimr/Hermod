@@ -31,6 +31,12 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
     public class MINFO : ADNSResourceRecord
     {
 
+        #region Data
+
+        public const UInt16 TypeId = 14;
+
+        #endregion
+
         #region Properties
 
         #region Text
@@ -54,7 +60,7 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
         #region MINFO(Stream)
 
         public MINFO(Stream Stream)
-            : base(Stream, DNSResourceRecordTypes.MINFO)
+            : base(Stream, TypeId)
         {
             this._Text  = DNSTools.ExtractName(Stream);
         }
@@ -66,7 +72,7 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
         public MINFO(String  Name,
                      Stream  Stream)
 
-            : base(Name, DNSResourceRecordTypes.MINFO, Stream)
+            : base(Name, TypeId, Stream)
 
         {
             this._Text  = DNSTools.ExtractName(Stream);
@@ -81,7 +87,7 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
                      TimeSpan         TimeToLive,
                      String           RText)
 
-            : base(Name, DNSResourceRecordTypes.MINFO, Class, TimeToLive, RText)
+            : base(Name, TypeId, Class, TimeToLive, RText)
 
         {
             this._Text  = RText;

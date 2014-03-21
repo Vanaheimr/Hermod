@@ -31,6 +31,12 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
     public class A : ADNSResourceRecord
     {
 
+        #region Data
+
+        public const UInt16 TypeId = 1;
+
+        #endregion
+
         #region Properties
 
         private readonly IPv4Address _IPv4Address;
@@ -49,23 +55,23 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
         #region A(Stream)
 
-        public A(Stream Stream)
-            : base(Stream, DNSResourceRecordTypes.A)
+        public A(Stream  Stream)
+            : base(Stream, TypeId)
         {
-            this._IPv4Address    = new IPv4Address(Stream);
+            this._IPv4Address  = new IPv4Address(Stream);
         }
 
         #endregion
 
         #region A(Name, Stream)
 
-        public A(String           Name,
-                 Stream           Stream)
+        public A(String  Name,
+                 Stream  Stream)
 
-            : base(Name, DNSResourceRecordTypes.A, Stream)
+            : base(Name, TypeId, Stream)
 
         {
-            this._IPv4Address = new IPv4Address(Stream);
+            this._IPv4Address  = new IPv4Address(Stream);
         }
 
         #endregion
@@ -77,10 +83,10 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
                  TimeSpan         TimeToLive,
                  IPv4Address      IPv4Address)
 
-            : base(Name, DNSResourceRecordTypes.A, Class, TimeToLive, IPv4Address.ToString())
+            : base(Name, TypeId, Class, TimeToLive, IPv4Address.ToString())
 
         {
-            this._IPv4Address = IPv4Address;
+            this._IPv4Address  = IPv4Address;
         }
 
         #endregion

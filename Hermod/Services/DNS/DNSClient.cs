@@ -90,7 +90,7 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
         #region Data
 
-        private readonly Dictionary<Byte, Type> RRLookup;
+        private readonly Dictionary<UInt16, ConstructorInfo> RRLookup;
         private int position, length;
 
         #endregion
@@ -125,16 +125,35 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
             this.QueryTimeout      = TimeSpan.FromSeconds(10);
             this.RecursionDesired  = true;
 
-            //this.RRLookup          = new Dictionary<DNSResourceRecordTypes, Type>();
+            #region Reflect ResourceRecordTypes
 
-            //foreach (var _ActualType in typeof(ADNSResourceRecord).
-            //                                Assembly.GetTypes().
-            //                                Where(type => type.IsClass &&
-            //                                     !type.IsAbstract &&
-            //                                      type.IsSubclassOf(typeof(ADNSResourceRecord))))
-            //{
-            //    RRLookup.Add((Byte)((ADNSResourceRecord) Activator.CreateInstance(_ActualType, null)).Type, _ActualType);
-            //}
+            this.RRLookup          = new Dictionary<UInt16, ConstructorInfo>();
+
+            FieldInfo        TypeIdField;
+            ConstructorInfo  Constructor;
+
+            foreach (var _ActualType in typeof(ADNSResourceRecord).
+                                            Assembly.GetTypes().
+                                            Where(type => type.IsClass &&
+                                                 !type.IsAbstract &&
+                                                  type.IsSubclassOf(typeof(ADNSResourceRecord))))
+            {
+
+                TypeIdField = _ActualType.GetField("TypeId");
+
+                if (TypeIdField == null)
+                    throw new ArgumentException("Constant field 'TypeId' of type '" + _ActualType.Name + "' was not found!");
+
+                Constructor = _ActualType.GetConstructor(new Type[2] { typeof(String), typeof(Stream) });
+
+                if (Constructor == null)
+                    throw new ArgumentException("Constructor<String, Stream> of type '" + _ActualType.Name + "' was not found!");
+
+                RRLookup.Add((UInt16) TypeIdField.GetValue(_ActualType), Constructor);
+
+            }
+
+            #endregion
 
         }
 
@@ -143,12 +162,12 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
         #region Query(DomainName, params ResourceRecordTypes)
 
-        public DNSResponse Query(String                           DomainName,
-                                 params DNSResourceRecordTypes[]  ResourceRecordTypes)
+        public DNSResponse Query(String           DomainName,
+                                 params UInt16[]  ResourceRecordTypes)
         {
 
             if (ResourceRecordTypes.Length == 0)
-                ResourceRecordTypes = new DNSResourceRecordTypes[1] { DNSResourceRecordTypes.ANY };
+                ResourceRecordTypes = new UInt16[1] { 255 };
 
             // Preparing the DNS query packet
             var QueryPacket = new DNSQuery(DomainName, ResourceRecordTypes) {
@@ -181,21 +200,14 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
             where T : ADNSResourceRecord
         {
 
-            DNSResourceRecordTypes DNSResourceRecordType;
+            var TypeIdField = typeof(T).GetField("TypeId");
 
-            if (typeof(T) == typeof(A))
-                DNSResourceRecordType = DNSResourceRecordTypes.A;
+            if (TypeIdField == null)
+                throw new ArgumentException("Constant field 'TypeId' of type '" + typeof(T).Name + "' was not found!");
 
-            else if (typeof(T) == typeof(TXT))
-                DNSResourceRecordType = DNSResourceRecordTypes.TXT;
+            var TypeId = (UInt16) TypeIdField.GetValue(typeof(T));
 
-            else if (typeof(T) == typeof(CNAME))
-                DNSResourceRecordType = DNSResourceRecordTypes.CNAME;
-
-            else
-                throw new ArgumentException("");
-
-            return Query(DomainName, DNSResourceRecordType).
+            return Query(DomainName, new UInt16[1] { TypeId }).
                        Answers.
                        Where(v => v.GetType() == typeof(T)).
                        Select(v => v as T);
@@ -259,8 +271,8 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
             for (var i = 0; i < QuestionCount; ++i) {
                 var QuestionName  = DNSTools.ExtractName(DNSBuffer);
-                var TypeId        = (DNSResourceRecordTypes) ((DNSBuffer.ReadByte() & byte.MaxValue) << 8 | DNSBuffer.ReadByte() & byte.MaxValue);
-                var ClassId       = (DNSQueryClasses)        ((DNSBuffer.ReadByte() & byte.MaxValue) << 8 | DNSBuffer.ReadByte() & byte.MaxValue);
+                var TypeId        = (UInt16)          ((DNSBuffer.ReadByte() & Byte.MaxValue) << 8 | DNSBuffer.ReadByte() & Byte.MaxValue);
+                var ClassId       = (DNSQueryClasses) ((DNSBuffer.ReadByte() & Byte.MaxValue) << 8 | DNSBuffer.ReadByte() & Byte.MaxValue);
             }
 
             #endregion
@@ -284,63 +296,27 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
         #endregion
 
-
+        #region (private) GetResourceRecord(DNSStream)
 
         private ADNSResourceRecord GetResourceRecord(Stream DNSStream)
         {
 
             var ResourceName  = DNSTools.ExtractName(DNSStream);
-            var TypeId        = (DNSResourceRecordTypes) ((DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue);
+            var TypeId        = (UInt16) ((DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue);
 
-            switch (TypeId)
-            {
+            ConstructorInfo Constructor;
 
-                case DNSResourceRecordTypes.A:
-                    return new A(ResourceName, DNSStream);
-
-                case DNSResourceRecordTypes.AAAA:
-                    return new AAAA(ResourceName, DNSStream);
-
-                //case DNSResourceRecordTypes.SOA:
-                //    var Server   = DNSTools.ExtractName(DNSStream);
-                //    var Email    = DNSTools.ExtractName(DNSStream);
-                //    var Serial   = (DNSStream.ReadByte() & byte.MaxValue) << 24 | (DNSStream.ReadByte() & byte.MaxValue) << 16 | (DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue;
-                //    var Refresh  = (DNSStream.ReadByte() & byte.MaxValue) << 24 | (DNSStream.ReadByte() & byte.MaxValue) << 16 | (DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue;
-                //    var Retry    = (DNSStream.ReadByte() & byte.MaxValue) << 24 | (DNSStream.ReadByte() & byte.MaxValue) << 16 | (DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue;
-                //    var Expire   = (DNSStream.ReadByte() & byte.MaxValue) << 24 | (DNSStream.ReadByte() & byte.MaxValue) << 16 | (DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue;
-                //    var Minimum  = (DNSStream.ReadByte() & byte.MaxValue) << 24 | (DNSStream.ReadByte() & byte.MaxValue) << 16 | (DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue;
-                //    return new SOA(ResourceName, ClassId, TTL_Seconds, Server, Email, Serial, Refresh, Retry, Expire, Minimum);
-
-                case DNSResourceRecordTypes.CNAME:
-                    return new CNAME(ResourceName, DNSStream);
-
-                case DNSResourceRecordTypes.MINFO:
-                    return new MINFO(ResourceName, DNSStream);
-
-                case DNSResourceRecordTypes.NS:
-                    return new NS(ResourceName, DNSStream);
-
-                case DNSResourceRecordTypes.PTR:
-                    return new PTR(ResourceName, DNSStream);
-
-                case DNSResourceRecordTypes.TXT:
-                    return new TXT(ResourceName, DNSStream);
-
-                //case DNSResourceRecordTypes.MX:
-                //    int Rank = (DNSStream.ReadByte() << 8) | (DNSStream.ReadByte() & byte.MaxValue);
-                //    return new MX(ResourceName, TypeId, ClassId, TTL_Seconds, Rank, DNSTools.ExtractName(DNSStream));
-
-                default:
-                    Trace.WriteLine("Resource type did not match: " + TypeId.ToString(), "RUY QDNS");
-                    break;
-
-            }
+            if (RRLookup.TryGetValue(TypeId, out Constructor))
+                return (ADNSResourceRecord) Constructor.Invoke(new Object[2] {
+                                                                   ResourceName,
+                                                                   DNSStream
+                                                               });
 
             return null;
 
         }
 
-
+        #endregion
 
     }
 
