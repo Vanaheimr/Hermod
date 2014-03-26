@@ -74,7 +74,7 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
         #region Query(DomainName, params DNSResourceRecordTypes)
 
-        public DNSResponse Query(String                           DomainName,
+        public DNSInfo Query(String                           DomainName,
                                  params DNSResourceRecordTypes[]  DNSResourceRecordTypes)
         {
 
@@ -153,7 +153,7 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
         #region ReadResponse(data)
 
-        private DNSResponse ReadResponse(Byte[] data)
+        private DNSInfo ReadResponse(Byte[] data)
         {
 
             #region DNS Header
@@ -166,7 +166,7 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
             var RD      = (data[2] & 1) == 1;
             var RA      = (data[3] & 128) == 128;
             var Z       = (data[3] & 1);//reserved, not used
-            var RC      = (data[3] & 15);
+            var RC      = (DNSResponseCodes) (data[3] & 15);
 
             #endregion
 
@@ -177,9 +177,6 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
             int AuthorityCount  = ((data[8] & byte.MaxValue) << 8) | (data[9] & byte.MaxValue);
             int AdditionalCount = ((data[10] & byte.MaxValue) << 8) | (data[11] & byte.MaxValue);
 
-            //Create Response Object
-            var _Response = new DNSResponse(ID, AA, TC, RD, RA, RC); 
-
             //FINISHED HEADER
 
             //GET QUESTIONS
@@ -188,28 +185,30 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
             for(int i=0; i<QuestionCount; ++i)
             {
 
-                string QuestionName = GetName(data);
+                var QuestionName   = GetName(data);
 
-                //two octec field
-                int TypeID = (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
-                DNSResourceRecordTypes QuestionType = (DNSResourceRecordTypes)TypeID; 
+                var TypeId         = (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
+                var QuestionType   = (DNSResourceRecordTypes) TypeId;
 
-                //two octec field
-                int ClassID = (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
-                DNSQueryClasses QuestionClass = (DNSQueryClasses)ClassID;
+                var ClassId        = (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
+                var QuestionClass  = (DNSQueryClasses) ClassId;
 
             }
 
+            var Answers            = new List<ADNSResourceRecord>();
+            var Authorities        = new List<ADNSResourceRecord>();
+            var AdditionalRecords  = new List<ADNSResourceRecord>();
+
             for (int i = 0; i < AnswerCount; ++i)
-                GetResourceRecord(data, i, _Response.Answers);
+                GetResourceRecord(data, i, Answers);
 
             for (int i = 0; i < AuthorityCount; ++i)
-                GetResourceRecord(data, i, _Response.Authorities);
+                GetResourceRecord(data, i, Authorities);
 
             for (int i = 0; i < AdditionalCount; ++i)
-                GetResourceRecord(data, i, _Response.AdditionalRecords);
+                GetResourceRecord(data, i, AdditionalRecords);
 
-            return _Response;
+            return new DNSInfo(ID, AA, TC, RD, RA, RC, Answers, Authorities, AdditionalRecords);
 
         }
 

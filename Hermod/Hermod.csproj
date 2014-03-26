@@ -64,6 +64,9 @@
     <Compile Include="Services\CSV\Delegates.cs" />
     <Compile Include="Services\CSV\CSVTCPServer.cs" />
     <Compile Include="Services\CSV\ProcessUDPPacketArrow.cs" />
+    <Compile Include="Services\DNS\NoDNSPaketInformation.cs" />
+    <Compile Include="Services\DNS\DNSCacheEntry.cs" />
+    <Compile Include="Services\DNS\DNSCache.cs" />
     <Compile Include="Services\DNS\DNSQuery.cs" />
     <Compile Include="Services\DNS\ENUMs\DNSResponseCodes.cs" />
     <Compile Include="Services\DNS\ENUMs\DNSResourceRecordTypes.cs" />

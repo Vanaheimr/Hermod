@@ -89,6 +89,38 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
         #endregion
 
+        #region EndOfLife // [NoDNSPaketInformation]
+
+        [NoDNSPaketInformation]
+        private readonly DateTime _EndOfLife;
+
+        [NoDNSPaketInformation]
+        public DateTime EndOfLife
+        {
+            get
+            {
+                return _EndOfLife;
+            }
+        }
+
+        #endregion
+
+        #region Source // [NoDNSPaketInformation]
+
+        [NoDNSPaketInformation]
+        private readonly IIPAddress _Source;
+
+        [NoDNSPaketInformation]
+        public IIPAddress Source
+        {
+            get
+            {
+                return _Source;
+            }
+        }
+
+        #endregion
+
         #region RText
 
         private readonly String _RText;
@@ -107,7 +139,45 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
         #region Constructor(s)
 
-        #region DNSResourceRecord(Name, Type, Class, TimeToLive)
+        #region ADNSResourceRecord(Name, Type, Class, TimeToLive, Source)
+
+        public ADNSResourceRecord(String                  Name,
+                                  DNSResourceRecordTypes  Type,
+                                  DNSQueryClasses         Class,
+                                  TimeSpan                TimeToLive,
+                                  IIPAddress              Source)
+        {
+
+            this._Name        = Name;
+            this._Type        = Type;
+            this._Class       = Class;
+            this._TimeToLive  = TimeToLive;
+            this._EndOfLife   = DateTime.Now + TimeToLive;
+
+        }
+
+        #endregion
+
+        #region ADNSResourceRecord(Name, Type, Class, TimeToLive, Source, RText)
+
+        public ADNSResourceRecord(String                  Name,
+                                  DNSResourceRecordTypes  Type,
+                                  DNSQueryClasses         Class,
+                                  TimeSpan                TimeToLive,
+                                  IIPAddress              Source,
+                                  String                  RText)
+
+            : this(Name, Type, Class, TimeToLive, Source)
+
+        {
+
+            this._RText       = RText;
+
+        }
+
+        #endregion
+
+        #region ADNSResourceRecord(Name, Type, Class, TimeToLive)
 
         public ADNSResourceRecord(String                  Name,
                                   DNSResourceRecordTypes  Type,
@@ -119,24 +189,24 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
             this._Type        = Type;
             this._Class       = Class;
             this._TimeToLive  = TimeToLive;
+            this._EndOfLife   = DateTime.Now + TimeToLive;
 
         }
 
         #endregion
 
-        #region DNSResourceRecord(Name, Type, Class, TimeToLive, RText)
+        #region ADNSResourceRecord(Name, Type, Class, TimeToLive, RText)
 
         public ADNSResourceRecord(String                  Name,
                                   DNSResourceRecordTypes  Type,
                                   DNSQueryClasses         Class,
                                   TimeSpan                TimeToLive,
                                   String                  RText)
+
+            : this(Name, Type, Class, TimeToLive)
+
         {
 
-            this._Name        = Name;
-            this._Type        = Type;
-            this._Class       = Class;
-            this._TimeToLive  = TimeToLive;
             this._RText       = RText;
 
         }
@@ -145,7 +215,6 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
         #endregion
 
-
         #region ToString()
 
         /// <summary>
@@ -153,7 +222,7 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
         /// </summary>
         public override String ToString()
         {
-            return String.Concat("Name=", _Name, ", Type=", _Type, ", Class=", _Class, ", TTL=", _TimeToLive);
+            return String.Concat("Name=", _Name, ", Type=", _Type, ", Class=", _Class, ", TTL=", _TimeToLive, " EndOfLife=" + EndOfLife, ", Source=", Source.ToString());
         }
 
         #endregion

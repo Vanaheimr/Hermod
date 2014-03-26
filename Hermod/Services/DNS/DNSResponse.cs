@@ -18,6 +18,7 @@
 #region Usings
 
 using System;
+using System.Linq;
 using System.Collections.Generic;
 
 #endregion
@@ -25,107 +26,186 @@ using System.Collections.Generic;
 namespace eu.Vanaheimr.Hermod.Services.DNS
 {
 
-    public class DNSResponse
+    public class DNSInfo
     {
 
-        private int _QueryID;
+        #region Properties
 
-        //Property Internals
-        private bool _AuthorativeAnswer;
-        private bool _IsTruncated;
-        private bool _RecursionDesired;
-        private bool _RecursionAvailable;
-        private DNSResponseCodes _ResponseCode;
+        #region QueryId
 
-        private List<ADNSResourceRecord> _ResourceRecords;
-        private List<ADNSResourceRecord> _Answers;
-        private List<ADNSResourceRecord> _Authorities;
-        private List<ADNSResourceRecord> _AdditionalRecords;
+        private readonly Int32 _QueryId;
 
-        //Read Only Public Properties
-        public int QueryID
+        public Int32 QueryId
         {
-            get { return _QueryID; }
+            get
+            {
+                return _QueryId;
+            }
         }
 
-        public bool AuthorativeAnswer
+        #endregion
+
+        #region AuthorativeAnswer
+
+        private readonly Boolean _AuthorativeAnswer;
+
+        public Boolean AuthorativeAnswer
         {
-            get { return _AuthorativeAnswer; }
+            get
+            {
+                return _AuthorativeAnswer;
+            }
         }
 
-        public bool IsTruncated
+        #endregion
+
+        #region IsTruncated
+
+        private readonly Boolean _IsTruncated;
+
+        public Boolean IsTruncated
         {
-            get { return _IsTruncated; }
+            get
+            {
+                return _IsTruncated;
+            }
         }
 
-        public bool RecursionRequested
+        #endregion
+
+        #region RecursionRequested
+
+        private readonly Boolean _RecursionDesired;
+
+        public Boolean RecursionRequested
         {
-            get { return _RecursionDesired; }
+            get
+            {
+                return _RecursionDesired;
+            }
         }
 
-        public bool RecursionAvailable
+        #endregion
+
+        #region RecursionAvailable
+
+        private readonly Boolean _RecursionAvailable;
+
+        public Boolean RecursionAvailable
         {
-            get { return _RecursionAvailable; }
+            get
+            {
+                return _RecursionAvailable;
+            }
         }
+
+        #endregion
+
+        #region ResponseCode
+
+        private readonly DNSResponseCodes _ResponseCode;
 
         public DNSResponseCodes ResponseCode
         {
-            get { return _ResponseCode; } 
-        }
-
-        public List<ADNSResourceRecord> Answers 
-        {
-            get { return _Answers; }
-        }
-
-        public List<ADNSResourceRecord> Authorities
-        {
-            get { return _Authorities; }
-        }
-
-        public List<ADNSResourceRecord> AdditionalRecords
-        {
-            get { return _AdditionalRecords; }
-        }
-
-
-        public List<ADNSResourceRecord> ResourceRecords
-        {
-            get 
+            get
             {
-                if (_ResourceRecords.Count == 0 && _Answers.Count > 0 && _Authorities.Count > 0 && _AdditionalRecords.Count > 0)
-                {
-
-                    foreach (var rr in Answers)
-                        this._ResourceRecords.Add(rr);
-
-                    foreach (var rr in Authorities)
-                        this._ResourceRecords.Add(rr);
-
-                    foreach (var rr in AdditionalRecords)
-                        this._ResourceRecords.Add(rr);
-
-                }
-
-                return _ResourceRecords; 
-            } 
+                return _ResponseCode;
+            }
         }
 
-        public DNSResponse(int ID, bool AA, bool TC, bool RD, bool RA, int RC) 
+        #endregion
+
+
+        #region Answers
+
+        private readonly List<ADNSResourceRecord> _Answers;
+
+        public IEnumerable<ADNSResourceRecord> Answers
         {
-            this._QueryID = ID; 
-            this._AuthorativeAnswer = AA; 
-            this._IsTruncated = TC; 
-            this._RecursionDesired = RD; 
-            this._RecursionAvailable = RA; 
-            this._ResponseCode = (DNSResponseCodes) RC; 
-
-            this._ResourceRecords   = new List<ADNSResourceRecord>(); 
-            this._Answers           = new List<ADNSResourceRecord>(); 
-            this._Authorities       = new List<ADNSResourceRecord>(); 
-            this._AdditionalRecords = new List<ADNSResourceRecord>(); 
+            get
+            {
+                return _Answers;
+            }
         }
 
+        #endregion
+
+        #region Authorities
+
+        private readonly List<ADNSResourceRecord> _Authorities;
+
+        public IEnumerable<ADNSResourceRecord> Authorities
+        {
+            get
+            {
+                return _Authorities;
+            }
+        }
+
+        #endregion
+
+        #region AdditionalRecords
+
+        private List<ADNSResourceRecord> _AdditionalRecords;
+
+        public IEnumerable<ADNSResourceRecord> AdditionalRecords
+        {
+            get
+            {
+                return _AdditionalRecords;
+            }
+        }
+
+        #endregion
+
+        #endregion
+
+        #region Constructor(s)
+
+        public DNSInfo(Int32                            QueryId,
+                       Boolean                          IsAuthorativeAnswer,
+                       Boolean                          IsTruncated,
+                       Boolean                          RecursionDesired,
+                       Boolean                          RecursionAvailable,
+                       DNSResponseCodes                 ResponseCode,
+                       IEnumerable<ADNSResourceRecord>  Answers,
+                       IEnumerable<ADNSResourceRecord>  Authorities,
+                       IEnumerable<ADNSResourceRecord>  AdditionalRecords)
+        {
+
+            this._QueryId             = QueryId;
+            this._AuthorativeAnswer   = IsAuthorativeAnswer;
+            this._IsTruncated         = IsTruncated;
+            this._RecursionDesired    = RecursionDesired;
+            this._RecursionAvailable  = RecursionAvailable;
+            this._ResponseCode        = ResponseCode;
+
+            this._Answers             = new List<ADNSResourceRecord>(Answers);
+            this._Authorities         = new List<ADNSResourceRecord>(Authorities);
+            this._AdditionalRecords   = new List<ADNSResourceRecord>(AdditionalRecords);
+
+        }
+
+        #endregion
+
+
+        internal void AddAnswer(ADNSResourceRecord ResourceRecord)
+        {
+            this._Answers.Add(ResourceRecord);
+        }
+
+        internal void CleanUp()
+        {
+
+            var Now       = DateTime.Now;
+            var ToDelete  = new List<ADNSResourceRecord>();
+
+            _Answers.           RemoveAll(RR => RR.EndOfLife > Now);
+            _Authorities.       RemoveAll(RR => RR.EndOfLife > Now);
+            _AdditionalRecords. RemoveAll(RR => RR.EndOfLife > Now);
+
+        }
 
     }
+
 }
