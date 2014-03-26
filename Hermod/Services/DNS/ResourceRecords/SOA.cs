@@ -18,6 +18,7 @@
 #region Usings
 
 using System;
+using System.IO;
 
 #endregion
 
@@ -29,6 +30,12 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
     /// </summary>
     public class SOA : ADNSResourceRecord
     {
+
+        #region Data
+
+        public const UInt16 TypeId = 6;
+
+        #endregion
 
         #region Properties
 
@@ -132,33 +139,77 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
         #endregion
 
-        #region Constructor(s)
+        #region Constructor
 
-        public SOA(String   _Name,
-                   DNSResourceRecordTypes    _Type,
-                   DNSQueryClasses  _Class,
-                   TimeSpan         TimeToLive,
-                   String   _Server,
-                   String   _Email,
-                   Int64    _Serial,
-                   Int64    _Refresh,
-                   Int64    _Retry,
-                   Int64    _Expire,
-                   Int64    _Minimum)
+        #region SOA(Stream)
 
-            : base(_Name, _Type, _Class, TimeToLive)
+        public SOA(Stream  Stream)
+
+            : base(Stream, TypeId)
 
         {
 
-            this._Server      = Server;
-            this._Email       = Email;
-            this._Serial      = Serial;
-            this._Refresh     = Refresh;
-            this._Retry       = Retry;
-            this._Expire      = Expire;
-            this._Minimum     = Minimum;
+            this._Server   = DNSTools.ExtractName(Stream);
+            this._Email    = DNSTools.ExtractName(Stream);
+            this._Serial   = (Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue;
+            this._Refresh  = (Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue;
+            this._Retry    = (Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue;
+            this._Expire   = (Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue;
+            this._Minimum  = (Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue;
 
         }
+
+        #endregion
+
+        #region SOA(Name, Stream)
+
+        public SOA(String  Name,
+                   Stream  Stream)
+
+            : base(Name, TypeId, Stream)
+
+        {
+
+            this._Server   = DNSTools.ExtractName(Stream);
+            this._Email    = DNSTools.ExtractName(Stream);
+            this._Serial   = (Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue;
+            this._Refresh  = (Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue;
+            this._Retry    = (Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue;
+            this._Expire   = (Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue;
+            this._Minimum  = (Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue;
+
+        }
+
+        #endregion
+
+        #region SOA(Name, Class, TimeToLive, ...)
+
+        public SOA(String           Name,
+                   DNSQueryClasses  Class,
+                   TimeSpan         TimeToLive,
+                   String           Server,
+                   String           Email,
+                   Int64            Serial,
+                   Int64            Refresh,
+                   Int64            Retry,
+                   Int64            Expire,
+                   Int64            Minimum)
+
+            : base(Name, TypeId, Class, TimeToLive)
+
+        {
+
+            this._Server   = Server;
+            this._Email    = Email;
+            this._Serial   = Serial;
+            this._Refresh  = Refresh;
+            this._Retry    = Retry;
+            this._Expire   = Expire;
+            this._Minimum  = Minimum;
+
+        }
+
+        #endregion
 
         #endregion
 

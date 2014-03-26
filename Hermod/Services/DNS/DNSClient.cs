@@ -24,17 +24,87 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Diagnostics;
 using System.Collections.Generic;
+using System.Reflection;
+using System.IO;
 
 #endregion
 
 namespace eu.Vanaheimr.Hermod.Services.DNS
 {
 
+    public static class DNSTools
+    {
+
+        public static Byte[] ExtractByteArray(Stream DNSStream, UInt32 LengthOfSegment)
+        {
+
+            if (LengthOfSegment > 0)
+            {
+                var ByteArray = new Byte[LengthOfSegment];
+                DNSStream.Read(ByteArray, 0, (Int32) LengthOfSegment);
+                return ByteArray;
+            }
+
+            return new Byte[0];
+
+        }
+
+        public static String ExtractName(Stream DNSStream)
+        {
+
+            var DNSName          = new StringBuilder();
+            var LengthOfSegment  = 0;
+            var OldPosition      = 0L;
+            var Alias            = String.Empty;
+            var buffer           = new Byte[512];
+
+            do
+            {
+
+                LengthOfSegment = (DNSStream.ReadByte() & Byte.MaxValue);
+
+                if (LengthOfSegment > 0)
+                {
+
+                    if (DNSName.Length > 0)
+                        DNSName.Append(".");
+
+                    // RDATA Compression
+                    if ((LengthOfSegment & 0xC0) == 0xC0)
+                    {
+
+                        OldPosition         = DNSStream.Position;
+                        DNSStream.Position  = ((LengthOfSegment & 0x3F) << 8) | (DNSStream.ReadByte() & Byte.MaxValue);
+                        Alias               = ExtractName(DNSStream);
+                        DNSStream.Position  = OldPosition + 1;
+
+                        return Alias;
+
+                    }
+
+                    else
+                    {
+                        DNSStream.Read(buffer, 0, LengthOfSegment);
+                        DNSName.Append(Encoding.ASCII.GetString(buffer, 0, LengthOfSegment));
+                    }
+
+                }
+
+            }
+            while (LengthOfSegment > 0);
+
+            return DNSName.ToString();
+
+        }
+
+    }
+
     public class DNSClient
     {
 
         #region Data
 
+        private readonly Dictionary<UInt16, ConstructorInfo> RRLookup;
         private int position, length;
 
         #endregion
@@ -51,7 +121,7 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
         #region Constructor(s)
 
         /// <summary>
-        /// Default Constructor with QueryType: A 
+        /// Default Constructor with QueryType: A
         /// </summary>
         public DNSClient()
             : this("8.8.8.8", new IPPort(53))
@@ -63,23 +133,58 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
         public DNSClient(String DNSServer, IPPort Port)
         {
+
             this.Port              = new IPPort(53);
             this.DNSServer         = DNSServer;
             this.QueryTimeout      = TimeSpan.FromSeconds(10);
             this.RecursionDesired  = true;
+
+            #region Reflect ResourceRecordTypes
+
+            this.RRLookup          = new Dictionary<UInt16, ConstructorInfo>();
+
+            FieldInfo        TypeIdField;
+            ConstructorInfo  Constructor;
+
+            foreach (var _ActualType in typeof(ADNSResourceRecord).
+                                            Assembly.GetTypes().
+                                            Where(type => type.IsClass &&
+                                                 !type.IsAbstract &&
+                                                  type.IsSubclassOf(typeof(ADNSResourceRecord))))
+            {
+
+                TypeIdField = _ActualType.GetField("TypeId");
+
+                if (TypeIdField == null)
+                    throw new ArgumentException("Constant field 'TypeId' of type '" + _ActualType.Name + "' was not found!");
+
+                Constructor = _ActualType.GetConstructor(new Type[2] { typeof(String), typeof(Stream) });
+
+                if (Constructor == null)
+                    throw new ArgumentException("Constructor<String, Stream> of type '" + _ActualType.Name + "' was not found!");
+
+                RRLookup.Add((UInt16) TypeIdField.GetValue(_ActualType), Constructor);
+
+            }
+
+            #endregion
+
         }
 
         #endregion
 
 
-        #region Query(DomainName, params DNSResourceRecordTypes)
+        #region Query(DomainName, params ResourceRecordTypes)
 
-        public DNSInfo Query(String                           DomainName,
-                                 params DNSResourceRecordTypes[]  DNSResourceRecordTypes)
+        public DNSInfo Query(String           DomainName,
+                             params UInt16[]  ResourceRecordTypes)
         {
 
+            if (ResourceRecordTypes.Length == 0)
+                ResourceRecordTypes = new UInt16[1] { 255 };
+
             // Preparing the DNS query packet
-            var QueryPacket = new DNSQuery(DomainName, DNSResourceRecordTypes) {
+            var QueryPacket = new DNSQuery(DomainName, ResourceRecordTypes) {
                                       RecursionDesired = RecursionDesired
                                   };
 
@@ -97,7 +202,7 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
             socket.Shutdown(SocketShutdown.Both);
 
-            return ReadResponse(data);
+            return ReadResponse(new MemoryStream(data));
 
         }
 
@@ -109,18 +214,14 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
             where T : ADNSResourceRecord
         {
 
-            DNSResourceRecordTypes DNSResourceRecordType;
+            var TypeIdField = typeof(T).GetField("TypeId");
 
-            if (typeof(T) == typeof(A))
-                DNSResourceRecordType = DNSResourceRecordTypes.A;
+            if (TypeIdField == null)
+                throw new ArgumentException("Constant field 'TypeId' of type '" + typeof(T).Name + "' was not found!");
 
-            else if (typeof(T) == typeof(TXT))
-                DNSResourceRecordType = DNSResourceRecordTypes.TXT;
+            var TypeId = (UInt16) TypeIdField.GetValue(typeof(T));
 
-            else
-                throw new ArgumentException("");
-
-            return Query(DomainName, DNSResourceRecordType).
+            return Query(DomainName, new UInt16[1] { TypeId }).
                        Answers.
                        Where(v => v.GetType() == typeof(T)).
                        Select(v => v as T);
@@ -148,228 +249,88 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
         }
 
         #endregion
-        
 
 
-        #region ReadResponse(data)
+        #region (private) ReadResponse(DNSBuffer)
 
-        private DNSInfo ReadResponse(Byte[] data)
+        private DNSInfo ReadResponse(Stream DNSBuffer)
         {
 
             #region DNS Header
 
-            var ID      = ((data[0] & byte.MaxValue) << 8) + (data[1] & byte.MaxValue);
-            var IS      = (data[2] & 128) == 128;                
-            var OpCode  = (data[2] >> 3 & 15);
-            var AA      = (data[2] & 4) == 4;
-            var TC      = (data[2] & 2) == 2;
-            var RD      = (data[2] & 1) == 1;
-            var RA      = (data[3] & 128) == 128;
-            var Z       = (data[3] & 1);//reserved, not used
-            var RC      = (DNSResponseCodes) (data[3] & 15);
+            var RequestId       = ((DNSBuffer.ReadByte() & Byte.MaxValue) << 8) + (DNSBuffer.ReadByte() & Byte.MaxValue);
+
+            var Byte2           = DNSBuffer.ReadByte();
+            var IS              = (Byte2 & 128) == 128;
+            var OpCode          = (Byte2 >> 3 & 15);
+            var AA              = (Byte2 & 4) == 4;
+            var TC              = (Byte2 & 2) == 2;
+            var RD              = (Byte2 & 1) == 1;
+
+            var Byte3           = DNSBuffer.ReadByte();
+            var RA              = (Byte3 & 128) == 128;
+            var Z               = (Byte3 & 1);    //reserved, not used
+            var ResponseCode    = (DNSResponseCodes) (Byte3 & 15);
+
+            var QuestionCount   = ((DNSBuffer.ReadByte() & Byte.MaxValue) << 8) | (DNSBuffer.ReadByte() & Byte.MaxValue);
+            var AnswerCount     = ((DNSBuffer.ReadByte() & Byte.MaxValue) << 8) | (DNSBuffer.ReadByte() & Byte.MaxValue);
+            var AuthorityCount  = ((DNSBuffer.ReadByte() & Byte.MaxValue) << 8) | (DNSBuffer.ReadByte() & Byte.MaxValue);
+            var AdditionalCount = ((DNSBuffer.ReadByte() & Byte.MaxValue) << 8) | (DNSBuffer.ReadByte() & Byte.MaxValue);
 
             #endregion
 
-            //Counts
-            int QuestionCount   = ((data[4] & byte.MaxValue) << 8) | (data[5] & byte.MaxValue);
-            int AnswerCount     = ((data[6] & byte.MaxValue) << 8) | (data[7] & byte.MaxValue);
-            //Trace.WriteLine("Answer count: " + AnswerCount); 
-            int AuthorityCount  = ((data[8] & byte.MaxValue) << 8) | (data[9] & byte.MaxValue);
-            int AdditionalCount = ((data[10] & byte.MaxValue) << 8) | (data[11] & byte.MaxValue);
+            #region Process Questions
 
-            //FINISHED HEADER
+            DNSBuffer.Seek(12, SeekOrigin.Begin);
 
-            //GET QUESTIONS
-            position=12;
-
-            for(int i=0; i<QuestionCount; ++i)
-            {
-
-                var QuestionName   = GetName(data);
-
-                var TypeId         = (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
-                var QuestionType   = (DNSResourceRecordTypes) TypeId;
-
-                var ClassId        = (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
-                var QuestionClass  = (DNSQueryClasses) ClassId;
-
+            for (var i = 0; i < QuestionCount; ++i) {
+                var QuestionName  = DNSTools.ExtractName(DNSBuffer);
+                var TypeId        = (UInt16)          ((DNSBuffer.ReadByte() & Byte.MaxValue) << 8 | DNSBuffer.ReadByte() & Byte.MaxValue);
+                var ClassId       = (DNSQueryClasses) ((DNSBuffer.ReadByte() & Byte.MaxValue) << 8 | DNSBuffer.ReadByte() & Byte.MaxValue);
             }
+
+            #endregion
 
             var Answers            = new List<ADNSResourceRecord>();
             var Authorities        = new List<ADNSResourceRecord>();
             var AdditionalRecords  = new List<ADNSResourceRecord>();
 
-            for (int i = 0; i < AnswerCount; ++i)
-                GetResourceRecord(data, i, Answers);
+            for (var i = 0; i < AnswerCount; ++i)
+                Answers.Add(ReadResourceRecord(DNSBuffer));
 
-            for (int i = 0; i < AuthorityCount; ++i)
-                GetResourceRecord(data, i, Authorities);
+            for (var i = 0; i < AuthorityCount; ++i)
+                Authorities.Add(ReadResourceRecord(DNSBuffer));
 
-            for (int i = 0; i < AdditionalCount; ++i)
-                GetResourceRecord(data, i, AdditionalRecords);
+            for (var i = 0; i < AdditionalCount; ++i)
+                AdditionalRecords.Add(ReadResourceRecord(DNSBuffer));
 
-            return new DNSInfo(ID, AA, TC, RD, RA, RC, Answers, Authorities, AdditionalRecords);
+            return new DNSInfo(RequestId, AA, TC, RD, RA, ResponseCode, Answers, Authorities, AdditionalRecords);
 
         }
 
         #endregion
 
+        #region (private) ReadResourceRecord(DNSStream)
 
-
-        private void GetResourceRecord(Byte[] data, int i, List<ADNSResourceRecord> Container)
+        private ADNSResourceRecord ReadResourceRecord(Stream DNSStream)
         {
 
-            //get resource (answer) name
-            string ResourceName = GetName(data);
+            var ResourceName  = DNSTools.ExtractName(DNSStream);
+            var TypeId        = (UInt16) ((DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue);
 
-            //get resource type and class, usefull when using the ANY query
-            //type: two octec field
-            int TypeID = (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
-            DNSResourceRecordTypes ResourceType = (DNSResourceRecordTypes)TypeID;
+            ConstructorInfo Constructor;
 
-            //type: two octec field
-            int ClassID = (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
-            DNSQueryClasses ResourceClass = (DNSQueryClasses)ClassID;
+            if (RRLookup.TryGetValue(TypeId, out Constructor))
+                return (ADNSResourceRecord) Constructor.Invoke(new Object[2] {
+                                                                   ResourceName,
+                                                                   DNSStream
+                                                               });
 
-            //ttl: unsigned integer
-            var TTL_Seconds = TimeSpan.FromSeconds((data[position++] & byte.MaxValue) << 24 | (data[position++] & byte.MaxValue) << 16 | (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue);
-
-            //Get Resource Data Length
-            int RDLength = (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
-
-            //Parse Resource Data: 4 possible formats: A, Text, SOA and MX
-            switch(ResourceType) 
-            {
-
-                case DNSResourceRecordTypes.A:
-                    Container.Add(new A(ResourceName, ResourceClass, TTL_Seconds, new IPv4Address(new Byte[] { data[position++], data[position++], data[position++], data[position++] })));
-                    break;
-
-                case DNSResourceRecordTypes.SOA:
-                    //Extract Text Fields
-                    string Server = GetName(data);
-                    string Email  = GetName(data);
-
-                    //32 bit fields
-                    long Serial  = (data[position++] & byte.MaxValue) << 24 | (data[position++] & byte.MaxValue) << 16 | (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
-                    long Refresh = (data[position++] & byte.MaxValue) << 24 | (data[position++] & byte.MaxValue) << 16 | (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
-                    long Retry   = (data[position++] & byte.MaxValue) << 24 | (data[position++] & byte.MaxValue) << 16 | (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
-                    long Expire  = (data[position++] & byte.MaxValue) << 24 | (data[position++] & byte.MaxValue) << 16 | (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
-                    long Minimum = (data[position++] & byte.MaxValue) << 24 | (data[position++] & byte.MaxValue) << 16 | (data[position++] & byte.MaxValue) << 8 | data[position++] & byte.MaxValue;
-
-                    Container.Add(new SOA(ResourceName, ResourceType, ResourceClass, TTL_Seconds, Server, Email, Serial, Refresh, Retry, Expire, Minimum));
-
-                    break;
-
-                case DNSResourceRecordTypes.CNAME:
-                    Container.Add(new CNAME(ResourceName, ResourceClass, TTL_Seconds, GetName(data)));
-                    break; 
-
-                case DNSResourceRecordTypes.MINFO:
-                    Container.Add(new MINFO(ResourceName, ResourceClass, TTL_Seconds, GetName(data)));
-                    break;
-
-                case DNSResourceRecordTypes.NS:
-                    Container.Add(new NS(ResourceName, ResourceClass, TTL_Seconds, GetName(data)));
-                    break;
-
-                case DNSResourceRecordTypes.PTR:
-                    Container.Add(new PTR(ResourceName, ResourceClass, TTL_Seconds, GetName(data)));
-                    break;
-
-                case DNSResourceRecordTypes.TXT:
-                    Container.Add(new TXT(ResourceName, ResourceClass, TTL_Seconds, GetName(data)));
-                    break;
-
-                case DNSResourceRecordTypes.MX:
-                    int Rank = (data[position++] << 8) | (data[position++] & byte.MaxValue);
-                    Container.Add(new MX(ResourceName, ResourceType, ResourceClass, TTL_Seconds, Rank, GetName(data)));
-                    break;
-
-                default:
-                    Trace.WriteLine("Resource type did not match: " + ResourceType.ToString(), "RUY QDNS");
-                    break;
-
-            }
+            return null;
 
         }
 
-        /// <summary>
-        /// Wrapper for not so pretty code =) 
-        /// </summary>
-        /// <returns></returns>
-        private string GetName(Byte[] data)
-        {
-            StringBuilder sb = new StringBuilder();
-            position = ExtractName(data, position, sb);
-            return sb.ToString(); 
-        }
-
-        /// <summary>
-        /// Gets name string segments from byte array. 
-        /// Uses the DNS "compression" support 
-        /// that gives a pointer to a previous 
-        /// occurrence of repeat names. 
-        /// -- not so pretty, consider killing
-        /// </summary>
-        /// <param name="position">Current Byte Array Reading Position</param>
-        /// <returns>New Global Cursor Position</returns>
-        private int ExtractName(Byte[] data, int ResourceDataCursor, StringBuilder Name)
-        {
-            //Get label for how many characters to extract in this segment
-            int LengthLabel = (data[ResourceDataCursor++] & byte.MaxValue);
-
-            if(LengthLabel == 0) 
-            {
-                return ResourceDataCursor;
-            }
-
-            do
-            {
-
-                if ((LengthLabel & 0xC0) == 0xC0)
-                {
-                    if (ResourceDataCursor >= length)
-                    {
-                        return -1;
-                    }
-
-                    //Compression OffsetID for RDATA Compression
-                    int CompressionOffsetID = ((LengthLabel & 0x3F) << 8) | (data[ResourceDataCursor++] & byte.MaxValue);
-                    ExtractName(data, CompressionOffsetID, Name);
-                    return ResourceDataCursor;
-                }
-                else
-                {
-
-                    if ((ResourceDataCursor + LengthLabel) > length)
-                    {
-                        return -1;
-                    }
-
-                    Name.Append(Encoding.ASCII.GetString(data, ResourceDataCursor, LengthLabel));
-                    ResourceDataCursor += LengthLabel;
-                }
-
-                if (ResourceDataCursor > length) 
-                {
-                    return -1;
-                }
-
-                LengthLabel = data[ResourceDataCursor++] & byte.MaxValue;
-
-                //if new length label is larger than 0, we have another segment
-                //so append dot. 
-                if (LengthLabel != 0) 
-                {
-                    Name.Append(".");
-                }
-
-            }
-            while (LengthLabel != 0);
-
-            return ResourceDataCursor;
-        }
+        #endregion
 
     }
 

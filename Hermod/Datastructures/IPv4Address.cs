@@ -18,6 +18,7 @@
 #region Usings
 
 using System;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -78,7 +79,7 @@ namespace eu.Vanaheimr.Hermod
 
         #region Constructor(s)
 
-        #region IPAddress(IPAddress)
+        #region IPv4Address(IPAddress)
 
         /// <summary>
         /// Generates a new IPv4Address based on the given System.Net.IPAddress.
@@ -89,7 +90,7 @@ namespace eu.Vanaheimr.Hermod
 
         #endregion
 
-        #region IPAddress(UInt32)
+        #region IPv4Address(UInt32)
 
         /// <summary>
         /// Generates a new IPv4Address based on the given UInt32 representation.
@@ -108,7 +109,7 @@ namespace eu.Vanaheimr.Hermod
 
         #endregion
 
-        #region IPAddress(ByteArray)
+        #region IPv4Address(ByteArray)
 
         /// <summary>
         /// Generates a new IPv4Address based on the given byte array representation.
@@ -127,7 +128,25 @@ namespace eu.Vanaheimr.Hermod
 
         #endregion
 
-        #region IPAddress(String)
+        #region IPv4Address(Stream)
+
+        /// <summary>
+        /// Reads a new IPv4Address from the given stream of bytes.
+        /// </summary>
+        public IPv4Address(Stream Stream)
+        {
+
+            if (!Stream.CanRead)
+                throw new FormatException("The given stream is invalid!");
+
+            IPAddressArray = new Byte[_Length];
+            Stream.Read(IPAddressArray, 0, _Length);
+
+        }
+
+        #endregion
+
+        #region IPv4Address(String)
 
         /// <summary>
         /// Generates a new IPv4Address based on the given string representation.

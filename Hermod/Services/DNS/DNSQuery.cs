@@ -33,7 +33,7 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
         public String                    DomainName;
         public Boolean                   RecursionDesired { get; set; }
 
-        public DNSResourceRecordTypes[]  QueryTypes;
+        public UInt16[]                  QueryTypes;
         public DNSQueryClasses           QueryClass;
 
         #endregion
@@ -43,19 +43,19 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
         #region DNSQuery(DomainName)
 
         public DNSQuery(String DomainName)
-            : this(DomainName, DNSResourceRecordTypes.A)
+            : this(DomainName, 255)
         { }
 
         #endregion
 
         #region DNSQuery(DomainName, params DNSResourceRecordType)
 
-        public DNSQuery(String                           DomainName,
-                        params DNSResourceRecordTypes[]  DNSResourceRecordType)
+        public DNSQuery(String           DomainName,
+                        params UInt16[]  DNSResourceRecordType)
         {
 
             if (DNSResourceRecordType == null || DNSResourceRecordType.Length == 0)
-                QueryTypes = new DNSResourceRecordTypes[1] { DNSResourceRecordTypes.A };
+                QueryTypes = new UInt16[1] { 255 };
 
             else
                 QueryTypes = DNSResourceRecordType;

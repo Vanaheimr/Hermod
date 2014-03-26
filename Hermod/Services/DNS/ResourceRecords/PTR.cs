@@ -18,6 +18,7 @@
 #region Usings
 
 using System;
+using System.IO;
 
 #endregion
 
@@ -29,6 +30,12 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
     /// </summary>
     public class PTR : ADNSResourceRecord
     {
+
+        #region Data
+
+        public const UInt16 TypeId = 12;
+
+        #endregion
 
         #region Properties
 
@@ -50,16 +57,43 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
         #region Constructor
 
+        #region PTR(Stream)
+
+        public PTR(Stream  Stream)
+            : base(Stream, TypeId)
+        {
+            this._Text  = DNSTools.ExtractName(Stream);
+        }
+
+        #endregion
+
+        #region PTR(Name, Stream)
+
+        public PTR(String  Name,
+                   Stream  Stream)
+
+            : base(Name, TypeId, Stream)
+
+        {
+            this._Text  = DNSTools.ExtractName(Stream);
+        }
+
+        #endregion
+
+        #region PTR(Name, Class, TimeToLive, RText)
+
         public PTR(String           Name,
                    DNSQueryClasses  Class,
                    TimeSpan         TimeToLive,
                    String           RText)
 
-            : base(Name, DNSResourceRecordTypes.PTR, Class, TimeToLive, RText)
+            : base(Name, TypeId, Class, TimeToLive, RText)
 
         {
             this._Text = RText;
         }
+
+        #endregion
 
         #endregion
 

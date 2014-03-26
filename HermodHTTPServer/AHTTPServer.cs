@@ -86,9 +86,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                                         SelectMany(v => v.GetManifestResourceNames().
 
-                                        Select(v2 => new
-                                        {
-                                            Assembly = v,
+                                        Select(v2 => new {
+                                            Assembly  = v,
                                             Ressource = v2
                                         })).
 

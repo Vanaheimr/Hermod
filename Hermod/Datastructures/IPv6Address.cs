@@ -18,6 +18,7 @@
 #region Usings
 
 using System;
+using System.IO;
 using System.Text;
 
 #endregion
@@ -87,17 +88,35 @@ namespace eu.Vanaheimr.Hermod
 
         #endregion
 
-        #region IPAddress(myByteArray)
+        #region IPv6Address(ByteArray)
 
         /// <summary>
         /// Generates a new IPv6Address.
         /// </summary>
-        public IPv6Address(Byte[] myByteArray)
+        public IPv6Address(Byte[] ByteArray)
         {
 
             IPAddressArray = new Byte[_Length];
 
-            Array.Copy(myByteArray, IPAddressArray, Math.Max(myByteArray.Length, _Length));
+            Array.Copy(ByteArray, IPAddressArray, Math.Max(ByteArray.Length, _Length));
+
+        }
+
+        #endregion
+
+        #region IPv6Address(Stream)
+
+        /// <summary>
+        /// Reads a new IPv6Address from the given stream of bytes.
+        /// </summary>
+        public IPv6Address(Stream Stream)
+        {
+
+            if (!Stream.CanRead)
+                throw new FormatException("The given stream is invalid!");
+
+            IPAddressArray = new Byte[_Length];
+            Stream.Read(IPAddressArray, 0, _Length);
 
         }
 

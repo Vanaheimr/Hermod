@@ -18,6 +18,7 @@
 #region Usings
 
 using System;
+using System.IO;
 
 #endregion
 
@@ -49,9 +50,9 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
         #region Type
 
-        private readonly DNSResourceRecordTypes _Type;
+        private readonly UInt16 _Type;
 
-        public DNSResourceRecordTypes Type
+        public UInt16 Type
         {
             get
             {
@@ -139,75 +140,78 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
         #region Constructor(s)
 
-        #region ADNSResourceRecord(Name, Type, Class, TimeToLive, Source)
+        #region (protected) ADNSResourceRecord(DNSStream, Type)
 
-        public ADNSResourceRecord(String                  Name,
-                                  DNSResourceRecordTypes  Type,
-                                  DNSQueryClasses         Class,
-                                  TimeSpan                TimeToLive,
-                                  IIPAddress              Source)
+        protected ADNSResourceRecord(Stream DNSStream, UInt16 Type)
         {
 
-            this._Name        = Name;
-            this._Type        = Type;
-            this._Class       = Class;
-            this._TimeToLive  = TimeToLive;
-            this._EndOfLife   = DateTime.Now + TimeToLive;
+            this._Name          = DNSTools.ExtractName(DNSStream);
+
+            this._Type = Type;
+            //this._Type          = (DNSResourceRecordTypes) ((DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue);
+
+            //if (_Type != Type)
+            //    throw new ArgumentException("Invalid DNS RR Type!");
+
+            this._Class         = (DNSQueryClasses) ((DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue);
+            this._TimeToLive    = TimeSpan.FromSeconds((DNSStream.ReadByte() & byte.MaxValue) << 24 | (DNSStream.ReadByte() & byte.MaxValue) << 16 | (DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue);
+
+            var RDLength        = (DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue;
 
         }
 
         #endregion
 
-        #region ADNSResourceRecord(Name, Type, Class, TimeToLive, Source, RText)
+        #region (protected) ADNSResourceRecord(Name, Type, DNSStream)
 
-        public ADNSResourceRecord(String                  Name,
-                                  DNSResourceRecordTypes  Type,
-                                  DNSQueryClasses         Class,
-                                  TimeSpan                TimeToLive,
-                                  IIPAddress              Source,
-                                  String                  RText)
-
-            : this(Name, Type, Class, TimeToLive, Source)
-
+        protected ADNSResourceRecord(String  Name,
+                                     UInt16  Type,
+                                     Stream  DNSStream)
         {
 
-            this._RText       = RText;
+            this._Name          = Name;
+            this._Type          = Type;
+            this._Class         = (DNSQueryClasses) ((DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue);
+            this._TimeToLive    = TimeSpan.FromSeconds((DNSStream.ReadByte() & byte.MaxValue) << 24 | (DNSStream.ReadByte() & byte.MaxValue) << 16 | (DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue);
+
+            var RDLength        = (DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue;
+//>>>>>>> f833198bd494f11a1fa4aac057f2e6e8aafe0d8d
 
         }
 
         #endregion
 
-        #region ADNSResourceRecord(Name, Type, Class, TimeToLive)
+        #region (protected) ADNSResourceRecord(Name, Type, Class, TimeToLive)
 
-        public ADNSResourceRecord(String                  Name,
-                                  DNSResourceRecordTypes  Type,
-                                  DNSQueryClasses         Class,
-                                  TimeSpan                TimeToLive)
+        protected ADNSResourceRecord(String           Name,
+                                     UInt16           Type,
+                                     DNSQueryClasses  Class,
+                                     TimeSpan         TimeToLive)
         {
 
-            this._Name        = Name;
-            this._Type        = Type;
-            this._Class       = Class;
-            this._TimeToLive  = TimeToLive;
-            this._EndOfLife   = DateTime.Now + TimeToLive;
+            this._Name          = Name;
+            this._Type          = Type;
+            this._Class         = Class;
+            this._TimeToLive    = TimeToLive;
 
         }
 
         #endregion
 
-        #region ADNSResourceRecord(Name, Type, Class, TimeToLive, RText)
+        #region (protected) ADNSResourceRecord(Name, Type, Class, TimeToLive, RText)
 
-        public ADNSResourceRecord(String                  Name,
-                                  DNSResourceRecordTypes  Type,
-                                  DNSQueryClasses         Class,
-                                  TimeSpan                TimeToLive,
-                                  String                  RText)
-
-            : this(Name, Type, Class, TimeToLive)
-
+        protected ADNSResourceRecord(String           Name,
+                                     UInt16           Type,
+                                     DNSQueryClasses  Class,
+                                     TimeSpan         TimeToLive,
+                                     String           RText)
         {
 
-            this._RText       = RText;
+            this._Name          = Name;
+            this._Type          = Type;
+            this._Class         = Class;
+            this._TimeToLive    = TimeToLive;
+            this._RText         = RText;
 
         }
 

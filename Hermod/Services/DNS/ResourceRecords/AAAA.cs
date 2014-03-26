@@ -18,6 +18,7 @@
 #region Usings
 
 using System;
+using System.IO;
 
 #endregion
 
@@ -29,6 +30,12 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
     /// </summary>
     public class AAAA : ADNSResourceRecord
     {
+
+        #region Data
+
+        public const UInt16 TypeId = 28;
+
+        #endregion
 
         #region Properties
 
@@ -46,16 +53,43 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
         #region Constructor
 
+        #region AAAA(Stream)
+
+        public AAAA(Stream  Stream)
+            : base(Stream, TypeId)
+        {
+            this._IPv6Address  = new IPv6Address(Stream);
+        }
+
+        #endregion
+
+        #region AAAA(Name, Stream)
+
+        public AAAA(String  Name,
+                    Stream  Stream)
+
+            : base(Name, TypeId, Stream)
+
+        {
+            this._IPv6Address  = new IPv6Address(Stream);
+        }
+
+        #endregion
+
+        #region AAAA(Name, Class, TimeToLive, IPv6Address)
+
         public AAAA(String           Name,
                     DNSQueryClasses  Class,
                     TimeSpan         TimeToLive,
                     IPv6Address      IPv6Address)
 
-            : base(Name, DNSResourceRecordTypes.A, Class, TimeToLive, IPv6Address.ToString())
+            : base(Name, TypeId, Class, TimeToLive, IPv6Address.ToString())
 
         {
-            this._IPv6Address = IPv6Address;
+            this._IPv6Address  = IPv6Address;
         }
+
+        #endregion
 
         #endregion
 
