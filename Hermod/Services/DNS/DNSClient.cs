@@ -18,14 +18,14 @@
 #region Usings
 
 using System;
-using System.Net;
-using System.Text;
-using System.Linq;
-using System.Net.Sockets;
-using System.Diagnostics;
-using System.Collections.Generic;
-using System.Reflection;
 using System.IO;
+using System.Linq;
+using System.Text;
+using System.Net;
+using System.Net.Sockets;
+using System.Reflection;
+using System.Collections.Generic;
+using System.Net.NetworkInformation;
 
 #endregion
 
@@ -97,6 +97,11 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
         }
 
+        public static DNSClient GoogleDNS()
+        {
+            return new DNSClient(IPv4Address.Parse("8.8.8.8"));
+        }
+
     }
 
     public class DNSClient
@@ -105,39 +110,101 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
         #region Data
 
         private readonly Dictionary<UInt16, ConstructorInfo> RRLookup;
-        private int position, length;
 
         #endregion
 
         #region Properties
 
+        #region DNSServers
+
+        private readonly List<IPSocket> _DNSServers;
+
+        public IEnumerable<IPSocket> DNSServers
+        {
+            get
+            {
+                return _DNSServers;
+            }
+        }
+
+        #endregion
+
+        #region QueryTimeout
+
         public TimeSpan  QueryTimeout       { get; set; }
-        public String    DNSServer          { get; set; }
-        public IPPort    Port               { get; set; }
+
+        #endregion
+
+        #region RecursionDesired
+
         public Boolean   RecursionDesired   { get; set; }
+
+        #endregion
 
         #endregion
 
         #region Constructor(s)
 
-        /// <summary>
-        /// Default Constructor with QueryType: A
-        /// </summary>
-        public DNSClient()
-            : this("8.8.8.8", new IPPort(53))
+        #region DNSClient(SearchForIPv4Servers = true, SearchForIPv6Servers = true)
+
+        public DNSClient(Boolean  SearchForIPv4Servers = true,
+                         Boolean  SearchForIPv6Servers = true)
+            : this(new IPSocket[0], SearchForIPv4Servers, SearchForIPv6Servers)
         { }
 
-        public DNSClient(String DNSServer)
-            : this(DNSServer, new IPPort(53))
+        #endregion
+
+        public DNSClient(IIPAddress DNSServer)
+            : this(new IPSocket[1] { new IPSocket(DNSServer, new IPPort(53)) })
         { }
 
-        public DNSClient(String DNSServer, IPPort Port)
+        public DNSClient(IIPAddress DNSServer, IPPort Port)
+            : this(new IPSocket[1] { new IPSocket(DNSServer, Port) })
+        { }
+
+        public DNSClient(IEnumerable<IIPAddress> DNSServers)
+            : this(DNSServers.Select(v => new IPSocket(v, new IPPort(53))))
+        { }
+
+        public DNSClient(IEnumerable<IIPAddress> DNSServers, IPPort Port)
+            : this(DNSServers.Select(v => new IPSocket(v, Port)))
+        { }
+
+        #region (private) DNSClient(DNSServers, SearchForIPv4Servers = true, SearchForIPv6Servers = true)
+
+        private DNSClient(IEnumerable<IPSocket>  DNSServers,
+                          Boolean                SearchForIPv4Servers = true,
+                          Boolean                SearchForIPv6Servers = true)
         {
 
-            this.Port              = new IPPort(53);
-            this.DNSServer         = DNSServer;
-            this.QueryTimeout      = TimeSpan.FromSeconds(10);
+            _DNSServers = new List<IPSocket>();
+
+            if (DNSServers == null || DNSServers.Count() == 0)
+            {
+
+                if (SearchForIPv4Servers)
+                    _DNSServers.AddRange(NetworkInterface.
+                                             GetAllNetworkInterfaces().
+                                             Where     (NI        => NI.OperationalStatus == OperationalStatus.Up).
+                                             SelectMany(NI        => NI.GetIPProperties().DnsAddresses).
+                                             Where     (IPAddress => IPAddress.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork).
+                                             Select    (IPAddress => new IPSocket(new IPv4Address(IPAddress), new IPPort(53))));
+
+                if (SearchForIPv6Servers)
+                    _DNSServers.AddRange(NetworkInterface.
+                                             GetAllNetworkInterfaces().
+                                             Where     (NI        => NI.OperationalStatus == OperationalStatus.Up).
+                                             SelectMany(NI        => NI.GetIPProperties().DnsAddresses).
+                                             Where     (IPAddress => IPAddress.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6).
+                                             Select    (IPAddress => new IPSocket(new IPv6Address(IPAddress), new IPPort(53))));
+
+            }
+
+            else
+                this._DNSServers.AddRange(DNSServers);
+
             this.RecursionDesired  = true;
+            this.QueryTimeout      = TimeSpan.FromSeconds(10);
 
             #region Reflect ResourceRecordTypes
 
@@ -173,6 +240,8 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
 
         #endregion
 
+        #endregion
+
 
         #region Query(DomainName, params ResourceRecordTypes)
 
@@ -188,17 +257,17 @@ namespace eu.Vanaheimr.Hermod.Services.DNS
                                       RecursionDesired = RecursionDesired
                                   };
 
-            // Query DNS server
-            var serverAddress  = IPAddress.Parse(DNSServer);
-            var endPoint       = (EndPoint) new IPEndPoint(serverAddress, this.Port.ToInt32());
+            // Query DNS server(s)...
+            var serverAddress  = IPAddress.Parse(DNSServers.First().IPAddress.ToString());
+            var endPoint       = (EndPoint) new IPEndPoint(serverAddress, DNSServers.First().Port.ToInt32());
             var socket         = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout,    (Int32) QueryTimeout.TotalMilliseconds);
             socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, (Int32) QueryTimeout.TotalMilliseconds);
             socket.Connect(endPoint);
             socket.SendTo(QueryPacket.Serialize(), endPoint);
 
-            var data = new Byte[512];
-            length = socket.ReceiveFrom(data, ref endPoint);
+            var data    = new Byte[512];
+            var length  = socket.ReceiveFrom(data, ref endPoint);
 
             socket.Shutdown(SocketShutdown.Both);
 
