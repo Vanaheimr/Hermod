@@ -29,6 +29,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using Newtonsoft.Json.Linq;
 using System.Xml.Linq;
+using eu.Vanaheimr.Hermod.Services.DNS;
 
 #endregion
 
@@ -57,6 +58,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// The 'Take' parameter within the query string
         /// </summary>
         protected ThreadLocal<UInt64> Take;
+
+        protected readonly DNSClient _DNSClient;
 
         #endregion
 
@@ -93,6 +96,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// </summary>
         public AHTTPService()
         {
+            _DNSClient  = new DNSClient();
         }
 
         #endregion
