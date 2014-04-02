@@ -26,7 +26,9 @@ namespace eu.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// HTTP status codes as defined within RFC 2616 and other resources.
+    /// HTTP status codes as defined within RFC 2616 (Hypertext Transfer Protocol v1.1) and other resources.
+    /// http://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
+    /// http://en.wikipedia.org/wiki/List_of_HTTP_status_codes
     /// </summary>
     public class HTTPStatusCode : IEquatable<HTTPStatusCode>, IComparable<HTTPStatusCode>, IComparable
     {
