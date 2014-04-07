@@ -29,6 +29,7 @@ using System.Threading.Tasks;
 using eu.Vanaheimr.Illias.Commons;
 using eu.Vanaheimr.Hermod.Sockets.TCP;
 using eu.Vanaheimr.Hermod.Datastructures;
+using eu.Vanaheimr.Hermod.Services.DNS;
 
 #endregion
 
@@ -141,6 +142,23 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region DNSClient
+
+        private readonly DNSClient _DNSClient;
+
+        /// <summary>
+        /// The default server name.
+        /// </summary>
+        public virtual DNSClient DNSClient
+        {
+            get
+            {
+                return _DNSClient;
+            }
+        }
+
+        #endregion
+
         #endregion
 
         #region Events
@@ -150,17 +168,20 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region HTTPClient(IPAddress = null, Port = null)
+        #region HTTPClient(RemoteIPAddress = null, RemotePort = null)
 
         /// <summary>
         /// Create a new HTTPClient using the given optional parameters.
         /// </summary>
         /// <param name="RemoteIPAddress">The IP address to connect to.</param>
         /// <param name="RemotePort">The IP port to connect to.</param>
-        public HTTPClient(IIPAddress RemoteIPAddress = null, IPPort RemotePort = null)
+        public HTTPClient(IIPAddress  RemoteIPAddress = null,
+                          IPPort      RemotePort      = null)
         {
-            this.RemoteIPAddress = RemoteIPAddress;
-            this.RemotePort      = RemotePort;
+
+            this.RemoteIPAddress  = RemoteIPAddress;
+            this.RemotePort       = RemotePort;
+
         }
 
         #endregion
@@ -173,8 +194,34 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="RemoteSocket">The IP socket to connect to.</param>
         public HTTPClient(IPSocket RemoteSocket)
         {
-            this.RemoteIPAddress = RemoteSocket.IPAddress;
-            this.RemotePort      = RemoteSocket.Port;
+
+            this.RemoteIPAddress  = RemoteSocket.IPAddress;
+            this.RemotePort       = RemoteSocket.Port;
+
+        }
+
+        #endregion
+
+        #region HTTPClient(RemoteHost, RemotePort = null, DNSClient  = null)
+
+        /// <summary>
+        /// Create a new HTTPClient using the given optional parameters.
+        /// </summary>
+        /// <param name="RemoteHost">The IP host to connect to.</param>
+        /// <param name="RemotePort">The IP port to connect to.</param>
+        /// <param name="DNSClient">An optional DNS client.</param>
+        public HTTPClient(String     RemoteHost,
+                          IPPort     RemotePort = null,
+                          DNSClient  DNSClient  = null)
+        {
+
+            this._DNSClient       = (DNSClient != null)
+                                               ? new DNSClient(SearchForIPv6Servers: false)
+                                               : DNSClient;
+
+            this.RemoteIPAddress  = _DNSClient.Query<A>(RemoteHost).Select(a => a.IPv4Address).ToArray()[1];
+            this.RemotePort       = RemotePort;
+
         }
 
         #endregion
