@@ -18,6 +18,7 @@
 #region Usings
 
 using System;
+using System.Net.Sockets;
 using System.Text;
 
 #endregion
@@ -103,6 +104,23 @@ namespace eu.Vanaheimr.Hermod
 
             return SwapLong(network);
         }
+
+
+
+        #region Write(this NetworkStream, UTF8Text, Flush = true)
+
+        public static void Write(this NetworkStream NetworkStream, String UTF8Text, Boolean Flush = true)
+        {
+
+            var Data = Encoding.UTF8.GetBytes(UTF8Text);
+            NetworkStream.Write(Data, 0, Data.Length);
+
+            if (Flush)
+                NetworkStream.Flush();
+
+        }
+
+        #endregion
 
     }
 
