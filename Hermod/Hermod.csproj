@@ -84,6 +84,9 @@
     <Compile Include="Services\DNS\ResourceRecords\MX.cs" />
     <Compile Include="Services\DNS\ResourceRecords\ADNSResourceRecord.cs" />
     <Compile Include="Services\DNS\ResourceRecords\SOA.cs" />
+    <Compile Include="Services\TCPClient\ENUMs\TCPDisconnectResult.cs" />
+    <Compile Include="Services\TCPClient\ENUMs\TCPConnectResult.cs" />
+    <Compile Include="Services\TCPClient\TCPClient.cs" />
     <Compile Include="Sockets\IServer.cs" />
     <Compile Include="Sockets\IICMPPacket.cs" />
     <Compile Include="Sockets\UDP\MulticastReceiver.cs" />
