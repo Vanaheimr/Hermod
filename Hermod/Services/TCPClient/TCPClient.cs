@@ -53,23 +53,63 @@ namespace eu.Vanaheimr.Hermod.Services
 
         #region DNSName
 
-        private String _DNSName;
+        public String DNSName { get; set; }
 
-        public String DNSName
+        #endregion
+
+        #region ServiceName
+
+        public String ServiceName { get; set; }
+
+        #endregion
+
+        #region UseIPv4
+
+        public Boolean _UseIPv4;
+
+        public Boolean UseIPv4
         {
 
             get
             {
-                return _DNSName;
+                return _UseIPv4;
             }
 
             set
             {
-                if (value != null && value != String.Empty)
-                    _DNSName = value;
+                _UseIPv4 = value;
+                // Change DNSClient!
             }
 
         }
+
+        #endregion
+
+        #region UseIPv6
+
+        public Boolean _UseIPv6;
+
+        public Boolean UseIPv6
+        {
+
+            get
+            {
+                return _UseIPv6;
+            }
+
+            set
+            {
+                _UseIPv6 = value;
+                // Change DNSClient!
+            }
+
+        }
+
+        #endregion
+
+        #region ConnectionTimeout
+
+        public TimeSpan ConnectionTimeout { get; set; }
 
         #endregion
 
@@ -89,21 +129,42 @@ namespace eu.Vanaheimr.Hermod.Services
 
         #region Constructor(s)
 
-        #region TCPClient()
+        #region TCPClient(DNSName = null, ServiceName = "", ConnectionTimeout = null, DNSClient = null, AutoConnect = false)
 
-        public TCPClient(String     DNSName      = null,
-                         DNSClient  DNSClient    = null,
-                         Boolean    AutoConnect  = false)
+        /// <summary>
+        /// Create a new TCPClient connecting to a remote service using DNS SRV records.
+        /// </summary>
+        /// <param name="DNSName">The optional DNS name of the remote service to connect to.</param>
+        /// <param name="ServiceName">The optional DNS SRV service name of the remote service to connect to.</param>
+        /// <param name="UseIPv4">Wether to use IPv4 as networking protocol.</param>
+        /// <param name="UseIPv6">Wether to use IPv6 as networking protocol.</param>
+        /// <param name="PreferIPv6">Prefer IPv6 (instead of IPv4) as networking protocol.</param>
+        /// <param name="ConnectionTimeout">The timeout connecting to the remote service.</param>
+        /// <param name="DNSClient">An optional DNS client used to resolve DNS names.</param>
+        /// <param name="AutoConnect">Connect to the EVSE operator backend automatically on startup. Default is false.</param>
+        public TCPClient(String     DNSName            = "",
+                         String     ServiceName        = "",
+                         Boolean    UseIPv4            = true,
+                         Boolean    UseIPv6            = false,
+                         Boolean    PreferIPv6         = false,
+                         TimeSpan?  ConnectionTimeout  = null,
+                         DNSClient  DNSClient          = null,
+                         Boolean    AutoConnect        = false)
         {
 
-            this._DNSName    = (DNSName != null && DNSName != String.Empty)
-                                  ? DNSName
-                                  : String.Empty;
+            this.DNSName            = DNSName;
+            this.ServiceName        = ServiceName;
+            this._UseIPv4           = UseIPv4;
+            this._UseIPv6           = UseIPv6;
 
-            this._DNSClient  = (DNSClient != null)
-                                   ? DNSClient
-                                   : new DNSClient(SearchForIPv4Servers: true,
-                                                   SearchForIPv6Servers: false);
+            this.ConnectionTimeout  = (ConnectionTimeout.HasValue)
+                                          ? ConnectionTimeout.Value
+                                          : TimeSpan.FromSeconds(60);
+
+            this._DNSClient         = (DNSClient != null)
+                                          ? DNSClient
+                                          : new DNSClient(SearchForIPv4Servers: _UseIPv4,
+                                                          SearchForIPv6Servers: _UseIPv6);
 
             if (AutoConnect)
                 Connect();
@@ -120,11 +181,11 @@ namespace eu.Vanaheimr.Hermod.Services
         private void QueryDNS()
         {
 
-            var IPv4 = _DNSClient.Query<A>(_DNSName);
+            var IPv4 = _DNSClient.Query<A>(DNSName);
             if (IPv4.Any())
                 _CachedIPv4Addresses = IPv4.ToArray();
 
-            var IPv6 = _DNSClient.Query<AAAA>(_DNSName);
+            var IPv6 = _DNSClient.Query<AAAA>(DNSName);
             if (IPv6.Any())
                 _CachedIPv6Addresses = IPv6.ToArray();
 
@@ -175,8 +236,8 @@ namespace eu.Vanaheimr.Hermod.Services
         public TCPConnectResult Connect()
         {
 
-            if (_DNSName == null &&
-                _DNSName == String.Empty)
+            if (DNSName == null &&
+                DNSName == String.Empty)
                 return TCPConnectResult.NoDNSGiven;
 
             QueryDNS();
