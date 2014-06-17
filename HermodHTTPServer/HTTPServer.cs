@@ -284,9 +284,30 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region ServiceBanner
+
+        public String ServiceBanner
+        {
+
+            get
+            {
+                return ServerName;
+            }
+
+            set
+            {
+                ServerName = value;
+            }
+
+        }
+
+        #endregion
+
         #endregion
 
         #region Events
+
+        public event OnStartedDelegate OnStarted;
 
         #region OnExceptionOccured
 
@@ -405,6 +426,11 @@ namespace eu.Vanaheimr.Hermod.HTTP
                                  Autostart: false,
                                  ThreadDescription: "HTTPServer<" + typeof(HTTPServiceInterface).Name + ">");
 
+            _TCPServer.OnStarted += (Sender, Timestamp) => {
+                if (OnStarted != null)
+                    OnStarted(this, Timestamp);
+                };
+
             if (Autostart)
                 _TCPServer.Start();
 
@@ -508,20 +534,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-
-        public string ServiceBanner
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-            set
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        public event OnStartedDelegate OnStarted;
+        
 
     }
 

@@ -47,7 +47,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
         /// <summary>
         /// The internal TCP server.
         /// </summary>
-        private readonly List<TCPServer> InternalTCPServers;
+        private readonly TCPServer InternalTCPServer;
 
         /// <summary>
         /// The internal delegate called for every new TCP connection.
@@ -67,16 +67,85 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
         /// The TCP service banner transmitted to a TCP client
         /// at connection initialization.
         /// </summary>
-        public String ServiceBanner { get; set; }
+        public String ServiceBanner
+        {
+
+            get
+            {
+                return InternalTCPServer.ServiceBanner;
+            }
+
+            set
+            {
+                InternalTCPServer.ServiceBanner = value;
+            }
+
+        }
 
         #endregion
 
         #region SplitCharacters
 
+        private readonly Char[] _SplitCharacters;
+
         /// <summary>
         /// The characters to split the incoming CSV lines.
         /// </summary>
-        public Char[] SplitCharacters { get; private set; }
+        public Char[] SplitCharacters
+        {
+            get
+            {
+                return _SplitCharacters;
+            }
+        }
+
+        #endregion
+
+        #region IPAddress
+
+        public IIPAddress IPAddress
+        {
+            get
+            {
+                return InternalTCPServer.IPAddress;
+            }
+        }
+
+        #endregion
+
+        #region Port
+
+        public IPPort Port
+        {
+            get
+            {
+                return InternalTCPServer.Port;
+            }
+        }
+
+        #endregion
+
+        #region IsRunning
+
+        public Boolean IsRunning
+        {
+            get
+            {
+                return InternalTCPServer.IsRunning;
+            }
+        }
+
+        #endregion
+
+        #region StopRequested
+
+        public Boolean StopRequested
+        {
+            get
+            {
+                return InternalTCPServer.StopRequested;
+            }
+        }
 
         #endregion
 
@@ -90,24 +159,6 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
         /// An event fired whenever the service started.
         /// </summary>
         public event OnStartedDelegate OnStarted;
-
-        #endregion
-
-        #region OnTCPPortAdded
-
-        /// <summary>
-        /// An event fired whenever a new TCP Port was added to the service.
-        /// </summary>
-        public event OnTCPPortAddedDelegate OnTCPPortAdded;
-
-        #endregion
-
-        #region OnTCPPortRemoved
-
-        /// <summary>
-        /// An event fired whenever a new TCP Port was removed from the service.
-        /// </summary>
-        public event OnTCPPortRemovedDelegate OnTCPPortRemoved;
 
         #endregion
 
@@ -169,28 +220,28 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 
         #region Constructor(s)
 
-        #region (private) CSVTCPServer(SplitCharacters = null, ServiceBanner = DefaultServiceBanner)
+        #region CSVTCPServer(IPPort, SplitCharacters = null, ConnectionIdBuilder = null)
 
         /// <summary>
         /// Create a new TCP service accepting incoming CSV lines.
         /// </summary>
+        /// <param name="IPPort">The listening port.</param>
         /// <param name="SplitCharacters">The characters to split the incoming CSV lines.</param>
-        /// <param name="ServiceBanner">The identifiying banner of the service.</param>
-        private CSVTCPServer(Char[] SplitCharacters  = null,
-                             String ServiceBanner    = DefaultServiceBanner)
+        /// <param name="ConnectionIdBuilder">A delegate for creating a connection identifier.</param>
+        public CSVTCPServer(IPPort IPPort,
+                            Char[]                            SplitCharacters      = null,
+                            Func<IIPAddress, IPPort, String>  ConnectionIdBuilder  = null)
         {
 
-            this.ServiceBanner            = ServiceBanner;
-            this.SplitCharacters          = (SplitCharacters != null) ? SplitCharacters : new Char[1] { '/' };
-            this.InternalTCPServers       = new List<TCPServer>();
+            this._SplitCharacters           = (SplitCharacters != null) ? SplitCharacters : new Char[1] { '/' };
 
-            this.CancellationTokenSource  = new CancellationTokenSource();
-            this.CancellationToken        = CancellationTokenSource.Token;
+            if (ConnectionIdBuilder == null)
+                ConnectionIdBuilder = (RemoteIPAddress, RemotePort) => "TCP:" + RemoteIPAddress + ":" + RemotePort;
 
-            this.NewConnectionDelegate    = newTCPConnection => {
+            this.CancellationTokenSource    = new CancellationTokenSource();
+            this.CancellationToken          = CancellationTokenSource.Token;
 
-            Func<IIPAddress, IPPort, String> ConnectionIdBuilder = (IPAddress, Port) =>
-                "TCP:" + newTCPConnection.RemoteIPAddress + ":" + newTCPConnection.RemotePort;
+            this.NewConnectionDelegate      = newTCPConnection => {
 
                                             #region Initial stuff
 
@@ -531,48 +582,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 
                                         };
 
-        }
-
-        #endregion
-
-        #region CSVTCPServer(IPPort,   SplitCharacters = null, ServiceBanner = DefaultServiceBanner)
-
-        /// <summary>
-        /// Create a new TCP service accepting incoming CSV lines.
-        /// </summary>
-        /// <param name="IPPort">The IP port to bind to.</param>
-        /// <param name="SplitCharacters">The characters to split the incoming CSV lines.</param>
-        /// <param name="ServiceBanner">The identifiying banner of the service.</param>
-        public CSVTCPServer(IPPort IPPort,
-                            Char[] SplitCharacters  = null,
-                            String ServiceBanner    = DefaultServiceBanner)
-
-            : this(SplitCharacters, ServiceBanner)
-
-        {
-            AddTCPPort(IPPort);
-        }
-
-        #endregion
-
-        #region CSVTCPServer(IPPorts,  SplitCharacters = null, ServiceBanner = DefaultServiceBanner)
-
-        /// <summary>
-        /// Create a new TCP service accepting incoming CSV lines.
-        /// </summary>
-        /// <param name="IPPorts">The IP ports to bind to.</param>
-        /// <param name="SplitCharacters">The characters to split the incoming CSV lines.</param>
-        /// <param name="ServiceBanner">The identifiying banner of the service.</param>
-        public CSVTCPServer(IEnumerable<IPPort> IPPorts,
-                            Char[]              SplitCharacters  = null,
-                            String              ServiceBanner    = DefaultServiceBanner)
-
-            : this(SplitCharacters, ServiceBanner)
-
-        {
-
-            foreach (var IPPort in IPPorts)
-                AddTCPPort(IPPort);
+            this.InternalTCPServer = new TCPServer(IPPort, NewConnectionDelegate, false);
 
         }
 
@@ -589,18 +599,10 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
         public void Start()
         {
 
+            InternalTCPServer.Start();
+
             if (OnStarted != null)
                 OnStarted(this, DateTime.Now);
-
-            foreach (var InternalTCPServer in InternalTCPServers)
-            {
-
-                InternalTCPServer.Start();
-
-                if (OnTCPPortAdded != null)
-                    OnTCPPortAdded(this, DateTime.Now, InternalTCPServer.Port);
-
-            }
 
         }
 
@@ -637,79 +639,15 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 
         #endregion
 
-
-
-        #region AddTCPPort(TCPPort)
-
-        /// <summary>
-        /// Add an additional listening TCP port.
-        /// </summary>
-        public void AddTCPPort(IPPort TCPPort)
-        {
-
-            if (TCPPort == null)
-                throw new ArgumentNullException("Invalid TCP port!");
-
-            var NewTCPServer = new TCPServer(TCPPort, this.NewConnectionDelegate, Autostart: false);
-
-            InternalTCPServers.Add(NewTCPServer);
-
-            NewTCPServer.Start();
-
-            if (OnTCPPortAdded != null)
-                OnTCPPortAdded(this, DateTime.Now, TCPPort);
-
-        }
-
-        #endregion
-
-        #region RemoveTCPPort(TCPPort)
-
-        /// <summary>
-        /// Add an additional listening TCP port.
-        /// </summary>
-        public Boolean RemoveTCPPort(IPPort TCPPort)
-        {
-
-            if (TCPPort == null)
-                throw new ArgumentNullException("Invalid TCP port!");
-
-            var TCPServer = InternalTCPServers.
-                                Where(s => s.Port == TCPPort).
-                                FirstOrDefault();
-
-            if (TCPServer == null)
-                return false;
-
-            TCPServer.StopAndWait();
-            InternalTCPServers.Remove(TCPServer);
-
-            if (OnTCPPortRemoved != null)
-                OnTCPPortRemoved(this, DateTime.Now, TCPPort);
-
-            return true;
-
-        }
-
-        #endregion
-
         #region Shutdown()
 
         /// <summary>
         /// Stop the service.
         /// </summary>
-        public void Shutdown()
+        public void Shutdown(Boolean Wait = true)
         {
 
-            foreach (var InternalTCPServer in InternalTCPServers)
-            {
-
-                InternalTCPServer.StopAndWait();
-
-                if (OnTCPPortRemoved != null)
-                    OnTCPPortRemoved(this, DateTime.Now, InternalTCPServer.Port);
-
-            }
+            InternalTCPServer.StopAndWait();
 
             if (OnStopped != null)
                 OnStopped(this, DateTime.Now);
@@ -718,37 +656,14 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 
         #endregion
 
-
-        public bool IsRunning
-        {
-            get { throw new NotImplementedException(); }
-        }
-
-        public IIPAddress IPAddress
-        {
-            get { throw new NotImplementedException(); }
-        }
-
-        public IPPort Port
-        {
-            get { throw new NotImplementedException(); }
-        }
-
-
-        public void Shutdown(bool Wait = true)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool StopRequested
-        {
-            get { throw new NotImplementedException(); }
-        }
+        #region Dispose()
 
         public void Dispose()
         {
-            throw new NotImplementedException();
+            InternalTCPServer.Dispose();
         }
+
+        #endregion
 
     }
 
