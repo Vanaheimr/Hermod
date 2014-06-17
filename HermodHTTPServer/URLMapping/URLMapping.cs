@@ -328,13 +328,13 @@ namespace eu.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region EventSource
+        #region GetEventSource(EventSourceIdentification)
 
         /// <summary>
         /// Return the event source identified by the given event source identification.
         /// </summary>
         /// <param name="EventSourceIdentification">A string to identify an event source.</param>
-        public HTTPEventSource EventSource(String EventSourceIdentification)
+        public HTTPEventSource GetEventSource(String EventSourceIdentification)
         {
 
             HTTPEventSource EventSource = null;
@@ -348,12 +348,27 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region EventSources(EventSourceSelector = null)
+        #region TryGetEventSource(EventSourceIdentification, EventSource)
+
+        /// <summary>
+        /// Return the event source identified by the given event source identification.
+        /// </summary>
+        /// <param name="EventSourceIdentification">A string to identify an event source.</param>
+        /// <param name="EventSource">The event source.</param>
+        public Boolean TryGetEventSource(String EventSourceIdentification, out HTTPEventSource EventSource)
+        {
+            return _EventSources.TryGetValue(EventSourceIdentification, out EventSource);
+        }
+
+        #endregion
+
+
+        #region GetEventSources(EventSourceSelector = null)
 
         /// <summary>
         /// An enumeration of all event sources.
         /// </summary>
-        public IEnumerable<HTTPEventSource> EventSources(Func<HTTPEventSource, Boolean> EventSourceSelector = null)
+        public IEnumerable<HTTPEventSource> GetEventSources(Func<HTTPEventSource, Boolean> EventSourceSelector = null)
         {
 
             if (EventSourceSelector == null)

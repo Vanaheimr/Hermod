@@ -1,5 +1,6 @@
 ﻿/*
- * Copyright (c) 2010-2014, Achim 'ahzf' Friedland <achim@graphdefined.org>
+ * Copyright (c) 2010-2014, GraphDefined GmbH
+ * Author: Achim Friedland <achim.friedland@graphdefined.com>
  * This file is part of Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -54,6 +55,23 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Timestamp
+
+        private readonly DateTime _Timestamp;
+
+        /// <summary>
+        /// The subevent identification of this HTTP event.
+        /// </summary>
+        public DateTime Timestamp
+        {
+            get
+            {
+                return _Timestamp;
+            }
+        }
+
+        #endregion
+
         #region Data
 
         private readonly String[] _Data;
@@ -84,9 +102,28 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="Data">The attached data of the event.</param>
         public HTTPEvent(UInt64 Id, params String[] Data)
         {
-            this.Subevent = "";
-            this.Id       = Id;
-            this._Data    = Data;
+            this.Subevent    = String.Empty;
+            this.Id          = Id;
+            this._Timestamp  = DateTime.Now;
+            this._Data       = Data;
+        }
+
+        #endregion
+
+        #region HTTPEvent(Id, Timestamp, Data)
+
+        /// <summary>
+        /// Create a new HTTP event based on the given parameters.
+        /// </summary>
+        /// <param name="Id">The id of the event.</param>
+        /// <param name="Timestamp">The timestamp of the event.</param>
+        /// <param name="Data">The attached data of the event.</param>
+        public HTTPEvent(UInt64 Id, DateTime Timestamp, params String[] Data)
+        {
+            this.Subevent    = String.Empty;
+            this.Id          = Id;
+            this._Timestamp  = DateTime.Now;
+            this._Data       = Data;
         }
 
         #endregion
@@ -101,14 +138,35 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="Data">The attached data of the event.</param>
         public HTTPEvent(String Subevent, UInt64 Id, params String[] Data)
         {
-            this.Subevent = Subevent;
-            this.Id       = Id;
-            this._Data    = Data;
+            this.Subevent    = Subevent;
+            this.Id          = Id;
+            this._Timestamp  = DateTime.Now;
+            this._Data       = Data;
+        }
+
+        #endregion
+
+        #region HTTPEvent(Subevent, Id, Timestamp, Data)
+
+        /// <summary>
+        /// Create a new HTTP event based on the given parameters.
+        /// </summary>
+        /// <param name="Subevent">The subevent.</param>
+        /// <param name="Id">The id of the event.</param>
+        /// <param name="Timestamp">The timestamp of the event.</param>
+        /// <param name="Data">The attached data of the event.</param>
+        public HTTPEvent(String Subevent, UInt64 Id, DateTime Timestamp, params String[] Data)
+        {
+            this.Subevent    = Subevent;
+            this.Id          = Id;
+            this._Timestamp  = DateTime.Now;
+            this._Data       = Data;
         }
 
         #endregion
 
         #endregion
+
 
         #region IEquatable<HTTPEvent> Members
 

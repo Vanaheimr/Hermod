@@ -1,5 +1,6 @@
 ﻿/*
- * Copyright (c) 2010-2014, Achim 'ahzf' Friedland <achim@graphdefined.org>
+ * Copyright (c) 2010-2014, GraphDefined GmbH
+ * Author: Achim Friedland <achim.friedland@graphdefined.com>
  * This file is part of Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,15 +19,13 @@
 #region Usings
 
 using System;
-using System.Net;
 using System.Linq;
 using System.Threading;
 using System.Collections.Generic;
 
 using Newtonsoft.Json.Linq;
 
-using eu.Vanaheimr.Hermod.Sockets.TCP;
-using eu.Vanaheimr.Hermod.Datastructures;
+using eu.Vanaheimr.Illias.Commons;
 using eu.Vanaheimr.Illias.Commons.Collections;
 
 #endregion
@@ -43,13 +42,13 @@ namespace eu.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A HTTP event source.
     /// </summary>
-    public class HTTPEventSource
+    public class HTTPEventSource : IEnumerable<HTTPEvent>
     {
 
         #region Data
 
-        private          Int64              IdCounter;
-        private readonly TSQueue<HTTPEvent> ListOfEvents;
+        private          Int64               IdCounter;
+        private readonly TSQueue<HTTPEvent>  QueueOfEvents;
 
         #endregion
 
@@ -57,10 +56,18 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region EventIdentification
 
+        private readonly String _EventIdentification;
+
         /// <summary>
         /// The internal identification of the HTTP event.
         /// </summary>
-        public String EventIdentification     { get; private set; }
+        public String EventIdentification
+        {
+            get
+            {
+                return _EventIdentification;
+            }
+        }
 
         #endregion
 
@@ -71,15 +78,15 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// </summary>
         public UInt64 MaxNumberOfCachedEvents
         {
-            
+
             get
             {
-                return ListOfEvents.MaxNumberOfElements;
+                return QueueOfEvents.MaxNumberOfElements;
             }
 
             set
             {
-                ListOfEvents.MaxNumberOfElements = value;
+                QueueOfEvents.MaxNumberOfElements = value;
             }
 
         }
@@ -89,17 +96,15 @@ namespace eu.Vanaheimr.Hermod.HTTP
         #region RetryTime
 
         /// <summary>
-        /// The retry time of this HTTP event in milliseconds.
+        /// The retry time of this HTTP event.
         /// </summary>
-        public UInt64 RetryTime { get; private set; }
+        public TimeSpan RetryTime { get; private set; }
 
         #endregion
 
         #endregion
 
         #region Constructor(s)
-
-        #region HTTPEventSource()
 
         /// <summary>
         /// Create a new HTTP event source.
@@ -108,16 +113,14 @@ namespace eu.Vanaheimr.Hermod.HTTP
         public HTTPEventSource(String EventIdentification)
         {
 
-            if (EventIdentification == null || EventIdentification == "")
-                throw new ArgumentNullException("The EventIdentification must not be null or zero!");
+            EventIdentification.FailIfNullOrEmpty();
 
-            this.EventIdentification = EventIdentification;
-            this.ListOfEvents        = new TSQueue<HTTPEvent>();
-            this.RetryTime           = 1000;
+            this._EventIdentification  = EventIdentification;
+            this.QueueOfEvents         = new TSQueue<HTTPEvent>();
+            this.RetryTime             = TimeSpan.FromSeconds(5);
+            this.IdCounter             = 0;
 
         }
-
-        #endregion
 
         #endregion
 
@@ -130,7 +133,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="Data">The attached event data.</param>
         public void SubmitEvent(params String[] Data)
         {
-            ListOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter), Data));
+            QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter), Data));
         }
 
         #endregion
@@ -144,10 +147,11 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="Data">The attached event data.</param>
         public void SubmitSubEvent(String SubEvent, params String[] Data)
         {
-            ListOfEvents.Push(new HTTPEvent(SubEvent, (UInt64) Interlocked.Increment(ref IdCounter), Data));
+            QueueOfEvents.Push(new HTTPEvent(SubEvent, (UInt64) Interlocked.Increment(ref IdCounter), Data));
         }
 
         #endregion
+
 
         #region SubmitSubEventWithTimestamp(SubEvent, Data)
 
@@ -191,15 +195,50 @@ namespace eu.Vanaheimr.Hermod.HTTP
         #region GetEvents(LastEventId = 0)
 
         /// <summary>
-        /// Get a filtered list of events.
+        /// Get a list of events filtered by the event id.
         /// </summary>
         /// <param name="LastEventId">The Last-Event-Id header value.</param>
         public IEnumerable<HTTPEvent> GetEvents(UInt64 LastEventId = 0)
         {
-            return from    Events in ListOfEvents
+
+            return from    Events in QueueOfEvents
                    where   Events.Id > LastEventId
                    orderby Events.Id
                    select  Events;
+
+        }
+
+        #endregion
+
+        #region GetEventsSince(Timestamp)
+
+        /// <summary>
+        /// Get a list of events filtered by a minimal timestamp.
+        /// </summary>
+        /// <param name="Timestamp">The earlierst timestamp of the events.</param>
+        public IEnumerable<HTTPEvent> GetEventsSince(DateTime Timestamp)
+        {
+
+            return from    Events in QueueOfEvents
+                   where   Events.Timestamp >= Timestamp
+                   orderby Events.Timestamp
+                   select  Events;
+
+        }
+
+        #endregion
+
+
+        #region IEnumerable Members
+
+        public IEnumerator<HTTPEvent> GetEnumerator()
+        {
+            return QueueOfEvents.GetEnumerator();
+        }
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+        {
+            return QueueOfEvents.GetEnumerator();
         }
 
         #endregion
