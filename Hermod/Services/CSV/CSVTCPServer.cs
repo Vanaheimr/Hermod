@@ -228,7 +228,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
         /// <param name="IPPort">The listening port.</param>
         /// <param name="SplitCharacters">The characters to split the incoming CSV lines.</param>
         /// <param name="ConnectionIdBuilder">A delegate for creating a connection identifier.</param>
-        public CSVTCPServer(IPPort IPPort,
+        public CSVTCPServer(IPPort                            IPPort,
                             Char[]                            SplitCharacters      = null,
                             Func<IIPAddress, IPPort, String>  ConnectionIdBuilder  = null)
         {
@@ -345,8 +345,8 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
                                                                     {
 
                                                                         CSVArray = CSVLine.Trim().
-                                                                                            Split(SplitCharacters,
-                                                                                                StringSplitOptions.RemoveEmptyEntries);
+                                                                                           Split(SplitCharacters,
+                                                                                                 StringSplitOptions.RemoveEmptyEntries);
 
                                                                     }
                                                                     catch (Exception)
@@ -390,14 +390,15 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
                                                                                     break;
 
                                                                                 case "help":
-                                                                                    newTCPConnection.WriteToResponseStream("bye        Close the TCP connection\r\n");
-                                                                                    newTCPConnection.WriteToResponseStream("exit        Close the TCP connection\r\n");
-                                                                                    newTCPConnection.WriteToResponseStream("quit        Close the TCP connection\r\n");
-                                                                                    newTCPConnection.WriteToResponseStream("logout        Close the TCP connection\r\n");
-                                                                                    newTCPConnection.WriteToResponseStream("noop        Do nothing, but keep the TCP connection alive\r\n");
-                                                                                    newTCPConnection.WriteToResponseStream("GetTime        Get the current server time\r\n");
-                                                                                    newTCPConnection.WriteToResponseStream("SetTimeout    Set the timeout for this TCP connection [milliseconds]\r\n");
-                                                                                    newTCPConnection.WriteToResponseStream("help        Get help\r\n");
+                                                                                    newTCPConnection.WriteToResponseStream("bye              Close the TCP connection\r\n");
+                                                                                    newTCPConnection.WriteToResponseStream("exit             Close the TCP connection\r\n");
+                                                                                    newTCPConnection.WriteToResponseStream("quit             Close the TCP connection\r\n");
+                                                                                    newTCPConnection.WriteToResponseStream("logout           Close the TCP connection\r\n");
+                                                                                    newTCPConnection.WriteToResponseStream("noop             Do nothing, but keep the TCP connection alive\r\n");
+                                                                                    newTCPConnection.WriteToResponseStream("GetTime          Get the current server time\r\n");
+                                                                                    newTCPConnection.WriteToResponseStream("GetConnectionId  Get the identification of this TCP connection\r\n");
+                                                                                    newTCPConnection.WriteToResponseStream("SetTimeout       Set the timeout for this TCP connection [milliseconds]\r\n");
+                                                                                    newTCPConnection.WriteToResponseStream("help             Get help\r\n");
                                                                                     newTCPConnection.WriteToResponseStream("\r\n");
                                                                                     break;
 

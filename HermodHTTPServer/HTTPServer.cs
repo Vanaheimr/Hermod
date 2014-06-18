@@ -307,7 +307,11 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region Events
 
+        #region OnStarted
+
         public event OnStartedDelegate OnStarted;
+
+        #endregion
 
         #region OnExceptionOccured
 
@@ -493,18 +497,6 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Dispose()
-
-        /// <summary>
-        /// Dispose this HTTP server.
-        /// </summary>
-        public void Dispose()
-        {
-            Shutdown();
-        }
-
-        #endregion
-
 
         #region ToString()
 
@@ -533,8 +525,17 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Dispose()
 
-        
+        /// <summary>
+        /// Dispose this HTTP server.
+        /// </summary>
+        public void Dispose()
+        {
+            Shutdown();
+        }
+
+        #endregion
 
     }
 
