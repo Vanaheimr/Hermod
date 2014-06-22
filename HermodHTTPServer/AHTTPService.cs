@@ -206,38 +206,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region GetRAWRequestHeader()
-
-        /// <summary>
-        /// Return the RAW request header.
-        /// </summary>
-        public HTTPResponse GetRAWRequestHeader()
-        {
-
-            return new HTTPResponseBuilder()
-                {
-                    HTTPStatusCode = HTTPStatusCode.OK,
-                    CacheControl   = "no-cache",
-                    Connection     = "close",
-                    ContentType    = HTTPContentType.TEXT_UTF8,
-                    Content        = ("Incoming http connection from '" + IHTTPConnection.RemoteSocket + "'" +
-                                       Environment.NewLine + Environment.NewLine +
-                                       IHTTPConnection.RequestHeader.RawHTTPHeader +
-                                       Environment.NewLine + Environment.NewLine +
-                                       "Method => " + IHTTPConnection.RequestHeader.HTTPMethod + Environment.NewLine +
-                                       "URL => " + IHTTPConnection.RequestHeader.UrlPath + Environment.NewLine +
-                                       "QueryString => " + IHTTPConnection.RequestHeader.QueryString + Environment.NewLine +
-                                       "Protocol => " + IHTTPConnection.RequestHeader.ProtocolName + Environment.NewLine +
-                                       "Version => " + IHTTPConnection.RequestHeader.ProtocolVersion + Environment.NewLine +
-                                       Environment.NewLine + Environment.NewLine +
-                                       IHTTPConnection.ResponseHeader.HTTPStatusCode).ToUTF8Bytes()
-                };
-
-        }
-
-        #endregion
-
-        #region (protected) TryGetLastQueryParameter_UInt64(ParameterName, OnSuccess = null, OnNotFound = null)
+        #region (protected) _TryGetLastQueryParameter_UInt64(ParameterName, OnSuccess = null, OnNotFound = null)
 
         /// <summary>
         /// Try to return a single optional HTTP query parameter as UInt64.
@@ -245,7 +214,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="ParameterName">The name of the parameter.</param>
         /// <param name="OnSuccess">A delegate called whenever a valid value was found.</param>
         /// <param name="OnNotFound">A delegate called whenever no value was found.</param>
-        protected HTTPResult<UInt64> TryGetLastQueryParameter_UInt64(String ParameterName, Action<UInt64> OnSuccess = null, Func<UInt64> OnNotFound = null)
+        protected HTTPResult<UInt64> _TryGetLastQueryParameter_UInt64(String ParameterName, Action<UInt64> OnSuccess = null, Func<UInt64> OnNotFound = null)
         {
 
             List<String> StringValues = null;
@@ -280,7 +249,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (protected) TryGetParameter_String(Name, out HTTPResult)
+        #region (protected) _TryGetParameter_String(Name, out HTTPResult)
 
         /// <summary>
         /// Try to return a single optional HTTP parameter as UInt64.
@@ -288,7 +257,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="Name">The name of the parameter.</param>
         /// <param name="HTTPResult">The HTTPResult.</param>
         /// <returns>True if the parameter exist; False otherwise.</returns>
-        protected Boolean TryGetParameter_String(String Name, out String Result)
+        protected Boolean _TryGetParameter_String(String Name, out String Result)
         {
 
             List<String> _StringValues = null;
@@ -309,9 +278,9 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected) GetRequestBodyString(HTTPContentType)
+        #region (protected) _GetRequestBodyAsUTF8String(HTTPContentType)
 
-        protected String GetRequestBodyAsUTF8String()
+        protected String _GetRequestBodyAsUTF8String()
         {
 
             if (IHTTPConnection.RequestBody == null || IHTTPConnection.RequestBody.Length == 0)
@@ -328,9 +297,9 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected) GetRequestBodyString(HTTPContentType)
+        #region (protected) _GetRequestBodyAsUTF8String(HTTPContentType)
 
-        protected HTTPResult<String> GetRequestBodyAsUTF8String(HTTPContentType HTTPContentType)
+        protected HTTPResult<String> _GetRequestBodyAsUTF8String(HTTPContentType HTTPContentType)
         {
 
             if (IHTTPConnection.RequestHeader.ContentType != HTTPContentType)
@@ -350,9 +319,13 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected) ParseRequestBody<T>(ExpectedContentType, OnSuccess, OnError, FailWhenNoContent = true)
+        #region (protected) _ParseRequestBody<T>(ExpectedContentType, OnSuccess, OnError, FailWhenNoContent = true)
 
-        protected HTTPResult<T> ParseRequestBody<T>(HTTPContentType ExpectedContentType, Func<String, T> OnSuccess, Func<T> OnError, Boolean FailWhenNoContent = true)
+        protected HTTPResult<T> _ParseRequestBody<T>(HTTPContentType  ExpectedContentType,
+                                                     Func<String, T>  OnSuccess,
+                                                     Func<T>          OnError,
+                                                     Boolean          FailWhenNoContent = true)
+
         {
 
             try
@@ -392,12 +365,12 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected) ParseJSONRequestBody()
+        #region (protected) _ParseJSONRequestBody()
 
-        protected HTTPResult<JObject> ParseJSONRequestBody()
+        protected HTTPResult<JObject> _ParseJSONRequestBody()
         {
 
-            var RequestBodyString = GetRequestBodyAsUTF8String(HTTPContentType.JSON_UTF8);
+            var RequestBodyString = _GetRequestBodyAsUTF8String(HTTPContentType.JSON_UTF8);
             if (RequestBodyString.HasErrors)
                 return new HTTPResult<JObject>(RequestBodyString.Error);
 
@@ -418,12 +391,12 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected) ParseXMLRequestBody()
+        #region (protected) _ParseXMLRequestBody()
 
-        protected HTTPResult<XDocument> ParseXMLRequestBody()
+        protected HTTPResult<XDocument> _ParseXMLRequestBody()
         {
 
-            var RequestBodyString = GetRequestBodyAsUTF8String(HTTPContentType.XMLTEXT_UTF8);
+            var RequestBodyString = _GetRequestBodyAsUTF8String(HTTPContentType.XMLTEXT_UTF8);
             if (RequestBodyString.HasErrors)
                 return new HTTPResult<XDocument>(RequestBodyString.Error);
 
@@ -445,32 +418,32 @@ namespace eu.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (protected) ParseCallbackParameter()
+        #region (protected) _ParseCallbackParameter()
 
         /// <summary>
         /// Parse and check the parameter CALLBACK.
         /// </summary>
-        protected void ParseCallbackParameter()
+        protected void _ParseCallbackParameter()
         {
 
             String _Callback;
 
-            if (TryGetParameter_String(Tokens.CALLBACK, out _Callback))
+            if (_TryGetParameter_String(Tokens.CALLBACK, out _Callback))
                 Callback.Value = new Regex("[^a-zA-Z0-9_]").Replace(_Callback, "");
 
         }
 
         #endregion
 
-        #region (protected) ParseSkipParameter(Default = 0)
+        #region (protected) _ParseSkipParameter(Default = 0)
 
         /// <summary>
         /// Parse and check the parameter SKIP.
         /// </summary>
-        protected HTTPResult<UInt64> ParseSkipParameter(UInt64 Default = 0)
+        protected HTTPResult<UInt64> _ParseSkipParameter(UInt64 Default = 0)
         {
 
-            return TryGetLastQueryParameter_UInt64(Tokens.SKIP,
+            return _TryGetLastQueryParameter_UInt64(Tokens.SKIP,
                                                    result => Skip.Value = result,
                                                    ()     => Skip.Value = Default);
 
@@ -478,15 +451,15 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected) ParseTakeParameter(Default)
+        #region (protected) _ParseTakeParameter(Default)
 
         /// <summary>
         /// Parse and check the parameter TAKE.
         /// </summary>
-        protected HTTPResult<UInt64> ParseTakeParameter(UInt64 Default)
+        protected HTTPResult<UInt64> _ParseTakeParameter(UInt64 Default)
         {
 
-            return TryGetLastQueryParameter_UInt64(Tokens.TAKE,
+            return _TryGetLastQueryParameter_UInt64(Tokens.TAKE,
                                                    result => Take.Value = result,
                                                    ()     => Take.Value = Default);
 
@@ -496,7 +469,9 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
 
 
-        protected Stream GetResourceStream(String Resource)
+        #region (protected) _GetResourceStream(Resource)
+
+        protected Stream _GetResourceStream(String Resource)
         {
 
             Assembly _Assembly;
@@ -508,7 +483,11 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         }
 
-        protected Boolean TryGetResourceStream(String Resource, out Stream ResourceStream)
+        #endregion
+
+        #region (protected) _TryGetResourceStream(Resource, out ResourceStream)
+
+        protected Boolean _TryGetResourceStream(String Resource, out Stream ResourceStream)
         {
 
             Assembly _Assembly;
@@ -524,27 +503,28 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         }
 
+        #endregion
 
-        #region GetResources(ResourceName)
+        #region (protected) _GetResources(ResourceName)
 
         /// <summary>
         /// Returns internal resources embedded within the assembly.
         /// </summary>
         /// <param name="ResourceName">The path and name of the resource.</param>
-        public HTTPResponse GetResources(String ResourceName)
+        protected HTTPResponse _GetResources(String ResourceName)
         {
-            return GetResources(HTTPRoot, ResourceName);
+            return _GetResources(HTTPRoot, ResourceName);
         }
 
         #endregion
 
-        #region GetResources(Path, ResourceName)
+        #region (protected) _GetResources(ResourcePath, ResourceName)
 
         /// <summary>
         /// Returns internal resources embedded within the assembly.
         /// </summary>
         /// <param name="ResourceName">The path and name of the resource.</param>
-        public HTTPResponse GetResources(String ResourcePath, String ResourceName)
+        protected HTTPResponse _GetResources(String ResourcePath, String ResourceName)
         {
 
             if (ResourcePath == null)
@@ -562,7 +542,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
             Stream _ResourceContent;
 
-            if (TryGetResourceStream(ResourcePath + ResourceName, out _ResourceContent))
+            if (_TryGetResourceStream(ResourcePath + ResourceName, out _ResourceContent))
             {
 
                 HTTPContentType _ResponseContentType = null;
@@ -603,7 +583,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
             else
             {
 
-                if (TryGetResourceStream(HTTPRoot + ".errorpages.Error404.html", out _ResourceContent))
+                if (_TryGetResourceStream(HTTPRoot + ".errorpages.Error404.html", out _ResourceContent))
                     return new HTTPResponseBuilder() {
                         HTTPStatusCode  = HTTPStatusCode.NotFound,
                         ContentType     = HTTPContentType.HTML_UTF8,
@@ -623,13 +603,13 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region GetResourceStream(Path, ResourceName)
+        #region (protected) _GetResourceStream(Path, ResourceName)
 
         /// <summary>
         /// Returns internal resources embedded within the assembly.
         /// </summary>
         /// <param name="ResourceName">The path and name of the resource.</param>
-        public Stream GetResourceStream(String ResourcePath, String ResourceName)
+        protected Stream _GetResourceStream(String ResourcePath, String ResourceName)
         {
 
             ResourcePath = ResourcePath.Replace('/', '.');
@@ -638,10 +618,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
             Stream _ResourceContent;
 
-            if (TryGetResourceStream(ResourcePath + ResourceName, out _ResourceContent))
-            {
+            if (_TryGetResourceStream(ResourcePath + ResourceName, out _ResourceContent))
                 return _ResourceContent;
-            }
 
             return null;
 
@@ -651,45 +629,79 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
 
 
+        #region (protected) _GetEventStream(HTTPEventSource, AccessControlAllowOrigin = "*", AccessControlAllowMethods = "GET,POST,MONITOR")
 
-        #region GetFavicon()
-
-        /// <summary>
-        /// Get /favicon.ico
-        /// </summary>
-        /// <returns>Some HTML and JavaScript.</returns>
-        public HTTPResponse GetFavicon()
+        protected HTTPResponse _GetEventStream(HTTPEventSource  HTTPEventSource,
+                                               String           AccessControlAllowOrigin   = "*",
+                                               String           AccessControlAllowMethods  = "GET,POST,MONITOR")
         {
-            return GetResources("favicon.ico");
+
+            if (HTTPEventSource == null)
+                return new HTTPResponseBuilder() {
+                    HTTPStatusCode = HTTPStatusCode.NotFound
+                };
+
+            var                 _LastEventId      = 0UL;
+            IEnumerable<String> _HTTPEvents       = null;
+            String              _ResourceContent  = Environment.NewLine;
+
+            if (IHTTPConnection.RequestHeader.TryGet<UInt64>("Last-Event-Id", out _LastEventId))
+                _HTTPEvents      = HTTPEventSource.
+                                      GetAllEventsGreater(_LastEventId).
+                                      Select(e => e.ToString());
+
+            else
+                _HTTPEvents      = HTTPEventSource.
+                                      GetAllEventsGreater(0).
+                                      Select(e => e.ToString());
+
+
+            // Transform HTTP events into an UTF8 string
+            _ResourceContent += String.Concat(_HTTPEvents.AggregateOrDefault((a, b) => a + Environment.NewLine + b, String.Empty),
+                                              Environment.NewLine);
+
+            _ResourceContent += String.Concat("retry: ",
+                                              HTTPEventSource.RetryIntervall.TotalMilliseconds.ToString("F0"),
+                                              Environment.NewLine,
+                                              Environment.NewLine);
+
+
+            return new HTTPResponseBuilder() {
+                HTTPStatusCode             = HTTPStatusCode.OK,
+                ContentType                = HTTPContentType.EVENTSTREAM,
+                AccessControlAllowOrigin   = AccessControlAllowOrigin,
+                AccessControlAllowMethods  = AccessControlAllowMethods,
+                AccessControlAllowHeaders  = "ContentType",
+                CacheControl               = "no-cache",
+                Connection                 = "keep-alive",
+                Content                    = _ResourceContent.ToUTF8Bytes()
+            };
+
         }
 
         #endregion
 
-        #region GetRobotsTxt()
+        #region (protected) _GetEventStream(EventSourceIdentification, AccessControlAllowOrigin = "*", AccessControlAllowMethods = "GET,POST,MONITOR")
 
-        /// <summary>
-        /// Get /robots.txt
-        /// </summary>
-        /// <returns>Some search engine info.</returns>
-        public HTTPResponse GetRobotsTxt()
+        protected HTTPResponse _GetEventStream(String EventSourceIdentification,
+                                               String AccessControlAllowOrigin   = "*",
+                                               String AccessControlAllowMethods  = "GET,POST,MONITOR")
         {
-            return GetResources("robots.txt");
+
+            HTTPEventSource HTTPEventSource;
+
+            if (IHTTPConnection.HTTPServer.TryGetEventSource(EventSourceIdentification, out HTTPEventSource))
+                return _GetEventStream(HTTPEventSource, AccessControlAllowOrigin, AccessControlAllowMethods);
+
+            else
+                return new HTTPResponseBuilder() {
+                    HTTPStatusCode = HTTPStatusCode.NotFound
+                };
+
         }
 
         #endregion
 
-        #region GetHumansTxt()
-
-        /// <summary>
-        /// Get /humans.txt
-        /// </summary>
-        /// <returns>Some search engine info.</returns>
-        public HTTPResponse GetHumansTxt()
-        {
-            return GetResources("humans.txt");
-        }
-
-        #endregion
 
     }
 

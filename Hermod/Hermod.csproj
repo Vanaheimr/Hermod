@@ -49,7 +49,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Datastructures\AReadOnlyLocalRemoteSockets.cs" />
-    <Compile Include="Datastructures\Delegates.cs" />
     <Compile Include="ExtentionMethods\NetworkingHelpers.cs" />
     <Compile Include="ExtentionMethods\IPAddressHelper.cs" />
     <Compile Include="Datastructures\ILocalSocket.cs" />
@@ -62,7 +61,7 @@
     <Compile Include="Datastructures\IRemoteSocket.cs" />
     <Compile Include="Services\CSV\SplitUDPPacketArrow.cs" />
     <Compile Include="Services\CSV\Delegates.cs" />
-    <Compile Include="Services\CSV\CSVTCPServer.cs" />
+    <Compile Include="Services\CSV\TCPCSVServer.cs" />
     <Compile Include="Services\CSV\ProcessUDPPacketArrow.cs" />
     <Compile Include="Services\DNS\NoDNSPaketInformation.cs" />
     <Compile Include="Services\DNS\DNSCacheEntry.cs" />
@@ -89,12 +88,12 @@
     <Compile Include="Services\TCPClient\TCPClient.cs" />
     <Compile Include="Sockets\IServer.cs" />
     <Compile Include="Sockets\IICMPPacket.cs" />
+    <Compile Include="Services\CSV\UDPCSVReceiver.cs" />
+    <Compile Include="Sockets\UDP\IUDPReceiver.cs" />
     <Compile Include="Sockets\UDP\MulticastReceiver.cs" />
     <Compile Include="Sockets\UDP\UDPMulticastSenderArrow.cs" />
-    <Compile Include="Sockets\TCP\ATCPConnection.cs" />
-    <Compile Include="Sockets\TCP\ITCPServer.cs" />
-    <Compile Include="Sockets\TCP\ITCPConnection.cs" />
     <Compile Include="Sockets\TCP\TCPConnection.cs" />
+    <Compile Include="Sockets\TCP\ITCPServer.cs" />
     <Compile Include="Sockets\TCP\TCPServer.cs" />
     <Compile Include="Datastructures\ALocalRemoteSockets.cs" />
     <Compile Include="Sockets\UDP\UDPPacket.cs" />

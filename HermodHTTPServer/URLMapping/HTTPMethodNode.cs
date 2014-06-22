@@ -19,7 +19,7 @@
 
 using System;
 using System.Reflection;
-using System.Collections.Concurrent;
+using System.Collections.Generic;
 
 #endregion
 
@@ -37,32 +37,32 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The http method for this service.
         /// </summary>
-        public HTTPMethod HTTPMethod { get; private set; }
+        public HTTPMethod   HTTPMethod                  { get; private set; }
 
         /// <summary>
         /// The method handler.
         /// </summary>
-        public MethodInfo MethodHandler { get; private set; }
+        public MethodInfo   MethodHandler               { get; private set; }
 
         /// <summary>
         /// This and all subordinated nodes demand an explicit http method authentication.
         /// </summary>
-        public Boolean HTTPMethodAuthentication { get; private set; }
+        public Boolean      HTTPMethodAuthentication    { get; private set; }
 
         /// <summary>
         /// A general error handling method.
         /// </summary>
-        public MethodInfo HTTPMethodErrorHandler { get; private set; }
+        public MethodInfo   HTTPMethodErrorHandler      { get; private set; }
 
         /// <summary>
         /// Error handling methods for specific http status codes.
         /// </summary>
-        public ConcurrentDictionary<HTTPStatusCode, MethodInfo> HTTPMethodErrorHandlers { get; private set; }
+        public Dictionary<HTTPStatusCode, MethodInfo> HTTPMethodErrorHandlers { get; private set; }
 
         /// <summary>
         /// Error handling methods for specific http status codes.
         /// </summary>
-        public ConcurrentDictionary<HTTPContentType, ContentTypeNode> HTTPContentTypes { get; private set; }
+        public Dictionary<HTTPContentType, ContentTypeNode> HTTPContentTypes { get; private set; }
 
         #endregion
 
@@ -77,18 +77,23 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="MethodHandler">The method handler.</param>
         /// <param name="HTTPMethodAuthentication">This and all subordinated nodes demand an explicit http method authentication.</param>
         /// <param name="HTTPMethodErrorHandler">A general error handling method.</param>
-        public HTTPMethodNode(HTTPMethod HTTPMethod, MethodInfo MethodHandler = null, Boolean HTTPMethodAuthentication = false, MethodInfo HTTPMethodErrorHandler = null, Boolean HandleContentTypes = false)
+        public HTTPMethodNode(HTTPMethod  HTTPMethod,
+                              MethodInfo  MethodHandler             = null,
+                              Boolean     HTTPMethodAuthentication  = false,
+                              MethodInfo  HTTPMethodErrorHandler    = null,
+                              Boolean     HandleContentTypes        = false)
+
         {
 
             this.HTTPMethod                = HTTPMethod;
             this.MethodHandler             = MethodHandler;
             this.HTTPMethodAuthentication  = HTTPMethodAuthentication;
             this.HTTPMethodErrorHandler    = HTTPMethodErrorHandler;
-            this.HTTPMethodErrorHandlers   = new ConcurrentDictionary<HTTPStatusCode, MethodInfo>();
+            this.HTTPMethodErrorHandlers   = new Dictionary<HTTPStatusCode, MethodInfo>();
             this.MethodHandler             = MethodHandler;
 
             if (HandleContentTypes)
-                HTTPContentTypes = new ConcurrentDictionary<HTTPContentType, ContentTypeNode>(); 
+                HTTPContentTypes = new Dictionary<HTTPContentType, ContentTypeNode>(); 
 
         }
 

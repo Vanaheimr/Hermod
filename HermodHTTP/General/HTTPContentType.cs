@@ -83,6 +83,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
         public static readonly HTTPContentType JAVASCRIPT_UTF8      = new HTTPContentType("text/javascript",                        "UTF-8");
 
         public static readonly HTTPContentType JSON_UTF8            = new HTTPContentType("application/json",                       "UTF-8");
+        public static readonly HTTPContentType JSONLD_UTF8          = new HTTPContentType("application/ld+json",                    "UTF-8");
         public static readonly HTTPContentType XML_UTF8             = new HTTPContentType("application/xml",                        "UTF-8");
         public static readonly HTTPContentType XMLTEXT_UTF8         = new HTTPContentType("text/xml",                               "UTF-8");
         public static readonly HTTPContentType GEXF_UTF8            = new HTTPContentType("application/gexf+xml",                   "UTF-8");

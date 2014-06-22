@@ -20,8 +20,6 @@
 using System;
 using System.Net;
 
-using eu.Vanaheimr.Hermod.Datastructures;
-
 #endregion
 
 namespace eu.Vanaheimr.Hermod.Sockets

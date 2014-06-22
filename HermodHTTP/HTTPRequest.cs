@@ -24,7 +24,6 @@ using System.Collections.Generic;
 using System.Text;
 
 using eu.Vanaheimr.Illias.Commons;
-using eu.Vanaheimr.Hermod.Datastructures;
 
 #endregion
 

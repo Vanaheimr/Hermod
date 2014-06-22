@@ -18,14 +18,13 @@
 #region Usings
 
 using System;
-using System.Reflection;
+using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
 
-using eu.Vanaheimr.Hermod.Datastructures;
+using eu.Vanaheimr.Styx.Arrows;
 
 #endregion
 
@@ -35,26 +34,31 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
     #region TCPServer<TCPConnection>
 
     /// <summary>
-    /// A multi-threaded TCPServer
+    /// A multi-threaded Styx arrow sender that listens on a TCP
+    /// socket and notifies about incoming TCP connections.
     /// </summary>
-    /// <typeparam name="TCPConnectionType">A class for processing a new client connection</typeparam>
-    public class TCPServer<TCPConnectionType> : ITCPServer
-        where TCPConnectionType : class, ITCPConnection, new()
+    /// <typeparam name="TData">The type of the Styx arrows to send.</typeparam>
+    public class TCPServer<TData> : ITCPServer<TData>
     {
 
         #region Data
 
+        private const String DefaultServiceBanner = "Vanaheimr Hermod TCP Server v0.9";
+
+        private readonly Func<TCPConnection<TData>, String>  PacketThreadName;
+        private readonly MapperDelegate                      Mapper; 
+
         // The internal thread
-        private readonly Thread                                             _ListenerThread;
+        private readonly Thread                                                _ListenerThread;
 
         // The TCP listener socket
-        private readonly TcpListener                                        _TCPListener;
+        private readonly TcpListener                                           _TCPListener;
 
         // Store each connection, in order to be able to stop them activily
-        private readonly ConcurrentDictionary<IPSocket, TCPConnectionType>  _SocketConnections;
+        private readonly ConcurrentDictionary<IPSocket, TCPConnection<TData>>  _SocketConnections;
 
         // The constructor for TCPConnectionType
-        private readonly ConstructorInfo                                    _Constructor;
+        //private readonly ConstructorInfo                                       _Constructor;
 
         private          CancellationTokenSource  CancellationTokenSource;
         private          CancellationToken        CancellationToken;
@@ -68,7 +72,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         private readonly IIPAddress _IPAddress;
 
         /// <summary>
-        /// Gets the IPAddress on which the TCPServer listens.
+        /// Gets the IPAddress on which the TCP server listens.
         /// </summary>
         public IIPAddress IPAddress
         {
@@ -85,7 +89,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         private readonly IPPort _Port;
 
         /// <summary>
-        /// Gets the port on which the TCPServer listens.
+        /// Gets the port on which the TCP server listens.
         /// </summary>
         public IPPort Port
         {
@@ -97,7 +101,111 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
-        public event OnStartedDelegate OnStarted;
+        #region IPSocket
+
+        private readonly IPSocket _IPSocket;
+
+        /// <summary>
+        /// Gets the IP socket on which the TCP server listens.
+        /// </summary>
+        public IPSocket IPSocket
+        {
+            get
+            {
+                return _IPSocket;
+            }
+        }
+
+        #endregion
+
+
+        #region ServerThreadName
+
+        /// <summary>
+        /// The optional name of the TCP server thread.
+        /// </summary>
+        public String ServerThreadName { get; set; }
+
+        #endregion
+
+        #region ServerThreadPriority
+
+        /// <summary>
+        /// The optional priority of the TCP server thread.
+        /// </summary>
+        public ThreadPriority ServerThreadPriority { get; set; }
+
+        #endregion
+
+        #region ServerThreadIsBackground
+
+        /// <summary>
+        /// Whether the TCP server thread is a background thread or not.
+        /// </summary>
+        public Boolean ServerThreadIsBackground { get; set; }
+
+        #endregion
+
+
+        #region ConnectionIdBuilder
+
+        /// <summary>
+        /// The optional name of the TCP server thread.
+        /// </summary>
+        public Func<IPSocket, String> ConnectionIdBuilder { get; set; }
+
+        #endregion
+
+        #region ConnectionThreadsNameCreator
+
+        /// <summary>
+        /// The optional name of the TCP server thread.
+        /// </summary>
+        public String ConnectionThreadsNameCreator { get; set; }
+
+        #endregion
+
+        #region ConnectionThreadsPriority
+
+        /// <summary>
+        /// The optional priority of the TCP server thread.
+        /// </summary>
+        public ThreadPriority ConnectionThreadsPriority { get; set; }
+
+        #endregion
+
+        #region ConnectionThreadsAreBackground
+
+        /// <summary>
+        /// Whether the TCP server thread is a background thread or not.
+        /// </summary>
+        public Boolean ConnectionThreadsAreBackground { get; set; }
+
+        #endregion
+
+        #region ConnectionTimeout
+
+        /// <summary>
+        /// The tcp client timeout for all incoming client connections.
+        /// </summary>
+        public TimeSpan ConnectionTimeout { get; set; }
+
+        #endregion
+
+
+        #region ServiceBanner
+
+        /// <summary>
+        /// The TCP service banner transmitted to a TCP client
+        /// at connection initialization.
+        /// </summary>
+        public String ServiceBanner { get; set; }
+
+        #endregion
+
+
+
+
 
         #region IsRunning
 
@@ -168,122 +276,203 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
-        #region ClientTimeout
-
-        /// <summary>
-        /// Will set the ClientTimeout for all incoming client connections
-        /// </summary>
-        public Int32 ClientTimeout { get; set; }
-
-        #endregion
-
-        public String ServiceBanner { get; set; }
-
         #endregion
 
         #region Events
 
-        #region ExceptionOccured
+        #region OnStarted
 
-        private event OnExceptionOccuredDelegate _OnExceptionOccured;
-
-        private List<OnExceptionOccuredDelegate> MyEventStorage = new List<OnExceptionOccuredDelegate>();
-
-        public event OnExceptionOccuredDelegate OnExceptionOccured
-        {
-
-            add
-            {
-                MyEventStorage.Add(value);
-                _OnExceptionOccured += value;
-            }
-
-            remove
-            {
-                MyEventStorage.Remove(value);
-                _OnExceptionOccured -= value;
-            }
-
-        }
+        /// <summary>
+        /// An event fired when the TCP server started.
+        /// </summary>
+        public event StartedEventHandler OnStarted;
 
         #endregion
 
-        #region OnNewConnection
+        #region OnNotification
 
         /// <summary>
-        /// A delegate called for every incoming TCP connection.
+        /// An event fired for every incoming TCP connection.
         /// </summary>
-        public delegate void OnNewClientConnectionDelegate(TCPConnectionType myTCPConnectionType);
-
-        /// <summary>
-        /// A event called for every incoming connection.
-        /// </summary>
-        public event OnNewClientConnectionDelegate OnNewConnection;
+        public event NotificationEventHandler<TCPConnection<TData>> OnNotification;
 
         #endregion
+
+        #region OnExceptionOccured
+
+        /// <summary>
+        /// An event fired whenever an exception occured.
+        /// </summary>
+        public event ExceptionOccuredEventHandler OnExceptionOccured;
+
+        #endregion
+
+        #region OnCompleted
+
+        /// <summary>
+        /// An event fired when the TCP server stopped.
+        /// </summary>
+        public event CompletedEventHandler OnCompleted;
+
+        #endregion
+
+        #endregion
+
+        #region MapperDelegate
+
+        /// <summary>
+        /// A delegate to transform the incoming TCP connection data into custom data structures.
+        /// </summary>
+        /// <param name="TCPServer">The TCP server.</param>
+        /// <param name="Timestamp">The server timestamp of the TCP connection.</param>
+        /// <param name="LocalSocket">The local TCP socket.</param>
+        /// <param name="RemoteSocket">The remote TCP socket.</param>
+        /// <param name="Payload">The payload of the TCP connection.</param>
+        /// <returns>The payload/message of the TCP connection transformed into custom data structures.</returns>
+        public delegate TData MapperDelegate(TCPServer<TData>  TCPServer,
+                                             DateTime          Timestamp,
+                                             IPSocket          LocalSocket,
+                                             IPSocket          RemoteSocket,
+                                             Byte[]            Payload);
 
         #endregion
 
         #region Constructor(s)
 
-        #region TCPServer(Port, NewConnectionHandler = null, Autostart = false, ThreadDescription = "...")
+        #region TCPServer(Port, ...)
 
         /// <summary>
-        /// Initialize the TCPServer using IPAddress.Any and the given parameters.
+        /// Initialize the TCP server using IPAddress.Any and the given parameters.
         /// </summary>
         /// <param name="Port">The listening port</param>
-        /// <param name="NewConnectionHandler">A delegate called for every new tcp connection.</param>
-        /// <param name="Autostart">Autostart the tcp server.</param>
-        public TCPServer(IPPort Port, OnNewClientConnectionDelegate NewConnectionHandler = null, Boolean Autostart = false, String ThreadDescription = "...")
-            : this(IPv4Address.Any, Port, NewConnectionHandler, Autostart, ThreadDescription)
+        /// <param name="Mapper">A delegate to transform the incoming TCP connection data into custom data structures.</param>
+        /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
+        /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
+        /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
+        /// <param name="ConnectionIdBuilder"></param>
+        /// <param name="ConnectionThreadsNameCreator">An optional delegate to set the name of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsPriority">The optional priority of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
+        /// <param name="ConnectionTimeoutSeconds">The tcp client timeout for all incoming client connections in seconds.</param>
+        /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
+        public TCPServer(IPPort                              Port,
+                         MapperDelegate                      Mapper,
+                         String                              ServerThreadName                = null,
+                         ThreadPriority                      ServerThreadPriority            = ThreadPriority.AboveNormal,
+                         Boolean                             ServerThreadIsBackground        = true,
+                         Func<IPSocket, String>              ConnectionIdBuilder             = null,
+                         Func<TCPConnection<TData>, String>  ConnectionThreadsNameCreator    = null,
+                         ThreadPriority                      ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
+                         Boolean                             ConnectionThreadsAreBackground  = true,
+                         UInt64                              ConnectionTimeoutSeconds        = 30,
+                         Boolean                             Autostart                       = false)
+
+            : this(IPv4Address.Any,
+                   Port,
+                   Mapper,
+                   ServerThreadName,
+                   ServerThreadPriority,
+                   ServerThreadIsBackground,
+                   ConnectionIdBuilder,
+                   ConnectionThreadsNameCreator,
+                   ConnectionThreadsPriority,
+                   ConnectionThreadsAreBackground,
+                   ConnectionTimeoutSeconds,
+                   Autostart)
+
         { }
 
         #endregion
 
-        #region TCPServer(IIPAddress, Port, NewConnectionHandler = null, Autostart = false, ThreadDescription = "...")
+        #region TCPServer(IIPAddress, Port, ...)
 
         /// <summary>
-        /// Initialize the TCPServer using the given parameters.
+        /// Initialize the TCP server using the given parameters.
         /// </summary>
         /// <param name="IIPAddress">The listening IP address(es)</param>
         /// <param name="Port">The listening port</param>
-        /// <param name="NewConnectionHandler">A delegate called for every new tcp connection.</param>
-        /// <param name="Autostart">Autostart the tcp server.</param>
-        public TCPServer(IIPAddress IIPAddress, IPPort Port, OnNewClientConnectionDelegate NewConnectionHandler = null, Boolean Autostart = false, String ThreadDescription = "...")
+        /// <param name="Mapper">A delegate to transform the incoming TCP connection data into custom data structures.</param>
+        /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
+        /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
+        /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
+        /// <param name="ConnectionIdBuilder"></param>
+        /// <param name="ConnectionThreadsNameCreator">An optional delegate to set the name of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsPriority">The optional priority of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
+        /// <param name="ConnectionTimeoutSeconds">The tcp client timeout for all incoming client connections in seconds.</param>
+        /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
+        public TCPServer(IIPAddress                          IIPAddress,
+                         IPPort                              Port,
+                         MapperDelegate                      Mapper,
+                         String                              ServerThreadName                = null,
+                         ThreadPriority                      ServerThreadPriority            = ThreadPriority.AboveNormal,
+                         Boolean                             ServerThreadIsBackground        = true,
+                         Func<IPSocket, String>              ConnectionIdBuilder             = null,
+                         Func<TCPConnection<TData>, String>  ConnectionThreadsNameCreator    = null,
+                         ThreadPriority                      ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
+                         Boolean                             ConnectionThreadsAreBackground  = true,
+                         UInt64                              ConnectionTimeoutSeconds        = 30,
+                         Boolean                             Autostart                       = false)
         {
 
-            _IPAddress                      = IIPAddress;
-            _Port                           = Port;
-            _SocketConnections              = new ConcurrentDictionary<IPSocket, TCPConnectionType>();
-            _TCPListener                    = new TcpListener(new System.Net.IPAddress(_IPAddress.GetBytes()), _Port.ToInt32());
-             ClientTimeout                  = 30000;
+            if (Mapper == null)
+                throw new ArgumentNullException("The mapper delegate must not be null!");
+
+            this._IPAddress                         = IIPAddress;
+            this._Port                              = Port;
+            this._IPSocket                          = new IPSocket(_IPAddress, _Port);
+            this.Mapper                             = Mapper;
+
+            this.ServerThreadName                   = (ServerThreadName != null)
+                                                          ? ServerThreadName
+                                                          : "TCP server on " + this.IPSocket.ToString();
+            this.ServerThreadPriority               = ServerThreadPriority;
+            this.ServerThreadIsBackground           = ServerThreadIsBackground;
+
+            this.ConnectionIdBuilder                = (ConnectionIdBuilder != null)
+                                                          ? ConnectionIdBuilder
+                                                          : (RemoteIPSocket) => "TCP:" + RemoteIPSocket.IPAddress + ":" + RemoteIPSocket.Port;
+            this.ConnectionThreadsNameCreator       = ServerThreadName;
+            this.ConnectionThreadsPriority          = ServerThreadPriority;
+            this.ConnectionThreadsAreBackground     = ServerThreadIsBackground;
+            this.ConnectionTimeout                  = TimeSpan.FromSeconds(ConnectionTimeoutSeconds);
+
+
+
+
+            this._SocketConnections         = new ConcurrentDictionary<IPSocket, TCPConnection<TData>>();
+            this._TCPListener               = new TcpListener(new System.Net.IPAddress(_IPAddress.GetBytes()), _Port.ToInt32());
 
             this.CancellationTokenSource    = new CancellationTokenSource();
             this.CancellationToken          = CancellationTokenSource.Token;
 
 
             // Get constructor for TCPConnectionType
-            _Constructor        = typeof(TCPConnectionType).
-                                      GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
-                                                     null,
-                                                     new Type[] {
-                                                         typeof(TcpClient)
-                                                     },
-                                                     null);
+            //_Constructor        = typeof(TData).
+            //                          GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+            //                                         null,
+            //                                         new Type[] {
+            //                                             typeof(TcpClient)
+            //                                         },
+            //                                         null);
 
-            if (_Constructor == null)
-                 throw new ArgumentException("A appropriate constructor for type '" + typeof(TCPConnectionType).FullName + "' could not be found!");
+            //if (_Constructor == null)
+            //     throw new ArgumentException("A appropriate constructor for type '" + typeof(TData).FullName + "' could not be found!");
 
 
             _ListenerThread = new Thread(() => {
-                Thread.CurrentThread.Name          = "TCPServer<" + ThreadDescription + ">";
-                Thread.CurrentThread.Priority      = ThreadPriority.AboveNormal;
-                Thread.CurrentThread.IsBackground  = true;
-                Listen();
-            });
 
-            if (NewConnectionHandler != null)
-                OnNewConnection += NewConnectionHandler;
+#if __MonoCS__
+                // Code for Mono C# compiler
+#else
+                Thread.CurrentThread.Name          = this.ServerThreadName;
+                Thread.CurrentThread.Priority      = this.ServerThreadPriority;
+                Thread.CurrentThread.IsBackground  = this.ServerThreadIsBackground;
+#endif
+
+                Listen();
+
+            });
 
             if (Autostart)
                 Start();
@@ -292,16 +481,47 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
-        #region TCPServer(IPSocket, NewConnectionHandler = null, Autostart = false)
+        #region TCPServer(IPSocket, ...)
 
         /// <summary>
-        /// Initialize the TCPServer using the given parameters.
+        /// Initialize the TCP server using IPAddress.Any and the given parameters.
         /// </summary>
-        /// <param name="IPSocket">The listening IPSocket.</param>
-        /// <param name="NewConnectionHandler">A delegate called for every new tcp connection.</param>
-        /// <param name="Autostart">Autostart the tcp server.</param>
-        public TCPServer(IPSocket IPSocket, OnNewClientConnectionDelegate NewConnectionHandler = null, Boolean Autostart = false)
-            : this(IPSocket.IPAddress, IPSocket.Port, NewConnectionHandler, Autostart)
+        /// <param name="IPSocket">The IP socket to listen.</param>
+        /// <param name="Mapper">A delegate to transform the incoming TCP connection data into custom data structures.</param>
+        /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
+        /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
+        /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
+        /// <param name="ConnectionIdBuilder"></param>
+        /// <param name="ConnectionThreadsNameCreator">An optional delegate to set the name of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsPriority">The optional priority of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
+        /// <param name="ConnectionTimeoutSeconds">The tcp client timeout for all incoming client connections in seconds.</param>
+        /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
+        public TCPServer(IPSocket                            IPSocket,
+                         MapperDelegate                      Mapper,
+                         String                              ServerThreadName                = null,
+                         ThreadPriority                      ServerThreadPriority            = ThreadPriority.AboveNormal,
+                         Boolean                             ServerThreadIsBackground        = true,
+                         Func<IPSocket, String>              ConnectionIdBuilder             = null,
+                         Func<TCPConnection<TData>, String>  ConnectionThreadsNameCreator    = null,
+                         ThreadPriority                      ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
+                         Boolean                             ConnectionThreadsAreBackground  = true,
+                         UInt64                              ConnectionTimeoutSeconds        = 30,
+                         Boolean                             Autostart                       = false)
+
+            : this(IPSocket.IPAddress,
+                   IPSocket.Port,
+                   Mapper,
+                   ServerThreadName,
+                   ServerThreadPriority,
+                   ServerThreadIsBackground,
+                   ConnectionIdBuilder,
+                   ConnectionThreadsNameCreator,
+                   ConnectionThreadsPriority,
+                   ConnectionThreadsAreBackground,
+                   ConnectionTimeoutSeconds,
+                   Autostart)
+
         { }
 
         #endregion
@@ -334,10 +554,55 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
                         break;
 
                     // Processing the pending client connection within its own task
-                    var _NewTCPClient = _TCPListener.AcceptTcpClient();
-                    Task.Factory.StartNew(() => {
-                        ProcessNewClientConnection(_NewTCPClient);
-                    });
+                    var NewTCPClient = _TCPListener.AcceptTcpClient();
+
+                    // Store the new connection
+                    //_SocketConnections.AddOrUpdate(_TCPConnection.Value.RemoteSocket,
+                    //                               _TCPConnection.Value,
+                    //                               (RemoteEndPoint, TCPConnection) => TCPConnection);
+
+                    Task.Factory.StartNew(Tuple => {
+
+                        var _Tuple                 = Tuple as Tuple<TCPServer<TData>, TcpClient>;
+                        var _TCPServer             = _Tuple.Item1;
+                        var _TCPClient             = _Tuple.Item2;
+                        var _IPEndPoint            = _TCPClient.Client.RemoteEndPoint as IPEndPoint;
+                        var _RemoteSocket          = new IPSocket(new IPv4Address(_IPEndPoint.Address), new IPPort((UInt16) _IPEndPoint.Port));
+
+#if __MonoCS__
+                                            // Code for Mono C# compiler
+#else
+                        Thread.CurrentThread.Name  = (ConnectionThreadsNameCreator != null)
+                                                         ? ServerThreadName
+                                                         : "TCP connection from " +
+                                                                 _RemoteSocket.IPAddress.ToString() +
+                                                                 ":" +
+                                                                 _RemoteSocket.Port.ToString();
+#endif
+
+
+                  //      _TCPClient.ReceiveTimeout = (Int32) ConnectionTimeout.TotalMilliseconds;
+
+
+                        try
+                        {
+
+                            var NewTCPConnection = new TCPConnection<TData>(_TCPServer, DateTime.Now, _TCPServer.IPSocket, _RemoteSocket, _TCPClient);
+                            //         NewTCPConnection.Run();
+
+                            var OnNotificationLocal = OnNotification;
+                            if (OnNotificationLocal != null)
+                                OnNotificationLocal(NewTCPConnection);
+
+                        }
+                        catch (Exception Exception)
+                        {
+                            var OnExceptionLocal = OnExceptionOccured;
+                            if (OnExceptionLocal != null)
+                                OnExceptionLocal(this, DateTime.Now, Exception);
+                        }
+
+                    }, new Tuple<TCPServer<TData>, TcpClient>(this, NewTCPClient));
 
                 }
 
@@ -350,7 +615,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
                 // After stopping the TCPListener wait for
                 // all client connections to finish!
                 while (_SocketConnections.Count > 0)
-                    Thread.Sleep(10);
+                    Thread.Sleep(5);
 
                 #endregion
 
@@ -360,9 +625,9 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
             catch (Exception Exception)
             {
-                var OnExceptionOccured_Local = _OnExceptionOccured;
-                if (OnExceptionOccured_Local != null)
-                    OnExceptionOccured_Local(this, Exception);
+                var OnExceptionLocal = OnExceptionOccured;
+                if (OnExceptionLocal != null)
+                    OnExceptionLocal(this, DateTime.Now, Exception);
             }
 
             #endregion
@@ -373,73 +638,6 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
-        #region (private, threaded) ProcessNewClientConnection(TCPClient)
-
-        /// <summary>
-        /// Processes a new client connection
-        /// </summary>
-        /// <param name="TCPClient">A new client connection</param>
-        private void ProcessNewClientConnection(TcpClient TCPClient)
-        {
-
-            #region Create a new thread-local instance of the upper-layer protocol stack
-
-            // Invoke constructor of TCPConnectionType
-            var _TCPConnection = new ThreadLocal<TCPConnectionType>(
-                                      () => _Constructor.Invoke(new Object[] { TCPClient }) as TCPConnectionType
-                                  );
-
-            if (_TCPConnection.Value == null)
-                throw new ArgumentException("A TCPConnectionType of type '" + typeof(TCPConnectionType).FullName + "' could not be created!");
-
-            _TCPConnection.Value.ReadTimeout   = ClientTimeout;
-            _TCPConnection.Value.StopRequested = false;
-
-            // Copy ExceptionOccured event handlers
-            foreach (var ExceptionOccuredHandler in MyEventStorage)
-                _TCPConnection.Value.OnExceptionOccured += ExceptionOccuredHandler;
-
-            #endregion
-
-            #region Store the new connection
-
-            _SocketConnections.AddOrUpdate(_TCPConnection.Value.RemoteSocket,
-                                           _TCPConnection.Value,
-                                           (RemoteEndPoint, TCPConnection) => TCPConnection);
-
-            #endregion
-
-            try
-            {
-
-                // Call delegates for upper-layer protocol processing
-                var OnNewConnection_Local = OnNewConnection;
-                if (OnNewConnection_Local != null)
-                    OnNewConnection_Local(_TCPConnection.Value);
-
-            }
-            catch (Exception Exception)
-            {
-
-                // Call delegates for exception handling
-                var OnExceptionOccured_Local = _OnExceptionOccured;
-                if (OnExceptionOccured_Local != null)
-                    OnExceptionOccured_Local(this, Exception);
-
-            }
-
-            #region Remove and close client connection
-
-            var _ATCPConnectionType = default(TCPConnectionType);
-            _SocketConnections.TryRemove(_TCPConnection.Value.RemoteSocket, out _ATCPConnectionType);
-
-            _TCPConnection.Dispose();
-
-            #endregion
-
-        }
-
-        #endregion
 
 
         #region Start()
@@ -516,13 +714,15 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
-        #region Shutdown(Wait = true)
+        #region Shutdown(Message = null, Wait = true)
 
         /// <summary>
         /// Shutdown the TCP listener.
         /// </summary>
         /// <param name="Wait">Wait until the server finally shutted down.</param>
-        public void Shutdown(Boolean Wait = true)
+        /// <param name="Message">An optional shutdown message.</param>
+        public void Shutdown(String  Message  = null,
+                             Boolean Wait     = true)
         {
 
             _StopRequested = true;
@@ -534,6 +734,10 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
             //    while (_IsRunning > 0)
             //        Thread.Sleep(10);
 
+            var OnCompletedLocal = OnCompleted;
+            if (OnCompletedLocal != null)
+                OnCompletedLocal(this, DateTime.Now, (Message != null) ? Message : String.Empty);
+
         }
 
         #endregion
@@ -541,7 +745,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         #region StopAndWait()
 
         /// <summary>
-        /// Stop the TCPServer and wait until all connections are closed
+        /// Stop the TCPServer and wait until all connections are closed.
         /// </summary>
         public void StopAndWait()
         {
@@ -584,10 +788,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
             var _TypeName    = this.GetType().Name;
             var _GenericType = this.GetType().GetGenericArguments()[0].Name;
 
-            var _Running = "";
-            if (IsRunning) _Running = " (running)";
-
-            return String.Concat(_TypeName.Remove(_TypeName.Length - 2), "<", _GenericType, "> ", _IPAddress.ToString(), ":", _Port, _Running);
+            return String.Concat(_TypeName.Remove(_TypeName.Length - 2), "<", _GenericType, "> ", IPSocket.ToString() + ((IsRunning) ? " (running)" : ""));
 
         }
 
@@ -602,70 +803,145 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
     /// <summary>
     /// A multi-threaded TCPServer using the default TCPConnection handler.
     /// </summary>
-    public class TCPServer : TCPServer<TCPConnection>
+    public class TCPServer : TCPServer<Byte[]>
     {
 
         #region Constructor(s)
 
-        #region TCPServer(Port, NewConnectionHandler = null, Autostart = false)
+        #region TCPServer(Port, ...)
 
         /// <summary>
-        /// Initialize the TCP server using IPAddress.Any and the given parameters
+        /// Initialize the TCP server using IPAddress.Any and the given parameters.
         /// </summary>
         /// <param name="Port">The listening port</param>
-        /// <param name="NewConnectionHandler">A delegate called for every new tcp connection.</param>
-        /// <param name="Autostart">Autostart the tcp server.</param>
-        public TCPServer(IPPort Port, OnNewClientConnectionDelegate NewConnectionHandler = null, Boolean Autostart = false)
-            : base(IPv4Address.Any, Port, NewConnectionHandler, Autostart)
+        /// <param name="Mapper">A delegate to transform the incoming TCP connection data into custom data structures.</param>
+        /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
+        /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
+        /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
+        /// <param name="ConnectionThreadsNameCreator">An optional delegate to set the name of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsPriority">The optional priority of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
+        /// <param name="ConnectionTimeoutSeconds">The tcp client timeout for all incoming client connections in seconds.</param>
+        /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
+        public TCPServer(IPPort                               Port,
+                         MapperDelegate                       Mapper                          = null,
+                         String                               ServerThreadName                = "TCP server thread",
+                         ThreadPriority                       ServerThreadPriority            = ThreadPriority.AboveNormal,
+                         Boolean                              ServerThreadIsBackground        = true,
+                         Func<IPSocket, String>               ConnectionIdBuilder             = null,
+                         Func<TCPConnection<Byte[]>, String>  ConnectionThreadsNameCreator    = null,
+                         ThreadPriority                       ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
+                         Boolean                              ConnectionThreadsAreBackground  = true,
+                         UInt64                               ConnectionTimeoutSeconds        = 30,
+                         Boolean                              Autostart                       = false)
+
+            : this(IPv4Address.Any,
+                   Port,
+                   Mapper,
+                   ServerThreadName,
+                   ServerThreadPriority,
+                   ServerThreadIsBackground,
+                   ConnectionIdBuilder,
+                   ConnectionThreadsNameCreator,
+                   ConnectionThreadsPriority,
+                   ConnectionThreadsAreBackground,
+                   ConnectionTimeoutSeconds,
+                   Autostart)
+
         { }
 
         #endregion
 
-        #region TCPServer(IIPAddress, Port, NewConnectionHandler = null, Autostart = false)
+        #region TCPServer(IIPAddress, Port, ...)
 
         /// <summary>
         /// Initialize the TCP server using the given parameters.
         /// </summary>
-        /// <param name="IIPAddress">The listening IP address(es).</param>
-        /// <param name="Port">The listening port.</param>
-        /// <param name="NewConnectionHandler">A delegate called for every new tcp connection.</param>
-        /// <param name="Autostart">Autostart the tcp server.</param>
-        public TCPServer(IIPAddress IIPAddress, IPPort Port, OnNewClientConnectionDelegate NewConnectionHandler = null, Boolean Autostart = false)
-            : base(IIPAddress, Port, NewConnectionHandler, Autostart)
+        /// <param name="IIPAddress">The listening IP address(es)</param>
+        /// <param name="Port">The listening port</param>
+        /// <param name="Mapper">A delegate to transform the incoming TCP connection data into custom data structures.</param>
+        /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
+        /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
+        /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
+        /// <param name="ConnectionThreadsNameCreator">An optional delegate to set the name of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsPriority">The optional priority of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
+        /// <param name="ConnectionTimeoutSeconds">The tcp client timeout for all incoming client connections in seconds.</param>
+        /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
+        public TCPServer(IIPAddress                           IIPAddress,
+                         IPPort                               Port,
+                         MapperDelegate                       Mapper                          = null,
+                         String                               ServerThreadName                = null,
+                         ThreadPriority                       ServerThreadPriority            = ThreadPriority.AboveNormal,
+                         Boolean                              ServerThreadIsBackground        = true,
+                         Func<IPSocket, String>               ConnectionIdBuilder             = null,
+                         Func<TCPConnection<Byte[]>, String>  ConnectionThreadsNameCreator    = null,
+                         ThreadPriority                       ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
+                         Boolean                              ConnectionThreadsAreBackground  = true,
+                         UInt64                               ConnectionTimeoutSeconds        = 30,
+                         Boolean                              Autostart                       = false)
+
+            : base(IIPAddress,
+                   Port,
+                   (Mapper == null) ? (TCPServer, Timestamp, LocalSocket, RemoteSocket, Message) => Message : Mapper,
+                   ServerThreadName,
+                   ServerThreadPriority,
+                   ServerThreadIsBackground,
+                   ConnectionIdBuilder,
+                   ConnectionThreadsNameCreator,
+                   ConnectionThreadsPriority,
+                   ConnectionThreadsAreBackground,
+                   ConnectionTimeoutSeconds,
+                   Autostart)
+
         { }
 
         #endregion
 
-        #region TCPServer(IPSocket, myNewConnectionHandler = null, Autostart = false)
+        #region TCPServer(IPSocket, ...)
 
         /// <summary>
-        /// Initialize the TCP server using the given parameters.
+        /// Initialize the TCP server using IPAddress.Any and the given parameters.
         /// </summary>
-        /// <param name="IPSocket">The listening IPSocket.</param>
-        /// <param name="NewConnectionHandler">A delegate called for every new tcp connection.</param>
-        /// <param name="Autostart">Autostart the tcp server.</param>
-        public TCPServer(IPSocket IPSocket, OnNewClientConnectionDelegate NewConnectionHandler = null, Boolean Autostart = false)
-            : base(IPSocket, NewConnectionHandler, Autostart)
+        /// <param name="IPSocket">The IP socket to listen.</param>
+        /// <param name="Mapper">A delegate to transform the incoming TCP connection data into custom data structures.</param>
+        /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
+        /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
+        /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
+        /// <param name="ConnectionIdBuilder"></param>
+        /// <param name="ConnectionThreadsNameCreator">An optional delegate to set the name of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsPriority">The optional priority of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
+        /// <param name="ConnectionTimeoutSeconds">The tcp client timeout for all incoming client connections in seconds.</param>
+        /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
+        public TCPServer(IPSocket                             IPSocket,
+                         MapperDelegate                       Mapper                          = null,
+                         String                               ServerThreadName                = null,
+                         ThreadPriority                       ServerThreadPriority            = ThreadPriority.AboveNormal,
+                         Boolean                              ServerThreadIsBackground        = true,
+                         Func<IPSocket, String>               ConnectionIdBuilder             = null,
+                         Func<TCPConnection<Byte[]>, String>  ConnectionThreadsNameCreator    = null,
+                         ThreadPriority                       ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
+                         Boolean                              ConnectionThreadsAreBackground  = true,
+                         UInt64                               ConnectionTimeoutSeconds        = 30,
+                         Boolean                              Autostart                       = false)
+
+            : this(IPSocket.IPAddress,
+                   IPSocket.Port,
+                   Mapper,
+                   ServerThreadName,
+                   ServerThreadPriority,
+                   ServerThreadIsBackground,
+                   ConnectionIdBuilder,
+                   ConnectionThreadsNameCreator,
+                   ConnectionThreadsPriority,
+                   ConnectionThreadsAreBackground,
+                   ConnectionTimeoutSeconds,
+                   Autostart)
+
         { }
 
         #endregion
-
-        #endregion
-
-        #region ToString()
-
-        /// <summary>
-        /// Return a string represtentation of this object.
-        /// </summary>
-        public override String ToString()
-        {
-
-            var _Running = "";
-            if (IsRunning) _Running = " (running)";
-
-            return String.Concat(this.GetType().Name, " ", IPAddress.ToString(), ":", Port, _Running);
-
-        }
 
         #endregion
 

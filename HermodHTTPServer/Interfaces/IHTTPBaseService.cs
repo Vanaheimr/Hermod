@@ -25,12 +25,12 @@ namespace eu.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// HTTP base services interface.
+    /// An interface for common HTTP services.
     /// </summary>
     public interface IHTTPBaseService : IHTTPService
     {
 
-        #region Landingpage
+        #region HTTPRoot
 
         /// <summary>
         /// Get Landingpage
@@ -43,7 +43,15 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Utilities
+        #region Resources
+
+        /// <summary>
+        /// Will return internal libs
+        /// </summary>
+        /// <returns>internal libs</returns>
+        [NoAuthentication]
+        [HTTPMapping(HTTPMethods.GET, "/libs/{Resource}")]
+        HTTPResponse GetLibs(String Resource);
 
         /// <summary>
         /// Will return internal resources
@@ -52,6 +60,10 @@ namespace eu.Vanaheimr.Hermod.HTTP
         [NoAuthentication]
         [HTTPMapping(HTTPMethods.GET, "/resources/{Resource}")]
         HTTPResponse GetResources(String Resource);
+
+        #endregion
+
+        #region Utilities
 
         /// <summary>
         /// Get /favicon.ico
@@ -76,6 +88,22 @@ namespace eu.Vanaheimr.Hermod.HTTP
         [NoAuthentication]
         [HTTPMapping(HTTPMethods.GET, "/humans.txt")]
         HTTPResponse GetHumansTxt();
+
+        #endregion
+
+        #region Logging events
+
+        [NoAuthentication]
+        [HTTPEventMapping(EventIdentification: HTTPSemantics.LogEvents, UriTemplate: HTTPSemantics.LogEvents, HTTPMethod: HTTPMethods.GET, MaxNumberOfCachedEvents: 500)]
+        HTTPResponse GET_LogEvents();
+
+        [NoAuthentication]
+        [HTTPEventMapping(EventIdentification: HTTPSemantics.LogEvents, UriTemplate: HTTPSemantics.LogEvents, HTTPMethod: HTTPMethods.POST, MaxNumberOfCachedEvents: 500)]
+        HTTPResponse POST_LogEvents();
+
+        [NoAuthentication]
+        [HTTPEventMapping(EventIdentification: HTTPSemantics.LogEvents, UriTemplate: HTTPSemantics.LogEvents, HTTPMethod: HTTPMethods.MONITOR, MaxNumberOfCachedEvents: 500)]
+        HTTPResponse MONITOR_LogEvents();
 
         #endregion
 

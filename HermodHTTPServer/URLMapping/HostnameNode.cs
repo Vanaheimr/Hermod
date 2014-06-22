@@ -20,6 +20,8 @@
 using System;
 using System.Reflection;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using eu.Vanaheimr.Illias.Commons;
 
 #endregion
 
@@ -29,7 +31,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A node which stores information for maintaining multiple http hosts.
     /// </summary>
-    public class HostNode
+    public class HostnameNode
     {
 
         #region Properties
@@ -37,50 +39,50 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The hostname for this (virtual) http service.
         /// </summary>
-        public String Hostname { get; private set; }
+        public String                                  Hostname             { get; private set; }
 
         /// <summary>
         /// This and all subordinated nodes demand an explicit host authentication.
         /// </summary>
-        public Boolean HostAuthentication { get; private set; }
+        public Boolean                                 HostAuthentication   { get; private set; }
 
         /// <summary>
         /// A general error handling method.
         /// </summary>
-        public MethodInfo HostErrorHandler { get; private set; }
+        public MethodInfo                              HostErrorHandler     { get; private set; }
 
         /// <summary>
         /// Error handling methods for specific http status codes.
         /// </summary>
-        public ConcurrentDictionary<HTTPStatusCode, MethodInfo> HostErrorHandlers { get; private set; }
+        public Dictionary<HTTPStatusCode, MethodInfo>  HostErrorHandlers    { get; private set; }
 
         /// <summary>
-        /// A mapping from URLs to URLNodes.
+        /// A mapping from URIs to URINodes.
         /// </summary>
-        public ConcurrentDictionary<String, URLNode> URLNodes { get; private set; }
+        public Dictionary<String, URINode>             URINodes             { get; private set; }
 
         #endregion
 
         #region Constructor(s)
 
-        #region HostNode(myHostname, myHostAuthentication = false, myHostError = null)
-
         /// <summary>
         /// Creates a new HostNode.
         /// </summary>
-        /// <param name="Hostname">The hostname for this (virtual) http service.</param>
+        /// <param name="Hostname">The hostname(s) for this (virtual) http service.</param>
         /// <param name="HostAuthentication">This and all subordinated nodes demand an explicit host authentication.</param>
         /// <param name="HostErrorHandler">A general error handling method.</param>
-        public HostNode(String Hostname, Boolean HostAuthentication = false, MethodInfo HostErrorHandler = null)
+        public HostnameNode(String      Hostname,
+                            Boolean     HostAuthentication  = false,
+                            MethodInfo  HostErrorHandler    = null)
         {
+
             this.Hostname            = Hostname;
             this.HostAuthentication  = HostAuthentication;
-            this.URLNodes            = new ConcurrentDictionary<String, URLNode>();
+            this.URINodes            = new Dictionary<String, URINode>();
             this.HostErrorHandler    = HostErrorHandler;
-            this.HostErrorHandlers   = new ConcurrentDictionary<HTTPStatusCode, MethodInfo>();
-        }
+            this.HostErrorHandlers   = new Dictionary<HTTPStatusCode, MethodInfo>();
 
-        #endregion
+        }
 
         #endregion
 

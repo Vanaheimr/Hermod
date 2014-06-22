@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2010-2014, Achim 'ahzf' Friedland <achim@graphdefined.org>
- * This file is part of Hermod <http://www.github.com/Vanaheimr/Hermod> <http://www.github.com/Vanaheimr/Hermod>
+ * This file is part of Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,9 +21,15 @@ using System;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod
+namespace eu.Vanaheimr.Hermod.HTTP
 {
 
-    public delegate void OnExceptionOccuredDelegate(Object Sender, Exception Exception);
+    public static class HTTPSemantics
+    {
+
+        public const String LogEvents = "/LogEvents";
+
+    }
 
 }
+

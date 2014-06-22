@@ -55,6 +55,11 @@ namespace eu.Vanaheimr.Hermod.HTTP
         public UInt32      MaxNumberOfCachedEvents  { get; private set; }
 
         /// <summary>
+        /// Retry intervall.
+        /// </summary>
+        public TimeSpan    RetryIntervall           { get; private set; }
+
+        /// <summary>
         /// The event source may be accessed via multiple URI templates.
         /// </summary>
         public Boolean     IsSharedEventSource      { get; private set; }
@@ -63,7 +68,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region HTTPEventMappingAttribute(EventIdentification, UriTemplate, MaxNumberOfCachedEvents = 0, IsSharedEventSource = false)
+        #region HTTPEventMappingAttribute(EventIdentification, UriTemplate, MaxNumberOfCachedEvents = 0, RetryIntervallSeconds = 30, IsSharedEventSource = false)
 
         /// <summary>
         /// Creates a new HTTP event mapping.
@@ -71,19 +76,28 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="EventIdentification">The internal identification of the HTTP event.</param>
         /// <param name="UriTemplate">The URI template of this HTTP event mapping.</param>
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events (0 means infinite).</param>
+        /// <param name="RetryIntervallSeconds">The retry intervall in seconds.</param>
         /// <param name="IsSharedEventSource">The event source may be accessed via multiple URI templates.</param>
-        public HTTPEventMappingAttribute(String EventIdentification, String UriTemplate, UInt32 MaxNumberOfCachedEvents = 0, Boolean IsSharedEventSource = false)
+        public HTTPEventMappingAttribute(String   EventIdentification,
+                                         String   UriTemplate,
+                                         UInt32   MaxNumberOfCachedEvents  = 0,
+                                         UInt64   RetryIntervallSeconds    = 30,
+                                         Boolean  IsSharedEventSource      = false)
+
         {
-            this.EventIdentification     = EventIdentification;
-            this.UriTemplate             = UriTemplate;
-            this.HTTPMethod              = HTTPMethod.GET;
-            this.MaxNumberOfCachedEvents = MaxNumberOfCachedEvents;
-            this.IsSharedEventSource     = IsSharedEventSource;
+
+            this.EventIdentification      = EventIdentification;
+            this.UriTemplate              = UriTemplate;
+            this.HTTPMethod               = HTTPMethod.GET;
+            this.MaxNumberOfCachedEvents  = MaxNumberOfCachedEvents;
+            this.RetryIntervall           = TimeSpan.FromSeconds(RetryIntervallSeconds);
+            this.IsSharedEventSource      = IsSharedEventSource;
+
         }
 
         #endregion
 
-        #region HTTPEventMappingAttribute(EventIdentification, UriTemplate, HTTPMethod, MaxNumberOfCachedEvents = 0, IsSharedEventSource = false)
+        #region HTTPEventMappingAttribute(EventIdentification, UriTemplate, HTTPMethod, MaxNumberOfCachedEvents = 0, RetryIntervallSeconds = 30, IsSharedEventSource = false)
 
         /// <summary>
         /// Creates a new HTTP event mapping.
@@ -92,14 +106,24 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="UriTemplate">The URI template of this HTTP event mapping.</param>
         /// <param name="HTTPMethod">The HTTP method to use.</param>
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events (0 means infinite).</param>
+        /// <param name="RetryIntervallSeconds">The retry intervall in seconds.</param>
         /// <param name="IsSharedEventSource">The event source may be accessed via multiple URI templates.</param>
-        public HTTPEventMappingAttribute(String EventIdentification, String UriTemplate, HTTPMethods HTTPMethod, UInt32 MaxNumberOfCachedEvents = 0, Boolean IsSharedEventSource = false)
+        public HTTPEventMappingAttribute(String       EventIdentification,
+                                         String       UriTemplate,
+                                         HTTPMethods  HTTPMethod,
+                                         UInt32       MaxNumberOfCachedEvents  = 0,
+                                         UInt64       RetryIntervallSeconds    = 30,
+                                         Boolean      IsSharedEventSource      = false)
+
         {
-            this.EventIdentification     = EventIdentification;
-            this.UriTemplate             = UriTemplate;
-            this.HTTPMethod              = eu.Vanaheimr.Hermod.HTTP.HTTPMethod.ParseEnum(HTTPMethod);
-            this.MaxNumberOfCachedEvents = MaxNumberOfCachedEvents;
-            this.IsSharedEventSource     = IsSharedEventSource;
+
+            this.EventIdentification      = EventIdentification;
+            this.UriTemplate              = UriTemplate;
+            this.HTTPMethod               = eu.Vanaheimr.Hermod.HTTP.HTTPMethod.ParseEnum(HTTPMethod);
+            this.MaxNumberOfCachedEvents  = MaxNumberOfCachedEvents;
+            this.RetryIntervall           = TimeSpan.FromSeconds(RetryIntervallSeconds);
+            this.IsSharedEventSource      = IsSharedEventSource;
+
         }
 
         #endregion

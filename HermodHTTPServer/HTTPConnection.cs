@@ -110,8 +110,6 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         public HTTPSecurity   HTTPSecurity    { get; set; }
 
-        public URLMapping     URLMapping      { get; set; }
-
         public String         ErrorReason     { get; set; }
 
         public Exception      LastException   { get; set; }
@@ -640,6 +638,12 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                     #endregion
 
+                    #region Call request logging delegate
+
+                    HTTPServer.LogRequest(DateTime.Now, RequestHeader);
+
+                    #endregion
+
                     //ToDo: Fix best-machting HTTP service implementation selection (based on the request content-type or accept-types)!
 
                     #region Get best-matching HTTP service implementation (based on the request content-type or accept-types)
@@ -696,7 +700,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                     #region Get and check callback...
 
-                    var _ParsedCallbackWithParameters = URLMapping.GetHandler(RequestHeader.Host,
+                    var _ParsedCallbackWithParameters = HTTPServer.GetHandler(RequestHeader.Host,
                                                                               RequestHeader.UrlPath,
                                                                               RequestHeader.HTTPMethod,
                                                                               RequestHeader.BestMatchingAcceptType);
@@ -776,7 +780,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                     #endregion
 
-                    #region Call logging delegate
+                    #region Call access logging delegate
 
                     HTTPServer.LogAccess(DateTime.Now, RequestHeader, ResponseHeader);
 
@@ -873,7 +877,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
             #region Send a customized errorpage...
 
-            var __ErrorHandler = URLMapping.GetErrorHandler("*",
+            var __ErrorHandler = HTTPServer.GetErrorHandler("*",
                                                             RequestHeader.UrlPath,
                                                             RequestHeader.HTTPMethod,
                                                             null,
@@ -1000,32 +1004,32 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
     #region HTTPConnection => HTTPConnection<DefaultHTTPService>
 
-    public class HTTPConnection : HTTPConnection<DefaultHTTPService>
-    {
+    //public class HTTPConnection : HTTPConnection<DefaultHTTPService>
+    //{
 
-        #region Constructor(s)
+    //    #region Constructor(s)
 
-        #region HTTPConnection()
+    //    #region HTTPConnection()
 
-        public HTTPConnection()
-        { }
+    //    public HTTPConnection()
+    //    { }
 
-        #endregion
+    //    #endregion
 
-        #region HTTPConnection(myTCPClientConnection)
+    //    #region HTTPConnection(TCPClientConnection)
 
-        /// <summary>
-        /// Create a new HTTPConnection class using the given TcpClient class
-        /// </summary>
-        public HTTPConnection(TcpClient myTCPClientConnection)
-            : base(myTCPClientConnection)
-        { }
+    //    /// <summary>
+    //    /// Create a new HTTPConnection class using the given TcpClient class
+    //    /// </summary>
+    //    public HTTPConnection(TcpClient TCPClientConnection)
+    //        : base(TCPClientConnection)
+    //    { }
 
-        #endregion
+    //    #endregion
 
-        #endregion
+    //    #endregion
 
-    }
+    //}
 
     #endregion
 

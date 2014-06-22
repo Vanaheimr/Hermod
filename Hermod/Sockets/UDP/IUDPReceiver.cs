@@ -17,17 +17,20 @@
 
 #region Usings
 
+using eu.Vanaheimr.Hermod.Sockets.UDP;
+using eu.Vanaheimr.Styx.Arrows;
 using System;
-using System.IO;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.Sockets.RawIP.ICMP
+namespace eu.Vanaheimr.Hermod
 {
 
-    public interface IICMPPacket : IRemoteSocket
-    {
-
-    }
+    /// <summary>
+    /// A generic UDP receiver interface.
+    /// </summary>
+    public interface IUDPReceiver<TData> : IArrowSender<UDPPacket<TData>>,
+                                           IServer
+    { }
 
 }

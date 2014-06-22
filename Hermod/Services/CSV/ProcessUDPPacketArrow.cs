@@ -20,7 +20,6 @@
 using System;
 using System.Net;
 
-using eu.Vanaheimr.Hermod.Datastructures;
 using eu.Vanaheimr.Styx;
 using eu.Vanaheimr.Styx.Arrows;
 
@@ -50,6 +49,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
                                      IArrowSender<UDPPacket<TIn>> In = null)
 
             : base(PacketIn => new UDPPacket<TOut>(
+                                   null,
                                    PacketIn.ServerTimestamp,
                                    PacketIn.LocalSocket,
                                    PacketIn.RemoteSocket,

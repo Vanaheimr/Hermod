@@ -22,7 +22,6 @@ using System.Net;
 using System.Linq;
 using System.Collections.Generic;
 
-using eu.Vanaheimr.Hermod.Datastructures;
 using eu.Vanaheimr.Styx;
 using eu.Vanaheimr.Styx.Arrows;
 
@@ -59,10 +58,11 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         public SplitUDPPacketArrow(IArrowSender<UDPPacket<IEnumerable<T>>> In = null)
 
             : base(Messages => Messages.Payload.
-                                   Select(Message => new UDPPacket<T>(Messages.ServerTimestamp,
-                                                                      Messages.LocalSocket,
-                                                                      Messages.RemoteSocket,
-                                                                      Message)))
+                                        Select(Message => new UDPPacket<T>(null,
+                                                                           Messages.ServerTimestamp,
+                                                                           Messages.LocalSocket,
+                                                                           Messages.RemoteSocket,
+                                                                           Message)))
 
         {
 

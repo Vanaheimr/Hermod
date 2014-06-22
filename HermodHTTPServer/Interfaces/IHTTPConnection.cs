@@ -45,10 +45,12 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         String              ServerName      { get; }
         HTTPSecurity        HTTPSecurity    { get; set; }
-        URLMapping          URLMapping      { get; set; }
+        //URIMapping          URLMapping      { get; set; }
 
         String              ErrorReason     { get; set; }
         Exception           LastException   { get; set; }
+
+        IHTTPServer         HTTPServer      { get; set; }
 
         void SendErrorpage(HTTPStatusCode HTTPStatusCode,
                            String         ErrorReason   = null,

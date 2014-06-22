@@ -1,508 +1,507 @@
-﻿/*
- * Copyright (c) 2011-2013, Achim 'ahzf' Friedland <achim@graphdefined.org>
- * This file is part of Styx <http://www.github.com/Vanaheimr/Hermod>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-#region Usings
-
-using System;
-using System.Linq;
-using System.Text;
-using System.Net;
-using System.Net.Sockets;
-using System.Threading;
-using System.Threading.Tasks;
-
-using eu.Vanaheimr.Styx;
-using eu.Vanaheimr.Hermod.Datastructures;
-using eu.Vanaheimr.Hermod.Sockets.UDP;
-using eu.Vanaheimr.Styx.Arrows;
-
-#endregion
-
-namespace eu.Vanaheimr.Hermod.Multicast
-{
-
-    /// <summary>
-    /// The UDPMulticastReceiverArrow receives messages from
-    /// to the given IP multicast group and forwards them to
-    /// this receivers.
-    /// </summary>
-    /// <typeparam name="TOut">The type of the consuming and emitting messages/objects.</typeparam>
-    public class MulticastReceiver<TOut> : IArrowSender<TOut>,
-                                           IArrowSender<UDPPacket<TOut>>,
-                                           IServer
-
-    {
-
-        #region Data
-
-        private readonly Socket                   MulticastSocket;
-        private readonly IPEndPoint               MulticastIPEndPoint;
-        private          Task                     ListenerTask;
-        private          EndPoint                 LocalEndPoint;
-        private          IPEndPoint               LocalIPEndPoint;
-        private          CancellationTokenSource  CancellationTokenSource;
-        private          CancellationToken        CancellationToken;
-        private readonly MapperDelegate           Mapper;
-        public  readonly IPSocket                 LocalSocket;
-
-        #endregion
-
-        #region Properties
-
-        #region IPAddress
-
-        private readonly IIPAddress _MulticastAddress;
-
-        /// <summary>
-        /// Gets the IPAddress on which the TCPServer listens.
-        /// </summary>
-        public IIPAddress IPAddress
-        {
-            get
-            {
-                return _MulticastAddress;
-            }
-        }
-
-        #endregion
-
-        #region Port
-
-        private readonly IPPort _Port;
-
-        /// <summary>
-        /// Gets the port on which the TCPServer listens.
-        /// </summary>
-        public IPPort Port
-        {
-            get
-            {
-                return _Port;
-            }
-        }
-
-        #endregion
-
-        #region BufferSize
-
-        /// <summary>
-        /// The size of the receive buffer.
-        /// </summary>
-        public UInt32 BufferSize { get; set; }
-
-        #endregion
-
-        #region HopCount
-
-        /// <summary>
-        /// The minimal acceptable IPv6 hop-count or IPv4 time-to-live value of the
-        /// incoming IP Multicast packets.
-        /// It is best practice for security applications to set the HopCount on the
-        /// sender side to its max value of 255 and configure an accept threshold on
-        /// the receiver side to 255. This way only packets from the local network
-        /// are accepted.
-        /// </summary>
-        public Byte HopCountThreshold { get; set; }
-
-        #endregion
-
-        #region IsRunning
-
-        private Int32 _IsRunning = 0;
-
-        /// <summary>
-        /// True while the server is listening for new clients
-        /// </summary>
-        public Boolean IsRunning
-        {
-            get
-            {
-                return _IsRunning == 1;
-            }
-        }
-
-        #endregion
-
-        #region StopRequested
-
-        /// <summary>
-        /// The server was requested to stop and will no
-        /// longer accept new client connections
-        /// </summary>
-        public Boolean StopRequested
-        {
-            get
-            {
-                return this.CancellationToken.IsCancellationRequested;
-            }
-        }
-
-        #endregion
-
-        public String          ThreadName   { get; private set; }
-        public ThreadPriority  ThreadPrio   { get; private set; }
-        public Boolean         IsBackground { get; private set; }
-
-        #endregion
-
-        #region Events
-
-        public delegate TOut MapperDelegate(DateTime Timestamp, IPSocket LocalSocket, IPSocket RemoteSocket, Byte[] Message);
-
-        event NotificationEventHandler<TOut>            OnNotification_Message;
-        event NotificationEventHandler<UDPPacket<TOut>> OnNotification_UDPPacket;
-
-        // INotification
-        event NotificationEventHandler<TOut> IArrowSender<TOut>.OnNotification
-        {
-            add    { OnNotification_Message += value; }
-            remove { OnNotification_Message -= value; }
-        }
-
-        event NotificationEventHandler<UDPPacket<TOut>> IArrowSender<UDPPacket<TOut>>.OnNotification
-        {
-            add    { OnNotification_UDPPacket += value; }
-            remove { OnNotification_UDPPacket -= value; }
-        }
-
-        public event ExceptionEventHandler OnException;
-        public event CompletedEventHandler OnCompleted;
-
-        #endregion
-
-        #region Constructor(s)
-
-        #region MulticastReceiver(MulticastAddress, IPPort, HopCountThreshold = 255)
-
-        /// <summary>
-        /// The UDPMulticastReceiverArrow receives messages from
-        /// to the given IP multicast group and forwards them to
-        /// this receivers.
-        /// </summary>
-        /// <param name="MulticastAddress">The multicast address to join.</param>
-        /// <param name="IPPort">The outgoing IP port to use.</param>
-        /// <param name="HopCountThreshold">The minimal acceptable IPv6 hop-count or IPv4 time-to-live value of the incoming IP Multicast packets.</param>
-        public MulticastReceiver(IIPAddress      MulticastAddress,
-                                 IPPort          Port,
-                                 Byte            HopCountThreshold  = 255,
-                                 MapperDelegate  Mapper             = null,
-                                 String          ThreadName         = "UDPServer thread",
-                                 ThreadPriority  ThreadPrio         = ThreadPriority.AboveNormal,
-                                 Boolean         IsBackground       = true,
-                                 Boolean         Autostart          = false)
-        {
+﻿///*
+// * Copyright (c) 2011-2013, Achim 'ahzf' Friedland <achim@graphdefined.org>
+// * This file is part of Styx <http://www.github.com/Vanaheimr/Hermod>
+// *
+// * Licensed under the Apache License, Version 2.0 (the "License");
+// * you may not use this file except in compliance with the License.
+// * You may obtain a copy of the License at
+// *
+// *     http://www.apache.org/licenses/LICENSE-2.0
+// *
+// * Unless required by applicable law or agreed to in writing, software
+// * distributed under the License is distributed on an "AS IS" BASIS,
+// * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// * See the License for the specific language governing permissions and
+// * limitations under the License.
+// */
+
+//#region Usings
+
+//using System;
+//using System.Linq;
+//using System.Text;
+//using System.Net;
+//using System.Net.Sockets;
+//using System.Threading;
+//using System.Threading.Tasks;
+
+//using eu.Vanaheimr.Styx;
+//using eu.Vanaheimr.Styx.Arrows;
+//using eu.Vanaheimr.Hermod.Sockets.UDP;
+
+//#endregion
+
+//namespace eu.Vanaheimr.Hermod.Multicast
+//{
+
+//    /// <summary>
+//    /// The UDPMulticastReceiverArrow receives messages from
+//    /// to the given IP multicast group and forwards them to
+//    /// this receivers.
+//    /// </summary>
+//    /// <typeparam name="TOut">The type of the consuming and emitting messages/objects.</typeparam>
+//    public class MulticastReceiver<TOut> : IArrowSender<TOut>,
+//                                           IArrowSender<UDPPacket<TOut>>,
+//                                           IServer
+
+//    {
+
+//        #region Data
+
+//        private readonly Socket                   MulticastSocket;
+//        private readonly IPEndPoint               MulticastIPEndPoint;
+//        private          Task                     ListenerTask;
+//        private          EndPoint                 LocalEndPoint;
+//        private          IPEndPoint               LocalIPEndPoint;
+//        private          CancellationTokenSource  CancellationTokenSource;
+//        private          CancellationToken        CancellationToken;
+//        private readonly MapperDelegate           Mapper;
+//        public  readonly IPSocket                 LocalSocket;
+
+//        #endregion
+
+//        #region Properties
+
+//        #region IPAddress
+
+//        private readonly IIPAddress _MulticastAddress;
+
+//        /// <summary>
+//        /// Gets the IPAddress on which the TCPServer listens.
+//        /// </summary>
+//        public IIPAddress IPAddress
+//        {
+//            get
+//            {
+//                return _MulticastAddress;
+//            }
+//        }
+
+//        #endregion
+
+//        #region Port
+
+//        private readonly IPPort _Port;
+
+//        /// <summary>
+//        /// Gets the port on which the TCPServer listens.
+//        /// </summary>
+//        public IPPort Port
+//        {
+//            get
+//            {
+//                return _Port;
+//            }
+//        }
+
+//        #endregion
+
+//        #region BufferSize
+
+//        /// <summary>
+//        /// The size of the receive buffer.
+//        /// </summary>
+//        public UInt32 BufferSize { get; set; }
+
+//        #endregion
+
+//        #region HopCount
+
+//        /// <summary>
+//        /// The minimal acceptable IPv6 hop-count or IPv4 time-to-live value of the
+//        /// incoming IP Multicast packets.
+//        /// It is best practice for security applications to set the HopCount on the
+//        /// sender side to its max value of 255 and configure an accept threshold on
+//        /// the receiver side to 255. This way only packets from the local network
+//        /// are accepted.
+//        /// </summary>
+//        public Byte HopCountThreshold { get; set; }
+
+//        #endregion
+
+//        #region IsRunning
+
+//        private Int32 _IsRunning = 0;
+
+//        /// <summary>
+//        /// True while the server is listening for new clients
+//        /// </summary>
+//        public Boolean IsRunning
+//        {
+//            get
+//            {
+//                return _IsRunning == 1;
+//            }
+//        }
+
+//        #endregion
+
+//        #region StopRequested
+
+//        /// <summary>
+//        /// The server was requested to stop and will no
+//        /// longer accept new client connections
+//        /// </summary>
+//        public Boolean StopRequested
+//        {
+//            get
+//            {
+//                return this.CancellationToken.IsCancellationRequested;
+//            }
+//        }
+
+//        #endregion
+
+//        public String          ThreadName   { get; private set; }
+//        public ThreadPriority  ThreadPrio   { get; private set; }
+//        public Boolean         IsBackground { get; private set; }
+
+//        #endregion
+
+//        #region Events
+
+//        public delegate TOut MapperDelegate(DateTime Timestamp, IPSocket LocalSocket, IPSocket RemoteSocket, Byte[] Message);
+
+//        event NotificationEventHandler<TOut>            OnNotification_Message;
+//        event NotificationEventHandler<UDPPacket<TOut>> OnNotification_UDPPacket;
+
+//        // INotification
+//        event NotificationEventHandler<TOut> IArrowSender<TOut>.OnNotification
+//        {
+//            add    { OnNotification_Message += value; }
+//            remove { OnNotification_Message -= value; }
+//        }
+
+//        event NotificationEventHandler<UDPPacket<TOut>> IArrowSender<UDPPacket<TOut>>.OnNotification
+//        {
+//            add    { OnNotification_UDPPacket += value; }
+//            remove { OnNotification_UDPPacket -= value; }
+//        }
+
+//        public event ExceptionEventHandler OnException;
+//        public event CompletedEventHandler OnCompleted;
+
+//        #endregion
+
+//        #region Constructor(s)
+
+//        #region MulticastReceiver(MulticastAddress, IPPort, HopCountThreshold = 255)
+
+//        /// <summary>
+//        /// The UDPMulticastReceiverArrow receives messages from
+//        /// to the given IP multicast group and forwards them to
+//        /// this receivers.
+//        /// </summary>
+//        /// <param name="MulticastAddress">The multicast address to join.</param>
+//        /// <param name="IPPort">The outgoing IP port to use.</param>
+//        /// <param name="HopCountThreshold">The minimal acceptable IPv6 hop-count or IPv4 time-to-live value of the incoming IP Multicast packets.</param>
+//        public MulticastReceiver(IIPAddress      MulticastAddress,
+//                                 IPPort          Port,
+//                                 Byte            HopCountThreshold  = 255,
+//                                 MapperDelegate  Mapper             = null,
+//                                 String          ThreadName         = "UDPServer thread",
+//                                 ThreadPriority  ThreadPrio         = ThreadPriority.AboveNormal,
+//                                 Boolean         IsBackground       = true,
+//                                 Boolean         Autostart          = false)
+//        {
 
-            if (Mapper == null)
-                throw new ArgumentNullException("The mapper delegate must not be null!");
+//            if (Mapper == null)
+//                throw new ArgumentNullException("The mapper delegate must not be null!");
 
-            this._MulticastAddress        = MulticastAddress;
-            this._Port                    = Port;
-            this.Mapper                   = Mapper;
-            this.BufferSize               = BufferSize;
-            this.MulticastSocket          = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            this.MulticastIPEndPoint      = new IPEndPoint(System.Net.IPAddress.Parse(_MulticastAddress.ToString()), Port.ToInt32());
-            this.LocalIPEndPoint          = new IPEndPoint(System.Net.IPAddress.Any, Port.ToInt32());
-            this.LocalEndPoint            = (EndPoint) LocalIPEndPoint;
-            this.CancellationTokenSource  = new CancellationTokenSource();
-            this.CancellationToken        = CancellationTokenSource.Token;
-            this.BufferSize               = 65536;
-            this.ThreadName               = ThreadName;
-            this.ThreadPrio               = ThreadPrio;
-            this.IsBackground             = IsBackground;
+//            this._MulticastAddress        = MulticastAddress;
+//            this._Port                    = Port;
+//            this.Mapper                   = Mapper;
+//            this.BufferSize               = BufferSize;
+//            this.MulticastSocket          = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+//            this.MulticastIPEndPoint      = new IPEndPoint(System.Net.IPAddress.Parse(_MulticastAddress.ToString()), Port.ToInt32());
+//            this.LocalIPEndPoint          = new IPEndPoint(System.Net.IPAddress.Any, Port.ToInt32());
+//            this.LocalEndPoint            = (EndPoint) LocalIPEndPoint;
+//            this.CancellationTokenSource  = new CancellationTokenSource();
+//            this.CancellationToken        = CancellationTokenSource.Token;
+//            this.BufferSize               = 65536;
+//            this.ThreadName               = ThreadName;
+//            this.ThreadPrio               = ThreadPrio;
+//            this.IsBackground             = IsBackground;
 
-            MulticastSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 1000);
-            MulticastSocket.Bind(LocalIPEndPoint);
-            MulticastSocket.SetSocketOption(SocketOptionLevel.IP,
-                                            SocketOptionName.AddMembership,
-                                            new MulticastOption(System.Net.IPAddress.Parse(_MulticastAddress.ToString())));
+//            MulticastSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 1000);
+//            MulticastSocket.Bind(LocalIPEndPoint);
+//            MulticastSocket.SetSocketOption(SocketOptionLevel.IP,
+//                                            SocketOptionName.AddMembership,
+//                                            new MulticastOption(System.Net.IPAddress.Parse(_MulticastAddress.ToString())));
+
+//        }
+
+//        #endregion
+
+//        #endregion
+
+
+//        #region Close()
+
+//        /// <summary>
+//        /// Close the multicast socket.
+//        /// </summary>
+//        public void Close()
+//        {
+//            MulticastSocket.Close();
+//        }
+
+//        #endregion
+
 
-        }
-
-        #endregion
-
-        #endregion
-
+//        #region Start()
 
-        #region Close()
+//        /// <summary>
+//        /// Start the multicast receiver.
+//        /// </summary>
+//        public void Start()
+//        {
 
-        /// <summary>
-        /// Close the multicast socket.
-        /// </summary>
-        public void Close()
-        {
-            MulticastSocket.Close();
-        }
+//            if (_IsRunning == 1)
+//                return;
 
-        #endregion
+//            try
+//            {
 
+//                this.ListenerTask = Task.Factory.StartNew(() =>
+//                {
 
-        #region Start()
+//                    Thread.CurrentThread.Name          = ThreadName;
+//                    Thread.CurrentThread.Priority      = ThreadPrio;
+//                    Thread.CurrentThread.IsBackground  = IsBackground;
 
-        /// <summary>
-        /// Start the multicast receiver.
-        /// </summary>
-        public void Start()
-        {
+//                    EndPoint RemoteEndPoint = null;
+//                    Byte[]   UDPPacket;
+//                    Int32    NumberOfReceivedBytes;
+//                    DateTime Timestamp;
+//                    Int32    WaitForChildTaskCreation = 0;
 
-            if (_IsRunning == 1)
-                return;
+//                    Interlocked.Exchange(ref _IsRunning, 1);
 
-            try
-            {
+//                    #region ReceiverLoop
 
-                this.ListenerTask = Task.Factory.StartNew(() =>
-                {
+//                    while (!CancellationToken.IsCancellationRequested)
+//                    {
 
-                    Thread.CurrentThread.Name          = ThreadName;
-                    Thread.CurrentThread.Priority      = ThreadPrio;
-                    Thread.CurrentThread.IsBackground  = IsBackground;
+//                        UDPPacket = new Byte[this.BufferSize];
+//                        RemoteEndPoint = new IPEndPoint(0, 0);
 
-                    EndPoint RemoteEndPoint = null;
-                    Byte[]   UDPPacket;
-                    Int32    NumberOfReceivedBytes;
-                    DateTime Timestamp;
-                    Int32    WaitForChildTaskCreation = 0;
+//                        // Wait for the next packet...
+//                        NumberOfReceivedBytes = MulticastSocket.ReceiveFrom(UDPPacket, ref RemoteEndPoint);
+//                        Timestamp = DateTime.Now;
 
-                    Interlocked.Exchange(ref _IsRunning, 1);
+//                        if (NumberOfReceivedBytes > 0)
+//                        {
 
-                    #region ReceiverLoop
+//                            Interlocked.Exchange(ref WaitForChildTaskCreation, 1);
 
-                    while (!CancellationToken.IsCancellationRequested)
-                    {
+//                            #region Inner task
 
-                        UDPPacket = new Byte[this.BufferSize];
-                        RemoteEndPoint = new IPEndPoint(0, 0);
+//                            Task.Factory.StartNew(() =>
+//                            {
 
-                        // Wait for the next packet...
-                        NumberOfReceivedBytes = MulticastSocket.ReceiveFrom(UDPPacket, ref RemoteEndPoint);
-                        Timestamp = DateTime.Now;
+//                                var RemoteSocketLocal = new IPSocket((IPEndPoint) RemoteEndPoint);
+//                                Thread.CurrentThread.Name = "Multicast packet from " + RemoteSocketLocal.IPAddress + ":" + RemoteSocketLocal.Port;
 
-                        if (NumberOfReceivedBytes > 0)
-                        {
+//                                // Create a local copy of the UDPPacket and RemoteEndPoint as we
+//                                // do not want to wait till the new thread has accepted the packet
 
-                            Interlocked.Exchange(ref WaitForChildTaskCreation, 1);
+//                                Array.Resize(ref UDPPacket, NumberOfReceivedBytes);
 
-                            #region Inner task
+//                                var TimestampLocal                  = Timestamp;
+//                                var UDPPacketLocal                  = UDPPacket;
+//                                var OnNotificationLocal             = OnNotification_UDPPacket;
+//                                var OnNotification_Message_Local    = OnNotification_Message;
+//                                var OnNotification_UDPPacket_Local  = OnNotification_UDPPacket;
 
-                            Task.Factory.StartNew(() =>
-                            {
+//                                Interlocked.Exchange(ref WaitForChildTaskCreation, 0);
 
-                                var RemoteSocketLocal = new IPSocket((IPEndPoint) RemoteEndPoint);
-                                Thread.CurrentThread.Name = "Multicast packet from " + RemoteSocketLocal.IPAddress + ":" + RemoteSocketLocal.Port;
+//                                // Start upper-layer protocol processing
+//                                if (OnNotification_Message_Local != null)
+//                                    OnNotification_Message_Local(Mapper(TimestampLocal,
+//                                                                        this.LocalSocket,
+//                                                                        RemoteSocketLocal,
+//                                                                        UDPPacketLocal));
 
-                                // Create a local copy of the UDPPacket and RemoteEndPoint as we
-                                // do not want to wait till the new thread has accepted the packet
+//                                if (OnNotification_UDPPacket_Local != null)
+//                                    OnNotification_UDPPacket_Local(new UDPPacket<TOut>(
+//                                                                       TimestampLocal,
+//                                                                       this.LocalSocket,
+//                                                                       RemoteSocketLocal,
+//                                                                       Mapper(TimestampLocal,
+//                                                                              this.LocalSocket,
+//                                                                              RemoteSocketLocal,
+//                                                                              UDPPacketLocal)
+//                                                                  ));
 
-                                Array.Resize(ref UDPPacket, NumberOfReceivedBytes);
 
-                                var TimestampLocal                  = Timestamp;
-                                var UDPPacketLocal                  = UDPPacket;
-                                var OnNotificationLocal             = OnNotification_UDPPacket;
-                                var OnNotification_Message_Local    = OnNotification_Message;
-                                var OnNotification_UDPPacket_Local  = OnNotification_UDPPacket;
+//                            }, CancellationTokenSource.Token,
+//                               TaskCreationOptions.AttachedToParent,
+//                               TaskScheduler.Default);
 
-                                Interlocked.Exchange(ref WaitForChildTaskCreation, 0);
+//                            #endregion
 
-                                // Start upper-layer protocol processing
-                                if (OnNotification_Message_Local != null)
-                                    OnNotification_Message_Local(Mapper(TimestampLocal,
-                                                                        this.LocalSocket,
-                                                                        RemoteSocketLocal,
-                                                                        UDPPacketLocal));
+//                            // Wait till the new Task had used some of its time to
+//                            // make a copy of the given references.
+//                            while (WaitForChildTaskCreation > 0)
+//                                Thread.Sleep(1);
 
-                                if (OnNotification_UDPPacket_Local != null)
-                                    OnNotification_UDPPacket_Local(new UDPPacket<TOut>(
-                                                                       TimestampLocal,
-                                                                       this.LocalSocket,
-                                                                       RemoteSocketLocal,
-                                                                       Mapper(TimestampLocal,
-                                                                              this.LocalSocket,
-                                                                              RemoteSocketLocal,
-                                                                              UDPPacketLocal)
-                                                                  ));
+//                        }
 
+//                    }
 
-                            }, CancellationTokenSource.Token,
-                               TaskCreationOptions.AttachedToParent,
-                               TaskScheduler.Default);
+//                    #endregion
 
-                            #endregion
+//                    Interlocked.Exchange(ref _IsRunning, 0);
 
-                            // Wait till the new Task had used some of its time to
-                            // make a copy of the given references.
-                            while (WaitForChildTaskCreation > 0)
-                                Thread.Sleep(1);
+//                }, CancellationTokenSource.Token,
+//                   TaskCreationOptions.LongRunning | TaskCreationOptions.AttachedToParent,
+//                   TaskScheduler.Default);
 
-                        }
+//            }
+//            catch (Exception ex)
+//            {
+//                var OnErrorLocal = OnException;
+//                if (OnErrorLocal != null)
+//                    OnErrorLocal(this, ex);
+//            }
 
-                    }
+//        }
 
-                    #endregion
+//        #endregion
 
-                    Interlocked.Exchange(ref _IsRunning, 0);
+//        #region Start(Delay, InBackground = true)
 
-                }, CancellationTokenSource.Token,
-                   TaskCreationOptions.LongRunning | TaskCreationOptions.AttachedToParent,
-                   TaskScheduler.Default);
+//        /// <summary>
+//        /// Start the multicast receiver after a little delay.
+//        /// </summary>
+//        /// <param name="Delay">The delay.</param>
+//        /// <param name="InBackground">Whether to wait on the main thread or in a background thread.</param>
+//        public void Start(TimeSpan Delay, Boolean InBackground = true)
+//        {
 
-            }
-            catch (Exception ex)
-            {
-                var OnErrorLocal = OnException;
-                if (OnErrorLocal != null)
-                    OnErrorLocal(this, ex);
-            }
+//            if (!InBackground)
+//            {
+//                Thread.Sleep(Delay);
+//                Start();
+//            }
 
-        }
+//            else
+//                Task.Factory.StartNew(() =>
+//                {
 
-        #endregion
+//                    Thread.Sleep(Delay);
+//                    Start();
 
-        #region Start(Delay, InBackground = true)
+//                }, CancellationTokenSource.Token,
+//                   TaskCreationOptions.AttachedToParent,
+//                   TaskScheduler.Default);
 
-        /// <summary>
-        /// Start the multicast receiver after a little delay.
-        /// </summary>
-        /// <param name="Delay">The delay.</param>
-        /// <param name="InBackground">Whether to wait on the main thread or in a background thread.</param>
-        public void Start(TimeSpan Delay, Boolean InBackground = true)
-        {
+//        }
 
-            if (!InBackground)
-            {
-                Thread.Sleep(Delay);
-                Start();
-            }
+//        #endregion
 
-            else
-                Task.Factory.StartNew(() =>
-                {
 
-                    Thread.Sleep(Delay);
-                    Start();
+//        public void Start_old()
+//        {
 
-                }, CancellationTokenSource.Token,
-                   TaskCreationOptions.AttachedToParent,
-                   TaskScheduler.Default);
+//            //ListenerThread = Task.Factory.StartNew((Object) =>
+//            //{
 
-        }
+//            //    MulticastSocket.SetSocketOption(SocketOptionLevel.Socket,
+//            //                                    SocketOptionName.ReceiveTimeout, 1000);
 
-        #endregion
+//            //    MulticastSocket.Bind(LocalIPEndPoint);
 
+//            //    MulticastSocket.SetSocketOption(SocketOptionLevel.IP,
+//            //                                    SocketOptionName.AddMembership,
+//            //                                    new MulticastOption(System.Net.IPAddress.Parse(_MulticastAddress.ToString())));
 
-        public void Start_old()
-        {
+//            //    DateTime Timestamp;
 
-            //ListenerThread = Task.Factory.StartNew((Object) =>
-            //{
 
-            //    MulticastSocket.SetSocketOption(SocketOptionLevel.Socket,
-            //                                    SocketOptionName.ReceiveTimeout, 1000);
+//            //    while (!CancellationToken.IsCancellationRequested)
+//            //    {
 
-            //    MulticastSocket.Bind(LocalIPEndPoint);
+//            //        var data = new Byte[65536];
 
-            //    MulticastSocket.SetSocketOption(SocketOptionLevel.IP,
-            //                                    SocketOptionName.AddMembership,
-            //                                    new MulticastOption(System.Net.IPAddress.Parse(_MulticastAddress.ToString())));
+//            //        try
+//            //        {
 
-            //    DateTime Timestamp;
+//            //            var _NumberOfReceivedBytes = MulticastSocket.ReceiveFrom(data, ref LocalEndPoint);
+//            //            Timestamp = DateTime.Now;
 
+//            //            Array.Resize(ref data, _NumberOfReceivedBytes);
 
-            //    while (!CancellationToken.IsCancellationRequested)
-            //    {
+//            //            if (OnNotification_Message != null)
+//            //                OnNotification_Message(
+//            //                    //new ArrowIPSource(
+//            //                    //    (LocalEndPoint as IPEndPoint).Address.ToString(),
+//            //                    //    IPPort.Parse((LocalEndPoint as IPEndPoint).Port)
+//            //                    //),
+//            //                                 Mapper(Timestamp, null, null, data));
 
-            //        var data = new Byte[65536];
+//            //        }
 
-            //        try
-            //        {
+//            //        // Catch ReadTimeout...
+//            //        catch (SocketException SocketException)
+//            //        { }
 
-            //            var _NumberOfReceivedBytes = MulticastSocket.ReceiveFrom(data, ref LocalEndPoint);
-            //            Timestamp = DateTime.Now;
+//            //    }
 
-            //            Array.Resize(ref data, _NumberOfReceivedBytes);
+//            //}, TaskCreationOptions.LongRunning,
+//            //   CancellationTokenSource.Token,
+//            //   TaskCreationOptions.LongRunning | TaskCreationOptions.AttachedToParent,
+//            //   TaskScheduler.Default);
 
-            //            if (OnNotification_Message != null)
-            //                OnNotification_Message(
-            //                    //new ArrowIPSource(
-            //                    //    (LocalEndPoint as IPEndPoint).Address.ToString(),
-            //                    //    IPPort.Parse((LocalEndPoint as IPEndPoint).Port)
-            //                    //),
-            //                                 Mapper(Timestamp, null, null, data));
+//        }
 
-            //        }
+//        #region Shutdown(Wait = true)
 
-            //        // Catch ReadTimeout...
-            //        catch (SocketException SocketException)
-            //        { }
+//        /// <summary>
+//        /// Shutdown the UDP multicast listener.
+//        /// </summary>
+//        /// <param name="Wait">Wait until the server finally shutted down.</param>
+//        public void Shutdown(Boolean Wait = true)
+//        {
 
-            //    }
+//            if (ListenerTask == null)
+//                throw new Exception("You can not stop the listener if it wasn't started before!");
 
-            //}, TaskCreationOptions.LongRunning,
-            //   CancellationTokenSource.Token,
-            //   TaskCreationOptions.LongRunning | TaskCreationOptions.AttachedToParent,
-            //   TaskScheduler.Default);
+//            this.CancellationTokenSource.Cancel();
 
-        }
+//            if (Wait)
+//                while (_IsRunning > 0)
+//                    Thread.Sleep(10);
 
-        #region Shutdown(Wait = true)
+//        }
 
-        /// <summary>
-        /// Shutdown the UDP multicast listener.
-        /// </summary>
-        /// <param name="Wait">Wait until the server finally shutted down.</param>
-        public void Shutdown(Boolean Wait = true)
-        {
+//        #endregion
 
-            if (ListenerTask == null)
-                throw new Exception("You can not stop the listener if it wasn't started before!");
 
-            this.CancellationTokenSource.Cancel();
+//        public void Dispose()
+//        {
+//            throw new NotImplementedException();
+//        }
 
-            if (Wait)
-                while (_IsRunning > 0)
-                    Thread.Sleep(10);
 
-        }
 
-        #endregion
+//        public string ServiceBanner
+//        {
+//            get
+//            {
+//                throw new NotImplementedException();
+//            }
+//            set
+//            {
+//                throw new NotImplementedException();
+//            }
+//        }
 
 
-        public void Dispose()
-        {
-            throw new NotImplementedException();
-        }
+//        public event OnStartedDelegate OnStarted;
 
 
+//    }
 
-        public string ServiceBanner
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-            set
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-
-        public event OnStartedDelegate OnStarted;
-
-
-    }
-
-}
+//}

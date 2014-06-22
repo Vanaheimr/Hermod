@@ -131,8 +131,6 @@ namespace eu.Vanaheimr.Hermod.Sockets
 
         #region Constructor(s)
 
-        #region AReadOnlyLocalRemoteSockets(LocalSocket, RemoteSocket)
-
         /// <summary>
         /// Create a new abstract local/remote socket combination.
         /// </summary>
@@ -143,8 +141,6 @@ namespace eu.Vanaheimr.Hermod.Sockets
             this._LocalSocket   = LocalSocket;
             this._RemoteSocket  = RemoteSocket;
         }
-
-        #endregion
 
         #endregion
 

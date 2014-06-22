@@ -19,36 +19,74 @@
 
 using System;
 
+using eu.Vanaheimr.Styx.Arrows;
+using System.Threading;
+
 #endregion
 
-namespace eu.Vanaheimr.Hermod.Datastructures
+namespace eu.Vanaheimr.Hermod.Sockets.TCP
 {
 
     /// <summary>
     /// A TCP server interface.
     /// </summary>
-    public interface ITCPServer : IServer
+    public interface ITCPServer<TData> : IArrowSender<TCPConnection<TData>>,
+                                         IServer
     {
+
+        /// <summary>
+        /// The optional name of the TCP server thread.
+        /// </summary>
+        String ServerThreadName { get; set; }
+
+        /// <summary>
+        /// The optional priority of the TCP server thread.
+        /// </summary>
+        ThreadPriority ServerThreadPriority { get; set; }
+
+        /// <summary>
+        /// Whether the TCP server thread is a background thread or not.
+        /// </summary>
+        Boolean ServerThreadIsBackground { get; set; }
+
+
+        /// <summary>
+        /// The optional name of the TCP server thread.
+        /// </summary>
+        Func<IPSocket, String> ConnectionIdBuilder { get; set; }
+
+        /// <summary>
+        /// The optional name of the TCP server thread.
+        /// </summary>
+        String ConnectionThreadsNameCreator { get; set; }
+
+        /// <summary>
+        /// The optional priority of the TCP server thread.
+        /// </summary>
+        ThreadPriority ConnectionThreadsPriority { get; set; }
+
+        /// <summary>
+        /// Whether the TCP server thread is a background thread or not.
+        /// </summary>
+        Boolean ConnectionThreadsAreBackground { get; set; }
+
+        /// <summary>
+        /// The tcp client timeout for all incoming client connections.
+        /// </summary>
+        TimeSpan ConnectionTimeout { get; set; }
+
+
+
 
         /// <summary>
         /// The current number of connected clients.
         /// </summary>
-        UInt64 NumberOfClients { get; }
+        UInt64      NumberOfClients             { get; }
 
         /// <summary>
         /// The maximum number of pending client connections.
         /// </summary>
-        UInt32 MaxClientConnections { get; }
-
-        /// <summary>
-        /// Will set the ClientTimeout for all incoming client connections
-        /// </summary>
-        Int32 ClientTimeout { get; }
-
-        /// <summary>
-        /// An exception has occured.
-        /// </summary>
-        event OnExceptionOccuredDelegate OnExceptionOccured;
+        UInt32      MaxClientConnections        { get; }
 
     }
 

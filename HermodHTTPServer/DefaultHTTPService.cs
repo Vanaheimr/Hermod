@@ -1,171 +1,162 @@
-﻿/*
- * Copyright (c) 2010-2014, Achim 'ahzf' Friedland <achim@graphdefined.org>
- * This file is part of Hermod <http://www.github.com/Vanaheimr/Hermod>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+﻿///*
+// * Copyright (c) 2010-2014, Achim 'ahzf' Friedland <achim@graphdefined.org>
+// * This file is part of Hermod <http://www.github.com/Vanaheimr/Hermod>
+// *
+// * Licensed under the Apache License, Version 2.0 (the "License");
+// * you may not use this file except in compliance with the License.
+// * You may obtain a copy of the License at
+// *
+// *     http://www.apache.org/licenses/LICENSE-2.0
+// *
+// * Unless required by applicable law or agreed to in writing, software
+// * distributed under the License is distributed on an "AS IS" BASIS,
+// * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// * See the License for the specific language governing permissions and
+// * limitations under the License.
+// */
 
-#region Usings
+//#region Usings
 
-using System;
-using System.Text;
-using System.Collections.Generic;
+//using System;
+//using System.Text;
+//using System.Collections.Generic;
 
-using eu.Vanaheimr.Illias.Commons;
+//using eu.Vanaheimr.Illias.Commons;
 
-#endregion
+//#endregion
 
-namespace eu.Vanaheimr.Hermod.HTTP
-{
+//namespace eu.Vanaheimr.Hermod.HTTP
+//{
 
-    #region IDefaultHTTPService
+//    #region IDefaultHTTPService
 
-    /// <summary>
-    /// The interface for the default http service.
-    /// </summary>
-    [HTTPService(Host: "localhost:8181")]
-    public interface IDefaultHTTPService : IHTTPBaseService
-    {
+//    /// <summary>
+//    /// The interface for the default http service.
+//    /// </summary>
+//    [HTTPService(Host: "localhost:8181")]
+//    public interface IDefaultHTTPService : IHTTPBaseService
+//    { }
 
-        /// <summary>
-        /// Get the raw http request header.
-        /// </summary>
-        /// <returns>Some plain text.</returns>
-        [HTTPMapping(HTTPMethods.GET, "/raw")]
-        HTTPResponse GetRAWRequestHeader();
+//    #endregion
 
-    }
+//    #region DefaultHTTPService
 
-    #endregion
+//    /// <summary>
+//    /// The default http service.
+//    /// </summary>
+//    public class DefaultHTTPService : AHTTPBaseService, IDefaultHTTPService
+//    {
 
-    #region DefaultHTTPService
+//        #region Properties
 
-    /// <summary>
-    /// The default http service.
-    /// </summary>
-    public class DefaultHTTPService : AHTTPService, IDefaultHTTPService
-    {
+//        #region IHTTPConnection
 
-        #region Properties
+//        public IHTTPConnection IHTTPConnection { get; set; }
 
-        #region IHTTPConnection
+//        #endregion
 
-        public IHTTPConnection IHTTPConnection { get; set; }
+//        #region HTTPContentTypes
 
-        #endregion
+//        /// <summary>
+//        /// The supported HTTP ContentTypes.
+//        /// </summary>
+//        public IEnumerable<HTTPContentType> HTTPContentTypes
+//        {
+//            get
+//            {
+//                return new HTTPContentType[1] { HTTPContentType.TEXT_UTF8 };
+//            }
+//        }
 
-        #region HTTPContentTypes
+//        #endregion
 
-        /// <summary>
-        /// The supported HTTP ContentTypes.
-        /// </summary>
-        public IEnumerable<HTTPContentType> HTTPContentTypes
-        {
-            get
-            {
-                return new HTTPContentType[1] { HTTPContentType.TEXT_UTF8 };
-            }
-        }
+//        #endregion
 
-        #endregion
+//        #region Constructor(s)
 
-        #endregion
+//        #region DefaultHTTPService()
 
-        #region Constructor(s)
+//        /// <summary>
+//        /// Creates a new DefaultHTTPService.
+//        /// </summary>
+//        public DefaultHTTPService()
+//        { }
 
-        #region DefaultHTTPService()
+//        #endregion
 
-        /// <summary>
-        /// Creates a new DefaultHTTPService.
-        /// </summary>
-        public DefaultHTTPService()
-        { }
+//        #region DefaultHTTPService(myIHTTPConnection)
 
-        #endregion
+//        /// <summary>
+//        /// Creates a new DefaultHTTPService.
+//        /// </summary>
+//        /// <param name="myIHTTPConnection">The http connection for this request.</param>
+//        public DefaultHTTPService(IHTTPConnection myIHTTPConnection)
+//        {
+//            IHTTPConnection = myIHTTPConnection;
+//        }
 
-        #region DefaultHTTPService(myIHTTPConnection)
+//        #endregion
 
-        /// <summary>
-        /// Creates a new DefaultHTTPService.
-        /// </summary>
-        /// <param name="myIHTTPConnection">The http connection for this request.</param>
-        public DefaultHTTPService(IHTTPConnection myIHTTPConnection)
-        {
-            IHTTPConnection = myIHTTPConnection;
-        }
-
-        #endregion
-
-        #endregion
+//        #endregion
 
 
-        #region (private) HTMLBuilder(myHeadline, myFunc)
+//        #region (private) HTMLBuilder(myHeadline, myFunc)
 
-        public String HTMLBuilder(String myHeadline, Action<StringBuilder> myFunc)
-        {
+//        public String HTMLBuilder(String myHeadline, Action<StringBuilder> myFunc)
+//        {
 
-            var _StringBuilder = new StringBuilder();
+//            var _StringBuilder = new StringBuilder();
 
-            _StringBuilder.AppendLine("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
-            _StringBuilder.AppendLine("<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1//EN\" \"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd\">");
-            _StringBuilder.AppendLine("<html xmlns=\"http://www.w3.org/1999/xhtml\">");
-            _StringBuilder.AppendLine("<head>");
-            _StringBuilder.AppendLine("<title>Hermod default HTTPService</title>");
-            _StringBuilder.AppendLine("</head>");
-            _StringBuilder.AppendLine("<body>");
-            _StringBuilder.Append("<h2>").Append(myHeadline).AppendLine("</h2>");
-            _StringBuilder.AppendLine("<table>");
-            _StringBuilder.AppendLine("<tr>");
-            _StringBuilder.AppendLine("<td style=\"width: 100px\">&nbsp;</td>");
-            _StringBuilder.AppendLine("<td>");
+//            _StringBuilder.AppendLine("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+//            _StringBuilder.AppendLine("<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1//EN\" \"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd\">");
+//            _StringBuilder.AppendLine("<html xmlns=\"http://www.w3.org/1999/xhtml\">");
+//            _StringBuilder.AppendLine("<head>");
+//            _StringBuilder.AppendLine("<title>Hermod default HTTPService</title>");
+//            _StringBuilder.AppendLine("</head>");
+//            _StringBuilder.AppendLine("<body>");
+//            _StringBuilder.Append("<h2>").Append(myHeadline).AppendLine("</h2>");
+//            _StringBuilder.AppendLine("<table>");
+//            _StringBuilder.AppendLine("<tr>");
+//            _StringBuilder.AppendLine("<td style=\"width: 100px\">&nbsp;</td>");
+//            _StringBuilder.AppendLine("<td>");
 
-            if (myFunc != null)
-                myFunc(_StringBuilder);
+//            if (myFunc != null)
+//                myFunc(_StringBuilder);
 
-            _StringBuilder.AppendLine("</td>");
-            _StringBuilder.AppendLine("</tr>");
-            _StringBuilder.AppendLine("</table>");
-            _StringBuilder.AppendLine("</body>").AppendLine("</html>").AppendLine();
+//            _StringBuilder.AppendLine("</td>");
+//            _StringBuilder.AppendLine("</tr>");
+//            _StringBuilder.AppendLine("</table>");
+//            _StringBuilder.AppendLine("</body>").AppendLine("</html>").AppendLine();
 
-            return _StringBuilder.ToString();
+//            return _StringBuilder.ToString();
 
-        }
+//        }
 
-        #endregion
+//        #endregion
 
 
-        #region GetRoot()
+//        #region GetRoot()
         
-        [OptionalAuthentication]
-        public HTTPResponse GET_Root()
-        {
+//        [OptionalAuthentication]
+//        public HTTPResponse GET_Root()
+//        {
 
-            return new HTTPResponseBuilder()
-                {
-                    HTTPStatusCode = HTTPStatusCode.OK,
-                    CacheControl   = "no-cache",
-                    ContentType    = HTTPContentType.HTML_UTF8,
-                    Content        = HTMLBuilder("Hello world!", _StringBuilder => {
-                                         _StringBuilder.Append("<p><a href=\"/raw\">Look at your raw http request header!</a></p><br /><br />");
-                                     }).ToUTF8Bytes()
-                };
+//            return new HTTPResponseBuilder()
+//                {
+//                    HTTPStatusCode = HTTPStatusCode.OK,
+//                    CacheControl   = "no-cache",
+//                    ContentType    = HTTPContentType.HTML_UTF8,
+//                    Content        = HTMLBuilder("Hello world!", _StringBuilder => {
+//                                         _StringBuilder.Append("<p><a href=\"/raw\">Look at your raw http request header!</a></p><br /><br />");
+//                                     }).ToUTF8Bytes()
+//                };
 
-        }
+//        }
 
-        #endregion
+//        #endregion
 
-    }
+//    }
 
-    #endregion
+//    #endregion
 
-}
+//}

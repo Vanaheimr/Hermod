@@ -22,523 +22,489 @@ using System.Net;
 
 using eu.Vanaheimr.Hermod.Sockets.TCP;
 using eu.Vanaheimr.Hermod.Datastructures;
+using System.Collections.Generic;
 
 #endregion
 
 namespace eu.Vanaheimr.Hermod.HTTP
 {
 
-    #region HTTPServer -> HTTPServer<DefaultHTTPService>
+    //#region HTTPServer -> HTTPServer<DefaultHTTPService>
 
-    /// <summary>
-    /// A HTTP server serving a default HTTP service.
-    /// </summary>
-    public class HTTPServer : HTTPServer<IDefaultHTTPService>
-    {
+    ///// <summary>
+    ///// A HTTP server serving a default HTTP service.
+    ///// </summary>
+    //public class HTTPServer : AHTTPServer, IHTTPServer
+    //{
 
-        #region Constructor(s)
+    //    #region Properties
 
-        #region HTTPServer(Port, NewHTTPConnectionHandler = null, AutoStart = false)
 
-        /// <summary>
-        /// Initialize the HTTPServer using IPAddress.Any and the given parameters.
-        /// </summary>
-        /// <param name="Port">The listening port</param>
-        /// <param name="NewHTTPConnectionHandler">A delegate called for every new http connection.</param>
-        /// <param name="Autostart">Autostart the http server.</param>
-        public HTTPServer(IPPort Port, NewHTTPServiceHandler NewHTTPConnectionHandler = null, Boolean Autostart = false)
-            : this(IPv4Address.Any, Port, NewHTTPConnectionHandler, Autostart)
-        { }
 
-        #endregion
+    //    #endregion
 
-        #region HTTPServer(IIPAddress, Port, NewHTTPConnectionHandler = null, AutoStart = false)
+    //    #region Constructor(s)
 
-        /// <summary>
-        /// Initialize the HTTPServer using the given parameters.
-        /// </summary>
-        /// <param name="IIPAddress">The listening IP address(es)</param>
-        /// <param name="Port">The listening port</param>
-        /// <param name="NewHTTPConnectionHandler">A delegate called for every new http connection.</param>
-        /// <param name="Autostart">Autostart the http server.</param>
-        public HTTPServer(IIPAddress IIPAddress, IPPort Port, NewHTTPServiceHandler NewHTTPConnectionHandler = null, Boolean Autostart = false)
-            : base(IIPAddress, Port, NewHTTPConnectionHandler, Autostart)
-        { }
+    //    #region HTTPServer(Port, NewHTTPConnectionHandler = null, AutoStart = false)
 
-        #endregion
+    //    /// <summary>
+    //    /// Initialize the HTTPServer using IPAddress.Any and the given parameters.
+    //    /// </summary>
+    //    /// <param name="Port">The listening port</param>
+    //    /// <param name="NewHTTPConnectionHandler">A delegate called for every new http connection.</param>
+    //    /// <param name="Autostart">Autostart the http server.</param>
+    //    public HTTPServer(IPPort Port, Boolean Autostart = false)
+    //        : base(IPv4Address.Any, Port, Autostart)
+    //    { }
 
-        #region HTTPServer(IPSocket, NewHTTPConnectionHandler = null, Autostart = false)
+    //    #endregion
 
-        /// <summary>
-        /// Initialize the HTTPServer using the given parameters.
-        /// </summary>
-        /// <param name="IPSocket">The listening IPSocket.</param>
-        /// <param name="NewHTTPConnectionHandler">A delegate called for every new http connection.</param>
-        /// <param name="Autostart">Autostart the http server.</param></param>
-        public HTTPServer(IPSocket IPSocket, NewHTTPServiceHandler NewHTTPConnectionHandler = null, Boolean Autostart = false)
-            : this(IPSocket.IPAddress, IPSocket.Port, NewHTTPConnectionHandler, Autostart)
-        { }
+    //    //#region HTTPServer(Port, NewHTTPConnectionHandler = null, AutoStart = false)
 
-        #endregion
+    //    ///// <summary>
+    //    ///// Initialize the HTTPServer using IPAddress.Any and the given parameters.
+    //    ///// </summary>
+    //    ///// <param name="Port">The listening port</param>
+    //    ///// <param name="NewHTTPConnectionHandler">A delegate called for every new http connection.</param>
+    //    ///// <param name="Autostart">Autostart the http server.</param>
+    //    //public HTTPServer(IPPort Port, NewHTTPServiceHandler NewHTTPConnectionHandler = null, Boolean Autostart = false)
+    //    //    : this(IPv4Address.Any, Port, NewHTTPConnectionHandler, Autostart)
+    //    //{ }
 
-        #endregion
+    //    //#endregion
 
-        #region ToString()
+    //    //#region HTTPServer(IIPAddress, Port, NewHTTPConnectionHandler = null, AutoStart = false)
 
-        /// <summary>
-        /// Return a string represtentation of this object.
-        /// </summary>
-        public override String ToString()
-        {
+    //    ///// <summary>
+    //    ///// Initialize the HTTPServer using the given parameters.
+    //    ///// </summary>
+    //    ///// <param name="IIPAddress">The listening IP address(es)</param>
+    //    ///// <param name="Port">The listening port</param>
+    //    ///// <param name="NewHTTPConnectionHandler">A delegate called for every new http connection.</param>
+    //    ///// <param name="Autostart">Autostart the http server.</param>
+    //    //public HTTPServer(IIPAddress IIPAddress, IPPort Port, NewHTTPServiceHandler NewHTTPConnectionHandler = null, Boolean Autostart = false)
+    //    //    : base(IIPAddress, Port, NewHTTPConnectionHandler, Autostart)
+    //    //{ }
 
-            var _Running = "";
-            if (IsRunning) _Running = " (running)";
+    //    //#endregion
 
-            return String.Concat(this.GetType().Name, " ", IPAddress.ToString(), ":", Port, _Running);
+    //    //#region HTTPServer(IPSocket, NewHTTPConnectionHandler = null, Autostart = false)
 
-        }
+    //    ///// <summary>
+    //    ///// Initialize the HTTPServer using the given parameters.
+    //    ///// </summary>
+    //    ///// <param name="IPSocket">The listening IPSocket.</param>
+    //    ///// <param name="NewHTTPConnectionHandler">A delegate called for every new http connection.</param>
+    //    ///// <param name="Autostart">Autostart the http server.</param></param>
+    //    //public HTTPServer(IPSocket IPSocket, NewHTTPServiceHandler NewHTTPConnectionHandler = null, Boolean Autostart = false)
+    //    //    : this(IPSocket.IPAddress, IPSocket.Port, NewHTTPConnectionHandler, Autostart)
+    //    //{ }
 
-        #endregion
+    //    //#endregion
 
-    }
+    //    #endregion
 
-    #endregion
+    //    #region ToString()
 
-    #region HTTPServer<DefaultHTTPService>
+    //    /// <summary>
+    //    /// Return a string represtentation of this object.
+    //    /// </summary>
+    //    public override String ToString()
+    //    {
 
-    /// <summary>
-    ///  This http server will listen on a tcp port and maps incoming urls
-    ///  to methods of HTTPServiceInterface.
-    /// </summary>
-    /// <typeparam name="HTTPServiceInterface">A http service interface.</typeparam>
-    public class HTTPServer<HTTPServiceInterface> : AHTTPServer<HTTPServiceInterface>, IHTTPServer
-        where HTTPServiceInterface : class, IHTTPService
-    {
+    //        var _Running = "";
+    //        if (IsRunning) _Running = " (running)";
 
-        #region Data
+    //        return String.Concat(this.GetType().Name, " ", IPAddress.ToString(), ":", Port, _Running);
 
-        /// <summary>
-        /// The internal TCP server.
-        /// </summary>
-        private readonly TCPServer<HTTPConnection<HTTPServiceInterface>> _TCPServer;
+    //    }
 
-        #endregion
+    //    #endregion
 
-        #region Properties
+    //}
 
-        #region IPAdress
+    //#endregion
 
-        /// <summary>
-        /// Gets the IPAddress on which the HTTPServer listens.
-        /// </summary>
-        public IIPAddress IPAddress
-        {
-            get
-            {
-                
-                if (_TCPServer != null)
-                    return _TCPServer.IPAddress;
-
-                return null;
+    //#region HTTPServer<DefaultHTTPService>
 
-            }
-        }
+    ///// <summary>
+    /////  This http server will listen on a tcp port and maps incoming urls
+    /////  to methods of HTTPServiceInterface.
+    ///// </summary>
+    ///// <typeparam name="HTTPServiceInterface">A http service interface.</typeparam>
+    //public class HTTPServer<HTTPServiceInterface> : HTTPServer
+    //    where HTTPServiceInterface : class, IHTTPService
+    //{
+
+    //    #region Properties
+
+    //    #region Implementations
+
+    //    private readonly IDictionary<HTTPContentType, HTTPServiceInterface> _Implementations;
+
+    //    /// <summary>
+    //    /// The autodiscovered implementations of the HTTPServiceInterface.
+    //    /// </summary>
+    //    public IDictionary<HTTPContentType, HTTPServiceInterface> Implementations
+    //    {
+    //        get
+    //        {
+    //            return _Implementations;
+    //        }
+    //    }
+
+    //    #endregion
+
+    //    #endregion
+
+    //    #region Events
+
+    //    #region OnNewHTTPService
+
+    //    /// <summary>
+    //    /// A delegate definition for every incoming HTTP connection.
+    //    /// </summary>
+    //    /// <param name="HTTPServiceInterfaceType">The interface of the associated http connections.</param>
+    //    public delegate void NewHTTPServiceHandler(HTTPServiceInterface HTTPServiceInterfaceType);
+
+    //    /// <summary>
+    //    /// An event called for every incoming HTTP connection.
+    //    /// </summary>
+    //    public event NewHTTPServiceHandler OnNewHTTPService;
+
+    //    #endregion
+
+    //    #endregion
+
+    //    #region Constructor(s)
+
+    //    //#region HTTPServer(NewHTTPConnectionHandler = null)
+
+    //    ///// <summary>
+    //    ///// Initialize the HTTPServer using IPAddress.Any, http port 80 and start the server.
+    //    ///// </summary>
+    //    ///// <param name="NewHTTPConnectionHandler">A delegate called for every new http connection.</param>
+    //    //public HTTPServer(NewHTTPServiceHandler NewHTTPConnectionHandler = null)
+    //    //    : this(IPv4Address.Any, IPPort.HTTP, NewHTTPConnectionHandler, true)
+    //    //{ }
+
+    //    //#endregion
 
-        #endregion
+    //    //#region HTTPServer(Port, NewHTTPServiceHandler = null, AutoStart = true)
+
+    //    ///// <summary>
+    //    ///// Initialize the HTTPServer using IPAddress.Any and the given parameters.
+    //    ///// </summary>
+    //    ///// <param name="Port">The listening port</param>
+    //    ///// <param name="NewHTTPServiceHandler">A delegate called for every new http connection.</param>
+    //    ///// <param name="Autostart">Autostart the http server.</param>
+    //    //public HTTPServer(IPPort Port, NewHTTPServiceHandler NewHTTPServiceHandler = null, Boolean Autostart = true)
+    //    //    : this(IPv4Address.Any, Port, NewHTTPServiceHandler, Autostart)
+    //    //{ }
+
+    //    //#endregion
+
+    //    //#region HTTPServer(IIPAddress, Port, NewHTTPServiceHandler = null, AutoStart = true)
+
+    //    ///// <summary>
+    //    ///// Initialize the HTTPServer using the given parameters.
+    //    ///// </summary>
+    //    ///// <param name="IIPAddress">The listening IP address(es)</param>
+    //    ///// <param name="Port">The listening port</param>
+    //    ///// <param name="NewHTTPServiceHandler">A delegate called for every new http connection.</param>
+    //    ///// <param name="Autostart">Autostart the http server.</param>
+    //    //public HTTPServer(IIPAddress IIPAddress, IPPort Port, NewHTTPServiceHandler NewHTTPServiceHandler = null, Boolean Autostart = true)
+    //    //{
 
-        #region Port
+    //    //    ServerName = _DefaultServerName;
 
-        /// <summary>
-        /// Gets the port on which the HTTPServer listens.
-        /// </summary>
-        public IPPort Port
-        {
-            get
-            {
+    //    //    if (NewHTTPServiceHandler != null)
+    //    //        OnNewHTTPService += NewHTTPServiceHandler;
 
-                if (_TCPServer != null)
-                    return _TCPServer.Port;
+    //    //    _TCPServer = new TCPServer<HTTPConnection<HTTPServiceInterface>>(
+    //    //                         IIPAddress,
+    //    //                         Port,
+    //    //                         NewHTTPConnection =>
+    //    //                             {
+
+    //    //                                 NewHTTPConnection.HTTPServer            = this;
+    //    //                                 NewHTTPConnection.ServerName            = ServerName;
+    //    //                                 NewHTTPConnection.HTTPSecurity          = HTTPSecurity;
+    //    //                                 NewHTTPConnection.NewHTTPServiceHandler = OnNewHTTPService;
+    //    //                                 NewHTTPConnection.Implementations       = Implementations;
 
-                return null;
-            
-            }
-        }
+    //    //                                 try
+    //    //                                 {
+    //    //                                     NewHTTPConnection.ProcessHTTP();
+    //    //                                 }
+    //    //                                 catch (Exception Exception)
+    //    //                                 {
+    //    //                                     var OnExceptionOccured_Local = _OnExceptionOccured;
+    //    //                                     if (OnExceptionOccured_Local != null)
+    //    //                                         OnExceptionOccured_Local(this, Exception);
+    //    //                                 }
 
-        #endregion
+    //    //                             },
+    //    //                         // Don't do it now, do it a bit later...
+    //    //                         Autostart: false,
+    //    //                         ThreadDescription: "HTTPServer<" + typeof(HTTPServiceInterface).Name + ">");
 
-        #region IsRunning
+    //    //    _TCPServer.OnStarted += (Sender, Timestamp) => {
+    //    //        if (OnStarted != null)
+    //    //            OnStarted(this, Timestamp);
+    //    //        };
 
-        /// <summary>
-        /// True while the HTTPServer is listening for new clients.
-        /// </summary>
-        public Boolean IsRunning
-        {
-            get
-            {
-                
-                if (_TCPServer != null)
-                    return _TCPServer.IsRunning;
+    //    //    if (Autostart)
+    //    //        _TCPServer.Start();
 
-                return false;
+    //    //}
 
-            }
-        }
+    //    //#endregion
 
-        #endregion
+    //    //#region HTTPServer(IPSocket, NewHTTPServiceHandler = null, Autostart = true)
 
-        #region StopRequested
+    //    ///// <summary>
+    //    ///// Initialize the HTTPServer using the given parameters.
+    //    ///// </summary>
+    //    ///// <param name="IPSocket">The listening IPSocket.</param>
+    //    ///// <param name="NewHTTPServiceHandler">A delegate called for every new http connection.</param>
+    //    ///// <param name="Autostart">Autostart the http server.</param>
+    //    //public HTTPServer(IPSocket IPSocket, NewHTTPServiceHandler NewHTTPServiceHandler = null, Boolean Autostart = true)
+    //    //    : this(IPSocket.IPAddress, IPSocket.Port, NewHTTPServiceHandler, Autostart)
+    //    //{ }
 
-        /// <summary>
-        /// The HTTPServer was requested to stop and will no
-        /// longer accept new client connections.
-        /// </summary>
-        public Boolean StopRequested
-        {
-            get
-            {
+    //    //#endregion
 
-                if (_TCPServer != null)
-                    return _TCPServer.StopRequested;
+    //    #endregion
 
-                return false;
 
-            }
-        }
+    //    #region (private) ParseInterface
 
-        #endregion
+    //    /// <summary>
+    //    /// Parses the given HTTP service interface and
+    //    /// adds method callbacks and event sources.
+    //    /// </summary>
+    //    private void ParseInterface()
+    //    {
 
-        #region NumberOfClients
+    //        #region Data
 
-        /// <summary>
-        /// The current number of connected clients.
-        /// </summary>
-        public UInt64 NumberOfClients
-        {
-            get
-            {
+    //        HTTPMethod _HTTPMethod;
+    //        String     _URITemplate;
+    //        String     _Host = "*";
+    //        String     _EventIdentification;
+    //        UInt32     _MaxNumberOfCachedEvents  = 100;
+    //        TimeSpan   _RetryIntervall           = TimeSpan.FromSeconds(30);
+    //        Boolean    _IsSharedEventSource      = false;
 
-                if (_TCPServer != null)
-                    return _TCPServer.NumberOfClients;
+    //        #endregion
 
-                return 0;
+    //        var HTTPServiceInterfaceType = typeof(HTTPServiceInterface);
+    //        var HTTPServiceDiscovery     = new AutoDiscovery<HTTPServiceInterface>();
 
-            }
-        }
+    //        if (HTTPServiceDiscovery != null && HTTPServiceDiscovery.Count >= 1)
+    //        {
+    //            foreach (var HTTPServiceImplementation in HTTPServiceDiscovery)
+    //            {
 
-        #endregion
+    //                #region Initial checks
 
-        #region MaxClientConnections
+    //                if (HTTPServiceImplementation.HTTPContentTypes == null)
+    //                    throw new ApplicationException("Please define an associated HTTPContentType for the '" + HTTPServiceImplementation.GetType().FullName + "' HTTP service implementation!");
 
-        /// <summary>
-        /// The maximum number of pending client connections.
-        /// </summary>
-        public UInt32 MaxClientConnections
-        {
-            get
-            {
-                
-                if (_TCPServer != null)
-                    return _TCPServer.MaxClientConnections;
+    //                if (HTTPServiceImplementation.HTTPContentTypes.Count() != 1)
+    //                    throw new ApplicationException("Less than and more than one HTTPContentType is currently not supported!");
 
-                return 0;
+    //                #endregion
 
-            }
-        }
+    //                #region Register associated content type(s)
 
-        #endregion
+    //                foreach (var AssociatedContentType in HTTPServiceImplementation.HTTPContentTypes)
+    //                {
+    //                    if (!(Implementations.ContainsKey(AssociatedContentType)))
+    //                        Implementations.Add(AssociatedContentType, HTTPServiceImplementation);
+    //                    else
+    //                        throw new ApplicationException("The content type '" + AssociatedContentType + "' is already associated with an HTTP service implementation called '" + Implementations[AssociatedContentType].GetType().FullName + "'!");
+    //                }
 
-        #region ClientTimeout
+    //                #endregion
 
-        /// <summary>
-        /// Will set the ClientTimeout for all incoming client connections
-        /// </summary>
-        public Int32 ClientTimeout
-        {
-            get
-            {
+    //                #region Get HTTPServiceInterface Attributes
 
-                if (_TCPServer != null)
-                    return _TCPServer.ClientTimeout;
+    //                #region HTTPServiceAttribute
 
-                return 0;
+    //                var _HTTPServiceAttribute = HTTPServiceInterfaceType.GetCustomAttributes(typeof(HTTPServiceAttribute), false);
 
-            }
-        }
+    //                if (_HTTPServiceAttribute == null || _HTTPServiceAttribute.Count() != 1)
+    //                    throw new ApplicationException("Invalid HTTPServiceAttributes found!");
 
-        #endregion
+    //                    _Host = (_HTTPServiceAttribute[0] as HTTPServiceAttribute).Host;
 
-        #region DefaultServerName
+    //                #endregion
 
-        private const String _DefaultServerName = "Hermod HTTP Server v0.1";
+    //                #region Check global Force-/NoAuthenticationAttribute
 
-        /// <summary>
-        /// The default server name.
-        /// </summary>
-        public virtual String DefaultServerName
-        {
-            get
-            {
-                return _DefaultServerName;
-            }
-        }
+    //                var _GlobalNeedsExplicitAuthentication = false;
 
-        #endregion
+    //                if (HTTPServiceInterfaceType.GetCustomAttributes(typeof(NoAuthenticationAttribute), false) != null)
+    //                    _GlobalNeedsExplicitAuthentication = false;
 
-        #region ServiceBanner
+    //                if (HTTPServiceInterfaceType.GetCustomAttributes(typeof(ForceAuthenticationAttribute), false) != null)
+    //                    _GlobalNeedsExplicitAuthentication = true;
 
-        public String ServiceBanner
-        {
+    //                #endregion
 
-            get
-            {
-                return ServerName;
-            }
+    //                #endregion
 
-            set
-            {
-                ServerName = value;
-            }
+    //                #region Add method callbacks and event sources
 
-        }
+    //                var NeedsExplicitAuthentication = false;
 
-        #endregion
+    //                foreach (var _MethodInfo in HTTPServiceInterfaceType.GetRecursiveInterfaces().SelectMany(CI => CI.GetMethods()))
+    //                {
 
-        #endregion
+    //                    _HTTPMethod                 = null;
+    //                    _EventIdentification        = null;
+    //                    _URITemplate                = "";
+    //                    NeedsExplicitAuthentication = _GlobalNeedsExplicitAuthentication;
 
-        #region Events
+    //                    foreach (var _Attribute in _MethodInfo.GetCustomAttributes(true))
+    //                    {
 
-        #region OnStarted
+    //                        #region HTTPMappingAttribute
 
-        public event OnStartedDelegate OnStarted;
+    //                        var _HTTPMappingAttribute = _Attribute as HTTPMappingAttribute;
+    //                        if (_HTTPMappingAttribute != null)
+    //                        {
 
-        #endregion
+    //                            if (_EventIdentification != null)
+    //                                throw new Exception("URI '" + _URITemplate + "' is already registered as HTTP event source!");
 
-        #region OnExceptionOccured
+    //                            _HTTPMethod  = _HTTPMappingAttribute.HTTPMethod;
+    //                            _URITemplate = _HTTPMappingAttribute.UriTemplate;
+    //                            continue;
 
-        private event OnExceptionOccuredDelegate _OnExceptionOccured;
+    //                        }
 
-        /// <summary>
-        /// An exception has occured.
-        /// </summary>
-        public event OnExceptionOccuredDelegate OnExceptionOccured
-        {
+    //                        #endregion
 
-            add
-            {
-                _OnExceptionOccured           += value;
-                _TCPServer.OnExceptionOccured += value;
-            }
+    //                        #region HTTPEventMappingAttribute
 
-            remove
-            {
-                _OnExceptionOccured           -= value;
-                _TCPServer.OnExceptionOccured -= value;
-            }
+    //                        var _HTTPEventMappingAttribute = _Attribute as HTTPEventMappingAttribute;
+    //                        if (_HTTPEventMappingAttribute != null)
+    //                        {
 
-        }
+    //                            if (_HTTPMethod != null)
+    //                                throw new Exception("URI '" + _URITemplate + "' is already registered as HTTP method!");
 
-        #endregion
+    //                            _HTTPMethod               = _HTTPEventMappingAttribute.HTTPMethod;
+    //                            _EventIdentification      = _HTTPEventMappingAttribute.EventIdentification;
+    //                            _URITemplate              = _HTTPEventMappingAttribute.UriTemplate;
+    //                            _MaxNumberOfCachedEvents  = _HTTPEventMappingAttribute.MaxNumberOfCachedEvents;
+    //                            _RetryIntervall           = _HTTPEventMappingAttribute.RetryIntervall;
+    //                            _IsSharedEventSource      = _HTTPEventMappingAttribute.IsSharedEventSource;
+    //                            continue;
 
-        #region OnNewHTTPService
+    //                        }
 
-        /// <summary>
-        /// A delegate definition for every incoming HTTP connection.
-        /// </summary>
-        /// <param name="HTTPServiceInterfaceType">The interface of the associated http connections.</param>
-        public delegate void NewHTTPServiceHandler(HTTPServiceInterface HTTPServiceInterfaceType);
+    //                        #endregion
 
-        /// <summary>
-        /// An event called for every incoming HTTP connection.
-        /// </summary>
-        public event NewHTTPServiceHandler OnNewHTTPService;
+    //                        #region NoAuthentication
 
-        #endregion
+    //                        var _NoAuthenticationAttribute = _Attribute as NoAuthenticationAttribute;
+    //                        if (_NoAuthenticationAttribute != null)
+    //                        {
+    //                            NeedsExplicitAuthentication = false;
+    //                            continue;
+    //                        }
 
-        #endregion
+    //                        #endregion
 
-        #region Constructor(s)
+    //                        #region ForceAuthentication
 
-        #region HTTPServer(NewHTTPConnectionHandler = null)
+    //                        var _ForceAuthenticationAttribute = _Attribute as ForceAuthenticationAttribute;
+    //                        if (_ForceAuthenticationAttribute != null)
+    //                        {
+    //                            NeedsExplicitAuthentication = true;
+    //                            continue;
+    //                        }
 
-        /// <summary>
-        /// Initialize the HTTPServer using IPAddress.Any, http port 80 and start the server.
-        /// </summary>
-        /// <param name="NewHTTPConnectionHandler">A delegate called for every new http connection.</param>
-        public HTTPServer(NewHTTPServiceHandler NewHTTPConnectionHandler = null)
-            : this(IPv4Address.Any, IPPort.HTTP, NewHTTPConnectionHandler, true)
-        { }
+    //                        #endregion
 
-        #endregion
+    //                    }
 
-        #region HTTPServer(Port, NewHTTPServiceHandler = null, AutoStart = true)
+    //                    #region Add MethodCallback or EventSource
 
-        /// <summary>
-        /// Initialize the HTTPServer using IPAddress.Any and the given parameters.
-        /// </summary>
-        /// <param name="Port">The listening port</param>
-        /// <param name="NewHTTPServiceHandler">A delegate called for every new http connection.</param>
-        /// <param name="Autostart">Autostart the http server.</param>
-        public HTTPServer(IPPort Port, NewHTTPServiceHandler NewHTTPServiceHandler = null, Boolean Autostart = true)
-            : this(IPv4Address.Any, Port, NewHTTPServiceHandler, Autostart)
-        { }
+    //                    if (_HTTPMethod != null && _URITemplate != null && _URITemplate != "")
+    //                        foreach (var AssociatedContentType in HTTPServiceImplementation.HTTPContentTypes)
+    //                        {
+    //                            if (AssociatedContentType != HTTPContentType.EVENTSTREAM)
+    //                                AddMethodCallback(_MethodInfo, _Host, _URITemplate, _HTTPMethod, AssociatedContentType, NeedsExplicitAuthentication);
 
-        #endregion
+    //                            else
+    //                                if (_EventIdentification != null)
+    //                                    AddEventSource(_MethodInfo, _Host, _URITemplate, _HTTPMethod, _EventIdentification, _MaxNumberOfCachedEvents, _RetryIntervall, _IsSharedEventSource, NeedsExplicitAuthentication);
+    //                        }
 
-        #region HTTPServer(IIPAddress, Port, NewHTTPServiceHandler = null, AutoStart = true)
+    //                    #endregion
 
-        /// <summary>
-        /// Initialize the HTTPServer using the given parameters.
-        /// </summary>
-        /// <param name="IIPAddress">The listening IP address(es)</param>
-        /// <param name="Port">The listening port</param>
-        /// <param name="NewHTTPServiceHandler">A delegate called for every new http connection.</param>
-        /// <param name="Autostart">Autostart the http server.</param>
-        public HTTPServer(IIPAddress IIPAddress, IPPort Port, NewHTTPServiceHandler NewHTTPServiceHandler = null, Boolean Autostart = true)
-        {
+    //                }
 
-            ServerName = _DefaultServerName;
+    //                #endregion
 
-            if (NewHTTPServiceHandler != null)
-                OnNewHTTPService += NewHTTPServiceHandler;
+    //            }
+    //        }
+    //        else
+    //            throw new Exception("Could not find any valid implementation of the HTTP service interface '" + typeof(HTTPServiceInterface).FullName.ToString() + "'!");
 
-            _TCPServer = new TCPServer<HTTPConnection<HTTPServiceInterface>>(
-                                 IIPAddress,
-                                 Port,
-                                 NewHTTPConnection =>
-                                     {
+    //    }
 
-                                         NewHTTPConnection.HTTPServer            = this;
-                                         NewHTTPConnection.ServerName            = ServerName;
-                                         NewHTTPConnection.HTTPSecurity          = HTTPSecurity;
-                                         NewHTTPConnection.URLMapping            = URLMapping;
-                                         NewHTTPConnection.NewHTTPServiceHandler = OnNewHTTPService;
-                                         NewHTTPConnection.Implementations       = Implementations;
+    //    #endregion
 
-                                         try
-                                         {
-                                             NewHTTPConnection.ProcessHTTP();
-                                         }
-                                         catch (Exception Exception)
-                                         {
-                                             var OnExceptionOccured_Local = _OnExceptionOccured;
-                                             if (OnExceptionOccured_Local != null)
-                                                 OnExceptionOccured_Local(this, Exception);
-                                         }
 
-                                     },
-                                 // Don't do it now, do it a bit later...
-                                 Autostart: false,
-                                 ThreadDescription: "HTTPServer<" + typeof(HTTPServiceInterface).Name + ">");
 
-            _TCPServer.OnStarted += (Sender, Timestamp) => {
-                if (OnStarted != null)
-                    OnStarted(this, Timestamp);
-                };
 
-            if (Autostart)
-                _TCPServer.Start();
+    //    #region ToString()
 
-        }
+    //    /// <summary>
+    //    /// Return a string represtentation of this object.
+    //    /// </summary>
+    //    public override String ToString()
+    //    {
 
-        #endregion
+    //        var _TypeName         = this.GetType().Name;
+    //        var _GenericArguments = this.GetType().GetGenericArguments();
+    //        var _GenericTypeName  = "";
 
-        #region HTTPServer(IPSocket, NewHTTPServiceHandler = null, Autostart = true)
+    //        if (_GenericArguments.Length > 0)
+    //        {
+    //            _GenericTypeName  = String.Concat("<", _GenericArguments[0].Name, ">");
+    //            _TypeName         = _TypeName.Remove(_TypeName.Length - 2);
+    //        }
 
-        /// <summary>
-        /// Initialize the HTTPServer using the given parameters.
-        /// </summary>
-        /// <param name="IPSocket">The listening IPSocket.</param>
-        /// <param name="NewHTTPServiceHandler">A delegate called for every new http connection.</param>
-        /// <param name="Autostart">Autostart the http server.</param>
-        public HTTPServer(IPSocket IPSocket, NewHTTPServiceHandler NewHTTPServiceHandler = null, Boolean Autostart = true)
-            : this(IPSocket.IPAddress, IPSocket.Port, NewHTTPServiceHandler, Autostart)
-        { }
+    //        var _Running = "";
+    //        if (_TCPServer.IsRunning) _Running = " (running)";
 
-        #endregion
+    //        return String.Concat(_TypeName, _GenericTypeName, " at ", _TCPServer.IPAddress.ToString(), ":", _TCPServer.Port, _Running);
 
-        #endregion
+    //    }
 
+    //    #endregion
 
-        #region Start()
+    //    #region Dispose()
 
-        /// <summary>
-        /// Start the server.
-        /// </summary>
-        public void Start()
-        {
-            _TCPServer.Start();
-        }
+    //    /// <summary>
+    //    /// Dispose this HTTP server.
+    //    /// </summary>
+    //    public void Dispose()
+    //    {
+    //        Shutdown();
+    //    }
 
-        #endregion
+    //    #endregion
 
-        #region Start(Delay, InBackground = true)
+    //}
 
-        /// <summary>
-        /// Start the server after a little delay.
-        /// </summary>
-        /// <param name="Delay">The delay.</param>
-        /// <param name="InBackground">Whether to wait on the main thread or in a background thread.</param>
-        public void Start(TimeSpan Delay, Boolean InBackground = true)
-        {
-            _TCPServer.Start(Delay, InBackground);
-        }
-
-        #endregion
-
-        #region Shutdown(Wait = true)
-
-        /// <summary>
-        /// Shutdown the server.
-        /// </summary>
-        public void Shutdown(Boolean Wait = true)
-        {
-            _TCPServer.Shutdown();
-        }
-
-        #endregion
-
-
-        #region ToString()
-
-        /// <summary>
-        /// Return a string represtentation of this object.
-        /// </summary>
-        public override String ToString()
-        {
-
-            var _TypeName         = this.GetType().Name;
-            var _GenericArguments = this.GetType().GetGenericArguments();
-            var _GenericTypeName  = "";
-
-            if (_GenericArguments.Length > 0)
-            {
-                _GenericTypeName  = String.Concat("<", _GenericArguments[0].Name, ">");
-                _TypeName         = _TypeName.Remove(_TypeName.Length - 2);
-            }
-
-            var _Running = "";
-            if (_TCPServer.IsRunning) _Running = " (running)";
-
-            return String.Concat(_TypeName, _GenericTypeName, " at ", _TCPServer.IPAddress.ToString(), ":", _TCPServer.Port, _Running);
-
-        }
-
-        #endregion
-
-        #region Dispose()
-
-        /// <summary>
-        /// Dispose this HTTP server.
-        /// </summary>
-        public void Dispose()
-        {
-            Shutdown();
-        }
-
-        #endregion
-
-    }
-
-    #endregion
+    //#endregion
 
 }

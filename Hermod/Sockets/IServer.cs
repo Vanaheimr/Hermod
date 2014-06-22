@@ -17,6 +17,7 @@
 
 #region Usings
 
+using eu.Vanaheimr.Styx.Arrows;
 using System;
 
 #endregion
@@ -25,25 +26,10 @@ namespace eu.Vanaheimr.Hermod
 {
 
     /// <summary>
-    /// Service started delegate.
-    /// </summary>
-    /// <param name="Sender">The sender of this event.</param>
-    /// <param name="Timestamp">The timestamp of the event.</param>
-    public delegate void OnStartedDelegate(IServer Sender, DateTime Timestamp);
-
-
-    /// <summary>
-    /// Service stopped delegate.
-    /// </summary>
-    /// <param name="Sender">The sender of this event.</param>
-    /// <param name="Timestamp">The timestamp of the event.</param>
-    public delegate void OnStoppededDelegate(IServer Sender, DateTime Timestamp);
-
-
-    /// <summary>
     /// A generic server interface.
     /// </summary>
-    public interface IServer : IDisposable
+    public interface IServer : IArrowSender,
+                               IDisposable
     {
 
         /// <summary>
@@ -61,13 +47,14 @@ namespace eu.Vanaheimr.Hermod
         /// </summary>
         IPPort     Port      { get; }
 
+        /// <summary>
+        /// The listening IP socket.
+        /// </summary>
+        IPSocket   IPSocket  { get; }
+
 
         String ServiceBanner { get; set; }
 
-
-
-
-        event OnStartedDelegate OnStarted;
 
         /// <summary>
         /// Star the server.
@@ -85,7 +72,10 @@ namespace eu.Vanaheimr.Hermod
         /// <summary>
         /// Shutdown the server.
         /// </summary>
-        void Shutdown(Boolean Wait = true);
+        /// <param name="Message">An optional shutdown message.</param>
+        /// <param name="Wait">Wait until the server finally shutted down.</param>
+        void Shutdown(String  Message  = null,
+                      Boolean Wait     = true);
 
         /// <summary>
         /// The shutdown of the server was requested.

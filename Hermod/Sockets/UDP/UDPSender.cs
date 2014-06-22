@@ -22,7 +22,6 @@ using System.Net;
 using System.Net.Sockets;
 
 using eu.Vanaheimr.Styx;
-using eu.Vanaheimr.Hermod.Datastructures;
 using eu.Vanaheimr.Styx.Arrows;
 
 #endregion
@@ -43,12 +42,12 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #region UDPSender()
 
-        /// <summary>
-        /// Create a new UDP sender.
-        /// </summary>
-        public UDPSender()
-            : base(Message => Message)
-        { }
+        ///// <summary>
+        ///// Create a new UDP sender.
+        ///// </summary>
+        //private UDPSender()
+        //    : base(Message => Message)
+        //{ }
 
         #endregion
 
@@ -223,6 +222,23 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #endregion
 
+        #region IPSocket
+
+        private IPSocket _IPSocket;
+
+        /// <summary>
+        /// The IP socket to send the UDP data.
+        /// </summary>
+        public IPSocket IPSocket
+        {
+            get
+            {
+                return _IPSocket;
+            }
+        }
+
+        #endregion
+
         #region UDPSocketFlags
 
         /// <summary>
@@ -236,13 +252,13 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #region Constructor(s)
 
-        #region UDPSender(MessageProcessor)
+        #region (private) UDPSender(MessageProcessor)
 
         /// <summary>
         /// Create a new UDPSender.
         /// </summary>
         /// <param name="MessageProcessor">A delegate to tranform the message into an array of bytes.</param>
-        public UDPSender(Func<T, Byte[]>  MessageProcessor)
+        private UDPSender(Func<T, Byte[]> MessageProcessor)
         {
 
             if (MessageProcessor == null)
@@ -269,7 +285,9 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
             : this (MessageProcessor)
 
         {
+
             this.Port  = Port;
+
         }
 
         #endregion
@@ -289,7 +307,9 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
             : this(MessageProcessor, Port)
 
         {
-            this.Hostname = Hostname;
+
+            this.Hostname  = Hostname;
+
         }
 
         #endregion
@@ -309,7 +329,9 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
             : this(MessageProcessor, Port)
 
         {
-            this.IPAddress = IPAddress;
+
+            this.IPAddress  = IPAddress;
+
         }
 
         #endregion
@@ -367,7 +389,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
             }
             catch (Exception e)
             {
-                ProcessException(this, new Exception("The MessageProcessor lead to an error!", e));
+                ProcessExceptionOccured(this, DateTime.Now, new Exception("The MessageProcessor lead to an error!", e));
             }
 
             try
@@ -377,12 +399,12 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
                 DotNetSocket.Send(UDPPacketData, 0, UDPPacketData.Length, UDPSocketFlags, out SocketErrorCode);
 
                 if (SocketErrorCode != SocketError.Success)
-                    ProcessException(this, new Exception("The UDP packet transmission lead to an error: " + SocketErrorCode.ToString()));
+                    ProcessExceptionOccured(this, DateTime.Now, new Exception("The UDP packet transmission lead to an error: " + SocketErrorCode.ToString()));
 
             }
             catch (Exception e)
             {
-                ProcessException(this, new Exception("The UDP packet transmission lead to an error!", e));
+                ProcessExceptionOccured(this, DateTime.Now, new Exception("The UDP packet transmission lead to an error!", e));
             }
 
         }
@@ -419,7 +441,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
             }
             catch (Exception e)
             {
-                ProcessException(this, new Exception("The MessageProcessor lead to an error!", e));
+                ProcessExceptionOccured(this, DateTime.Now, new Exception("The MessageProcessor lead to an error!", e));
             }
 
             try
@@ -433,7 +455,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
             }
             catch (Exception e)
             {
-                ProcessException(this, new Exception("The UDP packet transmission lead to an error!", e));
+                ProcessExceptionOccured(this, DateTime.Now, new Exception("The UDP packet transmission lead to an error!", e));
             }
 
         }
@@ -454,14 +476,15 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         #endregion
 
 
-        #region ProcessError(Sender, ExceptionMessage)
+        #region ProcessExceptionOccured(Sender, Timestamp, ExceptionMessage)
 
         /// <summary>
         /// An error occured at the arrow sender.
         /// </summary>
         /// <param name="Sender">The sender of this error message.</param>
+        /// <param name="Timestamp">The timestamp of the exception.</param>
         /// <param name="ExceptionMessage">The exception leading to this error.</param>
-        public virtual void ProcessException(dynamic Sender, Exception ExceptionMessage)
+        public virtual void ProcessExceptionOccured(dynamic Sender, DateTime Timestamp, Exception ExceptionMessage)
         {
             // Error handling should better be part of the application logic!
             // Overwrite this method to signal the error, e.g. by sending a nice UDP packet.
@@ -469,14 +492,15 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #endregion
 
-        #region ProcessCompleted(Sender, Message)
+        #region ProcessCompleted(Sender, Timestamp, Message)
 
         /// <summary>
         /// Close the UDP socket, as no more data will be send.
         /// </summary>
         /// <param name="Sender">The sender of this completed message.</param>
+        /// <param name="Timestamp">The timestamp of the shutdown.</param>
         /// <param name="Message">An optional completion message.</param>
-        public void ProcessCompleted(dynamic Sender, String Message = null)
+        public void ProcessCompleted(dynamic Sender, DateTime Timestamp, String Message = null)
         {
             Close();
         }

@@ -32,6 +32,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
     public interface IHTTPService
     {
 
+        #region Properties
+
         /// <summary>
         /// The HTTP connection.
         /// </summary>
@@ -46,6 +48,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// All embedded ressources.
         /// </summary>
         IDictionary<String, Assembly>   AllResources        { get; set; }
+
+        #endregion
 
     }
 

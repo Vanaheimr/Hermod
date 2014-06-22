@@ -55,10 +55,12 @@
     <Compile Include="AHTTPServer.cs" />
     <Compile Include="AHTTPService.cs" />
     <Compile Include="Attributes\AuthenticationAttributes.cs" />
+    <Compile Include="Attributes\HTTPResourcesMappingAttribute.cs" />
     <Compile Include="Attributes\HTTPErrorAttribute.cs" />
     <Compile Include="Attributes\HTTPEventMappingAttribute.cs" />
     <Compile Include="Attributes\HTTPMappingAttribute.cs" />
     <Compile Include="Attributes\HTTPServiceAttribute.cs" />
+    <Compile Include="AHTTPBaseService.cs" />
     <Compile Include="DefaultHTTPService.cs" />
     <Compile Include="HTTPConnection.cs" />
     <Compile Include="HTTPResult.cs" />
@@ -71,13 +73,14 @@
     <Compile Include="Security\HTTPSecurity.cs" />
     <Compile Include="Helpers\HTTPErrors.cs" />
     <Compile Include="Helpers\HTTPTools.cs" />
+    <Compile Include="HTTPSemantics.cs" />
     <Compile Include="URLMapping\ContentTypeNode.cs" />
-    <Compile Include="URLMapping\HostNode.cs" />
+    <Compile Include="URLMapping\HostnameNode.cs" />
     <Compile Include="URLMapping\HTTPEvent.cs" />
     <Compile Include="URLMapping\HTTPEventSource.cs" />
     <Compile Include="URLMapping\HTTPMethodNode.cs" />
-    <Compile Include="URLMapping\URLMapping.cs" />
-    <Compile Include="URLMapping\URLNode.cs" />
+    <Compile Include="URLMapping\URIMapping.cs" />
+    <Compile Include="URLMapping\URINode.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Illias\Commons.NET4.5\Commons.NET4.5.csproj">

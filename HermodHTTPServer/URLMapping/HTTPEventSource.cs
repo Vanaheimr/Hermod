@@ -93,12 +93,12 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region RetryTime
+        #region RetryIntervall
 
         /// <summary>
-        /// The retry time of this HTTP event.
+        /// The retry intervall of this HTTP event.
         /// </summary>
-        public TimeSpan RetryTime { get; private set; }
+        public TimeSpan RetryIntervall { get; set; }
 
         #endregion
 
@@ -110,22 +110,27 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// Create a new HTTP event source.
         /// </summary>
         /// <param name="EventIdentification">The internal identification of the HTTP event.</param>
-        public HTTPEventSource(String EventIdentification)
+        /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
+        /// <param name="RetryIntervall">The retry intervall.</param>
+        public HTTPEventSource(String     EventIdentification,
+                               UInt64     MaxNumberOfCachedEvents = 100,
+                               TimeSpan?  RetryIntervall          = null)
         {
 
             EventIdentification.FailIfNullOrEmpty();
 
-            this._EventIdentification  = EventIdentification;
-            this.QueueOfEvents         = new TSQueue<HTTPEvent>();
-            this.RetryTime             = TimeSpan.FromSeconds(5);
-            this.IdCounter             = 0;
+            this.QueueOfEvents            = new TSQueue<HTTPEvent>();
+            this._EventIdentification     = EventIdentification;
+            this.MaxNumberOfCachedEvents  = MaxNumberOfCachedEvents;
+            this.RetryIntervall           = (RetryIntervall.HasValue) ? RetryIntervall.Value : TimeSpan.FromSeconds(30);
+            this.IdCounter                = 0;
 
         }
 
         #endregion
 
 
-        #region SubmitEvent(Data)
+        #region SubmitEvent(params Data)
 
         /// <summary>
         /// Submit a new event.
@@ -138,50 +143,19 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region SubmitSubEvent(SubEvent, Data)
-
-        /// <summary>
-        /// Submit a new event.
-        /// </summary>
-        /// <param name="SubEvent">A subevent identification.</param>
-        /// <param name="Data">The attached event data.</param>
-        public void SubmitSubEvent(String SubEvent, params String[] Data)
-        {
-            QueueOfEvents.Push(new HTTPEvent(SubEvent, (UInt64) Interlocked.Increment(ref IdCounter), Data));
-        }
-
-        #endregion
-
-
-        #region SubmitSubEventWithTimestamp(SubEvent, Data)
-
-        /// <summary>
-        /// Submit a new subevent, using the current time as timestamp.
-        /// </summary>
-        /// <param name="SubEvent">A subevent identification.</param>
-        /// <param name="Data">The attached event data.</param>
-        public void SubmitSubEventWithTimestamp(String SubEvent, params String[] Data)
-        {
-            SubmitSubEventWithTimestamp(SubEvent, DateTime.Now, Data);
-        }
-
-        #endregion
-
-        #region SubmitSubEventWithTimestamp(SubEvent, Timestamp, Data)
+        #region SubmitTimestampedEvent(Timestamp, params Data)
 
         /// <summary>
         /// Submit a new subevent with a timestamp.
         /// </summary>
-        /// <param name="SubEvent">A subevent identification.</param>
         /// <param name="Timestamp">The timestamp of the event.</param>
         /// <param name="Data">The attached event data.</param>
-        public void SubmitSubEventWithTimestamp(String SubEvent, DateTime Timestamp, params String[] Data)
+        public void SubmitTimestampedEvent(DateTime Timestamp, params String[] Data)
         {
 
-            SubmitSubEvent(SubEvent,
-                           new JObject(
+            SubmitSubEvent(new JObject(
                                new JProperty("Timestamp", Timestamp),
-                               new JProperty("Message",   Data.Aggregate((a, b) => a + " " + b))
+                               new JProperty("Message", Data.Aggregate((a, b) => a + " " + b))
                            ).
                            ToString().
                            Replace(Environment.NewLine, " ")
@@ -192,13 +166,82 @@ namespace eu.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region GetEvents(LastEventId = 0)
+        #region SubmitSubEvent(SubEvent, params Data)
+
+        /// <summary>
+        /// Submit a new event.
+        /// </summary>
+        /// <param name="SubEvent">A subevent identification.</param>
+        /// <param name="Data">The attached event data.</param>
+        public void SubmitSubEvent(String SubEvent, params String[] Data)
+        {
+            if (SubEvent.IsNullOrEmpty())
+                QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter), Data));
+            else
+                QueueOfEvents.Push(new HTTPEvent(SubEvent, (UInt64) Interlocked.Increment(ref IdCounter), Data));
+        }
+
+        #endregion
+
+        #region SubmitTimestampedSubEvent(SubEvent, params Data)
+
+        /// <summary>
+        /// Submit a new subevent, using the current time as timestamp.
+        /// </summary>
+        /// <param name="SubEvent">A subevent identification.</param>
+        /// <param name="Data">The attached event data.</param>
+        public void SubmitSubEventWithTimestamp(String SubEvent, params String[] Data)
+        {
+            if (SubEvent.IsNullOrEmpty())
+                SubmitTimestampedEvent(DateTime.Now, Data);
+            else
+                SubmitTimestampedSubEvent(SubEvent, DateTime.Now, Data);
+        }
+
+        #endregion
+
+        #region SubmitTimestampedSubEvent(SubEvent, Timestamp, params Data)
+
+        /// <summary>
+        /// Submit a new subevent with a timestamp.
+        /// </summary>
+        /// <param name="SubEvent">A subevent identification.</param>
+        /// <param name="Timestamp">The timestamp of the event.</param>
+        /// <param name="Data">The attached event data.</param>
+        public void SubmitTimestampedSubEvent(String SubEvent, DateTime Timestamp, params String[] Data)
+        {
+
+            if (SubEvent.IsNullOrEmpty())
+                SubmitEvent(new JObject(
+                                new JProperty("Timestamp", Timestamp),
+                                new JProperty("Message",   Data.Aggregate((a, b) => a + " " + b))
+                            ).
+                            ToString().
+                            Replace(Environment.NewLine, " ")
+                           );
+
+            else
+                SubmitSubEvent(SubEvent,
+                               new JObject(
+                                   new JProperty("Timestamp", Timestamp),
+                                   new JProperty("Message",   Data.Aggregate((a, b) => a + " " + b))
+                               ).
+                               ToString().
+                               Replace(Environment.NewLine, " ")
+                              );
+
+        }
+
+        #endregion
+
+
+        #region GetAllEventsGreater(LastEventId = 0)
 
         /// <summary>
         /// Get a list of events filtered by the event id.
         /// </summary>
         /// <param name="LastEventId">The Last-Event-Id header value.</param>
-        public IEnumerable<HTTPEvent> GetEvents(UInt64 LastEventId = 0)
+        public IEnumerable<HTTPEvent> GetAllEventsGreater(UInt64 LastEventId = 0)
         {
 
             return from    Events in QueueOfEvents
@@ -210,13 +253,13 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region GetEventsSince(Timestamp)
+        #region GetAllEventsSince(Timestamp)
 
         /// <summary>
         /// Get a list of events filtered by a minimal timestamp.
         /// </summary>
         /// <param name="Timestamp">The earlierst timestamp of the events.</param>
-        public IEnumerable<HTTPEvent> GetEventsSince(DateTime Timestamp)
+        public IEnumerable<HTTPEvent> GetAllEventsSince(DateTime Timestamp)
         {
 
             return from    Events in QueueOfEvents
