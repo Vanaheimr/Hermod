@@ -156,7 +156,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// The optional name of the TCP server thread.
         /// </summary>
-        public String ConnectionThreadsNameCreator { get; set; }
+        public Func<TCPConnection, String> ConnectionThreadsNameCreator { get; set; }
 
         #endregion
 
@@ -284,7 +284,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
-        public event NewConnectionHandler OnNewConnection;
+        public event NewConnectionHandler    OnNewConnection;
 
         #region OnNotification
 
@@ -294,6 +294,8 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         public event NotificationEventHandler<TCPConnection> OnNotification;
 
         #endregion
+
+        public event ConnectionClosedHandler OnConnectionClosed;
 
         #region OnExceptionOccured
 
@@ -369,7 +371,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="Mapper">A delegate to transform the incoming TCP connection data into custom data structures.</param>
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
-        /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
+        /// <param name="ConnectionThreadsAreBackground">Whether the TCP server thread is a background thread or not.</param>
         /// <param name="ConnectionIdBuilder"></param>
         /// <param name="ConnectionThreadsNameCreator">An optional delegate to set the name of the TCP connection threads.</param>
         /// <param name="ConnectionThreadsPriority">The optional priority of the TCP connection threads.</param>
@@ -403,37 +405,18 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
             this.ConnectionIdBuilder                = (ConnectionIdBuilder != null)
                                                           ? ConnectionIdBuilder
                                                           : (RemoteIPSocket) => "TCP:" + RemoteIPSocket.IPAddress + ":" + RemoteIPSocket.Port;
-            this.ConnectionThreadsNameCreator       = ServerThreadName;
+            this.ConnectionThreadsNameCreator       = ConnectionThreadsNameCreator;
             this.ConnectionThreadsPriority          = ServerThreadPriority;
-            this.ConnectionThreadsAreBackground     = ServerThreadIsBackground;
+            this.ConnectionThreadsAreBackground     = ConnectionThreadsAreBackground;
             this.ConnectionTimeout                  = TimeSpan.FromSeconds(ConnectionTimeoutSeconds);
 
+//            this._SocketConnections         = new ConcurrentDictionary<IPSocket, TCPConnection>();
+            this._TCPListener                       = new TcpListener(new System.Net.IPAddress(_IPAddress.GetBytes()), _Port.ToInt32());
 
+            this.CancellationTokenSource            = new CancellationTokenSource();
+            this.CancellationToken                  = CancellationTokenSource.Token;
 
-
-            this._SocketConnections         = new ConcurrentDictionary<IPSocket, TCPConnection>();
-            this._TCPListener               = new TcpListener(new System.Net.IPAddress(_IPAddress.GetBytes()), _Port.ToInt32());
-
-            this.CancellationTokenSource    = new CancellationTokenSource();
-            this.CancellationToken          = CancellationTokenSource.Token;
-
-
-            // Get constructor for TCPConnectionType
-            //_Constructor                    = typeof(TTCPConnection).
-            //                                      GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
-            //                                                     null,
-            //                                                     new Type[] {
-            //                                                         typeof(ITCPServer),
-            //                                                         typeof(DateTime),
-            //                                                         typeof(IPSocket),
-            //                                                         typeof(IPSocket),
-            //                                                         typeof(TcpClient)
-            //                                                     },
-            //                                                     null);
-
-            //if (_Constructor == null)
-            //     throw new ArgumentException("A appropriate constructor for type '" + typeof(TTCPConnection).FullName + "' could not be found!");
-
+            #region Create TCP Listener Thread
 
             _ListenerThread = new Thread(() => {
 
@@ -448,6 +431,8 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
                 Listen();
 
             });
+
+            #endregion
 
             if (Autostart)
                 Start();
@@ -513,8 +498,8 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
             // fd.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, tcpKeepalive);
 
-            // bytes.PutInteger(endian, tcpKeepalive, 0);
-            // bytes.PutInteger(endian, tcpKeepaliveIdle, 4);
+            // bytes.PutInteger(endian, tcpKeepalive,      0);
+            // bytes.PutInteger(endian, tcpKeepaliveIdle,  4);
             // bytes.PutInteger(endian, tcpKeepaliveIntvl, 8);
             // 
             // fd.IOControl(IOControlCode.KeepAliveValues, (byte[])bytes, null);
@@ -545,46 +530,17 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
                     Task.Factory.StartNew(Tuple => {
 
-                        var _Tuple                 = Tuple as Tuple<TCPServer, TcpClient>;
-                        //var _Tuple                 = Tuple as Tuple<TCPServer<TTCPConnection>, TcpClient>;
-                        var _TCPServer             = _Tuple.Item1;
-                        var _TCPClient             = _Tuple.Item2;
-                        var _IPEndPoint            = _TCPClient.Client.RemoteEndPoint as IPEndPoint;
-                        var _RemoteSocket          = new IPSocket(new IPv4Address(_IPEndPoint.Address), new IPPort((UInt16) _IPEndPoint.Port));
-
-#if __MonoCS__
-                        // Code for Mono C# compiler
-#else
-                        Thread.CurrentThread.Name  = (ConnectionThreadsNameCreator != null)
-                                                         ? ServerThreadName
-                                                         : "TCP connection from " +
-                                                                 _RemoteSocket.IPAddress.ToString() +
-                                                                 ":" +
-                                                                 _RemoteSocket.Port.ToString();
-#endif
-
-
-                  //      _TCPClient.ReceiveTimeout = (Int32) ConnectionTimeout.TotalMilliseconds;
-
-
                         try
                         {
 
-                            #region Create a new thread-local instance of the upper-layer protocol stack
+                            var _Tuple           = Tuple as Tuple<TCPServer, TcpClient>;
 
-                            // Invoke constructor of TCPConnectionType
-                            var NewTCPConnection = new TCPConnection(this, DateTime.Now, IPSocket, _RemoteSocket, _TCPClient);
-                            //var NewTCPConnection = new ThreadLocal<TTCPConnection>(
-                            //                          () => _Constructor.Invoke(new Object[] { this, DateTime.Now, this._IPSocket, _RemoteSocket, _TCPClient }) as TTCPConnection
-                            //                      );
+                            var NewTCPConnection = new ThreadLocal<TCPConnection>(
+                                                       () => new TCPConnection(_Tuple.Item1, _Tuple.Item2)
+                                                   );
 
-                            //if (NewTCPConnection.Value == null)
-                            //    throw new ArgumentException("A TCPConnectionType of type '" + typeof(TTCPConnection).FullName + "' could not be created!");
+                            #region Copy ExceptionOccured event handlers
 
-                            //_TCPConnection.Value.ReadTimeout = ClientTimeout;
-                            //_TCPConnection.Value.StopRequested = false;
-
-                            // Copy ExceptionOccured event handlers
                             //foreach (var ExceptionOccuredHandler in MyEventStorage)
                             //    _TCPConnection.Value.OnExceptionOccured += ExceptionOccuredHandler;
 
@@ -592,14 +548,16 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
                             var OnNewConnectionLocal = OnNewConnection;
                             if (OnNewConnectionLocal != null)
-                                OnNewConnectionLocal(NewTCPConnection.TCPServer,
-                                                     NewTCPConnection.ServerTimestamp,
-                                                     NewTCPConnection.RemoteSocket,
-                                                     "ConnectionId");
+                                OnNewConnectionLocal(NewTCPConnection.Value.TCPServer,
+                                                     NewTCPConnection.Value.ServerTimestamp,
+                                                     NewTCPConnection.Value);
 
-                            var OnNotificationLocal = OnNotification;
-                            if (OnNotificationLocal != null)
-                                OnNotificationLocal(NewTCPConnection);
+                            if (!NewTCPConnection.Value.IsClosed)
+                            {
+                                var OnNotificationLocal = OnNotification;
+                                if (OnNotificationLocal != null)
+                                    OnNotificationLocal(NewTCPConnection.Value);
+                            }
 
                         }
                         catch (Exception Exception)
@@ -645,6 +603,18 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
+
+
+        protected internal void SendConnectionClosed(IPSocket            RemoteSocket,
+                                                     String              ConnectionId,
+                                                     ConnectionClosedBy  ClosedBy)
+        {
+
+            var OnConnectionClosedLocal = OnConnectionClosed;
+            if (OnConnectionClosedLocal != null)
+                OnConnectionClosedLocal(this, DateTime.Now, RemoteSocket, ConnectionId, ClosedBy);
+
+        }
 
 
         #region Start()
@@ -720,6 +690,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         }
 
         #endregion
+
 
         #region Shutdown(Message = null, Wait = true)
 

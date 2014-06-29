@@ -28,10 +28,9 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
     /// New connection delegate.
     /// </summary>
     /// <param name="Sender">The sender of this event.</param>
-    /// <param name="Timestamp">The timestamp of the event.</param>
-    /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
-    /// <param name="ConnectionId">The identification of this connection.</param>
-    public delegate void NewConnectionHandler(ITCPServer Sender, DateTime Timestamp, IPSocket RemoteSocket, String ConnectionId);
+    /// <param name="Timestamp">The timestamp of the new TCP connection event.</param>
+    /// <param name="TCPConnection">The new TCP connection.</param>
+    public delegate void NewConnectionHandler(ITCPServer TCPServer, DateTime Timestamp, TCPConnection TCPConnection);
 
     /// <summary>
     /// Connection closed delegate.
@@ -41,6 +40,6 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
     /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
     /// <param name="ConnectionId">The identification of this connection.</param>
     /// <param name="ClosedBy">Wether the connection was closed by the client or the server.</param>
-    public delegate void ConnectionClosedHandler(ITCPServer Sender, DateTime Timestamp, IPSocket RemoteSocket, String ConnectionId, ConnectionClosedBy ClosedBy);
+    public delegate void ConnectionClosedHandler(ITCPServer TCPServer, DateTime Timestamp, IPSocket RemoteSocket, String ConnectionId, ConnectionClosedBy ClosedBy);
 
 }

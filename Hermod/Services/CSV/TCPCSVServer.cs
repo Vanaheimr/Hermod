@@ -18,13 +18,10 @@
 #region Usings
 
 using System;
-using System.IO;
-using System.Linq;
-using System.Text;
+using System.Threading;
 
 using eu.Vanaheimr.Styx.Arrows;
 using eu.Vanaheimr.Hermod.Sockets.TCP;
-using System.Threading;
 
 #endregion
 
@@ -37,7 +34,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
     /// 0x0d 0x0a (\r\n) end-of-line characters.
     /// </summary>
     public class TCPCSVServer : ACustomTCPServer,
-                                IBoomerangSender<Object, DateTime, String, String[], TCPResult<String>>
+                                IBoomerangSender<String, DateTime, String[], TCPResult<String>>
     {
 
         #region Data
@@ -78,7 +75,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 
         #region Events
 
-        public event BoomerangSenderHandler<Object, DateTime, String, String[], TCPResult<String>> OnNotification;
+        public event BoomerangSenderHandler<String, DateTime, String[], TCPResult<String>> OnNotification;
 
         #endregion
 
@@ -167,13 +164,15 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
                    ConnectionThreadsNameCreator,
                    ConnectionThreadsPriority,
                    ConnectionThreadsAreBackground,
-                   ConnectionTimeoutSeconds,
-                   false)
+                   ConnectionTimeoutSeconds)
 
         {
 
             _TCPCSVProcessor        = new TCPCSVProcessor(SplitCharacters);
             _TCPServer.SendTo(_TCPCSVProcessor);
+            _TCPServer.OnNewConnection    += SendNewConnection;
+            _TCPServer.OnConnectionClosed += SendConnectionClosed;
+
             _TCPCSVCommandProcessor = new TCPCSVCommandProcessor();
             _TCPCSVProcessor.ConnectTo(_TCPCSVCommandProcessor);
             _TCPCSVCommandProcessor.OnNotification += ProcessBoomerang;
@@ -232,19 +231,24 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
         #endregion
 
 
-        private TCPResult<String> ProcessBoomerang(Object Message1, DateTime Timestamp, String ConnectionId, String[] CSVArray)
+        #region ProcessBoomerang(ConnectionId, Timestamp, CSVArray)
+
+        private TCPResult<String> ProcessBoomerang(String    ConnectionId,
+                                                   DateTime  Timestamp,
+                                                   String[]  CSVArray)
         {
 
             var OnNotificationLocal = OnNotification;
             if (OnNotificationLocal != null)
-                return OnNotificationLocal(Message1,
+                return OnNotificationLocal(ConnectionId,
                                            Timestamp,
-                                           ConnectionId,
                                            CSVArray);
 
             return new TCPResult<String>(String.Empty, false);
 
         }
+
+        #endregion
 
 
     }

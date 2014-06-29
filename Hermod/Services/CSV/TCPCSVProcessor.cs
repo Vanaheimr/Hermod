@@ -36,7 +36,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
     /// 0x0d 0x0a (\r\n) end-of-line characters.
     /// </summary>
     public class TCPCSVProcessor : IArrowReceiver<TCPConnection>,
-                                   IBoomerangSender<Object, DateTime, String, String[], TCPResult<String>>
+                                   IBoomerangSender<TCPConnection, DateTime, String[], String>
     {
 
         #region Data
@@ -75,16 +75,14 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 
         #region Events
 
-        public event StartedEventHandler                                                            OnStarted;
+        public event StartedEventHandler                                                OnStarted;
 
-        public event BoomerangSenderHandler<Object, DateTime, String, String[], TCPResult<String>>  OnNotification;
+        public event BoomerangSenderHandler<TCPConnection, DateTime, String[], String>  OnNotification;
 
-        public event ConnectionClosedHandler                                                        OnConnectionClosed;
-
-        public event CompletedEventHandler                                                          OnCompleted;
+        public event CompletedEventHandler                                              OnCompleted;
 
 
-        public event ExceptionOccuredEventHandler                                                   OnExceptionOccured;
+        public event ExceptionOccuredEventHandler                                       OnExceptionOccured;
 
         #endregion
 
@@ -226,14 +224,9 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
                                     if (OnNotificationLocal != null)
                                     {
 
-                                        Result = OnNotification(TCPConnection.TCPServer,
-                                                                DateTime.Now,
-                                                                "ConnectionId", //ConnectionIdBuilder(RemoteSocket),
-                                                                CSVArray);
-
-                                        TCPConnection.WriteLineToResponseStream(Result.Value);
-
-                                        ClientClose = Result.ClientClose;
+                                        TCPConnection.WriteLineToResponseStream(OnNotification(TCPConnection,
+                                                                                DateTime.Now,
+                                                                                CSVArray));
 
                                     }
 
@@ -322,14 +315,6 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
             catch (Exception e)
             { }
 
-            var OnConnectionClosedLocal = OnConnectionClosed;
-            if (OnConnectionClosedLocal != null)
-                OnConnectionClosedLocal(TCPConnection.TCPServer,
-                                        DateTime.Now,
-                                        TCPConnection.RemoteSocket,
-                                        "ConnectionId", //ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort),
-                                        ClientClose ? ConnectionClosedBy.Client : ConnectionClosedBy.Server);
-
             #endregion
 
         }
@@ -338,18 +323,34 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 
         #region ProcessExceptionOccured(Sender, Timestamp, ExceptionMessage)
 
-        public void ProcessExceptionOccured(Object Sender, DateTime Timestamp, Exception ExceptionMessage)
+        public void ProcessExceptionOccured(Object     Sender,
+                                            DateTime   Timestamp,
+                                            Exception  ExceptionMessage)
         {
-            throw new NotImplementedException();
+
+            var OnExceptionOccuredLocal = OnExceptionOccured;
+            if (OnExceptionOccuredLocal != null)
+                OnExceptionOccuredLocal(Sender,
+                                        Timestamp,
+                                        ExceptionMessage);
+
         }
 
         #endregion
 
         #region ProcessCompleted(Sender, Timestamp, Message = null)
 
-        public void ProcessCompleted(Object Sender, DateTime Timestamp, String Message = null)
+        public void ProcessCompleted(Object    Sender,
+                                     DateTime  Timestamp,
+                                     String    Message = null)
         {
-            throw new NotImplementedException();
+
+            var OnCompletedLocal = OnCompleted;
+            if (OnCompletedLocal != null)
+                OnCompletedLocal(Sender,
+                                 Timestamp,
+                                 Message);
+
         }
 
         #endregion

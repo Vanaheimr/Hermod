@@ -32,7 +32,17 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// The connection was closed by the server.
         /// </summary>
-        Server
+        Server,
+
+        /// <summary>
+        /// The connection was closed by an admin.
+        /// </summary>
+        Admin,
+
+        /// <summary>
+        /// The connection was closed by a filter rule.
+        /// </summary>
+        FilterRule
 
     }
 

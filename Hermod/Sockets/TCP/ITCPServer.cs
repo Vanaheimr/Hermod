@@ -18,8 +18,6 @@
 #region Usings
 
 using System;
-
-using eu.Vanaheimr.Styx.Arrows;
 using System.Threading;
 
 #endregion
@@ -57,7 +55,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// The optional name of the TCP server thread.
         /// </summary>
-        String ConnectionThreadsNameCreator { get; set; }
+        Func<TCPConnection, String> ConnectionThreadsNameCreator { get; set; }
 
         /// <summary>
         /// The optional priority of the TCP server thread.
@@ -85,6 +83,10 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         /// The maximum number of pending client connections.
         /// </summary>
         UInt32 MaxClientConnections { get; }
+
+
+        event NewConnectionHandler    OnNewConnection;
+        event ConnectionClosedHandler OnConnectionClosed;
 
     }
 

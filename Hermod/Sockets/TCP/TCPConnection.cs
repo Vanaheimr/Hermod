@@ -25,6 +25,7 @@ using System.Net.Sockets;
 
 using eu.Vanaheimr.Illias.Commons;
 using eu.Vanaheimr.Styx.Arrows;
+using System.Net;
 
 #endregion
 
@@ -48,12 +49,12 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
         #region TCPServer
 
-        private readonly ITCPServer _TCPServer;
+        private readonly TCPServer _TCPServer;
 
         /// <summary>
         /// The associated TCP server.
         /// </summary>
-        public ITCPServer TCPServer
+        public TCPServer TCPServer
         {
             get
             {
@@ -79,6 +80,9 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         }
 
         #endregion
+
+
+        public String ConnectionId { get; private set; }
 
         #region IsConnected
 
@@ -192,6 +196,20 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
+        #region IsClosed
+
+        private volatile Boolean _IsClosed;
+
+        public Boolean IsClosed
+        {
+            get
+            {
+                return _IsClosed;
+            }
+        }
+
+        #endregion
+
         #endregion
 
         #region Events
@@ -205,21 +223,40 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// Create a new TCP connection.
         /// </summary>
-        public TCPConnection(ITCPServer  TCPServer,
-                             DateTime    ServerTimestamp,
-                             IPSocket    LocalSocket,
-                             IPSocket    RemoteSocket,
+        public TCPConnection(TCPServer   TCPServer,
                              TcpClient   TCPClient)
 
-            : base(LocalSocket, RemoteSocket)
+            : base(new IPSocket(new IPv4Address((         TCPClient.Client.LocalEndPoint  as IPEndPoint).Address),
+                                new IPPort     ((UInt16) (TCPClient.Client.LocalEndPoint  as IPEndPoint).Port)),
+                   new IPSocket(new IPv4Address((         TCPClient.Client.RemoteEndPoint as IPEndPoint).Address),
+                                new IPPort     ((UInt16) (TCPClient.Client.RemoteEndPoint as IPEndPoint).Port)))
 
         {
 
             this._TCPServer           = TCPServer;
-            this._ServerTimestamp     = ServerTimestamp;
+            this._ServerTimestamp     = DateTime.Now;
             this.TCPClient            = TCPClient;
+            this.ConnectionId         = TCPServer.ConnectionIdBuilder(base.RemoteSocket);
+            this._IsClosed             = false;
 
             this.Stream               = TCPClient.GetStream();
+
+            //_TCPClient.ReceiveTimeout           = (Int32) ConnectionTimeout.TotalMilliseconds;
+            //_TCPConnection.Value.ReadTimeout    = ClientTimeout;
+            //_TCPConnection.Value.StopRequested  = false;
+
+#if __MonoCS__
+                        // Code for Mono C# compiler
+#else
+
+            Thread.CurrentThread.Name = (TCPServer.ConnectionThreadsNameCreator != null)
+                                             ? TCPServer.ConnectionThreadsNameCreator(this)
+                                             : "TCP connection from " +
+                                                     base.RemoteSocket.IPAddress.ToString() +
+                                                     ":" +
+                                                     base.RemoteSocket.Port.ToString();
+
+#endif
 
         }
 
@@ -499,15 +536,22 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         #endregion
 
 
-        #region Close(ClosedBy)
+        #region Close(ClosedBy = ConnectionClosedBy.Server)
 
         /// <summary>
         /// Close this TCP connection.
         /// </summary>
-        public void Close(ConnectionClosedBy ClosedBy)
+        public void Close(ConnectionClosedBy ClosedBy = ConnectionClosedBy.Server)
         {
+
             if (TCPClient != null)
                 TCPClient.Close();
+
+            if (!_IsClosed)
+                _TCPServer.SendConnectionClosed(RemoteSocket, ConnectionId, ClosedBy);
+
+            _IsClosed = true;
+
         }
 
         #endregion

@@ -18,17 +18,9 @@
 #region Usings
 
 using System;
-using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 
-using eu.Vanaheimr.Illias.Commons;
 using eu.Vanaheimr.Hermod.Sockets.TCP;
-using System.Net.Sockets;
-using eu.Vanaheimr.Hermod.HTTP;
 using eu.Vanaheimr.Styx.Arrows;
 
 #endregion
@@ -40,8 +32,8 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
     /// A TCP service accepting incoming CSV lines
     /// with ending 0x00 or 0x0d 0x0a (\r\n) characters.
     /// </summary>
-    public class TCPCSVCommandProcessor : IBoomerangReceiver<Object, DateTime, String, String[], TCPResult<String>>,
-                                          IBoomerangSender<Object, DateTime, String, String[], TCPResult<String>>
+    public class TCPCSVCommandProcessor : IBoomerangReceiver<TCPConnection, DateTime, String[], String>,
+                                          IBoomerangSender  <String,        DateTime, String[], TCPResult<String>>
     {
 
         #region Properties
@@ -56,14 +48,14 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 
         #region Events
 
-        public event StartedEventHandler                                                            OnStarted;
+        public event StartedEventHandler                                                    OnStarted;
 
-        public event BoomerangSenderHandler<Object, DateTime, String, String[], TCPResult<String>>  OnNotification;
+        public event BoomerangSenderHandler<String, DateTime, String[], TCPResult<String>>  OnNotification;
 
-        public event CompletedEventHandler                                                          OnCompleted;
+        public event CompletedEventHandler                                                  OnCompleted;
 
 
-        public event ExceptionOccuredEventHandler                                                   OnExceptionOccured;
+        public event ExceptionOccuredEventHandler                                           OnExceptionOccured;
 
         #endregion
 
@@ -75,12 +67,12 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
         #endregion
 
 
+        #region ProcessBoomerang(TCPConnection, Timestamp, CSVArray)
 
-        public TCPResult<String> ProcessBoomerang(Object Message1, DateTime Timestamp, String ConnectionId, String[] CSVArray)
+        public String ProcessBoomerang(TCPConnection TCPConnection, DateTime Timestamp, String[] CSVArray)
         {
 
             var _StringBuilder  = new StringBuilder();
-            var ClientClose     = false;
 
             if (CSVArray.Length == 1)
             {
@@ -100,7 +92,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
                         case "quit":
                         case "logout":
                             _StringBuilder.AppendLine("Bye!");
-                            ClientClose = true;
+                            TCPConnection.Close(ConnectionClosedBy.Client);
                             break;
 
                         case "noop":
@@ -112,7 +104,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
                             break;
 
                         case "getconnectionid":
-                            //_StringBuilder.AppendLine(_TCPCSVServer.ConnectionIdBuilder(RemoteSocket) + "\r\n");
+                            _StringBuilder.AppendLine(TCPConnection.ConnectionId);
                             break;
 
                         case "help":
@@ -182,27 +174,60 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 
                 var OnNotificationLocal = OnNotification;
                 if (OnNotificationLocal != null)
-                    return OnNotificationLocal(Message1,
-                                               Timestamp,
-                                               ConnectionId,
-                                               CSVArray);
+                {
+
+                    var Result = OnNotificationLocal(TCPConnection.ConnectionId,
+                                                     Timestamp,
+                                                     CSVArray);
+
+                    if (Result.ClientClose)
+                        TCPConnection.Close(ConnectionClosedBy.Server);
+
+                    return Result.Value;
+
+                }
 
             }
 
-            return new TCPResult<String>(_StringBuilder.ToString(), ClientClose);
+            return _StringBuilder.ToString();
 
         }
 
-        public void ProcessExceptionOccured(object Sender, DateTime Timestamp, Exception ExceptionMessage)
+        #endregion
+
+        #region ProcessExceptionOccured(Sender, Timestamp, ExceptionMessage)
+
+        public void ProcessExceptionOccured(Object     Sender,
+                                            DateTime   Timestamp,
+                                            Exception  ExceptionMessage)
         {
-            throw new NotImplementedException();
+
+            var OnExceptionOccuredLocal = OnExceptionOccured;
+            if (OnExceptionOccuredLocal != null)
+                OnExceptionOccuredLocal(Sender,
+                                        Timestamp,
+                                        ExceptionMessage);
+
         }
 
-        public void ProcessCompleted(object Sender, DateTime Timestamp, string Message = null)
+        #endregion
+
+        #region ProcessCompleted(Sender, Timestamp, Message = null)
+
+        public void ProcessCompleted(Object    Sender,
+                                     DateTime  Timestamp,
+                                     String    Message = null)
         {
-            throw new NotImplementedException();
+
+            var OnCompletedLocal = OnCompleted;
+            if (OnCompletedLocal != null)
+                OnCompletedLocal(Sender,
+                                 Timestamp,
+                                 Message);
+
         }
 
+        #endregion
 
 
     }

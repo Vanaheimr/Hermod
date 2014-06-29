@@ -121,13 +121,10 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region HTTPConnection(HTTPServer, ...)
 
-        public HTTPConnection(ITCPServer  HTTPServer,
-                              DateTime    ServerTimestamp,
-                              IPSocket    LocalSocket,
-                              IPSocket    RemoteSocket,
+        public HTTPConnection(TCPServer   HTTPServer,
                               TcpClient   TCPClient)
 
-            : base(HTTPServer, ServerTimestamp, LocalSocket, RemoteSocket, TCPClient)
+            : base(HTTPServer, TCPClient)
 
         {
 
