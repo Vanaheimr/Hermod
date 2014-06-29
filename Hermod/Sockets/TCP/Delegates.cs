@@ -18,14 +18,10 @@
 #region Usings
 
 using System;
-using System.IO;
-using System.Collections.Generic;
-
-using eu.Vanaheimr.Illias.Commons;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.Services.CSV
+namespace eu.Vanaheimr.Hermod.Sockets.TCP
 {
 
     /// <summary>
@@ -34,7 +30,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
     /// <param name="Sender">The sender of this event.</param>
     /// <param name="Timestamp">The timestamp of the event.</param>
     /// <param name="ConnectionId">The identification of this connection.</param>
-    public delegate void OnNewConnectionDelegate(TCPCSVServer Sender, DateTime Timestamp, String ConnectionId);
+    public delegate void NewConnectionHandler(ITCPServer Sender, DateTime Timestamp, IPSocket LocalSocket, IPSocket RemoteSocket, String ConnectionId);
 
     /// <summary>
     /// Connection closed delegate.
@@ -43,34 +39,6 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
     /// <param name="Timestamp">The timestamp of the event.</param>
     /// <param name="ConnectionId">The identification of this connection.</param>
     /// <param name="ClosedBy">Wether the connection was closed by the client or the server.</param>
-    public delegate void OnConnectionClosedDelegate(TCPCSVServer Sender, DateTime Timestamp, String ConnectionId, ConnectionClosedBy ClosedBy);
-
-    /// <summary>
-    /// A result is available.
-    /// </summary>
-    /// <param name="Sender">The sender of this event.</param>
-    /// <param name="Timestamp">The timestamp of the event.</param>
-    /// <param name="ConnectionId">The identification of this connection.</param>
-    /// <param name="Results">The results.</param>
-    public delegate void OnResultDelegate(TCPCSVServer Sender, DateTime Timestamp, String ConnectionId, IEnumerable<CSVResult> Results);
-
-
-    /// <summary>
-    /// Wether the connection was closed by the client or the server.
-    /// </summary>
-    public enum ConnectionClosedBy
-    {
-
-        /// <summary>
-        /// The connection was closed by the client.
-        /// </summary>
-        Client,
-
-        /// <summary>
-        /// The connection was closed by the server.
-        /// </summary>
-        Server
-
-    }
+    public delegate void ConnectionClosedHandler(ITCPServer Sender, DateTime Timestamp, IPSocket LocalSocket, IPSocket RemoteSocket, String ConnectionId, ConnectionClosedBy ClosedBy);
 
 }

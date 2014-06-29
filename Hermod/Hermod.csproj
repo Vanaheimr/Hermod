@@ -34,6 +34,9 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\libs\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.IdentityModel" />
@@ -52,6 +55,52 @@
     <Compile Include="ExtentionMethods\NetworkingHelpers.cs" />
     <Compile Include="ExtentionMethods\IPAddressHelper.cs" />
     <Compile Include="Datastructures\ILocalSocket.cs" />
+    <Compile Include="HTTP\AHTTPBasePDU.cs" />
+    <Compile Include="HTTP\AHTTPPDU.cs" />
+    <Compile Include="HTTP\AHTTPPDUBuilder.cs" />
+    <Compile Include="HTTP\General\HTTPContentType.cs" />
+    <Compile Include="HTTP\General\HTTPStatusCode.cs" />
+    <Compile Include="HTTP\General\HTTPVersion.cs" />
+    <Compile Include="HTTP\HTTPHeaderField.cs" />
+    <Compile Include="HTTP\HTTPRequest.cs" />
+    <Compile Include="HTTP\HTTPRequestBuilder.cs" />
+    <Compile Include="HTTP\HTTPResponse.cs" />
+    <Compile Include="HTTP\HTTPResponseBuilder.cs" />
+    <Compile Include="HTTP\Request\AcceptType.cs" />
+    <Compile Include="HTTP\Request\AcceptTypes.cs" />
+    <Compile Include="HTTP\Request\HTTPAuthenticationTypes.cs" />
+    <Compile Include="HTTP\Request\HTTPBasicAuthentication.cs" />
+    <Compile Include="HTTP\Request\HTTPMethod.cs" />
+    <Compile Include="HTTP\Request\QueryString.cs" />
+    <Compile Include="HTTP\Server\AHTTPBaseService.cs" />
+    <Compile Include="HTTP\Server\HTTPServer.cs" />
+    <Compile Include="HTTP\Server\AHTTPService.cs" />
+    <Compile Include="HTTP\Server\Attributes\AuthenticationAttributes.cs" />
+    <Compile Include="HTTP\Server\Attributes\HTTPErrorAttribute.cs" />
+    <Compile Include="HTTP\Server\Attributes\HTTPEventMappingAttribute.cs" />
+    <Compile Include="HTTP\Server\Attributes\HTTPMappingAttribute.cs" />
+    <Compile Include="HTTP\Server\Attributes\HTTPResourcesMappingAttribute.cs" />
+    <Compile Include="HTTP\Server\Attributes\HTTPServiceAttribute.cs" />
+    <Compile Include="HTTP\Server\DefaultHTTPService.cs" />
+    <Compile Include="HTTP\Server\Helpers\HTTPErrors.cs" />
+    <Compile Include="HTTP\Server\Helpers\HTTPTools.cs" />
+    <Compile Include="HTTP\Server\HTTPConnection.cs" />
+    <Compile Include="HTTP\Server\HTTPResult.cs" />
+    <Compile Include="HTTP\Server\HTTPSemantics.cs" />
+    <Compile Include="HTTP\Server\oldHTTPServer.cs" />
+    <Compile Include="HTTP\Server\IHTTPServer.cs" />
+    <Compile Include="HTTP\Server\Interfaces\IHTTPBaseService.cs" />
+    <Compile Include="HTTP\Server\Interfaces\IHTTPConnection.cs" />
+    <Compile Include="HTTP\Server\Interfaces\IHTTPService.cs" />
+    <Compile Include="HTTP\Server\Security\HTTPSecurity.cs" />
+    <Compile Include="HTTP\Server\URLMapping\ContentTypeNode.cs" />
+    <Compile Include="HTTP\Server\URLMapping\HostnameNode.cs" />
+    <Compile Include="HTTP\Server\URLMapping\HTTPEvent.cs" />
+    <Compile Include="HTTP\Server\URLMapping\HTTPEventSource.cs" />
+    <Compile Include="HTTP\Server\URLMapping\HTTPMethodNode.cs" />
+    <Compile Include="HTTP\Server\URLMapping\URIMapping.cs" />
+    <Compile Include="HTTP\Server\URLMapping\URINode.cs" />
+    <Compile Include="HTTP\Tokens.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Datastructures\IIPAddress.cs" />
     <Compile Include="Datastructures\IPv6Address.cs" />
@@ -59,8 +108,12 @@
     <Compile Include="Datastructures\IPv4Address.cs" />
     <Compile Include="Datastructures\IPSocket.cs" />
     <Compile Include="Datastructures\IRemoteSocket.cs" />
+    <Compile Include="Services\CSV\EOLSearch.cs" />
+    <Compile Include="Services\CSV\CSVProcessor.cs" />
+    <Compile Include="Sockets\TCP\ACustomTCPServer.cs" />
     <Compile Include="Services\CSV\SplitUDPPacketArrow.cs" />
-    <Compile Include="Services\CSV\Delegates.cs" />
+    <Compile Include="Sockets\TCP\ConnectionClosedBy.cs" />
+    <Compile Include="Sockets\TCP\Delegates.cs" />
     <Compile Include="Services\CSV\TCPCSVServer.cs" />
     <Compile Include="Services\CSV\ProcessUDPPacketArrow.cs" />
     <Compile Include="Services\DNS\NoDNSPaketInformation.cs" />
@@ -89,6 +142,8 @@
     <Compile Include="Sockets\IServer.cs" />
     <Compile Include="Sockets\IICMPPacket.cs" />
     <Compile Include="Services\CSV\UDPCSVReceiver.cs" />
+    <Compile Include="Sockets\TCP\ITCPConnection.cs" />
+    <Compile Include="Sockets\TCP\TCPResult.cs" />
     <Compile Include="Sockets\UDP\IUDPReceiver.cs" />
     <Compile Include="Sockets\UDP\MulticastReceiver.cs" />
     <Compile Include="Sockets\UDP\UDPMulticastSenderArrow.cs" />

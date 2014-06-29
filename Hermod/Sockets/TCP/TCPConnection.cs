@@ -40,10 +40,11 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         Timeout
     }
 
+
     /// <summary>
     /// An abstract class for all TCP connections.
     /// </summary>
-    public class TCPConnection<TData> : AReadOnlyLocalRemoteSockets
+    public class TCPConnection : AReadOnlyLocalRemoteSockets, ITCPConnection
     {
 
         #region Data
@@ -57,12 +58,12 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
         #region TCPServer
 
-        private readonly TCPServer<TData> _TCPServer;
+        private readonly ITCPServer _TCPServer;
 
         /// <summary>
         /// The associated TCP server.
         /// </summary>
-        public TCPServer<TData> TCPServer
+        public ITCPServer TCPServer
         {
             get
             {
@@ -214,11 +215,11 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// Create a new TCP connection.
         /// </summary>
-        public TCPConnection(TCPServer<TData>  TCPServer,
-                             DateTime          ServerTimestamp,
-                             IPSocket          LocalSocket,
-                             IPSocket          RemoteSocket,
-                             TcpClient         TCPClient)
+        public TCPConnection(ITCPServer  TCPServer,
+                             DateTime    ServerTimestamp,
+                             IPSocket    LocalSocket,
+                             IPSocket    RemoteSocket,
+                             TcpClient   TCPClient)
 
             : base(LocalSocket, RemoteSocket)
 
@@ -429,6 +430,19 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         public void WriteToResponseStream(String UTF8Text)
         {
             WriteToResponseStream(UTF8Text.ToUTF8Bytes());
+        }
+
+        #endregion
+
+        #region WriteLineToResponseStream(UTF8Text)
+
+        /// <summary>
+        /// Writes some UTF-8 text to the underlying stream.
+        /// </summary>
+        /// <param name="UTF8Text">Some UTF-8 text.</param>
+        public void WriteLineToResponseStream(String UTF8Text)
+        {
+            WriteToResponseStream((UTF8Text + "\r\n").ToUTF8Bytes());
         }
 
         #endregion

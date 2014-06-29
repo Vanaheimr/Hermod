@@ -60,13 +60,12 @@ namespace eu.Vanaheimr.Hermod.HTTP
     /// methods of HTTPServiceType.
     /// </summary>
     /// <typeparam name="HTTPServiceInterface">the instance</typeparam>
-    public class HTTPConnection<HTTPServiceInterface> : ATCPConnection, IHTTPConnection
-        where HTTPServiceInterface : class, IHTTPService
+    public class HTTPConnection : TCPConnection
     {
 
         #region Data
 
-        private HTTPServiceInterface _HTTPServiceInterface;
+        //private HTTPServiceInterface _HTTPServiceInterface;
 
         #endregion
 
@@ -74,29 +73,29 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region NewHTTPServiceHandler
 
-        private eu.Vanaheimr.Hermod.HTTP.HTTPServer<HTTPServiceInterface>.NewHTTPServiceHandler _NewHTTPServiceHandler;
+        //private eu.Vanaheimr.Hermod.HTTP.HTTPServer<HTTPServiceInterface>.NewHTTPServiceHandler _NewHTTPServiceHandler;
 
-        public eu.Vanaheimr.Hermod.HTTP.HTTPServer<HTTPServiceInterface>.NewHTTPServiceHandler NewHTTPServiceHandler
-        {
+        //public eu.Vanaheimr.Hermod.HTTP.HTTPServer<HTTPServiceInterface>.NewHTTPServiceHandler NewHTTPServiceHandler
+        //{
 
-            get
-            {
-                return _NewHTTPServiceHandler;
-            }
+        //    get
+        //    {
+        //        return _NewHTTPServiceHandler;
+        //    }
 
-            set
-            {
-                _NewHTTPServiceHandler = value;
-            }
+        //    set
+        //    {
+        //        _NewHTTPServiceHandler = value;
+        //    }
 
-        }
+        //}
 
         #endregion
 
-        /// <summary>
-        /// The autodiscovered implementations of the HTTPServiceInterface.
-        /// </summary>
-        public IDictionary<HTTPContentType, HTTPServiceInterface> Implementations { get; set; }
+        ///// <summary>
+        ///// The autodiscovered implementations of the HTTPServiceInterface.
+        ///// </summary>
+        //public IDictionary<HTTPContentType, HTTPServiceInterface> Implementations { get; set; }
 
         public HTTPRequest    RequestHeader   { get; protected set; }
 
@@ -104,7 +103,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         public HTTPResponse   ResponseHeader  { get; protected set; }
 
-        public NetworkStream  ResponseStream  { get; protected set; }
+        //public NetworkStream  ResponseStream  { get; protected set; }
 
         public String         ServerName      { get; set; }
 
@@ -114,29 +113,28 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         public Exception      LastException   { get; set; }
 
-        public IHTTPServer    HTTPServer      { get; set; }
+        public HTTPServer     HTTPServer      { get; set; }
 
         #endregion
 
         #region Constructor(s)
 
-        #region HTTPConnection()
+        #region HTTPConnection(HTTPServer, ...)
 
-        public HTTPConnection()
-        { }
+        public HTTPConnection(ITCPServer  HTTPServer,
+                              DateTime    ServerTimestamp,
+                              IPSocket    LocalSocket,
+                              IPSocket    RemoteSocket,
+                              TcpClient   TCPClient)
 
-        #endregion
+            : base(HTTPServer, ServerTimestamp, LocalSocket, RemoteSocket, TCPClient)
 
-        #region HTTPConnection(TCPClientConnection)
-
-        /// <summary>
-        /// Create a new HTTPConnection class using the given TcpClient class
-        /// </summary>
-        public HTTPConnection(TcpClient TCPClientConnection)
-            : base(TCPClientConnection)
         {
+
             ResponseHeader = null;
-            ResponseStream = TCPClientConnection.GetStream();
+
+            ProcessHTTP_new();
+
         }
 
         #endregion
@@ -516,12 +514,12 @@ namespace eu.Vanaheimr.Hermod.HTTP
             using (var _HTTPStream = Stream)
             {
 
-                var     _MemoryStream       = new MemoryStream();
-                var     _Buffer             = new Byte[65535];
-                Byte[]  _ByteArray          = null;
-                Boolean _EndOfHTTPHeader    = false;
-                long    _Length             = 0;
-                long    _ReadPosition       = 6;
+                var _MemoryStream = new MemoryStream();
+                var _Buffer = new Byte[65535];
+                Byte[] _ByteArray = null;
+                Boolean _EndOfHTTPHeader = false;
+                long _Length = 0;
+                long _ReadPosition = 6;
 
                 try
                 {
@@ -548,7 +546,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                         if (_Length > 4)
                         {
 
-                            _ByteArray    = _MemoryStream.ToArray();
+                            _ByteArray = _MemoryStream.ToArray();
                             _ReadPosition = _ReadPosition - 3;
 
                             while (_ReadPosition < _Length)
@@ -557,7 +555,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                                 if (_ByteArray[_ReadPosition - 3] == 0x0d &&
                                     _ByteArray[_ReadPosition - 2] == 0x0a &&
                                     _ByteArray[_ReadPosition - 1] == 0x0d &&
-                                    _ByteArray[_ReadPosition    ] == 0x0a)
+                                    _ByteArray[_ReadPosition] == 0x0a)
                                 {
                                     _EndOfHTTPHeader = true;
                                     break;
@@ -626,11 +624,11 @@ namespace eu.Vanaheimr.Hermod.HTTP
                     if (RequestHeader.ContentLength.HasValue)
                     {
 
-                        if (_ByteArray.Length < _ReadPosition + 1 + (Int64) RequestHeader.ContentLength.Value)
+                        if (_ByteArray.Length < _ReadPosition + 1 + (Int64)RequestHeader.ContentLength.Value)
                             throw new Exception("Client sent less data than expected within the content length header field!");
 
                         RequestBody = new Byte[RequestHeader.ContentLength.Value];
-                        Array.Copy(_ByteArray, _ReadPosition + 1, RequestBody, 0, (Int64) RequestHeader.ContentLength.Value);
+                        Array.Copy(_ByteArray, _ReadPosition + 1, RequestBody, 0, (Int64)RequestHeader.ContentLength.Value);
 
                     }
                     else
@@ -648,51 +646,51 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                     #region Get best-matching HTTP service implementation (based on the request content-type or accept-types)
 
-                    RequestHeader.BestMatchingAcceptType = RequestHeader.Accept.BestMatchingContentType(Implementations.Keys.ToArray());
+                    //RequestHeader.BestMatchingAcceptType = RequestHeader.Accept.BestMatchingContentType(Implementations.Keys.ToArray());
 
-                    HTTPServiceInterface BestMatchingHTTPServiceImplementation;
+                    //HTTPServiceInterface BestMatchingHTTPServiceImplementation;
 
-                    if (RequestHeader.ContentType == HTTPContentType.XWWWFormUrlEncoded && RequestHeader.BestMatchingAcceptType == HTTPContentType.EVENTSTREAM)
-                        BestMatchingHTTPServiceImplementation = Implementations[HTTPContentType.EVENTSTREAM];
+                    //if (RequestHeader.ContentType == HTTPContentType.XWWWFormUrlEncoded && RequestHeader.BestMatchingAcceptType == HTTPContentType.EVENTSTREAM)
+                    //    BestMatchingHTTPServiceImplementation = Implementations[HTTPContentType.EVENTSTREAM];
 
-                    else
-                    {
+                    //else
+                    //{
 
-                        if (RequestHeader.ContentType != null)
-                            BestMatchingHTTPServiceImplementation = Implementations[RequestHeader.ContentType];
+                    //    if (RequestHeader.ContentType != null)
+                    //        BestMatchingHTTPServiceImplementation = Implementations[RequestHeader.ContentType];
 
-                        else
-                            BestMatchingHTTPServiceImplementation = Implementations[RequestHeader.BestMatchingAcceptType];
+                    //    else
+                    //        BestMatchingHTTPServiceImplementation = Implementations[RequestHeader.BestMatchingAcceptType];
 
-                    }
+                    //}
 
                     #endregion
 
                     #region Get constructor for best-matching HTTP service implementation
 
-                    var BestMatchingHTTPServiceConstructor = BestMatchingHTTPServiceImplementation.
-                                                             GetType().
-                                                             GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
-                                                                            null,
-                                                                            new Type[] {
-                                                                                typeof(IHTTPConnection)
-                                                                            },
-                                                                            null);
+                    //var BestMatchingHTTPServiceConstructor = BestMatchingHTTPServiceImplementation.
+                    //                                         GetType().
+                    //                                         GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+                    //                                                        null,
+                    //                                                        new Type[] {
+                    //                                                            typeof(IHTTPConnection)
+                    //                                                        },
+                    //                                                        null);
 
-                    if (BestMatchingHTTPServiceConstructor == null)
-                        throw new ArgumentException("A appropriate constructor for type '" + typeof(HTTPServiceInterface).Name + "' could not be found!");
+                    //if (BestMatchingHTTPServiceConstructor == null)
+                    //    throw new ArgumentException("A appropriate constructor for type '" + typeof(HTTPServiceInterface).Name + "' could not be found!");
 
                     #endregion
 
                     #region Invoke best-matching HTTP service implementation constructor
 
-                    _HTTPServiceInterface = BestMatchingHTTPServiceConstructor.Invoke(new Object[] { this }) as HTTPServiceInterface;
+                    //_HTTPServiceInterface = BestMatchingHTTPServiceConstructor.Invoke(new Object[] { this }) as HTTPServiceInterface;
 
-                    if (_HTTPServiceInterface == null)
-                        throw new ArgumentException("A http connection of type '" + typeof(HTTPServiceInterface).Name + "' could not be created!");
+                    //if (_HTTPServiceInterface == null)
+                    //    throw new ArgumentException("A http connection of type '" + typeof(HTTPServiceInterface).Name + "' could not be created!");
 
-                    if (NewHTTPServiceHandler != null)
-                        NewHTTPServiceHandler(_HTTPServiceInterface);
+                    //if (NewHTTPServiceHandler != null)
+                    //    NewHTTPServiceHandler(_HTTPServiceInterface);
 
                     #endregion
 
@@ -715,7 +713,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                     #region Check authentication
 
-                    var _AuthenticationAttributes      = _ParsedCallbackWithParameters.Item1.GetCustomAttributes(typeof(AuthenticationAttribute),      false);
+                    var _AuthenticationAttributes = _ParsedCallbackWithParameters.Item1.GetCustomAttributes(typeof(AuthenticationAttribute), false);
                     var _ForceAuthenticationAttributes = _ParsedCallbackWithParameters.Item1.GetCustomAttributes(typeof(ForceAuthenticationAttribute), false);
 
                     //if (_AuthenticationAttributes.Any())
@@ -770,7 +768,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                     #region Invoke callback within the upper-layer protocol
 
-                    ResponseHeader = _ParsedCallbackWithParameters.Item1.Invoke(_HTTPServiceInterface, _ParsedCallbackWithParameters.Item2.ToArray()) as HTTPResponse;
+                    //ResponseHeader = _ParsedCallbackWithParameters.Item1.Invoke(_HTTPServiceInterface, _ParsedCallbackWithParameters.Item2.ToArray()) as HTTPResponse;
 
                     if (ResponseHeader == null)
                     {
@@ -863,122 +861,122 @@ namespace eu.Vanaheimr.Hermod.HTTP
         public void SendErrorpage(HTTPStatusCode HTTPStatusCode, String Error = null, Exception LastException = null)
         {
 
-            #region Initial checks
+            //#region Initial checks
 
-            if (Error != null && this.ErrorReason == null)
-                this.ErrorReason = Error;
+            //if (Error != null && this.ErrorReason == null)
+            //    this.ErrorReason = Error;
 
-            if (LastException != null && this.LastException == null)
-                this.LastException = LastException;
+            //if (LastException != null && this.LastException == null)
+            //    this.LastException = LastException;
 
-            #endregion
+            //#endregion
 
-            HTTPServer.LogError(DateTime.Now, RequestHeader, ResponseHeader, Error, LastException);
+            //HTTPServer.LogError(DateTime.Now, RequestHeader, ResponseHeader, Error, LastException);
 
-            #region Send a customized errorpage...
+            //#region Send a customized errorpage...
 
-            var __ErrorHandler = HTTPServer.GetErrorHandler("*",
-                                                            RequestHeader.UrlPath,
-                                                            RequestHeader.HTTPMethod,
-                                                            null,
-                                                            HTTPStatusCode);
+            //var __ErrorHandler = HTTPServer.GetErrorHandler("*",
+            //                                                RequestHeader.UrlPath,
+            //                                                RequestHeader.HTTPMethod,
+            //                                                null,
+            //                                                HTTPStatusCode);
 
-            if (__ErrorHandler != null && __ErrorHandler.Item1 != null)
-            {
+            //if (__ErrorHandler != null && __ErrorHandler.Item1 != null)
+            //{
 
-                var _ParamArray    = __ErrorHandler.Item2.ToArray();
-                var _Parameters    = new Object[_ParamArray.Count() + 2];
-                    _Parameters[0] = Error;
-                    _Parameters[1] = LastException;
-                Array.Copy(_ParamArray, 0, _Parameters, 2, _ParamArray.Count());
+            //    var _ParamArray    = __ErrorHandler.Item2.ToArray();
+            //    var _Parameters    = new Object[_ParamArray.Count() + 2];
+            //        _Parameters[0] = Error;
+            //        _Parameters[1] = LastException;
+            //    Array.Copy(_ParamArray, 0, _Parameters, 2, _ParamArray.Count());
 
-                var _Response            = __ErrorHandler.Item1.Invoke(_HTTPServiceInterface, _Parameters);
-                var _HTTPResponseBuilder = _Response as HTTPResponse;
+            //    var _Response            = __ErrorHandler.Item1.Invoke(_HTTPServiceInterface, _Parameters);
+            //    var _HTTPResponseBuilder = _Response as HTTPResponse;
 
-                if (_Response == null || _HTTPResponseBuilder == null)
-                {
-                    SendErrorpage(HTTPStatusCode.InternalServerError, "Could not invoke errorpage for URL: " + RequestHeader.UrlPath);
-                    return;
-                }
+            //    if (_Response == null || _HTTPResponseBuilder == null)
+            //    {
+            //        SendErrorpage(HTTPStatusCode.InternalServerError, "Could not invoke errorpage for URL: " + RequestHeader.UrlPath);
+            //        return;
+            //    }
 
-                WriteToResponseStream(_HTTPResponseBuilder);
+            //    WriteToResponseStream(_HTTPResponseBuilder);
 
-            }
+            //}
 
-            #endregion
+            //#endregion
 
-            #region ...or send a general HTML errorpage
+            //#region ...or send a general HTML errorpage
 
-            else
-            {
+            //else
+            //{
 
-                #region Generate HTML errorpage
+            //    #region Generate HTML errorpage
 
-                var _StringBuilder = new StringBuilder();
+            //    var _StringBuilder = new StringBuilder();
 
-                _StringBuilder.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>");
-                _StringBuilder.AppendLine("<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">");
-                _StringBuilder.AppendLine("<html xmlns=\"http://www.w3.org/1999/xhtml\">");
-                _StringBuilder.AppendLine("  <head>");
-                _StringBuilder.Append    ("    <title>Error ").Append(HTTPStatusCode).AppendLine("</title>");
-                _StringBuilder.AppendLine("  </head>");
-                _StringBuilder.AppendLine("  <body>");
+            //    _StringBuilder.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>");
+            //    _StringBuilder.AppendLine("<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">");
+            //    _StringBuilder.AppendLine("<html xmlns=\"http://www.w3.org/1999/xhtml\">");
+            //    _StringBuilder.AppendLine("  <head>");
+            //    _StringBuilder.Append    ("    <title>Error ").Append(HTTPStatusCode).AppendLine("</title>");
+            //    _StringBuilder.AppendLine("  </head>");
+            //    _StringBuilder.AppendLine("  <body>");
 
-                _StringBuilder.Append    ("    <h1>Error ").Append(HTTPStatusCode).AppendLine("</h1>");
-                _StringBuilder.AppendLine("    <p>");
-                _StringBuilder.AppendLine("      The client reqest from '" + RemoteSocket + "' led to an error!<br /><br />");
-                _StringBuilder.AppendLine("    </p>");
+            //    _StringBuilder.Append    ("    <h1>Error ").Append(HTTPStatusCode).AppendLine("</h1>");
+            //    _StringBuilder.AppendLine("    <p>");
+            //    _StringBuilder.AppendLine("      The client reqest from '" + RemoteSocket + "' led to an error!<br /><br />");
+            //    _StringBuilder.AppendLine("    </p>");
 
-                _StringBuilder.AppendLine("    <h3>Raw request header:</h3>");
-                _StringBuilder.AppendLine("    <pre>");
-                _StringBuilder.AppendLine(RequestHeader.RawHTTPHeader);
-                _StringBuilder.AppendLine("    </pre>");
+            //    _StringBuilder.AppendLine("    <h3>Raw request header:</h3>");
+            //    _StringBuilder.AppendLine("    <pre>");
+            //    _StringBuilder.AppendLine(RequestHeader.RawHTTPHeader);
+            //    _StringBuilder.AppendLine("    </pre>");
 
-                if (LastException != null)
-                {
+            //    if (LastException != null)
+            //    {
 
-                    _StringBuilder.AppendLine("    <h3>Exception:</h3>");
-                    _StringBuilder.AppendLine("    <pre>");
-                    _StringBuilder.AppendLine("Type:       " + LastException.GetType().FullName);
-                    _StringBuilder.AppendLine("Source:     " + LastException.Source);
-                    _StringBuilder.AppendLine("Message:    " + LastException.Message);
+            //        _StringBuilder.AppendLine("    <h3>Exception:</h3>");
+            //        _StringBuilder.AppendLine("    <pre>");
+            //        _StringBuilder.AppendLine("Type:       " + LastException.GetType().FullName);
+            //        _StringBuilder.AppendLine("Source:     " + LastException.Source);
+            //        _StringBuilder.AppendLine("Message:    " + LastException.Message);
 
-                    if (LastException.StackTrace != null)
-                        _StringBuilder.AppendLine("StackTrace: " + LastException.StackTrace.ToString());
+            //        if (LastException.StackTrace != null)
+            //            _StringBuilder.AppendLine("StackTrace: " + LastException.StackTrace.ToString());
 
-                    _StringBuilder.AppendLine("    </pre>");
+            //        _StringBuilder.AppendLine("    </pre>");
 
-                }
+            //    }
 
-                if (Error != null)
-                {
-                    _StringBuilder.AppendLine("    <h3>Reason:</h3>");
-                    _StringBuilder.AppendLine("    <pre>");
-                    _StringBuilder.AppendLine(Error);
-                    _StringBuilder.AppendLine("    </pre>");
-                }
+            //    if (Error != null)
+            //    {
+            //        _StringBuilder.AppendLine("    <h3>Reason:</h3>");
+            //        _StringBuilder.AppendLine("    <pre>");
+            //        _StringBuilder.AppendLine(Error);
+            //        _StringBuilder.AppendLine("    </pre>");
+            //    }
 
-                _StringBuilder.AppendLine("  </body>");
-                _StringBuilder.AppendLine("</html>");
-                _StringBuilder.AppendLine();
+            //    _StringBuilder.AppendLine("  </body>");
+            //    _StringBuilder.AppendLine("</html>");
+            //    _StringBuilder.AppendLine();
 
-                var _HTMLErrorpage = _StringBuilder.ToString().ToUTF8Bytes();
+            //    var _HTMLErrorpage = _StringBuilder.ToString().ToUTF8Bytes();
 
-                #endregion
+            //    #endregion
 
-                WriteToResponseStream(
-                    new HTTPResponseBuilder()
-                    {
-                        HTTPStatusCode = HTTPStatusCode,
-                        Server         = ServerName,
-                        ContentType    = HTTPContentType.HTML_UTF8,
-                        Content        = _HTMLErrorpage
-                    }
-                );
+            //    WriteToResponseStream(
+            //        new HTTPResponseBuilder()
+            //        {
+            //            HTTPStatusCode = HTTPStatusCode,
+            //            Server         = ServerName,
+            //            ContentType    = HTTPContentType.HTML_UTF8,
+            //            Content        = _HTMLErrorpage
+            //        }
+            //    );
 
-            }
+            //}
 
-            #endregion
+            //#endregion
 
         }
 
@@ -989,11 +987,11 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         public override void Dispose()
         {
-            
-            var _IDisposable = _HTTPServiceInterface as IDisposable;
-            
-            if (_IDisposable != null)
-                _IDisposable.Dispose();
+
+//            var _IDisposable = _HTTPServiceInterface as IDisposable;
+
+  //          if (_IDisposable != null)
+  //              _IDisposable.Dispose();
 
         }
 

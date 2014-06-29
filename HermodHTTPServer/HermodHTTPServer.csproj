@@ -52,35 +52,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AHTTPServer.cs" />
-    <Compile Include="AHTTPService.cs" />
-    <Compile Include="Attributes\AuthenticationAttributes.cs" />
-    <Compile Include="Attributes\HTTPResourcesMappingAttribute.cs" />
-    <Compile Include="Attributes\HTTPErrorAttribute.cs" />
-    <Compile Include="Attributes\HTTPEventMappingAttribute.cs" />
-    <Compile Include="Attributes\HTTPMappingAttribute.cs" />
-    <Compile Include="Attributes\HTTPServiceAttribute.cs" />
-    <Compile Include="AHTTPBaseService.cs" />
-    <Compile Include="DefaultHTTPService.cs" />
-    <Compile Include="HTTPConnection.cs" />
-    <Compile Include="HTTPResult.cs" />
-    <Compile Include="HTTPServer.cs" />
-    <Compile Include="IHTTPServer.cs" />
-    <Compile Include="Interfaces\IHTTPBaseService.cs" />
-    <Compile Include="Interfaces\IHTTPConnection.cs" />
-    <Compile Include="Interfaces\IHTTPService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Security\HTTPSecurity.cs" />
-    <Compile Include="Helpers\HTTPErrors.cs" />
-    <Compile Include="Helpers\HTTPTools.cs" />
-    <Compile Include="HTTPSemantics.cs" />
-    <Compile Include="URLMapping\ContentTypeNode.cs" />
-    <Compile Include="URLMapping\HostnameNode.cs" />
-    <Compile Include="URLMapping\HTTPEvent.cs" />
-    <Compile Include="URLMapping\HTTPEventSource.cs" />
-    <Compile Include="URLMapping\HTTPMethodNode.cs" />
-    <Compile Include="URLMapping\URIMapping.cs" />
-    <Compile Include="URLMapping\URINode.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Illias\Commons.NET4.5\Commons.NET4.5.csproj">
@@ -98,10 +70,6 @@
     <ProjectReference Include="..\..\Styx\Styx\Styx.csproj">
       <Project>{3949790d-8591-4101-9e4d-ce7a758e7409}</Project>
       <Name>Styx</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\HermodHTTP\HermodHTTP.csproj">
-      <Project>{9a00bd39-1385-4db4-8f38-363bb947ccb4}</Project>
-      <Name>HermodHTTP</Name>
     </ProjectReference>
     <ProjectReference Include="..\Hermod\Hermod.csproj">
       <Project>{477efd16-3627-4473-957d-44ca9a9dfb79}</Project>

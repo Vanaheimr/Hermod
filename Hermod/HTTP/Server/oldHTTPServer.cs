@@ -21,7 +21,6 @@ using System;
 using System.Net;
 
 using eu.Vanaheimr.Hermod.Sockets.TCP;
-using eu.Vanaheimr.Hermod.Datastructures;
 using System.Collections.Generic;
 
 #endregion

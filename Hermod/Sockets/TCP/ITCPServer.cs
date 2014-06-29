@@ -30,8 +30,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
     /// <summary>
     /// A TCP server interface.
     /// </summary>
-    public interface ITCPServer<TData> : IArrowSender<TCPConnection<TData>>,
-                                         IServer
+    public interface ITCPServer : IServer
     {
 
         /// <summary>
@@ -77,16 +76,15 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
 
 
-
         /// <summary>
         /// The current number of connected clients.
         /// </summary>
-        UInt64      NumberOfClients             { get; }
+        UInt64 NumberOfClients { get; }
 
         /// <summary>
         /// The maximum number of pending client connections.
         /// </summary>
-        UInt32      MaxClientConnections        { get; }
+        UInt32 MaxClientConnections { get; }
 
     }
 

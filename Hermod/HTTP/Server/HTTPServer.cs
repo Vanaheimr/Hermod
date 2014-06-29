@@ -25,6 +25,8 @@ using System.Collections.Generic;
 using eu.Vanaheimr.Illias.Commons;
 using eu.Vanaheimr.Hermod.Sockets.TCP;
 using eu.Vanaheimr.Styx.Arrows;
+using System.Threading;
+using eu.Vanaheimr.Hermod.Services.TCP;
 
 #endregion
 
@@ -35,196 +37,31 @@ namespace eu.Vanaheimr.Hermod.HTTP
     /// An abstract generic HTTP server.
     /// </summary>
     /// <typeparam name="HTTPServiceInterface">An interface inheriting from IHTTPService and defining URLMappings.</typeparam>
-    public class HTTPServer<TCPConnectionType> : IArrowSender<TCPConnectionType>,
-                                                 IHTTPServer<TCPConnectionType>
-
-        where TCPConnectionType : class, IHTTPConnection, new()
-
+    public class HTTPServer : IArrowReceiver<TCPConnection>,
+                              IBoomerangSender<Object, DateTime, String, HTTPRequest, TCPResult<HTTPResponse>>,
+                              IHTTPServer
     {
 
         #region Data
 
-        private readonly TCPServer   _TCPServer;
-        private readonly URIMapping  _URIMapping;
+        private const     String      _DefaultServerName  = "Hermod HTTP Server v0.9";
+        private readonly  URIMapping  _URIMapping;
 
         #endregion
 
         #region Properties
 
-        #region IPAdress
+        #region (internal) TCPServer
 
-        /// <summary>
-        /// Gets the IPAddress on which the HTTPServer listens.
-        /// </summary>
-        public IIPAddress IPAddress
-        {
-            get
-            {
+        //private readonly TCPServer<Byte> _TCPServer;
 
-                if (_TCPServer != null)
-                    return _TCPServer.IPAddress;
-
-                return null;
-
-            }
-        }
-
-        #endregion
-
-        #region Port
-
-        /// <summary>
-        /// Gets the port on which the HTTPServer listens.
-        /// </summary>
-        public IPPort Port
-        {
-            get
-            {
-
-                if (_TCPServer != null)
-                    return _TCPServer.Port;
-
-                return null;
-
-            }
-        }
-
-        #endregion
-
-        #region IsRunning
-
-        /// <summary>
-        /// True while the HTTPServer is listening for new clients.
-        /// </summary>
-        public Boolean IsRunning
-        {
-            get
-            {
-
-                if (_TCPServer != null)
-                    return _TCPServer.IsRunning;
-
-                return false;
-
-            }
-        }
-
-        #endregion
-
-        #region StopRequested
-
-        /// <summary>
-        /// The HTTPServer was requested to stop and will no
-        /// longer accept new client connections.
-        /// </summary>
-        public Boolean StopRequested
-        {
-            get
-            {
-
-                if (_TCPServer != null)
-                    return _TCPServer.StopRequested;
-
-                return false;
-
-            }
-        }
-
-        #endregion
-
-        #region NumberOfClients
-
-        /// <summary>
-        /// The current number of connected clients.
-        /// </summary>
-        public UInt64 NumberOfClients
-        {
-            get
-            {
-
-                if (_TCPServer != null)
-                    return _TCPServer.NumberOfClients;
-
-                return 0;
-
-            }
-        }
-
-        #endregion
-
-        #region MaxClientConnections
-
-        /// <summary>
-        /// The maximum number of pending client connections.
-        /// </summary>
-        public UInt32 MaxClientConnections
-        {
-            get
-            {
-
-                if (_TCPServer != null)
-                    return _TCPServer.MaxClientConnections;
-
-                return 0;
-
-            }
-        }
-
-        #endregion
-
-        #region ClientTimeout
-
-        /// <summary>
-        /// Will set the ClientTimeout for all incoming client connections
-        /// </summary>
-        public Int32 ClientTimeout
-        {
-            get
-            {
-
-                if (_TCPServer != null)
-                    return _TCPServer.ClientTimeout;
-
-                return 0;
-
-            }
-        }
-
-        #endregion
-
-        #region DefaultServerName
-
-        private const String _DefaultServerName = "Hermod HTTP Server v0.1";
-
-        /// <summary>
-        /// The default server name.
-        /// </summary>
-        public virtual String DefaultServerName
-        {
-            get
-            {
-                return _DefaultServerName;
-            }
-        }
-
-        #endregion
-
-        #region ServiceBanner
-
-        public String ServiceBanner
-        {
-
-            get
-            {
-                return ServerName;
-            }
-
-            set
-            {
-                ServerName = value;
-            }
-
-        }
+        //internal TCPServer<Byte> TCPServer
+        //{
+        //    get
+        //    {
+        //        return _TCPServer;
+        //    }
+        //}
 
         #endregion
 
@@ -236,6 +73,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
         public String ServerName { get; set; }
 
         #endregion
+
 
         #region CallingAssemblies
 
@@ -315,6 +153,11 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region Events
 
+        public event NewConnectionHandler OnNewConnection;
+
+        public event ConnectionClosedHandler OnConnectionClosed;
+
+
         /// <summary>
         /// An event called whenever a request came in.
         /// </summary>
@@ -334,56 +177,21 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
+        #region HTTPServer(IIPAddress, Port, ...)
+
         /// <summary>
-        /// Creates a new abstract HTTP server.
+        /// Initialize the HTTP server using the given parameters.
         /// </summary>
-        public HTTPServer(IIPAddress IIPAddress, IPPort Port, Boolean Autostart = true)
+        public HTTPServer()
         {
 
-            this._URIMapping       = new URIMapping();
-       //     this._Implementations  = new Dictionary<HTTPContentType, HTTPServiceInterface>();
-            this._AllResources     = new Dictionary<String, Assembly>();
-
-          ServerName = _DefaultServerName;
-
-            //if (NewHTTPServiceHandler != null)
-            //    OnNewHTTPService += NewHTTPServiceHandler;
-
-            _TCPServer = new TCPServer(IIPAddress,
-                                       Port,
-                                       NewHTTPConnection => {
-
-                                           NewHTTPConnection.HTTPServer            = this;
-                                           NewHTTPConnection.ServerName            = ServerName;
-                                           NewHTTPConnection.HTTPSecurity          = HTTPSecurity;
-                                           NewHTTPConnection.NewHTTPServiceHandler = OnNewHTTPService;
-                                           //NewHTTPConnection.Implementations       = Implementations;
-
-                                           try
-                                           {
-                                               NewHTTPConnection.ProcessHTTP();
-                                           }
-                                           catch (Exception Exception)
-                                           {
-                                               var OnExceptionOccured_Local = _OnExceptionOccured;
-                                               if (OnExceptionOccured_Local != null)
-                                                   OnExceptionOccured_Local(this, Exception);
-                                           }
-
-                                       },
-                                       // Don't do it now, do it a bit later...
-                                       Autostart: false);
-                                       //ThreadDescription: "HTTPServer");
-
-            _TCPServer.OnStarted += (Sender, Timestamp) => {
-                if (OnStarted != null)
-                    OnStarted(this, Timestamp);
-                };
-
-            if (Autostart)
-                _TCPServer.Start();
+            this._URIMapping    = new URIMapping();
+            this._AllResources  = new Dictionary<String, Assembly>();
+            this.ServerName     = _DefaultServerName;
 
         }
+
+        #endregion
 
         #endregion
 
@@ -652,35 +460,35 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
 
 
-        #region LogRequest(RequestTime, Request)
+        #region LogRequest(ServerTimestamp, Request)
 
         /// <summary>
         /// Log an incoming request.
         /// </summary>
-        /// <param name="RequestTime">The timestamp of the incoming request.</param>
+        /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
         /// <param name="Request">The incoming request.</param>
-        public void LogRequest(DateTime     RequestTime,
+        public void LogRequest(DateTime     ServerTimestamp,
                                HTTPRequest  Request)
         {
 
             var RequestLogLocal = RequestLog;
 
             if (RequestLogLocal != null)
-                RequestLogLocal(RequestTime, Request);
+                RequestLogLocal(this, ServerTimestamp, Request);
 
         }
 
         #endregion
 
-        #region LogAccess(RequestTime, Request, Response)
+        #region LogAccess(ServerTimestamp, Request, Response)
 
         /// <summary>
         /// Log an successful request processing.
         /// </summary>
-        /// <param name="RequestTime">The timestamp of the incoming request.</param>
+        /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
         /// <param name="Request">The incoming request.</param>
         /// <param name="Response">The outgoing response.</param>
-        public void LogAccess(DateTime      RequestTime,
+        public void LogAccess(DateTime      ServerTimestamp,
                               HTTPRequest   Request,
                               HTTPResponse  Response)
         {
@@ -688,23 +496,23 @@ namespace eu.Vanaheimr.Hermod.HTTP
             var AccessLogLocal = AccessLog;
 
             if (AccessLogLocal != null)
-                AccessLogLocal(RequestTime, Request, Response);
+                AccessLogLocal(this, ServerTimestamp, Request, Response);
 
         }
 
         #endregion
 
-        #region LogError(RequestTime, Request, Response, Error = null, LastException = null)
+        #region LogError(ServerTimestamp, Request, Response, Error = null, LastException = null)
 
         /// <summary>
         /// Log an error during request processing.
         /// </summary>
-        /// <param name="RequestTime">The timestamp of the incoming request.</param>
+        /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
         /// <param name="Request">The incoming request.</param>
         /// <param name="HTTPResponse">The outgoing response.</param>
         /// <param name="Error">The occured error.</param>
         /// <param name="LastException">The last occured exception.</param>
-        public void LogError(DateTime      RequestTime,
+        public void LogError(DateTime      ServerTimestamp,
                              HTTPRequest   Request,
                              HTTPResponse  Response,
                              String        Error          = null,
@@ -714,7 +522,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
             var ErrorLogLocal = ErrorLog;
 
             if (ErrorLogLocal != null)
-                ErrorLogLocal(RequestTime, Request, Response, Error, LastException);
+                ErrorLogLocal(this, ServerTimestamp, Request, Response, Error, LastException);
 
         }
 
@@ -723,50 +531,38 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
 
 
-
-        #region Start()
-
-        /// <summary>
-        /// Start the server.
-        /// </summary>
-        public void Start()
+        public String DefaultServerName
         {
-            _TCPServer.Start();
+            get { throw new NotImplementedException(); }
         }
 
-        #endregion
-
-        #region Start(Delay, InBackground = true)
-
-        /// <summary>
-        /// Start the server after a little delay.
-        /// </summary>
-        /// <param name="Delay">The delay.</param>
-        /// <param name="InBackground">Whether to wait on the main thread or in a background thread.</param>
-        public void Start(TimeSpan Delay, Boolean InBackground = true)
-        {
-            _TCPServer.Start(Delay, InBackground);
-        }
-
-        #endregion
-
-        #region Shutdown(Wait = true)
-
-        /// <summary>
-        /// Shutdown the server.
-        /// </summary>
-        public void Shutdown(Boolean Wait = true)
-        {
-            _TCPServer.Shutdown();
-        }
-
-        #endregion
 
 
-        public void Dispose()
+        public void ProcessArrow(TCPConnection Message)
         {
             throw new NotImplementedException();
         }
+
+        public void ProcessExceptionOccured(Object Sender, DateTime Timestamp, Exception ExceptionMessage)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void ProcessCompleted(Object Sender, DateTime Timestamp, String Message = null)
+        {
+            throw new NotImplementedException();
+        }
+
+
+
+        public event BoomerangSenderHandler<Object, DateTime, String, HTTPRequest, TCPResult<HTTPResponse>> OnNotification;
+
+        public event StartedEventHandler OnStarted;
+
+        public event CompletedEventHandler OnCompleted;
+
+        public event ExceptionOccuredEventHandler OnExceptionOccured;
+
 
     }
 

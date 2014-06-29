@@ -33,27 +33,30 @@ namespace eu.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// The delegate for the HTTP request log.
     /// </summary>
-    /// <param name="RequestTime">The timestamp of the incoming request.</param>
+    /// <param name="HTTPServer">The sending HTTP server.</param>
+    /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
     /// <param name="Request">The incoming request.</param>
-    public delegate void RequestLogDelegate(DateTime RequestTime, HTTPRequest Request);
+    public delegate void RequestLogDelegate(IHTTPServer HTTPServer, DateTime ServerTimestamp, HTTPRequest Request);
 
     /// <summary>
     /// The delegate for the HTTP access log.
     /// </summary>
-    /// <param name="RequestTime">The timestamp of the incoming request.</param>
+    /// <param name="HTTPServer">The sending HTTP server.</param>
+    /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
     /// <param name="Request">The incoming request.</param>
     /// <param name="Response">The outgoing response.</param>
-    public delegate void AccessLogDelegate (DateTime RequestTime, HTTPRequest Request, HTTPResponse Response);
+    public delegate void AccessLogDelegate (IHTTPServer HTTPServer, DateTime ServerTimestamp, HTTPRequest Request, HTTPResponse Response);
 
     /// <summary>
     /// The delegate for the HTTP error log.
     /// </summary>
-    /// <param name="RequestTime">The timestamp of the incoming request.</param>
+    /// <param name="HTTPServer">The sending HTTP server.</param>
+    /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
     /// <param name="Request">The incoming request.</param>
     /// <param name="HTTPResponse">The outgoing response.</param>
     /// <param name="Error">The occured error.</param>
     /// <param name="LastException">The last occured exception.</param>
-    public delegate void ErrorLogDelegate  (DateTime RequestTime, HTTPRequest Request, HTTPResponse Response, String Error = null, Exception LastException = null);
+    public delegate void ErrorLogDelegate  (IHTTPServer HTTPServer, DateTime ServerTimestamp, HTTPRequest Request, HTTPResponse Response, String Error = null, Exception LastException = null);
 
     #endregion
 
@@ -62,7 +65,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// The HTTP server interface.
     /// </summary>
-    public interface IHTTPServer<TOut> : ITCPServer<TOut>
+    public interface IHTTPServer //: ITCPServer<HTTPRequest, HTTPResponse>
     {
 
         #region Properties

@@ -15,41 +15,24 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using System.Collections.Generic;
-using System;
-using System.Reflection;
-
-#endregion
-
-namespace eu.Vanaheimr.Hermod.HTTP
+namespace eu.Vanaheimr.Hermod.Sockets.TCP
 {
 
     /// <summary>
-    /// The minimal HTTP service interface.
+    /// Wether the connection was closed by the client or the server.
     /// </summary>
-    public interface IHTTPService
+    public enum ConnectionClosedBy
     {
 
-        #region Properties
+        /// <summary>
+        /// The connection was closed by the client.
+        /// </summary>
+        Client,
 
         /// <summary>
-        /// The HTTP connection.
+        /// The connection was closed by the server.
         /// </summary>
-        IHTTPConnection                 IHTTPConnection     { get; }
-
-        /// <summary>
-        /// A list of supported HTTP content types.
-        /// </summary>
-        IEnumerable<HTTPContentType>    HTTPContentTypes    { get; }
-
-        /// <summary>
-        /// All embedded ressources.
-        /// </summary>
-        IDictionary<String, Assembly>   AllResources        { get; set; }
-
-        #endregion
+        Server
 
     }
 
