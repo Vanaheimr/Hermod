@@ -108,13 +108,15 @@
     <Compile Include="Datastructures\IPv4Address.cs" />
     <Compile Include="Datastructures\IPSocket.cs" />
     <Compile Include="Datastructures\IRemoteSocket.cs" />
+    <Compile Include="Services\CSV\TCPCSVServer.cs" />
     <Compile Include="Services\CSV\EOLSearch.cs" />
-    <Compile Include="Services\CSV\CSVProcessor.cs" />
+    <Compile Include="Services\CSV\TCPCSVCommandProcessor.cs" />
     <Compile Include="Sockets\TCP\ACustomTCPServer.cs" />
     <Compile Include="Services\CSV\SplitUDPPacketArrow.cs" />
     <Compile Include="Sockets\TCP\ConnectionClosedBy.cs" />
+    <Compile Include="Sockets\TCP\TCPClientResponse.cs" />
     <Compile Include="Sockets\TCP\Delegates.cs" />
-    <Compile Include="Services\CSV\TCPCSVServer.cs" />
+    <Compile Include="Services\CSV\TCPCSVProcessor.cs" />
     <Compile Include="Services\CSV\ProcessUDPPacketArrow.cs" />
     <Compile Include="Services\DNS\NoDNSPaketInformation.cs" />
     <Compile Include="Services\DNS\DNSCacheEntry.cs" />
@@ -142,7 +144,6 @@
     <Compile Include="Sockets\IServer.cs" />
     <Compile Include="Sockets\IICMPPacket.cs" />
     <Compile Include="Services\CSV\UDPCSVReceiver.cs" />
-    <Compile Include="Sockets\TCP\ITCPConnection.cs" />
     <Compile Include="Sockets\TCP\TCPResult.cs" />
     <Compile Include="Sockets\UDP\IUDPReceiver.cs" />
     <Compile Include="Sockets\UDP\MulticastReceiver.cs" />

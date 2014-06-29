@@ -39,7 +39,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
         #region Data
 
-        protected internal readonly TCPServer TCPServer;
+        protected readonly TCPServer _TCPServer;
 
         #endregion
 
@@ -196,7 +196,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
             var OnNewConnectionLocal = OnNewConnection;
             if (OnNewConnectionLocal != null)
-                OnNewConnectionLocal(this, ServerTimestamp, IPSocket, RemoteSocket, "...");
+                OnNewConnectionLocal(this, ServerTimestamp, RemoteSocket, "...");
 
         }
 
@@ -209,11 +209,11 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         {
             get
             {
-                return TCPServer.ServerThreadName;
+                return _TCPServer.ServerThreadName;
             }
             set
             {
-                TCPServer.ServerThreadName = value;
+                _TCPServer.ServerThreadName = value;
             }
         }
 
@@ -221,11 +221,11 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         {
             get
             {
-                return TCPServer.ServerThreadPriority;
+                return _TCPServer.ServerThreadPriority;
             }
             set
             {
-                TCPServer.ServerThreadPriority = value;
+                _TCPServer.ServerThreadPriority = value;
             }
         }
 
@@ -233,11 +233,11 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         {
             get
             {
-                return TCPServer.ServerThreadIsBackground;
+                return _TCPServer.ServerThreadIsBackground;
             }
             set
             {
-                TCPServer.ServerThreadIsBackground = value;
+                _TCPServer.ServerThreadIsBackground = value;
             }
         }
 
@@ -245,11 +245,11 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         {
             get
             {
-                return TCPServer.ConnectionIdBuilder;
+                return _TCPServer.ConnectionIdBuilder;
             }
             set
             {
-                TCPServer.ConnectionIdBuilder = value;
+                _TCPServer.ConnectionIdBuilder = value;
             }
         }
 
@@ -257,11 +257,11 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         {
             get
             {
-                return TCPServer.ConnectionThreadsNameCreator;
+                return _TCPServer.ConnectionThreadsNameCreator;
             }
             set
             {
-                TCPServer.ConnectionThreadsNameCreator = value;
+                _TCPServer.ConnectionThreadsNameCreator = value;
             }
         }
 
@@ -269,11 +269,11 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         {
             get
             {
-                return TCPServer.ConnectionThreadsPriority;
+                return _TCPServer.ConnectionThreadsPriority;
             }
             set
             {
-                TCPServer.ConnectionThreadsPriority = value;
+                _TCPServer.ConnectionThreadsPriority = value;
             }
         }
 
@@ -281,11 +281,11 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         {
             get
             {
-                return TCPServer.ConnectionThreadsAreBackground;
+                return _TCPServer.ConnectionThreadsAreBackground;
             }
             set
             {
-                TCPServer.ConnectionThreadsAreBackground = value;
+                _TCPServer.ConnectionThreadsAreBackground = value;
             }
         }
 
@@ -293,11 +293,11 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         {
             get
             {
-                return TCPServer.ConnectionTimeout;
+                return _TCPServer.ConnectionTimeout;
             }
             set
             {
-                TCPServer.ConnectionTimeout = value;
+                _TCPServer.ConnectionTimeout = value;
             }
         }
 
@@ -305,7 +305,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         {
             get
             {
-                return TCPServer.NumberOfClients;
+                return _TCPServer.NumberOfClients;
             }
         }
 
@@ -313,7 +313,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         {
             get
             {
-                return TCPServer.MaxClientConnections;
+                return _TCPServer.MaxClientConnections;
             }
         }
 
@@ -321,7 +321,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         {
             get
             {
-                return TCPServer.IsRunning;
+                return _TCPServer.IsRunning;
             }
         }
 
@@ -329,7 +329,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         {
             get
             {
-                return TCPServer.IPAddress;
+                return _TCPServer.IPAddress;
             }
         }
 
@@ -337,7 +337,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         {
             get
             {
-                return TCPServer.Port;
+                return _TCPServer.Port;
             }
         }
 
@@ -345,7 +345,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         {
             get
             {
-                return TCPServer.IPSocket;
+                return _TCPServer.IPSocket;
             }
         }
 
@@ -353,34 +353,34 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         {
             get
             {
-                return TCPServer.ServiceBanner;
+                return _TCPServer.ServiceBanner;
             }
             set
             {
-                TCPServer.ServiceBanner = value;
+                _TCPServer.ServiceBanner = value;
             }
         }
 
         public void Start()
         {
-            TCPServer.Start();
+            _TCPServer.Start();
         }
 
         public void Start(TimeSpan Delay, bool InBackground = true)
         {
-            TCPServer.Start(Delay, InBackground);
+            _TCPServer.Start(Delay, InBackground);
         }
 
         public void Shutdown(string Message = null, bool Wait = true)
         {
-            TCPServer.Shutdown(Message, Wait);
+            _TCPServer.Shutdown(Message, Wait);
         }
 
         public bool StopRequested
         {
             get
             {
-                return TCPServer.StopRequested;
+                return _TCPServer.StopRequested;
             }
         }
 
@@ -388,11 +388,11 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         {
             add
             {
-                TCPServer.OnStarted += value;
+                _TCPServer.OnStarted += value;
             }
             remove
             {
-                TCPServer.OnStarted -= value;
+                _TCPServer.OnStarted -= value;
             }
         }
 
@@ -400,11 +400,11 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         {
             add
             {
-                TCPServer.OnCompleted += value;
+                _TCPServer.OnCompleted += value;
             }
             remove
             {
-                TCPServer.OnCompleted -= value;
+                _TCPServer.OnCompleted -= value;
             }
         }
 
@@ -412,17 +412,17 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         {
             add
             {
-                TCPServer.OnExceptionOccured += value;
+                _TCPServer.OnExceptionOccured += value;
             }
             remove
             {
-                TCPServer.OnExceptionOccured -= value;
+                _TCPServer.OnExceptionOccured -= value;
             }
         }
 
         public void Dispose()
         {
-            TCPServer.Dispose();
+            _TCPServer.Dispose();
         }
 
     }

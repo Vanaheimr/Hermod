@@ -24,6 +24,7 @@ using System.Text;
 
 using eu.Vanaheimr.Styx.Arrows;
 using eu.Vanaheimr.Hermod.Sockets.TCP;
+using System.Threading;
 
 #endregion
 
@@ -31,17 +32,20 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 {
 
     /// <summary>
-    /// A TCP service accepting incoming CSV lines
-    /// with ending 0x00 or 0x0d 0x0a (\r\n) characters.
+    /// A TCP service accepting incoming UTF8 encoded
+    /// comma-separated values with 0x00, 0x0a (\n) or
+    /// 0x0d 0x0a (\r\n) end-of-line characters.
     /// </summary>
-    public class TCPCSVServer : IArrowReceiver<TCPConnection>,
+    public class TCPCSVServer : ACustomTCPServer,
                                 IBoomerangSender<Object, DateTime, String, String[], TCPResult<String>>
     {
 
         #region Data
 
-        private const String DefaultServiceBanner  = "Vanaheimr Hermod TCP/CSV Service v0.9";
-        private const UInt32 ReadTimeout           = 180000U;
+        private const    String                  DefaultServiceBanner = "Vanaheimr Hermod TCP/CSV Service v0.9";
+
+        private readonly TCPCSVProcessor         _TCPCSVProcessor;
+        private readonly TCPCSVCommandProcessor  _TCPCSVCommandProcessor;
 
         #endregion
 
@@ -58,7 +62,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
         private readonly Char[] _SplitCharacters;
 
         /// <summary>
-        /// The characters to split the incoming CSV lines.
+        /// The characters to split the incoming CSV text lines.
         /// </summary>
         public Char[] SplitCharacters
         {
@@ -74,293 +78,173 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 
         #region Events
 
-        public event StartedEventHandler                                                            OnStarted;
-
-        public event NewConnectionHandler                                                           OnNewConnection;
-
-        public event BoomerangSenderHandler<Object, DateTime, String, String[], TCPResult<String>>  OnNotification;
-
-        public event ConnectionClosedHandler                                                        OnConnectionClosed;
-
-        public event CompletedEventHandler                                                          OnCompleted;
-
-
-        public event ExceptionOccuredEventHandler                                                   OnExceptionOccured;
+        public event BoomerangSenderHandler<Object, DateTime, String, String[], TCPResult<String>> OnNotification;
 
         #endregion
 
         #region Constructor(s)
 
+        #region TCPCSVServer(Port, ...)
+
         /// <summary>
-        /// Create a new TCP service accepting incoming CSV lines.
+        /// Initialize the TCP server using IPAddress.Any and the given parameters.
         /// </summary>
-        /// <param name="SplitCharacters">The characters to split the incoming CSV lines.</param>
-        public TCPCSVServer(Char[]  SplitCharacters = null)
+        /// <param name="Port">The listening port</param>
+        /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
+        /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
+        /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
+        /// <param name="ConnectionIdBuilder"></param>
+        /// <param name="ConnectionThreadsNameCreator">An optional delegate to set the name of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsPriority">The optional priority of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
+        /// <param name="ConnectionTimeoutSeconds">The TCP client timeout for all incoming client connections in seconds.</param>
+        /// <param name="Autostart">Start the TCP server thread immediately.</param>
+        public TCPCSVServer(IPPort                       Port,
+                            Char[]                       SplitCharacters                 = null,
+                            String                       ServerThreadName                = null,
+                            ThreadPriority               ServerThreadPriority            = ThreadPriority.AboveNormal,
+                            Boolean                      ServerThreadIsBackground        = true,
+                            Func<IPSocket, String>       ConnectionIdBuilder             = null,
+                            Func<TCPConnection, String>  ConnectionThreadsNameCreator    = null,
+                            ThreadPriority               ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
+                            Boolean                      ConnectionThreadsAreBackground  = true,
+                            UInt64                       ConnectionTimeoutSeconds        = 30,
+                            Boolean                      Autostart                       = false)
+
+            : this(IPv4Address.Any,
+                   Port,
+                   SplitCharacters,
+                   ServerThreadName,
+                   ServerThreadPriority,
+                   ServerThreadIsBackground,
+                   ConnectionIdBuilder,
+                   ConnectionThreadsNameCreator,
+                   ConnectionThreadsPriority,
+                   ConnectionThreadsAreBackground,
+                   ConnectionTimeoutSeconds,
+                   Autostart)
+
+        { }
+
+        #endregion
+
+        #region TCPCSVServer(IIPAddress, Port, ...)
+
+        /// <summary>
+        /// Initialize the TCP server using the given parameters.
+        /// </summary>
+        /// <param name="IIPAddress">The listening IP address(es)</param>
+        /// <param name="Port">The listening port</param>
+        /// <param name="Mapper">A delegate to transform the incoming TCP connection data into custom data structures.</param>
+        /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
+        /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
+        /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
+        /// <param name="ConnectionIdBuilder"></param>
+        /// <param name="ConnectionThreadsNameCreator">An optional delegate to set the name of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsPriority">The optional priority of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
+        /// <param name="ConnectionTimeoutSeconds">The TCP client timeout for all incoming client connections in seconds.</param>
+        /// <param name="Autostart">Start the TCP server thread immediately.</param>
+        public TCPCSVServer(IIPAddress                   IIPAddress,
+                            IPPort                       Port,
+                            Char[]                       SplitCharacters                 = null,
+                            String                       ServerThreadName                = null,
+                            ThreadPriority               ServerThreadPriority            = ThreadPriority.AboveNormal,
+                            Boolean                      ServerThreadIsBackground        = true,
+                            Func<IPSocket, String>       ConnectionIdBuilder             = null,
+                            Func<TCPConnection, String>  ConnectionThreadsNameCreator    = null,
+                            ThreadPriority               ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
+                            Boolean                      ConnectionThreadsAreBackground  = true,
+                            UInt64                       ConnectionTimeoutSeconds        = 30,
+                            Boolean                      Autostart                       = false)
+
+            : base(IIPAddress,
+                   Port,
+                   ServerThreadName,
+                   ServerThreadPriority,
+                   ServerThreadIsBackground,
+                   ConnectionIdBuilder,
+                   ConnectionThreadsNameCreator,
+                   ConnectionThreadsPriority,
+                   ConnectionThreadsAreBackground,
+                   ConnectionTimeoutSeconds,
+                   false)
+
         {
 
-            this._SplitCharacters  = (SplitCharacters != null) ? SplitCharacters : new Char[1] { '/' };
-            this.ServiceBanner     = DefaultServiceBanner;
+            _TCPCSVProcessor        = new TCPCSVProcessor(SplitCharacters);
+            _TCPServer.SendTo(_TCPCSVProcessor);
+            _TCPCSVCommandProcessor = new TCPCSVCommandProcessor();
+            _TCPCSVProcessor.ConnectTo(_TCPCSVCommandProcessor);
+            _TCPCSVCommandProcessor.OnNotification += ProcessBoomerang;
+
+            if (Autostart)
+                Start();
 
         }
 
         #endregion
 
-
-
-        #region ProcessArrow(TCPConnection)
-
-        public void ProcessArrow(TCPConnection TCPConnection)
-        {
-
-            #region Start
-
-            TCPConnection.WriteLineToResponseStream(ServiceBanner);
-            TCPConnection.NoDelay = true;
-
-            var OnNewConnectionLocal = OnNewConnection;
-            if (OnNewConnectionLocal != null)
-                OnNewConnectionLocal(TCPConnection.TCPServer,
-                                     TCPConnection.ServerTimestamp,
-                                     TCPConnection.TCPServer.IPSocket,
-                                     TCPConnection.RemoteSocket,
-                                     "ConnectionId");
-
-            Byte Byte;
-            var Buffer        = new Byte[1024];
-            var MemoryStream  = new MemoryStream();
-            var EndOfCSVLine  = EOLSearch.NotYet;
-            var ClientClose   = false;
-            var ServerClose   = false;
-
-            #endregion
-
-            try
-            {
-
-                do
-                {
-
-                    switch (TCPConnection.TryRead(out Byte, MaxInitialWaitingTimeMS: ReadTimeout))
-                    {
-
-                        #region DataAvailable
-
-                        case TCPClientResponse.DataAvailable: 
-
-                            #region Check for CSV line ending...
-
-                            if (EndOfCSVLine == EOLSearch.NotYet)
-                            {
-
-                                // 0x00 or \n
-                                if (Byte == 0x00 || Byte == 0x0a)
-                                    EndOfCSVLine = EOLSearch.Found;
-
-                                // \r
-                                else if (Byte == 0x0d)
-                                    EndOfCSVLine = EOLSearch.R_Read;
-
-                            }
-
-                            // \n after a \r
-                            else if (EndOfCSVLine == EOLSearch.R_Read)
-                            {
-                                if (Byte == 0x0a)
-                                    EndOfCSVLine = EOLSearch.Found;
-                                else
-                                    EndOfCSVLine = EOLSearch.NotYet;
-                            }
-
-                            #endregion
-
-                            #region ...or append read value(s) to internal buffer
-
-                            if (EndOfCSVLine == EOLSearch.NotYet)
-                                MemoryStream.WriteByte(Byte);
-
-                            #endregion
-
-
-                            #region If end-of-line -> process data...
-
-                            else if (EndOfCSVLine == EOLSearch.Found)
-                            {
-
-                                if (MemoryStream.Length > 0 && OnNotification != null)
-                                {
-
-                                    #region Check UTF8 encoding
-
-                                    var CSVLine = String.Empty;
-
-                                    try
-                                    {
-                                        CSVLine = Encoding.UTF8.GetString(MemoryStream.ToArray());
-                                    }
-                                    catch (Exception)
-                                    {
-                                        TCPConnection.WriteLineToResponseStream("Protocol Error: Invalid UTF8 encoding!");
-                                    }
-
-                                    #endregion
-
-                                    #region Check CSV separation
-
-                                    String[] CSVArray = null;
-
-                                    try
-                                    {
-
-                                        CSVArray = CSVLine.Trim().
-                                                            Split(SplitCharacters,
-                                                                    StringSplitOptions.None).
-                                                            Select(v => v.Trim()).
-                                                            ToArray();
-
-                                    }
-                                    catch (Exception)
-                                    {
-                                        TCPConnection.WriteLineToResponseStream("Protocol Error: Invalid CSV data!");
-                                    }
-
-                                    #endregion
-
-                                    #region Call OnNotification delegate
-
-                                    TCPResult<String> Result = null;
-
-                                    var OnNotificationLocal = OnNotification;
-                                    if (OnNotificationLocal != null)
-                                    {
-
-                                        Result = OnNotification(TCPConnection.TCPServer,
-                                                                DateTime.Now,
-                                                                "ConnectionId", //ConnectionIdBuilder(RemoteSocket),
-                                                                CSVArray);
-
-                                        TCPConnection.WriteLineToResponseStream(Result.Value);
-
-                                        ClientClose = Result.ClientClose;
-
-                                    }
-
-                                    #endregion
-
-                                    //Message.WriteToResponseStream(0x00);
-
-                                }
-
-                                MemoryStream.SetLength(0);
-                                MemoryStream.Seek(0, SeekOrigin.Begin);
-                                EndOfCSVLine = EOLSearch.NotYet;
-
-                            }
-
-                            #endregion
-
-                            break;
-
-                        #endregion
-
-                        #region CanNotRead
-
-                        case TCPClientResponse.CanNotRead:
-                            ServerClose = true;
-                            break;
-
-                        #endregion
-
-                        #region ClientClose
-
-                        case TCPClientResponse.ClientClose:
-                            ClientClose = true;
-                            break;
-
-                        #endregion
-
-                        #region Timeout
-
-                        case TCPClientResponse.Timeout:
-                            ServerClose = true;
-                            break;
-
-                        #endregion
-
-                    }
-
-                } while (!ClientClose && !ServerClose);
-
-            }
-
-            #region Process exceptions
-
-            catch (IOException ioe)
-            {
-
-                    if (ioe.Message.StartsWith("Unable to read data from the transport connection")) { }
-                else if (ioe.Message.StartsWith("Unable to write data to the transport connection")) { }
-
-                else
-                {
-
-                    //if (OnError != null)
-                    //    OnError(this, DateTime.Now, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), ioe, MemoryStream);
-
-                }
-
-            }
-
-            catch (Exception e)
-            {
-
-                //if (OnError != null)
-                //    OnError(this, DateTime.Now, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), e, MemoryStream);
-
-            }
-
-            #endregion
-
-            #region Close the TCP connection
-
-            try
-            {
-                TCPConnection.Close();
-            }
-            catch (Exception e)
-            { }
-
-            var OnConnectionClosedLocal = OnConnectionClosed;
-            if (OnConnectionClosedLocal != null)
-                OnConnectionClosedLocal(TCPConnection.TCPServer,
-                                        DateTime.Now,
-                                        TCPConnection.TCPServer.IPSocket,
-                                        TCPConnection.RemoteSocket,
-                                        "ConnectionId", //ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort),
-                                        ServerClose ? ConnectionClosedBy.Server : ConnectionClosedBy.Client);
-
-            #endregion
-
-        }
+        #region TCPCSVServer(IPSocket, ...)
+
+        /// <summary>
+        /// Initialize the TCP server using IPAddress.Any and the given parameters.
+        /// </summary>
+        /// <param name="IPSocket">The IP socket to listen.</param>
+        /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
+        /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
+        /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
+        /// <param name="ConnectionIdBuilder"></param>
+        /// <param name="ConnectionThreadsNameCreator">An optional delegate to set the name of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsPriority">The optional priority of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
+        /// <param name="ConnectionTimeoutSeconds">The TCP client timeout for all incoming client connections in seconds.</param>
+        /// <param name="Autostart">Start the TCP server thread immediately.</param>
+        public TCPCSVServer(IPSocket                     IPSocket,
+                            Char[]                       SplitCharacters                 = null,
+                            String                       ServerThreadName                = null,
+                            ThreadPriority               ServerThreadPriority            = ThreadPriority.AboveNormal,
+                            Boolean                      ServerThreadIsBackground        = true,
+                            Func<IPSocket, String>       ConnectionIdBuilder             = null,
+                            Func<TCPConnection, String>  ConnectionThreadsNameCreator    = null,
+                            ThreadPriority               ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
+                            Boolean                      ConnectionThreadsAreBackground  = true,
+                            UInt64                       ConnectionTimeoutSeconds        = 30,
+                            Boolean                      Autostart                       = false)
+
+            : this(IPSocket.IPAddress,
+                   IPSocket.Port,
+                   SplitCharacters,
+                   ServerThreadName,
+                   ServerThreadPriority,
+                   ServerThreadIsBackground,
+                   ConnectionIdBuilder,
+                   ConnectionThreadsNameCreator,
+                   ConnectionThreadsPriority,
+                   ConnectionThreadsAreBackground,
+                   ConnectionTimeoutSeconds,
+                   Autostart)
+
+        { }
 
         #endregion
 
-        #region ProcessExceptionOccured(Sender, Timestamp, ExceptionMessage)
-
-        public void ProcessExceptionOccured(Object Sender, DateTime Timestamp, Exception ExceptionMessage)
-        {
-            throw new NotImplementedException();
-        }
-
         #endregion
 
-        #region ProcessCompleted(Sender, Timestamp, Message = null)
 
-        public void ProcessCompleted(Object Sender, DateTime Timestamp, String Message = null)
+        private TCPResult<String> ProcessBoomerang(Object Message1, DateTime Timestamp, String ConnectionId, String[] CSVArray)
         {
-            throw new NotImplementedException();
-        }
 
-        #endregion
+            var OnNotificationLocal = OnNotification;
+            if (OnNotificationLocal != null)
+                return OnNotificationLocal(Message1,
+                                           Timestamp,
+                                           ConnectionId,
+                                           CSVArray);
+
+            return new TCPResult<String>(String.Empty, false);
+
+        }
 
 
     }

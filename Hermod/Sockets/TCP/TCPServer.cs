@@ -284,6 +284,8 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
+        public event NewConnectionHandler OnNewConnection;
+
         #region OnNotification
 
         /// <summary>
@@ -588,7 +590,12 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
                             #endregion
 
-                            //         NewTCPConnection.Run();
+                            var OnNewConnectionLocal = OnNewConnection;
+                            if (OnNewConnectionLocal != null)
+                                OnNewConnectionLocal(NewTCPConnection.TCPServer,
+                                                     NewTCPConnection.ServerTimestamp,
+                                                     NewTCPConnection.RemoteSocket,
+                                                     "ConnectionId");
 
                             var OnNotificationLocal = OnNotification;
                             if (OnNotificationLocal != null)

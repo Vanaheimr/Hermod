@@ -19,7 +19,6 @@
 
 using System;
 using System.IO;
-using System.Net;
 using System.Text;
 using System.Threading;
 using System.Net.Sockets;
@@ -32,19 +31,10 @@ using eu.Vanaheimr.Styx.Arrows;
 namespace eu.Vanaheimr.Hermod.Sockets.TCP
 {
 
-    public enum TCPClientResponse
-    {
-        CanNotRead,
-        DataAvailable,
-        ClientClose,
-        Timeout
-    }
-
-
     /// <summary>
     /// An abstract class for all TCP connections.
     /// </summary>
-    public class TCPConnection : AReadOnlyLocalRemoteSockets, ITCPConnection
+    public class TCPConnection : AReadOnlyLocalRemoteSockets
     {
 
         #region Data
@@ -509,12 +499,12 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         #endregion
 
 
-        #region Close()
+        #region Close(ClosedBy)
 
         /// <summary>
         /// Close this TCP connection.
         /// </summary>
-        public void Close()
+        public void Close(ConnectionClosedBy ClosedBy)
         {
             if (TCPClient != null)
                 TCPClient.Close();
@@ -529,7 +519,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         /// </summary>
         public override void Dispose()
         {
-            Close();
+            Close(ConnectionClosedBy.Server);
         }
 
         #endregion

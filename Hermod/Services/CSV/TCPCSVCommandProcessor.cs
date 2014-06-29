@@ -40,8 +40,8 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
     /// A TCP service accepting incoming CSV lines
     /// with ending 0x00 or 0x0d 0x0a (\r\n) characters.
     /// </summary>
-    public class CSVProcessor : IBoomerangReceiver<Object, DateTime, String, String[], TCPResult<String>>,
-                                IBoomerangSender<Object, DateTime, String, String[], TCPResult<String>>
+    public class TCPCSVCommandProcessor : IBoomerangReceiver<Object, DateTime, String, String[], TCPResult<String>>,
+                                          IBoomerangSender<Object, DateTime, String, String[], TCPResult<String>>
     {
 
         #region Properties
@@ -69,7 +69,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 
         #region Constructor(s)
 
-        public CSVProcessor()
+        public TCPCSVCommandProcessor()
         { }
 
         #endregion
@@ -188,23 +188,6 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
                                                CSVArray);
 
             }
-
-            #region Generate result string
-
-            //if (ResultList.Count > 0)
-            //{
-
-            //    var GlobalResult = (ResultList.Select(r => r.Status > 0).Aggregate((a, b) => a || b)) ? CSVStatus.ERROR : CSVStatus.OK;
-            //    var ReturnString = ResultList.Select(r => r.ToString()).Aggregate((a, b) => a + "|" + b);
-
-            //    Message.WriteToResponseStream(Encoding.UTF8.GetBytes(GlobalResult.ToString() + "\r\n" + ReturnString));
-            //    Message.WriteToResponseStream(0x00);
-
-            //}
-
-//            Message.WriteToResponseStream("Unknown data stream '" + CSVArray.Aggregate((a, b) => a + "/" + b) + "'\r\n");
-
-            #endregion
 
             return new TCPResult<String>(_StringBuilder.ToString(), ClientClose);
 

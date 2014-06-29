@@ -29,16 +29,18 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
     /// </summary>
     /// <param name="Sender">The sender of this event.</param>
     /// <param name="Timestamp">The timestamp of the event.</param>
+    /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
     /// <param name="ConnectionId">The identification of this connection.</param>
-    public delegate void NewConnectionHandler(ITCPServer Sender, DateTime Timestamp, IPSocket LocalSocket, IPSocket RemoteSocket, String ConnectionId);
+    public delegate void NewConnectionHandler(ITCPServer Sender, DateTime Timestamp, IPSocket RemoteSocket, String ConnectionId);
 
     /// <summary>
     /// Connection closed delegate.
     /// </summary>
     /// <param name="Sender">The sender of this event.</param>
     /// <param name="Timestamp">The timestamp of the event.</param>
+    /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
     /// <param name="ConnectionId">The identification of this connection.</param>
     /// <param name="ClosedBy">Wether the connection was closed by the client or the server.</param>
-    public delegate void ConnectionClosedHandler(ITCPServer Sender, DateTime Timestamp, IPSocket LocalSocket, IPSocket RemoteSocket, String ConnectionId, ConnectionClosedBy ClosedBy);
+    public delegate void ConnectionClosedHandler(ITCPServer Sender, DateTime Timestamp, IPSocket RemoteSocket, String ConnectionId, ConnectionClosedBy ClosedBy);
 
 }

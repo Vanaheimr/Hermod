@@ -165,7 +165,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 };
 
                 Debug.WriteLine("Closing connection " + RemoteIPAddress + ":" + RemotePort + " @ " + Thread.CurrentThread.ManagedThreadId);
-                Close();
+                Close(ConnectionClosedBy.Server);
 
             }
 
@@ -581,7 +581,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                         if (_Retries > 20)
                         {
                             Debug.WriteLine("Thread[" + Thread.CurrentThread.ManagedThreadId + " from: " + RemoteIPAddress + ":" + RemotePort + "]: Closing connection!");
-                            Close();
+                            Close(ConnectionClosedBy.Server);
                             break;
                         }
 
