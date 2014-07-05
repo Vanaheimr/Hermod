@@ -603,14 +603,18 @@ namespace eu.Vanaheimr.Hermod.HTTP
                     var HeaderBytes = new Byte[_ReadPosition - 1];
                     Array.Copy(_ByteArray, 0, HeaderBytes, 0, _ReadPosition - 1);
 
-                    RequestHeader = new HTTPRequest(RemoteIPAddress, RemotePort, HeaderBytes.ToUTF8String());
+                    //RequestHeader = new HTTPRequest(RemoteIPAddress, RemotePort, HeaderBytes.ToUTF8String());
+
+                    HTTPRequest _RequestHeader = null;
 
                     // The parsing of the http header failed!
-                    if (RequestHeader.HTTPStatusCode != HTTPStatusCode.OK)
+                    if (!HTTPRequest.TryParse(RemoteSocket, HeaderBytes.ToUTF8String(), out _RequestHeader))
                     {
                         SendErrorpage(RequestHeader.HTTPStatusCode);
                         return;
                     }
+
+                    RequestHeader = _RequestHeader;
 
                     #endregion
 
@@ -710,8 +714,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                     #region Check authentication
 
-                    var _AuthenticationAttributes = _ParsedCallbackWithParameters.Item1.GetCustomAttributes(typeof(AuthenticationAttribute), false);
-                    var _ForceAuthenticationAttributes = _ParsedCallbackWithParameters.Item1.GetCustomAttributes(typeof(ForceAuthenticationAttribute), false);
+                    //var _AuthenticationAttributes      = _ParsedCallbackWithParameters.Item1.GetCustomAttributes(typeof(AuthenticationAttribute), false);
+                    //var _ForceAuthenticationAttributes = _ParsedCallbackWithParameters.Item1.GetCustomAttributes(typeof(ForceAuthenticationAttribute), false);
 
                     //if (_AuthenticationAttributes.Any())
                     //{
@@ -724,42 +728,42 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                     //}
 
-                    if (_ForceAuthenticationAttributes.Any())
-                    {
+                    //if (_ForceAuthenticationAttributes.Any())
+                    //{
 
-                        var _ForceAuthenticationAttribute = _ForceAuthenticationAttributes[0] as ForceAuthenticationAttribute;
+                    //    var _ForceAuthenticationAttribute = _ForceAuthenticationAttributes[0] as ForceAuthenticationAttribute;
 
-                        if (_ForceAuthenticationAttribute.AuthenticationType == HTTPAuthenticationTypes.Basic)
-                        {
+                    //    if (_ForceAuthenticationAttribute.AuthenticationType == HTTPAuthenticationTypes.Basic)
+                    //    {
 
-                            var CurrentAuthentication = RequestHeader.Authorization;
+                    //        var CurrentAuthentication = RequestHeader.Authorization;
 
-                            if (CurrentAuthentication == null)
-                            {
-                                SendAuthenticationRequiredHeader(HTTPAuthenticationTypes.Basic, _ForceAuthenticationAttribute.Realm);
-                                return;
-                            }
+                    //        if (CurrentAuthentication == null)
+                    //        {
+                    //            SendAuthenticationRequiredHeader(HTTPAuthenticationTypes.Basic, _ForceAuthenticationAttribute.Realm);
+                    //            return;
+                    //        }
 
-                            else if (HTTPSecurity != null &&
-                                     HTTPSecurity.Verify(CurrentAuthentication.Username, CurrentAuthentication.Password))
-                            { }
+                    //        else if (HTTPSecurity != null &&
+                    //                 HTTPSecurity.Verify(CurrentAuthentication.Username, CurrentAuthentication.Password))
+                    //        { }
 
-                            else
-                            {
-                                SendAuthenticationRequiredHeader(HTTPAuthenticationTypes.Basic, _ForceAuthenticationAttribute.Realm);
-                                return;
-                            }
+                    //        else
+                    //        {
+                    //            SendAuthenticationRequiredHeader(HTTPAuthenticationTypes.Basic, _ForceAuthenticationAttribute.Realm);
+                    //            return;
+                    //        }
 
-                        }
+                    //    }
 
-                        else
-                        {
-                            SendErrorpage(HTTPStatusCode.NotImplemented, "Please use HTTP basic authentication!");
-                            return;
-                        }
+                    //    else
+                    //    {
+                    //        SendErrorpage(HTTPStatusCode.NotImplemented, "Please use HTTP basic authentication!");
+                    //        return;
+                    //    }
 
 
-                    }
+                    //}
 
                     #endregion
 

@@ -40,21 +40,12 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region Non-HTTP header fields
 
-        #region RemoteHost
+        #region RemoteSocket
 
         /// <summary>
-        /// The remote IP host.
+        /// The remote IP socket.
         /// </summary>
-        public IIPAddress RemoteHost { get; private set; }
-
-        #endregion
-
-        #region RemotePort
-
-        /// <summary>
-        /// The remote IP port.
-        /// </summary>
-        public IPPort RemotePort { get; private set; }
+        public IPSocket RemoteSocket { get; private set; }
 
         #endregion
 
@@ -510,20 +501,18 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region HTTPRequest(RemoteHost, RemotePort, HTTPHeader)
+        #region HTTPRequest(RemoteSocket, HTTPHeader)
 
         /// <summary>
         /// Create a new http request header based on the given string representation.
         /// </summary>
-        /// <param name="RemoteHost">The remote host</param>
-        /// <param name="RemotePort">The remote port</param>
+        /// <param name="RemoteSocket">The remote IP socket</param>
         /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
-        public HTTPRequest(IIPAddress RemoteHost, IPPort RemotePort, String HTTPHeader)
+        private HTTPRequest(IPSocket RemoteSocket, String HTTPHeader)
             : this(HTTPHeader)
         {
 
-            this.RemoteHost = RemoteHost;
-            this.RemotePort = RemotePort;
+            this.RemoteSocket = RemoteSocket;
 
             if (!HeaderFields.ContainsKey("Host"))
                 HeaderFields.Add("Host", "*");
@@ -538,7 +527,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// Create a new http request header based on the given string representation.
         /// </summary>
         /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
-        public HTTPRequest(String HTTPHeader, Byte[] Content = null)
+        private HTTPRequest(String HTTPHeader, Byte[] Content = null)
         {
 
             if (!TryParseHeader(HTTPHeader))
@@ -609,6 +598,39 @@ namespace eu.Vanaheimr.Hermod.HTTP
         #endregion
 
         #endregion
+
+
+        public static Boolean TryParse(String           HTTPRequestString,
+                                       out HTTPRequest  HTTPRequest)
+        {
+
+            HTTPRequest = new HTTPRequest(HTTPRequestString);
+
+            return true;
+
+        }
+
+        public static Boolean TryParse(String           HTTPRequestString,
+                                       Byte[]           Content,
+                                       out HTTPRequest  HTTPRequest)
+        {
+
+            HTTPRequest = new HTTPRequest(HTTPRequestString, Content);
+
+            return true;
+
+        }
+
+        public static Boolean TryParse(IPSocket         RemoteSocket,
+                                       String           HTTPRequestString,
+                                       out HTTPRequest  HTTPRequest)
+        {
+
+            HTTPRequest = new HTTPRequest(RemoteSocket, HTTPRequestString);
+
+            return true;
+
+        }
 
 
         #region ToString()

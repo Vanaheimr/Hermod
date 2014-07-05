@@ -73,6 +73,7 @@
     <Compile Include="HTTP\Request\HTTPMethod.cs" />
     <Compile Include="HTTP\Request\QueryString.cs" />
     <Compile Include="HTTP\Server\AHTTPBaseService.cs" />
+    <Compile Include="HTTP\Server\Delegates.cs" />
     <Compile Include="HTTP\Server\HTTPServer.cs" />
     <Compile Include="HTTP\Server\AHTTPService.cs" />
     <Compile Include="HTTP\Server\Attributes\AuthenticationAttributes.cs" />
@@ -93,6 +94,7 @@
     <Compile Include="HTTP\Server\Interfaces\IHTTPConnection.cs" />
     <Compile Include="HTTP\Server\Interfaces\IHTTPService.cs" />
     <Compile Include="HTTP\Server\Security\HTTPSecurity.cs" />
+    <Compile Include="HTTP\Server\HTTPProcessor.cs" />
     <Compile Include="HTTP\Server\URLMapping\ContentTypeNode.cs" />
     <Compile Include="HTTP\Server\URLMapping\HostnameNode.cs" />
     <Compile Include="HTTP\Server\URLMapping\HTTPEvent.cs" />
@@ -109,7 +111,7 @@
     <Compile Include="Datastructures\IPSocket.cs" />
     <Compile Include="Datastructures\IRemoteSocket.cs" />
     <Compile Include="Services\CSV\TCPCSVServer.cs" />
-    <Compile Include="Services\CSV\EOLSearch.cs" />
+    <Compile Include="Services\EOLSearch.cs" />
     <Compile Include="Services\CSV\TCPCSVCommandProcessor.cs" />
     <Compile Include="Sockets\TCP\ACustomTCPServer.cs" />
     <Compile Include="Services\CSV\SplitUDPPacketArrow.cs" />

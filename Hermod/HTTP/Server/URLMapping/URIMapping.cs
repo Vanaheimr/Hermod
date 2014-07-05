@@ -29,15 +29,6 @@ using eu.Vanaheimr.Illias.Commons;
 namespace eu.Vanaheimr.Hermod.HTTP
 {
 
-
-
-    /// <summary>
-    /// A HTTP delegate.
-    /// </summary>
-    /// <param name="Request">The HTTP request.</param>
-    /// <returns>A HTTP response.</returns>
-    public delegate HTTPResponse HTTPDelegate(HTTPRequest Request);
-
     /// <summary>
     /// A mapping tree from URI templates onto C# methods.
     /// </summary>
@@ -87,7 +78,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                                  String               URITemplate,
                                  HTTPMethod           HTTPMethod                  = null,
                                  HTTPContentType      HTTPContentType             = null,
-                                 Boolean              HostAuthentication          = false,
+                                 HTTPAuthentication   HostAuthentication          = null,
                                  Boolean              URIAuthentication           = false,
                                  Boolean              HTTPMethodAuthentication    = false,
                                  Boolean              ContentTypeAuthentication   = false)
@@ -127,15 +118,15 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
-        internal void AddHandler(MethodInfo       MethodHandler,
-                                 String           Hostname,
-                                 String           URITemplate,
-                                 HTTPMethod       HTTPMethod                  = null,
-                                 HTTPContentType  HTTPContentType             = null,
-                                 Boolean          HostAuthentication          = false,
-                                 Boolean          URIAuthentication           = false,
-                                 Boolean          HTTPMethodAuthentication    = false,
-                                 Boolean          ContentTypeAuthentication   = false)
+        internal void AddHandler(MethodInfo          MethodHandler,
+                                 String              Hostname,
+                                 String              URITemplate,
+                                 HTTPMethod          HTTPMethod                  = null,
+                                 HTTPContentType     HTTPContentType             = null,
+                                 HTTPAuthentication  HostAuthentication          = null,
+                                 Boolean             URIAuthentication           = false,
+                                 Boolean             HTTPMethodAuthentication    = false,
+                                 Boolean             ContentTypeAuthentication   = false)
 
         {
 
@@ -240,15 +231,15 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
-        internal void AddHandler(HTTPDelegate     HTTPDelegate,
-                                 String           Hostname,
-                                 String           URITemplate,
-                                 HTTPMethod       HTTPMethod                  = null,
-                                 HTTPContentType  HTTPContentType             = null,
-                                 Boolean          HostAuthentication          = false,
-                                 Boolean          URIAuthentication           = false,
-                                 Boolean          HTTPMethodAuthentication    = false,
-                                 Boolean          ContentTypeAuthentication   = false)
+        internal void AddHandler(HTTPDelegate        HTTPDelegate,
+                                 String              Hostname                    = "*",
+                                 String              URITemplate                 = "/",
+                                 HTTPMethod          HTTPMethod                  = null,
+                                 HTTPContentType     HTTPContentType             = null,
+                                 HTTPAuthentication  HostAuthentication          = null,
+                                 Boolean             URIAuthentication           = false,
+                                 Boolean             HTTPMethodAuthentication    = false,
+                                 Boolean             ContentTypeAuthentication   = false)
 
         {
 
@@ -263,7 +254,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 if (Hostname.IsNullOrEmpty())
                     Hostname = "*";
 
-                URITemplate.FailIfNullOrEmpty();
+                if (URITemplate.IsNullOrEmpty())
+                    URITemplate = "/";
 
                 if (HTTPMethod == null && HTTPContentType != null)
                     throw new ArgumentNullException("If HTTPMethod is null the HTTPContentType must also be null!");
@@ -275,13 +267,13 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 HostnameNode _HostnameNode = null;
                 if (!_HostnameNodes.TryGetValue(Hostname, out _HostnameNode))
                 {
-                    _HostnameNode = new HostnameNode(Hostname, HostAuthentication);
+                    _HostnameNode = new HostnameNode(Hostname, HostAuthentication, HTTPDelegate);
                     _HostnameNodes.Add(Hostname, _HostnameNode);
                 }
 
                 #endregion
 
-                //#region AddOrUpdate URINode
+                #region AddOrUpdate URINode
 
                 //URINode _URINode = null;
                 //if (!_HostnameNode.URINodes.TryGetValue(URITemplate, out _URINode))
@@ -300,7 +292,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 //if (HTTPMethod == null)
                 //    return;
 
-                //#endregion
+                #endregion
 
                 //#region AddOrUpdate HTTPMethodNode
 
@@ -339,15 +331,15 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (internal) GetHandler(Host, URL, HTTPMethod = null, HTTPContentType = null)
+        #region (internal) GetHandler(Host = "*", URL = "/", HTTPMethod = null, HTTPContentType = null)
 
         /// <summary>
         /// Return the best matching method handler for the given parameters.
         /// </summary>
-        internal Tuple<MethodInfo, IEnumerable<Object>> GetHandler(String           Host,
-                                                                   String           URL               = "/",
-                                                                   HTTPMethod       HTTPMethod        = null,
-                                                                   HTTPContentType  HTTPContentType   = null)
+        internal Tuple<HTTPDelegate, IEnumerable<Object>> GetHandler(String           Host              = "*",
+                                                                     String           URL               = "/",
+                                                                     HTTPMethod       HTTPMethod        = null,
+                                                                     HTTPContentType  HTTPContentType   = null)
         {
 
             lock (Lock)
@@ -368,11 +360,12 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 HostnameNode _HostNode = null;
                 if (!_HostnameNodes.TryGetValue(Host, out _HostNode))
                     if (!_HostnameNodes.TryGetValue("*", out _HostNode))
-                        return GetErrorHandler(Host, URL, HTTPMethod, HTTPContentType, HTTPStatusCode.BadRequest);
+                        return null;
+                        //return GetErrorHandler(Host, URL, HTTPMethod, HTTPContentType, HTTPStatusCode.BadRequest);
 
                 #endregion
 
-                #region Get best matchin URLNode
+                #region Try to find the best matching URLNode...
 
                 var _RegexList    = from   __URLNode
                                     in     _HostNode.URINodes.Values
@@ -399,6 +392,24 @@ namespace eu.Vanaheimr.Hermod.HTTP
                                         Match   = _Match.Match
                                     };
 
+                #endregion
+
+                #region If nothing found...
+
+                if (!_Matches.Any())
+                {
+
+                    if (_HostNode.RequestHandler != null)
+                        return new Tuple<HTTPDelegate, IEnumerable<Object>>(_HostNode.RequestHandler, new Object[0]);
+
+                    return null;
+
+                }
+
+                #endregion
+
+                #region ...else
+
                 var _BestMatch    = _Matches.First();
 
                 //Console.WriteLine(_BestMatch.URLNode.URLTemplate);
@@ -411,7 +422,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                 // If no HTTPMethod was given => return best matching URL MethodHandler
                 if (HTTPMethod == null)
-                    return new Tuple<MethodInfo, IEnumerable<Object>>(_BestMatch.URLNode.MethodHandler, _Parameters);
+                    //return new Tuple<MethodInfo, IEnumerable<Object>>(_BestMatch.URLNode.MethodHandler, _Parameters);
+                    return null;
 
                 #endregion
 
@@ -421,11 +433,13 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                 // If no HTTPMethod was found => return best matching URL MethodHandler
                 if (!_BestMatch.URLNode.HTTPMethods.TryGetValue(HTTPMethod, out _HTTPMethodNode))
-                    return new Tuple<MethodInfo, IEnumerable<Object>>(_BestMatch.URLNode.MethodHandler, _Parameters);
+                    //return new Tuple<MethodInfo, IEnumerable<Object>>(_BestMatch.URLNode.MethodHandler, _Parameters);
+                    return null;
 
                 // If no HTTPContentType was given => return HTTPMethod MethodHandler
                 if (HTTPContentType == null)
-                    return new Tuple<MethodInfo, IEnumerable<Object>>(_HTTPMethodNode.MethodHandler, _Parameters);
+                    //return new Tuple<MethodInfo, IEnumerable<Object>>(_HTTPMethodNode.MethodHandler, _Parameters);
+                    return null;
 
                 #endregion
 
@@ -434,11 +448,13 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 ContentTypeNode _ContentTypeNode = null;
 
                 if (_HTTPMethodNode.HTTPContentTypes.TryGetValue(HTTPContentType, out _ContentTypeNode))
-                    return new Tuple<MethodInfo, IEnumerable<Object>>(_ContentTypeNode.MethodHandler, _Parameters);
+                    //return new Tuple<MethodInfo, IEnumerable<Object>>(_ContentTypeNode.MethodHandler, _Parameters);
+                    return null;
 
                 #endregion
 
-                return GetErrorHandler(Host, URL, HTTPMethod, HTTPContentType, HTTPStatusCode.BadRequest);
+                //return GetErrorHandler(Host, URL, HTTPMethod, HTTPContentType, HTTPStatusCode.BadRequest);
+                return null;
 
             }
 
@@ -493,16 +509,16 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="IsSharedEventSource">Whether this event source will be shared.</param>
         /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
         /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
-        internal HTTPEventSource AddEventSource(MethodInfo MethodInfo,
-                                                String      Host,
-                                                String      URITemplate,
-                                                HTTPMethod  HTTPMethod,
-                                                String      EventIdentification,
-                                                UInt32      MaxNumberOfCachedEvents  = 100,
-                                                TimeSpan?   RetryIntervall           = null,
-                                                Boolean     IsSharedEventSource      = false,
-                                                Boolean     HostAuthentication       = false,
-                                                Boolean     URIAuthentication        = false)
+        internal HTTPEventSource AddEventSource(MethodInfo          MethodInfo,
+                                                String              Host,
+                                                String              URITemplate,
+                                                HTTPMethod          HTTPMethod,
+                                                String              EventIdentification,
+                                                UInt32              MaxNumberOfCachedEvents  = 100,
+                                                TimeSpan?           RetryIntervall           = null,
+                                                Boolean             IsSharedEventSource      = false,
+                                                HTTPAuthentication  HostAuthentication       = null,
+                                                Boolean             URIAuthentication        = false)
 
         {
 
@@ -552,12 +568,12 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
         /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
-        internal void AddEventSourceHandler(MethodInfo  MethodInfo,
-                                            String      Host,
-                                            String      URITemplate,
-                                            HTTPMethod  HTTPMethod,
-                                            Boolean     HostAuthentication  = false,
-                                            Boolean     URIAuthentication   = false)
+        internal void AddEventSourceHandler(MethodInfo          MethodInfo,
+                                            String              Host,
+                                            String              URITemplate,
+                                            HTTPMethod          HTTPMethod,
+                                            HTTPAuthentication  HostAuthentication  = null,
+                                            Boolean             URIAuthentication   = false)
 
         {
 

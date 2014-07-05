@@ -392,6 +392,9 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region Date
 
+        /// <summary>
+        /// The date and time of the request/response in rfc1123 format.
+        /// </summary>
         public DateTime Date
         {
 
@@ -534,7 +537,11 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// </summary>
         public AHTTPPDUBuilder()
         {
-            this.HeaderFields = new Dictionary<String, Object>(StringComparer.OrdinalIgnoreCase);
+
+            this.HeaderFields  = new Dictionary<String, Object>(StringComparer.OrdinalIgnoreCase);
+
+            this.Date          = DateTime.Now;
+
         }
 
         #endregion

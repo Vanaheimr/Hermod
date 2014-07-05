@@ -31,9 +31,10 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 {
 
     /// <summary>
-    /// A TCP service accepting incoming UTF8 encoded
-    /// comma-separated values with 0x00, 0x0a (\n) or
-    /// 0x0d 0x0a (\r\n) end-of-line characters.
+    /// This processor will accept incoming TCP connections and
+    /// decode the transmitted data to UTF8 encoded comma-separated
+    /// text lines with 0x00, 0x0a (\n) or 0x0d 0x0a (\r\n)
+    /// end-of-line characters.
     /// </summary>
     public class TCPCSVProcessor : IArrowReceiver<TCPConnection>,
                                    IBoomerangSender<TCPConnection, DateTime, String[], String>
@@ -89,9 +90,10 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
         #region Constructor(s)
 
         /// <summary>
-        /// Create a TCP service accepting incoming UTF8 encoded
-        /// comma-separated values with 0x00, 0x0a (\n) or
-        /// 0x0d 0x0a (\r\n) end-of-line characters.
+        /// This processor will accept incoming TCP connections and
+        /// decode the transmitted data to UTF8 encoded comma-separated
+        /// text lines with 0x00, 0x0a (\n) or 0x0d 0x0a (\r\n)
+        /// end-of-line characters.
         /// </summary>
         /// <param name="SplitCharacters">The characters to split the incoming CSV text lines.</param>
         public TCPCSVProcessor(Char[]  SplitCharacters = null)
@@ -145,7 +147,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 
                                 // 0x00 or \n
                                 if (Byte == 0x00 || Byte == 0x0a)
-                                    EndOfCSVLine = EOLSearch.Found;
+                                    EndOfCSVLine = EOLSearch.EoL_Found;
 
                                 // \r
                                 else if (Byte == 0x0d)
@@ -157,7 +159,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
                             else if (EndOfCSVLine == EOLSearch.R_Read)
                             {
                                 if (Byte == 0x0a)
-                                    EndOfCSVLine = EOLSearch.Found;
+                                    EndOfCSVLine = EOLSearch.EoL_Found;
                                 else
                                     EndOfCSVLine = EOLSearch.NotYet;
                             }
@@ -174,7 +176,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 
                             #region If end-of-line -> process data...
 
-                            else if (EndOfCSVLine == EOLSearch.Found)
+                            else if (EndOfCSVLine == EOLSearch.EoL_Found)
                             {
 
                                 if (MemoryStream.Length > 0 && OnNotification != null)
@@ -204,7 +206,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 
                                         CSVArray = CSVLine.Trim().
                                                             Split(SplitCharacters,
-                                                                    StringSplitOptions.None).
+                                                                  StringSplitOptions.None).
                                                             Select(v => v.Trim()).
                                                             ToArray();
 

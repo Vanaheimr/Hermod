@@ -21,62 +21,24 @@ using System;
 using System.Reflection;
 using System.Collections.Generic;
 
-using eu.Vanaheimr.Hermod.Sockets.TCP;
+using eu.Vanaheimr.Styx.Arrows;
 
 #endregion
 
 namespace eu.Vanaheimr.Hermod.HTTP
 {
 
-    #region Delegates
-
-    /// <summary>
-    /// The delegate for the HTTP request log.
-    /// </summary>
-    /// <param name="HTTPServer">The sending HTTP server.</param>
-    /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
-    /// <param name="Request">The incoming request.</param>
-    public delegate void RequestLogDelegate(IHTTPServer HTTPServer, DateTime ServerTimestamp, HTTPRequest Request);
-
-    /// <summary>
-    /// The delegate for the HTTP access log.
-    /// </summary>
-    /// <param name="HTTPServer">The sending HTTP server.</param>
-    /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
-    /// <param name="Request">The incoming request.</param>
-    /// <param name="Response">The outgoing response.</param>
-    public delegate void AccessLogDelegate (IHTTPServer HTTPServer, DateTime ServerTimestamp, HTTPRequest Request, HTTPResponse Response);
-
-    /// <summary>
-    /// The delegate for the HTTP error log.
-    /// </summary>
-    /// <param name="HTTPServer">The sending HTTP server.</param>
-    /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
-    /// <param name="Request">The incoming request.</param>
-    /// <param name="HTTPResponse">The outgoing response.</param>
-    /// <param name="Error">The occured error.</param>
-    /// <param name="LastException">The last occured exception.</param>
-    public delegate void ErrorLogDelegate  (IHTTPServer HTTPServer, DateTime ServerTimestamp, HTTPRequest Request, HTTPResponse Response, String Error = null, Exception LastException = null);
-
-    #endregion
-
-    #region IHTTPServer
-
     /// <summary>
     /// The HTTP server interface.
     /// </summary>
-    public interface IHTTPServer //: ITCPServer<HTTPRequest, HTTPResponse>
+    public interface IHTTPServer : IBoomerangSender<String, DateTime, HTTPRequest, HTTPResponse>
     {
 
         #region Properties
 
         /// <summary>
-        /// The HTTP server name.
-        /// </summary>
-        String        ServerName            { get; set; }
-
-        /// <summary>
-        /// The default HTTP server name.
+        /// The default HTTP server name, used whenever
+        /// no host-header had been given.
         /// </summary>
         String        DefaultServerName     { get; }
 
@@ -89,24 +51,27 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region Events
 
+        event BoomerangSenderHandler<String, DateTime, HTTPRequest, HTTPResponse> OnNotification;
+
         /// <summary>
         /// An event called whenever a request came in.
         /// </summary>
-        event RequestLogDelegate  RequestLog;
+        event RequestLogHandler  RequestLog;
 
         /// <summary>
         /// An event called whenever a request could successfully be processed.
         /// </summary>
-        event AccessLogDelegate   AccessLog;
+        event AccessLogHandler   AccessLog;
 
         /// <summary>
         /// An event called whenever a request resulted in an error.
         /// </summary>
-        event ErrorLogDelegate    ErrorLog;
+        event ErrorLogHandler    ErrorLog;
 
         #endregion
 
-        #region MethodCallbacks
+
+        #region Add Method Callbacks
 
         /// <summary>
         /// Add a method callback for the given URI template.
@@ -120,29 +85,32 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
-        void AddMethodCallback(MethodInfo       MethodHandler,
-                               String           Host,
-                               String           URITemplate,
-                               HTTPMethod       HTTPMethod,
-                               HTTPContentType  HTTPContentType             = null,
-                               Boolean          HostAuthentication          = false,
-                               Boolean          URIAuthentication           = false,
-                               Boolean          HTTPMethodAuthentication    = false,
-                               Boolean          ContentTypeAuthentication   = false);
+        void AddMethodCallback(MethodInfo          MethodHandler,
+                               String              Host,
+                               String              URITemplate,
+                               HTTPMethod          HTTPMethod,
+                               HTTPContentType     HTTPContentType             = null,
+                               HTTPAuthentication  HostAuthentication          = null,
+                               Boolean             URIAuthentication           = false,
+                               Boolean             HTTPMethodAuthentication    = false,
+                               Boolean             ContentTypeAuthentication   = false);
 
+        #endregion
 
+        #region Get Method Callbacks
 
         /// <summary>
         /// Return the best matching method handler for the given parameters.
         /// </summary>
-        Tuple<MethodInfo, IEnumerable<Object>> GetHandler(String           Host,
-                                                          String           URL               = "/",
-                                                          HTTPMethod       HTTPMethod        = null,
-                                                          HTTPContentType  HTTPContentType   = null);
+        Tuple<HTTPDelegate, IEnumerable<Object>> GetHandler(String           Host,
+                                                            String           URL               = "/",
+                                                            HTTPMethod       HTTPMethod        = null,
+                                                            HTTPContentType  HTTPContentType   = null);
 
         #endregion
 
-        #region HTTP Server Sent Events
+
+        #region Add HTTP Server Sent Events
 
         /// <summary>
         /// Add a HTTP Sever Sent Events source.
@@ -168,16 +136,16 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="IsSharedEventSource">Whether this event source will be shared.</param>
         /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
         /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
-        HTTPEventSource AddEventSource(MethodInfo  MethodInfo,
-                                       String      Host,
-                                       String      URITemplate,
-                                       HTTPMethod  HTTPMethod,
-                                       String      EventIdentification,
-                                       UInt32      MaxNumberOfCachedEvents  = 100,
-                                       TimeSpan?   RetryIntervall           = null,
-                                       Boolean     IsSharedEventSource      = false,
-                                       Boolean     HostAuthentication       = false,
-                                       Boolean     URIAuthentication        = false);
+        HTTPEventSource AddEventSource(MethodInfo          MethodInfo,
+                                       String              Host,
+                                       String              URITemplate,
+                                       HTTPMethod          HTTPMethod,
+                                       String              EventIdentification,
+                                       UInt32              MaxNumberOfCachedEvents  = 100,
+                                       TimeSpan?           RetryIntervall           = null,
+                                       Boolean             IsSharedEventSource      = false,
+                                       HTTPAuthentication  HostAuthentication       = null,
+                                       Boolean             URIAuthentication        = false);
 
         /// <summary>
         /// Add an HTTP event source method handler for the given URI template.
@@ -188,13 +156,16 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
         /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
-        void AddEventSourceHandler    (MethodInfo  MethodInfo,
-                                       String      Host,
-                                       String      URITemplate,
-                                       HTTPMethod  HTTPMethod,
-                                       Boolean     HostAuthentication       = false,
-                                       Boolean     URIAuthentication        = false);
+        void AddEventSourceHandler    (MethodInfo          MethodInfo,
+                                       String              Host,
+                                       String              URITemplate,
+                                       HTTPMethod          HTTPMethod,
+                                       HTTPAuthentication  HostAuthentication  = null,
+                                       Boolean             URIAuthentication   = false);
 
+        #endregion
+
+        #region Get HTTP Server Sent Events
 
         /// <summary>
         /// Return the event source identified by the given event source identification.
@@ -216,6 +187,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+
         #region ErrorHandling
 
         /// <summary>
@@ -234,32 +206,30 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Log an incoming request.
         /// </summary>
-        /// <param name="RequestTime">The timestamp of the incoming request.</param>
+        /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
         /// <param name="Request">The incoming request.</param>
-        void LogRequest(DateTime RequestTime, HTTPRequest Request);
+        void LogRequest(DateTime ServerTimestamp, HTTPRequest Request);
 
         /// <summary>
         /// Log an successful request processing.
         /// </summary>
-        /// <param name="RequestTime">The timestamp of the incoming request.</param>
+        /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
         /// <param name="Request">The incoming request.</param>
         /// <param name="Response">The outgoing response.</param>
-        void LogAccess(DateTime RequestTime, HTTPRequest Request, HTTPResponse Response);
+        void LogAccess(DateTime ServerTimestamp, HTTPRequest Request, HTTPResponse Response);
 
         /// <summary>
         /// Log an error during request processing.
         /// </summary>
-        /// <param name="RequestTime">The timestamp of the incoming request.</param>
+        /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
         /// <param name="Request">The incoming request.</param>
         /// <param name="HTTPResponse">The outgoing response.</param>
         /// <param name="Error">The occured error.</param>
         /// <param name="LastException">The last occured exception.</param>
-        void LogError (DateTime RequestTime, HTTPRequest Request, HTTPResponse HTTPResponse, String Error = null, Exception LastException = null);
+        void LogError (DateTime ServerTimestamp, HTTPRequest Request, HTTPResponse HTTPResponse, String Error = null, Exception LastException = null);
 
         #endregion
 
     }
-
-    #endregion
 
 }

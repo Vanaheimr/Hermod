@@ -18,10 +18,7 @@
 #region Usings
 
 using System;
-using System.Reflection;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using eu.Vanaheimr.Illias.Commons;
 
 #endregion
 
@@ -29,58 +26,112 @@ namespace eu.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// A node which stores information for maintaining multiple http hosts.
+    /// A node which stores information for maintaining multiple http hostnames.
     /// </summary>
     public class HostnameNode
     {
 
         #region Properties
 
+        #region Hostname
+
+        private readonly String _Hostname;
+
         /// <summary>
         /// The hostname for this (virtual) http service.
         /// </summary>
-        public String                                  Hostname             { get; private set; }
+        public String Hostname
+        {
+            get
+            {
+                return _Hostname;
+            }
+        }
+
+        #endregion
+
+        #region HostAuthentication
+
+        private readonly HTTPAuthentication _HostAuthentication;
 
         /// <summary>
         /// This and all subordinated nodes demand an explicit host authentication.
         /// </summary>
-        public Boolean                                 HostAuthentication   { get; private set; }
+        public HTTPAuthentication HostAuthentication
+        {
+            get
+            {
+                return _HostAuthentication;
+            }
+        }
+
+        #endregion
+
+        #region RequestHandler
+
+        private readonly HTTPDelegate _RequestHandler;
+
+        public HTTPDelegate RequestHandler
+        {
+            get
+            {
+                return _RequestHandler;
+            }
+        }
+
+        #endregion
+
+        #region ErrorHandler
+
+        private readonly HTTPDelegate _DefaultErrorHandler;
 
         /// <summary>
         /// A general error handling method.
         /// </summary>
-        public MethodInfo                              HostErrorHandler     { get; private set; }
+        public HTTPDelegate ErrorHandler
+        {
+            get
+            {
+                return _DefaultErrorHandler;
+            }
+        }
+
+        #endregion
 
         /// <summary>
         /// Error handling methods for specific http status codes.
         /// </summary>
-        public Dictionary<HTTPStatusCode, MethodInfo>  HostErrorHandlers    { get; private set; }
+        public Dictionary<HTTPStatusCode, HTTPDelegate>  ErrorHandlers       { get; private set; }
 
         /// <summary>
         /// A mapping from URIs to URINodes.
         /// </summary>
-        public Dictionary<String, URINode>             URINodes             { get; private set; }
+        public Dictionary<String, URINode>               URINodes                { get; private set; }
 
         #endregion
 
-        #region Constructor(s)
+        #region (internal) Constructor(s)
 
         /// <summary>
-        /// Creates a new HostNode.
+        /// Creates a new hostname node.
         /// </summary>
         /// <param name="Hostname">The hostname(s) for this (virtual) http service.</param>
         /// <param name="HostAuthentication">This and all subordinated nodes demand an explicit host authentication.</param>
-        /// <param name="HostErrorHandler">A general error handling method.</param>
-        public HostnameNode(String      Hostname,
-                            Boolean     HostAuthentication  = false,
-                            MethodInfo  HostErrorHandler    = null)
+        /// <param name="RequestHandler">The default delegate to call for any request to this hostname.</param>
+        /// <param name="DefaultErrorHandler">A general error handling method.</param>
+        internal HostnameNode(String              Hostname,
+                              HTTPAuthentication  HostAuthentication   = null,
+                              HTTPDelegate        RequestHandler       = null,
+                              HTTPDelegate        DefaultErrorHandler  = null)
         {
 
-            this.Hostname            = Hostname;
-            this.HostAuthentication  = HostAuthentication;
-            this.URINodes            = new Dictionary<String, URINode>();
-            this.HostErrorHandler    = HostErrorHandler;
-            this.HostErrorHandlers   = new Dictionary<HTTPStatusCode, MethodInfo>();
+            this._Hostname             = Hostname;
+            this._HostAuthentication   = (HostAuthentication != null) ? HostAuthentication : _ => true;
+            this._RequestHandler       = RequestHandler;
+            this._DefaultErrorHandler  = DefaultErrorHandler;
+
+            this.URINodes              = new Dictionary<String,         URINode>();
+            this.ErrorHandlers         = new Dictionary<HTTPStatusCode, HTTPDelegate>();
 
         }
 
@@ -92,11 +143,11 @@ namespace eu.Vanaheimr.Hermod.HTTP
         {
 
             var _HostAuthentication = "";
-            if (HostAuthentication)
+            if (HostAuthentication != null)
                 _HostAuthentication = " (auth)";
 
             var _HostErrorHandler = "";
-            if (HostErrorHandler != null)
+            if (ErrorHandler != null)
                 _HostErrorHandler = " (errhdl)";
 
             return String.Concat(Hostname, _HostAuthentication, _HostErrorHandler);

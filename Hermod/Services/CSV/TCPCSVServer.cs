@@ -168,14 +168,16 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 
         {
 
-            _TCPCSVProcessor        = new TCPCSVProcessor(SplitCharacters);
-            _TCPServer.SendTo(_TCPCSVProcessor);
-            _TCPServer.OnNewConnection    += SendNewConnection;
-            _TCPServer.OnConnectionClosed += SendConnectionClosed;
+            this.ServiceBanner            = DefaultServiceBanner;
 
-            _TCPCSVCommandProcessor = new TCPCSVCommandProcessor();
-            _TCPCSVProcessor.ConnectTo(_TCPCSVCommandProcessor);
-            _TCPCSVCommandProcessor.OnNotification += ProcessBoomerang;
+            this._TCPCSVProcessor         = new TCPCSVProcessor(SplitCharacters);
+            this._TCPServer.SendTo(_TCPCSVProcessor);
+            this._TCPServer.OnNewConnection    += SendNewConnection;
+            this._TCPServer.OnConnectionClosed += SendConnectionClosed;
+
+            this._TCPCSVCommandProcessor  = new TCPCSVCommandProcessor();
+            this._TCPCSVProcessor.ConnectTo(_TCPCSVCommandProcessor);
+            this._TCPCSVCommandProcessor.OnNotification += ProcessBoomerang;
 
             if (Autostart)
                 Start();

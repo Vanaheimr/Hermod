@@ -15,14 +15,16 @@
  * limitations under the License.
  */
 
-namespace eu.Vanaheimr.Hermod.Services.CSV
+namespace eu.Vanaheimr.Hermod.Services
 {
 
     public enum EOLSearch
     {
         NotYet,
         R_Read,
-        Found
+        EoL_Found,
+        RN_Read,
+        Double_EoL_Found
     }
 
 }

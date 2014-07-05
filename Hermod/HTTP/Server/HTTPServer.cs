@@ -34,43 +34,55 @@ namespace eu.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// An abstract generic HTTP server.
+    /// A HTTP server.
     /// </summary>
-    /// <typeparam name="HTTPServiceInterface">An interface inheriting from IHTTPService and defining URLMappings.</typeparam>
-    public class HTTPServer : IArrowReceiver<TCPConnection>,
-                              IBoomerangSender<Object, DateTime, String, HTTPRequest, TCPResult<HTTPResponse>>,
+    public class HTTPServer : ACustomTCPServer,
                               IHTTPServer
     {
 
         #region Data
 
-        private const     String      _DefaultServerName  = "Hermod HTTP Server v0.9";
-        private readonly  URIMapping  _URIMapping;
+        internal const    String            __DefaultServerName  = "Hermod HTTP Server v0.9";
+        private readonly  URIMapping        _URIMapping;
+
+        private readonly  HTTPProcessor     _HTTPProcessor;
 
         #endregion
 
         #region Properties
 
-        #region (internal) TCPServer
+        #region DefaultServerName
 
-        //private readonly TCPServer<Byte> _TCPServer;
+        private readonly String _DefaultServerName;
 
-        //internal TCPServer<Byte> TCPServer
-        //{
-        //    get
-        //    {
-        //        return _TCPServer;
-        //    }
-        //}
+        /// <summary>
+        /// The default HTTP servername, used whenever
+        /// no HTTP Host-header had been given.
+        /// </summary>
+        public String DefaultServerName
+        {
+            get
+            {
+                return _DefaultServerName;
+            }
+        }
 
         #endregion
 
-        #region ServerName
+        #region HTTPSecurity
+
+        private readonly HTTPSecurity _HTTPSecurity;
 
         /// <summary>
-        /// The HTTP server name.
+        /// An associated HTTP security object.
         /// </summary>
-        public String ServerName { get; set; }
+        public HTTPSecurity HTTPSecurity
+        {
+            get
+            {
+                return _HTTPSecurity;
+            }
+        }
 
         #endregion
 
@@ -132,69 +144,239 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region HTTPSecurity
-
-        private readonly HTTPSecurity _HTTPSecurity;
-
-        /// <summary>
-        /// An associated HTTP security object.
-        /// </summary>
-        public HTTPSecurity HTTPSecurity
-        {
-            get
-            {
-                return _HTTPSecurity;
-            }
-        }
-
-        #endregion
-
         #endregion
 
         #region Events
 
-        public event NewConnectionHandler OnNewConnection;
-
-        public event ConnectionClosedHandler OnConnectionClosed;
+        public event BoomerangSenderHandler<String, DateTime, HTTPRequest, HTTPResponse> OnNotification;
 
 
         /// <summary>
         /// An event called whenever a request came in.
         /// </summary>
-        public event RequestLogDelegate  RequestLog;
+        public event RequestLogHandler  RequestLog;
 
         /// <summary>
         /// An event called whenever a request could successfully be processed.
         /// </summary>
-        public event AccessLogDelegate   AccessLog;
+        public event AccessLogHandler   AccessLog;
 
         /// <summary>
         /// An event called whenever a request resulted in an error.
         /// </summary>
-        public event ErrorLogDelegate    ErrorLog;
+        public event ErrorLogHandler    ErrorLog;
 
         #endregion
 
         #region Constructor(s)
+
+        #region HTTPServer(Port, ...)
+
+        /// <summary>
+        /// Initialize the HTTP server using IPAddress.Any and the given parameters.
+        /// </summary>
+        /// <param name="Port">The listening port</param>
+        /// <param name="DefaultServername">The default HTTP servername, used whenever no HTTP Host-header had been given.</param>
+        /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
+        /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
+        /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
+        /// <param name="ConnectionIdBuilder"></param>
+        /// <param name="ConnectionThreadsNameCreator">An optional delegate to set the name of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsPriority">The optional priority of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
+        /// <param name="ConnectionTimeoutSeconds">The TCP client timeout for all incoming client connections in seconds.</param>
+        /// <param name="Autostart">Start the TCP server thread immediately.</param>
+        public HTTPServer(IPPort                       Port,
+                          String                       DefaultServername               = __DefaultServerName,
+                          Char[]                       SplitCharacters                 = null,
+                          String                       ServerThreadName                = null,
+                          ThreadPriority               ServerThreadPriority            = ThreadPriority.AboveNormal,
+                          Boolean                      ServerThreadIsBackground        = true,
+                          Func<IPSocket, String>       ConnectionIdBuilder             = null,
+                          Func<TCPConnection, String>  ConnectionThreadsNameCreator    = null,
+                          ThreadPriority               ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
+                          Boolean                      ConnectionThreadsAreBackground  = true,
+                          UInt64                       ConnectionTimeoutSeconds        = 30,
+                          Boolean                      Autostart                       = false)
+
+            : this(IPv4Address.Any,
+                   Port,
+                   DefaultServername,
+                   SplitCharacters,
+                   ServerThreadName,
+                   ServerThreadPriority,
+                   ServerThreadIsBackground,
+                   ConnectionIdBuilder,
+                   ConnectionThreadsNameCreator,
+                   ConnectionThreadsPriority,
+                   ConnectionThreadsAreBackground,
+                   ConnectionTimeoutSeconds,
+                   Autostart)
+
+        { }
+
+        #endregion
 
         #region HTTPServer(IIPAddress, Port, ...)
 
         /// <summary>
         /// Initialize the HTTP server using the given parameters.
         /// </summary>
-        public HTTPServer()
+        /// <param name="IIPAddress">The listening IP address(es)</param>
+        /// <param name="Port">The listening port</param>
+        /// <param name="DefaultServername">The default HTTP servername, used whenever no HTTP Host-header had been given.</param>
+        /// <param name="Mapper">A delegate to transform the incoming TCP connection data into custom data structures.</param>
+        /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
+        /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
+        /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
+        /// <param name="ConnectionIdBuilder"></param>
+        /// <param name="ConnectionThreadsNameCreator">An optional delegate to set the name of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsPriority">The optional priority of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
+        /// <param name="ConnectionTimeoutSeconds">The TCP client timeout for all incoming client connections in seconds.</param>
+        /// <param name="Autostart">Start the TCP server thread immediately.</param>
+        public HTTPServer(IIPAddress                   IIPAddress,
+                          IPPort                       Port,
+                          String                       DefaultServername               = __DefaultServerName,
+                          Char[]                       SplitCharacters                 = null,
+                          String                       ServerThreadName                = null,
+                          ThreadPriority               ServerThreadPriority            = ThreadPriority.AboveNormal,
+                          Boolean                      ServerThreadIsBackground        = true,
+                          Func<IPSocket, String>       ConnectionIdBuilder             = null,
+                          Func<TCPConnection, String>  ConnectionThreadsNameCreator    = null,
+                          ThreadPriority               ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
+                          Boolean                      ConnectionThreadsAreBackground  = true,
+                          UInt64                       ConnectionTimeoutSeconds        = 30,
+                          Boolean                      Autostart                       = false)
+
+            : base(IIPAddress,
+                   Port,
+                   ServerThreadName,
+                   ServerThreadPriority,
+                   ServerThreadIsBackground,
+                   ConnectionIdBuilder,
+                   ConnectionThreadsNameCreator,
+                   ConnectionThreadsPriority,
+                   ConnectionThreadsAreBackground,
+                   ConnectionTimeoutSeconds)
+
         {
 
-            this._URIMapping    = new URIMapping();
-            this._AllResources  = new Dictionary<String, Assembly>();
-            this.ServerName     = _DefaultServerName;
+
+            this._DefaultServerName  = DefaultServerName;
+            this._URIMapping         = new URIMapping();
+            this._AllResources       = new Dictionary<String, Assembly>();
+
+            _HTTPProcessor           = new HTTPProcessor();
+            _TCPServer.SendTo(_HTTPProcessor);
+            _TCPServer.OnNewConnection    += SendNewConnection;
+            _TCPServer.OnConnectionClosed += SendConnectionClosed;
+
+            _HTTPProcessor.OnNotification += ProcessBoomerang;
+            _HTTPProcessor.RequestLog     += (HTTPProcessor, ServerTimestamp, Request)                                 => LogRequest(ServerTimestamp, Request);
+            _HTTPProcessor.ErrorLog       += (HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException) => LogError  (ServerTimestamp, Request, Response, Error, LastException);
+
+            //_TCPCSVCommandProcessor = new TCPCSVCommandProcessor();
+            //_TCPCSVProcessor.ConnectTo(_TCPCSVCommandProcessor);
+
+            if (Autostart)
+                Start();
 
         }
 
         #endregion
 
+        #region HTTPServer(IPSocket, ...)
+
+        /// <summary>
+        /// Initialize the HTTP server using IPAddress.Any and the given parameters.
+        /// </summary>
+        /// <param name="IPSocket">The IP socket to listen.</param>
+        /// <param name="DefaultServername">The default HTTP servername, used whenever no HTTP Host-header had been given.</param>
+        /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
+        /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
+        /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
+        /// <param name="ConnectionIdBuilder"></param>
+        /// <param name="ConnectionThreadsNameCreator">An optional delegate to set the name of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsPriority">The optional priority of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
+        /// <param name="ConnectionTimeoutSeconds">The TCP client timeout for all incoming client connections in seconds.</param>
+        /// <param name="Autostart">Start the TCP server thread immediately.</param>
+        public HTTPServer(IPSocket                     IPSocket,
+                          String                       DefaultServername               = __DefaultServerName,
+                          Char[]                       SplitCharacters                 = null,
+                          String                       ServerThreadName                = null,
+                          ThreadPriority               ServerThreadPriority            = ThreadPriority.AboveNormal,
+                          Boolean                      ServerThreadIsBackground        = true,
+                          Func<IPSocket, String>       ConnectionIdBuilder             = null,
+                          Func<TCPConnection, String>  ConnectionThreadsNameCreator    = null,
+                          ThreadPriority               ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
+                          Boolean                      ConnectionThreadsAreBackground  = true,
+                          UInt64                       ConnectionTimeoutSeconds        = 30,
+                          Boolean                      Autostart                       = false)
+
+            : this(IPSocket.IPAddress,
+                   IPSocket.Port,
+                   DefaultServername,
+                   SplitCharacters,
+                   ServerThreadName,
+                   ServerThreadPriority,
+                   ServerThreadIsBackground,
+                   ConnectionIdBuilder,
+                   ConnectionThreadsNameCreator,
+                   ConnectionThreadsPriority,
+                   ConnectionThreadsAreBackground,
+                   ConnectionTimeoutSeconds,
+                   Autostart)
+
+        { }
+
         #endregion
 
+        #endregion
+
+
+        #region Add Method Callbacks
+
+        #region AddMethodCallback(HTTPDelegate, Hostname, URITemplate, HTTPMethod, HTTPContentType = null, HostAuthentication = false, URIAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false)
+
+        /// <summary>
+        /// Add a method callback for the given URI template.
+        /// </summary>
+        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <param name="HTTPMethod">The HTTP method.</param>
+        /// <param name="URITemplate">The URI template.</param>
+        /// <param name="HTTPContentType">The HTTP content type.</param>
+        /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
+        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
+        /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
+        /// <param name="HTTPDelegate">The method to call.</param>
+        public void AddMethodCallback(String              Hostname                    = "*",
+                                      HTTPMethod          HTTPMethod                  = null,
+                                      String              URITemplate                 = "/",
+                                      HTTPContentType     HTTPContentType             = null,
+                                      HTTPAuthentication  HostAuthentication          = null,
+                                      Boolean             URIAuthentication           = false,
+                                      Boolean             HTTPMethodAuthentication    = false,
+                                      Boolean             ContentTypeAuthentication   = false,
+                                      HTTPDelegate        HTTPDelegate                = null)
+
+        {
+
+            _URIMapping.AddHandler(HTTPDelegate,
+                                   Hostname,
+                                   URITemplate,
+                                   (HTTPMethod != null) ? HTTPMethod : HTTPMethod.GET,
+                                   HTTPContentType,
+                                   HostAuthentication,
+                                   URIAuthentication,
+                                   HTTPMethodAuthentication,
+                                   ContentTypeAuthentication);
+
+        }
+
+        #endregion
 
         #region AddMethodCallback(MethodHandler, Hostname, URITemplate, HTTPMethod, HTTPContentType = null, HostAuthentication = false, URIAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false)
 
@@ -210,15 +392,15 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
-        public void AddMethodCallback(MethodInfo       MethodHandler,
-                                      String           Hostname,
-                                      String           URITemplate,
-                                      HTTPMethod       HTTPMethod,
-                                      HTTPContentType  HTTPContentType             = null,
-                                      Boolean          HostAuthentication          = false,
-                                      Boolean          URIAuthentication           = false,
-                                      Boolean          HTTPMethodAuthentication    = false,
-                                      Boolean          ContentTypeAuthentication   = false)
+        public void AddMethodCallback(MethodInfo          MethodHandler,
+                                      String              Hostname,
+                                      String              URITemplate,
+                                      HTTPMethod          HTTPMethod,
+                                      HTTPContentType     HTTPContentType             = null,
+                                      HTTPAuthentication  HostAuthentication          = null,
+                                      Boolean             URIAuthentication           = false,
+                                      Boolean             HTTPMethodAuthentication    = false,
+                                      Boolean             ContentTypeAuthentication   = false)
 
         {
 
@@ -236,7 +418,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region AddMethodCallback(MethodHandler, Host, URITemplate, HTTPMethod, HTTPContentType = null, HostAuthentication = false, URIAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false)
+        #region AddMethodCallback(MethodHandler, Hostnames, URITemplate, HTTPMethod, HTTPContentType = null, HostAuthentication = false, URIAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false)
 
         /// <summary>
         /// Add a method callback for the given URI template.
@@ -255,7 +437,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                                       String               URITemplate,
                                       HTTPMethod           HTTPMethod,
                                       HTTPContentType      HTTPContentType             = null,
-                                      Boolean              HostAuthentication          = false,
+                                      HTTPAuthentication   HostAuthentication          = null,
                                       Boolean              URIAuthentication           = false,
                                       Boolean              HTTPMethodAuthentication    = false,
                                       Boolean              ContentTypeAuthentication   = false)
@@ -276,6 +458,34 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #endregion
+
+        #region Get Method Callbacks
+
+        #region GetHandler(Host, URL, HTTPMethod = null, HTTPContentType = null)
+
+        /// <summary>
+        /// Return the best matching method handler for the given parameters.
+        /// </summary>
+        public Tuple<HTTPDelegate, IEnumerable<Object>> GetHandler(String           Host              = "*",
+                                                                   String           URL               = "/",
+                                                                   HTTPMethod       HTTPMethod        = null,
+                                                                   HTTPContentType  HTTPContentType   = null)
+        {
+
+            return _URIMapping.GetHandler(Host,
+                                          URL,
+                                          HTTPMethod,
+                                          HTTPContentType);
+
+        }
+
+        #endregion
+
+        #endregion
+
+
+        #region Add HTTP Server Sent Events
 
         #region AddEventSource(EventIdentification, MaxNumberOfCachedEvents = 100, RetryIntervall = null)
 
@@ -314,16 +524,16 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="IsSharedEventSource">Whether this event source will be shared.</param>
         /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
         /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
-        public HTTPEventSource AddEventSource(MethodInfo  MethodInfo,
-                                              String      Host,
-                                              String      URITemplate,
-                                              HTTPMethod  HTTPMethod,
-                                              String      EventIdentification,
-                                              UInt32      MaxNumberOfCachedEvents  = 100,
-                                              TimeSpan?   RetryIntervall           = null,
-                                              Boolean     IsSharedEventSource      = false,
-                                              Boolean     HostAuthentication       = false,
-                                              Boolean     URIAuthentication        = false)
+        public HTTPEventSource AddEventSource(MethodInfo          MethodInfo,
+                                              String              Host,
+                                              String              URITemplate,
+                                              HTTPMethod          HTTPMethod,
+                                              String              EventIdentification,
+                                              UInt32              MaxNumberOfCachedEvents  = 100,
+                                              TimeSpan?           RetryIntervall           = null,
+                                              Boolean             IsSharedEventSource      = false,
+                                              HTTPAuthentication  HostAuthentication       = null,
+                                              Boolean             URIAuthentication        = false)
 
         {
 
@@ -353,12 +563,12 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
         /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
-        public void AddEventSourceHandler(MethodInfo  MethodInfo,
-                                          String      Host,
-                                          String      URITemplate,
-                                          HTTPMethod  HTTPMethod,
-                                          Boolean     HostAuthentication  = false,
-                                          Boolean     URIAuthentication   = false)
+        public void AddEventSourceHandler(MethodInfo          MethodInfo,
+                                          String              Host,
+                                          String              URITemplate,
+                                          HTTPMethod          HTTPMethod,
+                                          HTTPAuthentication  HostAuthentication  = null,
+                                          Boolean             URIAuthentication   = false)
         {
 
             _URIMapping.AddEventSourceHandler(MethodInfo,
@@ -372,28 +582,9 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-
-
-        #region GetHandler(Host, URL, HTTPMethod = null, HTTPContentType = null)
-
-        /// <summary>
-        /// Return the best matching method handler for the given parameters.
-        /// </summary>
-        public Tuple<MethodInfo, IEnumerable<Object>> GetHandler(String           Host,
-                                                                 String           URL               = "/",
-                                                                 HTTPMethod       HTTPMethod        = null,
-                                                                 HTTPContentType  HTTPContentType   = null)
-        {
-
-            return _URIMapping.GetHandler(Host,
-                                          URL,
-                                          HTTPMethod,
-                                          HTTPContentType);
-
-        }
-
         #endregion
 
+        #region Get HTTP Server Sent Events
 
         #region GetEventSource(EventSourceIdentification)
 
@@ -434,6 +625,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #endregion
+
 
         #region GetErrorHandler(Host, URL, HTTPMethod = null, HTTPContentType = null, HTTPStatusCode = null)
 
@@ -459,6 +652,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+
+        #region Logging
 
         #region LogRequest(ServerTimestamp, Request)
 
@@ -528,41 +723,54 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #endregion
 
 
 
-        public String DefaultServerName
+        #region ProcessBoomerang(ConnectionId, Timestamp, HTTPRequest)
+
+        private HTTPResponse ProcessBoomerang(String       ConnectionId,
+                                              DateTime     Timestamp,
+                                              HTTPRequest  HTTPRequest)
         {
-            get { throw new NotImplementedException(); }
+
+            #region Check if any HTTP delegate matches...
+
+            var _ParsedCallbackWithParameters = GetHandler(HTTPRequest.Host,
+                                                           HTTPRequest.UrlPath,
+                                                           HTTPRequest.HTTPMethod,
+                                                           HTTPRequest.BestMatchingAcceptType);
+
+            if (_ParsedCallbackWithParameters != null)
+                return _ParsedCallbackWithParameters.Item1(HTTPRequest, new String[0]);
+
+            #endregion
+
+            #region ...or call default delegate!
+
+            var OnNotificationLocal = OnNotification;
+            if (OnNotificationLocal != null)
+                return OnNotificationLocal(ConnectionId,
+                                           Timestamp,
+                                           HTTPRequest);
+
+            #endregion
+
+            #region ...or fail!
+
+            return new HTTPResponseBuilder() {
+                HTTPStatusCode  = HTTPStatusCode.InternalServerError,
+                ContentType     = HTTPContentType.TEXT_UTF8,
+                Content         = "Error 500 - Internal Server Error!".ToUTF8Bytes(),
+                Server          = "Hermod",
+                Connection      = "close"
+            };
+
+            #endregion
+
         }
 
-
-
-        public void ProcessArrow(TCPConnection Message)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void ProcessExceptionOccured(Object Sender, DateTime Timestamp, Exception ExceptionMessage)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void ProcessCompleted(Object Sender, DateTime Timestamp, String Message = null)
-        {
-            throw new NotImplementedException();
-        }
-
-
-
-        public event BoomerangSenderHandler<Object, DateTime, String, HTTPRequest, TCPResult<HTTPResponse>> OnNotification;
-
-        public event StartedEventHandler OnStarted;
-
-        public event CompletedEventHandler OnCompleted;
-
-        public event ExceptionOccuredEventHandler OnExceptionOccured;
-
+        #endregion
 
     }
 
