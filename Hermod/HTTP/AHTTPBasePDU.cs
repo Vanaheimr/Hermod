@@ -43,14 +43,14 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The collection of all HTTP headers.
         /// </summary>
-        protected readonly IDictionary<String, Object> HeaderFields;
+        protected readonly Dictionary<String, Object>  HeaderFields;
 
-        protected readonly String[] _LineSeparator;
-        protected readonly Char[]   _ColonSeparator;
-        protected readonly Char[]   _SlashSeparator;
-        protected readonly Char[]   _SpaceSeparator;
-        protected readonly Char[]   _URLSeparator;
-        protected readonly Char[]   _HashSeparator;
+        protected readonly static String[] _LineSeparator   = new String[] { Environment.NewLine };
+        protected readonly static Char[]   _ColonSeparator  = new Char[]   { ':' };
+        protected readonly static Char[]   _SlashSeparator  = new Char[]   { '/' };
+        protected readonly static Char[]   _SpaceSeparator  = new Char[]   { ' ' };
+        protected readonly static Char[]   _URLSeparator    = new Char[]   { '?', '!' };
+        protected readonly static Char[]   _HashSeparator   = new Char[]   { '#' };
 
         #endregion
 
@@ -123,16 +123,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// </summary>
         public AHTTPBasePDU()
         {
-
-            _LineSeparator   = new String[] { Environment.NewLine };
-            _ColonSeparator  = new Char[]   { ':' };
-            _SlashSeparator  = new Char[]   { '/' };
-            _SpaceSeparator  = new Char[]   { ' ' };
-            _URLSeparator    = new Char[]   { '?', '!' };
-            _HashSeparator   = new Char[]   { '#' };
-
-            HeaderFields     = new Dictionary<String, Object>(StringComparer.OrdinalIgnoreCase);
-
+            HeaderFields  = new Dictionary<String, Object>(StringComparer.OrdinalIgnoreCase);
         }
 
         #endregion
@@ -147,7 +138,6 @@ namespace eu.Vanaheimr.Hermod.HTTP
         protected Boolean TryParseHeader(String HTTPHeader)
         {
 
-            this.HTTPStatusCode  = HTTPStatusCode.BadRequest;
             this.RawHTTPHeader   = HTTPHeader;
 
             try
@@ -155,9 +145,20 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                 var Lines = HTTPHeader.Split(_LineSeparator, StringSplitOptions.RemoveEmptyEntries);
 
+                #region Verify first line...
+
                 FirstPDULine = Lines.FirstOrDefault();
                 if (FirstPDULine == null)
+                {
+                    this.HTTPStatusCode = HTTPStatusCode.BadRequest;
                     return false;
+                }
+
+                //ToDo: Verify first line!
+
+                #endregion
+
+                #region Process all other header lines lazily...
 
                 String[] KeyValuePair = null;
 
@@ -166,18 +167,65 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                     KeyValuePair = Line.Split(_ColonSeparator, 2, StringSplitOptions.RemoveEmptyEntries);
 
-                    if (KeyValuePair.Length == 2)
+                    // Not valid for every HTTP header... but at least for most...
+                    if (KeyValuePair.Length == 1)
+                        HeaderFields.Add(KeyValuePair[0].Trim(), String.Empty);
+
+                    else // KeyValuePair.Length == 2
                         HeaderFields.Add(KeyValuePair[0].Trim(), KeyValuePair[1].Trim());
-                    else
-                        return false;
 
                 }
+
+                #endregion
 
             }
             catch (Exception)
             {
+                this.HTTPStatusCode = HTTPStatusCode.BadRequest;
                 return false;
             }
+
+            #region Check Host header
+
+            // rfc 2616 - Section 19.6.1.1
+            // A client that sends an HTTP/1.1 request MUST send a Host header.
+
+            // rfc 2616 - Section 14.23
+            // All Internet-based HTTP/1.1 servers MUST respond with a 400 (Bad Request)
+            // status code to any HTTP/1.1 request message which lacks a Host header field.
+
+            // rfc 2616 - Section 5.2 The Resource Identified by a Request
+            // 1. If Request-URI is an absoluteURI, the host is part of the Request-URI.
+            //    Any Host header field value in the request MUST be ignored.
+            // 2. If the Request-URI is not an absoluteURI, and the request includes a
+            //    Host header field, the host is determined by the Host header field value.
+            // 3. If the host as determined by rule 1 or 2 is not a valid host on the server,
+            //    the response MUST be a 400 (Bad Request) error message. (Not valid for proxies?!)
+            if (!HeaderFields.ContainsKey(HTTPHeaderField.Host.Name))
+            {
+                this.HTTPStatusCode = HTTPStatusCode.BadRequest;
+                return false;
+            }
+
+            // rfc 2616 - 3.2.2
+            // If the port is empty or not given, port 80 is assumed.
+            var    HostHeader  = HeaderFields[HTTPHeaderField.Host.Name].ToString().
+                                     Split(_ColonSeparator, StringSplitOptions.RemoveEmptyEntries).
+                                     Select(v => v.Trim()).
+                                     ToArray();
+
+            UInt16 HostPort    = 80;
+
+            if (HostHeader.Length == 1)
+                HeaderFields[HTTPHeaderField.Host.Name] = HeaderFields[HTTPHeaderField.Host.Name].ToString() + ":80";
+
+            else if ((HostHeader.Length == 2 && !UInt16.TryParse(HostHeader[1], out HostPort)) || HostHeader.Length > 2)
+            {
+                this.HTTPStatusCode = HTTPStatusCode.BadRequest;
+                return false;
+            }
+
+            #endregion
 
             this.HTTPStatusCode = HTTPStatusCode.OK;
             return true;

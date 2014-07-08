@@ -153,8 +153,9 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 HostnameNode _HostnameNode = null;
                 if (!_HostnameNodes.TryGetValue(Hostname, out _HostnameNode))
                 {
-                    _HostnameNode = new HostnameNode(Hostname, HostAuthentication);
-                    _HostnameNodes.Add(Hostname, _HostnameNode);
+                    // Note: Use _.Hostname as the input is sanitized!
+                    _HostnameNode = _HostnameNodes.AddAndReturnValue(_ => _.Hostname,
+                                                                     new HostnameNode(Hostname, HostAuthentication));
                 }
 
                 #endregion

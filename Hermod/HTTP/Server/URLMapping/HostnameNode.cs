@@ -18,6 +18,7 @@
 #region Usings
 
 using System;
+using System.Linq;
 using System.Collections.Generic;
 
 #endregion
@@ -125,7 +126,33 @@ namespace eu.Vanaheimr.Hermod.HTTP
                               HTTPDelegate        DefaultErrorHandler  = null)
         {
 
-            this._Hostname             = Hostname;
+            #region Check Hostname
+
+            var    HostHeader  = Hostname.Split(new Char[1] { ':' }, StringSplitOptions.None).Select(v => v.Trim()).ToArray();
+            UInt16 HostPort    = 80;
+
+            // 1.2.3.4          => 1.2.3.4:80
+            // 1.2.3.4:80       => ok
+            // 1.2.3.4 : 80     => ok
+            // 1.2.3.4:*        => ok
+            // 1.2.3.4:a        => invalid
+            // 1.2.3.4:80:      => ok
+            // 1.2.3.4:80:0     => invalid
+
+            // rfc 2616 - 3.2.2
+            // If the port is empty or not given, port 80 is assumed.
+            if (HostHeader.Length == 1)
+                this._Hostname = Hostname + ":" + HostPort;
+
+            else if ((HostHeader.Length == 2 && (!UInt16.TryParse(HostHeader[1], out HostPort) && HostHeader[1] != "*")) ||
+                      HostHeader.Length  > 2)
+                      throw new ArgumentException("Invalid Hostname!", "Hostname");
+
+            else
+                this._Hostname = HostHeader[0] + ":" + HostHeader[1];
+
+            #endregion
+
             this._HostAuthentication   = (HostAuthentication != null) ? HostAuthentication : _ => true;
             this._RequestHandler       = RequestHandler;
             this._DefaultErrorHandler  = DefaultErrorHandler;
