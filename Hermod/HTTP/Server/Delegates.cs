@@ -38,7 +38,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
     /// <param name="HTTPServer">The sending HTTP server.</param>
     /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
     /// <param name="Request">The incoming request.</param>
-    public delegate void RequestLogHandler(IHTTPServer HTTPServer, DateTime ServerTimestamp, HTTPRequest Request);
+    public delegate void RequestLogHandler(HTTPServer HTTPServer, DateTime ServerTimestamp, HTTPRequest Request);
 
 
     /// <summary>
@@ -48,7 +48,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
     /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
     /// <param name="Request">The incoming request.</param>
     /// <param name="Response">The outgoing response.</param>
-    public delegate void AccessLogHandler (IHTTPServer HTTPServer, DateTime ServerTimestamp, HTTPRequest Request, HTTPResponse Response);
+    public delegate void AccessLogHandler (HTTPServer HTTPServer, DateTime ServerTimestamp, HTTPRequest Request, HTTPResponse Response);
 
 
     /// <summary>
@@ -71,7 +71,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
     /// <param name="HTTPResponse">The outgoing response.</param>
     /// <param name="Error">The occured error.</param>
     /// <param name="LastException">The last occured exception.</param>
-    public delegate void ErrorLogHandler(IHTTPServer HTTPServer, DateTime ServerTimestamp, HTTPRequest Request, HTTPResponse Response, String Error = null, Exception LastException = null);
+    public delegate void ErrorLogHandler(HTTPServer HTTPServer, DateTime ServerTimestamp, HTTPRequest Request, HTTPResponse Response, String Error = null, Exception LastException = null);
 
 
 

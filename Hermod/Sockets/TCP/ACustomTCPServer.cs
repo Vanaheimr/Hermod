@@ -389,7 +389,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
         }
 
-        protected internal void SendConnectionClosed(ITCPServer          Sender,
+        protected internal void SendConnectionClosed(ITCPServer          TCPServer,
                                                      DateTime            ServerTimestamp,
                                                      IPSocket            RemoteSocket,
                                                      String              ConnectionId,
@@ -398,7 +398,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
             var OnConnectionClosedLocal = OnConnectionClosed;
             if (OnConnectionClosedLocal != null)
-                OnConnectionClosedLocal(Sender, ServerTimestamp, RemoteSocket, ConnectionId, ClosedBy);
+                OnConnectionClosedLocal(TCPServer, ServerTimestamp, RemoteSocket, ConnectionId, ClosedBy);
 
         }
 

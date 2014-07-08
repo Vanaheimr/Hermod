@@ -34,18 +34,27 @@ namespace eu.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// A HTTP server.
+    /// A HTTP/1.1 server.
     /// </summary>
-    public class HTTPServer : ACustomTCPServer,
-                              IHTTPServer
+    public class HTTPServer : IBoomerangSender<String, DateTime, HTTPRequest, HTTPResponse>
     {
 
         #region Data
 
-        internal const    String            __DefaultServerName  = "Hermod HTTP Server v0.9";
-        private readonly  URIMapping        _URIMapping;
+        internal const    String             __DefaultServerName  = "Vanaheimr Hermod HTTP Service v0.9";
+        private readonly  URIMapping         _URIMapping;
 
-        private readonly  HTTPProcessor     _HTTPProcessor;
+        private readonly  HTTPProcessor      _HTTPProcessor;
+        private readonly  List<TCPServer>    _TCPServers;
+
+        private String                       _ServerThreadName;
+        private ThreadPriority               _ServerThreadPriority;
+        private Boolean                      _ServerThreadIsBackground;
+        private Func<IPSocket, String>       _ConnectionIdBuilder;
+        private Func<TCPConnection, String>  _ConnectionThreadsNameCreator;
+        private ThreadPriority               _ConnectionThreadsPriority;
+        private Boolean                      _ConnectionThreadsAreBackground;
+        private UInt64                       _ConnectionTimeoutSeconds;
 
         #endregion
 
@@ -148,84 +157,42 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region Events
 
-        public event BoomerangSenderHandler<String, DateTime, HTTPRequest, HTTPResponse> OnNotification;
+        public event StartedEventHandler                                                    OnStarted;
+
+        public event NewConnectionHandler                                                   OnNewConnection;
+
+        public event BoomerangSenderHandler<String, DateTime, HTTPRequest, HTTPResponse>    OnNotification;
+
+        public event ConnectionClosedHandler                                                OnConnectionClosed;
+
+        public event CompletedEventHandler                                                  OnCompleted;
+
+        public event ExceptionOccuredEventHandler                                           OnExceptionOccured;
 
 
         /// <summary>
         /// An event called whenever a request came in.
         /// </summary>
-        public event RequestLogHandler  RequestLog;
+        public event RequestLogHandler                                                      RequestLog;
 
         /// <summary>
         /// An event called whenever a request could successfully be processed.
         /// </summary>
-        public event AccessLogHandler   AccessLog;
+        public event AccessLogHandler                                                       AccessLog;
 
         /// <summary>
         /// An event called whenever a request resulted in an error.
         /// </summary>
-        public event ErrorLogHandler    ErrorLog;
+        public event ErrorLogHandler                                                        ErrorLog;
 
         #endregion
 
         #region Constructor(s)
 
-        #region HTTPServer(Port, ...)
-
-        /// <summary>
-        /// Initialize the HTTP server using IPAddress.Any and the given parameters.
-        /// </summary>
-        /// <param name="Port">The listening port</param>
-        /// <param name="DefaultServername">The default HTTP servername, used whenever no HTTP Host-header had been given.</param>
-        /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
-        /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
-        /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
-        /// <param name="ConnectionIdBuilder"></param>
-        /// <param name="ConnectionThreadsNameCreator">An optional delegate to set the name of the TCP connection threads.</param>
-        /// <param name="ConnectionThreadsPriority">The optional priority of the TCP connection threads.</param>
-        /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
-        /// <param name="ConnectionTimeoutSeconds">The TCP client timeout for all incoming client connections in seconds.</param>
-        /// <param name="Autostart">Start the TCP server thread immediately.</param>
-        public HTTPServer(IPPort                       Port,
-                          String                       DefaultServername               = __DefaultServerName,
-                          Char[]                       SplitCharacters                 = null,
-                          String                       ServerThreadName                = null,
-                          ThreadPriority               ServerThreadPriority            = ThreadPriority.AboveNormal,
-                          Boolean                      ServerThreadIsBackground        = true,
-                          Func<IPSocket, String>       ConnectionIdBuilder             = null,
-                          Func<TCPConnection, String>  ConnectionThreadsNameCreator    = null,
-                          ThreadPriority               ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
-                          Boolean                      ConnectionThreadsAreBackground  = true,
-                          UInt64                       ConnectionTimeoutSeconds        = 30,
-                          Boolean                      Autostart                       = false)
-
-            : this(IPv4Address.Any,
-                   Port,
-                   DefaultServername,
-                   SplitCharacters,
-                   ServerThreadName,
-                   ServerThreadPriority,
-                   ServerThreadIsBackground,
-                   ConnectionIdBuilder,
-                   ConnectionThreadsNameCreator,
-                   ConnectionThreadsPriority,
-                   ConnectionThreadsAreBackground,
-                   ConnectionTimeoutSeconds,
-                   Autostart)
-
-        { }
-
-        #endregion
-
-        #region HTTPServer(IIPAddress, Port, ...)
-
         /// <summary>
         /// Initialize the HTTP server using the given parameters.
         /// </summary>
-        /// <param name="IIPAddress">The listening IP address(es)</param>
-        /// <param name="Port">The listening port</param>
-        /// <param name="DefaultServername">The default HTTP servername, used whenever no HTTP Host-header had been given.</param>
-        /// <param name="Mapper">A delegate to transform the incoming TCP connection data into custom data structures.</param>
+        /// <param name="DefaultServerName">The default HTTP servername, used whenever no HTTP Host-header had been given.</param>
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
@@ -234,11 +201,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="ConnectionThreadsPriority">The optional priority of the TCP connection threads.</param>
         /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
         /// <param name="ConnectionTimeoutSeconds">The TCP client timeout for all incoming client connections in seconds.</param>
-        /// <param name="Autostart">Start the TCP server thread immediately.</param>
-        public HTTPServer(IIPAddress                   IIPAddress,
-                          IPPort                       Port,
-                          String                       DefaultServername               = __DefaultServerName,
-                          Char[]                       SplitCharacters                 = null,
+        /// <param name="Autostart">Start the HTTP server thread immediately.</param>
+        public HTTPServer(String                       DefaultServerName               = __DefaultServerName,
                           String                       ServerThreadName                = null,
                           ThreadPriority               ServerThreadPriority            = ThreadPriority.AboveNormal,
                           Boolean                      ServerThreadIsBackground        = true,
@@ -249,35 +213,26 @@ namespace eu.Vanaheimr.Hermod.HTTP
                           UInt64                       ConnectionTimeoutSeconds        = 30,
                           Boolean                      Autostart                       = false)
 
-            : base(IIPAddress,
-                   Port,
-                   ServerThreadName,
-                   ServerThreadPriority,
-                   ServerThreadIsBackground,
-                   ConnectionIdBuilder,
-                   ConnectionThreadsNameCreator,
-                   ConnectionThreadsPriority,
-                   ConnectionThreadsAreBackground,
-                   ConnectionTimeoutSeconds)
-
         {
 
+            this._TCPServers                       = new List<TCPServer>();
+            this._ServerThreadName                 = ServerThreadName;
+            this._ServerThreadPriority             = ServerThreadPriority;
+            this._ServerThreadIsBackground         = ServerThreadIsBackground;
+            this._ConnectionIdBuilder              = ConnectionIdBuilder;
+            this._ConnectionThreadsNameCreator     = ConnectionThreadsNameCreator;
+            this._ConnectionThreadsPriority        = ConnectionThreadsPriority;
+            this._ConnectionThreadsAreBackground   = ConnectionThreadsAreBackground;
+            this._ConnectionTimeoutSeconds         = ConnectionTimeoutSeconds;
 
-            this._DefaultServerName  = DefaultServerName;
-            this._URIMapping         = new URIMapping();
-            this._AllResources       = new Dictionary<String, Assembly>();
+            this._DefaultServerName                = DefaultServerName;
+            this._URIMapping                       = new URIMapping();
+            this._AllResources                     = new Dictionary<String, Assembly>();
 
-            _HTTPProcessor           = new HTTPProcessor();
-            _TCPServer.SendTo(_HTTPProcessor);
-            _TCPServer.OnNewConnection    += SendNewConnection;
-            _TCPServer.OnConnectionClosed += SendConnectionClosed;
-
-            _HTTPProcessor.OnNotification += ProcessBoomerang;
-            _HTTPProcessor.RequestLog     += (HTTPProcessor, ServerTimestamp, Request)                                 => LogRequest(ServerTimestamp, Request);
-            _HTTPProcessor.ErrorLog       += (HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException) => LogError  (ServerTimestamp, Request, Response, Error, LastException);
-
-            //_TCPCSVCommandProcessor = new TCPCSVCommandProcessor();
-            //_TCPCSVProcessor.ConnectTo(_TCPCSVCommandProcessor);
+            _HTTPProcessor                         = new HTTPProcessor();
+            _HTTPProcessor.OnNotification         += ProcessBoomerang;
+            _HTTPProcessor.RequestLog             += (HTTPProcessor, ServerTimestamp, Request)                                 => LogRequest(ServerTimestamp, Request);
+            _HTTPProcessor.ErrorLog               += (HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException) => LogError  (ServerTimestamp, Request, Response, Error, LastException);
 
             if (Autostart)
                 Start();
@@ -286,54 +241,278 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region HTTPServer(IPSocket, ...)
+
+        // Underlying TCP sockets...
+
+        #region AttachTCPPorts(params Ports)
+
+        public HTTPServer AttachTCPPorts(params IPPort[] Ports)
+        {
+
+            lock (_TCPServers)
+            {
+
+                foreach (var Port in Ports)
+                {
+
+                    var _TCPServer = _TCPServers.AddAndReturnElement(new TCPServer(IPv4Address.Any,
+                                                                                   Port,
+                                                                                   _ServerThreadName,
+                                                                                   _ServerThreadPriority,
+                                                                                   _ServerThreadIsBackground,
+                                                                                   _ConnectionIdBuilder,
+                                                                                   _ConnectionThreadsNameCreator,
+                                                                                   _ConnectionThreadsPriority,
+                                                                                   _ConnectionThreadsAreBackground,
+                                                                                   _ConnectionTimeoutSeconds,
+                                                                                   false));
+
+                    _TCPServer.OnStarted          += SendStarted;
+                    _TCPServer.SendTo(_HTTPProcessor);
+                    _TCPServer.OnNewConnection    += SendNewConnection;
+                    _TCPServer.OnConnectionClosed += SendConnectionClosed;
+                    _TCPServer.OnCompleted        += SendCompleted;
+                    _TCPServer.OnExceptionOccured += SendExceptionOccured;
+
+                }
+
+                return this;
+
+            }
+
+        }
+
+        #endregion
+
+        #region AttachTCPSockets(params Sockets)
+
+        public HTTPServer AttachTCPSockets(params IPSocket[] Sockets)
+        {
+
+            lock (_TCPServers)
+            {
+
+                foreach (var Socket in Sockets)
+                {
+
+                    var _TCPServer = _TCPServers.AddAndReturnElement(new TCPServer(Socket,
+                                                                                   _ServerThreadName,
+                                                                                   _ServerThreadPriority,
+                                                                                   _ServerThreadIsBackground,
+                                                                                   _ConnectionIdBuilder,
+                                                                                   _ConnectionThreadsNameCreator,
+                                                                                   _ConnectionThreadsPriority,
+                                                                                   _ConnectionThreadsAreBackground,
+                                                                                   _ConnectionTimeoutSeconds,
+                                                                                   false));
+
+                    _TCPServer.OnStarted          += SendStarted;
+                    _TCPServer.SendTo(_HTTPProcessor);
+                    _TCPServer.OnNewConnection    += SendNewConnection;
+                    _TCPServer.OnConnectionClosed += SendConnectionClosed;
+                    _TCPServer.OnCompleted        += SendCompleted;
+                    _TCPServer.OnExceptionOccured += SendExceptionOccured;
+
+                }
+
+                return this;
+
+            }
+
+        }
+
+        #endregion
+
+
+        // Events...
+
+        #region SendStarted(Sender, Timestamp, Message = null)
+
+        private void SendStarted(Object Sender, DateTime Timestamp, String Message = null)
+        {
+
+            var OnStartedLocal = OnStarted;
+            if (OnStartedLocal != null)
+                OnStartedLocal(Sender, Timestamp, Message);
+
+        }
+
+        #endregion
+
+        #region SendNewConnection(TCPServer, Timestamp, TCPConnection)
+
+        private void SendNewConnection(ITCPServer     TCPServer,
+                                       DateTime       Timestamp,
+                                       TCPConnection  TCPConnection)
+        {
+
+            var OnNewConnectionLocal = OnNewConnection;
+            if (OnNewConnectionLocal != null)
+                OnNewConnectionLocal(TCPServer, Timestamp, TCPConnection);
+
+        }
+
+        #endregion
+
+        #region ProcessBoomerang(ConnectionId, Timestamp, HTTPRequest)
+
+        private HTTPResponse ProcessBoomerang(String       ConnectionId,
+                                              DateTime     Timestamp,
+                                              HTTPRequest  HTTPRequest)
+        {
+
+            #region Check if any HTTP delegate matches...
+
+            var _ParsedCallbackWithParameters = GetHandler(HTTPRequest.Host,
+                                                           HTTPRequest.UrlPath,
+                                                           HTTPRequest.HTTPMethod,
+                                                           HTTPRequest.BestMatchingAcceptType);
+
+            if (_ParsedCallbackWithParameters != null)
+                return _ParsedCallbackWithParameters.Item1(HTTPRequest, new String[0]);
+
+            #endregion
+
+            #region ...or call default delegate!
+
+            var OnNotificationLocal = OnNotification;
+            if (OnNotificationLocal != null)
+                return OnNotificationLocal(ConnectionId,
+                                           Timestamp,
+                                           HTTPRequest);
+
+            #endregion
+
+            #region ...or fail!
+
+            return new HTTPResponseBuilder() {
+                HTTPStatusCode  = HTTPStatusCode.InternalServerError,
+                ContentType     = HTTPContentType.TEXT_UTF8,
+                Content         = "Error 500 - Internal Server Error!".ToUTF8Bytes(),
+                Server          = "Hermod",
+                Connection      = "close"
+            };
+
+            #endregion
+
+        }
+
+        #endregion
+
+        #region SendConnectionClosed(TCPServer, ServerTimestamp, RemoteSocket, ConnectionId, ClosedBy)
+
+        private void SendConnectionClosed(ITCPServer          TCPServer,
+                                          DateTime            ServerTimestamp,
+                                          IPSocket            RemoteSocket,
+                                          String              ConnectionId,
+                                          ConnectionClosedBy  ClosedBy)
+        {
+
+            var OnConnectionClosedLocal = OnConnectionClosed;
+            if (OnConnectionClosedLocal != null)
+                OnConnectionClosedLocal(TCPServer, ServerTimestamp, RemoteSocket, ConnectionId, ClosedBy);
+
+        }
+
+        #endregion
+
+        #region SendCompleted(Sender, Timestamp, Message = null)
+
+        private void SendCompleted(Object Sender, DateTime Timestamp, String Message = null)
+        {
+
+            var OnCompletedLocal = OnCompleted;
+            if (OnCompletedLocal != null)
+                OnCompletedLocal(Sender, Timestamp, Message);
+
+        }
+
+        #endregion
+
+        #region SendExceptionOccured(Sender, Timestamp, Exception)
+
+        private void SendExceptionOccured(Object Sender, DateTime Timestamp, Exception Exception)
+        {
+
+            var OnExceptionOccuredLocal = OnExceptionOccured;
+            if (OnExceptionOccuredLocal != null)
+                OnExceptionOccuredLocal(Sender, Timestamp, Exception);
+
+        }
+
+        #endregion
+
+
+        // Logging...
+
+        #region LogRequest(ServerTimestamp, Request)
 
         /// <summary>
-        /// Initialize the HTTP server using IPAddress.Any and the given parameters.
+        /// Log an incoming request.
         /// </summary>
-        /// <param name="IPSocket">The IP socket to listen.</param>
-        /// <param name="DefaultServername">The default HTTP servername, used whenever no HTTP Host-header had been given.</param>
-        /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
-        /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
-        /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
-        /// <param name="ConnectionIdBuilder"></param>
-        /// <param name="ConnectionThreadsNameCreator">An optional delegate to set the name of the TCP connection threads.</param>
-        /// <param name="ConnectionThreadsPriority">The optional priority of the TCP connection threads.</param>
-        /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
-        /// <param name="ConnectionTimeoutSeconds">The TCP client timeout for all incoming client connections in seconds.</param>
-        /// <param name="Autostart">Start the TCP server thread immediately.</param>
-        public HTTPServer(IPSocket                     IPSocket,
-                          String                       DefaultServername               = __DefaultServerName,
-                          Char[]                       SplitCharacters                 = null,
-                          String                       ServerThreadName                = null,
-                          ThreadPriority               ServerThreadPriority            = ThreadPriority.AboveNormal,
-                          Boolean                      ServerThreadIsBackground        = true,
-                          Func<IPSocket, String>       ConnectionIdBuilder             = null,
-                          Func<TCPConnection, String>  ConnectionThreadsNameCreator    = null,
-                          ThreadPriority               ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
-                          Boolean                      ConnectionThreadsAreBackground  = true,
-                          UInt64                       ConnectionTimeoutSeconds        = 30,
-                          Boolean                      Autostart                       = false)
+        /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
+        /// <param name="Request">The incoming request.</param>
+        public void LogRequest(DateTime     ServerTimestamp,
+                               HTTPRequest  Request)
+        {
 
-            : this(IPSocket.IPAddress,
-                   IPSocket.Port,
-                   DefaultServername,
-                   SplitCharacters,
-                   ServerThreadName,
-                   ServerThreadPriority,
-                   ServerThreadIsBackground,
-                   ConnectionIdBuilder,
-                   ConnectionThreadsNameCreator,
-                   ConnectionThreadsPriority,
-                   ConnectionThreadsAreBackground,
-                   ConnectionTimeoutSeconds,
-                   Autostart)
+            var RequestLogLocal = RequestLog;
 
-        { }
+            if (RequestLogLocal != null)
+                RequestLogLocal(this, ServerTimestamp, Request);
+
+        }
 
         #endregion
 
+        #region LogAccess(ServerTimestamp, Request, Response)
+
+        /// <summary>
+        /// Log an successful request processing.
+        /// </summary>
+        /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
+        /// <param name="Request">The incoming request.</param>
+        /// <param name="Response">The outgoing response.</param>
+        public void LogAccess(DateTime      ServerTimestamp,
+                              HTTPRequest   Request,
+                              HTTPResponse  Response)
+        {
+
+            var AccessLogLocal = AccessLog;
+
+            if (AccessLogLocal != null)
+                AccessLogLocal(this, ServerTimestamp, Request, Response);
+
+        }
+
         #endregion
+
+        #region LogError(ServerTimestamp, Request, Response, Error = null, LastException = null)
+
+        /// <summary>
+        /// Log an error during request processing.
+        /// </summary>
+        /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
+        /// <param name="Request">The incoming request.</param>
+        /// <param name="HTTPResponse">The outgoing response.</param>
+        /// <param name="Error">The occured error.</param>
+        /// <param name="LastException">The last occured exception.</param>
+        public void LogError(DateTime      ServerTimestamp,
+                             HTTPRequest   Request,
+                             HTTPResponse  Response,
+                             String        Error          = null,
+                             Exception     LastException  = null)
+        {
+
+            var ErrorLogLocal = ErrorLog;
+
+            if (ErrorLogLocal != null)
+                ErrorLogLocal(this, ServerTimestamp, Request, Response, Error, LastException);
+
+        }
+
+        #endregion
+
 
 
         #region Add Method Callbacks
@@ -652,121 +831,76 @@ namespace eu.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        // Start/Stop the HTTP server
 
-        #region Logging
+        #region Start()
 
-        #region LogRequest(ServerTimestamp, Request)
-
-        /// <summary>
-        /// Log an incoming request.
-        /// </summary>
-        /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
-        /// <param name="Request">The incoming request.</param>
-        public void LogRequest(DateTime     ServerTimestamp,
-                               HTTPRequest  Request)
+        public void Start()
         {
 
-            var RequestLogLocal = RequestLog;
+            lock (_TCPServers)
+            {
 
-            if (RequestLogLocal != null)
-                RequestLogLocal(this, ServerTimestamp, Request);
+                foreach (var TCPServer in _TCPServers)
+                    TCPServer.Start();
+
+                SendStarted(this, DateTime.Now);
+
+            }
 
         }
 
         #endregion
 
-        #region LogAccess(ServerTimestamp, Request, Response)
+        #region Start(Delay, InBackground = true)
 
-        /// <summary>
-        /// Log an successful request processing.
-        /// </summary>
-        /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
-        /// <param name="Request">The incoming request.</param>
-        /// <param name="Response">The outgoing response.</param>
-        public void LogAccess(DateTime      ServerTimestamp,
-                              HTTPRequest   Request,
-                              HTTPResponse  Response)
+        public void Start(TimeSpan Delay, Boolean InBackground = true)
         {
 
-            var AccessLogLocal = AccessLog;
+            lock (_TCPServers)
+            {
 
-            if (AccessLogLocal != null)
-                AccessLogLocal(this, ServerTimestamp, Request, Response);
+                foreach (var TCPServer in _TCPServers)
+                    TCPServer.Start(Delay, InBackground);
+
+                SendStarted(this, DateTime.Now);
+
+            }
 
         }
 
         #endregion
 
-        #region LogError(ServerTimestamp, Request, Response, Error = null, LastException = null)
+        #region Shutdown(Message = null, Wait = true)
 
-        /// <summary>
-        /// Log an error during request processing.
-        /// </summary>
-        /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
-        /// <param name="Request">The incoming request.</param>
-        /// <param name="HTTPResponse">The outgoing response.</param>
-        /// <param name="Error">The occured error.</param>
-        /// <param name="LastException">The last occured exception.</param>
-        public void LogError(DateTime      ServerTimestamp,
-                             HTTPRequest   Request,
-                             HTTPResponse  Response,
-                             String        Error          = null,
-                             Exception     LastException  = null)
+        public void Shutdown(String Message = null, Boolean Wait = true)
         {
 
-            var ErrorLogLocal = ErrorLog;
+            lock (_TCPServers)
+            {
 
-            if (ErrorLogLocal != null)
-                ErrorLogLocal(this, ServerTimestamp, Request, Response, Error, LastException);
+                foreach (var TCPServer in _TCPServers)
+                    TCPServer.Shutdown(Message, Wait);
+
+                SendCompleted(this, DateTime.Now, Message);
+
+            }
 
         }
 
         #endregion
 
-        #endregion
 
+        #region Dispose()
 
-
-        #region ProcessBoomerang(ConnectionId, Timestamp, HTTPRequest)
-
-        private HTTPResponse ProcessBoomerang(String       ConnectionId,
-                                              DateTime     Timestamp,
-                                              HTTPRequest  HTTPRequest)
+        public void Dispose()
         {
 
-            #region Check if any HTTP delegate matches...
-
-            var _ParsedCallbackWithParameters = GetHandler(HTTPRequest.Host,
-                                                           HTTPRequest.UrlPath,
-                                                           HTTPRequest.HTTPMethod,
-                                                           HTTPRequest.BestMatchingAcceptType);
-
-            if (_ParsedCallbackWithParameters != null)
-                return _ParsedCallbackWithParameters.Item1(HTTPRequest, new String[0]);
-
-            #endregion
-
-            #region ...or call default delegate!
-
-            var OnNotificationLocal = OnNotification;
-            if (OnNotificationLocal != null)
-                return OnNotificationLocal(ConnectionId,
-                                           Timestamp,
-                                           HTTPRequest);
-
-            #endregion
-
-            #region ...or fail!
-
-            return new HTTPResponseBuilder() {
-                HTTPStatusCode  = HTTPStatusCode.InternalServerError,
-                ContentType     = HTTPContentType.TEXT_UTF8,
-                Content         = "Error 500 - Internal Server Error!".ToUTF8Bytes(),
-                Server          = "Hermod",
-                Connection      = "close"
-            };
-
-            #endregion
+            lock (_TCPServers)
+            {
+                foreach (var TCPServer in _TCPServers)
+                    TCPServer.Dispose();
+            }
 
         }
 
