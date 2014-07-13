@@ -699,12 +699,13 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                     #region Get and check callback...
 
-                    var _ParsedCallbackWithParameters = HTTPServer.GetHandler(RequestHeader.Host,
-                                                                              RequestHeader.UrlPath,
-                                                                              RequestHeader.HTTPMethod,
-                                                                              RequestHeader.BestMatchingAcceptType);
+                    var _ParsedCallbackWithParameters = HTTPServer.GetHandler(RequestHeader);
+                    //.Host,
+                                                                              //RequestHeader.UrlPath,
+                                                                              //RequestHeader.HTTPMethod,
+                                                                              //RequestHeader.BestMatchingAcceptType);
 
-                    if (_ParsedCallbackWithParameters == null || _ParsedCallbackWithParameters.Item1 == null)
+                    if (_ParsedCallbackWithParameters == null)// || _ParsedCallbackWithParameters.Item1 == null)
                     {
                         SendErrorpage(HTTPStatusCode.InternalServerError, "Could not find a valid handler for URL: " + RequestHeader.UrlPath);
                         return;

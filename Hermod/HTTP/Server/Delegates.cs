@@ -79,9 +79,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
     /// A HTTP delegate.
     /// </summary>
     /// <param name="Request">The HTTP request.</param>
-    /// <param name="QueryParameters">The parsed query parameters.</param>
     /// <returns>A HTTP response.</returns>
-    public delegate HTTPResponse HTTPDelegate(HTTPRequest Request, String[] QueryParameters);
+    public delegate HTTPResponse HTTPDelegate(HTTPRequest Request);
 
 
 

@@ -39,144 +39,194 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region Properties
 
+        #region URITemplate
+
+        private readonly String _URITemplate;
+
         /// <summary>
         /// The URL template for this service.
         /// </summary>
-        public String       URITemplate         { get; private set; }
+        public String URITemplate
+        {
+            get
+            {
+                return _URITemplate;
+            }
+        }
+
+        #endregion
+
+        #region URIRegex
+
+        private readonly Regex _URIRegex;
 
         /// <summary>
         /// The URI regex for this service.
         /// </summary>
-        public Regex        URIRegex            { get; private set; }
+        public Regex URIRegex
+        {
+            get
+            {
+                return _URIRegex;
+            }
+        }
+
+        #endregion
+
+        #region ParameterCount
+
+        private readonly UInt16 _ParameterCount;
 
         /// <summary>
         /// The number of parameters within this URLNode for shorting best-matching URLs.
         /// </summary>
-        public UInt16       ParameterCount      { get; private set; }
+        public UInt16 ParameterCount
+        {
+            get
+            {
+                return _ParameterCount;
+            }
+        }
+
+        #endregion
+
+        #region SortLength
+
+        private readonly UInt16 _SortLength;
 
         /// <summary>
         /// The lenght of the minimalized URL template for shorting best-matching URLs.
         /// </summary>
-        public UInt16       SortLength          { get; private set; }
+        public UInt16 SortLength
+        {
+            get
+            {
+                return _SortLength;
+            }
+        }
+
+        #endregion
+
+        #region RequestHandler
+
+        private readonly HTTPDelegate _RequestHandler;
+
+        public HTTPDelegate RequestHandler
+        {
+            get
+            {
+                return _RequestHandler;
+            }
+        }
+
+        #endregion
+
+        #region URIAuthentication
+
+        private readonly HTTPAuthentication _URIAuthentication;
 
         /// <summary>
-        /// The method handler.
+        /// This and all subordinated nodes demand an explicit URI authentication.
         /// </summary>
-        public MethodInfo   MethodHandler       { get; private set; }
+        public HTTPAuthentication URIAuthentication
+        {
+            get
+            {
+                return _URIAuthentication;
+            }
+        }
 
-        /// <summary>
-        /// A delegate called for each incoming HTTP request.
-        /// </summary>
-        public HTTPDelegate HTTPDelegate        { get; private set; }
+        #endregion
 
-        /// <summary>
-        /// This and all subordinated nodes demand an explicit url authentication.
-        /// </summary>
-        public Boolean      URLAuthentication   { get; private set; }
+        #region DefaultErrorHandler
+
+        private readonly HTTPDelegate _DefaultErrorHandler;
 
         /// <summary>
         /// A general error handling method.
         /// </summary>
-        public MethodInfo   URLErrorHandler     { get; private set; }
+        public HTTPDelegate DefaultErrorHandler
+        {
+            get
+            {
+                return _DefaultErrorHandler;
+            }
+        }
+
+        #endregion
+
+        #region ErrorHandlers
+
+        private readonly Dictionary<HTTPStatusCode, HTTPDelegate> _ErrorHandlers;
 
         /// <summary>
         /// Error handling methods for specific http status codes.
         /// </summary>
-        public Dictionary<HTTPStatusCode, MethodInfo> URIErrorHandlers { get; private set; }
+        public Dictionary<HTTPStatusCode, HTTPDelegate> ErrorHandlers
+        {
+            get
+            {
+                return _ErrorHandlers;
+            }
+        }
+
+        #endregion
+
+        #region HTTPMethods
+
+        private readonly Dictionary<HTTPMethod, HTTPMethodNode> _HTTPMethods;
 
         /// <summary>
         /// A mapping from HTTPMethods to HTTPMethodNodes.
         /// </summary>
-        public Dictionary<HTTPMethod, HTTPMethodNode> HTTPMethods      { get; private set; }
+        public Dictionary<HTTPMethod, HTTPMethodNode> HTTPMethods
+        {
+            get
+            {
+                return _HTTPMethods;
+            }
+        }
+
+        #endregion
 
         #endregion
 
         #region Constructor(s)
 
-        #region URLNode(URITemplate, MethodHandler, URIAuthentication = false, URLErrorHandler = null)
-
         /// <summary>
         /// Creates a new URLNode.
         /// </summary>
         /// <param name="URITemplate">The URI template for this service.</param>
-        /// <param name="MethodHandler">The method handler.</param>
-        /// <param name="URIAuthentication">This and all subordinated nodes demand an explicit url authentication.</param>
-        /// <param name="URIErrorHandler">A general error handling method.</param>
-        public URINode(String      URITemplate,
-                       MethodInfo  MethodHandler,
-                       Boolean     URIAuthentication  = false,
-                       MethodInfo  URIErrorHandler    = null)
+        /// <param name="URIAuthentication">This and all subordinated nodes demand an explicit URI authentication.</param>
+        /// <param name="RequestHandler">The default delegate to call for any request to this URI template.</param>
+        /// <param name="DefaultErrorHandler">The default error handling delegate.</param>
+        public URINode(String              URITemplate,
+                       HTTPAuthentication  URIAuthentication    = null,
+                       HTTPDelegate        RequestHandler       = null,
+                       HTTPDelegate        DefaultErrorHandler  = null)
 
         {
 
             URITemplate.FailIfNullOrEmpty();
 
-            if (MethodHandler != null)
-                throw new ArgumentNullException();
+            this._URITemplate           = URITemplate;
+            this._RequestHandler        = RequestHandler;
+            this._URIAuthentication     = URIAuthentication;
+            this._DefaultErrorHandler   = DefaultErrorHandler;
+            this._ErrorHandlers         = new Dictionary<HTTPStatusCode, HTTPDelegate>();
+            this._HTTPMethods           = new Dictionary<HTTPMethod, HTTPMethodNode>();
 
-            this.URITemplate           = URITemplate;
-            this.MethodHandler         = MethodHandler;
-            this.URLAuthentication     = URIAuthentication;
-            this.URLErrorHandler       = URIErrorHandler;
-            this.URIErrorHandlers      = new Dictionary<HTTPStatusCode, MethodInfo>();
-            this.HTTPMethods           = new Dictionary<HTTPMethod, HTTPMethodNode>();
+            var _ReplaceLastParameter   = new Regex(@"\{[^/]+\}$");
+            this._ParameterCount        = (UInt16) _ReplaceLastParameter.Matches(URITemplate).Count;
+            var URLTemplate2            = _ReplaceLastParameter.Replace(URITemplate, "([^\n]+)");
+            var URLTemplateWithoutVars  = _ReplaceLastParameter.Replace(URITemplate, "");
 
-            var _ReplaceLastParameter  = new Regex(@"\{[^/]+\}$");
-            this.ParameterCount        = (UInt16) _ReplaceLastParameter.Matches(URITemplate).Count;
-            var URLTemplate2           = _ReplaceLastParameter.Replace(URITemplate, "([^\n]+)");
-            var URLTemplateWithoutVars = _ReplaceLastParameter.Replace(URITemplate, "");
-
-            var _ReplaceAllParameters  = new Regex(@"\{[^/]+\}");
-            this.ParameterCount       += (UInt16) _ReplaceAllParameters.Matches(URLTemplate2).Count;
-            this.URIRegex              = new Regex("^" + _ReplaceAllParameters.Replace(URLTemplate2, "([^/]+)"));
-            this.SortLength            = (UInt16) _ReplaceAllParameters.Replace(URLTemplateWithoutVars, "").Length;
+            var _ReplaceAllParameters   = new Regex(@"\{[^/]+\}");
+            this._ParameterCount       += (UInt16) _ReplaceAllParameters.Matches(URLTemplate2).Count;
+            this._URIRegex              = new Regex("^" + _ReplaceAllParameters.Replace(URLTemplate2, "([^/]+)"));
+            this._SortLength            = (UInt16) _ReplaceAllParameters.Replace(URLTemplateWithoutVars, "").Length;
 
         }
-
-        #endregion
-
-        #region URLNode(URITemplate, HTTPDelegate, URIAuthentication = false, URLErrorHandler = null)
-
-        ///// <summary>
-        ///// Creates a new URLNode.
-        ///// </summary>
-        ///// <param name="URITemplate">The URI template for this service.</param>
-        ///// <param name="MethodHandler">The method handler.</param>
-        ///// <param name="URIAuthentication">This and all subordinated nodes demand an explicit url authentication.</param>
-        ///// <param name="URIErrorHandler">A general error handling method.</param>
-        //public URINode(String        URITemplate,
-        //               HTTPDelegate  HTTPDelegate,
-        //               Boolean       URIAuthentication  = false,
-        //               HTTPDelegate  URIErrorHandler    = null)
-
-        //{
-
-        //    URITemplate.FailIfNullOrEmpty();
-
-        //    if (HTTPDelegate != null)
-        //        throw new ArgumentNullException();
-
-        //    this.URITemplate           = URITemplate;
-        //    this.HTTPDelegate          = HTTPDelegate;
-
-        //    this.URLAuthentication     = URIAuthentication;
-        //    this.URLErrorHandler       = URIErrorHandler;
-        //    this.URIErrorHandlers      = new Dictionary<HTTPStatusCode, MethodInfo>    ();
-        //    this.HTTPMethods           = new Dictionary<HTTPMethod,     HTTPMethodNode>();
-
-        //    var _ReplaceLastParameter  = new Regex(@"\{[^/]+\}$");
-        //    this.ParameterCount        = (UInt16) _ReplaceLastParameter.Matches(URITemplate).Count;
-        //    var URLTemplate2           = _ReplaceLastParameter.Replace(URITemplate, "([^\n]+)");
-        //    var URLTemplateWithoutVars = _ReplaceLastParameter.Replace(URITemplate, "");
-
-        //    var _ReplaceAllParameters  = new Regex(@"\{[^/]+\}");
-        //    this.ParameterCount       += (UInt16) _ReplaceAllParameters.Matches(URLTemplate2).Count;
-        //    this.URIRegex              = new Regex("^" + _ReplaceAllParameters.Replace(URLTemplate2, "([^/]+)"));
-        //    this.SortLength            = (UInt16) _ReplaceAllParameters.Replace(URLTemplateWithoutVars, "").Length;
-
-        //}
-
-        #endregion
 
         #endregion
 
@@ -189,11 +239,11 @@ namespace eu.Vanaheimr.Hermod.HTTP
         {
 
             var _URLAuthentication = "";
-            if (URLAuthentication)
+            if (_URIAuthentication != null)
                 _URLAuthentication = " (auth)";
 
             var _URLErrorHandler = "";
-            if (URLErrorHandler != null)
+            if (_DefaultErrorHandler != null)
                 _URLErrorHandler = " (errhdl)";
 
             var _HTTPMethods = "";

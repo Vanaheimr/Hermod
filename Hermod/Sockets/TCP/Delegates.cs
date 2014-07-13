@@ -25,6 +25,14 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 {
 
     /// <summary>
+    /// TCP socket attached delegate.
+    /// </summary>
+    /// <param name="Sender">The sender of this event.</param>
+    /// <param name="Timestamp">The timestamp of the TCP socket attached event.</param>
+    /// <param name="TCPSocket">The new TCP socket.</param>
+    public delegate void TCPSocketAttachedHandler(ACustomTCPServers TCPServer, DateTime Timestamp, IPSocket TCPSocket, String Message = null);
+
+    /// <summary>
     /// New connection delegate.
     /// </summary>
     /// <param name="Sender">The sender of this event.</param>
@@ -41,5 +49,13 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
     /// <param name="ConnectionId">The identification of this connection.</param>
     /// <param name="ClosedBy">Wether the connection was closed by the client or the server.</param>
     public delegate void ConnectionClosedHandler(ITCPServer TCPServer, DateTime Timestamp, IPSocket RemoteSocket, String ConnectionId, ConnectionClosedBy ClosedBy);
+
+    /// <summary>
+    /// TCP socket detached delegate.
+    /// </summary>
+    /// <param name="Sender">The sender of this event.</param>
+    /// <param name="Timestamp">The timestamp of the TCP socket detached event.</param>
+    /// <param name="TCPSocket">The TCP socket.</param>
+    public delegate void TCPSocketDetachedHandler(ACustomTCPServers TCPServer, DateTime Timestamp, IPSocket TCPSocket, String Message = null);
 
 }

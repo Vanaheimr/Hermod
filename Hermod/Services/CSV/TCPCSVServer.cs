@@ -94,7 +94,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
         /// <param name="ConnectionThreadsNameCreator">An optional delegate to set the name of the TCP connection threads.</param>
         /// <param name="ConnectionThreadsPriority">The optional priority of the TCP connection threads.</param>
         /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
-        /// <param name="ConnectionTimeoutSeconds">The TCP client timeout for all incoming client connections in seconds.</param>
+        /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections.</param>
         /// <param name="Autostart">Start the TCP server thread immediately.</param>
         public TCPCSVServer(IPPort                       Port,
                             Char[]                       SplitCharacters                 = null,
@@ -105,7 +105,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
                             Func<TCPConnection, String>  ConnectionThreadsNameCreator    = null,
                             ThreadPriority               ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
                             Boolean                      ConnectionThreadsAreBackground  = true,
-                            UInt64                       ConnectionTimeoutSeconds        = 30,
+                            TimeSpan?                    ConnectionTimeout               = null,
                             Boolean                      Autostart                       = false)
 
             : this(IPv4Address.Any,
@@ -118,7 +118,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
                    ConnectionThreadsNameCreator,
                    ConnectionThreadsPriority,
                    ConnectionThreadsAreBackground,
-                   ConnectionTimeoutSeconds,
+                   ConnectionTimeout,
                    Autostart)
 
         { }
@@ -140,7 +140,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
         /// <param name="ConnectionThreadsNameCreator">An optional delegate to set the name of the TCP connection threads.</param>
         /// <param name="ConnectionThreadsPriority">The optional priority of the TCP connection threads.</param>
         /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
-        /// <param name="ConnectionTimeoutSeconds">The TCP client timeout for all incoming client connections in seconds.</param>
+        /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections.</param>
         /// <param name="Autostart">Start the TCP server thread immediately.</param>
         public TCPCSVServer(IIPAddress                   IIPAddress,
                             IPPort                       Port,
@@ -152,7 +152,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
                             Func<TCPConnection, String>  ConnectionThreadsNameCreator    = null,
                             ThreadPriority               ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
                             Boolean                      ConnectionThreadsAreBackground  = true,
-                            UInt64                       ConnectionTimeoutSeconds        = 30,
+                            TimeSpan?                    ConnectionTimeout               = null,
                             Boolean                      Autostart                       = false)
 
             : base(IIPAddress,
@@ -164,7 +164,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
                    ConnectionThreadsNameCreator,
                    ConnectionThreadsPriority,
                    ConnectionThreadsAreBackground,
-                   ConnectionTimeoutSeconds)
+                   ConnectionTimeout)
 
         {
 
@@ -199,7 +199,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
         /// <param name="ConnectionThreadsNameCreator">An optional delegate to set the name of the TCP connection threads.</param>
         /// <param name="ConnectionThreadsPriority">The optional priority of the TCP connection threads.</param>
         /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
-        /// <param name="ConnectionTimeoutSeconds">The TCP client timeout for all incoming client connections in seconds.</param>
+        /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections.</param>
         /// <param name="Autostart">Start the TCP server thread immediately.</param>
         public TCPCSVServer(IPSocket                     IPSocket,
                             Char[]                       SplitCharacters                 = null,
@@ -210,7 +210,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
                             Func<TCPConnection, String>  ConnectionThreadsNameCreator    = null,
                             ThreadPriority               ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
                             Boolean                      ConnectionThreadsAreBackground  = true,
-                            UInt64                       ConnectionTimeoutSeconds        = 30,
+                            TimeSpan?                    ConnectionTimeout               = null,
                             Boolean                      Autostart                       = false)
 
             : this(IPSocket.IPAddress,
@@ -223,7 +223,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
                    ConnectionThreadsNameCreator,
                    ConnectionThreadsPriority,
                    ConnectionThreadsAreBackground,
-                   ConnectionTimeoutSeconds,
+                   ConnectionTimeout,
                    Autostart)
 
         { }

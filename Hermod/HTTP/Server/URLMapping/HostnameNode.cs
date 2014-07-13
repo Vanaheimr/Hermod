@@ -21,6 +21,8 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 
+using eu.Vanaheimr.Illias.Commons;
+
 #endregion
 
 namespace eu.Vanaheimr.Hermod.HTTP
@@ -82,14 +84,14 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ErrorHandler
+        #region DefaultErrorHandler
 
         private readonly HTTPDelegate _DefaultErrorHandler;
 
         /// <summary>
         /// A general error handling method.
         /// </summary>
-        public HTTPDelegate ErrorHandler
+        public HTTPDelegate DefaultErrorHandler
         {
             get
             {
@@ -99,15 +101,39 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region ErrorHandlers
+
+        private readonly Dictionary<HTTPStatusCode, HTTPDelegate> _ErrorHandlers;
+
         /// <summary>
         /// Error handling methods for specific http status codes.
         /// </summary>
-        public Dictionary<HTTPStatusCode, HTTPDelegate>  ErrorHandlers       { get; private set; }
+        public Dictionary<HTTPStatusCode, HTTPDelegate> ErrorHandlers
+        {
+            get
+            {
+                return _ErrorHandlers;
+            }
+        }
+
+        #endregion
+
+        #region URINodes
+
+        private readonly Dictionary<String, URINode> _URINodes;
 
         /// <summary>
         /// A mapping from URIs to URINodes.
         /// </summary>
-        public Dictionary<String, URINode>               URINodes                { get; private set; }
+        public Dictionary<String, URINode> URINodes
+        {
+            get
+            {
+                return _URINodes;
+            }
+        }
+
+        #endregion
 
         #endregion
 
@@ -117,16 +143,19 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// Creates a new hostname node.
         /// </summary>
         /// <param name="Hostname">The hostname(s) for this (virtual) http service.</param>
-        /// <param name="HostAuthentication">This and all subordinated nodes demand an explicit host authentication.</param>
         /// <param name="RequestHandler">The default delegate to call for any request to this hostname.</param>
-        /// <param name="DefaultErrorHandler">A general error handling method.</param>
+        /// <param name="HostAuthentication">This and all subordinated nodes demand an explicit host authentication.</param>
+        /// <param name="DefaultErrorHandler">The default error handling delegate.</param>
         internal HostnameNode(String              Hostname,
                               HTTPAuthentication  HostAuthentication   = null,
                               HTTPDelegate        RequestHandler       = null,
                               HTTPDelegate        DefaultErrorHandler  = null)
+
         {
 
             #region Check Hostname
+
+            Hostname.FailIfNullOrEmpty();
 
             var    HostHeader  = Hostname.Split(new Char[1] { ':' }, StringSplitOptions.None).Select(v => v.Trim()).ToArray();
             UInt16 HostPort    = 80;
@@ -156,13 +185,83 @@ namespace eu.Vanaheimr.Hermod.HTTP
             this._HostAuthentication   = (HostAuthentication != null) ? HostAuthentication : _ => true;
             this._RequestHandler       = RequestHandler;
             this._DefaultErrorHandler  = DefaultErrorHandler;
-
-            this.URINodes              = new Dictionary<String,         URINode>();
-            this.ErrorHandlers         = new Dictionary<HTTPStatusCode, HTTPDelegate>();
+            this._URINodes             = new Dictionary<String,         URINode>();
+            this._ErrorHandlers        = new Dictionary<HTTPStatusCode, HTTPDelegate>();
 
         }
 
         #endregion
+
+
+
+        #region AddOrUpdate URINode
+
+        public void AddHandler(HTTPDelegate        HTTPDelegate,
+
+                               String              URITemplate                 = "/",
+                               HTTPMethod          HTTPMethod                  = null,
+                               HTTPContentType     HTTPContentType             = null,
+
+                               HTTPAuthentication  HostAuthentication          = null,
+                               HTTPAuthentication  URIAuthentication           = null,
+                               HTTPAuthentication  HTTPMethodAuthentication    = null,
+                               HTTPAuthentication  ContentTypeAuthentication   = null,
+
+                               HTTPDelegate        DefaultErrorHandler         = null)
+
+        {
+
+            URINode _URINode = null;
+
+            if (!_URINodes.TryGetValue(URITemplate, out _URINode))
+                _URINode = new URINode(URITemplate, URIAuthentication, HTTPDelegate, DefaultErrorHandler);
+
+            _URINodes.Add(URITemplate, _URINode);
+
+            if (HTTPMethod == null)
+                return;
+
+
+            //#region AddOrUpdate HTTPMethodNode
+
+            //HTTPMethodNode _HTTPMethodNode = null;
+            //if (!_URINode.HTTPMethods.TryGetValue(HTTPMethod, out _HTTPMethodNode))
+            //{
+
+            //    if (HTTPContentType == null)
+            //        _HTTPMethodNode = new HTTPMethodNode(HTTPMethod, HTTPDelegate, HTTPMethodAuthentication);
+
+            //    else
+            //        _HTTPMethodNode = new HTTPMethodNode(HTTPMethod, null, HTTPMethodAuthentication, HandleContentTypes: true);
+
+            //}
+
+            //_URINode.HTTPMethods.Add(HTTPMethod, _HTTPMethodNode);
+
+            //if (HTTPContentType == null)
+            //    return;
+
+            //#endregion
+
+            //#region AddOrUpdate ContentTypeNode
+
+            //ContentTypeNode _ContentTypeNode = null;
+            //if (!_HTTPMethodNode.HTTPContentTypes.TryGetValue(HTTPContentType, out _ContentTypeNode))
+            //    _ContentTypeNode = new ContentTypeNode(HTTPContentType, HTTPDelegate, ContentTypeAuthentication);
+
+            //_HTTPMethodNode.HTTPContentTypes.Add(HTTPContentType, _ContentTypeNode);
+
+            //#endregion
+
+        }
+
+        #endregion
+
+
+
+
+
+
 
         #region ToString()
 
@@ -173,11 +272,11 @@ namespace eu.Vanaheimr.Hermod.HTTP
             if (HostAuthentication != null)
                 _HostAuthentication = " (auth)";
 
-            var _HostErrorHandler = "";
-            if (ErrorHandler != null)
-                _HostErrorHandler = " (errhdl)";
+            var __DefaultErrorHandler = "";
+            if (_DefaultErrorHandler != null)
+                __DefaultErrorHandler = " (errhdl)";
 
-            return String.Concat(Hostname, _HostAuthentication, _HostErrorHandler);
+            return String.Concat(Hostname, _HostAuthentication, __DefaultErrorHandler);
 
         }
 

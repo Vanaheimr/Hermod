@@ -78,10 +78,11 @@ namespace eu.Vanaheimr.Hermod.HTTP
                                  String               URITemplate,
                                  HTTPMethod           HTTPMethod                  = null,
                                  HTTPContentType      HTTPContentType             = null,
+
                                  HTTPAuthentication   HostAuthentication          = null,
-                                 Boolean              URIAuthentication           = false,
-                                 Boolean              HTTPMethodAuthentication    = false,
-                                 Boolean              ContentTypeAuthentication   = false)
+                                 HTTPAuthentication   URIAuthentication           = null,
+                                 HTTPAuthentication   HTTPMethodAuthentication    = null,
+                                 HTTPAuthentication   ContentTypeAuthentication   = null)
 
         {
 
@@ -124,101 +125,101 @@ namespace eu.Vanaheimr.Hermod.HTTP
                                  HTTPMethod          HTTPMethod                  = null,
                                  HTTPContentType     HTTPContentType             = null,
                                  HTTPAuthentication  HostAuthentication          = null,
-                                 Boolean             URIAuthentication           = false,
-                                 Boolean             HTTPMethodAuthentication    = false,
-                                 Boolean             ContentTypeAuthentication   = false)
+                                 HTTPAuthentication  URIAuthentication           = null,
+                                 HTTPAuthentication  HTTPMethodAuthentication    = null,
+                                 HTTPAuthentication  ContentTypeAuthentication   = null)
 
         {
 
-            lock (Lock)
-            {
+            //lock (Lock)
+            //{
 
-                #region Initial Checks
+            //    #region Initial Checks
 
-                if (MethodHandler == null)
-                    throw new ArgumentNullException("MethodHandler", "The MethodHandler must not be null!");
+            //    if (MethodHandler == null)
+            //        throw new ArgumentNullException("MethodHandler", "The MethodHandler must not be null!");
 
-                if (Hostname.IsNullOrEmpty())
-                    Hostname = "*";
+            //    if (Hostname.IsNullOrEmpty())
+            //        Hostname = "*";
 
-                URITemplate.FailIfNullOrEmpty();
+            //    URITemplate.FailIfNullOrEmpty();
 
-                if (HTTPMethod == null && HTTPContentType != null)
-                    throw new ArgumentNullException("If HTTPMethod is null the HTTPContentType must also be null!");
+            //    if (HTTPMethod == null && HTTPContentType != null)
+            //        throw new ArgumentNullException("If HTTPMethod is null the HTTPContentType must also be null!");
 
-                #endregion
+            //    #endregion
 
-                #region AddOrGet HostnameNode
+            //    #region AddOrGet HostnameNode
 
-                HostnameNode _HostnameNode = null;
-                if (!_HostnameNodes.TryGetValue(Hostname, out _HostnameNode))
-                {
-                    // Note: Use _.Hostname as the input is sanitized!
-                    _HostnameNode = _HostnameNodes.AddAndReturnValue(_ => _.Hostname,
-                                                                     new HostnameNode(Hostname, HostAuthentication));
-                }
+            //    HostnameNode _HostnameNode = null;
+            //    if (!_HostnameNodes.TryGetValue(Hostname, out _HostnameNode))
+            //    {
+            //        // Note: Use _.Hostname as the input is sanitized!
+            //        _HostnameNode = _HostnameNodes.AddAndReturnValue(_ => _.Hostname,
+            //                                                         new HostnameNode(Hostname, HostAuthentication));
+            //    }
 
-                #endregion
+            //    #endregion
 
-                #region AddOrUpdate URINode
+            //    #region AddOrUpdate URINode
 
-                URINode _URINode = null;
-                if (!_HostnameNode.URINodes.TryGetValue(URITemplate, out _URINode))
-                {
+            //    URINode _URINode = null;
+            //    if (!_HostnameNode.URINodes.TryGetValue(URITemplate, out _URINode))
+            //    {
 
-                    if (HTTPMethod == null)
-                        _URINode = new URINode(URITemplate, MethodHandler, URIAuthentication);
+            //        if (HTTPMethod == null)
+            //            _URINode = new URINode(URITemplate, MethodHandler, URIAuthentication);
 
-                    else
-                        _URINode = new URINode(URITemplate, null, URIAuthentication);
+            //        else
+            //            _URINode = new URINode(URITemplate, null, URIAuthentication);
 
-                    _HostnameNode.URINodes.Add(URITemplate, _URINode);
+            //        _HostnameNode.URINodes.Add(URITemplate, _URINode);
 
-                }
+            //    }
 
-                if (HTTPMethod == null)
-                    return;
+            //    if (HTTPMethod == null)
+            //        return;
 
-                #endregion
+            //    #endregion
 
-                #region AddOrUpdate HTTPMethodNode
+            //    #region AddOrUpdate HTTPMethodNode
 
-                HTTPMethodNode _HTTPMethodNode = null;
-                if (!_URINode.HTTPMethods.TryGetValue(HTTPMethod, out _HTTPMethodNode))
-                {
+            //    HTTPMethodNode _HTTPMethodNode = null;
+            //    if (!_URINode.HTTPMethods.TryGetValue(HTTPMethod, out _HTTPMethodNode))
+            //    {
 
-                    if (HTTPContentType == null)
-                        _HTTPMethodNode = new HTTPMethodNode(HTTPMethod, MethodHandler, HTTPMethodAuthentication);
+            //        if (HTTPContentType == null)
+            //            _HTTPMethodNode = new HTTPMethodNode(HTTPMethod, MethodHandler, HTTPMethodAuthentication);
 
-                    else
-                        _HTTPMethodNode = new HTTPMethodNode(HTTPMethod, null, HTTPMethodAuthentication, HandleContentTypes: true);
+            //        else
+            //            _HTTPMethodNode = new HTTPMethodNode(HTTPMethod, null, HTTPMethodAuthentication, HandleContentTypes: true);
 
-                }
+            //    }
 
-                _URINode.HTTPMethods.Add(HTTPMethod, _HTTPMethodNode);
+            //    _URINode.HTTPMethods.Add(HTTPMethod, _HTTPMethodNode);
 
-                if (HTTPContentType == null)
-                    return;
+            //    if (HTTPContentType == null)
+            //        return;
 
-                #endregion
+            //    #endregion
 
-                #region AddOrUpdate ContentTypeNode
+            //    #region AddOrUpdate ContentTypeNode
 
-                ContentTypeNode _ContentTypeNode = null;
-                if (!_HTTPMethodNode.HTTPContentTypes.TryGetValue(HTTPContentType, out _ContentTypeNode))
-                    _ContentTypeNode = new ContentTypeNode(HTTPContentType, MethodHandler, ContentTypeAuthentication);
+            //    ContentTypeNode _ContentTypeNode = null;
+            //    if (!_HTTPMethodNode.HTTPContentTypes.TryGetValue(HTTPContentType, out _ContentTypeNode))
+            //        _ContentTypeNode = new ContentTypeNode(HTTPContentType, MethodHandler, ContentTypeAuthentication);
 
-                _HTTPMethodNode.HTTPContentTypes.Add(HTTPContentType, _ContentTypeNode);
+            //    _HTTPMethodNode.HTTPContentTypes.Add(HTTPContentType, _ContentTypeNode);
 
-                #endregion
+            //    #endregion
 
-            }
+            //}
 
         }
 
         #endregion
 
-        #region (internal) AddHandler(MethodHandler, Hostname, URITemplate, HTTPMethod = null, HTTPContentType = null, HostAuthentication = false, URIAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false)
+        #region (internal) AddHandler(HTTPDelegate, Hostname = "*", URITemplate = "/", HTTPMethod = null, HTTPContentType = null, HostAuthentication = null, URIAuthentication = null, HTTPMethodAuthentication = null, ContentTypeAuthentication = null, DefaultErrorHandler = null)
 
         /// <summary>
         /// Add a method callback for the given URI template.
@@ -233,14 +234,18 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
         internal void AddHandler(HTTPDelegate        HTTPDelegate,
+
                                  String              Hostname                    = "*",
                                  String              URITemplate                 = "/",
                                  HTTPMethod          HTTPMethod                  = null,
                                  HTTPContentType     HTTPContentType             = null,
+
                                  HTTPAuthentication  HostAuthentication          = null,
-                                 Boolean             URIAuthentication           = false,
-                                 Boolean             HTTPMethodAuthentication    = false,
-                                 Boolean             ContentTypeAuthentication   = false)
+                                 HTTPAuthentication  URIAuthentication           = null,
+                                 HTTPAuthentication  HTTPMethodAuthentication    = null,
+                                 HTTPAuthentication  ContentTypeAuthentication   = null,
+
+                                 HTTPDelegate        DefaultErrorHandler         = null)
 
         {
 
@@ -268,63 +273,24 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 HostnameNode _HostnameNode = null;
                 if (!_HostnameNodes.TryGetValue(Hostname, out _HostnameNode))
                 {
-                    _HostnameNode = new HostnameNode(Hostname, HostAuthentication, HTTPDelegate);
+                    _HostnameNode = new HostnameNode(Hostname, HostAuthentication, HTTPDelegate, DefaultErrorHandler);
                     _HostnameNodes.Add(Hostname, _HostnameNode);
                 }
 
                 #endregion
 
-                #region AddOrUpdate URINode
+                _HostnameNode.AddHandler(HTTPDelegate,
 
-                //URINode _URINode = null;
-                //if (!_HostnameNode.URINodes.TryGetValue(URITemplate, out _URINode))
-                //{
+                                         URITemplate,
+                                         HTTPMethod,
+                                         HTTPContentType,
 
-                //    if (HTTPMethod == null)
-                //        _URINode = new URINode(URITemplate, HTTPDelegate, URIAuthentication);
+                                         HostAuthentication,
+                                         URIAuthentication,
+                                         HTTPMethodAuthentication,
+                                         ContentTypeAuthentication,
 
-                //    else
-                //        _URINode = new URINode(URITemplate, null, URIAuthentication);
-
-                //}
-
-                //_HostnameNode.URINodes.Add(URITemplate, _URINode);
-
-                //if (HTTPMethod == null)
-                //    return;
-
-                #endregion
-
-                //#region AddOrUpdate HTTPMethodNode
-
-                //HTTPMethodNode _HTTPMethodNode = null;
-                //if (!_URINode.HTTPMethods.TryGetValue(HTTPMethod, out _HTTPMethodNode))
-                //{
-
-                //    if (HTTPContentType == null)
-                //        _HTTPMethodNode = new HTTPMethodNode(HTTPMethod, HTTPDelegate, HTTPMethodAuthentication);
-
-                //    else
-                //        _HTTPMethodNode = new HTTPMethodNode(HTTPMethod, null, HTTPMethodAuthentication, HandleContentTypes: true);
-
-                //}
-
-                //_URINode.HTTPMethods.Add(HTTPMethod, _HTTPMethodNode);
-
-                //if (HTTPContentType == null)
-                //    return;
-
-                //#endregion
-
-                //#region AddOrUpdate ContentTypeNode
-
-                //ContentTypeNode _ContentTypeNode = null;
-                //if (!_HTTPMethodNode.HTTPContentTypes.TryGetValue(HTTPContentType, out _ContentTypeNode))
-                //    _ContentTypeNode = new ContentTypeNode(HTTPContentType, HTTPDelegate, ContentTypeAuthentication);
-
-                //_HTTPMethodNode.HTTPContentTypes.Add(HTTPContentType, _ContentTypeNode);
-
-                //#endregion
+                                         DefaultErrorHandler);
 
             }
 
@@ -337,10 +303,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return the best matching method handler for the given parameters.
         /// </summary>
-        internal Tuple<HTTPDelegate, IEnumerable<Object>> GetHandler(String           Host              = "*",
-                                                                     String           URL               = "/",
-                                                                     HTTPMethod       HTTPMethod        = null,
-                                                                     HTTPContentType  HTTPContentType   = null)
+        internal HTTPDelegate GetHandler(HTTPRequest HTTPRequest)
         {
 
             lock (Lock)
@@ -348,11 +311,10 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                 #region Set defaults...
 
-                if (Host.IsNullOrEmpty())
-                    Host = "*";
-
-                if (URL.IsNullOrEmpty())
-                    URL = "/";
+                var Host             = (HTTPRequest.Host.   IsNullOrEmpty()) ? "*" : HTTPRequest.Host;
+                var URL              = (HTTPRequest.UrlPath.IsNullOrEmpty()) ? "/" : HTTPRequest.UrlPath;
+                var HTTPMethod       =  HTTPRequest.HTTPMethod;
+                var HTTPContentType  =  HTTPRequest.BestMatchingAcceptType;
 
                 #endregion
 
@@ -401,7 +363,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 {
 
                     if (_HostNode.RequestHandler != null)
-                        return new Tuple<HTTPDelegate, IEnumerable<Object>>(_HostNode.RequestHandler, new Object[0]);
+                        return _HostNode.RequestHandler;
 
                     return null;
 
@@ -417,14 +379,16 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 //_Matches.ForEach(_m => { if (_m.Match.Success) Console.WriteLine("Match Length:'" + _m.Match.Length + "'+" + _m.URLNode.ParameterCount + " Groups[1]:'" + _m.Match.Groups[1] + "' URLTemplate:'" + _m.URLNode.URLTemplate + "'"); });
 
                 // Copy MethodHandler Parameters
-                var _Parameters = new List<Object>();
+                var _Parameters = new List<String>();
                 for (var i=1; i< _BestMatch.Match.Groups.Count; i++)
                     _Parameters.Add(_BestMatch.Match.Groups[i].Value);
 
-                // If no HTTPMethod was given => return best matching URL MethodHandler
-                if (HTTPMethod == null)
-                    //return new Tuple<MethodInfo, IEnumerable<Object>>(_BestMatch.URLNode.MethodHandler, _Parameters);
-                    return null;
+                HTTPRequest.ParsedQueryParameters = _Parameters.ToArray();
+
+                //// If no HTTPMethod was given => return best matching URL MethodHandler
+                //if (HTTPMethod == null)
+                //    //return new Tuple<MethodInfo, IEnumerable<Object>>(_BestMatch.URLNode.MethodHandler, _Parameters);
+                //    return null;
 
                 #endregion
 
@@ -434,8 +398,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                 // If no HTTPMethod was found => return best matching URL MethodHandler
                 if (!_BestMatch.URLNode.HTTPMethods.TryGetValue(HTTPMethod, out _HTTPMethodNode))
-                    //return new Tuple<MethodInfo, IEnumerable<Object>>(_BestMatch.URLNode.MethodHandler, _Parameters);
-                    return null;
+                    return _BestMatch.URLNode.RequestHandler;
 
                 // If no HTTPContentType was given => return HTTPMethod MethodHandler
                 if (HTTPContentType == null)
@@ -548,7 +511,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                 }
 
-                AddHandler(MethodInfo, Host, URITemplate, HTTPMethod, HTTPContentType.EVENTSTREAM, HostAuthentication, URIAuthentication);
+                //AddHandler(MethodInfo, Host, URITemplate, HTTPMethod, HTTPContentType.EVENTSTREAM, HostAuthentication, URIAuthentication);
 
                 return _HTTPEventSource;
 
@@ -574,7 +537,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                                             String              URITemplate,
                                             HTTPMethod          HTTPMethod,
                                             HTTPAuthentication  HostAuthentication  = null,
-                                            Boolean             URIAuthentication   = false)
+                                            HTTPAuthentication  URIAuthentication   = null)
 
         {
 

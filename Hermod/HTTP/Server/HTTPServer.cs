@@ -36,7 +36,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A HTTP/1.1 server.
     /// </summary>
-    public class HTTPServer : IBoomerangSender<String, DateTime, HTTPRequest, HTTPResponse>
+    public class HTTPServer : ACustomTCPServers,
+                              IBoomerangSender<String, DateTime, HTTPRequest, HTTPResponse>
     {
 
         #region Data
@@ -45,16 +46,6 @@ namespace eu.Vanaheimr.Hermod.HTTP
         private readonly  URIMapping         _URIMapping;
 
         private readonly  HTTPProcessor      _HTTPProcessor;
-        private readonly  List<TCPServer>    _TCPServers;
-
-        private String                       _ServerThreadName;
-        private ThreadPriority               _ServerThreadPriority;
-        private Boolean                      _ServerThreadIsBackground;
-        private Func<IPSocket, String>       _ConnectionIdBuilder;
-        private Func<TCPConnection, String>  _ConnectionThreadsNameCreator;
-        private ThreadPriority               _ConnectionThreadsPriority;
-        private Boolean                      _ConnectionThreadsAreBackground;
-        private UInt64                       _ConnectionTimeoutSeconds;
 
         #endregion
 
@@ -157,18 +148,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region Events
 
-        public event StartedEventHandler                                                    OnStarted;
-
-        public event NewConnectionHandler                                                   OnNewConnection;
-
         public event BoomerangSenderHandler<String, DateTime, HTTPRequest, HTTPResponse>    OnNotification;
-
-        public event ConnectionClosedHandler                                                OnConnectionClosed;
-
-        public event CompletedEventHandler                                                  OnCompleted;
-
-        public event ExceptionOccuredEventHandler                                           OnExceptionOccured;
-
 
         /// <summary>
         /// An event called whenever a request came in.
@@ -210,20 +190,19 @@ namespace eu.Vanaheimr.Hermod.HTTP
                           Func<TCPConnection, String>  ConnectionThreadsNameCreator    = null,
                           ThreadPriority               ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
                           Boolean                      ConnectionThreadsAreBackground  = true,
-                          UInt64                       ConnectionTimeoutSeconds        = 30,
+                          TimeSpan?                    ConnectionTimeout               = null,
                           Boolean                      Autostart                       = false)
 
-        {
+            : base(ServerThreadName,
+                   ServerThreadPriority,
+                   ServerThreadIsBackground,
+                   ConnectionIdBuilder,
+                   ConnectionThreadsNameCreator,
+                   ConnectionThreadsPriority,
+                   ConnectionThreadsAreBackground,
+                   ConnectionTimeout)
 
-            this._TCPServers                       = new List<TCPServer>();
-            this._ServerThreadName                 = ServerThreadName;
-            this._ServerThreadPriority             = ServerThreadPriority;
-            this._ServerThreadIsBackground         = ServerThreadIsBackground;
-            this._ConnectionIdBuilder              = ConnectionIdBuilder;
-            this._ConnectionThreadsNameCreator     = ConnectionThreadsNameCreator;
-            this._ConnectionThreadsPriority        = ConnectionThreadsPriority;
-            this._ConnectionThreadsAreBackground   = ConnectionThreadsAreBackground;
-            this._ConnectionTimeoutSeconds         = ConnectionTimeoutSeconds;
+        {
 
             this._DefaultServerName                = DefaultServerName;
             this._URIMapping                       = new URIMapping();
@@ -244,41 +223,40 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         // Underlying TCP sockets...
 
+        #region AttachTCPPort(Port)
+
+        public HTTPServer AttachTCPPort(IPPort Port)
+        {
+
+            AttachTCPPorts(Port);
+
+            return this;
+
+        }
+
+        #endregion
+
         #region AttachTCPPorts(params Ports)
 
         public HTTPServer AttachTCPPorts(params IPPort[] Ports)
         {
 
-            lock (_TCPServers)
-            {
+            base._AttachTCPPorts(_TCPServer => _TCPServer.SendTo(_HTTPProcessor), Ports);
 
-                foreach (var Port in Ports)
-                {
+            return this;
 
-                    var _TCPServer = _TCPServers.AddAndReturnElement(new TCPServer(IPv4Address.Any,
-                                                                                   Port,
-                                                                                   _ServerThreadName,
-                                                                                   _ServerThreadPriority,
-                                                                                   _ServerThreadIsBackground,
-                                                                                   _ConnectionIdBuilder,
-                                                                                   _ConnectionThreadsNameCreator,
-                                                                                   _ConnectionThreadsPriority,
-                                                                                   _ConnectionThreadsAreBackground,
-                                                                                   _ConnectionTimeoutSeconds,
-                                                                                   false));
+        }
 
-                    _TCPServer.OnStarted          += SendStarted;
-                    _TCPServer.SendTo(_HTTPProcessor);
-                    _TCPServer.OnNewConnection    += SendNewConnection;
-                    _TCPServer.OnConnectionClosed += SendConnectionClosed;
-                    _TCPServer.OnCompleted        += SendCompleted;
-                    _TCPServer.OnExceptionOccured += SendExceptionOccured;
+        #endregion
 
-                }
+        #region AttachTCPSocket(Socket)
 
-                return this;
+        public HTTPServer AttachTCPSocket(IPSocket Socket)
+        {
 
-            }
+            AttachTCPSockets(Socket);
+
+            return this;
 
         }
 
@@ -289,70 +267,48 @@ namespace eu.Vanaheimr.Hermod.HTTP
         public HTTPServer AttachTCPSockets(params IPSocket[] Sockets)
         {
 
-            lock (_TCPServers)
-            {
+            base._AttachTCPSockets(_TCPServer => _TCPServer.SendTo(_HTTPProcessor), Sockets);
 
-                foreach (var Socket in Sockets)
-                {
-
-                    var _TCPServer = _TCPServers.AddAndReturnElement(new TCPServer(Socket,
-                                                                                   _ServerThreadName,
-                                                                                   _ServerThreadPriority,
-                                                                                   _ServerThreadIsBackground,
-                                                                                   _ConnectionIdBuilder,
-                                                                                   _ConnectionThreadsNameCreator,
-                                                                                   _ConnectionThreadsPriority,
-                                                                                   _ConnectionThreadsAreBackground,
-                                                                                   _ConnectionTimeoutSeconds,
-                                                                                   false));
-
-                    _TCPServer.OnStarted          += SendStarted;
-                    _TCPServer.SendTo(_HTTPProcessor);
-                    _TCPServer.OnNewConnection    += SendNewConnection;
-                    _TCPServer.OnConnectionClosed += SendConnectionClosed;
-                    _TCPServer.OnCompleted        += SendCompleted;
-                    _TCPServer.OnExceptionOccured += SendExceptionOccured;
-
-                }
-
-                return this;
-
-            }
+            return this;
 
         }
 
         #endregion
 
 
-        // Events...
+        #region DetachTCPPort(Port)
 
-        #region SendStarted(Sender, Timestamp, Message = null)
-
-        private void SendStarted(Object Sender, DateTime Timestamp, String Message = null)
+        public HTTPServer DetachTCPPort(IPPort Port)
         {
 
-            var OnStartedLocal = OnStarted;
-            if (OnStartedLocal != null)
-                OnStartedLocal(Sender, Timestamp, Message);
+            DetachTCPPorts(Port);
+
+            return this;
 
         }
 
         #endregion
 
-        #region SendNewConnection(TCPServer, Timestamp, TCPConnection)
+        #region DetachTCPPorts(params Sockets)
 
-        private void SendNewConnection(ITCPServer     TCPServer,
-                                       DateTime       Timestamp,
-                                       TCPConnection  TCPConnection)
+        public HTTPServer DetachTCPPorts(params IPPort[] Ports)
         {
 
-            var OnNewConnectionLocal = OnNewConnection;
-            if (OnNewConnectionLocal != null)
-                OnNewConnectionLocal(TCPServer, Timestamp, TCPConnection);
+            base._DetachTCPPorts(_TCPServer => {
+                                     _TCPServer.OnNotification      -= _HTTPProcessor.ProcessArrow;
+                                     _TCPServer.OnExceptionOccured  -= _HTTPProcessor.ProcessExceptionOccured;
+                                     _TCPServer.OnCompleted         -= _HTTPProcessor.ProcessCompleted;
+                                 },
+                                 Ports);
+
+            return this;
 
         }
 
         #endregion
+
+
+        // Events
 
         #region ProcessBoomerang(ConnectionId, Timestamp, HTTPRequest)
 
@@ -363,13 +319,10 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
             #region Check if any HTTP delegate matches...
 
-            var _ParsedCallbackWithParameters = GetHandler(HTTPRequest.Host,
-                                                           HTTPRequest.UrlPath,
-                                                           HTTPRequest.HTTPMethod,
-                                                           HTTPRequest.BestMatchingAcceptType);
+            var Handler = GetHandler(HTTPRequest);
 
-            if (_ParsedCallbackWithParameters != null)
-                return _ParsedCallbackWithParameters.Item1(HTTPRequest, new String[0]);
+            if (Handler != null)
+                return Handler(HTTPRequest);
 
             #endregion
 
@@ -399,51 +352,9 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region SendConnectionClosed(TCPServer, ServerTimestamp, RemoteSocket, ConnectionId, ClosedBy)
-
-        private void SendConnectionClosed(ITCPServer          TCPServer,
-                                          DateTime            ServerTimestamp,
-                                          IPSocket            RemoteSocket,
-                                          String              ConnectionId,
-                                          ConnectionClosedBy  ClosedBy)
-        {
-
-            var OnConnectionClosedLocal = OnConnectionClosed;
-            if (OnConnectionClosedLocal != null)
-                OnConnectionClosedLocal(TCPServer, ServerTimestamp, RemoteSocket, ConnectionId, ClosedBy);
-
-        }
-
-        #endregion
-
-        #region SendCompleted(Sender, Timestamp, Message = null)
-
-        private void SendCompleted(Object Sender, DateTime Timestamp, String Message = null)
-        {
-
-            var OnCompletedLocal = OnCompleted;
-            if (OnCompletedLocal != null)
-                OnCompletedLocal(Sender, Timestamp, Message);
-
-        }
-
-        #endregion
-
-        #region SendExceptionOccured(Sender, Timestamp, Exception)
-
-        private void SendExceptionOccured(Object Sender, DateTime Timestamp, Exception Exception)
-        {
-
-            var OnExceptionOccuredLocal = OnExceptionOccured;
-            if (OnExceptionOccuredLocal != null)
-                OnExceptionOccuredLocal(Sender, Timestamp, Exception);
-
-        }
-
-        #endregion
 
 
-        // Logging...
+        // HTTP Logging...
 
         #region LogRequest(ServerTimestamp, Request)
 
@@ -536,9 +447,9 @@ namespace eu.Vanaheimr.Hermod.HTTP
                                       String              URITemplate                 = "/",
                                       HTTPContentType     HTTPContentType             = null,
                                       HTTPAuthentication  HostAuthentication          = null,
-                                      Boolean             URIAuthentication           = false,
-                                      Boolean             HTTPMethodAuthentication    = false,
-                                      Boolean             ContentTypeAuthentication   = false,
+                                      HTTPAuthentication  URIAuthentication           = null,
+                                      HTTPAuthentication  HTTPMethodAuthentication    = null,
+                                      HTTPAuthentication  ContentTypeAuthentication   = null,
                                       HTTPDelegate        HTTPDelegate                = null)
 
         {
@@ -577,9 +488,9 @@ namespace eu.Vanaheimr.Hermod.HTTP
                                       HTTPMethod          HTTPMethod,
                                       HTTPContentType     HTTPContentType             = null,
                                       HTTPAuthentication  HostAuthentication          = null,
-                                      Boolean             URIAuthentication           = false,
-                                      Boolean             HTTPMethodAuthentication    = false,
-                                      Boolean             ContentTypeAuthentication   = false)
+                                      HTTPAuthentication  URIAuthentication           = null,
+                                      HTTPAuthentication  HTTPMethodAuthentication    = null,
+                                      HTTPAuthentication  ContentTypeAuthentication   = null)
 
         {
 
@@ -617,9 +528,9 @@ namespace eu.Vanaheimr.Hermod.HTTP
                                       HTTPMethod           HTTPMethod,
                                       HTTPContentType      HTTPContentType             = null,
                                       HTTPAuthentication   HostAuthentication          = null,
-                                      Boolean              URIAuthentication           = false,
-                                      Boolean              HTTPMethodAuthentication    = false,
-                                      Boolean              ContentTypeAuthentication   = false)
+                                      HTTPAuthentication   URIAuthentication           = null,
+                                      HTTPAuthentication   HTTPMethodAuthentication    = null,
+                                      HTTPAuthentication   ContentTypeAuthentication   = null)
 
         {
 
@@ -646,20 +557,34 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return the best matching method handler for the given parameters.
         /// </summary>
-        public Tuple<HTTPDelegate, IEnumerable<Object>> GetHandler(String           Host              = "*",
-                                                                   String           URL               = "/",
-                                                                   HTTPMethod       HTTPMethod        = null,
-                                                                   HTTPContentType  HTTPContentType   = null)
+        public HTTPDelegate GetHandler(HTTPRequest HTTPRequest)
         {
 
-            return _URIMapping.GetHandler(Host,
-                                          URL,
-                                          HTTPMethod,
-                                          HTTPContentType);
+            return _URIMapping.GetHandler(HTTPRequest);
 
         }
 
         #endregion
+
+        //#region GetHandler(Host, URL, HTTPMethod = null, HTTPContentType = null)
+
+        ///// <summary>
+        ///// Return the best matching method handler for the given parameters.
+        ///// </summary>
+        //public Tuple<HTTPDelegate, String[]> GetHandler(String           Host              = "*",
+        //                                                String           URL               = "/",
+        //                                                HTTPMethod       HTTPMethod        = null,
+        //                                                HTTPContentType  HTTPContentType   = null)
+        //{
+
+        //    return _URIMapping.GetHandler(Host,
+        //                                  URL,
+        //                                  HTTPMethod,
+        //                                  HTTPContentType);
+
+        //}
+
+        //#endregion
 
         #endregion
 
@@ -750,12 +675,12 @@ namespace eu.Vanaheimr.Hermod.HTTP
                                           Boolean             URIAuthentication   = false)
         {
 
-            _URIMapping.AddEventSourceHandler(MethodInfo,
-                                              Host,
-                                              URITemplate,
-                                              HTTPMethod,
-                                              HostAuthentication,
-                                              URIAuthentication);
+            //_URIMapping.AddEventSourceHandler(MethodInfo,
+            //                                  Host,
+            //                                  URITemplate,
+            //                                  HTTPMethod,
+            //                                  HostAuthentication,
+            //                                  URIAuthentication);
 
         }
 
@@ -830,81 +755,6 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-
-        // Start/Stop the HTTP server
-
-        #region Start()
-
-        public void Start()
-        {
-
-            lock (_TCPServers)
-            {
-
-                foreach (var TCPServer in _TCPServers)
-                    TCPServer.Start();
-
-                SendStarted(this, DateTime.Now);
-
-            }
-
-        }
-
-        #endregion
-
-        #region Start(Delay, InBackground = true)
-
-        public void Start(TimeSpan Delay, Boolean InBackground = true)
-        {
-
-            lock (_TCPServers)
-            {
-
-                foreach (var TCPServer in _TCPServers)
-                    TCPServer.Start(Delay, InBackground);
-
-                SendStarted(this, DateTime.Now);
-
-            }
-
-        }
-
-        #endregion
-
-        #region Shutdown(Message = null, Wait = true)
-
-        public void Shutdown(String Message = null, Boolean Wait = true)
-        {
-
-            lock (_TCPServers)
-            {
-
-                foreach (var TCPServer in _TCPServers)
-                    TCPServer.Shutdown(Message, Wait);
-
-                SendCompleted(this, DateTime.Now, Message);
-
-            }
-
-        }
-
-        #endregion
-
-
-        #region Dispose()
-
-        public void Dispose()
-        {
-
-            lock (_TCPServers)
-            {
-                foreach (var TCPServer in _TCPServers)
-                    TCPServer.Dispose();
-            }
-
-        }
-
-        #endregion
 
     }
 

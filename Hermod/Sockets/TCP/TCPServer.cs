@@ -332,7 +332,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ConnectionThreadsNameCreator">An optional delegate to set the name of the TCP connection threads.</param>
         /// <param name="ConnectionThreadsPriority">The optional priority of the TCP connection threads.</param>
         /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
-        /// <param name="ConnectionTimeoutSeconds">The TCP client timeout for all incoming client connections in seconds.</param>
+        /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections.</param>
         /// <param name="Autostart">Start the TCP server thread immediately.</param>
         public TCPServer(IPPort                       Port,
                          String                       ServerThreadName                = null,
@@ -342,7 +342,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
                          Func<TCPConnection, String>  ConnectionThreadsNameCreator    = null,
                          ThreadPriority               ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
                          Boolean                      ConnectionThreadsAreBackground  = true,
-                         UInt64                       ConnectionTimeoutSeconds        = 30,
+                         TimeSpan?                    ConnectionTimeout               = null,
                          Boolean                      Autostart                       = false)
 
             : this(IPv4Address.Any,
@@ -354,7 +354,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
                    ConnectionThreadsNameCreator,
                    ConnectionThreadsPriority,
                    ConnectionThreadsAreBackground,
-                   ConnectionTimeoutSeconds,
+                   ConnectionTimeout,
                    Autostart)
 
         { }
@@ -368,7 +368,6 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         /// </summary>
         /// <param name="IIPAddress">The listening IP address(es)</param>
         /// <param name="Port">The listening port</param>
-        /// <param name="Mapper">A delegate to transform the incoming TCP connection data into custom data structures.</param>
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ConnectionThreadsAreBackground">Whether the TCP server thread is a background thread or not.</param>
@@ -376,7 +375,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ConnectionThreadsNameCreator">An optional delegate to set the name of the TCP connection threads.</param>
         /// <param name="ConnectionThreadsPriority">The optional priority of the TCP connection threads.</param>
         /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
-        /// <param name="ConnectionTimeoutSeconds">The TCP client timeout for all incoming client connections in seconds.</param>
+        /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections.</param>
         /// <param name="Autostart">Start the TCP server thread immediately.</param>
         public TCPServer(IIPAddress                   IIPAddress,
                          IPPort                       Port,
@@ -387,7 +386,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
                          Func<TCPConnection, String>  ConnectionThreadsNameCreator    = null,
                          ThreadPriority               ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
                          Boolean                      ConnectionThreadsAreBackground  = true,
-                         UInt64                       ConnectionTimeoutSeconds        = 30,
+                         TimeSpan?                    ConnectionTimeout               = null,
                          Boolean                      Autostart                       = false)
 
         {
@@ -408,7 +407,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
             this.ConnectionThreadsNameCreator       = ConnectionThreadsNameCreator;
             this.ConnectionThreadsPriority          = ServerThreadPriority;
             this.ConnectionThreadsAreBackground     = ConnectionThreadsAreBackground;
-            this.ConnectionTimeout                  = TimeSpan.FromSeconds(ConnectionTimeoutSeconds);
+            this.ConnectionTimeout                  = ConnectionTimeout.HasValue ? ConnectionTimeout.Value : TimeSpan.FromSeconds(30);
 
 //            this._SocketConnections         = new ConcurrentDictionary<IPSocket, TCPConnection>();
             this._TCPListener                       = new TcpListener(new System.Net.IPAddress(_IPAddress.GetBytes()), _Port.ToInt32());
@@ -454,7 +453,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ConnectionThreadsNameCreator">An optional delegate to set the name of the TCP connection threads.</param>
         /// <param name="ConnectionThreadsPriority">The optional priority of the TCP connection threads.</param>
         /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
-        /// <param name="ConnectionTimeoutSeconds">The TCP client timeout for all incoming client connections in seconds.</param>
+        /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections.</param>
         /// <param name="Autostart">Start the TCP server thread immediately.</param>
         public TCPServer(IPSocket                     IPSocket,
                          String                       ServerThreadName                = null,
@@ -464,7 +463,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
                          Func<TCPConnection, String>  ConnectionThreadsNameCreator    = null,
                          ThreadPriority               ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
                          Boolean                      ConnectionThreadsAreBackground  = true,
-                         UInt64                       ConnectionTimeoutSeconds        = 30,
+                         TimeSpan?                    ConnectionTimeout               = null,
                          Boolean                      Autostart                       = false)
 
             : this(IPSocket.IPAddress,
@@ -476,7 +475,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
                    ConnectionThreadsNameCreator,
                    ConnectionThreadsPriority,
                    ConnectionThreadsAreBackground,
-                   ConnectionTimeoutSeconds,
+                   ConnectionTimeout,
                    Autostart)
 
         { }

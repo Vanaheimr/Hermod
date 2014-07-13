@@ -105,6 +105,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        public String[] ParsedQueryParameters { get; set; }
+
         #endregion
 
         #region Request header fields
