@@ -28,7 +28,6 @@ using System.Threading.Tasks;
 
 using eu.Vanaheimr.Illias.Commons;
 using eu.Vanaheimr.Hermod.Sockets.TCP;
-using eu.Vanaheimr.Hermod.Datastructures;
 using eu.Vanaheimr.Hermod.Services.DNS;
 
 #endregion
