@@ -53,7 +53,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region DefaultServerName
 
-        private readonly String _DefaultServerName;
+        private String _DefaultServerName;
 
         /// <summary>
         /// The default HTTP servername, used whenever
@@ -61,10 +61,18 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// </summary>
         public String DefaultServerName
         {
+
             get
             {
                 return _DefaultServerName;
             }
+
+            set
+            {
+                if (value.IsNotNullOrEmpty())
+                    _DefaultServerName = value;
+            }
+
         }
 
         #endregion
