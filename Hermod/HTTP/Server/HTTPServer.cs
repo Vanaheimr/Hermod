@@ -201,7 +201,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
                           TimeSpan?                    ConnectionTimeout               = null,
                           Boolean                      Autostart                       = false)
 
-            : base(ServerThreadName,
+            : base(DefaultServerName,
+                   ServerThreadName,
                    ServerThreadPriority,
                    ServerThreadIsBackground,
                    ConnectionIdBuilder,
@@ -219,6 +220,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
             _HTTPProcessor                         = new HTTPProcessor();
             _HTTPProcessor.OnNotification         += ProcessBoomerang;
             _HTTPProcessor.RequestLog             += (HTTPProcessor, ServerTimestamp, Request)                                 => LogRequest(ServerTimestamp, Request);
+            _HTTPProcessor.AccessLog              += (HTTPProcessor, ServerTimestamp, Request, Response)                       => LogAccess (ServerTimestamp, Request, Response);
             _HTTPProcessor.ErrorLog               += (HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException) => LogError  (ServerTimestamp, Request, Response, Error, LastException);
 
             if (Autostart)
@@ -436,6 +438,44 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region Add Method Callbacks
 
+        #region AddMethodCallback(HTTPMethod, URITemplate, HTTPContentType = null, HostAuthentication = false, URIAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false)
+
+        /// <summary>
+        /// Add a method callback for the given URI template.
+        /// </summary>
+        /// <param name="HTTPMethod">The HTTP method.</param>
+        /// <param name="URITemplate">The URI template.</param>
+        /// <param name="HTTPContentType">The HTTP content type.</param>
+        /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
+        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
+        /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
+        /// <param name="HTTPDelegate">The method to call.</param>
+        public void AddMethodCallback(HTTPMethod          HTTPMethod                  = null,
+                                      String              URITemplate                 = "/",
+                                      HTTPContentType     HTTPContentType             = null,
+                                      HTTPAuthentication  HostAuthentication          = null,
+                                      HTTPAuthentication  URIAuthentication           = null,
+                                      HTTPAuthentication  HTTPMethodAuthentication    = null,
+                                      HTTPAuthentication  ContentTypeAuthentication   = null,
+                                      HTTPDelegate        HTTPDelegate                = null)
+
+        {
+
+            AddMethodCallback("*",
+                              (HTTPMethod != null) ? HTTPMethod : HTTPMethod.GET,
+                              URITemplate,
+                              HTTPContentType,
+                              HostAuthentication,
+                              URIAuthentication,
+                              HTTPMethodAuthentication,
+                              ContentTypeAuthentication,
+                              HTTPDelegate);
+
+        }
+
+        #endregion
+
         #region AddMethodCallback(HTTPDelegate, Hostname, URITemplate, HTTPMethod, HTTPContentType = null, HostAuthentication = false, URIAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false)
 
         /// <summary>
@@ -475,6 +515,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
+
 
         #region AddMethodCallback(MethodHandler, Hostname, URITemplate, HTTPMethod, HTTPContentType = null, HostAuthentication = false, URIAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false)
 

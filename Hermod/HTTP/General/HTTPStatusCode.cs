@@ -152,13 +152,28 @@ namespace eu.Vanaheimr.Hermod.HTTP
         #region SimpleString
 
         /// <summary>
-        /// Create a status code line from a HTTPStatusCode
+        /// SimpleString.
         /// </summary>
         public String SimpleString
         {
             get
             {
-                return "HTTP/1.1 " + Code + " " + Name;
+                return String.Concat(Code, " ", Name);
+            }
+        }
+
+        #endregion
+
+        #region HTTPResponseString
+
+        /// <summary>
+        /// Create a status code line from a HTTPStatusCode.
+        /// </summary>
+        public String HTTPResponseString
+        {
+            get
+            {
+                return String.Concat("HTTP/1.1 ", Code, " ", Name);
             }
         }
 

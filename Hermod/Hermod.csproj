@@ -74,6 +74,7 @@
     <Compile Include="HTTP\Request\QueryString.cs" />
     <Compile Include="HTTP\Server\AHTTPBaseService.cs" />
     <Compile Include="HTTP\Server\Delegates.cs" />
+    <Compile Include="HTTP\Server\URLMapping\HTTPStandardHandlers.cs" />
     <Compile Include="HTTP\Server\HTTPServer.cs" />
     <Compile Include="HTTP\Server\AHTTPService.cs" />
     <Compile Include="HTTP\Server\Attributes\AuthenticationAttributes.cs" />

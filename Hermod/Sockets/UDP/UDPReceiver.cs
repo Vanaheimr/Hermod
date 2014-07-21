@@ -52,6 +52,8 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         private          CancellationTokenSource         CancellationTokenSource;
         private          CancellationToken               CancellationToken;
 
+        public  const    String                          DefaultServiceBanner      = "Vanaheimr UDP/CSV Service v0.8";
+
         #endregion
 
         #region Properties
@@ -384,12 +386,13 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #region Constructor(s)
 
-        #region UDPReceiver(Port, Mapper, ...)
+        #region UDPReceiver(Port, ServiceBanner, Mapper, ...)
 
         /// <summary>
         /// Create a new UDP receiver using IPAddress.Any and the given parameters.
         /// </summary>
         /// <param name="Port">The port to listen.</param>
+        /// <param name="ServiceBanner">Service banner.</param>
         /// <param name="Mapper">A delegate to transform the incoming UDP packets into custom data structures.</param>
         /// <param name="ReceiverThreadName">The optional name of the UDP receiver thread.</param>
         /// <param name="ReceiverThreadPriority">The optional priority of the UDP receiver thread.</param>
@@ -399,7 +402,8 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="PacketThreadsAreBackground">Whether the UDP packet threads are background threads or not.</param>
         /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
         public UDPReceiver(IPPort                          Port,
-                           MapperDelegate                  Mapper,
+                           String                          ServiceBanner               = DefaultServiceBanner,
+                           MapperDelegate                  Mapper                      = null,
                            String                          ReceiverThreadName          = "UDP receiver thread",
                            ThreadPriority                  ReceiverThreadPriority      = ThreadPriority.AboveNormal,
                            Boolean                         ReceiverThreadIsBackground  = true,
@@ -411,6 +415,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
             : this(IPv4Address.Any,
                    Port,
+                   ServiceBanner,
                    Mapper,
                    null,
                    ReceiverThreadName,
@@ -425,13 +430,14 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #endregion
 
-        #region UDPReceiver(IPAddress, Port, Mapper, ...) <= main constructor
+        #region UDPReceiver(IPAddress, ServiceBanner, Port, Mapper, ...) <= main constructor
 
         /// <summary>
         /// Create a new UDP receiver listening on the given IP address and port.
         /// </summary>
         /// <param name="IPAddress">The IP address to listen.</param>
         /// <param name="Port">The port to listen.</param>
+        /// <param name="ServiceBanner">Service banner.</param>
         /// <param name="Mapper">A delegate to transform the incoming UDP packets into custom data structures.</param>
         /// <param name="ReceiverThreadName">The optional name of the UDP receiver thread.</param>
         /// <param name="ReceiverThreadPriority">The optional priority of the UDP receiver thread.</param>
@@ -442,6 +448,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
         public UDPReceiver(IIPAddress                      IPAddress,
                            IPPort                          Port,
+                           String                          ServiceBanner               = DefaultServiceBanner,
                            MapperDelegate                  Mapper                      = null,
                            MapReduceDelegate               MapReduce                   = null,
                            String                          ReceiverThreadName          = "UDP receiver thread",
@@ -461,6 +468,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
             this._IsMulticast               = IPAddress.IsMulticast;
             this._Port                      = Port;
             this._IPSocket                  = new IPSocket(_IPAddress, _Port);
+            this.ServiceBanner              = ServiceBanner;
             this.Mapper                     = Mapper;
             this.MapReduce                  = MapReduce;
             this._ReceiverThreadName        = ReceiverThreadName;
@@ -492,8 +500,6 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
             this.CancellationTokenSource  = new CancellationTokenSource();
             this.CancellationToken        = CancellationTokenSource.Token;
 
-            this.ServiceBanner            = "UDP receiver";
-
             if (Autostart)
                 Start();
 
@@ -501,12 +507,13 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #endregion
 
-        #region UDPReceiver(IPSocket, Mapper, ...)
+        #region UDPReceiver(IPSocket, ServiceBanner, Mapper, ...)
 
         /// <summary>
         /// Create a new UDP receiver listening on the given IP socket.
         /// </summary>
         /// <param name="IPSocket">The IP socket to listen.</param>
+        /// <param name="ServiceBanner">Service banner.</param>
         /// <param name="Mapper">A delegate to transform the incoming UDP packets into custom data structures.</param>
         /// <param name="ReceiverThreadName">The optional name of the UDP receiver thread.</param>
         /// <param name="ReceiverThreadPriority">The optional priority of the UDP receiver thread.</param>
@@ -516,7 +523,8 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="PacketThreadsAreBackground">Whether the UDP packet threads are background threads or not.</param>
         /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
         public UDPReceiver(IPSocket                        IPSocket,
-                           MapperDelegate                  Mapper,
+                           String                          ServiceBanner               = DefaultServiceBanner,
+                           MapperDelegate                  Mapper                      = null,
                            String                          ReceiverThreadName          = "UDP receiver thread",
                            ThreadPriority                  ReceiverThreadPriority      = ThreadPriority.AboveNormal,
                            Boolean                         ReceiverThreadIsBackground  = true,
@@ -527,6 +535,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
             : this(IPSocket.IPAddress,
                    IPSocket.Port,
+                   ServiceBanner,
                    Mapper,
                    null,
                    ReceiverThreadName,
@@ -841,12 +850,13 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
     public class UDPReceiver : UDPReceiver<Byte[]>
     {
 
-        #region UDPReceiver(Port, Mapper, ...)
+        #region UDPReceiver(Port, ServiceBanner, Mapper, ...)
 
         /// <summary>
         /// Create a new UDP receiver using IPAddress.Any and the given parameters.
         /// </summary>
         /// <param name="Port">The port to listen.</param>
+        /// <param name="ServiceBanner">Service banner.</param>
         /// <param name="Mapper">A delegate to transform the incoming UDP packets into custom data structures.</param>
         /// <param name="ReceiverThreadName">The optional name of the UDP receiver thread.</param>
         /// <param name="ReceiverThreadPriority">The optional priority of the UDP receiver thread.</param>
@@ -856,6 +866,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="PacketThreadsAreBackground">Whether the UDP packet threads are background threads or not.</param>
         /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
         public UDPReceiver(IPPort                           Port,
+                           String                           ServiceBanner               = DefaultServiceBanner,
                            MapperDelegate                   Mapper                      = null,
                            String                           ReceiverThreadName          = "UDP receiver thread",
                            ThreadPriority                   ReceiverThreadPriority      = ThreadPriority.AboveNormal,
@@ -867,6 +878,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
             : this(IPv4Address.Any,
                    Port,
+                   ServiceBanner,
                    Mapper,
                    ReceiverThreadName,
                    ReceiverThreadPriority,
@@ -880,13 +892,14 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #endregion
 
-        #region UDPReceiver(IPAddress, Port, Mapper, ...) <= main constructor
+        #region UDPReceiver(IPAddress, Port, ServiceBanner, Mapper, ...) <= main constructor
 
         /// <summary>
         /// Create a new UDP receiver listening on the given IP address and port.
         /// </summary>
         /// <param name="IPAddress">The IP address to listen.</param>
         /// <param name="Port">The port to listen.</param>
+        /// <param name="ServiceBanner">Service banner.</param>
         /// <param name="Mapper">A delegate to transform the incoming UDP packets into custom data structures.</param>
         /// <param name="ReceiverThreadName">The optional name of the UDP receiver thread.</param>
         /// <param name="ReceiverThreadPriority">The optional priority of the UDP receiver thread.</param>
@@ -897,6 +910,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
         public UDPReceiver(IIPAddress                       IPAddress,
                            IPPort                           Port,
+                           String                           ServiceBanner               = DefaultServiceBanner,
                            MapperDelegate                   Mapper                      = null,
                            String                           ReceiverThreadName          = "UDP receiver thread",
                            ThreadPriority                   ReceiverThreadPriority      = ThreadPriority.AboveNormal,
@@ -908,6 +922,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
             : base(IPAddress,
                    Port,
+                   ServiceBanner,
                    (Mapper != null)
                        ? Mapper
                        : (UDPReceiver, Timestamp, LocalSocket, RemoteSocket, Message) => Message,
@@ -924,12 +939,13 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #endregion
 
-        #region UDPReceiver(IPSocket, Mapper, ...)
+        #region UDPReceiver(IPSocket, ServiceBanner, Mapper, ...)
 
         /// <summary>
         /// Create a new UDP receiver listening on the given IP socket.
         /// </summary>
         /// <param name="IPSocket">The IP socket to listen.</param>
+        /// <param name="ServiceBanner">Service banner.</param>
         /// <param name="Mapper">A delegate to transform the incoming UDP packets into custom data structures.</param>
         /// <param name="ReceiverThreadName">The optional name of the UDP receiver thread.</param>
         /// <param name="ReceiverThreadPriority">The optional priority of the UDP receiver thread.</param>
@@ -939,6 +955,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="PacketThreadsAreBackground">Whether the UDP packet threads are background threads or not.</param>
         /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
         public UDPReceiver(IPSocket                         IPSocket,
+                           String                           ServiceBanner               = DefaultServiceBanner,
                            MapperDelegate                   Mapper                      = null,
                            String                           ReceiverThreadName          = "UDP receiver thread",
                            ThreadPriority                   ReceiverThreadPriority      = ThreadPriority.AboveNormal,
@@ -950,6 +967,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
             : this(IPSocket.IPAddress,
                    IPSocket.Port,
+                   ServiceBanner,
                    Mapper,
                    ReceiverThreadName,
                    ReceiverThreadPriority,

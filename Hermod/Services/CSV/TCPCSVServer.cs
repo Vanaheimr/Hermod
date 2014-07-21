@@ -22,6 +22,7 @@ using System.Threading;
 
 using eu.Vanaheimr.Styx.Arrows;
 using eu.Vanaheimr.Hermod.Sockets.TCP;
+using System.Collections.Generic;
 
 #endregion
 
@@ -87,6 +88,8 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
         /// Initialize the TCP server using IPAddress.Any and the given parameters.
         /// </summary>
         /// <param name="Port">The listening port</param>
+        /// <param name="ServiceBanner">Service banner.</param>
+        /// <param name="Splitter">An array of delimiters to split the incoming CSV line into individual elements.</param>
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
@@ -97,7 +100,8 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections.</param>
         /// <param name="Autostart">Start the TCP server thread immediately.</param>
         public TCPCSVServer(IPPort                       Port,
-                            Char[]                       SplitCharacters                 = null,
+                            String                       ServiceBanner                   = DefaultServiceBanner,
+                            IEnumerable<String>          Splitter                        = null,
                             String                       ServerThreadName                = null,
                             ThreadPriority               ServerThreadPriority            = ThreadPriority.AboveNormal,
                             Boolean                      ServerThreadIsBackground        = true,
@@ -110,7 +114,8 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 
             : this(IPv4Address.Any,
                    Port,
-                   SplitCharacters,
+                   ServiceBanner,
+                   Splitter,
                    ServerThreadName,
                    ServerThreadPriority,
                    ServerThreadIsBackground,
@@ -132,7 +137,8 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
         /// </summary>
         /// <param name="IIPAddress">The listening IP address(es)</param>
         /// <param name="Port">The listening port</param>
-        /// <param name="Mapper">A delegate to transform the incoming TCP connection data into custom data structures.</param>
+        /// <param name="ServiceBanner">Service banner.</param>
+        /// <param name="Splitter">An array of delimiters to split the incoming CSV line into individual elements.</param>
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
@@ -144,7 +150,8 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
         /// <param name="Autostart">Start the TCP server thread immediately.</param>
         public TCPCSVServer(IIPAddress                   IIPAddress,
                             IPPort                       Port,
-                            Char[]                       SplitCharacters                 = null,
+                            String                       ServiceBanner                   = DefaultServiceBanner,
+                            IEnumerable<String>          Splitter                        = null,
                             String                       ServerThreadName                = null,
                             ThreadPriority               ServerThreadPriority            = ThreadPriority.AboveNormal,
                             Boolean                      ServerThreadIsBackground        = true,
@@ -157,6 +164,7 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 
             : base(IIPAddress,
                    Port,
+                   ServiceBanner,
                    ServerThreadName,
                    ServerThreadPriority,
                    ServerThreadIsBackground,
@@ -192,6 +200,8 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
         /// Initialize the TCP server using IPAddress.Any and the given parameters.
         /// </summary>
         /// <param name="IPSocket">The IP socket to listen.</param>
+        /// <param name="ServiceBanner">Service banner.</param>
+        /// <param name="Splitter">An array of delimiters to split the incoming CSV line into individual elements.</param>
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
@@ -202,7 +212,8 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections.</param>
         /// <param name="Autostart">Start the TCP server thread immediately.</param>
         public TCPCSVServer(IPSocket                     IPSocket,
-                            Char[]                       SplitCharacters                 = null,
+                            String                       ServiceBanner                   = DefaultServiceBanner,
+                            IEnumerable<String>          Splitter                        = null,
                             String                       ServerThreadName                = null,
                             ThreadPriority               ServerThreadPriority            = ThreadPriority.AboveNormal,
                             Boolean                      ServerThreadIsBackground        = true,
@@ -215,7 +226,8 @@ namespace eu.Vanaheimr.Hermod.Services.CSV
 
             : this(IPSocket.IPAddress,
                    IPSocket.Port,
-                   SplitCharacters,
+                   ServiceBanner,
+                   Splitter,
                    ServerThreadName,
                    ServerThreadPriority,
                    ServerThreadIsBackground,

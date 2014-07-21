@@ -79,6 +79,11 @@ namespace eu.Vanaheimr.Hermod.HTTP
         internal event InternalRequestLogHandler                                            RequestLog;
 
         /// <summary>
+        /// An event called whenever a request came in.
+        /// </summary>
+        internal event InternalAccessLogHandler                                             AccessLog;
+
+        /// <summary>
         /// An event called whenever a request resulted in an error.
         /// </summary>
         internal event InternalErrorLogHandler                                              ErrorLog;
@@ -88,7 +93,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
         public   event CompletedEventHandler                                                OnCompleted;
 
 
-        public event ExceptionOccuredEventHandler                                           OnExceptionOccured;
+        public   event ExceptionOccuredEventHandler                                         OnExceptionOccured;
 
         #endregion
 
@@ -300,22 +305,40 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                                     #region Call OnNotification delegate
 
+                                    HTTPResponse _HTTPResponse = null;
+
                                     var OnNotificationLocal = OnNotification;
                                     if (OnNotificationLocal != null)
                                     {
 
                                         // ToDo: How to read request body by application code?!
-                                        var resp = OnNotification("TCPConnectionId",
-                                                                  RequestTimestamp,
-                                                                  RequestHeader);
+                                        _HTTPResponse = OnNotification("TCPConnectionId",
+                                                                       RequestTimestamp,
+                                                                       RequestHeader);
 
-                                        TCPConnection.WriteToResponseStream(resp.RawHTTPHeader.ToUTF8Bytes());
+                                        TCPConnection.WriteToResponseStream(_HTTPResponse.RawHTTPHeader.ToUTF8Bytes());
 
-                                        if (resp.Content != null)
-                                            TCPConnection.WriteToResponseStream(resp.Content);
+                                        if (_HTTPResponse.Content != null)
+                                            TCPConnection.WriteToResponseStream(_HTTPResponse.Content);
 
-                                        else if (resp.ContentStream != null)
-                                            TCPConnection.WriteToResponseStream(resp.ContentStream);
+                                        else if (_HTTPResponse.ContentStream != null)
+                                            TCPConnection.WriteToResponseStream(_HTTPResponse.ContentStream);
+
+                                    }
+
+                                    #endregion
+
+                                    #region Call AccessLog delegate
+
+                                    if (_HTTPResponse != null)
+                                    {
+
+                                        var AccessLogLocal = AccessLog;
+
+                                        if (AccessLogLocal != null)
+                                        {
+                                            AccessLogLocal(this, RequestTimestamp, RequestHeader, _HTTPResponse);
+                                        }
 
                                     }
 

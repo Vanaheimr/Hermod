@@ -32,7 +32,8 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
         #region Data
 
-        protected readonly TCPServer _TCPServer;
+        protected readonly TCPServer  _TCPServer;
+        protected const    String     DefaultServiceBanner = "Vanaheimr Hermod TCP Server v0.9";
 
         #endregion
 
@@ -212,6 +213,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         /// Initialize the TCP server using IPAddress.Any and the given parameters.
         /// </summary>
         /// <param name="Port">The listening port</param>
+        /// <param name="ServiceBanner">Service banner.</param>
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
@@ -221,6 +223,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds.</param>
         public ACustomTCPServer(IPPort                       Port,
+                                String                       ServiceBanner                   = DefaultServiceBanner,
                                 String                       ServerThreadName                = null,
                                 ThreadPriority               ServerThreadPriority            = ThreadPriority.AboveNormal,
                                 Boolean                      ServerThreadIsBackground        = true,
@@ -232,6 +235,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
             : this(IPv4Address.Any,
                    Port,
+                   ServiceBanner,
                    ServerThreadName,
                    ServerThreadPriority,
                    ServerThreadIsBackground,
@@ -252,6 +256,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         /// </summary>
         /// <param name="IIPAddress">The listening IP address(es)</param>
         /// <param name="Port">The listening port</param>
+        /// <param name="ServiceBanner">Service banner.</param>
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
@@ -262,6 +267,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds.</param>
         public ACustomTCPServer(IIPAddress                   IIPAddress,
                                 IPPort                       Port,
+                                String                       ServiceBanner                   = DefaultServiceBanner,
                                 String                       ServerThreadName                = null,
                                 ThreadPriority               ServerThreadPriority            = ThreadPriority.AboveNormal,
                                 Boolean                      ServerThreadIsBackground        = true,
@@ -270,10 +276,12 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
                                 ThreadPriority               ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
                                 Boolean                      ConnectionThreadsAreBackground  = true,
                                 TimeSpan?                    ConnectionTimeout               = null)
+
         {
 
             this._TCPServer = new TCPServer(IIPAddress,
                                             Port,
+                                            ServiceBanner,
                                             ServerThreadName,
                                             ServerThreadPriority,
                                             ServerThreadIsBackground,
@@ -294,6 +302,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         /// Initialize the TCP server using IPAddress.Any and the given parameters.
         /// </summary>
         /// <param name="IPSocket">The IP socket to listen.</param>
+        /// <param name="ServiceBanner">Service banner.</param>
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
@@ -303,17 +312,19 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds.</param>
         public ACustomTCPServer(IPSocket                     IPSocket,
-                         String                       ServerThreadName                = null,
-                         ThreadPriority               ServerThreadPriority            = ThreadPriority.AboveNormal,
-                         Boolean                      ServerThreadIsBackground        = true,
-                         Func<IPSocket, String>       ConnectionIdBuilder             = null,
-                         Func<TCPConnection, String>  ConnectionThreadsNameCreator    = null,
-                         ThreadPriority               ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
-                         Boolean                      ConnectionThreadsAreBackground  = true,
-                         TimeSpan?                    ConnectionTimeout               = null)
+                                String                       ServiceBanner                   = DefaultServiceBanner,
+                                String                       ServerThreadName                = null,
+                                ThreadPriority               ServerThreadPriority            = ThreadPriority.AboveNormal,
+                                Boolean                      ServerThreadIsBackground        = true,
+                                Func<IPSocket, String>       ConnectionIdBuilder             = null,
+                                Func<TCPConnection, String>  ConnectionThreadsNameCreator    = null,
+                                ThreadPriority               ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
+                                Boolean                      ConnectionThreadsAreBackground  = true,
+                                TimeSpan?                    ConnectionTimeout               = null)
 
             : this(IPSocket.IPAddress,
                    IPSocket.Port,
+                   ServiceBanner,
                    ServerThreadName,
                    ServerThreadPriority,
                    ServerThreadIsBackground,

@@ -35,6 +35,19 @@ namespace eu.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// The delegate for the HTTP request log.
     /// </summary>
+    /// <param name="HTTPProcessor">The sending HTTP processor.</param>
+    /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
+    /// <param name="Request">The incoming request.</param>
+    /// <param name="Response">The outgoing response.</param>
+    internal delegate void InternalAccessLogHandler(HTTPProcessor HTTPProcessor, DateTime ServerTimestamp, HTTPRequest Request, HTTPResponse Response);
+
+
+
+
+
+    /// <summary>
+    /// The delegate for the HTTP request log.
+    /// </summary>
     /// <param name="HTTPServer">The sending HTTP server.</param>
     /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
     /// <param name="Request">The incoming request.</param>

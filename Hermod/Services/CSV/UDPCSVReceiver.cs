@@ -49,7 +49,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #region Splitter
 
-        private readonly IEnumerable<String>  _Splitter;
+        private readonly String[]  _Splitter;
 
         /// <summary>
         /// The delimiters for splitting a line into
@@ -67,12 +67,15 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #endregion
 
-        #region UDPCSVReceiver(Port, Splitter = null, ...)
+        #region Constructor(s)
+
+        #region UDPCSVReceiver(Port, ServiceBanner, Splitter = null, ...)
 
         /// <summary>
         /// Create a new UDP/CSV receiver using IPAddress.Any and the given parameters.
         /// </summary>
         /// <param name="Port">The port to listen.</param>
+        /// <param name="ServiceBanner">Service banner.</param>
         /// <param name="Splitter">An array of delimiters to split the incoming CSV line into individual elements.</param>
         /// <param name="ReceiverThreadName">The optional name of the UDP receiver thread.</param>
         /// <param name="ReceiverThreadPriority">The optional priority of the UDP receiver thread.</param>
@@ -82,6 +85,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="PacketThreadsAreBackground">Whether the UDP packet threads are background threads or not.</param>
         /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
         public UDPCSVReceiver(IPPort                                        Port,
+                              String                                        ServiceBanner               = DefaultServiceBanner,
                               IEnumerable<String>                           Splitter                    = null,
                               String                                        ReceiverThreadName          = "UDP receiver thread",
                               ThreadPriority                                ReceiverThreadPriority      = ThreadPriority.AboveNormal,
@@ -93,6 +97,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
             : this(IPv4Address.Any,
                    Port,
+                   ServiceBanner,
                    Splitter,
                    ReceiverThreadName,
                    ReceiverThreadPriority,
@@ -106,13 +111,14 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         #endregion
 
-        #region UDPCSVReceiver(IPAddress, Port, Splitter = null, ...) <= main constructor
+        #region UDPCSVReceiver(IPAddress, Port, ServiceBanner, Splitter = null, ...) <= main constructor
 
         /// <summary>
         /// Create a new UDP/CSV receiver listening on the given IP address and port.
         /// </summary>
         /// <param name="IPAddress">The IP address to listen.</param>
         /// <param name="Port">The port to listen.</param>
+        /// <param name="ServiceBanner">Service banner.</param>
         /// <param name="Splitter">An array of delimiters to split the incoming CSV line into individual elements.</param>
         /// <param name="ReceiverThreadName">The optional name of the UDP receiver thread.</param>
         /// <param name="ReceiverThreadPriority">The optional priority of the UDP receiver thread.</param>
@@ -123,6 +129,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
         public UDPCSVReceiver(IIPAddress                                    IPAddress,
                               IPPort                                        Port,
+                              String                                        ServiceBanner               = DefaultServiceBanner,
                               IEnumerable<String>                           Splitter                    = null,
                               String                                        ReceiverThreadName          = "UDP receiver thread",
                               ThreadPriority                                ReceiverThreadPriority      = ThreadPriority.AboveNormal,
@@ -134,6 +141,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
             : base(IPAddress,
                    Port,
+                   ServiceBanner,
 
                    // Mapper delegate <= do not use!
                    null,
@@ -159,18 +167,19 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
         {
 
-            this._Splitter  = (Splitter != null) ? Splitter : DefaultSplitter;
+            this._Splitter  = (Splitter != null) ? Splitter.ToArray() : DefaultSplitter;
 
         }
 
         #endregion
 
-        #region UDPCSVReceiver(IPSocket, Splitter = null, ...)
+        #region UDPCSVReceiver(IPSocket, ServiceBanner, Splitter = null, ...)
 
         /// <summary>
         /// Create a new UDP/CSV receiver listening on the given IP socket.
         /// </summary>
         /// <param name="IPSocket">The IP socket to listen.</param>
+        /// <param name="ServiceBanner">Service banner.</param>
         /// <param name="Splitter">An array of delimiters to split the incoming CSV line into individual elements.</param>
         /// <param name="ReceiverThreadName">The optional name of the UDP receiver thread.</param>
         /// <param name="ReceiverThreadPriority">The optional priority of the UDP receiver thread.</param>
@@ -180,6 +189,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="PacketThreadsAreBackground">Whether the UDP packet threads are background threads or not.</param>
         /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
         public UDPCSVReceiver(IPSocket                                      IPSocket,
+                              String                                        ServiceBanner               = DefaultServiceBanner,
                               IEnumerable<String>                           Splitter                    = null,
                               String                                        ReceiverThreadName          = "UDP receiver thread",
                               ThreadPriority                                ReceiverThreadPriority      = ThreadPriority.AboveNormal,
@@ -191,6 +201,7 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
 
             : this(IPSocket.IPAddress,
                    IPSocket.Port,
+                   ServiceBanner,
                    Splitter,
                    ReceiverThreadName,
                    ReceiverThreadPriority,
@@ -201,6 +212,8 @@ namespace eu.Vanaheimr.Hermod.Sockets.UDP
                    Autostart)
 
         { }
+
+        #endregion
 
         #endregion
 

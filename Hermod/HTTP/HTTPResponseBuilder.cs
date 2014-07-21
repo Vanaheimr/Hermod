@@ -46,7 +46,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
         {
             get
             {
-                return HTTPStatusCode.SimpleString + Environment.NewLine +
+                return HTTPStatusCode.HTTPResponseString + Environment.NewLine +
                        ConstructedHTTPHeader       + Environment.NewLine +
                        Environment.NewLine;
             }
