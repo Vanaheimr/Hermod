@@ -193,8 +193,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-
-        #region AddOrUpdate URINode
+        #region AddHandler(...)
 
         public void AddHandler(HTTPDelegate        HTTPDelegate,
 
@@ -202,7 +201,6 @@ namespace eu.Vanaheimr.Hermod.HTTP
                                HTTPMethod          HTTPMethod                  = null,
                                HTTPContentType     HTTPContentType             = null,
 
-                               HTTPAuthentication  HostAuthentication          = null,
                                HTTPAuthentication  URIAuthentication           = null,
                                HTTPAuthentication  HTTPMethodAuthentication    = null,
                                HTTPAuthentication  ContentTypeAuthentication   = null,
@@ -214,53 +212,24 @@ namespace eu.Vanaheimr.Hermod.HTTP
             URINode _URINode = null;
 
             if (!_URINodes.TryGetValue(URITemplate, out _URINode))
+            {
                 _URINode = new URINode(URITemplate, URIAuthentication, HTTPDelegate, DefaultErrorHandler);
+                _URINodes.Add(URITemplate, _URINode);
+            }
 
-            _URINodes.Add(URITemplate, _URINode);
+            _URINode.AddHandler(HTTPDelegate,
 
-            if (HTTPMethod == null)
-                return;
+                                HTTPMethod,
+                                HTTPContentType,
 
+                                HTTPMethodAuthentication,
+                                ContentTypeAuthentication,
 
-            //#region AddOrUpdate HTTPMethodNode
-
-            //HTTPMethodNode _HTTPMethodNode = null;
-            //if (!_URINode.HTTPMethods.TryGetValue(HTTPMethod, out _HTTPMethodNode))
-            //{
-
-            //    if (HTTPContentType == null)
-            //        _HTTPMethodNode = new HTTPMethodNode(HTTPMethod, HTTPDelegate, HTTPMethodAuthentication);
-
-            //    else
-            //        _HTTPMethodNode = new HTTPMethodNode(HTTPMethod, null, HTTPMethodAuthentication, HandleContentTypes: true);
-
-            //}
-
-            //_URINode.HTTPMethods.Add(HTTPMethod, _HTTPMethodNode);
-
-            //if (HTTPContentType == null)
-            //    return;
-
-            //#endregion
-
-            //#region AddOrUpdate ContentTypeNode
-
-            //ContentTypeNode _ContentTypeNode = null;
-            //if (!_HTTPMethodNode.HTTPContentTypes.TryGetValue(HTTPContentType, out _ContentTypeNode))
-            //    _ContentTypeNode = new ContentTypeNode(HTTPContentType, HTTPDelegate, ContentTypeAuthentication);
-
-            //_HTTPMethodNode.HTTPContentTypes.Add(HTTPContentType, _ContentTypeNode);
-
-            //#endregion
+                                DefaultErrorHandler);
 
         }
 
         #endregion
-
-
-
-
-
 
 
         #region ToString()

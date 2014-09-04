@@ -285,7 +285,6 @@ namespace eu.Vanaheimr.Hermod.HTTP
                                          HTTPMethod,
                                          HTTPContentType,
 
-                                         HostAuthentication,
                                          URIAuthentication,
                                          HTTPMethodAuthentication,
                                          ContentTypeAuthentication,
@@ -400,25 +399,20 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 if (!_BestMatch.URLNode.HTTPMethods.TryGetValue(HTTPMethod, out _HTTPMethodNode))
                     return _BestMatch.URLNode.RequestHandler;
 
-                // If no HTTPContentType was given => return HTTPMethod MethodHandler
-                if (HTTPContentType == null)
-                    //return new Tuple<MethodInfo, IEnumerable<Object>>(_HTTPMethodNode.MethodHandler, _Parameters);
-                    return null;
+                #endregion
+
+                #region Get HTTPContentTypeNode
+
+                ContentTypeNode _HTTPContentTypeNode = null;
+
+                if (!_HTTPMethodNode.HTTPContentTypes.TryGetValue(HTTPRequest.Accept.BestMatchingContentType(_HTTPMethodNode.HTTPContentTypes.Keys.ToArray()), out _HTTPContentTypeNode))
+                    return _HTTPMethodNode.RequestHandler;
 
                 #endregion
 
-                #region Get ContentTypeNode
-
-                ContentTypeNode _ContentTypeNode = null;
-
-                if (_HTTPMethodNode.HTTPContentTypes.TryGetValue(HTTPContentType, out _ContentTypeNode))
-                    //return new Tuple<MethodInfo, IEnumerable<Object>>(_ContentTypeNode.MethodHandler, _Parameters);
-                    return null;
-
-                #endregion
+                return _HTTPContentTypeNode.RequestHandler;
 
                 //return GetErrorHandler(Host, URL, HTTPMethod, HTTPContentType, HTTPStatusCode.BadRequest);
-                return null;
 
             }
 
