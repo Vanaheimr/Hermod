@@ -19,16 +19,18 @@
 
 using System;
 using System.Linq;
+using System.Xml.Linq;
+using System.Threading;
 using System.Reflection;
 using System.Collections.Generic;
 
-using eu.Vanaheimr.Illias.Commons;
-using eu.Vanaheimr.Hermod.Sockets.TCP;
-using eu.Vanaheimr.Styx.Arrows;
-using System.Threading;
-using eu.Vanaheimr.Hermod.Services.TCP;
 using Newtonsoft.Json.Linq;
-using System.Xml.Linq;
+
+using eu.Vanaheimr.Illias.Commons;
+using eu.Vanaheimr.Illias.Commons.ConsoleLog;
+using eu.Vanaheimr.Hermod.Sockets.TCP;
+using eu.Vanaheimr.Hermod.Services.TCP;
+using eu.Vanaheimr.Styx.Arrows;
 
 #endregion
 
@@ -102,8 +104,9 @@ namespace eu.Vanaheimr.Hermod.HTTP
             {
                 RequestBodyXML = XDocument.Parse(RequestBodyString.Data);
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                Log.WriteLine(e.Message);
                 return new HTTPResult<XDocument>(Request, HTTPStatusCode.BadRequest);
             }
 
