@@ -27,11 +27,69 @@ using eu.Vanaheimr.Hermod.Sockets.TCP;
 using eu.Vanaheimr.Styx.Arrows;
 using System.Threading;
 using eu.Vanaheimr.Hermod.Services.TCP;
+using Newtonsoft.Json.Linq;
 
 #endregion
 
 namespace eu.Vanaheimr.Hermod.HTTP
 {
+
+    public static class HTTPExtentions
+    {
+
+        #region (protected) GetRequestBodyAsUTF8String(this Request, HTTPContentType)
+
+        public static HTTPResult<String> GetRequestBodyAsUTF8String(this HTTPRequest  Request,
+                                                                HTTPContentType   HTTPContentType)
+        {
+
+            if (Request.ContentType != HTTPContentType)
+                return new HTTPResult<String>(Request, HTTPStatusCode.BadRequest);
+
+            if (Request.Content == null || Request.Content.Length == 0)
+                return new HTTPResult<String>(Request, HTTPStatusCode.BadRequest);
+
+            var RequestBodyString = Request.Content.ToUTF8String();
+
+            if (RequestBodyString.IsNullOrEmpty())
+                return new HTTPResult<String>(Request, HTTPStatusCode.BadRequest);
+
+            return new HTTPResult<String>(Result: RequestBodyString);
+
+        }
+
+        #endregion
+
+        #region (protected) ParseJSONRequestBody()
+
+        public static HTTPResult<JObject> ParseJSONRequestBody(this HTTPRequest Request)
+        {
+
+            var RequestBodyString = Request.GetRequestBodyAsUTF8String(HTTPContentType.JSON_UTF8);
+            if (RequestBodyString.HasErrors)
+                return new HTTPResult<JObject>(RequestBodyString.Error);
+
+            JObject RequestBodyJSON;
+
+            try
+            {
+                RequestBodyJSON = JObject.Parse(RequestBodyString.Data);
+            }
+            catch (Exception)
+            {
+                return new HTTPResult<JObject>(Request, HTTPStatusCode.BadRequest);
+            }
+
+            return new HTTPResult<JObject>(RequestBodyJSON);
+
+        }
+
+        #endregion
+
+
+
+    }
+
 
     /// <summary>
     /// A HTTP/1.1 server.
@@ -361,6 +419,10 @@ namespace eu.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
+
+
+
+
 
 
 
