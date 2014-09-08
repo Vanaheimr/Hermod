@@ -43,7 +43,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
         #region (protected) GetRequestBodyAsUTF8String(this Request, HTTPContentType)
 
         public static HTTPResult<String> GetRequestBodyAsUTF8String(this HTTPRequest  Request,
-                                                                HTTPContentType   HTTPContentType)
+                                                                    HTTPContentType   HTTPContentType)
         {
 
             if (Request.ContentType != HTTPContentType)
@@ -93,6 +93,20 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         public static HTTPResult<XDocument> ParseXMLRequestBody(this HTTPRequest Request)
         {
+
+            if (Request.ContentType != HTTPContentType.XMLTEXT_UTF8)
+                Log.WriteLine("Invalid HTTPContentType.XMLTEXT_UTF8!");
+
+            if (Request.Content == null || Request.Content.Length == 0)
+                Log.WriteLine("HTTP Body is empty!");
+
+            Log.WriteLine("HTTP Body siez: " + Request.Content.Length);
+
+            var RequestBodyString_ = Request.Content.ToUTF8String();
+
+            if (RequestBodyString_.IsNullOrEmpty())
+                Log.WriteLine("HTTP Body is \"\"!");
+
 
             var RequestBodyString = Request.GetRequestBodyAsUTF8String(HTTPContentType.XMLTEXT_UTF8);
             if (RequestBodyString.HasErrors)
