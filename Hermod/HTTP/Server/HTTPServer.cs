@@ -28,6 +28,7 @@ using eu.Vanaheimr.Styx.Arrows;
 using System.Threading;
 using eu.Vanaheimr.Hermod.Services.TCP;
 using Newtonsoft.Json.Linq;
+using System.Xml.Linq;
 
 #endregion
 
@@ -60,7 +61,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected) ParseJSONRequestBody()
+        #region ParseJSONRequestBody()
 
         public static HTTPResult<JObject> ParseJSONRequestBody(this HTTPRequest Request)
         {
@@ -81,6 +82,32 @@ namespace eu.Vanaheimr.Hermod.HTTP
             }
 
             return new HTTPResult<JObject>(RequestBodyJSON);
+
+        }
+
+        #endregion
+
+        #region ParseXMLRequestBody()
+
+        public static HTTPResult<XDocument> ParseXMLRequestBody(this HTTPRequest Request)
+        {
+
+            var RequestBodyString = Request.GetRequestBodyAsUTF8String(HTTPContentType.XMLTEXT_UTF8);
+            if (RequestBodyString.HasErrors)
+                return new HTTPResult<XDocument>(RequestBodyString.Error);
+
+            XDocument RequestBodyXML;
+
+            try
+            {
+                RequestBodyXML = XDocument.Parse(RequestBodyString.Data);
+            }
+            catch (Exception)
+            {
+                return new HTTPResult<XDocument>(Request, HTTPStatusCode.BadRequest);
+            }
+
+            return new HTTPResult<XDocument>(RequestBodyXML);
 
         }
 
