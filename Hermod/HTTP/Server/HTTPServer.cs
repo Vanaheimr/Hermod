@@ -19,19 +19,119 @@
 
 using System;
 using System.Linq;
+using System.Xml.Linq;
+using System.Threading;
 using System.Reflection;
 using System.Collections.Generic;
 
+using Newtonsoft.Json.Linq;
+
 using eu.Vanaheimr.Illias.Commons;
+using eu.Vanaheimr.Illias.Commons.ConsoleLog;
 using eu.Vanaheimr.Hermod.Sockets.TCP;
-using eu.Vanaheimr.Styx.Arrows;
-using System.Threading;
 using eu.Vanaheimr.Hermod.Services.TCP;
+using eu.Vanaheimr.Styx.Arrows;
 
 #endregion
 
 namespace eu.Vanaheimr.Hermod.HTTP
 {
+
+    public static class HTTPExtentions
+    {
+
+        #region (protected) GetRequestBodyAsUTF8String(this Request, HTTPContentType)
+
+        public static HTTPResult<String> GetRequestBodyAsUTF8String(this HTTPRequest  Request,
+                                                                    HTTPContentType   HTTPContentType)
+        {
+
+            if (Request.ContentType != HTTPContentType)
+                return new HTTPResult<String>(Request, HTTPStatusCode.BadRequest);
+
+            if (Request.Content == null || Request.Content.Length == 0)
+                return new HTTPResult<String>(Request, HTTPStatusCode.BadRequest);
+
+            var RequestBodyString = Request.Content.ToUTF8String();
+
+            if (RequestBodyString.IsNullOrEmpty())
+                return new HTTPResult<String>(Request, HTTPStatusCode.BadRequest);
+
+            return new HTTPResult<String>(Result: RequestBodyString);
+
+        }
+
+        #endregion
+
+        #region ParseJSONRequestBody()
+
+        public static HTTPResult<JObject> ParseJSONRequestBody(this HTTPRequest Request)
+        {
+
+            var RequestBodyString = Request.GetRequestBodyAsUTF8String(HTTPContentType.JSON_UTF8);
+            if (RequestBodyString.HasErrors)
+                return new HTTPResult<JObject>(RequestBodyString.Error);
+
+            JObject RequestBodyJSON;
+
+            try
+            {
+                RequestBodyJSON = JObject.Parse(RequestBodyString.Data);
+            }
+            catch (Exception)
+            {
+                return new HTTPResult<JObject>(Request, HTTPStatusCode.BadRequest);
+            }
+
+            return new HTTPResult<JObject>(RequestBodyJSON);
+
+        }
+
+        #endregion
+
+        #region ParseXMLRequestBody()
+
+        public static HTTPResult<XDocument> ParseXMLRequestBody(this HTTPRequest Request)
+        {
+
+            if (Request.ContentType != HTTPContentType.XMLTEXT_UTF8)
+                Log.WriteLine("Invalid HTTPContentType.XMLTEXT_UTF8!");
+
+            if (Request.Content == null || Request.Content.Length == 0)
+                Log.WriteLine("HTTP Body is empty!");
+
+            Log.WriteLine("HTTP Body siez: " + Request.Content.Length);
+
+            var RequestBodyString_ = Request.Content.ToUTF8String();
+
+            if (RequestBodyString_.IsNullOrEmpty())
+                Log.WriteLine("HTTP Body is \"\"!");
+
+
+            var RequestBodyString = Request.GetRequestBodyAsUTF8String(HTTPContentType.XMLTEXT_UTF8);
+            if (RequestBodyString.HasErrors)
+                return new HTTPResult<XDocument>(RequestBodyString.Error);
+
+            XDocument RequestBodyXML;
+
+            try
+            {
+                RequestBodyXML = XDocument.Parse(RequestBodyString.Data);
+            }
+            catch (Exception e)
+            {
+                Log.WriteLine(e.Message);
+                return new HTTPResult<XDocument>(Request, HTTPStatusCode.BadRequest);
+            }
+
+            return new HTTPResult<XDocument>(RequestBodyXML);
+
+        }
+
+        #endregion
+
+    }
+
 
     /// <summary>
     /// A HTTP/1.1 server.
@@ -361,6 +461,10 @@ namespace eu.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
+
+
+
+
 
 
 
