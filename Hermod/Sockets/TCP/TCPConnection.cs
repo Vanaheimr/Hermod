@@ -210,6 +210,19 @@ namespace eu.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
+
+        #region NetworkStream
+
+        public NetworkStream NetworkStream
+        {
+            get
+            {
+                return Stream;
+            }
+        }
+
+        #endregion
+
         #endregion
 
         #region Events

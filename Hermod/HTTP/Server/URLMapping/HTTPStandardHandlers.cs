@@ -46,9 +46,9 @@ namespace eu.Vanaheimr.Hermod.HTTP
                                                      HTTPMethod       HTTPMethod = null)
         {
 
-            HTTPServer.AddMethodCallback(HTTPMethod != null ? HTTPMethod : HTTPMethod.GET,
-                                         URITemplate,
-                                         HTTPDelegate: Request => {
+            HTTPServer.AddMethodCallback(HTTPMethod:    HTTPMethod != null ? HTTPMethod : HTTPMethod.GET,
+                                         URITemplate:   URITemplate,
+                                         HTTPDelegate:  Request => {
 
                                              return new HTTPResponseBuilder() {
 
@@ -224,7 +224,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                                              var FilePath = (Request.ParsedQueryParameters != null)
                                                                 ? Request.ParsedQueryParameters.First().Replace("/", ".")
-                                                                : DefaultFilename;
+                                                                : DefaultFilename.Replace("/", ".");
 
                                              var FileStream = ResourceAssembly.GetManifestResourceStream(ResourcePath + "." + FilePath);
 

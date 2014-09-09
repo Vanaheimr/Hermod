@@ -59,166 +59,6 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         // Method Callbacks
 
-        #region (internal) AddHandler(MethodHandler, Hostnames, URITemplate, HTTPMethod = null, HTTPContentType = null, HostAuthentication = false, URIAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false)
-
-        /// <summary>
-        /// Add a method callback for the given URI template.
-        /// </summary>
-        /// <param name="MethodHandler">The method to call.</param>
-        /// <param name="Hosts">The HTTP hosts.</param>
-        /// <param name="URITemplate">The URI template.</param>
-        /// <param name="HTTPMethod">The HTTP method.</param>
-        /// <param name="HTTPContentType">The HTTP content type.</param>
-        /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
-        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
-        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
-        /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
-        internal void AddHandler(MethodInfo           MethodHandler,
-                                 IEnumerable<String>  Hostnames,
-                                 String               URITemplate,
-                                 HTTPMethod           HTTPMethod                  = null,
-                                 HTTPContentType      HTTPContentType             = null,
-
-                                 HTTPAuthentication   HostAuthentication          = null,
-                                 HTTPAuthentication   URIAuthentication           = null,
-                                 HTTPAuthentication   HTTPMethodAuthentication    = null,
-                                 HTTPAuthentication   ContentTypeAuthentication   = null)
-
-        {
-
-            lock (Lock)
-            {
-                foreach (var Hostname in Hostnames)
-                    AddHandler(MethodHandler,
-                               Hostname,
-                               URITemplate,
-                               HTTPMethod,
-                               HTTPContentType,
-                               HostAuthentication,
-                               URIAuthentication,
-                               HTTPMethodAuthentication,
-                               ContentTypeAuthentication);
-             
-            }
-
-        }
-
-        #endregion
-
-        #region (internal) AddHandler(MethodHandler, Hostname, URITemplate, HTTPMethod = null, HTTPContentType = null, HostAuthentication = false, URIAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false)
-
-        /// <summary>
-        /// Add a method callback for the given URI template.
-        /// </summary>
-        /// <param name="HTTPDelegate">A delegate called for each incoming HTTP request.</param>
-        /// <param name="Hostname">The HTTP hostname.</param>
-        /// <param name="URITemplate">The URI template.</param>
-        /// <param name="HTTPMethod">The HTTP method.</param>
-        /// <param name="HTTPContentType">The HTTP content type.</param>
-        /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
-        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
-        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
-        /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
-        internal void AddHandler(MethodInfo          MethodHandler,
-                                 String              Hostname,
-                                 String              URITemplate,
-                                 HTTPMethod          HTTPMethod                  = null,
-                                 HTTPContentType     HTTPContentType             = null,
-                                 HTTPAuthentication  HostAuthentication          = null,
-                                 HTTPAuthentication  URIAuthentication           = null,
-                                 HTTPAuthentication  HTTPMethodAuthentication    = null,
-                                 HTTPAuthentication  ContentTypeAuthentication   = null)
-
-        {
-
-            //lock (Lock)
-            //{
-
-            //    #region Initial Checks
-
-            //    if (MethodHandler == null)
-            //        throw new ArgumentNullException("MethodHandler", "The MethodHandler must not be null!");
-
-            //    if (Hostname.IsNullOrEmpty())
-            //        Hostname = "*";
-
-            //    URITemplate.FailIfNullOrEmpty();
-
-            //    if (HTTPMethod == null && HTTPContentType != null)
-            //        throw new ArgumentNullException("If HTTPMethod is null the HTTPContentType must also be null!");
-
-            //    #endregion
-
-            //    #region AddOrGet HostnameNode
-
-            //    HostnameNode _HostnameNode = null;
-            //    if (!_HostnameNodes.TryGetValue(Hostname, out _HostnameNode))
-            //    {
-            //        // Note: Use _.Hostname as the input is sanitized!
-            //        _HostnameNode = _HostnameNodes.AddAndReturnValue(_ => _.Hostname,
-            //                                                         new HostnameNode(Hostname, HostAuthentication));
-            //    }
-
-            //    #endregion
-
-            //    #region AddOrUpdate URINode
-
-            //    URINode _URINode = null;
-            //    if (!_HostnameNode.URINodes.TryGetValue(URITemplate, out _URINode))
-            //    {
-
-            //        if (HTTPMethod == null)
-            //            _URINode = new URINode(URITemplate, MethodHandler, URIAuthentication);
-
-            //        else
-            //            _URINode = new URINode(URITemplate, null, URIAuthentication);
-
-            //        _HostnameNode.URINodes.Add(URITemplate, _URINode);
-
-            //    }
-
-            //    if (HTTPMethod == null)
-            //        return;
-
-            //    #endregion
-
-            //    #region AddOrUpdate HTTPMethodNode
-
-            //    HTTPMethodNode _HTTPMethodNode = null;
-            //    if (!_URINode.HTTPMethods.TryGetValue(HTTPMethod, out _HTTPMethodNode))
-            //    {
-
-            //        if (HTTPContentType == null)
-            //            _HTTPMethodNode = new HTTPMethodNode(HTTPMethod, MethodHandler, HTTPMethodAuthentication);
-
-            //        else
-            //            _HTTPMethodNode = new HTTPMethodNode(HTTPMethod, null, HTTPMethodAuthentication, HandleContentTypes: true);
-
-            //    }
-
-            //    _URINode.HTTPMethods.Add(HTTPMethod, _HTTPMethodNode);
-
-            //    if (HTTPContentType == null)
-            //        return;
-
-            //    #endregion
-
-            //    #region AddOrUpdate ContentTypeNode
-
-            //    ContentTypeNode _ContentTypeNode = null;
-            //    if (!_HTTPMethodNode.HTTPContentTypes.TryGetValue(HTTPContentType, out _ContentTypeNode))
-            //        _ContentTypeNode = new ContentTypeNode(HTTPContentType, MethodHandler, ContentTypeAuthentication);
-
-            //    _HTTPMethodNode.HTTPContentTypes.Add(HTTPContentType, _ContentTypeNode);
-
-            //    #endregion
-
-            //}
-
-        }
-
-        #endregion
-
         #region (internal) AddHandler(HTTPDelegate, Hostname = "*", URITemplate = "/", HTTPMethod = null, HTTPContentType = null, HostAuthentication = null, URIAuthentication = null, HTTPMethodAuthentication = null, ContentTypeAuthentication = null, DefaultErrorHandler = null)
 
         /// <summary>
@@ -457,7 +297,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// Add a method call back for the given URI template and
         /// add a HTTP Sever Sent Events source.
         /// </summary>
-        /// <param name="MethodInfo">The method to call.</param>
+        /// <param name="HTTPDelegate">The method to call.</param>
         /// <param name="Host">The HTTP host.</param>
         /// <param name="URITemplate">The URI template.</param>
         /// <param name="HTTPMethod">The HTTP method.</param>
@@ -467,84 +307,88 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="IsSharedEventSource">Whether this event source will be shared.</param>
         /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
         /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
-        internal HTTPEventSource AddEventSource(MethodInfo          MethodInfo,
-                                                String              Host,
-                                                String              URITemplate,
-                                                HTTPMethod          HTTPMethod,
-                                                String              EventIdentification,
-                                                UInt32              MaxNumberOfCachedEvents  = 100,
-                                                TimeSpan?           RetryIntervall           = null,
-                                                Boolean             IsSharedEventSource      = false,
-                                                HTTPAuthentication  HostAuthentication       = null,
-                                                Boolean             URIAuthentication        = false)
+        internal HTTPEventSource AddEventSource(String              EventIdentification,
+                                                UInt32              MaxNumberOfCachedEvents     = 100,
+                                                TimeSpan?           RetryIntervall              = null,
+
+                                                String              Hostname                    = "*",
+                                                String              URITemplate                 = "/",
+                                                HTTPMethod          HTTPMethod                  = null,
+
+                                                HTTPAuthentication  HostAuthentication          = null,
+                                                HTTPAuthentication  URIAuthentication           = null,
+                                                HTTPAuthentication  HTTPMethodAuthentication    = null,
+
+                                                HTTPDelegate        DefaultErrorHandler         = null)
 
         {
 
             lock (Lock)
             {
+
+                #region Get or Create Event Source
 
                 HTTPEventSource _HTTPEventSource;
 
-                if (IsSharedEventSource)
-                {
-
-                    if (!_EventSources.TryGetValue(EventIdentification, out _HTTPEventSource))
-                        _HTTPEventSource = _EventSources.AddAndReturnValue(EventIdentification,
-                                                                           new HTTPEventSource(EventIdentification, MaxNumberOfCachedEvents, RetryIntervall));
-
-                }
-
-                else
-                {
-
-                    if (_EventSources.ContainsKey(EventIdentification))
-                        throw new ArgumentException("Duplicate event identification!");
-
+                if (!_EventSources.TryGetValue(EventIdentification, out _HTTPEventSource))
                     _HTTPEventSource = _EventSources.AddAndReturnValue(EventIdentification,
                                                                        new HTTPEventSource(EventIdentification, MaxNumberOfCachedEvents, RetryIntervall));
 
-                }
+                #endregion
 
-                //AddHandler(MethodInfo, Host, URITemplate, HTTPMethod, HTTPContentType.EVENTSTREAM, HostAuthentication, URIAuthentication);
+                #region Define HTTP Delegate
+
+                HTTPDelegate _HTTPDelegate = HTTPRequest =>
+                {
+
+                    var _LastEventId        = 0UL;
+                    var _Client_LastEventId = 0UL;
+                    var _EventSource        = GetEventSource(EventIdentification);
+
+                    if (HTTPRequest.TryGet<UInt64>("Last-Event-Id", out _Client_LastEventId))
+                        _LastEventId = _Client_LastEventId;
+
+                    var _HTTPEvents      = (from   _HTTPEvent
+                                            in     _EventSource.GetAllEventsGreater(_LastEventId)
+                                            where  _HTTPEvent != null
+                                            select _HTTPEvent.ToString())
+                                           .ToArray(); // For thread safety!
+
+                    // Transform HTTP events into an UTF8 string
+                    var _ResourceContent = String.Empty;
+
+                    if (_HTTPEvents.Length > 0)
+                        _ResourceContent = Environment.NewLine + _HTTPEvents.Aggregate((a, b) => a + Environment.NewLine + b) + Environment.NewLine;
+
+                    else
+                        _ResourceContent += Environment.NewLine + "retry: " + ((UInt32) _EventSource.RetryIntervall.TotalMilliseconds) + Environment.NewLine + Environment.NewLine;
+
+                    return new HTTPResponseBuilder() {
+                        HTTPStatusCode  = HTTPStatusCode.OK,
+                        ContentType     = HTTPContentType.EVENTSTREAM,
+                        CacheControl    = "no-cache",
+                        Connection      = "keep-alive",
+                        Content         = _ResourceContent.ToUTF8Bytes()
+                    };
+
+                };
+
+                #endregion
+
+                AddHandler(_HTTPDelegate,
+                           Hostname,
+                           URITemplate,
+                           (HTTPMethod == null) ? HTTPMethod.GET : HTTPMethod,
+                           HTTPContentType.EVENTSTREAM,
+
+                           HostAuthentication,
+                           URIAuthentication,
+                           HTTPMethodAuthentication,
+                           null,
+
+                           DefaultErrorHandler);
 
                 return _HTTPEventSource;
-
-            }
-
-        }
-
-        #endregion
-
-        #region (internal) AddEventSourceHandler(MethodInfo, Host, URITemplate, HTTPMethod, HostAuthentication = false, URIAuthentication = false)
-
-        /// <summary>
-        /// Add an HTTP event source method handler for the given URI template.
-        /// </summary>
-        /// <param name="MethodInfo">The method to call.</param>
-        /// <param name="Host">The HTTP host.</param>
-        /// <param name="URITemplate">The URI template.</param>
-        /// <param name="HTTPMethod">The HTTP method.</param>
-        /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
-        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
-        internal void AddEventSourceHandler(MethodInfo          MethodInfo,
-                                            String              Host,
-                                            String              URITemplate,
-                                            HTTPMethod          HTTPMethod,
-                                            HTTPAuthentication  HostAuthentication  = null,
-                                            HTTPAuthentication  URIAuthentication   = null)
-
-        {
-
-            lock (Lock)
-            {
-
-                AddHandler(MethodInfo,
-                           Host,
-                           URITemplate,
-                           HTTPMethod,
-                           HTTPContentType.EVENTSTREAM,
-                           HostAuthentication,
-                           URIAuthentication);
 
             }
 

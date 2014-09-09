@@ -24,6 +24,7 @@ using System.Collections.Generic;
 using System.Text;
 
 using eu.Vanaheimr.Illias.Commons;
+using System.Net.Sockets;
 
 #endregion
 
@@ -487,34 +488,41 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #endregion
+        #region HTTP Body
 
-        #region Constructor(s)
+        private readonly NetworkStream _HTTPBodyStream;
 
-        #region HTTPRequest()
-
-        /// <summary>
-        /// Create a new http request header.
-        /// </summary>
-        public HTTPRequest()
+        public NetworkStream HTTPBodyStream
         {
-            QueryString = new QueryString();
+            get
+            {
+                return _HTTPBodyStream;
+            }
         }
 
         #endregion
 
-        #region HTTPRequest(RemoteSocket, HTTPHeader)
+        #endregion
+
+        #region Constructor(s)
+
+        #region HTTPRequest(RemoteSocket, HTTPHeader, HTTPBodyStream)
 
         /// <summary>
         /// Create a new http request header based on the given string representation.
         /// </summary>
         /// <param name="RemoteSocket">The remote IP socket</param>
         /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
-        private HTTPRequest(IPSocket RemoteSocket, String HTTPHeader)
+        private HTTPRequest(IPSocket       RemoteSocket,
+                            String         HTTPHeader,
+                            NetworkStream  HTTPBodyStream)
+
             : this(HTTPHeader)
+
         {
 
-            this.RemoteSocket = RemoteSocket;
+            this.RemoteSocket     = RemoteSocket;
+            this._HTTPBodyStream  = HTTPBodyStream;
 
             if (!HeaderFields.ContainsKey("Host"))
                 HeaderFields.Add("Host", "*");
@@ -531,6 +539,9 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
         private HTTPRequest(String HTTPHeader, Byte[] Content = null)
         {
+
+            this.QueryString  = new QueryString();
+            this.Content      = Content;
 
             if (!TryParseHeader(HTTPHeader))
                 return;
@@ -592,9 +603,6 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
             this.HTTPStatusCode = HTTPStatusCode.OK;
 
-            if (Content != null)
-                this.Content = Content;
-
         }
 
         #endregion
@@ -612,25 +620,44 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         }
 
-        public static Boolean TryParse(String           HTTPRequestString,
-                                       Byte[]           Content,
+        public static Boolean TryParse(String           HTTPHeader,
+                                       Byte[]           HTTPBody,
                                        out HTTPRequest  HTTPRequest)
         {
 
-            HTTPRequest = new HTTPRequest(HTTPRequestString, Content);
+            HTTPRequest = new HTTPRequest(HTTPHeader, HTTPBody);
 
             return true;
 
         }
 
         public static Boolean TryParse(IPSocket         RemoteSocket,
-                                       String           HTTPRequestString,
+                                       String           HTTPHeader,
+                                       NetworkStream    HTTPBodyStream,
                                        out HTTPRequest  HTTPRequest)
         {
 
-            HTTPRequest = new HTTPRequest(RemoteSocket, HTTPRequestString);
+            HTTPRequest = new HTTPRequest(RemoteSocket, HTTPHeader, HTTPBodyStream);
 
             return true;
+
+        }
+
+
+
+        public Boolean TryReadHTTPBody()
+        {
+
+            var Buffer  = new Byte[(Int32) ContentLength.Value];
+            var Read    = _HTTPBodyStream.Read(Buffer, 0, (Int32) ContentLength.Value);
+
+            if (Read == (Int32) ContentLength.Value)
+            {
+                Content = Buffer;
+                return true;
+            }
+
+            return false;
 
         }
 

@@ -49,6 +49,12 @@ namespace eu.Vanaheimr.Hermod.HTTP
             if (Request.ContentType != HTTPContentType)
                 return new HTTPResult<String>(Request, HTTPStatusCode.BadRequest);
 
+            if (Request.ContentLength == 0)
+                return new HTTPResult<String>(Request, HTTPStatusCode.BadRequest);
+
+            if (Request.TryReadHTTPBody() == false)
+                return new HTTPResult<String>(Request, HTTPStatusCode.BadRequest);
+
             if (Request.Content == null || Request.Content.Length == 0)
                 return new HTTPResult<String>(Request, HTTPStatusCode.BadRequest);
 
@@ -93,20 +99,6 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         public static HTTPResult<XDocument> ParseXMLRequestBody(this HTTPRequest Request)
         {
-
-            if (Request.ContentType != HTTPContentType.XMLTEXT_UTF8)
-                Log.WriteLine("Invalid HTTPContentType.XMLTEXT_UTF8!");
-
-            if (Request.Content == null || Request.Content.Length == 0)
-                Log.WriteLine("HTTP Body is empty!");
-
-            Log.WriteLine("HTTP Body siez: " + Request.Content.Length);
-
-            var RequestBodyString_ = Request.Content.ToUTF8String();
-
-            if (RequestBodyString_.IsNullOrEmpty())
-                Log.WriteLine("HTTP Body is \"\"!");
-
 
             var RequestBodyString = Request.GetRequestBodyAsUTF8String(HTTPContentType.XMLTEXT_UTF8);
             if (RequestBodyString.HasErrors)
@@ -542,7 +534,41 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region Add Method Callbacks
 
-        #region AddMethodCallback(HTTPMethod, URITemplate, HTTPContentType = null, HostAuthentication = false, URIAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false)
+        #region AddMethodCallback(HTTPMethod, URITemplate, Hostname = "*", HTTPContentType = null, HostAuthentication = false, URIAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false, HTTPDelegate = null)
+
+        /// <summary>
+        /// Add a method callback for the given URI template.
+        /// </summary>
+        /// <param name="HTTPMethod">The HTTP method.</param>
+        /// <param name="URITemplate">The URI template.</param>
+        /// <param name="HTTPContentType">The HTTP content type.</param>
+        /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
+        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
+        /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
+        /// <param name="HTTPDelegate">The method to call.</param>
+        public void AddMethodCallback(HTTPMethod          HTTPMethod,
+                                      String              URITemplate,
+                                      HTTPContentType     HTTPContentType,
+                                      HTTPDelegate        HTTPDelegate)
+
+        {
+
+            _URIMapping.AddHandler(HTTPDelegate,
+                                   "*",
+                                   (URITemplate.IsNotNullOrEmpty()) ? URITemplate     : "/",
+                                   (HTTPMethod      != null)        ? HTTPMethod      : HTTPMethod.GET,
+                                   (HTTPContentType != null)        ? HTTPContentType : HTTPContentType.HTML_UTF8,
+                                   null,
+                                   null,
+                                   null,
+                                   null);
+
+        }
+
+        #endregion
+
+        #region AddMethodCallback(HTTPMethod, URITemplate, Hostname = "*", HTTPContentType = null, HostAuthentication = false, URIAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false, HTTPDelegate = null)
 
         /// <summary>
         /// Add a method callback for the given URI template.
@@ -557,46 +583,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPDelegate">The method to call.</param>
         public void AddMethodCallback(HTTPMethod          HTTPMethod                  = null,
                                       String              URITemplate                 = "/",
-                                      HTTPContentType     HTTPContentType             = null,
-                                      HTTPAuthentication  HostAuthentication          = null,
-                                      HTTPAuthentication  URIAuthentication           = null,
-                                      HTTPAuthentication  HTTPMethodAuthentication    = null,
-                                      HTTPAuthentication  ContentTypeAuthentication   = null,
-                                      HTTPDelegate        HTTPDelegate                = null)
-
-        {
-
-            AddMethodCallback("*",
-                              (HTTPMethod != null) ? HTTPMethod : HTTPMethod.GET,
-                              URITemplate,
-                              HTTPContentType,
-                              HostAuthentication,
-                              URIAuthentication,
-                              HTTPMethodAuthentication,
-                              ContentTypeAuthentication,
-                              HTTPDelegate);
-
-        }
-
-        #endregion
-
-        #region AddMethodCallback(HTTPDelegate, Hostname, URITemplate, HTTPMethod, HTTPContentType = null, HostAuthentication = false, URIAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false)
-
-        /// <summary>
-        /// Add a method callback for the given URI template.
-        /// </summary>
-        /// <param name="Hostname">The HTTP hostname.</param>
-        /// <param name="HTTPMethod">The HTTP method.</param>
-        /// <param name="URITemplate">The URI template.</param>
-        /// <param name="HTTPContentType">The HTTP content type.</param>
-        /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
-        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
-        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
-        /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
-        /// <param name="HTTPDelegate">The method to call.</param>
-        public void AddMethodCallback(String              Hostname                    = "*",
-                                      HTTPMethod          HTTPMethod                  = null,
-                                      String              URITemplate                 = "/",
+                                      String              Hostname                    = "*",
                                       HTTPContentType     HTTPContentType             = null,
                                       HTTPAuthentication  HostAuthentication          = null,
                                       HTTPAuthentication  URIAuthentication           = null,
@@ -610,87 +597,6 @@ namespace eu.Vanaheimr.Hermod.HTTP
                                    Hostname,
                                    URITemplate,
                                    (HTTPMethod != null) ? HTTPMethod : HTTPMethod.GET,
-                                   HTTPContentType,
-                                   HostAuthentication,
-                                   URIAuthentication,
-                                   HTTPMethodAuthentication,
-                                   ContentTypeAuthentication);
-
-        }
-
-        #endregion
-
-
-        #region AddMethodCallback(MethodHandler, Hostname, URITemplate, HTTPMethod, HTTPContentType = null, HostAuthentication = false, URIAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false)
-
-        /// <summary>
-        /// Add a method callback for the given URI template.
-        /// </summary>
-        /// <param name="MethodHandler">The method to call.</param>
-        /// <param name="Hostname">The HTTP hostname.</param>
-        /// <param name="URITemplate">The URI template.</param>
-        /// <param name="HTTPMethod">The HTTP method.</param>
-        /// <param name="HTTPContentType">The HTTP content type.</param>
-        /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
-        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
-        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
-        /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
-        public void AddMethodCallback(MethodInfo          MethodHandler,
-                                      String              Hostname,
-                                      String              URITemplate,
-                                      HTTPMethod          HTTPMethod,
-                                      HTTPContentType     HTTPContentType             = null,
-                                      HTTPAuthentication  HostAuthentication          = null,
-                                      HTTPAuthentication  URIAuthentication           = null,
-                                      HTTPAuthentication  HTTPMethodAuthentication    = null,
-                                      HTTPAuthentication  ContentTypeAuthentication   = null)
-
-        {
-
-            _URIMapping.AddHandler(MethodHandler,
-                                   Hostname,
-                                   URITemplate,
-                                   HTTPMethod,
-                                   HTTPContentType,
-                                   HostAuthentication,
-                                   URIAuthentication,
-                                   HTTPMethodAuthentication,
-                                   ContentTypeAuthentication);
-
-        }
-
-        #endregion
-
-        #region AddMethodCallback(MethodHandler, Hostnames, URITemplate, HTTPMethod, HTTPContentType = null, HostAuthentication = false, URIAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false)
-
-        /// <summary>
-        /// Add a method callback for the given URI template.
-        /// </summary>
-        /// <param name="MethodHandler">The method to call.</param>
-        /// <param name="Host">The HTTP host.</param>
-        /// <param name="URITemplate">The URI template.</param>
-        /// <param name="HTTPMethod">The HTTP method.</param>
-        /// <param name="HTTPContentType">The HTTP content type.</param>
-        /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
-        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
-        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
-        /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
-        public void AddMethodCallback(MethodInfo           MethodHandler,
-                                      IEnumerable<String>  Hostnames,
-                                      String               URITemplate,
-                                      HTTPMethod           HTTPMethod,
-                                      HTTPContentType      HTTPContentType             = null,
-                                      HTTPAuthentication   HostAuthentication          = null,
-                                      HTTPAuthentication   URIAuthentication           = null,
-                                      HTTPAuthentication   HTTPMethodAuthentication    = null,
-                                      HTTPAuthentication   ContentTypeAuthentication   = null)
-
-        {
-
-            _URIMapping.AddHandler(MethodHandler,
-                                   Hostnames,
-                                   URITemplate,
-                                   HTTPMethod,
                                    HTTPContentType,
                                    HostAuthentication,
                                    URIAuthentication,
@@ -718,26 +624,6 @@ namespace eu.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
-
-        //#region GetHandler(Host, URL, HTTPMethod = null, HTTPContentType = null)
-
-        ///// <summary>
-        ///// Return the best matching method handler for the given parameters.
-        ///// </summary>
-        //public Tuple<HTTPDelegate, String[]> GetHandler(String           Host              = "*",
-        //                                                String           URL               = "/",
-        //                                                HTTPMethod       HTTPMethod        = null,
-        //                                                HTTPContentType  HTTPContentType   = null)
-        //{
-
-        //    return _URIMapping.GetHandler(Host,
-        //                                  URL,
-        //                                  HTTPMethod,
-        //                                  HTTPContentType);
-
-        //}
-
-        //#endregion
 
         #endregion
 
@@ -781,59 +667,36 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="IsSharedEventSource">Whether this event source will be shared.</param>
         /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
         /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
-        public HTTPEventSource AddEventSource(MethodInfo          MethodInfo,
-                                              String              Host,
-                                              String              URITemplate,
-                                              HTTPMethod          HTTPMethod,
-                                              String              EventIdentification,
-                                              UInt32              MaxNumberOfCachedEvents  = 100,
-                                              TimeSpan?           RetryIntervall           = null,
-                                              Boolean             IsSharedEventSource      = false,
-                                              HTTPAuthentication  HostAuthentication       = null,
-                                              Boolean             URIAuthentication        = false)
+        public HTTPEventSource AddEventSource(String              EventIdentification,
+                                              UInt32              MaxNumberOfCachedEvents     = 100,
+                                              TimeSpan?           RetryIntervall              = null,
+
+                                              String              Hostname                    = "*",
+                                              String              URITemplate                 = "/",
+                                              HTTPMethod          HTTPMethod                  = null,
+                                              HTTPContentType     HTTPContentType             = null,
+
+                                              HTTPAuthentication  HostAuthentication          = null,
+                                              HTTPAuthentication  URIAuthentication           = null,
+                                              HTTPAuthentication  HTTPMethodAuthentication    = null,
+
+                                              HTTPDelegate        DefaultErrorHandler         = null)
 
         {
 
-            return _URIMapping.AddEventSource(MethodInfo,
-                                              Host,
-                                              URITemplate,
-                                              HTTPMethod,
-                                              EventIdentification,
+            return _URIMapping.AddEventSource(EventIdentification,
                                               MaxNumberOfCachedEvents,
                                               RetryIntervall,
-                                              IsSharedEventSource,
+
+                                              Hostname,
+                                              URITemplate,
+                                              HTTPMethod,
+
                                               HostAuthentication,
-                                              URIAuthentication);
+                                              URIAuthentication,
+                                              HTTPMethodAuthentication,
 
-        }
-
-        #endregion
-
-        #region AddEventSourceHandler(MethodInfo, Host, URITemplate, HostAuthentication = false, URLAuthentication = false)
-
-        /// <summary>
-        /// Add an HTTP event source method handler for the given URI template.
-        /// </summary>
-        /// <param name="MethodInfo">The method to call.</param>
-        /// <param name="Host">The HTTP host.</param>
-        /// <param name="URITemplate">The URI template.</param>
-        /// <param name="HTTPMethod">The HTTP method.</param>
-        /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
-        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
-        public void AddEventSourceHandler(MethodInfo          MethodInfo,
-                                          String              Host,
-                                          String              URITemplate,
-                                          HTTPMethod          HTTPMethod,
-                                          HTTPAuthentication  HostAuthentication  = null,
-                                          Boolean             URIAuthentication   = false)
-        {
-
-            //_URIMapping.AddEventSourceHandler(MethodInfo,
-            //                                  Host,
-            //                                  URITemplate,
-            //                                  HTTPMethod,
-            //                                  HostAuthentication,
-            //                                  URIAuthentication);
+                                              DefaultErrorHandler);
 
         }
 

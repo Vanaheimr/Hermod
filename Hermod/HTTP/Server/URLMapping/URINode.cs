@@ -223,7 +223,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
             var _ReplaceAllParameters   = new Regex(@"\{[^/]+\}");
             this._ParameterCount       += (UInt16) _ReplaceAllParameters.Matches(URLTemplate2).Count;
-            this._URIRegex              = new Regex("^" + _ReplaceAllParameters.Replace(URLTemplate2, "([^/]+)"));
+            this._URIRegex              = new Regex("^" + _ReplaceAllParameters.Replace(URLTemplate2, "([^/]+)") + "$");
             this._SortLength            = (UInt16) _ReplaceAllParameters.Replace(URLTemplateWithoutVars, "").Length;
 
         }
