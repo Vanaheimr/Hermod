@@ -161,8 +161,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
             this._RequestHandler            = RequestHandler;
             this._DefaultErrorHandler       = DefaultErrorHandler;
 
-            this._ErrorHandlers             = new Dictionary<HTTPStatusCode, HTTPDelegate>();
-            this._HTTPContentTypes          = new Dictionary<HTTPContentType,ContentTypeNode>();
+            this._ErrorHandlers             = new Dictionary<HTTPStatusCode,  HTTPDelegate>();
+            this._HTTPContentTypes          = new Dictionary<HTTPContentType, ContentTypeNode>();
 
         }
 
@@ -180,7 +180,13 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
             ContentTypeNode _ContentTypeNode = null;
 
-            if (!_HTTPContentTypes.TryGetValue(HTTPContentType, out _ContentTypeNode))
+            if (HTTPContentType == null)
+            {
+                //RequestHandler       = HTTPDelegate;
+                //DefaultErrorHandler  = DefaultErrorHandler;
+            }
+
+            else if (!_HTTPContentTypes.TryGetValue(HTTPContentType, out _ContentTypeNode))
             {
                 _ContentTypeNode = new ContentTypeNode(HTTPContentType, ContentTypeAuthentication, HTTPDelegate, DefaultErrorHandler);
                 _HTTPContentTypes.Add(HTTPContentType, _ContentTypeNode);
