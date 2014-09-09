@@ -368,6 +368,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                         ContentType     = HTTPContentType.EVENTSTREAM,
                         CacheControl    = "no-cache",
                         Connection      = "keep-alive",
+                        KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2*_EventSource.RetryIntervall.TotalSeconds)),
                         Content         = _ResourceContent.ToUTF8Bytes()
                     };
 

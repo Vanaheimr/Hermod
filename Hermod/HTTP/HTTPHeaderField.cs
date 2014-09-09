@@ -2308,7 +2308,48 @@ namespace eu.Vanaheimr.Hermod.HTTP
                                                                              RequestPathSemantic.EndToEnd);
 
         #endregion
-        
+
+        #region Last-Modified
+
+        /// <summary>
+        /// The Keep-Alive general-header field may be used to include diagnostic information and
+        /// other optional parameters associated with the "keep-alive" keyword of the Connection
+        /// header field (Section 10.9). This Keep-Alive field must only be used when the
+        /// "keep-alive" keyword is present (Section 10.9.1).
+        /// 
+        /// The Keep-Alive header field and the additional information it provides are optional
+        /// and do not need to be present to indicate a persistent connection has been established.
+        /// The semantics of the Connection header field prevent the Keep-Alive field from being
+        /// accidentally forwarded to downstream connections.
+        /// 
+        /// HTTP/1.1 defines semantics for the optional "timeout" and "max" parameters on responses;
+        /// other parameters may be added and the field may also be used on request messages. The
+        /// "timeout" parameter allows the server to indicate, for diagnostic purposes only, the
+        /// amount of time in seconds it is currently allowing between when the response was
+        /// generated and when the next request is received from the client (i.e., the request
+        /// timeout limit). Similarly, the "max" parameter allows the server to indicate the
+        /// maximum additional requests that it will allow on the current persistent connection.
+        /// 
+        /// For example, the server may respond to a request for a persistent connection with
+        /// 
+        ///   Connection: Keep-Alive
+        ///   Keep-Alive: timeout=10, max=5
+        /// 
+        /// to indicate that the server has selected (perhaps dynamically) a maximum of 5 requests,
+        /// but will timeout the connection if the next request is not received within 10 seconds.
+        /// Although these parameters have no affect on the operational requirements of the
+        /// connection, they are sometimes useful for testing functionality and monitoring server
+        /// behavior.
+        /// </summary>
+        /// <example>Keep-Alive: timeout=10, max=5</example>
+        /// <seealso cref="http://www.w3.org/Protocols/HTTP/1.1/draft-ietf-http-v11-spec-01.html"/>
+        public static readonly HTTPHeaderField KeepAlive = new HTTPHeaderField("Keep-Alive",
+                                                                               typeof(KeepAliveType),
+                                                                               HeaderFieldType.Response,
+                                                                               RequestPathSemantic.HopToHop);
+
+        #endregion
+
         #region Last-Modified
 
         /// <summary>
