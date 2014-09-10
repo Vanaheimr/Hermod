@@ -62,7 +62,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
         {
             get
             {
-                return HTTPMethod.ToString() + " " + this.UrlPath + QueryString + " " + ProtocolName + "/" + ProtocolVersion;
+                return HTTPMethod.ToString() + " " + this.URI + QueryString + " " + ProtocolName + "/" + ProtocolVersion;
             }
         }
 
@@ -91,9 +91,9 @@ namespace eu.Vanaheimr.Hermod.HTTP
         #region Url
 
         /// <summary>
-        /// The minimal URL (this means e.g. without the query string).
+        /// The minimal URI (this means e.g. without the query string).
         /// </summary>
-        public String UrlPath { get; protected set; }
+        public String URI { get; protected set; }
 
         #endregion
 
@@ -568,10 +568,10 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
             var RawUrl     = _HTTPMethodHeader[1];
             var _ParsedURL = RawUrl.Split(_URLSeparator, 2, StringSplitOptions.None);
-            UrlPath        = _ParsedURL[0];
+            URI        = _ParsedURL[0];
 
-            if (UrlPath == "" || UrlPath == null)
-                UrlPath = "/";
+            if (URI == "" || URI == null)
+                URI = "/";
 
             // Parse QueryString after '?'
             if (RawUrl.IndexOf('?') > -1 && _ParsedURL[1].IsNeitherNullNorEmpty())

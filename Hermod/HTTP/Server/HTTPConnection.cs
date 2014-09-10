@@ -707,7 +707,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                     if (_ParsedCallbackWithParameters == null)// || _ParsedCallbackWithParameters.Item1 == null)
                     {
-                        SendErrorpage(HTTPStatusCode.InternalServerError, "Could not find a valid handler for URL: " + RequestHeader.UrlPath);
+                        SendErrorpage(HTTPStatusCode.InternalServerError, "Could not find a valid handler for URL: " + RequestHeader.URI);
                         return;
                     }
 
@@ -774,7 +774,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                     if (ResponseHeader == null)
                     {
-                        SendErrorpage(HTTPStatusCode.InternalServerError, "Could not invoke method for URL: " + RequestHeader.UrlPath);
+                        SendErrorpage(HTTPStatusCode.InternalServerError, "Could not invoke method for URL: " + RequestHeader.URI);
                         return;
                     }
 

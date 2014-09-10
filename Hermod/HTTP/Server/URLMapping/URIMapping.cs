@@ -151,7 +151,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                 #region Set defaults...
 
                 var Host             = (HTTPRequest.Host.   IsNullOrEmpty()) ? "*" : HTTPRequest.Host;
-                var URL              = (HTTPRequest.UrlPath.IsNullOrEmpty()) ? "/" : HTTPRequest.UrlPath;
+                var URL              = (HTTPRequest.URI.IsNullOrEmpty()) ? "/" : HTTPRequest.URI;
                 var HTTPMethod       =  HTTPRequest.HTTPMethod;
                 var HTTPContentType  =  HTTPRequest.BestMatchingAcceptType;
 

@@ -228,23 +228,23 @@ namespace eu.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region CreateRequest(HTTPMethod, UrlPath = "/", BuilderAction = null)
+        #region CreateRequest(HTTPMethod, URI = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP request.
         /// </summary>
         /// <param name="HTTPMethod">A HTTP method.</param>
-        /// <param name="UrlPath">An URL path.</param>
+        /// <param name="URI">An URI.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A new HTTPRequest object.</returns>
         public HTTPRequestBuilder CreateRequest(HTTPMethod                  HTTPMethod,
-                                                String                      UrlPath        = "/",
+                                                String                      URI            = "/",
                                                 Action<HTTPRequestBuilder>  BuilderAction  = null)
         {
 
-            var Builder = new HTTPRequestBuilder() {
-                HTTPMethod = HTTPMethod,
-                UrlPath    = UrlPath
+            var Builder     = new HTTPRequestBuilder() {
+                HTTPMethod  = HTTPMethod,
+                URI         = URI
             };
 
             BuilderAction.FailSafeInvoke(Builder);
@@ -255,23 +255,23 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region CreateRequest(HTTPMethod, UrlPath = "/", BuilderAction = null)
+        #region CreateRequest(HTTPMethod, URI = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP request.
         /// </summary>
         /// <param name="HTTPMethod">A HTTP method.</param>
-        /// <param name="UrlPath">An URL path.</param>
+        /// <param name="URI">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A new HTTPRequest object.</returns>
         public HTTPRequestBuilder CreateRequest(String                      HTTPMethod,
-                                                String                      UrlPath        = "/",
+                                                String                      URI        = "/",
                                                 Action<HTTPRequestBuilder>  BuilderAction  = null)
         {
 
             var Builder = new HTTPRequestBuilder() {
                 HTTPMethod  = new HTTPMethod(HTTPMethod),
-                UrlPath     = UrlPath
+                URI     = URI
             };
 
             BuilderAction.FailSafeInvoke(Builder);

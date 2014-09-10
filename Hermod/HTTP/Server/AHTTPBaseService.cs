@@ -129,7 +129,7 @@
 //                                   IHTTPConnection.RequestHeader.RawHTTPHeader +
 //                                   Environment.NewLine + Environment.NewLine +
 //                                   "Method => "         + IHTTPConnection.RequestHeader.HTTPMethod      + Environment.NewLine +
-//                                   "URL => "            + IHTTPConnection.RequestHeader.UrlPath         + Environment.NewLine +
+//                                   "URL => "            + IHTTPConnection.RequestHeader.URI             + Environment.NewLine +
 //                                   "QueryString => "    + IHTTPConnection.RequestHeader.QueryString     + Environment.NewLine +
 //                                   "Protocol => "       + IHTTPConnection.RequestHeader.ProtocolName    + Environment.NewLine +
 //                                   "Version => "        + IHTTPConnection.RequestHeader.ProtocolVersion + Environment.NewLine +
@@ -151,7 +151,7 @@
 //        public virtual HTTPResponse GET_Root()
 //        {
 
-//            var path = IHTTPConnection.RequestHeader.UrlPath.Remove(0, 1);
+//            var path = IHTTPConnection.RequestHeader.URI.Remove(0, 1);
 
 //            return (path != "")
 //                       ? GetResources(path)

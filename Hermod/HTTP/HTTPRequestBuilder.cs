@@ -53,7 +53,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
         {
             get
             {
-                return HTTPMethod.ToString() + " " + this._UrlPath + " " + ProtocolName + "/" + ProtocolVersion;
+                return HTTPMethod.ToString() + " " + this._URI + " " + ProtocolName + "/" + ProtocolVersion;
             }
         }
 
@@ -81,24 +81,24 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Url
+        #region URI
 
-        private String _UrlPath;
+        private String _URI;
 
         /// <summary>
         /// The minimal URL (this means e.g. without the query string).
         /// </summary>
-        public String UrlPath
+        public String URI
         {
 
             get
             {
-                return _UrlPath;
+                return _URI;
             }
 
             set
             {
-                SetProperty(ref _UrlPath, value, "UrlPath");
+                SetProperty(ref _URI, value, "URI");
             }
 
         }
@@ -670,13 +670,13 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// </summary>
         public HTTPRequestBuilder()
         {
-            this.HTTPStatusCode  = HTTPStatusCode.OK;
-            this.HTTPMethod      = HTTPMethod.GET;
-            this.UrlPath         = "/";
-            this._QueryString    = new QueryString();
+            this.HTTPStatusCode   = HTTPStatusCode.OK;
+            this.HTTPMethod       = HTTPMethod.GET;
+            this.URI              = "/";
+            this._QueryString     = new QueryString();
             SetHeaderField(HTTPHeaderField.Accept, new AcceptTypes());
-            this.ProtocolName    = "HTTP";
-            this.ProtocolVersion = new HTTPVersion(1, 1);
+            this.ProtocolName     = "HTTP";
+            this.ProtocolVersion  = new HTTPVersion(1, 1);
         }
 
         #endregion

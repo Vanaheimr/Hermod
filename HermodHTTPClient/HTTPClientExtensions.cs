@@ -32,122 +32,122 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region RFC 2616 - HTTP/1.1
 
-        #region DELETE(this HTTPClient, UrlPath = "/")
+        #region DELETE(this HTTPClient, URI = "/")
 
         /// <summary>
         /// Create a new HTTP DELETE request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="UrlPath">An URL path.</param>
+        /// <param name="URI">An URL path.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequestBuilder DELETE(this HTTPClient HTTPClient, String UrlPath = "/")
+        public static HTTPRequestBuilder DELETE(this HTTPClient HTTPClient, String URI = "/")
         {
-            return HTTPClient.CreateRequest(HTTPMethod.DELETE, UrlPath);
+            return HTTPClient.CreateRequest(HTTPMethod.DELETE, URI);
         }
 
         #endregion
 
-        #region GET(this HTTPClient, UrlPath = "/")
+        #region GET(this HTTPClient, URI = "/")
 
         /// <summary>
         /// Create a new HTTP GET request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="UrlPath">An URL path.</param>
+        /// <param name="URI">An URL path.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequestBuilder GET(this HTTPClient HTTPClient, String UrlPath = "/")
+        public static HTTPRequestBuilder GET(this HTTPClient HTTPClient, String URI = "/")
         {
-            return HTTPClient.CreateRequest(HTTPMethod.GET, UrlPath);
+            return HTTPClient.CreateRequest(HTTPMethod.GET, URI);
         }
 
         #endregion
 
-        #region CREATE(this HTTPClient, UrlPath = "/")
+        #region CREATE(this HTTPClient, URI = "/")
 
         /// <summary>
         /// Create a new HTTP CREATE request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="UrlPath">An URL path.</param>
+        /// <param name="URI">An URL path.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequestBuilder CREATE(this HTTPClient HTTPClient, String UrlPath = "/")
+        public static HTTPRequestBuilder CREATE(this HTTPClient HTTPClient, String URI = "/")
         {
-            return HTTPClient.CreateRequest(HTTPMethod.CREATE, UrlPath);
+            return HTTPClient.CreateRequest(HTTPMethod.CREATE, URI);
         }
 
         #endregion
 
-        #region HEAD(this HTTPClient, UrlPath = "/")
+        #region HEAD(this HTTPClient, URI = "/")
 
         /// <summary>
         /// Create a new HTTP HEAD request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="UrlPath">An URL path.</param>
+        /// <param name="URI">An URL path.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequestBuilder HEAD(this HTTPClient HTTPClient, String UrlPath = "/")
+        public static HTTPRequestBuilder HEAD(this HTTPClient HTTPClient, String URI = "/")
         {
-            return HTTPClient.CreateRequest(HTTPMethod.HEAD, UrlPath);
+            return HTTPClient.CreateRequest(HTTPMethod.HEAD, URI);
         }
 
         #endregion
 
-        #region OPTIONS(this HTTPClient, UrlPath = "/")
+        #region OPTIONS(this HTTPClient, URI = "/")
 
         /// <summary>
         /// Create a new HTTP OPTIONS request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="UrlPath">An URL path.</param>
+        /// <param name="URI">An URL path.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequestBuilder OPTIONS(this HTTPClient HTTPClient, String UrlPath = "/")
+        public static HTTPRequestBuilder OPTIONS(this HTTPClient HTTPClient, String URI = "/")
         {
-            return HTTPClient.CreateRequest(HTTPMethod.OPTIONS, UrlPath);
+            return HTTPClient.CreateRequest(HTTPMethod.OPTIONS, URI);
         }
 
         #endregion
 
-        #region POST(this HTTPClient, UrlPath = "/")
+        #region POST(this HTTPClient, URI = "/")
 
         /// <summary>
         /// Create a new HTTP POST request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="UrlPath">An URL path.</param>
+        /// <param name="URI">An URL path.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequestBuilder POST(this HTTPClient HTTPClient, String UrlPath = "/")
+        public static HTTPRequestBuilder POST(this HTTPClient HTTPClient, String URI = "/")
         {
-            return HTTPClient.CreateRequest(HTTPMethod.POST, UrlPath);
+            return HTTPClient.CreateRequest(HTTPMethod.POST, URI);
         }
 
         #endregion
 
-        #region PUT(this HTTPClient, UrlPath = "/")
+        #region PUT(this HTTPClient, URI = "/")
 
         /// <summary>
         /// Create a new HTTP PUT request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="UrlPath">An URL path.</param>
+        /// <param name="URI">An URL path.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequestBuilder PUT(this HTTPClient HTTPClient, String UrlPath = "/")
+        public static HTTPRequestBuilder PUT(this HTTPClient HTTPClient, String URI = "/")
         {
-            return HTTPClient.CreateRequest(HTTPMethod.PUT, UrlPath);
+            return HTTPClient.CreateRequest(HTTPMethod.PUT, URI);
         }
 
         #endregion
 
-        #region TRACE(this HTTPClient, UrlPath = "/")
+        #region TRACE(this HTTPClient, URI = "/")
 
         /// <summary>
         /// Create a new HTTP TRACE request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="UrlPath">An URL path.</param>
+        /// <param name="URI">An URL path.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequestBuilder TRACE(this HTTPClient HTTPClient, String UrlPath = "/")
+        public static HTTPRequestBuilder TRACE(this HTTPClient HTTPClient, String URI = "/")
         {
-            return HTTPClient.CreateRequest(HTTPMethod.TRACE, UrlPath);
+            return HTTPClient.CreateRequest(HTTPMethod.TRACE, URI);
         }
 
         #endregion
@@ -156,32 +156,32 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region Additional methods
 
-        #region PATCH(this HTTPClient, UrlPath = "/")
+        #region PATCH(this HTTPClient, URI = "/")
 
         /// <summary>
         /// Create a new HTTP PATCH request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="UrlPath">An URL path.</param>
+        /// <param name="URI">An URL path.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequestBuilder PATCH(this HTTPClient HTTPClient, String UrlPath = "/")
+        public static HTTPRequestBuilder PATCH(this HTTPClient HTTPClient, String URI = "/")
         {
-            return HTTPClient.CreateRequest(HTTPMethod.PATCH, UrlPath);
+            return HTTPClient.CreateRequest(HTTPMethod.PATCH, URI);
         }
 
         #endregion
 
-        #region TRAVERSE(this HTTPClient, UrlPath = "/")
+        #region TRAVERSE(this HTTPClient, URI = "/")
 
         /// <summary>
         /// Create a new HTTP TRAVERSE request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="UrlPath">An URL path.</param>
+        /// <param name="URI">An URL path.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequestBuilder TRAVERSE(this HTTPClient HTTPClient, String UrlPath = "/")
+        public static HTTPRequestBuilder TRAVERSE(this HTTPClient HTTPClient, String URI = "/")
         {
-            return HTTPClient.CreateRequest(HTTPMethod.TRAVERSE, UrlPath);
+            return HTTPClient.CreateRequest(HTTPMethod.TRAVERSE, URI);
         }
 
         #endregion

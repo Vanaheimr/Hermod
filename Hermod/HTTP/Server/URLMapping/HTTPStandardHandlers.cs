@@ -61,7 +61,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                                                                     Request.RawHTTPHeader +
                                                                     Environment.NewLine + Environment.NewLine +
                                                                     "Method => "         + Request.HTTPMethod      + Environment.NewLine +
-                                                                    "URL => "            + Request.UrlPath         + Environment.NewLine +
+                                                                    "URL => "            + Request.URI         + Environment.NewLine +
                                                                     "QueryString => "    + Request.QueryString     + Environment.NewLine +
                                                                     "Protocol => "       + Request.ProtocolName    + Environment.NewLine +
                                                                     "Version => "        + Request.ProtocolVersion + Environment.NewLine).ToUTF8Bytes()
