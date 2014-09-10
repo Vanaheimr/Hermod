@@ -72,6 +72,7 @@
     <Compile Include="HTTP\Request\HTTPBasicAuthentication.cs" />
     <Compile Include="HTTP\Request\HTTPMethod.cs" />
     <Compile Include="HTTP\Request\QueryString.cs" />
+    <Compile Include="HTTP\Response\KeepAliveType.cs" />
     <Compile Include="HTTP\Server\AHTTPBaseService.cs" />
     <Compile Include="HTTP\Server\Delegates.cs" />
     <Compile Include="HTTP\Server\URLMapping\HTTPStandardHandlers.cs" />

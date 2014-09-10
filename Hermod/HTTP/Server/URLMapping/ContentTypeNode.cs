@@ -20,6 +20,7 @@
 using System;
 using System.Reflection;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 
 #endregion
 
@@ -34,54 +35,116 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region Properties
 
-        /// <summary>
-        /// The content type for this service.
-        /// </summary>
-        public HTTPContentType ContentType { get; private set; }
+        #region HTTPContentType
+
+        private readonly HTTPContentType _HTTPContentType;
 
         /// <summary>
-        /// This and all subordinated nodes demand an explicit http method authentication.
+        /// The HTTP content type for this service.
         /// </summary>
-        public Boolean ContentTypeAuthentication { get; private set; }
+        public HTTPContentType HTTPContentType
+        {
+            get
+            {
+                return _HTTPContentType;
+            }
+        }
+
+        #endregion
+
+        #region RequestHandler
+
+        private readonly HTTPDelegate _RequestHandler;
+
+        public HTTPDelegate RequestHandler
+        {
+            get
+            {
+                return _RequestHandler;
+            }
+        }
+
+        #endregion
+
+        #region HTTPContentTypeAuthentication
+
+        private readonly HTTPAuthentication _HTTPContentTypeAuthentication;
+
+        /// <summary>
+        /// This and all subordinated nodes demand an explicit HTTP content type authentication.
+        /// </summary>
+        public HTTPAuthentication HTTPContentTypeAuthentication
+        {
+            get
+            {
+                return _HTTPContentTypeAuthentication;
+            }
+        }
+
+        #endregion
+
+        #region DefaultErrorHandler
+
+        private readonly HTTPDelegate _DefaultErrorHandler;
 
         /// <summary>
         /// A general error handling method.
         /// </summary>
-        public MethodInfo ContentTypeErrorHandler { get; private set; }
+        public HTTPDelegate DefaultErrorHandler
+        {
+            get
+            {
+                return _DefaultErrorHandler;
+            }
+        }
+
+        #endregion
+
+        #region ErrorHandlers
+
+        private readonly Dictionary<HTTPStatusCode, HTTPDelegate> _ErrorHandlers;
 
         /// <summary>
         /// Error handling methods for specific http status codes.
         /// </summary>
-        public ConcurrentDictionary<HTTPStatusCode, MethodInfo> ContentTypeErrorHandlers { get; private set; }
-
-        /// <summary>
-        /// The method handler.
-        /// </summary>
-        public MethodInfo MethodHandler { get; private set; }
-
-        #endregion
-
-        #region Constructor(s)
-
-        #region ContentTypeNode()
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="ContentType"></param>
-        /// <param name="MethodHandler"></param>
-        /// <param name="ContentTypeAuthentication"></param>
-        /// <param name="ContentTypeError"></param>
-        public ContentTypeNode(HTTPContentType ContentType, MethodInfo MethodHandler = null, Boolean ContentTypeAuthentication = false, MethodInfo ContentTypeError = null)
+        public Dictionary<HTTPStatusCode, HTTPDelegate> ErrorHandlers
         {
-            this.ContentType                = ContentType;
-            this.MethodHandler              = MethodHandler;
-            this.ContentTypeAuthentication  = ContentTypeAuthentication;
-            this.ContentTypeErrorHandler    = ContentTypeErrorHandler;
-            this.ContentTypeErrorHandlers   = new ConcurrentDictionary<HTTPStatusCode, MethodInfo>();
+            get
+            {
+                return _ErrorHandlers;
+            }
         }
 
         #endregion
+
+        #endregion
+
+        #region (internal) Constructor(s)
+
+        /// <summary>
+        /// Creates a new HTTP ContentTypeNode.
+        /// </summary>
+        /// <param name="HTTPContentType">The http content type for this service.</param>
+        /// <param name="HTTPContentTypeAuthentication">This and all subordinated nodes demand an explicit HTTP content type authentication.</param>
+        /// <param name="RequestHandler">The default delegate to call for any request to this URI template.</param>
+        /// <param name="DefaultErrorHandler">The default error handling delegate.</param>
+        internal ContentTypeNode(HTTPContentType     HTTPContentType,
+                                 HTTPAuthentication  HTTPContentTypeAuthentication   = null,
+                                 HTTPDelegate        RequestHandler                  = null,
+                                 HTTPDelegate        DefaultErrorHandler             = null)
+        {
+
+            if (HTTPContentType == null)
+                throw new ArgumentException("HTTPContentType == null!");
+
+            this._HTTPContentType                = HTTPContentType;
+            this._HTTPContentTypeAuthentication  = HTTPContentTypeAuthentication;
+            this._RequestHandler                 = RequestHandler;
+            this._DefaultErrorHandler            = DefaultErrorHandler;
+
+            this._ErrorHandlers                  = new Dictionary<HTTPStatusCode, HTTPDelegate>();
+
+        }
 
         #endregion
 

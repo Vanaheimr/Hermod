@@ -279,6 +279,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                                     if (!HTTPRequest.TryParse(TCPConnection.RemoteSocket,
                                                               HTTPHeaderString,
+                                                              TCPConnection.NetworkStream,
                                                               out RequestHeader))
                                     {
 
@@ -393,7 +394,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
             catch (IOException ioe)
             {
 
-                    if (ioe.Message.StartsWith("Unable to read data from the transport connection")) { }
+                if      (ioe.Message.StartsWith("Unable to read data from the transport connection")) { }
                 else if (ioe.Message.StartsWith("Unable to write data to the transport connection")) { }
 
                 else

@@ -1395,8 +1395,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
             if (Content != null)
                 HTTPRequest.TryParse(EntireRequestHeader, Content, out _HTTPRequest);
-
-            HTTPRequest.TryParse(EntireRequestHeader, out _HTTPRequest);
+            else
+                HTTPRequest.TryParse(EntireRequestHeader, out _HTTPRequest);
 
             return _HTTPRequest;
 

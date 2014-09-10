@@ -21,6 +21,8 @@ using System;
 using System.Reflection;
 using System.Collections.Generic;
 
+using eu.Vanaheimr.Illias.Commons;
+
 #endregion
 
 namespace eu.Vanaheimr.Hermod.HTTP
@@ -34,70 +36,166 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region Properties
 
+        #region HTTPMethod
+
+        private readonly HTTPMethod _HTTPMethod;
+
         /// <summary>
         /// The http method for this service.
         /// </summary>
-        public HTTPMethod   HTTPMethod                  { get; private set; }
+        public HTTPMethod HTTPMethod
+        {
+            get
+            {
+                return _HTTPMethod;
+            }
+        }
+
+        #endregion
+
+        #region RequestHandler
+
+        private readonly HTTPDelegate _RequestHandler;
+
+        public HTTPDelegate RequestHandler
+        {
+            get
+            {
+                return _RequestHandler;
+            }
+        }
+
+        #endregion
+
+        #region HTTPMethodAuthentication
+
+        private readonly HTTPAuthentication _HTTPMethodAuthentication;
 
         /// <summary>
-        /// The method handler.
+        /// This and all subordinated nodes demand an explicit HTTP method authentication.
         /// </summary>
-        public MethodInfo   MethodHandler               { get; private set; }
+        public HTTPAuthentication HTTPMethodAuthentication
+        {
+            get
+            {
+                return _HTTPMethodAuthentication;
+            }
+        }
 
-        /// <summary>
-        /// This and all subordinated nodes demand an explicit http method authentication.
-        /// </summary>
-        public Boolean      HTTPMethodAuthentication    { get; private set; }
+        #endregion
+
+        #region DefaultErrorHandler
+
+        private readonly HTTPDelegate _DefaultErrorHandler;
 
         /// <summary>
         /// A general error handling method.
         /// </summary>
-        public MethodInfo   HTTPMethodErrorHandler      { get; private set; }
-
-        /// <summary>
-        /// Error handling methods for specific http status codes.
-        /// </summary>
-        public Dictionary<HTTPStatusCode, MethodInfo> HTTPMethodErrorHandlers { get; private set; }
-
-        /// <summary>
-        /// Error handling methods for specific http status codes.
-        /// </summary>
-        public Dictionary<HTTPContentType, ContentTypeNode> HTTPContentTypes { get; private set; }
+        public HTTPDelegate DefaultErrorHandler
+        {
+            get
+            {
+                return _DefaultErrorHandler;
+            }
+        }
 
         #endregion
 
-        #region Constructor(s)
+        #region ErrorHandlers
 
-        #region HTTPMethodNode()
+        private readonly Dictionary<HTTPStatusCode, HTTPDelegate> _ErrorHandlers;
+
+        /// <summary>
+        /// Error handling methods for specific http status codes.
+        /// </summary>
+        public Dictionary<HTTPStatusCode, HTTPDelegate> ErrorHandlers
+        {
+            get
+            {
+                return _ErrorHandlers;
+            }
+        }
+
+        #endregion
+
+        #region HTTPMethods
+
+        private readonly Dictionary<HTTPContentType, ContentTypeNode> _HTTPContentTypes;
+
+        /// <summary>
+        /// A mapping from HTTPContentTypes to HTTPContentTypeNodes.
+        /// </summary>
+        public Dictionary<HTTPContentType, ContentTypeNode> HTTPContentTypes
+        {
+            get
+            {
+                return _HTTPContentTypes;
+            }
+        }
+
+        #endregion
+
+        #endregion
+
+        #region (internal) Constructor(s)
 
         /// <summary>
         /// Creates a new HTTPMethodNode.
         /// </summary>
         /// <param name="HTTPMethod">The http method for this service.</param>
-        /// <param name="MethodHandler">The method handler.</param>
-        /// <param name="HTTPMethodAuthentication">This and all subordinated nodes demand an explicit http method authentication.</param>
-        /// <param name="HTTPMethodErrorHandler">A general error handling method.</param>
-        public HTTPMethodNode(HTTPMethod  HTTPMethod,
-                              MethodInfo  MethodHandler             = null,
-                              Boolean     HTTPMethodAuthentication  = false,
-                              MethodInfo  HTTPMethodErrorHandler    = null,
-                              Boolean     HandleContentTypes        = false)
+        /// <param name="HTTPMethodAuthentication">This and all subordinated nodes demand an explicit HTTP method authentication.</param>
+        /// <param name="RequestHandler">The default delegate to call for any request to this URI template.</param>
+        /// <param name="DefaultErrorHandler">The default error handling delegate.</param>
+        internal HTTPMethodNode(HTTPMethod          HTTPMethod,
+                                HTTPAuthentication  HTTPMethodAuthentication    = null,
+                                HTTPDelegate        RequestHandler              = null,
+                                HTTPDelegate        DefaultErrorHandler         = null)
 
         {
 
-            this.HTTPMethod                = HTTPMethod;
-            this.MethodHandler             = MethodHandler;
-            this.HTTPMethodAuthentication  = HTTPMethodAuthentication;
-            this.HTTPMethodErrorHandler    = HTTPMethodErrorHandler;
-            this.HTTPMethodErrorHandlers   = new Dictionary<HTTPStatusCode, MethodInfo>();
-            this.MethodHandler             = MethodHandler;
+            if (HTTPMethod == null)
+                throw new ArgumentException("HTTPMethod == null!");
 
-            if (HandleContentTypes)
-                HTTPContentTypes = new Dictionary<HTTPContentType, ContentTypeNode>(); 
+            this._HTTPMethod                = HTTPMethod;
+            this._HTTPMethodAuthentication  = HTTPMethodAuthentication;
+            this._RequestHandler            = RequestHandler;
+            this._DefaultErrorHandler       = DefaultErrorHandler;
+
+            this._ErrorHandlers             = new Dictionary<HTTPStatusCode,  HTTPDelegate>();
+            this._HTTPContentTypes          = new Dictionary<HTTPContentType, ContentTypeNode>();
 
         }
 
         #endregion
+
+
+        #region AddHandler(...)
+
+        public void AddHandler(HTTPDelegate        HTTPDelegate,
+                               HTTPContentType     HTTPContentType            = null,
+                               HTTPAuthentication  ContentTypeAuthentication  = null,
+                               HTTPDelegate        DefaultErrorHandler        = null)
+
+        {
+
+            ContentTypeNode _ContentTypeNode = null;
+
+            if (HTTPContentType == null)
+            {
+                //RequestHandler       = HTTPDelegate;
+                //DefaultErrorHandler  = DefaultErrorHandler;
+            }
+
+            else if (!_HTTPContentTypes.TryGetValue(HTTPContentType, out _ContentTypeNode))
+            {
+                _ContentTypeNode = new ContentTypeNode(HTTPContentType, ContentTypeAuthentication, HTTPDelegate, DefaultErrorHandler);
+                _HTTPContentTypes.Add(HTTPContentType, _ContentTypeNode);
+            }
+
+            else
+                throw new ArgumentException("Duplicate HTTP API definition!");
+
+        }
 
         #endregion
 

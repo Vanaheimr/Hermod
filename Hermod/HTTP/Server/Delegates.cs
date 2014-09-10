@@ -87,7 +87,6 @@ namespace eu.Vanaheimr.Hermod.HTTP
     public delegate void ErrorLogHandler(HTTPServer HTTPServer, DateTime ServerTimestamp, HTTPRequest Request, HTTPResponse Response, String Error = null, Exception LastException = null);
 
 
-
     /// <summary>
     /// A HTTP delegate.
     /// </summary>

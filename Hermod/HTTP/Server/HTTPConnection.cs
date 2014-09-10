@@ -608,7 +608,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                     HTTPRequest _RequestHeader = null;
 
                     // The parsing of the http header failed!
-                    if (!HTTPRequest.TryParse(RemoteSocket, HeaderBytes.ToUTF8String(), out _RequestHeader))
+                    if (!HTTPRequest.TryParse(RemoteSocket, HeaderBytes.ToUTF8String(), _HTTPStream, out _RequestHeader))
                     {
                         SendErrorpage(RequestHeader.HTTPStatusCode);
                         return;

@@ -191,7 +191,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Constructor(s)
+        #region (internal) Constructor(s)
 
         /// <summary>
         /// Creates a new URLNode.
@@ -200,18 +200,18 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="URIAuthentication">This and all subordinated nodes demand an explicit URI authentication.</param>
         /// <param name="RequestHandler">The default delegate to call for any request to this URI template.</param>
         /// <param name="DefaultErrorHandler">The default error handling delegate.</param>
-        public URINode(String              URITemplate,
-                       HTTPAuthentication  URIAuthentication    = null,
-                       HTTPDelegate        RequestHandler       = null,
-                       HTTPDelegate        DefaultErrorHandler  = null)
+        internal URINode(String              URITemplate,
+                         HTTPAuthentication  URIAuthentication    = null,
+                         HTTPDelegate        RequestHandler       = null,
+                         HTTPDelegate        DefaultErrorHandler  = null)
 
         {
 
             URITemplate.FailIfNullOrEmpty();
 
             this._URITemplate           = URITemplate;
-            this._RequestHandler        = RequestHandler;
             this._URIAuthentication     = URIAuthentication;
+            this._RequestHandler        = RequestHandler;
             this._DefaultErrorHandler   = DefaultErrorHandler;
             this._ErrorHandlers         = new Dictionary<HTTPStatusCode, HTTPDelegate>();
             this._HTTPMethods           = new Dictionary<HTTPMethod, HTTPMethodNode>();
@@ -223,12 +223,48 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
             var _ReplaceAllParameters   = new Regex(@"\{[^/]+\}");
             this._ParameterCount       += (UInt16) _ReplaceAllParameters.Matches(URLTemplate2).Count;
-            this._URIRegex              = new Regex("^" + _ReplaceAllParameters.Replace(URLTemplate2, "([^/]+)"));
+            this._URIRegex              = new Regex("^" + _ReplaceAllParameters.Replace(URLTemplate2, "([^/]+)") + "$");
             this._SortLength            = (UInt16) _ReplaceAllParameters.Replace(URLTemplateWithoutVars, "").Length;
 
         }
 
         #endregion
+
+
+        #region AddHandler(...)
+
+        public void AddHandler(HTTPDelegate        HTTPDelegate,
+
+                               HTTPMethod          HTTPMethod                  = null,
+                               HTTPContentType     HTTPContentType             = null,
+
+                               HTTPAuthentication  HTTPMethodAuthentication    = null,
+                               HTTPAuthentication  ContentTypeAuthentication   = null,
+
+                               HTTPDelegate        DefaultErrorHandler         = null)
+
+        {
+
+            HTTPMethodNode _HTTPMethodNode = null;
+
+            if (!_HTTPMethods.TryGetValue(HTTPMethod, out _HTTPMethodNode))
+            {
+                _HTTPMethodNode = new HTTPMethodNode(HTTPMethod, HTTPMethodAuthentication, HTTPDelegate, DefaultErrorHandler);
+                _HTTPMethods.Add(HTTPMethod, _HTTPMethodNode);
+            }
+
+            _HTTPMethodNode.AddHandler(HTTPDelegate,
+
+                                       HTTPContentType,
+
+                                       ContentTypeAuthentication,
+
+                                       DefaultErrorHandler);
+
+        }
+
+        #endregion
+
 
         #region ToString()
 

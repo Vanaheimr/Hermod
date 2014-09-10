@@ -153,6 +153,25 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region KeepAlive
+
+        public KeepAliveType KeepAlive
+        {
+
+            get
+            {
+                return new KeepAliveType(GetHeaderField(HTTPHeaderField.KeepAlive));
+            }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.KeepAlive, value);
+            }
+
+        }
+
+        #endregion
+
         #region LastModified
 
         public String LastModified
