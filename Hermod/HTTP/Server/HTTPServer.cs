@@ -630,7 +630,20 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region Add HTTP Server Sent Events
 
-        #region AddEventSource(EventIdentification, MaxNumberOfCachedEvents = 100, RetryIntervall = null)
+        #region AddEventSource(EventIdentification)
+
+        /// <summary>
+        /// Add a HTTP Sever Sent Events source.
+        /// </summary>
+        /// <param name="EventIdentification">The unique identification of the event source.</param>
+        public HTTPEventSource AddEventSource(String  EventIdentification)
+        {
+            return _URIMapping.AddEventSource(EventIdentification, 100, TimeSpan.FromSeconds(5));
+        }
+
+        #endregion
+
+        #region AddEventSource(EventIdentification, MaxNumberOfCachedEvents, RetryIntervall = null)
 
         /// <summary>
         /// Add a HTTP Sever Sent Events source.
@@ -639,8 +652,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
         /// <param name="RetryIntervall">The retry intervall.</param>
         public HTTPEventSource AddEventSource(String     EventIdentification,
-                                              UInt32     MaxNumberOfCachedEvents  = 100,
-                                              TimeSpan?  RetryIntervall           = null)
+                                              UInt32     MaxNumberOfCachedEvents,
+                                              TimeSpan?  RetryIntervall  = null)
         {
 
             return _URIMapping.AddEventSource(EventIdentification,

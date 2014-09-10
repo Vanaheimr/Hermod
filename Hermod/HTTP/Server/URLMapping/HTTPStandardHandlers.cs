@@ -357,20 +357,58 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        //egion GET /CombinedLog
+        #region RegisterMovedTemporarilyHandler(this HTTPServer, URITemplate, URITarget)
 
-        //        /// <summary>
-        //        /// Get a combined list of all log events.
-        //        /// </summary>
-        //        /// <httpparam name="SKIP">Skip the given number of entries from the beginning of the result set.</httpparam>
-        //        /// <httpparam name="TAKE">Return only the given number of entries from the result set.</httpparam>
-        //        /// <example>curl -H "Accept: application/json" http://127.0.0.1:2002/CombinedLog</example>
-        //        public override HTTPResponse GET_CombinedLog()
-        //        {
-        //            return HTTPTools.MovedTemporarily("/CombinedLog/index.html");
-        //        }
+        /// <summary>
+        /// Register a MovedTemporarily handler.
+        /// </summary>
+        public static void RegisterEventStreamHandler(this HTTPServer  HTTPServer,
+                                                      String           URITemplate,
+                                                      String           EventSource)
+        {
 
-        //        #endregion
+            HTTPServer.AddMethodCallback(HTTPMethod.GET,
+                                         URITemplate,
+                                         HTTPDelegate: Request => {
+
+                                             var _LastEventId        = 0UL;
+                                             var _Client_LastEventId = 0UL;
+                                             var _EventSource        = HTTPServer.GetEventSource(EventSource);
+
+                                             if (Request.TryGet<UInt64>("Last-Event-Id", out _Client_LastEventId))
+                                                 _LastEventId = _Client_LastEventId;
+
+                                             //_LastEventId = 0;
+
+                                             var _HTTPEvents      = (from   _HTTPEvent
+                                                                     in     _EventSource.GetAllEventsGreater(_LastEventId)
+                                                                     where  _HTTPEvent != null
+                                                                     select _HTTPEvent.ToString())
+                                                                    .ToArray(); // For thread safety!
+
+
+                                             // Transform HTTP events into an UTF8 string
+                                             var _ResourceContent = String.Empty;
+
+                                             if (_HTTPEvents.Length > 0)
+                                                 _ResourceContent = Environment.NewLine + _HTTPEvents.Aggregate((a, b) => a + Environment.NewLine + b);
+
+                                             _ResourceContent += Environment.NewLine + "retry: " + _EventSource.RetryIntervall.TotalMilliseconds + Environment.NewLine + Environment.NewLine;
+
+                                             return new HTTPResponseBuilder()
+                                             {
+                                                 HTTPStatusCode  = HTTPStatusCode.OK,
+                                                 ContentType     = HTTPContentType.EVENTSTREAM,
+                                                 CacheControl    = "no-cache",
+                                                 Connection      = "keep-alive",
+                                                 Content         = _ResourceContent.ToUTF8Bytes()
+                                             };
+
+                                         });
+
+        }
+
+        #endregion
 
     }
 
