@@ -210,47 +210,41 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
                 #endregion
 
-                #region ...else
 
-                var _BestMatch    = _Matches.First();
+                HTTPMethodNode  _HTTPMethodNode       = null;
+                ContentTypeNode _HTTPContentTypeNode  = null;
 
-                //Console.WriteLine(_BestMatch.URLNode.URLTemplate);
-                //_Matches.ForEach(_m => { if (_m.Match.Success) Console.WriteLine("Match Length:'" + _m.Match.Length + "'+" + _m.URLNode.ParameterCount + " Groups[1]:'" + _m.Match.Groups[1] + "' URLTemplate:'" + _m.URLNode.URLTemplate + "'"); });
+                // Caused e.g. by the naming of the variables within the
+                // URI templates, there could be multiple matches!
+                foreach (var _Match in _Matches)
+                {
 
-                // Copy MethodHandler Parameters
-                var _Parameters = new List<String>();
-                for (var i=1; i< _BestMatch.Match.Groups.Count; i++)
-                    _Parameters.Add(_BestMatch.Match.Groups[i].Value);
+                    #region Copy MethodHandler Parameters
 
-                HTTPRequest.ParsedQueryParameters = _Parameters.ToArray();
+                    var _Parameters = new List<String>();
+                    for (var i = 1; i < _Match.Match.Groups.Count; i++)
+                        _Parameters.Add(_Match.Match.Groups[i].Value);
 
-                //// If no HTTPMethod was given => return best matching URL MethodHandler
-                //if (HTTPMethod == null)
-                //    //return new Tuple<MethodInfo, IEnumerable<Object>>(_BestMatch.URLNode.MethodHandler, _Parameters);
-                //    return null;
+                    HTTPRequest.ParsedQueryParameters = _Parameters.ToArray();
 
-                #endregion
+                    #endregion
 
-                #region Get HTTPMethodNode
+                    // If HTTPMethod was found...
+                    if (_Match.URLNode.HTTPMethods.TryGetValue(HTTPMethod, out _HTTPMethodNode))
+                    {
 
-                HTTPMethodNode _HTTPMethodNode = null;
+                        // Get HTTPContentTypeNode
+                        if (!_HTTPMethodNode.HTTPContentTypes.TryGetValue(HTTPRequest.Accept.BestMatchingContentType(_HTTPMethodNode.HTTPContentTypes.Keys.ToArray()), out _HTTPContentTypeNode))
+                            return _HTTPMethodNode.RequestHandler;
 
-                // If no HTTPMethod was found => return best matching URL MethodHandler
-                if (!_BestMatch.URLNode.HTTPMethods.TryGetValue(HTTPMethod, out _HTTPMethodNode))
-                    return _BestMatch.URLNode.RequestHandler;
+                        return _HTTPContentTypeNode.RequestHandler;
 
-                #endregion
+                    }
 
-                #region Get HTTPContentTypeNode
+                }
 
-                ContentTypeNode _HTTPContentTypeNode = null;
-
-                if (!_HTTPMethodNode.HTTPContentTypes.TryGetValue(HTTPRequest.Accept.BestMatchingContentType(_HTTPMethodNode.HTTPContentTypes.Keys.ToArray()), out _HTTPContentTypeNode))
-                    return _HTTPMethodNode.RequestHandler;
-
-                #endregion
-
-                return _HTTPContentTypeNode.RequestHandler;
+                // No HTTPMethod was found => return best matching URL Handler
+                return _Matches.First().URLNode.RequestHandler;
 
                 //return GetErrorHandler(Host, URL, HTTPMethod, HTTPContentType, HTTPStatusCode.BadRequest);
 

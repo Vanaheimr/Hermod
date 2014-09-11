@@ -189,40 +189,17 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
         #region CallingAssemblies
 
-        private List<Assembly> _CallingAssemblies;
+        private readonly IList<Assembly> _CallingAssemblies;
 
         /// <summary>
         /// The list of calling assemblies.
         /// </summary>
-        public List<Assembly> CallingAssemblies
+        public IEnumerable<Assembly> CallingAssemblies
         {
-
             get
             {
                 return _CallingAssemblies;
             }
-
-            set
-            {
-
-                if (value == null)
-                    return;
-
-                this._CallingAssemblies = value;
-
-                // Add Hermod to the list of assemblies
-                this._CallingAssemblies.Add(Assembly.GetExecutingAssembly());
-
-                _CallingAssemblies.
-                    SelectMany(_Assembly => _Assembly.GetManifestResourceNames().
-                                                      Select(_Resource => new {
-                                                          Assembly  = _Assembly,
-                                                          Ressource = _Resource
-                                                      })
-                              ).ForEach(v => this._AllResources.Add(v.Ressource, v.Assembly));
-
-            }
-
         }
 
         #endregion
@@ -282,7 +259,8 @@ namespace eu.Vanaheimr.Hermod.HTTP
         /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
         /// <param name="ConnectionTimeoutSeconds">The TCP client timeout for all incoming client connections in seconds.</param>
         /// <param name="Autostart">Start the HTTP server thread immediately.</param>
-        public HTTPServer(String                       DefaultServerName               = __DefaultServerName,
+        public HTTPServer(IPPort                       IPPort                          = null,
+                          String                       DefaultServerName               = __DefaultServerName,
                           String                       ServerThreadName                = null,
                           ThreadPriority               ServerThreadPriority            = ThreadPriority.AboveNormal,
                           Boolean                      ServerThreadIsBackground        = true,
@@ -291,6 +269,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
                           ThreadPriority               ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
                           Boolean                      ConnectionThreadsAreBackground  = true,
                           TimeSpan?                    ConnectionTimeout               = null,
+                          IEnumerable<Assembly>        CallingAssemblies               = null,
                           Boolean                      Autostart                       = false)
 
             : base(DefaultServerName,
@@ -307,6 +286,23 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
             this._DefaultServerName                = DefaultServerName;
             this._URIMapping                       = new URIMapping();
+            this._CallingAssemblies                = new List<Assembly>() { Assembly.GetExecutingAssembly(), typeof(HTTPServer).Assembly };
+
+            if (CallingAssemblies != null)
+            {
+
+                this._CallingAssemblies.AddAndReturnList(CallingAssemblies);
+
+                CallingAssemblies.
+                    SelectMany(_Assembly => _Assembly.GetManifestResourceNames().
+                                                      Select(_Resource => new {
+                                                          Assembly   = _Assembly,
+                                                          Ressource  = _Resource
+                                                      })).
+                    ForEach(v => this._AllResources.Add(v.Ressource, v.Assembly));
+
+            }
+
             this._AllResources                     = new Dictionary<String, Assembly>();
 
             _HTTPProcessor                         = new HTTPProcessor();
@@ -314,6 +310,9 @@ namespace eu.Vanaheimr.Hermod.HTTP
             _HTTPProcessor.RequestLog             += (HTTPProcessor, ServerTimestamp, Request)                                 => LogRequest(ServerTimestamp, Request);
             _HTTPProcessor.AccessLog              += (HTTPProcessor, ServerTimestamp, Request, Response)                       => LogAccess (ServerTimestamp, Request, Response);
             _HTTPProcessor.ErrorLog               += (HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException) => LogError  (ServerTimestamp, Request, Response, Error, LastException);
+
+            if (IPPort != null)
+                this.AttachTCPPort(IPPort);
 
             if (Autostart)
                 Start();
