@@ -47,6 +47,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="HTTPClientTests.cs" />
+    <Compile Include="HTTPServerTests.cs" />
     <Compile Include="TCPClientRequest.cs" />
     <Compile Include="IPAddressFactoryTests.cs" />
     <Compile Include="IPv4AddressTests.cs" />
