@@ -22,15 +22,15 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-using eu.Vanaheimr.Illias.Commons;
-using eu.Vanaheimr.Styx.Arrows;
-using eu.Vanaheimr.Hermod.Sockets.TCP;
-using eu.Vanaheimr.Hermod.HTTP;
-using eu.Vanaheimr.Hermod.Services;
+using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Styx.Arrows;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.Services;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.HTTP
+namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>

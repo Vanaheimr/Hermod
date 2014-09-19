@@ -20,13 +20,13 @@
 using System;
 using System.Linq;
 
-using eu.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 using NUnit.Framework;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.UnitTests
+namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
 {
 
     /// <summary>

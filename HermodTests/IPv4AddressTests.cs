@@ -19,13 +19,13 @@
 
 using System;
 
-using eu.Vanaheimr.Hermod;
+using org.GraphDefined.Vanaheimr.Hermod;
 
 using NUnit.Framework;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.UnitTests
+namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
 {
 
     /// <summary>

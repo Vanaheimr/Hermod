@@ -23,13 +23,13 @@ using System.Text;
 using System.Threading;
 using System.Net.Sockets;
 
-using eu.Vanaheimr.Illias.Commons;
-using eu.Vanaheimr.Styx.Arrows;
+using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Styx.Arrows;
 using System.Net;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.Sockets.TCP
+namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 {
 
     /// <summary>

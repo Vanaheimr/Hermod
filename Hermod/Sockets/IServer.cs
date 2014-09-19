@@ -17,12 +17,12 @@
 
 #region Usings
 
-using eu.Vanaheimr.Styx.Arrows;
+using org.GraphDefined.Vanaheimr.Styx.Arrows;
 using System;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod
+namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
     /// <summary>

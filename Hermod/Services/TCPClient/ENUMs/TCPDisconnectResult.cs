@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-namespace eu.Vanaheimr.Hermod.Services.TCP
+namespace org.GraphDefined.Vanaheimr.Hermod.Services.TCP
 {
 
     public enum TCPDisconnectResult

@@ -21,13 +21,13 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 
-using eu.Vanaheimr.Illias.Commons;
-using eu.Vanaheimr.Styx;
-using eu.Vanaheimr.Styx.Arrows;
+using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Styx;
+using org.GraphDefined.Vanaheimr.Styx.Arrows;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.Multicast
+namespace org.GraphDefined.Vanaheimr.Hermod.Multicast
 {
 
     /// <summary>

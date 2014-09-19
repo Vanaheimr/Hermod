@@ -26,15 +26,15 @@ using System.Collections.Generic;
 
 using Newtonsoft.Json.Linq;
 
-using eu.Vanaheimr.Illias.Commons;
-using eu.Vanaheimr.Illias.Commons.ConsoleLog;
-using eu.Vanaheimr.Hermod.Sockets.TCP;
-using eu.Vanaheimr.Hermod.Services.TCP;
-using eu.Vanaheimr.Styx.Arrows;
+using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Illias.ConsoleLog;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using org.GraphDefined.Vanaheimr.Hermod.Services.TCP;
+using org.GraphDefined.Vanaheimr.Styx.Arrows;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.HTTP
+namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     public static class HTTPExtentions

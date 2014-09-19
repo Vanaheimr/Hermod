@@ -22,12 +22,12 @@ using System;
 using System.Linq;
 using System.Reflection;
 
-using eu.Vanaheimr.Illias.Commons;
+using org.GraphDefined.Vanaheimr.Illias;
 using System.IO;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.HTTP
+namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>

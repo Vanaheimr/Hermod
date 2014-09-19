@@ -5,7 +5,7 @@
 /// (such as Multicast Listener Discovery, Neighbor Discovery, etc.).
 /// </summary>
 
-using eu.Vanaheimr.Hermod;
+using org.GraphDefined.Vanaheimr.Hermod;
 using System;
 class Icmpv6EchoRequest : AProtocolHeader
 {

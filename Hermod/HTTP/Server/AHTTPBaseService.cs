@@ -24,16 +24,16 @@
 //using System.Reflection;
 //using System.Collections.Generic;
 
-//using eu.Vanaheimr.Illias.Commons;
+//using org.GraphDefined.Vanaheimr.Illias;
 //using System.Text.RegularExpressions;
 //using System.Threading;
 //using Newtonsoft.Json.Linq;
 //using System.Xml.Linq;
-//using eu.Vanaheimr.Hermod.Services.DNS;
+//using org.GraphDefined.Vanaheimr.Hermod.Services.DNS;
 
 //#endregion
 
-//namespace eu.Vanaheimr.Hermod.HTTP
+//namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 //{
 
 //    /// <summary>

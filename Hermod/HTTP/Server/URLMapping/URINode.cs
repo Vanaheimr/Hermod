@@ -23,12 +23,12 @@ using System.Reflection;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 
-using eu.Vanaheimr.Illias.Commons;
+using org.GraphDefined.Vanaheimr.Illias;
 using System.Collections.Generic;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.HTTP
+namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>

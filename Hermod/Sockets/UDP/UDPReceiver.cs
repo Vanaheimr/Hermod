@@ -24,11 +24,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 
-using eu.Vanaheimr.Styx.Arrows;
+using org.GraphDefined.Vanaheimr.Styx.Arrows;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.Sockets.UDP
+namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
 {
 
     #region UDPReceiver<TOut>

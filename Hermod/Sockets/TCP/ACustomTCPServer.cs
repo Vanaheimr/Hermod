@@ -20,11 +20,11 @@
 using System;
 using System.Threading;
 
-using eu.Vanaheimr.Styx.Arrows;
+using org.GraphDefined.Vanaheimr.Styx.Arrows;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.Sockets.TCP
+namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 {
 
     public abstract class ACustomTCPServer : ITCPServer

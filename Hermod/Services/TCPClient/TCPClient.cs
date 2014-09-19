@@ -26,13 +26,13 @@ using System.Threading.Tasks;
 using System.Net.Sockets;
 using System.Collections.Generic;
 
-using eu.Vanaheimr.Illias.Commons;
-using eu.Vanaheimr.Hermod.Services.DNS;
-using eu.Vanaheimr.Hermod.Services.TCP;
+using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.Services.DNS;
+using org.GraphDefined.Vanaheimr.Hermod.Services.TCP;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.Services
+namespace org.GraphDefined.Vanaheimr.Hermod.Services
 {
 
     public class TCPClient

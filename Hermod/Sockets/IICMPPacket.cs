@@ -22,7 +22,7 @@ using System.IO;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.Sockets.RawIP.ICMP
+namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 {
 
     public interface IICMPPacket : IRemoteSocket

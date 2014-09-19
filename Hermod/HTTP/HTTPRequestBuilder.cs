@@ -24,11 +24,11 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Threading.Tasks;
 
-using eu.Vanaheimr.Illias.Commons;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.HTTP
+namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>

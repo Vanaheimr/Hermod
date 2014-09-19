@@ -20,12 +20,12 @@
 using System;
 using System.Net;
 
-using eu.Vanaheimr.Hermod.Sockets.TCP;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 using System.Collections.Generic;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.HTTP
+namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     //#region HTTPServer -> HTTPServer<DefaultHTTPService>

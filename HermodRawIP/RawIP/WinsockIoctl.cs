@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-namespace eu.Vanaheimr.Hermod.Sockets.RawIP
+namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP
 {
 
     public class WinsockIoctl

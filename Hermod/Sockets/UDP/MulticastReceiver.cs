@@ -25,13 +25,13 @@
 //using System.Threading;
 //using System.Threading.Tasks;
 
-//using eu.Vanaheimr.Styx;
-//using eu.Vanaheimr.Styx.Arrows;
-//using eu.Vanaheimr.Hermod.Sockets.UDP;
+//using org.GraphDefined.Vanaheimr.Styx;
+//using org.GraphDefined.Vanaheimr.Styx.Arrows;
+//using org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP;
 
 //#endregion
 
-//namespace eu.Vanaheimr.Hermod.Multicast
+//namespace org.GraphDefined.Vanaheimr.Hermod.Multicast
 //{
 
 //    /// <summary>

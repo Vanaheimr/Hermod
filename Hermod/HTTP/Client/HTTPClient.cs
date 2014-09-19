@@ -26,13 +26,13 @@ using System.Diagnostics;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 
-using eu.Vanaheimr.Illias.Commons;
-using eu.Vanaheimr.Hermod.Sockets.TCP;
-using eu.Vanaheimr.Hermod.Services.DNS;
+using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using org.GraphDefined.Vanaheimr.Hermod.Services.DNS;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.HTTP
+namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
 

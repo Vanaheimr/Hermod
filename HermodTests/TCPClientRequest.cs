@@ -22,15 +22,15 @@ using System.Threading;
 using System.Net.Sockets;
 using System.Collections.Generic;
 
-using eu.Vanaheimr.Illias.Commons;
-using eu.Vanaheimr.Hermod.HTTP;
-using eu.Vanaheimr.Hermod;
+using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod;
 
 using NUnit.Framework;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.UnitTests
+namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
 {
 
     /// <summary>

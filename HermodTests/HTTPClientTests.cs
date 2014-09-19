@@ -19,14 +19,14 @@
 
 using System;
 
-using eu.Vanaheimr.Hermod.HTTP;
-using eu.Vanaheimr.Hermod;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod;
 
 using NUnit.Framework;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.UnitTests
+namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
 {
 
     /// <summary>
@@ -49,12 +49,12 @@ namespace eu.Vanaheimr.Hermod.UnitTests
 
         #region Start/Stop HTTPServer
 
-        private HTTPServer<IHTTPService> _HTTPServer;
+        private HTTPServer _HTTPServer;
 
         [TestFixtureSetUp]
         public void Init_HTTPServer()
         {
-            _HTTPServer = new HTTPServer<IHTTPService>(IPv4Address.Any, new IPPort(81), Autostart: true);
+            _HTTPServer = new HTTPServer();// (IPv4Address.Any, new IPPort(81), Autostart: true);
         }
 
         [TestFixtureTearDown]

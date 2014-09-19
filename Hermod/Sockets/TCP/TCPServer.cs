@@ -24,11 +24,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 
-using eu.Vanaheimr.Styx.Arrows;
+using org.GraphDefined.Vanaheimr.Styx.Arrows;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.Sockets.TCP
+namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 {
 
     /// <summary>

@@ -22,12 +22,12 @@ using System.Linq;
 using System.Threading;
 using System.Collections.Generic;
 
-using eu.Vanaheimr.Illias.Commons;
-using eu.Vanaheimr.Styx.Arrows;
+using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Styx.Arrows;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.Sockets.TCP
+namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 {
 
     public abstract class ACustomTCPServers

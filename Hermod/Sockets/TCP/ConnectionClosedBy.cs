@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-namespace eu.Vanaheimr.Hermod.Sockets.TCP
+namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 {
 
     /// <summary>

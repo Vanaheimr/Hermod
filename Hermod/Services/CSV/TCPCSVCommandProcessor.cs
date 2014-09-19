@@ -20,12 +20,12 @@
 using System;
 using System.Text;
 
-using eu.Vanaheimr.Hermod.Sockets.TCP;
-using eu.Vanaheimr.Styx.Arrows;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using org.GraphDefined.Vanaheimr.Styx.Arrows;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.Services.CSV
+namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
 {
 
     /// <summary>

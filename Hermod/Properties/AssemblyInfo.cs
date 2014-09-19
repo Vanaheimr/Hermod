@@ -6,11 +6,11 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("Hermod")]
-[assembly: AssemblyDescription("A .NET HTTP library for hypermedia transfer")]
+[assembly: AssemblyDescription("A .NET Networking Library")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("ahzf.de")]
+[assembly: AssemblyCompany("GraphDefined GmbH")]
 [assembly: AssemblyProduct("Hermod")]
-[assembly: AssemblyCopyright("Copyright © Achim Friedland 2010-2012")]
+[assembly: AssemblyCopyright("Copyright © 2010-2014 GraphDefined GmbH")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

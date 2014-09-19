@@ -22,7 +22,7 @@ using System.Net;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.Sockets
+namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
 {
 
     /// <summary>

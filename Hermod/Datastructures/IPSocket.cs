@@ -26,7 +26,7 @@ using System.Net;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod
+namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
     /// <summary>

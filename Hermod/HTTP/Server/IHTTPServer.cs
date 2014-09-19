@@ -21,11 +21,11 @@
 //using System.Reflection;
 //using System.Collections.Generic;
 
-//using eu.Vanaheimr.Styx.Arrows;
+//using org.GraphDefined.Vanaheimr.Styx.Arrows;
 
 //#endregion
 
-//namespace eu.Vanaheimr.Hermod.HTTP
+//namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 //{
 
 //    /// <summary>

@@ -22,7 +22,7 @@ using System.IO;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.Services.DNS
+namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 {
 
     #region (enum) SSHFP_Algorithm

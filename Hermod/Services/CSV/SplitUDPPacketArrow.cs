@@ -22,12 +22,12 @@ using System.Net;
 using System.Linq;
 using System.Collections.Generic;
 
-using eu.Vanaheimr.Styx;
-using eu.Vanaheimr.Styx.Arrows;
+using org.GraphDefined.Vanaheimr.Styx;
+using org.GraphDefined.Vanaheimr.Styx.Arrows;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.Sockets.UDP
+namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
 {
 
     public static class SplitUDPPacketArrowExtention

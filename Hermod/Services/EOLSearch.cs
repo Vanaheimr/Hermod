@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-namespace eu.Vanaheimr.Hermod.Services
+namespace org.GraphDefined.Vanaheimr.Hermod.Services
 {
 
     public enum EOLSearch

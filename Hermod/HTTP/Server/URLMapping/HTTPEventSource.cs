@@ -25,12 +25,12 @@ using System.Collections.Generic;
 
 using Newtonsoft.Json.Linq;
 
-using eu.Vanaheimr.Illias.Commons;
-using eu.Vanaheimr.Illias.Commons.Collections;
+using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Illias.Collections;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.HTTP
+namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     // In contrast to other popular Comet protocols such as Bayeux or BOSH, Server-Sent Events

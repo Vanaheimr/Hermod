@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-namespace eu.Vanaheimr.Hermod.Services.DNS
+namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 {
 
     ///// <summary>

@@ -1,5 +1,5 @@
 ﻿
-using eu.Vanaheimr.Hermod;
+using org.GraphDefined.Vanaheimr.Hermod;
 using System;
 class IgmpHeader : AProtocolHeader
 {

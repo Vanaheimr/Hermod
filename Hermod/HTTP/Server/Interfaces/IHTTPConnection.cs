@@ -22,11 +22,11 @@
 //using System.Net;
 //using System.Net.Sockets;
 
-//using eu.Vanaheimr.Hermod.Sockets.TCP;
+//using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 
 //#endregion
 
-//namespace eu.Vanaheimr.Hermod.HTTP
+//namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 //{
 
 //    /// <summary>

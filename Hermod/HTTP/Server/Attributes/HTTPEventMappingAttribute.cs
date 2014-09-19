@@ -21,7 +21,7 @@ using System;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.HTTP
+namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
@@ -119,7 +119,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
 
             this.EventIdentification      = EventIdentification;
             this.UriTemplate              = UriTemplate;
-            this.HTTPMethod               = eu.Vanaheimr.Hermod.HTTP.HTTPMethod.ParseEnum(HTTPMethod);
+            this.HTTPMethod               = org.GraphDefined.Vanaheimr.Hermod.HTTP.HTTPMethod.ParseEnum(HTTPMethod);
             this.MaxNumberOfCachedEvents  = MaxNumberOfCachedEvents;
             this.RetryIntervall           = TimeSpan.FromSeconds(RetryIntervallSeconds);
             this.IsSharedEventSource      = IsSharedEventSource;

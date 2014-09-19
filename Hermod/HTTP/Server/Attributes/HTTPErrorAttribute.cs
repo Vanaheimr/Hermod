@@ -22,7 +22,7 @@ using System.Collections.Generic;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.HTTP
+namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
@@ -79,7 +79,7 @@ namespace eu.Vanaheimr.Hermod.HTTP
         public HTTPErrorAttribute(HTTPMethods HTTPMethod, String UriTemplate, HTTPStatusCode myHTTPStatusCode)
         {
             
-            this.HTTPMethod     = eu.Vanaheimr.Hermod.HTTP.HTTPMethod.ParseEnum(HTTPMethod);
+            this.HTTPMethod     = org.GraphDefined.Vanaheimr.Hermod.HTTP.HTTPMethod.ParseEnum(HTTPMethod);
 
             if (this.HTTPMethod == null)
                 throw new ArgumentNullException("Invalid HTTPMethod!");

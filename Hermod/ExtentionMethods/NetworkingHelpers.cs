@@ -23,7 +23,7 @@ using System.Text;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod
+namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
     /// <summary>

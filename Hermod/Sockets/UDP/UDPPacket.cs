@@ -21,7 +21,7 @@ using System;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.Sockets.UDP
+namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
 {
 
     /// <summary>

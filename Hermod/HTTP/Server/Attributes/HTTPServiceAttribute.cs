@@ -22,7 +22,7 @@ using System.Net;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.HTTP
+namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     [AttributeUsage(AttributeTargets.Interface, Inherited = false, AllowMultiple = true)]

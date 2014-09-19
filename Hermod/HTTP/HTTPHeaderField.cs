@@ -18,11 +18,11 @@
 #region Usings
 
 using System;
-using eu.Vanaheimr.Hermod;
+using org.GraphDefined.Vanaheimr.Hermod;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod.HTTP
+namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     #region (enum)  HeaderFieldType

@@ -25,7 +25,7 @@ using System.Text.RegularExpressions;
 
 #endregion
 
-namespace eu.Vanaheimr.Hermod
+namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
     /// <summary>
