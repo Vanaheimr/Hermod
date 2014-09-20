@@ -18,12 +18,14 @@
 #region Usings
 
 using System;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
 
 #endregion
@@ -35,28 +37,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
     /// A multi-threaded Styx arrow sender that listens on a TCP
     /// socket and notifies about incoming TCP connections.
     /// </summary>
-    /// <typeparam name="TIn">The type of the Styx arrows to send.</typeparam>
-    public class TCPServer : IArrowSender<TCPConnection>,
-                             ITCPServer
+    public class TCPServer : IArrowSender<TCPConnection>
     {
 
         #region Data
 
-        protected const  String                                                 DefaultServiceBanner = "Vanaheimr Hermod TCP Server v0.9";
+        /// <summary>
+        /// The default service banner.
+        /// </summary>
+        public  const            String                                         __DefaultServiceBanner          = "Vanaheimr Hermod TCP Server v0.9";
 
-        private readonly Func<TCPConnection, String>                            PacketThreadName;
+        /// <summary>
+        /// The default server thread name.
+        /// </summary>
+        public  const            String                                         __DefaultServerThreadName       = "TCP thread on ";
+
+        /// <summary>
+        /// The default maximum number of concurrent TCP client connections.
+        /// </summary>
+        public  const            UInt32                                         __DefaultMaxClientConnections   = 4096;
+
+        /// <summary>
+        /// The default TCP client timeout for all incoming client connections.
+        /// </summary>
+        public  static readonly  TimeSpan                                       __DefaultConnectionTimeout      = TimeSpan.FromSeconds(30);
+
+
 
         // The internal thread
-        private readonly Thread                                                 _ListenerThread;
+        private readonly  Thread                                                _ListenerThread;
 
         // The TCP listener socket
-        private readonly TcpListener                                            _TCPListener;
+        private readonly  TcpListener                                           _TCPListener;
 
         // Store each connection, in order to be able to stop them activily
-        private readonly ConcurrentDictionary<IPSocket, TCPConnection>          _SocketConnections;
+        private readonly  ConcurrentDictionary<IPSocket, TCPConnection>         _SocketConnections;
 
-        private          CancellationTokenSource                                CancellationTokenSource;
-        private          CancellationToken                                      CancellationToken;
+        private           CancellationTokenSource                               CancellationTokenSource;
+        private           CancellationToken                                     CancellationToken;
 
         #endregion
 
@@ -113,23 +131,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
+
         #region ServiceBanner
+
+        private String _ServiceBanner  = __DefaultServiceBanner;
 
         /// <summary>
         /// The TCP service banner transmitted to a TCP client
         /// at connection initialization.
         /// </summary>
-        public String ServiceBanner { get; set; }
+        public String ServiceBanner
+        {
+
+            get
+            {
+                return _ServiceBanner;
+            }
+
+            set
+            {
+                if (value.IsNotNullOrEmpty())
+                    _ServiceBanner = value;
+            }
+
+        }
 
         #endregion
 
-
         #region ServerThreadName
+
+        private String _ServerThreadName  = __DefaultServerThreadName;
 
         /// <summary>
         /// The optional name of the TCP server thread.
         /// </summary>
-        public String ServerThreadName { get; set; }
+        public String ServerThreadName
+        {
+
+            get
+            {
+                return _ServerThreadName;
+            }
+
+            set
+            {
+                if (value.IsNotNullOrEmpty())
+                    _ServerThreadName = value;
+            }
+
+        }
 
         #endregion
 
@@ -155,27 +205,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         #region ConnectionIdBuilder
 
         /// <summary>
-        /// The optional name of the TCP server thread.
+        /// A delegate to build a connection identification based on IP socket information.
         /// </summary>
-        public Func<IPSocket, String> ConnectionIdBuilder { get; set; }
+        public ConnectionIdBuilder ConnectionIdBuilder { get; set; }
 
         #endregion
 
-        #region ConnectionThreadsNameCreator
+        #region ConnectionThreadsNameBuilder
 
         /// <summary>
-        /// The optional name of the TCP server thread.
+        /// A delegate to set the name of the TCP connection threads.
         /// </summary>
-        public Func<TCPConnection, String> ConnectionThreadsNameCreator { get; set; }
+        public ConnectionThreadsNameBuilder ConnectionThreadsNameBuilder { get; set; }
 
         #endregion
 
-        #region ConnectionThreadsPriority
+        #region ConnectionThreadsPriorityBuilder
 
         /// <summary>
-        /// The optional priority of the TCP server thread.
+        /// A delegate to set the priority of the TCP connection threads.
         /// </summary>
-        public ThreadPriority ConnectionThreadsPriority { get; set; }
+        public ConnectionThreadsPriorityBuilder ConnectionThreadsPriorityBuilder { get; set; }
 
         #endregion
 
@@ -190,19 +240,68 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region ConnectionTimeout
 
+        private TimeSpan _ConnectionTimeout  = __DefaultConnectionTimeout;
+
         /// <summary>
-        /// The tcp client timeout for all incoming client connections.
+        /// The TCP client timeout for all incoming client connections.
         /// </summary>
-        public TimeSpan ConnectionTimeout { get; set; }
+        public TimeSpan ConnectionTimeout
+        {
+
+            get
+            {
+                return _ConnectionTimeout;
+            }
+
+            set
+            {
+                if (value > TimeSpan.Zero)
+                    _ConnectionTimeout = value;
+            }
+
+        }
+
+        #endregion
+
+        #region MaxClientConnections
+
+        private UInt32 _MaxClientConnections  = __DefaultMaxClientConnections;
+
+        /// <summary>
+        /// The maximum number of concurrent TCP client connections (default: 4096).
+        /// </summary>
+        public UInt32 MaxClientConnections
+        {
+
+            get
+            {
+                return _MaxClientConnections;
+            }
+
+            set
+            {
+                _MaxClientConnections = value;
+            }
+
+        }
 
         #endregion
 
 
+        #region NumberOfClients
 
+        /// <summary>
+        /// The current number of connected clients
+        /// </summary>
+        public UInt64 NumberOfClients
+        {
+            get
+            {
+                return (UInt64) _SocketConnections.LongCount();
+            }
+        }
 
-
-
-
+        #endregion
 
         #region IsRunning
 
@@ -239,83 +338,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
-        #region NumberOfClients
-
-        /// <summary>
-        /// The current number of connected clients
-        /// </summary>
-        public UInt64 NumberOfClients
-        {
-            get
-            {
-                return (UInt32) _SocketConnections.Count;
-            }
-        }
-
-        #endregion
-
-        #region MaxClientConnections
-
-        private const UInt32 _DefaultMaxClientConnections = 5000;
-        
-        private UInt32 _MaxClientConnections = _DefaultMaxClientConnections;
-
-        /// <summary>
-        /// The maximum number of pending client connections
-        /// </summary>
-        public UInt32 MaxClientConnections
-        {
-            get
-            {
-                return _MaxClientConnections;
-            }
-        }
-
-        #endregion
-
         #endregion
 
         #region Events
 
-        #region OnStarted
+        /// <summary>
+        /// An event fired whenever the TCP servers instance was started.
+        /// </summary>
+        public event StartedEventHandler                        OnStarted;
 
         /// <summary>
-        /// An event fired when the TCP server started.
+        /// An event fired whenever a new TCP connection was opened.
         /// </summary>
-        public event StartedEventHandler OnStarted;
-
-        #endregion
-
-        public event NewConnectionHandler    OnNewConnection;
-
-        #region OnNotification
+        public event NotificationEventHandler<TCPConnection>    OnNotification;
 
         /// <summary>
-        /// An event fired for every incoming TCP connection.
+        /// An event fired whenever a new TCP connection was opened.
         /// </summary>
-        public event NotificationEventHandler<TCPConnection> OnNotification;
-
-        #endregion
-
-        public event ConnectionClosedHandler OnConnectionClosed;
-
-        #region OnExceptionOccured
+        public event NewConnectionHandler                       OnNewConnection;
 
         /// <summary>
         /// An event fired whenever an exception occured.
         /// </summary>
-        public event ExceptionOccuredEventHandler OnExceptionOccured;
-
-        #endregion
-
-        #region OnCompleted
+        public event ExceptionOccuredEventHandler               OnExceptionOccured;
 
         /// <summary>
-        /// An event fired when the TCP server stopped.
+        /// An event fired whenever a new TCP connection was closed.
         /// </summary>
-        public event CompletedEventHandler OnCompleted;
+        public event ConnectionClosedHandler                    OnConnectionClosed;
 
-        #endregion
+        /// <summary>
+        /// An event fired whenever the TCP servers instance was stopped.
+        /// </summary>
+        public event CompletedEventHandler                      OnCompleted;
 
         #endregion
 
@@ -331,23 +386,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
-        /// <param name="ConnectionIdBuilder"></param>
-        /// <param name="ConnectionThreadsNameCreator">An optional delegate to set the name of the TCP connection threads.</param>
-        /// <param name="ConnectionThreadsPriority">The optional priority of the TCP connection threads.</param>
-        /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
-        /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections.</param>
-        /// <param name="Autostart">Start the TCP server thread immediately.</param>
-        public TCPServer(IPPort                       Port,
-                         String                       ServiceBanner                   = DefaultServiceBanner,
-                         String                       ServerThreadName                = null,
-                         ThreadPriority               ServerThreadPriority            = ThreadPriority.AboveNormal,
-                         Boolean                      ServerThreadIsBackground        = true,
-                         Func<IPSocket, String>       ConnectionIdBuilder             = null,
-                         Func<TCPConnection, String>  ConnectionThreadsNameCreator    = null,
-                         ThreadPriority               ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
-                         Boolean                      ConnectionThreadsAreBackground  = true,
-                         TimeSpan?                    ConnectionTimeout               = null,
-                         Boolean                      Autostart                       = false)
+        /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information.</param>
+        /// <param name="ConnectionThreadsNameBuilder">An optional delegate to set the name of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsPriorityBuilder">An optional delegate to set the priority of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsAreBackground">Whether the TCP connection threads are background threads or not (default: yes).</param>
+        /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
+        /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
+        /// <param name="Autostart">Start the TCP server thread immediately (default: no).</param>
+        public TCPServer(IPPort                            Port,
+                         String                            ServiceBanner                     = __DefaultServiceBanner,
+                         String                            ServerThreadName                  = null,
+                         ThreadPriority                    ServerThreadPriority              = ThreadPriority.AboveNormal,
+                         Boolean                           ServerThreadIsBackground          = true,
+                         ConnectionIdBuilder               ConnectionIdBuilder               = null,
+                         ConnectionThreadsNameBuilder      ConnectionThreadsNameBuilder      = null,
+                         ConnectionThreadsPriorityBuilder  ConnectionThreadsPriorityBuilder  = null,
+                         Boolean                           ConnectionThreadsAreBackground    = true,
+                         TimeSpan?                         ConnectionTimeout                 = null,
+                         UInt32                            MaxClientConnections              = __DefaultMaxClientConnections,
+                         Boolean                           Autostart                         = false)
 
             : this(IPv4Address.Any,
                    Port,
@@ -356,10 +413,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                    ServerThreadPriority,
                    ServerThreadIsBackground,
                    ConnectionIdBuilder,
-                   ConnectionThreadsNameCreator,
-                   ConnectionThreadsPriority,
+                   ConnectionThreadsNameBuilder,
+                   ConnectionThreadsPriorityBuilder,
                    ConnectionThreadsAreBackground,
                    ConnectionTimeout,
+                   MaxClientConnections,
                    Autostart)
 
         { }
@@ -376,50 +434,80 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ServiceBanner">Service banner.</param>
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
-        /// <param name="ConnectionThreadsAreBackground">Whether the TCP server thread is a background thread or not.</param>
-        /// <param name="ConnectionIdBuilder"></param>
-        /// <param name="ConnectionThreadsNameCreator">An optional delegate to set the name of the TCP connection threads.</param>
-        /// <param name="ConnectionThreadsPriority">The optional priority of the TCP connection threads.</param>
-        /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
-        /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections.</param>
-        /// <param name="Autostart">Start the TCP server thread immediately.</param>
-        public TCPServer(IIPAddress                   IIPAddress,
-                         IPPort                       Port,
-                         String                       ServiceBanner                   = DefaultServiceBanner,
-                         String                       ServerThreadName                = null,
-                         ThreadPriority               ServerThreadPriority            = ThreadPriority.AboveNormal,
-                         Boolean                      ServerThreadIsBackground        = true,
-                         Func<IPSocket, String>       ConnectionIdBuilder             = null,
-                         Func<TCPConnection, String>  ConnectionThreadsNameCreator    = null,
-                         ThreadPriority               ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
-                         Boolean                      ConnectionThreadsAreBackground  = true,
-                         TimeSpan?                    ConnectionTimeout               = null,
-                         Boolean                      Autostart                       = false)
+        /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
+        /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information.</param>
+        /// <param name="ConnectionThreadsNameBuilder">An optional delegate to set the name of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsPriorityBuilder">An optional delegate to set the priority of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsAreBackground">Whether the TCP connection threads are background threads or not (default: yes).</param>
+        /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
+        /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
+        /// <param name="Autostart">Start the TCP server thread immediately (default: no).</param>
+        public TCPServer(IIPAddress                        IIPAddress,
+                         IPPort                            Port,
+                         String                            ServiceBanner                     = __DefaultServiceBanner,
+                         String                            ServerThreadName                  = null,
+                         ThreadPriority                    ServerThreadPriority              = ThreadPriority.AboveNormal,
+                         Boolean                           ServerThreadIsBackground          = true,
+                         ConnectionIdBuilder               ConnectionIdBuilder               = null,
+                         ConnectionThreadsNameBuilder      ConnectionThreadsNameBuilder      = null,
+                         ConnectionThreadsPriorityBuilder  ConnectionThreadsPriorityBuilder  = null,
+                         Boolean                           ConnectionThreadsAreBackground    = true,
+                         TimeSpan?                         ConnectionTimeout                 = null,
+                         UInt32                            MaxClientConnections              = __DefaultMaxClientConnections,
+                         Boolean                           Autostart                         = false)
 
         {
+
+            #region TCP Socket
 
             this._IPAddress                         = IIPAddress;
             this._Port                              = Port;
             this._IPSocket                          = new IPSocket(_IPAddress, _Port);
+            this._TCPListener                       = new TcpListener(new System.Net.IPAddress(_IPAddress.GetBytes()), _Port.ToInt32());
 
-            this.ServiceBanner                      = ServiceBanner;
+            #endregion
+
+            #region TCP Server
+
+            this._ServiceBanner                     = (ServiceBanner.IsNotNullOrEmpty())
+                                                          ? ServiceBanner
+                                                          : __DefaultServiceBanner;
 
             this.ServerThreadName                   = (ServerThreadName != null)
                                                           ? ServerThreadName
-                                                          : "TCP server on " + this.IPSocket.ToString();
+                                                          : __DefaultServerThreadName + this.IPSocket.ToString();
+
             this.ServerThreadPriority               = ServerThreadPriority;
             this.ServerThreadIsBackground           = ServerThreadIsBackground;
 
-            this.ConnectionIdBuilder                = (ConnectionIdBuilder != null)
+            #endregion
+
+            #region TCP Connections
+
+            this.ConnectionIdBuilder                = (ConnectionIdBuilder              != null)
                                                           ? ConnectionIdBuilder
-                                                          : (RemoteIPSocket) => "TCP:" + RemoteIPSocket.IPAddress + ":" + RemoteIPSocket.Port;
-            this.ConnectionThreadsNameCreator       = ConnectionThreadsNameCreator;
-            this.ConnectionThreadsPriority          = ServerThreadPriority;
+                                                          : (Sender, Timestamp, LocalSocket, RemoteIPSocket) => "TCP:" + RemoteIPSocket.IPAddress + ":" + RemoteIPSocket.Port;
+
+            this.ConnectionThreadsNameBuilder       = (ConnectionThreadsNameBuilder     != null)
+                                                          ? ConnectionThreadsNameBuilder
+                                                          : (Sender, Timestamp, LocalSocket, RemoteIPSocket) => "TCP thread " + RemoteIPSocket.IPAddress + ":" + RemoteIPSocket.Port;
+
+            this.ConnectionThreadsPriorityBuilder   = (ConnectionThreadsPriorityBuilder != null)
+                                                          ? ConnectionThreadsPriorityBuilder
+                                                          : (Sender, Timestamp, LocalSocket, RemoteIPSocket) => ThreadPriority.AboveNormal;
+
             this.ConnectionThreadsAreBackground     = ConnectionThreadsAreBackground;
-            this.ConnectionTimeout                  = ConnectionTimeout.HasValue ? ConnectionTimeout.Value : TimeSpan.FromSeconds(30);
+
+            this._ConnectionTimeout                 = ConnectionTimeout.HasValue
+                                                          ? ConnectionTimeout.Value
+                                                          : TimeSpan.FromSeconds(30);
+
+            this._MaxClientConnections              = MaxClientConnections;
+
+            #endregion
+
 
 //            this._SocketConnections         = new ConcurrentDictionary<IPSocket, TCPConnection>();
-            this._TCPListener                       = new TcpListener(new System.Net.IPAddress(_IPAddress.GetBytes()), _Port.ToInt32());
 
             this.CancellationTokenSource            = new CancellationTokenSource();
             this.CancellationToken                  = CancellationTokenSource.Token;
@@ -459,23 +547,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
-        /// <param name="ConnectionIdBuilder"></param>
-        /// <param name="ConnectionThreadsNameCreator">An optional delegate to set the name of the TCP connection threads.</param>
-        /// <param name="ConnectionThreadsPriority">The optional priority of the TCP connection threads.</param>
-        /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
-        /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections.</param>
-        /// <param name="Autostart">Start the TCP server thread immediately.</param>
-        public TCPServer(IPSocket                     IPSocket,
-                         String                       ServiceBanner                   = DefaultServiceBanner,
-                         String                       ServerThreadName                = null,
-                         ThreadPriority               ServerThreadPriority            = ThreadPriority.AboveNormal,
-                         Boolean                      ServerThreadIsBackground        = true,
-                         Func<IPSocket, String>       ConnectionIdBuilder             = null,
-                         Func<TCPConnection, String>  ConnectionThreadsNameCreator    = null,
-                         ThreadPriority               ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
-                         Boolean                      ConnectionThreadsAreBackground  = true,
-                         TimeSpan?                    ConnectionTimeout               = null,
-                         Boolean                      Autostart                       = false)
+        /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information.</param>
+        /// <param name="ConnectionThreadsNameBuilder">An optional delegate to set the name of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsPriorityBuilder">An optional delegate to set the priority of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsAreBackground">Whether the TCP connection threads are background threads or not (default: yes).</param>
+        /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
+        /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
+        /// <param name="Autostart">Start the TCP server thread immediately (default: no).</param>
+        public TCPServer(IPSocket                          IPSocket,
+                         String                            ServiceBanner                     = __DefaultServiceBanner,
+                         String                            ServerThreadName                  = null,
+                         ThreadPriority                    ServerThreadPriority              = ThreadPriority.AboveNormal,
+                         Boolean                           ServerThreadIsBackground          = true,
+                         ConnectionIdBuilder               ConnectionIdBuilder               = null,
+                         ConnectionThreadsNameBuilder      ConnectionThreadsNameBuilder      = null,
+                         ConnectionThreadsPriorityBuilder  ConnectionThreadsPriorityBuilder  = null,
+                         Boolean                           ConnectionThreadsAreBackground    = true,
+                         TimeSpan?                         ConnectionTimeout                 = null,
+                         UInt32                            MaxClientConnections              = __DefaultMaxClientConnections,
+                         Boolean                           Autostart                         = false)
 
             : this(IPSocket.IPAddress,
                    IPSocket.Port,
@@ -484,10 +574,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                    ServerThreadPriority,
                    ServerThreadIsBackground,
                    ConnectionIdBuilder,
-                   ConnectionThreadsNameCreator,
-                   ConnectionThreadsPriority,
+                   ConnectionThreadsNameBuilder,
+                   ConnectionThreadsPriorityBuilder,
                    ConnectionThreadsAreBackground,
                    ConnectionTimeout,
+                   MaxClientConnections,
                    Autostart)
 
         { }
@@ -561,6 +652,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                             if (OnNewConnectionLocal != null)
                                 OnNewConnectionLocal(NewTCPConnection.Value.TCPServer,
                                                      NewTCPConnection.Value.ServerTimestamp,
+                                                     NewTCPConnection.Value.RemoteSocket,
+                                                     NewTCPConnection.Value.ConnectionId,
                                                      NewTCPConnection.Value);
 
                             if (!NewTCPConnection.Value.IsClosed)
@@ -616,16 +709,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
 
 
-        protected internal void SendConnectionClosed(IPSocket            RemoteSocket,
+        #region (protected internal) SendNewConnection(TCPServer, ServerTimestamp, RemoteSocket, ConnectionId, TCPConnection)
+
+        protected internal void SendNewConnection(DateTime       ServerTimestamp,
+                                                  IPSocket       RemoteSocket,
+                                                  String         ConnectionId,
+                                                  TCPConnection  TCPConnection)
+        {
+
+            var OnNewConnectionLocal = OnNewConnection;
+            if (OnNewConnectionLocal != null)
+                OnNewConnectionLocal(this, ServerTimestamp, RemoteSocket, ConnectionId, TCPConnection);
+
+        }
+
+        #endregion
+
+        #region (protected internal) SendConnectionClosed(TCPServer, ServerTimestamp, RemoteSocket, ConnectionId, ClosedBy)
+
+        protected internal void SendConnectionClosed(DateTime            ServerTimestamp,
+                                                     IPSocket            RemoteSocket,
                                                      String              ConnectionId,
                                                      ConnectionClosedBy  ClosedBy)
         {
 
             var OnConnectionClosedLocal = OnConnectionClosed;
             if (OnConnectionClosedLocal != null)
-                OnConnectionClosedLocal(this, DateTime.Now, RemoteSocket, ConnectionId, ClosedBy);
+                OnConnectionClosedLocal(this, ServerTimestamp, RemoteSocket, ConnectionId, ClosedBy);
 
         }
+
+        #endregion
+
 
 
         #region Start()
@@ -635,7 +750,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// </summary>
         public void Start()
         {
-            Start(_DefaultMaxClientConnections);
+            Start(__DefaultMaxClientConnections);
         }
 
         #endregion
@@ -682,7 +797,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             if (_IsRunning)
                 return;
 
-            if (MaxClientConnections != _DefaultMaxClientConnections)
+            if (MaxClientConnections != __DefaultMaxClientConnections)
                 _MaxClientConnections = MaxClientConnections;
 
             // Start the TCPListener

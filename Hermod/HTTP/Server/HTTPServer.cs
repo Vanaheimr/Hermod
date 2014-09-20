@@ -28,9 +28,10 @@ using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Illias.ConsoleLog;
+using org.GraphDefined.Vanaheimr.Styx.Arrows;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Services.TCP;
-using org.GraphDefined.Vanaheimr.Styx.Arrows;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 
 #endregion
 
@@ -128,7 +129,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A HTTP/1.1 server.
     /// </summary>
-    public class HTTPServer : ACustomTCPServers,
+    public class HTTPServer : ATCPServers,
                               IBoomerangSender<String, DateTime, HTTPRequest, HTTPResponse>
     {
 
@@ -253,34 +254,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
-        /// <param name="ConnectionIdBuilder"></param>
-        /// <param name="ConnectionThreadsNameCreator">An optional delegate to set the name of the TCP connection threads.</param>
-        /// <param name="ConnectionThreadsPriority">The optional priority of the TCP connection threads.</param>
-        /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
-        /// <param name="ConnectionTimeoutSeconds">The TCP client timeout for all incoming client connections in seconds.</param>
-        /// <param name="Autostart">Start the HTTP server thread immediately.</param>
-        public HTTPServer(IPPort                       IPPort                          = null,
-                          String                       DefaultServerName               = __DefaultServerName,
-                          String                       ServerThreadName                = null,
-                          ThreadPriority               ServerThreadPriority            = ThreadPriority.AboveNormal,
-                          Boolean                      ServerThreadIsBackground        = true,
-                          Func<IPSocket, String>       ConnectionIdBuilder             = null,
-                          Func<TCPConnection, String>  ConnectionThreadsNameCreator    = null,
-                          ThreadPriority               ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
-                          Boolean                      ConnectionThreadsAreBackground  = true,
-                          TimeSpan?                    ConnectionTimeout               = null,
-                          IEnumerable<Assembly>        CallingAssemblies               = null,
-                          Boolean                      Autostart                       = false)
+        /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information.</param>
+        /// <param name="ConnectionThreadsNameBuilder">An optional delegate to set the name of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsPriorityBuilder">An optional delegate to set the priority of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsAreBackground">Whether the TCP connection threads are background threads or not (default: yes).</param>
+        /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
+        /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
+        /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
+        public HTTPServer(IPPort                            IPPort                            = null,
+                          String                            DefaultServerName                 = __DefaultServerName,
+                          IEnumerable<Assembly>             CallingAssemblies                 = null,
+                          String                            ServerThreadName                  = null,
+                          ThreadPriority                    ServerThreadPriority              = ThreadPriority.AboveNormal,
+                          Boolean                           ServerThreadIsBackground          = true,
+                          ConnectionIdBuilder               ConnectionIdBuilder               = null,
+                          ConnectionThreadsNameBuilder      ConnectionThreadsNameBuilder      = null,
+                          ConnectionThreadsPriorityBuilder  ConnectionThreadsPriorityBuilder  = null,
+                          Boolean                           ConnectionThreadsAreBackground    = true,
+                          TimeSpan?                         ConnectionTimeout                 = null,
+                          UInt32                            MaxClientConnections              = TCPServer.__DefaultMaxClientConnections,
+                          Boolean                           Autostart                         = false)
 
             : base(DefaultServerName,
                    ServerThreadName,
                    ServerThreadPriority,
                    ServerThreadIsBackground,
                    ConnectionIdBuilder,
-                   ConnectionThreadsNameCreator,
-                   ConnectionThreadsPriority,
+                   ConnectionThreadsNameBuilder,
+                   ConnectionThreadsPriorityBuilder,
                    ConnectionThreadsAreBackground,
-                   ConnectionTimeout)
+                   ConnectionTimeout,
+                   MaxClientConnections,
+                   false)
 
         {
 
@@ -322,14 +327,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        // Underlying TCP sockets...
+        // Manage the underlying TCP sockets...
 
         #region AttachTCPPort(Port)
 
         public HTTPServer AttachTCPPort(IPPort Port)
         {
 
-            AttachTCPPorts(Port);
+            this.AttachTCPPorts(Port);
 
             return this;
 
@@ -342,7 +347,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPServer AttachTCPPorts(params IPPort[] Ports)
         {
 
-            base._AttachTCPPorts(_TCPServer => _TCPServer.SendTo(_HTTPProcessor), Ports);
+            base.AttachTCPPorts(_TCPServer => _TCPServer.SendTo(_HTTPProcessor), Ports);
 
             return this;
 
@@ -355,7 +360,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPServer AttachTCPSocket(IPSocket Socket)
         {
 
-            AttachTCPSockets(Socket);
+            this.AttachTCPSockets(Socket);
 
             return this;
 
@@ -368,7 +373,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPServer AttachTCPSockets(params IPSocket[] Sockets)
         {
 
-            base._AttachTCPSockets(_TCPServer => _TCPServer.SendTo(_HTTPProcessor), Sockets);
+            base.AttachTCPSockets(_TCPServer => _TCPServer.SendTo(_HTTPProcessor), Sockets);
 
             return this;
 
@@ -395,12 +400,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPServer DetachTCPPorts(params IPPort[] Ports)
         {
 
-            base._DetachTCPPorts(_TCPServer => {
-                                     _TCPServer.OnNotification      -= _HTTPProcessor.ProcessArrow;
-                                     _TCPServer.OnExceptionOccured  -= _HTTPProcessor.ProcessExceptionOccured;
-                                     _TCPServer.OnCompleted         -= _HTTPProcessor.ProcessCompleted;
-                                 },
-                                 Ports);
+            base.DetachTCPPorts(_TCPServer => {
+                                    _TCPServer.OnNotification      -= _HTTPProcessor.ProcessArrow;
+                                    _TCPServer.OnExceptionOccured  -= _HTTPProcessor.ProcessExceptionOccured;
+                                    _TCPServer.OnCompleted         -= _HTTPProcessor.ProcessCompleted;
+                                },
+                                Ports);
 
             return this;
 

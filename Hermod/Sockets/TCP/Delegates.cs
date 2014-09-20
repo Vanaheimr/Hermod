@@ -30,25 +30,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
     /// <param name="Sender">The sender of this event.</param>
     /// <param name="Timestamp">The timestamp of the TCP socket attached event.</param>
     /// <param name="TCPSocket">The new TCP socket.</param>
-    public delegate void TCPSocketAttachedHandler(ACustomTCPServers TCPServer, DateTime Timestamp, IPSocket TCPSocket, String Message = null);
+    public delegate void TCPSocketAttachedHandler(ATCPServers TCPServer, DateTime Timestamp, IPSocket TCPSocket, String Message = null);
 
     /// <summary>
     /// New connection delegate.
     /// </summary>
     /// <param name="Sender">The sender of this event.</param>
     /// <param name="Timestamp">The timestamp of the new TCP connection event.</param>
+    /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
+    /// <param name="ConnectionId">The identification of this connection.</param>
     /// <param name="TCPConnection">The new TCP connection.</param>
-    public delegate void NewConnectionHandler(ITCPServer TCPServer, DateTime Timestamp, TCPConnection TCPConnection);
+    public delegate void NewConnectionHandler(TCPServer TCPServer, DateTime Timestamp, IPSocket RemoteSocket, String ConnectionId, TCPConnection TCPConnection);
 
     /// <summary>
     /// Connection closed delegate.
     /// </summary>
-    /// <param name="Sender">The sender of this event.</param>
+    /// <param name="TCPServer">The sender of this event.</param>
     /// <param name="Timestamp">The timestamp of the event.</param>
     /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
     /// <param name="ConnectionId">The identification of this connection.</param>
     /// <param name="ClosedBy">Wether the connection was closed by the client or the server.</param>
-    public delegate void ConnectionClosedHandler(ITCPServer TCPServer, DateTime Timestamp, IPSocket RemoteSocket, String ConnectionId, ConnectionClosedBy ClosedBy);
+    public delegate void ConnectionClosedHandler(TCPServer TCPServer, DateTime Timestamp, IPSocket RemoteSocket, String ConnectionId, ConnectionClosedBy ClosedBy);
 
     /// <summary>
     /// TCP socket detached delegate.
@@ -56,6 +58,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
     /// <param name="Sender">The sender of this event.</param>
     /// <param name="Timestamp">The timestamp of the TCP socket detached event.</param>
     /// <param name="TCPSocket">The TCP socket.</param>
-    public delegate void TCPSocketDetachedHandler(ACustomTCPServers TCPServer, DateTime Timestamp, IPSocket TCPSocket, String Message = null);
+    public delegate void TCPSocketDetachedHandler(ATCPServers TCPServer, DateTime Timestamp, IPSocket TCPSocket, String Message = null);
 
 }

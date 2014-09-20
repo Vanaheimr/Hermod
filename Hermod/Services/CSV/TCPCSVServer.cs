@@ -19,10 +19,11 @@
 
 using System;
 using System.Threading;
+using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
-using System.Collections.Generic;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 
 #endregion
 
@@ -34,7 +35,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
     /// comma-separated values with 0x00, 0x0a (\n) or
     /// 0x0d 0x0a (\r\n) end-of-line characters.
     /// </summary>
-    public class TCPCSVServer : ACustomTCPServer,
+    public class TCPCSVServer : TCPServer,
                                 IBoomerangSender<String, DateTime, String[], TCPResult<String>>
     {
 
@@ -93,24 +94,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
-        /// <param name="ConnectionIdBuilder"></param>
-        /// <param name="ConnectionThreadsNameCreator">An optional delegate to set the name of the TCP connection threads.</param>
-        /// <param name="ConnectionThreadsPriority">The optional priority of the TCP connection threads.</param>
-        /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
-        /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections.</param>
-        /// <param name="Autostart">Start the TCP server thread immediately.</param>
-        public TCPCSVServer(IPPort                       Port,
-                            String                       ServiceBanner                   = DefaultServiceBanner,
-                            IEnumerable<String>          Splitter                        = null,
-                            String                       ServerThreadName                = null,
-                            ThreadPriority               ServerThreadPriority            = ThreadPriority.AboveNormal,
-                            Boolean                      ServerThreadIsBackground        = true,
-                            Func<IPSocket, String>       ConnectionIdBuilder             = null,
-                            Func<TCPConnection, String>  ConnectionThreadsNameCreator    = null,
-                            ThreadPriority               ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
-                            Boolean                      ConnectionThreadsAreBackground  = true,
-                            TimeSpan?                    ConnectionTimeout               = null,
-                            Boolean                      Autostart                       = false)
+        /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information.</param>
+        /// <param name="ConnectionThreadsNameBuilder">An optional delegate to set the name of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsPriorityBuilder">An optional delegate to set the priority of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsAreBackground">Whether the TCP connection threads are background threads or not (default: yes).</param>
+        /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
+        /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
+        /// <param name="Autostart">Start the TCP server thread immediately (default: no).</param>
+        public TCPCSVServer(IPPort                            Port,
+                            String                            ServiceBanner                     = DefaultServiceBanner,
+                            IEnumerable<String>               Splitter                          = null,
+                            String                            ServerThreadName                  = null,
+                            ThreadPriority                    ServerThreadPriority              = ThreadPriority.AboveNormal,
+                            Boolean                           ServerThreadIsBackground          = true,
+                            ConnectionIdBuilder               ConnectionIdBuilder               = null,
+                            ConnectionThreadsNameBuilder      ConnectionThreadsNameBuilder      = null,
+                            ConnectionThreadsPriorityBuilder  ConnectionThreadsPriorityBuilder  = null,
+                            Boolean                           ConnectionThreadsAreBackground    = true,
+                            TimeSpan?                         ConnectionTimeout                 = null,
+                            UInt32                            MaxClientConnections              = __DefaultMaxClientConnections,
+                            Boolean                           Autostart                         = false)
 
             : this(IPv4Address.Any,
                    Port,
@@ -120,10 +123,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                    ServerThreadPriority,
                    ServerThreadIsBackground,
                    ConnectionIdBuilder,
-                   ConnectionThreadsNameCreator,
-                   ConnectionThreadsPriority,
+                   ConnectionThreadsNameBuilder,
+                   ConnectionThreadsPriorityBuilder,
                    ConnectionThreadsAreBackground,
                    ConnectionTimeout,
+                   MaxClientConnections,
                    Autostart)
 
         { }
@@ -142,25 +146,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
-        /// <param name="ConnectionIdBuilder"></param>
-        /// <param name="ConnectionThreadsNameCreator">An optional delegate to set the name of the TCP connection threads.</param>
-        /// <param name="ConnectionThreadsPriority">The optional priority of the TCP connection threads.</param>
-        /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
-        /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections.</param>
-        /// <param name="Autostart">Start the TCP server thread immediately.</param>
-        public TCPCSVServer(IIPAddress                   IIPAddress,
-                            IPPort                       Port,
-                            String                       ServiceBanner                   = DefaultServiceBanner,
-                            IEnumerable<String>          Splitter                        = null,
-                            String                       ServerThreadName                = null,
-                            ThreadPriority               ServerThreadPriority            = ThreadPriority.AboveNormal,
-                            Boolean                      ServerThreadIsBackground        = true,
-                            Func<IPSocket, String>       ConnectionIdBuilder             = null,
-                            Func<TCPConnection, String>  ConnectionThreadsNameCreator    = null,
-                            ThreadPriority               ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
-                            Boolean                      ConnectionThreadsAreBackground  = true,
-                            TimeSpan?                    ConnectionTimeout               = null,
-                            Boolean                      Autostart                       = false)
+        /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information.</param>
+        /// <param name="ConnectionThreadsNameBuilder">An optional delegate to set the name of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsPriorityBuilder">An optional delegate to set the priority of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsAreBackground">Whether the TCP connection threads are background threads or not (default: yes).</param>
+        /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
+        /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
+        /// <param name="Autostart">Start the TCP/CSV server thread immediately (default: no).</param>
+        public TCPCSVServer(IIPAddress                        IIPAddress,
+                            IPPort                            Port,
+                            String                            ServiceBanner                   = DefaultServiceBanner,
+                            IEnumerable<String>               Splitter                          = null,
+                            String                            ServerThreadName                  = null,
+                            ThreadPriority                    ServerThreadPriority              = ThreadPriority.AboveNormal,
+                            Boolean                           ServerThreadIsBackground          = true,
+                            ConnectionIdBuilder               ConnectionIdBuilder               = null,
+                            ConnectionThreadsNameBuilder      ConnectionThreadsNameBuilder      = null,
+                            ConnectionThreadsPriorityBuilder  ConnectionThreadsPriorityBuilder  = null,
+                            Boolean                           ConnectionThreadsAreBackground    = true,
+                            TimeSpan?                         ConnectionTimeout                 = null,
+                            UInt32                            MaxClientConnections              = __DefaultMaxClientConnections,
+                            Boolean                           Autostart                         = false)
 
             : base(IIPAddress,
                    Port,
@@ -169,19 +175,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                    ServerThreadPriority,
                    ServerThreadIsBackground,
                    ConnectionIdBuilder,
-                   ConnectionThreadsNameCreator,
-                   ConnectionThreadsPriority,
+                   ConnectionThreadsNameBuilder,
+                   ConnectionThreadsPriorityBuilder,
                    ConnectionThreadsAreBackground,
-                   ConnectionTimeout)
+                   ConnectionTimeout,
+                   MaxClientConnections,
+                   false)
 
         {
 
             this.ServiceBanner            = DefaultServiceBanner;
 
             this._TCPCSVProcessor         = new TCPCSVProcessor(SplitCharacters);
-            this._TCPServer.SendTo(_TCPCSVProcessor);
-            this._TCPServer.OnNewConnection    += SendNewConnection;
-            this._TCPServer.OnConnectionClosed += SendConnectionClosed;
+            this.SendTo(_TCPCSVProcessor);
+            this.OnNewConnection         += (TCPServer, Timestamp, RemoteSocket, ConnectionId, TCPConnection) => SendNewConnection   (Timestamp, RemoteSocket, ConnectionId, TCPConnection);
+            this.OnConnectionClosed      += (TCPServer, Timestamp, RemoteSocket, ConnectionId, ClosedBy)      => SendConnectionClosed(Timestamp, RemoteSocket, ConnectionId, ClosedBy);
 
             this._TCPCSVCommandProcessor  = new TCPCSVCommandProcessor();
             this._TCPCSVProcessor.ConnectTo(_TCPCSVCommandProcessor);
@@ -205,24 +213,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
-        /// <param name="ConnectionIdBuilder"></param>
-        /// <param name="ConnectionThreadsNameCreator">An optional delegate to set the name of the TCP connection threads.</param>
-        /// <param name="ConnectionThreadsPriority">The optional priority of the TCP connection threads.</param>
-        /// <param name="ConnectionThreadsAreBackground">Whether the TCP conncection threads are background threads or not.</param>
-        /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections.</param>
-        /// <param name="Autostart">Start the TCP server thread immediately.</param>
-        public TCPCSVServer(IPSocket                     IPSocket,
-                            String                       ServiceBanner                   = DefaultServiceBanner,
-                            IEnumerable<String>          Splitter                        = null,
-                            String                       ServerThreadName                = null,
-                            ThreadPriority               ServerThreadPriority            = ThreadPriority.AboveNormal,
-                            Boolean                      ServerThreadIsBackground        = true,
-                            Func<IPSocket, String>       ConnectionIdBuilder             = null,
-                            Func<TCPConnection, String>  ConnectionThreadsNameCreator    = null,
-                            ThreadPriority               ConnectionThreadsPriority       = ThreadPriority.AboveNormal,
-                            Boolean                      ConnectionThreadsAreBackground  = true,
-                            TimeSpan?                    ConnectionTimeout               = null,
-                            Boolean                      Autostart                       = false)
+        /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information.</param>
+        /// <param name="ConnectionThreadsNameBuilder">An optional delegate to set the name of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsPriorityBuilder">An optional delegate to set the priority of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsAreBackground">Whether the TCP connection threads are background threads or not (default: yes).</param>
+        /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
+        /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
+        /// <param name="Autostart">Start the TCP server thread immediately (default: no).</param>
+        public TCPCSVServer(IPSocket                          IPSocket,
+                            String                            ServiceBanner                     = DefaultServiceBanner,
+                            IEnumerable<String>               Splitter                          = null,
+                            String                            ServerThreadName                  = null,
+                            ThreadPriority                    ServerThreadPriority              = ThreadPriority.AboveNormal,
+                            Boolean                           ServerThreadIsBackground          = true,
+                            ConnectionIdBuilder               ConnectionIdBuilder               = null,
+                            ConnectionThreadsNameBuilder      ConnectionThreadsNameBuilder      = null,
+                            ConnectionThreadsPriorityBuilder  ConnectionThreadsPriorityBuilder  = null,
+                            Boolean                           ConnectionThreadsAreBackground    = true,
+                            TimeSpan?                         ConnectionTimeout                 = null,
+                            UInt32                            MaxClientConnections              = __DefaultMaxClientConnections,
+                            Boolean                           Autostart                         = false)
 
             : this(IPSocket.IPAddress,
                    IPSocket.Port,
@@ -232,10 +242,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                    ServerThreadPriority,
                    ServerThreadIsBackground,
                    ConnectionIdBuilder,
-                   ConnectionThreadsNameCreator,
-                   ConnectionThreadsPriority,
+                   ConnectionThreadsNameBuilder,
+                   ConnectionThreadsPriorityBuilder,
                    ConnectionThreadsAreBackground,
                    ConnectionTimeout,
+                   MaxClientConnections,
                    Autostart)
 
         { }

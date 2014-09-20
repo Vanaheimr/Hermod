@@ -249,7 +249,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             this._TCPServer           = TCPServer;
             this._ServerTimestamp     = DateTime.Now;
             this.TCPClient            = TCPClient;
-            this.ConnectionId         = TCPServer.ConnectionIdBuilder(base.RemoteSocket);
+            this.ConnectionId         = TCPServer.ConnectionIdBuilder(this, this._ServerTimestamp, base.LocalSocket, base.RemoteSocket);
             this._IsClosed             = false;
 
             this.Stream               = TCPClient.GetStream();
@@ -262,8 +262,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                         // Code for Mono C# compiler
 #else
 
-            Thread.CurrentThread.Name = (TCPServer.ConnectionThreadsNameCreator != null)
-                                             ? TCPServer.ConnectionThreadsNameCreator(this)
+            Thread.CurrentThread.Name = (TCPServer.ConnectionThreadsNameBuilder != null)
+                                             ? TCPServer.ConnectionThreadsNameBuilder(this, this._ServerTimestamp, base.LocalSocket, base.RemoteSocket)
                                              : "TCP connection from " +
                                                      base.RemoteSocket.IPAddress.ToString() +
                                                      ":" +
@@ -561,7 +561,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 TCPClient.Close();
 
             if (!_IsClosed)
-                _TCPServer.SendConnectionClosed(RemoteSocket, ConnectionId, ClosedBy);
+                _TCPServer.SendConnectionClosed(DateTime.Now, RemoteSocket, ConnectionId, ClosedBy);
 
             _IsClosed = true;
 
