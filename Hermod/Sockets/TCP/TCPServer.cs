@@ -19,7 +19,6 @@
 
 using System;
 using System.Linq;
-using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -63,18 +62,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public  static readonly  TimeSpan                                       __DefaultConnectionTimeout      = TimeSpan.FromSeconds(30);
 
 
-
-        // The internal thread
-        private readonly  Thread                                                _ListenerThread;
-
         // The TCP listener socket
-        private readonly  TcpListener                                           _TCPListener;
+        private        readonly  TcpListener                                    _TCPListener;
 
         // Store each connection, in order to be able to stop them activily
-        private readonly  ConcurrentDictionary<IPSocket, TCPConnection>         _SocketConnections;
+        private        readonly  ConcurrentDictionary<IPSocket, TCPConnection>  _TCPConnections;
 
-        private           CancellationTokenSource                               CancellationTokenSource;
-        private           CancellationToken                                     CancellationToken;
+
+        // The internal thread
+        private        readonly  Thread                                         _ListenerThread;
+        private                  CancellationTokenSource                        CancellationTokenSource;
+        private                  CancellationToken                              CancellationToken;
 
         #endregion
 
@@ -297,7 +295,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         {
             get
             {
-                return (UInt64) _SocketConnections.LongCount();
+                return (UInt64) _TCPConnections.LongCount();
             }
         }
 
@@ -349,13 +347,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         /// <summary>
         /// An event fired whenever a new TCP connection was opened.
+        /// If this event closes the TCP connection the OnNotification event will never be fired!
+        /// Therefore you can use this event for filtering connection initiation requests.
         /// </summary>
-        public event NotificationEventHandler<TCPConnection>    OnNotification;
+        public event NewConnectionHandler                       OnNewConnection;
 
         /// <summary>
         /// An event fired whenever a new TCP connection was opened.
         /// </summary>
-        public event NewConnectionHandler                       OnNewConnection;
+        public event NotificationEventHandler<TCPConnection>    OnNotification;
 
         /// <summary>
         /// An event fired whenever an exception occured.
@@ -484,6 +484,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             #region TCP Connections
 
+            this._TCPConnections                    = new ConcurrentDictionary<IPSocket, TCPConnection>();
+
+
             this.ConnectionIdBuilder                = (ConnectionIdBuilder              != null)
                                                           ? ConnectionIdBuilder
                                                           : (Sender, Timestamp, LocalSocket, RemoteIPSocket) => "TCP:" + RemoteIPSocket.IPAddress + ":" + RemoteIPSocket.Port;
@@ -506,25 +509,137 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             #endregion
 
-
-//            this._SocketConnections         = new ConcurrentDictionary<IPSocket, TCPConnection>();
+            #region TCP Listener Thread
 
             this.CancellationTokenSource            = new CancellationTokenSource();
             this.CancellationToken                  = CancellationTokenSource.Token;
-
-            #region Create TCP Listener Thread
 
             _ListenerThread = new Thread(() => {
 
 #if __MonoCS__
                 // Code for Mono C# compiler
 #else
-                Thread.CurrentThread.Name          = this.ServerThreadName;
-                Thread.CurrentThread.Priority      = this.ServerThreadPriority;
-                Thread.CurrentThread.IsBackground  = this.ServerThreadIsBackground;
+                Thread.CurrentThread.Name           = this.ServerThreadName;
+                Thread.CurrentThread.Priority       = this.ServerThreadPriority;
+                Thread.CurrentThread.IsBackground   = this.ServerThreadIsBackground;
 #endif
 
-                Listen();
+                #region SetSocketOptions
+
+                // IOControlCode.*
+
+                // fd.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, tcpKeepalive);
+
+                // bytes.PutInteger(endian, tcpKeepalive,      0);
+                // bytes.PutInteger(endian, tcpKeepaliveIdle,  4);
+                // bytes.PutInteger(endian, tcpKeepaliveIntvl, 8);
+                // 
+                // fd.IOControl(IOControlCode.KeepAliveValues, (byte[])bytes, null);
+
+                #endregion
+
+                try
+                {
+
+                    _IsRunning = true;
+
+                    while (!_StopRequested)
+                    {
+
+                        // Wait for a new/pending client connection
+                        while (!_StopRequested && !_TCPListener.Pending())
+                            Thread.Sleep(5);
+
+                        // Break when a server stop was requested
+                        if (_StopRequested)
+                            break;
+
+                        // Processing the pending client connection within its own task
+                        var NewTCPClient = _TCPListener.AcceptTcpClient();
+
+                        // Store the new connection
+                        //_SocketConnections.AddOrUpdate(_TCPConnection.Value.RemoteSocket,
+                        //                               _TCPConnection.Value,
+                        //                               (RemoteEndPoint, TCPConnection) => TCPConnection);
+
+                        Task.Factory.StartNew(Tuple => {
+
+                            try
+                            {
+
+                                var _Tuple           = Tuple as Tuple<TCPServer, TcpClient>;
+
+                                var NewTCPConnection = new ThreadLocal<TCPConnection>(
+                                                           () => new TCPConnection(_Tuple.Item1, _Tuple.Item2)
+                                                       );
+
+                                #region Copy ExceptionOccured event handlers
+
+                                //foreach (var ExceptionOccuredHandler in MyEventStorage)
+                                //    _TCPConnection.Value.OnExceptionOccured += ExceptionOccuredHandler;
+
+                                #endregion
+
+                                #region OnNewConnection
+
+                                // If this event closes the TCP connection the OnNotification event will never be fired!
+                                // Therefore you can use this event for filtering connection initiation requests.
+                                var OnNewConnectionLocal = OnNewConnection;
+                                if (OnNewConnectionLocal != null)
+                                    OnNewConnectionLocal(NewTCPConnection.Value.TCPServer,
+                                                         NewTCPConnection.Value.ServerTimestamp,
+                                                         NewTCPConnection.Value.RemoteSocket,
+                                                         NewTCPConnection.Value.ConnectionId,
+                                                         NewTCPConnection.Value);
+
+                                if (!NewTCPConnection.Value.IsClosed)
+                                {
+                                    var OnNotificationLocal = OnNotification;
+                                    if (OnNotificationLocal != null)
+                                        OnNotificationLocal(NewTCPConnection.Value);
+                                }
+
+                                #endregion
+
+                            }
+                            catch (Exception Exception)
+                            {
+                                var OnExceptionLocal = OnExceptionOccured;
+                                if (OnExceptionLocal != null)
+                                    OnExceptionLocal(this, DateTime.Now, Exception);
+                            }
+
+                        }, new Tuple<TCPServer, TcpClient>(this, NewTCPClient));
+
+                    }
+
+                    #region Shutdown
+
+                    // Request all client connections to finish!
+                    foreach (var _SocketConnection in _TCPConnections)
+                        _SocketConnection.Value.StopRequested = true;
+
+                    // After stopping the TCPListener wait for
+                    // all client connections to finish!
+                    while (_TCPConnections.Count > 0)
+                        Thread.Sleep(5);
+
+                    #endregion
+
+                }
+
+                #region Exception handling
+
+                catch (Exception Exception)
+                {
+                    var OnExceptionLocal = OnExceptionOccured;
+                    if (OnExceptionLocal != null)
+                        OnExceptionLocal(this, DateTime.Now, Exception);
+                }
+
+                #endregion
+
+                _IsRunning = false;
 
             });
 
@@ -588,128 +703,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         #endregion
 
 
-        #region (private, threaded) Listen()
-
-        /// <summary>
-        /// The thread which will wait for client connections and accepts them
-        /// </summary>
-        private void Listen()
-        {
-
-            // IOControlCode.*
-
-            // fd.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, tcpKeepalive);
-
-            // bytes.PutInteger(endian, tcpKeepalive,      0);
-            // bytes.PutInteger(endian, tcpKeepaliveIdle,  4);
-            // bytes.PutInteger(endian, tcpKeepaliveIntvl, 8);
-            // 
-            // fd.IOControl(IOControlCode.KeepAliveValues, (byte[])bytes, null);
-
-            try
-            {
-
-                _IsRunning = true;
-
-                while (!_StopRequested)
-                {
-
-                    // Wait for a new/pending client connection
-                    while (!_StopRequested && !_TCPListener.Pending())
-                        Thread.Sleep(5);
-
-                    // Break when a server stop was requested
-                    if (_StopRequested)
-                        break;
-
-                    // Processing the pending client connection within its own task
-                    var NewTCPClient = _TCPListener.AcceptTcpClient();
-
-                    // Store the new connection
-                    //_SocketConnections.AddOrUpdate(_TCPConnection.Value.RemoteSocket,
-                    //                               _TCPConnection.Value,
-                    //                               (RemoteEndPoint, TCPConnection) => TCPConnection);
-
-                    Task.Factory.StartNew(Tuple => {
-
-                        try
-                        {
-
-                            var _Tuple           = Tuple as Tuple<TCPServer, TcpClient>;
-
-                            var NewTCPConnection = new ThreadLocal<TCPConnection>(
-                                                       () => new TCPConnection(_Tuple.Item1, _Tuple.Item2)
-                                                   );
-
-                            #region Copy ExceptionOccured event handlers
-
-                            //foreach (var ExceptionOccuredHandler in MyEventStorage)
-                            //    _TCPConnection.Value.OnExceptionOccured += ExceptionOccuredHandler;
-
-                            #endregion
-
-                            var OnNewConnectionLocal = OnNewConnection;
-                            if (OnNewConnectionLocal != null)
-                                OnNewConnectionLocal(NewTCPConnection.Value.TCPServer,
-                                                     NewTCPConnection.Value.ServerTimestamp,
-                                                     NewTCPConnection.Value.RemoteSocket,
-                                                     NewTCPConnection.Value.ConnectionId,
-                                                     NewTCPConnection.Value);
-
-                            if (!NewTCPConnection.Value.IsClosed)
-                            {
-                                var OnNotificationLocal = OnNotification;
-                                if (OnNotificationLocal != null)
-                                    OnNotificationLocal(NewTCPConnection.Value);
-                            }
-
-                        }
-                        catch (Exception Exception)
-                        {
-                            var OnExceptionLocal = OnExceptionOccured;
-                            if (OnExceptionLocal != null)
-                                OnExceptionLocal(this, DateTime.Now, Exception);
-                        }
-
-                    }, new Tuple<TCPServer, TcpClient>(this, NewTCPClient));
-
-                }
-
-                #region Shutdown
-
-                // Request all client connections to finish!
-                foreach (var _SocketConnection in _SocketConnections)
-                    _SocketConnection.Value.StopRequested = true;
-
-                // After stopping the TCPListener wait for
-                // all client connections to finish!
-                while (_SocketConnections.Count > 0)
-                    Thread.Sleep(5);
-
-                #endregion
-
-            }
-
-            #region Exception handling
-
-            catch (Exception Exception)
-            {
-                var OnExceptionLocal = OnExceptionOccured;
-                if (OnExceptionLocal != null)
-                    OnExceptionLocal(this, DateTime.Now, Exception);
-            }
-
-            #endregion
-
-            _IsRunning = false;
-
-        }
-
-        #endregion
-
-
-
-        #region (protected internal) SendNewConnection(TCPServer, ServerTimestamp, RemoteSocket, ConnectionId, TCPConnection)
+        #region (protected internal) SendNewConnection(ServerTimestamp, RemoteSocket, ConnectionId, TCPConnection)
 
         protected internal void SendNewConnection(DateTime       ServerTimestamp,
                                                   IPSocket       RemoteSocket,
@@ -725,7 +719,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
-        #region (protected internal) SendConnectionClosed(TCPServer, ServerTimestamp, RemoteSocket, ConnectionId, ClosedBy)
+        #region (protected internal) SendConnectionClosed(ServerTimestamp, RemoteSocket, ConnectionId, ClosedBy)
 
         protected internal void SendConnectionClosed(DateTime            ServerTimestamp,
                                                      IPSocket            RemoteSocket,
@@ -856,7 +850,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             _StopRequested = true;
 
-            while (_SocketConnections.Count > 0)
+            while (_TCPConnections.Count > 0)
                 Thread.Sleep(10);
 
             if (_TCPListener != null)
