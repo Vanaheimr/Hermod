@@ -200,21 +200,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region RegisterResourcesFolder(this HTTPServer, URITemplate, ResourcePath)
+        #region RegisterResourcesFolder(this HTTPServer, URITemplate, ResourcePath, ResourceAssembly = null, DefaultFilename = "index.html")
 
         /// <summary>
         /// Returns internal resources embedded within the given assembly.
         /// </summary>
         /// <param name="HTTPServer">A HTTP server.</param>
         /// <param name="URITemplate">An URI template.</param>
-        /// <param name="ResourceAssembly">The assembly where the resources are located.</param>
         /// <param name="ResourcePath">The path to the file within the assembly.</param>
+        /// <param name="ResourceAssembly">OPtionally the assembly where the resources are located (default: the calling assembly).</param>
         public static void RegisterResourcesFolder(this HTTPServer  HTTPServer,
                                                    String           URITemplate,
-                                                   Assembly         ResourceAssembly,
                                                    String           ResourcePath,
-                                                   String           DefaultFilename = "index.html")
+                                                   Assembly         ResourceAssembly  = null,
+                                                   String           DefaultFilename   = "index.html")
         {
+
+            if (ResourceAssembly == null)
+                ResourceAssembly = Assembly.GetCallingAssembly();
 
             HTTPServer.AddMethodCallback(HTTPMethod.GET,
                                          URITemplate + (URITemplate.EndsWith("/") ? "{ResourceName}" : "/{ResourceName}"),

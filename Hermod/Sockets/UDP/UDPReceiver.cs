@@ -806,6 +806,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
         #endregion
 
 
+        #region ToString()
+
+        public override String ToString()
+        {
+
+            var _Type              = this.GetType();
+            var _GenericArguments  = _Type.GetGenericArguments();
+            var _TypeName          = (_GenericArguments.Length > 0) ? _Type.Name.Remove(_Type.Name.Length - 2) : _Type.Name;
+            var _GenericType       = (_GenericArguments.Length > 0) ? "<" + _GenericArguments[0].Name + ">"    : String.Empty;
+            var _Running           = (IsRunning)                    ? " (running)"                             : String.Empty;
+
+            return String.Concat(ServiceBanner, " [", _TypeName, _GenericType, "] on ", _IPSocket.ToString(), _Running);
+
+        }
+
+        #endregion
+
         #region IDisposable Members
 
         public void Dispose()
@@ -815,23 +832,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
 
             //if (_TCPListener != null)
             //    _TCPListener.Stop();
-
-        }
-
-        #endregion
-
-        #region ToString()
-
-        public override String ToString()
-        {
-
-            var _TypeName    = this.GetType().Name;
-            var _GenericType = this.GetType().GetGenericArguments()[0].Name;
-
-            var _Running = "";
-            if (IsRunning) _Running = " (running)";
-
-            return String.Concat(_TypeName.Remove(_TypeName.Length - 2), "<", _GenericType, "> ", _IPAddress.ToString(), ":", _Port, _Running);
 
         }
 

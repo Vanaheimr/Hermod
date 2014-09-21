@@ -36,7 +36,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
     /// A multi-threaded Styx arrow sender that listens on a TCP
     /// socket and notifies about incoming TCP connections.
     /// </summary>
-    public class TCPServer : IArrowSender<TCPConnection>
+    public class TCPServer : IArrowSender<TCPConnection>,
+                             IServer
     {
 
         #region Data
@@ -804,8 +805,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             while (!_IsRunning)
                 Thread.Sleep(10);
 
-            if (OnStarted != null)
-                OnStarted(this, DateTime.Now);
+            var OnStartedLocal = OnStarted;
+            if (OnStartedLocal != null)
+                OnStartedLocal(this, DateTime.Now);
 
         }
 
@@ -883,10 +885,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public override String ToString()
         {
 
-            var _TypeName    = this.GetType().Name;
-            var _GenericType = this.GetType().GetGenericArguments()[0].Name;
+            var _Type              = this.GetType();
+            var _GenericArguments  = _Type.GetGenericArguments();
+            var _TypeName          = (_GenericArguments.Length > 0) ? _Type.Name.Remove(_Type.Name.Length - 2) : _Type.Name;
+            var _GenericType       = (_GenericArguments.Length > 0) ? "<" + _GenericArguments[0].Name + ">"    : String.Empty;
+            var _Running           = (IsRunning)                    ? " (running)"                             : String.Empty;
 
-            return String.Concat(_TypeName.Remove(_TypeName.Length - 2), "<", _GenericType, "> ", IPSocket.ToString() + ((IsRunning) ? " (running)" : ""));
+            return String.Concat(ServiceBanner, " [", _TypeName, _GenericType, "] on ", _IPSocket.ToString(), _Running);
 
         }
 

@@ -41,7 +41,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
 
         #region Data
 
-        private const    String                  DefaultServiceBanner = "Vanaheimr Hermod TCP/CSV Service v0.9";
+        /// <summary>
+        /// The default service banner.
+        /// </summary>
+        public new const String                  __DefaultServiceBanner  = "Vanaheimr Hermod TCP/CSV Service v0.9";
 
         private readonly TCPCSVProcessor         _TCPCSVProcessor;
         private readonly TCPCSVCommandProcessor  _TCPCSVCommandProcessor;
@@ -49,12 +52,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         #endregion
 
         #region Properties
-
-        #region ServiceBanner
-
-        public String ServiceBanner { get; set; }
-
-        #endregion
 
         #region SplitCharacters
 
@@ -102,7 +99,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="Autostart">Start the TCP server thread immediately (default: no).</param>
         public TCPCSVServer(IPPort                            Port,
-                            String                            ServiceBanner                     = DefaultServiceBanner,
+                            String                            ServiceBanner                     = __DefaultServiceBanner,
                             IEnumerable<String>               Splitter                          = null,
                             String                            ServerThreadName                  = null,
                             ThreadPriority                    ServerThreadPriority              = ThreadPriority.AboveNormal,
@@ -155,7 +152,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="Autostart">Start the TCP/CSV server thread immediately (default: no).</param>
         public TCPCSVServer(IIPAddress                        IIPAddress,
                             IPPort                            Port,
-                            String                            ServiceBanner                   = DefaultServiceBanner,
+                            String                            ServiceBanner                   = __DefaultServiceBanner,
                             IEnumerable<String>               Splitter                          = null,
                             String                            ServerThreadName                  = null,
                             ThreadPriority                    ServerThreadPriority              = ThreadPriority.AboveNormal,
@@ -184,7 +181,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
 
         {
 
-            this.ServiceBanner            = DefaultServiceBanner;
+            this.ServiceBanner            = ServiceBanner;
 
             this._TCPCSVProcessor         = new TCPCSVProcessor(SplitCharacters);
             this.SendTo(_TCPCSVProcessor);
@@ -221,7 +218,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="Autostart">Start the TCP server thread immediately (default: no).</param>
         public TCPCSVServer(IPSocket                          IPSocket,
-                            String                            ServiceBanner                     = DefaultServiceBanner,
+                            String                            ServiceBanner                     = __DefaultServiceBanner,
                             IEnumerable<String>               Splitter                          = null,
                             String                            ServerThreadName                  = null,
                             ThreadPriority                    ServerThreadPriority              = ThreadPriority.AboveNormal,
@@ -275,6 +272,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
 
         #endregion
 
+
+        //#region ToString()
+
+        ///// <summary>
+        ///// Return a string represtentation of this object.
+        ///// </summary>
+        //public override String ToString()
+        //{
+        //    return String.Concat(ServiceBanner, " on ", IPSocket.ToString() + ((IsRunning) ? " (running)" : ""));
+        //}
+
+        //#endregion
 
     }
 
