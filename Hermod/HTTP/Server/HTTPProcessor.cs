@@ -325,6 +325,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         else if (_HTTPResponse.ContentStream != null)
                                             TCPConnection.WriteToResponseStream(_HTTPResponse.ContentStream);
 
+                                        if (_HTTPResponse.Connection.ToLower().Contains("close"))
+                                            ServerClose = true;
+
                                     }
 
                                     #endregion
@@ -335,11 +338,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     {
 
                                         var AccessLogLocal = AccessLog;
-
                                         if (AccessLogLocal != null)
-                                        {
                                             AccessLogLocal(this, RequestTimestamp, RequestHeader, _HTTPResponse);
-                                        }
 
                                     }
 

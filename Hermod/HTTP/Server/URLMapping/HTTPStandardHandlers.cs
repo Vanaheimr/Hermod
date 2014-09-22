@@ -263,8 +263,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      HTTPStatusCode  = HTTPStatusCode.OK,
                                                      ContentType     = ResponseContentType,
                                                      ContentStream   = FileStream,
-                                                     CacheControl    = "no-cache",
-                                                     Connection      = "close",
+                                                     CacheControl    = "public, max-age=300",
+                                                     //Expires         = "Mon, 25 Jun 2015 21:31:12 GMT",
+                                                     Connection      = "Keep-Alive",
                                                  };
 
                                                  #endregion
