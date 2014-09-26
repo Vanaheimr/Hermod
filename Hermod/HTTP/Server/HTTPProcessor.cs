@@ -423,7 +423,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
                 TCPConnection.Close((ClientClose) ? ConnectionClosedBy.Client : ConnectionClosedBy.Server);
             }
-            catch (Exception e)
+            catch (Exception)
             { }
 
             #endregion
