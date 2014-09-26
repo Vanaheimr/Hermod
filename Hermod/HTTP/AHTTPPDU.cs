@@ -416,7 +416,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (HeaderFields.TryGetValue(FieldName, out Value))
                 return Value.ToString();
 
-            return null;
+            return String.Empty;
 
         }
 
@@ -456,7 +456,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (HeaderFields.TryGetValue(HeaderField.Name, out Value))
                 return Value.ToString();
 
-            return null;
+            return String.Empty;
 
         }
 

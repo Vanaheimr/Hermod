@@ -32,6 +32,7 @@ using org.GraphDefined.Vanaheimr.Styx.Arrows;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Services.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
+using System.Diagnostics;
 
 #endregion
 
@@ -425,22 +426,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Check if any HTTP delegate matches...
 
-            var Handler = GetHandler(HTTPRequest);
+            HTTPDelegate Handler = null;
 
-            if (Handler != null)
-                return Handler(HTTPRequest);
+            try
+            {
+                Handler = GetHandler(HTTPRequest);
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(e);
+            }
+
+            try
+            {
+                if (Handler != null)
+                    return Handler(HTTPRequest);
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(e);
+            }
+
 
             #endregion
 
             #region ...or call default delegate!
 
-            var OnNotificationLocal = OnNotification;
-            if (OnNotificationLocal != null)
-                return OnNotificationLocal(ConnectionId,
-                                           Timestamp,
-                                           HTTPRequest);
+            try
+            {
+
+                var OnNotificationLocal = OnNotification;
+                if (OnNotificationLocal != null)
+                    return OnNotificationLocal(ConnectionId,
+                                               Timestamp,
+                                               HTTPRequest);
+
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(e);
+            }
 
             #endregion
+
 
             #region ...or fail!
 
