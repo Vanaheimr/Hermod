@@ -25,6 +25,7 @@ using System.Text;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using System.Net.Sockets;
+using System.Threading;
 
 #endregion
 
@@ -644,11 +645,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
 
-
+        //ToDo: Fix me for slow clients!
         public Boolean TryReadHTTPBody()
         {
 
             var Buffer  = new Byte[(Int32) ContentLength.Value];
+            Thread.Sleep(500);
             var Read    = _HTTPBodyStream.Read(Buffer, 0, (Int32) ContentLength.Value);
 
             if (Read == (Int32) ContentLength.Value)
