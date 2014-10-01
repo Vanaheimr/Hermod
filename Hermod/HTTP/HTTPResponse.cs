@@ -306,6 +306,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
+
+        public override String ToString()
+        {
+            return HTTPStatusCode.ToString();
+        }
+
     }
 
 }
