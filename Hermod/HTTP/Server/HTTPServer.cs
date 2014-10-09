@@ -97,6 +97,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region TryParseJSONRequestBody()
+
+        public static Boolean TryParseJSONRequestBody(this HTTPRequest Request, out JObject JSON, out HTTPResponse HTTPResp, String Context = null)
+        {
+
+            var RequestBodyString = Request.GetRequestBodyAsUTF8String(HTTPContentType.JSON_UTF8);
+            if (RequestBodyString.HasErrors)
+            {
+                JSON      = null;
+                HTTPResp  = RequestBodyString.Error;
+                return false;
+            }
+
+            try
+            {
+                JSON = JObject.Parse(RequestBodyString.Data);
+            }
+            catch (Exception)
+            {
+
+                JSON      = null;
+
+                HTTPResp  = new HTTPResponseBuilder() {
+                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                    ContentType     = HTTPContentType.JSON_UTF8,
+                    Content         = new JObject(new JProperty("@context",    Context),
+                                                  new JProperty("description", "Invalid JSON request body!")).ToString().ToUTF8Bytes()
+                };
+
+                return false;
+
+            }
+
+            HTTPResp = null;
+
+            return true;
+
+        }
+
+        #endregion
+
         #region ParseXMLRequestBody()
 
         public static HTTPResult<XDocument> ParseXMLRequestBody(this HTTPRequest Request)
