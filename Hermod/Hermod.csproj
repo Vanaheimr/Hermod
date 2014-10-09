@@ -76,6 +76,7 @@
     <Compile Include="HTTP\Request\HTTPAuthenticationTypes.cs" />
     <Compile Include="HTTP\Request\HTTPBasicAuthentication.cs" />
     <Compile Include="HTTP\Request\HTTPMethod.cs" />
+    <Compile Include="HTTP\Request\Parsy.cs" />
     <Compile Include="HTTP\Request\QueryString.cs" />
     <Compile Include="HTTP\Response\KeepAliveType.cs" />
     <Compile Include="HTTP\Server\AHTTPBaseService.cs" />
