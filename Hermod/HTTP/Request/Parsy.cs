@@ -170,20 +170,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 Log.Timestamp("Bad request: Missing \"" + ParameterName + "\" JSON property!");
 
-                Value = DefaultValue;
-                HTTPResp = CreateBadRequest(Context, ParameterName);
+                Value     = DefaultValue;
+                HTTPResp  = CreateBadRequest(Context, ParameterName);
 
                 return false;
 
             }
 
-            if (!DateTime.TryParse(JSONToken.Value<String>(), out Value))
+            try
+            {
+                Value = JSONToken.Value<DateTime>();
+            }
+            catch (Exception)
             {
 
                 Log.Timestamp("Bad request: Invalid \"" + ParameterName + "\" property value!");
 
-                Value = DefaultValue;
-                HTTPResp = CreateBadRequest(Context, ParameterName, JSONToken.Value<String>());
+                Value     = DefaultValue;
+                HTTPResp  = CreateBadRequest(Context, ParameterName, JSONToken.Value<String>());
 
                 return false;
 
