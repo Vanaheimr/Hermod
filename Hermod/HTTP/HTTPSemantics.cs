@@ -27,8 +27,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// HTTP tokens and well-known.
     /// </summary>
-    public static class Tokens
+    public static class HTTPSemantics
     {
+
+        /// <summary>
+        /// Logfile...
+        /// </summary>
+        public const String LogEvents = "/LogEvents";
+
+        // ---------------------------------------------------------------------------------
 
         /// <summary>
         /// A token for a 'callback' parameter within the HTTP query string.

@@ -104,7 +104,7 @@
     <Compile Include="HTTP\Server\URLMapping\HTTPMethodNode.cs" />
     <Compile Include="HTTP\Server\URLMapping\URIMapping.cs" />
     <Compile Include="HTTP\Server\URLMapping\URINode.cs" />
-    <Compile Include="HTTP\Tokens.cs" />
+    <Compile Include="HTTP\HTTPSemantics.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Datastructures\IIPAddress.cs" />
     <Compile Include="Datastructures\IPv6Address.cs" />
