@@ -265,6 +265,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      ContentStream   = FileStream,
                                                      CacheControl    = "public, max-age=300",
                                                      //Expires         = "Mon, 25 Jun 2015 21:31:12 GMT",
+                                                     KeepAlive       = new KeepAliveType(TimeSpan.FromMinutes(5), 500),
                                                      Connection      = "Keep-Alive",
                                                  };
 
