@@ -346,6 +346,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                     #endregion
 
+                                    #region if HTTP Status Code == 4xx | 5xx => Call ErrorLog delegate
+
+                                    if (_HTTPResponse != null &&
+                                        _HTTPResponse.HTTPStatusCode.Code >  400 &&
+                                        _HTTPResponse.HTTPStatusCode.Code <= 599)
+                                    {
+
+                                        var ErrorLogLocal = ErrorLog;
+                                        if (ErrorLogLocal != null)
+                                            ErrorLogLocal(this, RequestTimestamp, RequestHeader, _HTTPResponse);
+
+                                    }
+
+                                    #endregion
+
                                 }
 
                                 MemoryStream.SetLength(0);
