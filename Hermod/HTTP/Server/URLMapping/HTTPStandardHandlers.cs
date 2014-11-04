@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2011-2014 Achim 'ahzf' Friedland <achim@graphdefined.com>
- * This file is part of Hermod <http://www.github.com/Vanaheimr/Hermod>
+ * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

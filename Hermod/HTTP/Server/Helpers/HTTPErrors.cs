@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2011-2013 Achim 'ahzf' Friedland <achim@ahzf.de>
- * This file is part of Hermod <http://www.github.com/Vanaheimr/Hermod>
+ * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

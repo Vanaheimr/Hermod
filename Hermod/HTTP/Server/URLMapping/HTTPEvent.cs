@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2010-2014, GraphDefined GmbH
  * Author: Achim Friedland <achim.friedland@graphdefined.com>
- * This file is part of Hermod <http://www.github.com/Vanaheimr/Hermod>
+ * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
