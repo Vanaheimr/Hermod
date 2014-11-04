@@ -20,6 +20,9 @@
 using System;
 using System.IO;
 using System.Text;
+using System.Linq;
+
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -33,6 +36,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     {
 
         #region Data
+
+        private static readonly  Char[] Splitter        = new Char[1] { ':' };
 
         private readonly Byte[] IPAddressArray;
 
@@ -143,7 +148,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region Parse(IPv6AddressString)
+        #region Parse(IPv4AddressString)
 
         /// <summary>
         /// Parsed the given string representation into a new IPv6Address.
@@ -151,7 +156,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IPv6AddressString">An IPv6Address string representation.</param>
         public static IPv6Address Parse(String IPv6AddressString)
         {
-            throw new ArgumentException("The given string '" + IPv6AddressString + "' is not a valid IPv6Address!");
+
+            IPv6Address _IPv6Address;
+
+            if (IPv6Address.TryParse(IPv6AddressString, out _IPv6Address))
+                return _IPv6Address;
+
+            throw new FormatException("The given string '" + IPv6AddressString + "' is not a valid IPv6Address!");
+
         }
 
         #endregion
@@ -162,9 +174,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Parsed the given string representation into a new IPv6Address.
         /// </summary>
         /// <param name="IPv6AddressString">An IPv6Address string representation.</param>
+        /// <param name="IPv6Address">The parsed IPv6 address.</param>
         public static Boolean TryParse(String IPv6AddressString, out IPv6Address IPv6Address)
         {
-            throw new ArgumentException("The given string '" + IPv6AddressString + "' is not a valid IPv6Address!");
+
+            // 2001:0db8:85a3:08d3:1319:8a2e:0370:7344
+            IPv6Address = null;
+
+            if (IPv6AddressString.IndexOf(':') < 0)
+                return false;
+
+            IPv6AddressString = IPv6AddressString.Replace("::", Enumerable.Repeat(":0", 7 - IPv6AddressString.Where(c => c == ':').Count()).Aggregate((a, b) => a + b));
+
+            var Elements = IPv6AddressString.Split(Splitter, 8, StringSplitOptions.None).Select(el => new String(Enumerable.Repeat('0', 4 - el.Length).ToArray()) + el).ToArray();
+
+            if (Elements.Length != 8)
+                return false;
+
+            var _IPv6AddressArray = new Byte[_Length];
+
+            if (!Byte.TryParse(Elements[0].Substring(0, 2), out _IPv6AddressArray[0]))
+                return false;
+
+            if (!Byte.TryParse(Elements[0].Substring(2, 2), out _IPv6AddressArray[1]))
+                return false;
+
+            if (!Byte.TryParse(Elements[1].Substring(0, 2), out _IPv6AddressArray[2]))
+                return false;
+
+            if (!Byte.TryParse(Elements[1].Substring(2, 2), out _IPv6AddressArray[3]))
+                return false;
+
+            if (!Byte.TryParse(Elements[2].Substring(0, 2), out _IPv6AddressArray[4]))
+                return false;
+
+            if (!Byte.TryParse(Elements[2].Substring(2, 2), out _IPv6AddressArray[5]))
+                return false;
+
+            if (!Byte.TryParse(Elements[3].Substring(0, 2), out _IPv6AddressArray[6]))
+                return false;
+
+            if (!Byte.TryParse(Elements[3].Substring(2, 2), out _IPv6AddressArray[7]))
+                return false;
+
+            IPv6Address = new IPv6Address(_IPv6AddressArray);
+
+            return true;
+
         }
 
         #endregion

@@ -489,6 +489,80 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Non-standard request header fields
+
+        #region X-Real-IP
+
+        /// <summary>
+        /// Intermediary HTTP proxies might include this field to
+        /// indicate the real IP address of the HTTP client.
+        /// </summary>
+        /// <example>X-Real-IP: 95.91.73.30</example>
+        public IIPAddress X_Real_IP
+        {
+
+            get
+            {
+
+                Object Value;
+
+                if (!TryGetHeaderField(HTTPHeaderField.X_Real_IP, out Value))
+                    return null;
+
+                IPv4Address IPv4;
+                IPv6Address IPv6;
+
+                if      (IPv4Address.TryParse((String) Value, out IPv4))
+                    return IPv4;
+
+                else if (IPv6Address.TryParse((String) Value, out IPv6))
+                    return IPv6;
+
+                else return null;
+
+            }
+
+        }
+
+        #endregion
+
+        #region X-Forwarded-For
+
+        /// <summary>
+        /// Intermediary HTTP proxies might include this field to
+        /// indicate the real IP address of the HTTP client.
+        /// </summary>
+        /// <example>X-Forwarded-For: 95.91.73.30</example>
+        public IIPAddress X_Forwarded_For
+        {
+
+            get
+            {
+
+                Object Value;
+
+                if (!TryGetHeaderField(HTTPHeaderField.X_Forwarded_For, out Value))
+                    return null;
+
+                IPv4Address IPv4;
+                IPv6Address IPv6;
+
+                if      (IPv4Address.TryParse((String) Value, out IPv4))
+                    return IPv4;
+
+                else if (IPv6Address.TryParse((String) Value, out IPv6))
+                    return IPv6;
+
+                else return null;
+
+            }
+
+        }
+
+        #endregion
+
+        #endregion
+
         #region HTTP Body
 
         private readonly NetworkStream _HTTPBodyStream;

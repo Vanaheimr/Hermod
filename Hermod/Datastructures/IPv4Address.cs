@@ -36,7 +36,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Data
 
-        private readonly Byte[] IPAddressArray;
+        private static readonly  Char[] Splitter        = new Char[1] { '.' };
+
+        private readonly         Byte[] IPAddressArray;
 
         #endregion
 
@@ -98,12 +100,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public IPv4Address(UInt32 UInt32)
         {
 
-            IPAddressArray = new Byte[4] {
+            IPAddressArray = new Byte[_Length] {
                                      (Byte) ( UInt32        & 0xFF),
                                      (Byte) ((UInt32 >>  8) & 0xFF),
                                      (Byte) ((UInt32 >> 16) & 0xFF),
                                      (Byte) ( UInt32 >> 24)
                                  };
+
+        }
+
+        #endregion
+
+        #region IPv4Address(Byte1, Byte2, Byte3, Byte4)
+
+        /// <summary>
+        /// Generates a new IPv4Address based on the given bytes.
+        /// </summary>
+        public IPv4Address(Byte Byte1, Byte Byte2, Byte Byte3, Byte Byte4)
+        {
+
+            IPAddressArray = new Byte[_Length] {
+                                 Byte1,
+                                 Byte2,
+                                 Byte3,
+                                 Byte4
+                             };
 
         }
 
@@ -234,31 +255,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static IPv4Address Parse(String IPv4AddressString)
         {
 
-            var _Match = Regex.Match(IPv4AddressString, @"\b(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\b");
+            IPv4Address _IPv4Address;
 
-            if (_Match.Success)
-            {
+            if (IPv4Address.TryParse(IPv4AddressString, out _IPv4Address))
+                return _IPv4Address;
 
-                var _IPv4AddressArray = new Byte[_Length];
-
-                try
-                {
-                    _IPv4AddressArray[0] = Byte.Parse(_Match.Groups[1].Value);
-                    _IPv4AddressArray[1] = Byte.Parse(_Match.Groups[2].Value);
-                    _IPv4AddressArray[2] = Byte.Parse(_Match.Groups[3].Value);
-                    _IPv4AddressArray[3] = Byte.Parse(_Match.Groups[4].Value);
-                }
-                catch (Exception e)
-                {
-                    throw new FormatException("The given string '" + IPv4AddressString + "' is not a valid IPv4Address!", e);
-                }
-
-                return new IPv4Address(_IPv4AddressArray);
-
-            }
-
-            else
-                throw new FormatException("The given string '" + IPv4AddressString + "' is not a valid IPv4Address!");
+            throw new FormatException("The given string '" + IPv4AddressString + "' is not a valid IPv4Address!");
 
         }
 
@@ -270,38 +272,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Parsed the given string representation into a new IPv4Address.
         /// </summary>
         /// <param name="IPv4AddressString">An IPv4Address string representation.</param>
+        /// <param name="IPv4Address">The parsed IPv4 address.</param>
         public static Boolean TryParse(String IPv4AddressString, out IPv4Address IPv4Address)
         {
 
-            // This is too simple!
-            var _Match = Regex.Match(IPv4AddressString, @"\b(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\b");
+            IPv4Address  = null;
 
-            if (_Match.Success)
-            {
+            var Elements = IPv4AddressString.Split(Splitter, _Length, StringSplitOptions.None);
 
-                var _IPv4AddressArray = new Byte[_Length];
+            if (Elements.Length != _Length)
+                return false;
 
-                try
-                {
-                    _IPv4AddressArray[0] = Byte.Parse(_Match.Groups[1].Value);
-                    _IPv4AddressArray[1] = Byte.Parse(_Match.Groups[2].Value);
-                    _IPv4AddressArray[2] = Byte.Parse(_Match.Groups[3].Value);
-                    _IPv4AddressArray[3] = Byte.Parse(_Match.Groups[4].Value);
-                }
-                catch (Exception e)
-                {
-                    throw new FormatException("The given string '" + IPv4AddressString + "' is not a valid IPv4Address!", e);
-                }
+            var _IPv4AddressArray = new Byte[_Length];
 
-                IPv4Address = new IPv4Address(_IPv4AddressArray);
+            if (!Byte.TryParse(Elements[0], out _IPv4AddressArray[0]))
+                return false;
 
-                return true;
+            if (!Byte.TryParse(Elements[1], out _IPv4AddressArray[1]))
+                return false;
 
-            }
+            if (!Byte.TryParse(Elements[2], out _IPv4AddressArray[2]))
+                return false;
 
-            IPv4Address = null;
+            if (!Byte.TryParse(Elements[3], out _IPv4AddressArray[3]))
+                return false;
 
-            return false;
+            IPv4Address = new IPv4Address(_IPv4AddressArray);
+
+            return true;
 
         }
 

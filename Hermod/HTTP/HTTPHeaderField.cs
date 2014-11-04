@@ -229,7 +229,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region General  header fields
+        #region General header fields
 
         #region CacheControl
 
@@ -651,7 +651,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Request  header fields
+        #region Request header fields
 
         #region Accept
 
@@ -1125,44 +1125,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region From
+        #region From 
 
-        /// <summary>
-        /// The From request-header field, if given, SHOULD contain an
-        /// Internet e-mail address for the human user who controls the
-        /// requesting user agent. The address SHOULD be machine-usable,
-        /// as defined by "mailbox" in RFC 822 [9] as updated by
-        /// RFC 1123 [8]:
-        /// 
-        /// This header field MAY be used for logging purposes and as a
-        /// means for identifying the source of invalid or unwanted
-        /// requests. It SHOULD NOT be used as an insecure form of
-        /// access protection. The interpretation of this field is that
-        /// the request is being performed on behalf of the person given,
-        /// who accepts responsibility for the method performed. In
-        /// particular, robot agents SHOULD include this header so that
-        /// the person responsible for running the robot can be contacted
-        /// if problems occur on the receiving end.
-        /// 
-        /// The Internet e-mail address in this field MAY be separate
-        /// from the Internet host which issued the request. For example,
-        /// when a request is passed through a proxy the original issuer's
-        /// address SHOULD be used.
-        /// 
-        /// The client SHOULD NOT send the From header field without the
-        /// user's approval, as it might conflict with the user's privacy
-        /// interests or their site's security policy. It is strongly
-        /// recommended that the user be able to disable, enable, and
-        /// modify the value of this field at any time prior to a request.
-        /// </summary>
-        /// <example>From: webmaster@w3.org</example>
-        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField From = new HTTPHeaderField("From",
-                                                                          typeof(String),
-                                                                          HeaderFieldType.Request,
-                                                                          RequestPathSemantic.EndToEnd);
+        /// <summary> 
+        /// The From request-header field, if given, SHOULD contain an 
+        /// Internet e-mail address for the human user who controls the 
+        /// requesting user agent. The address SHOULD be machine-usable, 
+        /// as defined by "mailbox" in RFC 822 [9] as updated by 
+        /// RFC 1123 [8]: 
+        ///  
+        /// This header field MAY be used for logging purposes and as a 
+        /// means for identifying the source of invalid or unwanted 
+        /// requests. It SHOULD NOT be used as an insecure form of 
+        /// access protection. The interpretation of this field is that 
+        /// the request is being performed on behalf of the person given, 
+        /// who accepts responsibility for the method performed. In 
+        /// particular, robot agents SHOULD include this header so that 
+        /// the person responsible for running the robot can be contacted 
+        /// if problems occur on the receiving end. 
+        ///  
+        /// The Internet e-mail address in this field MAY be separate 
+        /// from the Internet host which issued the request. For example, 
+        /// when a request is passed through a proxy the original issuer's 
+        /// address SHOULD be used. 
+        ///  
+        /// The client SHOULD NOT send the From header field without the 
+        /// user's approval, as it might conflict with the user's privacy 
+        /// interests or their site's security policy. It is strongly 
+        /// recommended that the user be able to disable, enable, and 
+        /// modify the value of this field at any time prior to a request. 
+        /// </summary> 
+        /// <example>From: webmaster@w3.org</example> 
+        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/> 
+        public static readonly HTTPHeaderField From  = new HTTPHeaderField("From", 
+                                                                           typeof(String), 
+                                                                           HeaderFieldType.Request, 
+                                                                           RequestPathSemantic.EndToEnd); 
 
-        #endregion
+
+        #endregion 
 
         #region Host
 
@@ -2127,6 +2128,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
         #endregion
+
+        #region Non-standard request header fields
+
+        #region X-Real-IP
+
+        /// <summary>
+        /// Intermediary HTTP proxies might include this field to
+        /// indicate the real IP address of the HTTP client.
+        /// </summary>
+        /// <example>X-Real-IP: 95.91.73.30</example>
+        public static readonly HTTPHeaderField X_Real_IP = new HTTPHeaderField("X-Real-IP",
+                                                                               typeof(IIPAddress),
+                                                                               HeaderFieldType.Request,
+                                                                               RequestPathSemantic.HopToHop);
+
+        #endregion
+
+        #region X-Forwarded-For
+
+        /// <summary>
+        /// Intermediary HTTP proxies might include this field to
+        /// indicate the real IP address of the HTTP client.
+        /// </summary>
+        /// <example>X-Forwarded-For: 95.91.73.30</example>
+        public static readonly HTTPHeaderField X_Forwarded_For = new HTTPHeaderField("X-Forwarded-For",
+                                                                                     typeof(IIPAddress),
+                                                                                     HeaderFieldType.Request,
+                                                                                     RequestPathSemantic.HopToHop);
+
+        #endregion
+
+        #endregion
+
 
         #region Response header fields
 
