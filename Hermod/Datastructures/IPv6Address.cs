@@ -23,6 +23,7 @@ using System.Text;
 using System.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Globalization;
 
 #endregion
 
@@ -77,33 +78,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+        #region InterfaceId
+
+        private readonly String _InterfaceId;
+
+        /// <summary>
+        /// The interface identification for local IPv6 addresses, e.g. .
+        /// </summary>
+        public String InterfaceId
+        {
+            get
+            {
+                return _InterfaceId;
+            }
+        }
+
+        #endregion
 
         #endregion
 
         #region Constructor(s)
 
-        #region IPv6Address(myIPAddress)
+        #region IPv6Address(IPv6Address)
 
         /// <summary>
         /// Generates a new IPv6Address.
         /// </summary>
-        public IPv6Address(System.Net.IPAddress myIPAddress)
-            : this(myIPAddress.GetAddressBytes())
+        public IPv6Address(System.Net.IPAddress IPv6Address)
+            : this(IPv6Address.GetAddressBytes())
         { }
 
         #endregion
 
-        #region IPv6Address(ByteArray)
+        #region IPv6Address(ByteArray, InterfaceId = null)
 
         /// <summary>
         /// Generates a new IPv6Address.
         /// </summary>
-        public IPv6Address(Byte[] ByteArray)
+        /// <param name="ByteArray">The IPv6 as byte array.</param>
+        /// <param name="InterfaceId">An optional interface identification for the scope of the IPv6 address.</param>
+        public IPv6Address(Byte[]  ByteArray,
+                           String  InterfaceId = null)
         {
 
             IPAddressArray = new Byte[_Length];
 
             Array.Copy(ByteArray, IPAddressArray, Math.Max(ByteArray.Length, _Length));
+
+            this._InterfaceId = (InterfaceId != null) ? InterfaceId : "";
 
         }
 
@@ -179,45 +201,84 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         {
 
             // 2001:0db8:85a3:08d3:1319:8a2e:0370:7344
+            // fd00::9ec7:a6ff:feb7:c6 => fd00:0000:0000:0000:9ec7:a6ff:feb7:00c6
             IPv6Address = null;
 
             if (IPv6AddressString.IndexOf(':') < 0)
                 return false;
 
-            IPv6AddressString = IPv6AddressString.Replace("::", Enumerable.Repeat(":0", 7 - IPv6AddressString.Where(c => c == ':').Count()).Aggregate((a, b) => a + b));
+            var PositionOfInterfaceId  = IPv6AddressString.IndexOf('%');
+            var InterfaceId            = "";
 
-            var Elements = IPv6AddressString.Split(Splitter, 8, StringSplitOptions.None).Select(el => new String(Enumerable.Repeat('0', 4 - el.Length).ToArray()) + el).ToArray();
+            if (PositionOfInterfaceId > -1)
+            {
+                InterfaceId        = IPv6AddressString.Substring(PositionOfInterfaceId + 1);
+                IPv6AddressString  = IPv6AddressString.Substring(0, PositionOfInterfaceId);
+            }
+
+            var Elements = IPv6AddressString.Replace("::", Enumerable.Repeat(":0000", 8 - IPv6AddressString.
+                                                                      Where(c => c == ':').
+                                                                      Count()).
+                                                           Aggregate((a, b) => a + b) + ":").
+                                             Split(Splitter, 7+1, StringSplitOptions.None).
+                                             Select(el => new String(Enumerable.Repeat('0', 4 - el.Length).ToArray()) + el).
+                                             ToArray();
 
             if (Elements.Length != 8)
                 return false;
 
             var _IPv6AddressArray = new Byte[_Length];
 
-            if (!Byte.TryParse(Elements[0].Substring(0, 2), out _IPv6AddressArray[0]))
+            if (!Byte.TryParse(Elements[0].Substring(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[0]))
                 return false;
 
-            if (!Byte.TryParse(Elements[0].Substring(2, 2), out _IPv6AddressArray[1]))
+            if (!Byte.TryParse(Elements[0].Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[1]))
                 return false;
 
-            if (!Byte.TryParse(Elements[1].Substring(0, 2), out _IPv6AddressArray[2]))
+            if (!Byte.TryParse(Elements[1].Substring(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[2]))
                 return false;
 
-            if (!Byte.TryParse(Elements[1].Substring(2, 2), out _IPv6AddressArray[3]))
+            if (!Byte.TryParse(Elements[1].Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[3]))
                 return false;
 
-            if (!Byte.TryParse(Elements[2].Substring(0, 2), out _IPv6AddressArray[4]))
+            if (!Byte.TryParse(Elements[2].Substring(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[4]))
                 return false;
 
-            if (!Byte.TryParse(Elements[2].Substring(2, 2), out _IPv6AddressArray[5]))
+            if (!Byte.TryParse(Elements[2].Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[5]))
                 return false;
 
-            if (!Byte.TryParse(Elements[3].Substring(0, 2), out _IPv6AddressArray[6]))
+            if (!Byte.TryParse(Elements[3].Substring(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[6]))
                 return false;
 
-            if (!Byte.TryParse(Elements[3].Substring(2, 2), out _IPv6AddressArray[7]))
+            if (!Byte.TryParse(Elements[3].Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[7]))
                 return false;
 
-            IPv6Address = new IPv6Address(_IPv6AddressArray);
+
+            if (!Byte.TryParse(Elements[4].Substring(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[8]))
+                return false;
+
+            if (!Byte.TryParse(Elements[4].Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[9]))
+                return false;
+
+            if (!Byte.TryParse(Elements[5].Substring(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[10]))
+                return false;
+
+            if (!Byte.TryParse(Elements[5].Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[11]))
+                return false;
+
+            if (!Byte.TryParse(Elements[6].Substring(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[12]))
+                return false;
+
+            if (!Byte.TryParse(Elements[6].Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[13]))
+                return false;
+
+            if (!Byte.TryParse(Elements[7].Substring(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[14]))
+                return false;
+
+            if (!Byte.TryParse(Elements[7].Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[15]))
+                return false;
+
+            IPv6Address = new IPv6Address(_IPv6AddressArray, InterfaceId);
 
             return true;
 
@@ -390,7 +451,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
         {
-            return IPAddressArray.GetHashCode();
+            return IPAddressArray.GetHashCode() ^ InterfaceId.GetHashCode();
         }
 
         #endregion
@@ -404,18 +465,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public override String ToString()
         {
 
-            return String.Format("{0}:{1}:{2}:{3}:{4}:{5}:{6}:{7}",
-                                 IPAddressArray[0].ToString("x2")  + IPAddressArray[1].ToString("x2"),
-                                 IPAddressArray[2].ToString("x2")  + IPAddressArray[3].ToString("x2"),
-                                 IPAddressArray[4].ToString("x2")  + IPAddressArray[5].ToString("x2"),
-                                 IPAddressArray[6].ToString("x2")  + IPAddressArray[7].ToString("x2"),
-                                 IPAddressArray[8].ToString("x2")  + IPAddressArray[9].ToString("x2"),
+            return String.Format("{0}:{1}:{2}:{3}:{4}:{5}:{6}:{7}{8}",
+                                 IPAddressArray[ 0].ToString("x2") + IPAddressArray[ 1].ToString("x2"),
+                                 IPAddressArray[ 2].ToString("x2") + IPAddressArray[ 3].ToString("x2"),
+                                 IPAddressArray[ 4].ToString("x2") + IPAddressArray[ 5].ToString("x2"),
+                                 IPAddressArray[ 6].ToString("x2") + IPAddressArray[ 7].ToString("x2"),
+                                 IPAddressArray[ 8].ToString("x2") + IPAddressArray[ 9].ToString("x2"),
                                  IPAddressArray[10].ToString("x2") + IPAddressArray[11].ToString("x2"),
                                  IPAddressArray[12].ToString("x2") + IPAddressArray[13].ToString("x2"),
-                                 IPAddressArray[14].ToString("x2") + IPAddressArray[15].ToString("x2")
-                                 
-                                 
-                                 );
+                                 IPAddressArray[14].ToString("x2") + IPAddressArray[15].ToString("x2"),
+                                 (InterfaceId.IsNotNullOrEmpty() ? "%" + InterfaceId : ""));
 
         }
 
