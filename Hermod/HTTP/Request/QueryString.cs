@@ -35,8 +35,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// string strQuery = QueryString.Current.Add("id", "179").ToString();
     /// string strQuery = new QueryString().Add("id", "179").ToString();
     /// </summary>
-    public class QueryString : Dictionary<String, List<String>>
+    public class QueryString
     {
+
+        #region Data
+
+        private Dictionary<String, List<String>> _Dictionary;
+
+        #endregion
 
         #region Constructor(s)
 
@@ -46,7 +52,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Create a new HTTP QueryString.
         /// </summary>
         public QueryString()
-        { }
+        {
+            _Dictionary = new Dictionary<String, List<String>>();
+        }
 
         #endregion
 
@@ -56,6 +64,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Parse the given string repesentation of a HTTP QueryString.
         /// </summary>
         public QueryString(String QueryString)
+            : this()
         {
 
             #region Initial checks
@@ -119,10 +128,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             List<String> ValueList = null;
 
-            if (base.TryGetValue(Key, out ValueList))
+            if (_Dictionary.TryGetValue(Key, out ValueList))
                 ValueList.Add(Value);
             else
-                base.Add(Key, new List<String>() { Value });
+                _Dictionary.Add(Key, new List<String>() { Value });
 
             return this;
 
@@ -138,7 +147,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Key">The key.</param>
         public new QueryString Remove(String Key)
         {
-            base.Remove(Key);
+            _Dictionary.Remove(Key);
             return this;
         }
 
@@ -156,7 +165,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             List<String> ValueList = null;
 
-            if (base.TryGetValue(Key, out ValueList))
+            if (_Dictionary.TryGetValue(Key, out ValueList))
                 ValueList.Remove(Value);
 
             return this;
@@ -164,6 +173,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
+
+        public String Get(String Parameter)
+        {
+            return _Dictionary[Parameter].LastOrDefault();
+        }
+
+        public Int32? GetInt32(String Parameter)
+        {
+
+            List<String>  Values;
+            Int32         Int;
+
+            if (_Dictionary.TryGetValue(Parameter, out Values))
+                if (Int32.TryParse(Values.LastOrDefault(), out Int))
+                    return Int;
+
+            return null;
+
+        }
+
+        public UInt32? GetUInt32(String Parameter)
+        {
+
+            List<String>  Values;
+            UInt32        Int;
+
+            if (_Dictionary.TryGetValue(Parameter, out Values))
+                if (UInt32.TryParse(Values.LastOrDefault(), out Int))
+                    return Int;
+
+            return null;
+
+        }
+
 
 
         #region ToString()
@@ -174,12 +217,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public override String ToString()
         {
 
-            if (Count == 0)
+            if (_Dictionary.Count == 0)
                 return String.Empty;
 
             var _StringBuilder = new StringBuilder();
 
-            foreach (var KeyValuePair in this)
+            foreach (var KeyValuePair in _Dictionary)
                 foreach (var Value in KeyValuePair.Value)
                     _StringBuilder.Append("&").
                                    Append(HttpUtility.UrlEncodeUnicode(KeyValuePair.Key)).

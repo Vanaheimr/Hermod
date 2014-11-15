@@ -114,7 +114,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
                 JSON = JObject.Parse(RequestBodyString.Data);
             }
-            catch (Exception)
+            catch (Exception e)
             {
 
                 JSON      = null;
@@ -123,7 +123,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     ContentType     = HTTPContentType.JSON_UTF8,
                     Content         = new JObject(new JProperty("@context",    Context),
-                                                  new JProperty("description", "Invalid JSON request body!")).ToString().ToUTF8Bytes()
+                                                  new JProperty("description", "Invalid JSON request body!"),
+                                                  new JProperty("exception",   e.Message)).ToString().ToUTF8Bytes()
                 };
 
                 return false;

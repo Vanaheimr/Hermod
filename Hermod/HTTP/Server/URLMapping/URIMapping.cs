@@ -225,7 +225,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     for (var i = 1; i < _Match.Match.Groups.Count; i++)
                         _Parameters.Add(_Match.Match.Groups[i].Value);
 
-                    HTTPRequest.ParsedQueryParameters = _Parameters.ToArray();
+                    HTTPRequest.ParsedURIParameters = _Parameters.ToArray();
 
                     #endregion
 

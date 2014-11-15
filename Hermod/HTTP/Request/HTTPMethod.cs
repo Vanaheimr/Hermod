@@ -306,6 +306,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPMethod FILTER        = new HTTPMethod("FILTER", IsIdempotent: true, IsSafe: true);
 
         /// <summary>
+        /// Query a resource.
+        /// </summary>
+        public static readonly HTTPMethod QUERY         = new HTTPMethod("QUERY");
+
+        /// <summary>
         /// Counts the number of elements which would be returned by a FILTER.
         /// </summary>
         public static readonly HTTPMethod COUNT         = new HTTPMethod("COUNT",  IsIdempotent: true, IsSafe: true);

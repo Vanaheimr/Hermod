@@ -107,7 +107,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        public String[] ParsedQueryParameters { get; set; }
+        public String[] ParsedURIParameters { get; set; }
 
         #endregion
 
