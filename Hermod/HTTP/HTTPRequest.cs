@@ -651,7 +651,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var RawUrl     = _HTTPMethodHeader[1];
             var _ParsedURL = RawUrl.Split(_URLSeparator, 2, StringSplitOptions.None);
-            URI        = _ParsedURL[0];
+            URI            = HttpUtility.UrlDecode(_ParsedURL[0]);
 
             if (URI == "" || URI == null)
                 URI = "/";
