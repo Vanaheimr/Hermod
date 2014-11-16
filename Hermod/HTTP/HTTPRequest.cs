@@ -51,6 +51,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region EntireRequestHeader
+
         public String EntireRequestHeader
         {
             get
@@ -59,6 +61,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
         }
 
+        #endregion
+
+        #region HTTPRequestLine
+
         public String HTTPRequestLine
         {
             get
@@ -66,6 +72,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return HTTPMethod.ToString() + " " + this.URI + QueryString + " " + ProtocolName + "/" + ProtocolVersion;
             }
         }
+
+        #endregion
 
         public HTTPContentType BestMatchingAcceptType { get; set; }
 
@@ -89,7 +97,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Url
+        #region URI
 
         /// <summary>
         /// The minimal URI (this means e.g. without the query string).

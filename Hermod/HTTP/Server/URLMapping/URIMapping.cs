@@ -137,27 +137,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (internal) GetHandler(Host = "*", URL = "/", HTTPMethod = null, HTTPContentType = null)
+        #region (internal) InvokeHandler(HTTPRequest)
 
         /// <summary>
-        /// Return the best matching method handler for the given parameters.
+        /// Invoke the best matching method handler for the given parameters.
         /// </summary>
-        internal HTTPDelegate GetHandler(HTTPRequest HTTPRequest)
+        /// <param name="HTTPRequest">A HTTP request.</param>
+        internal HTTPResponse InvokeHandler(HTTPRequest HTTPRequest)
         {
 
             lock (Lock)
             {
 
-                #region Set defaults...
+                return GetHandler((HTTPRequest.Host.IsNullOrEmpty()) ? "*" : HTTPRequest.Host,
+                                  (HTTPRequest.URI. IsNullOrEmpty()) ? "/" : HTTPRequest.URI,
+                                   HTTPRequest.HTTPMethod,
+                                   AvailableContentTypes => HTTPRequest.Accept.BestMatchingContentType(AvailableContentTypes),
+                                   ParsedURIParameters   => HTTPRequest.ParsedURIParameters = ParsedURIParameters.ToArray())
 
-                var Host             = (HTTPRequest.Host.   IsNullOrEmpty()) ? "*" : HTTPRequest.Host;
-                var URL              = (HTTPRequest.URI.IsNullOrEmpty()) ? "/" : HTTPRequest.URI;
-                var HTTPMethod       =  HTTPRequest.HTTPMethod;
-                var HTTPContentType  =  HTTPRequest.BestMatchingAcceptType;
+                                   (HTTPRequest);
 
-                #endregion
+            }
 
-                #region Get HostNode
+        }
+
+        #endregion
+
+        #region (internal) GetHandler(Host = "*", URL = "/", HTTPMethod = HTTPMethod.GET, HTTPContentTypeSelector = null)
+
+        /// <summary>
+        /// Return the best matching method handler for the given parameters.
+        /// </summary>
+        internal HTTPDelegate GetHandler(String                                    Host,
+                                         String                                    URI,
+                                         HTTPMethod                                HTTPMethod                   = null,
+                                         Func<HTTPContentType[], HTTPContentType>  HTTPContentTypeSelector      = null,
+                                         Action<IEnumerable<String>>               ParsedURIParametersDelegate  = null)
+        {
+
+            Host                     = Host.IsNullOrEmpty()            ? "*"                            : Host;
+            URI                      = URI. IsNullOrEmpty()            ? "/"                            : URI;
+            HTTPMethod               = HTTPMethod              == null ? HTTPMethod.GET                 : HTTPMethod;
+            HTTPContentTypeSelector  = HTTPContentTypeSelector == null ? v => HTTPContentType.HTML_UTF8 : HTTPContentTypeSelector;
+
+            lock (Lock)
+            {
+
+                #region Get HostNode or "*" or fail
 
                 HostnameNode _HostNode = null;
                 if (!_HostnameNodes.TryGetValue(Host, out _HostNode))
@@ -180,7 +206,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     in     _RegexList
                                     select new {
                                         URLNode = _RegexTupel.URLNode,
-                                        Match   = _RegexTupel.Regex.Match(URL)
+                                        Match   = _RegexTupel.Regex.Match(URI)
                                     };
 
                 var _Matches      = from    _Match
@@ -196,7 +222,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #endregion
 
-                #region If nothing found...
+                #region ...or return HostNode
 
                 if (!_Matches.Any())
                 {
@@ -225,7 +251,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     for (var i = 1; i < _Match.Match.Groups.Count; i++)
                         _Parameters.Add(_Match.Match.Groups[i].Value);
 
-                    HTTPRequest.ParsedURIParameters = _Parameters.ToArray();
+                    var ParsedURIParametersDelegateLocal = ParsedURIParametersDelegate;
+                    if (ParsedURIParametersDelegateLocal != null)
+                        ParsedURIParametersDelegate(_Parameters);
 
                     #endregion
 
@@ -234,7 +262,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     {
 
                         // Get HTTPContentTypeNode
-                        if (!_HTTPMethodNode.HTTPContentTypes.TryGetValue(HTTPRequest.Accept.BestMatchingContentType(_HTTPMethodNode.HTTPContentTypes.Keys.ToArray()), out _HTTPContentTypeNode))
+                        if (!_HTTPMethodNode.HTTPContentTypes.TryGetValue(HTTPContentTypeSelector(_HTTPMethodNode.HTTPContentTypes.Keys.ToArray()), out _HTTPContentTypeNode))
                             return _HTTPMethodNode.RequestHandler;
 
                         return _HTTPContentTypeNode.RequestHandler;

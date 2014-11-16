@@ -225,7 +225,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              HTTPContentType ResponseContentType = null;
 
-                                             var FilePath = (Request.ParsedURIParameters != null)
+                                             var FilePath = (Request.ParsedURIParameters != null && Request.ParsedURIParameters.Length > 0)
                                                                 ? Request.ParsedURIParameters.First().Replace("/", ".")
                                                                 : DefaultFilename.Replace("/", ".");
 

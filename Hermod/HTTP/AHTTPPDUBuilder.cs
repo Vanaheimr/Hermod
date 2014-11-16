@@ -167,7 +167,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             set
             {
                 SetProperty(ref _Content, value, "Content");
-                ContentLength = (UInt64) _Content.LongLength;
+                ContentLength = _Content != null ? (UInt64) _Content.LongLength : 0;
             }
 
         }

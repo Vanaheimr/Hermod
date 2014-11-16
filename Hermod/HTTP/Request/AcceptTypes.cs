@@ -52,6 +52,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region AcceptTypes(FirstAcceptType)
+
+        public AcceptTypes(AcceptType FirstAcceptType)
+        {
+
+            #region Initial checks
+
+            if (FirstAcceptType == null)
+                throw new ArgumentNullException("The given AcceptType must not be null!");
+
+            #endregion
+
+            this.List = new List<AcceptType>() { FirstAcceptType };
+
+        }
+
+        #endregion
+
+        #region AcceptTypes(AcceptTypes)
+
+        public AcceptTypes(AcceptType[] AcceptTypes)
+        {
+
+            #region Initial checks
+
+            if (AcceptTypes == null)
+                throw new ArgumentNullException("The given AcceptTypes must not be null!");
+
+            #endregion
+
+            this.List = new List<AcceptType>();
+            this.List.AddRange(AcceptTypes);
+
+        }
+
+        #endregion
+
         #region AcceptTypes(FirstAcceptType, MoreAcceptTypes)
 
         public AcceptTypes(AcceptType FirstAcceptType, params AcceptType[] MoreAcceptTypes)
@@ -73,7 +110,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region AcceptTypes(FirstAcceptType, MoreAcceptTypes)
+        #region AcceptTypes(HTTPContentType)
+
+        public AcceptTypes(HTTPContentType HTTPContentType)
+        {
+
+            #region Initial checks
+
+            if (HTTPContentType == null)
+                throw new ArgumentNullException("The given HTTPContentType must not be null!");
+
+            #endregion
+
+            this.List = new List<AcceptType>() { new AcceptType(HTTPContentType, 1) };
+
+        }
+
+        #endregion
+
+        #region AcceptTypes(FirstHTTPContentType, MoreHTTPContentTypes)
 
         public AcceptTypes(HTTPContentType FirstHTTPContentType, params HTTPContentType[] MoreHTTPContentTypes)
         {

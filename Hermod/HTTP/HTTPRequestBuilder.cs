@@ -19,6 +19,7 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -41,6 +42,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Non-http header fields
 
+        #region EntireRequestHeader
+
         public String EntireRequestHeader
         {
             get
@@ -49,6 +52,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
         }
 
+        #endregion
+
+        #region HTTPRequestLine
+
         public String HTTPRequestLine
         {
             get
@@ -56,6 +63,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return HTTPMethod.ToString() + " " + this._URI + " " + ProtocolName + "/" + ProtocolVersion;
             }
         }
+
+        #endregion
 
         #region HTTPMethod
 
@@ -681,6 +690,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region HTTPRequestBuilder(OtherHTTPRequest)
+
+        /// <summary>
+        /// Create a new HTTP request.
+        /// </summary>
+        public HTTPRequestBuilder(HTTPRequest OtherHTTPRequest)
+        {
+
+            this.HTTPStatusCode   = OtherHTTPRequest.HTTPStatusCode;
+            this.HTTPMethod       = OtherHTTPRequest.HTTPMethod;
+            this.URI              = OtherHTTPRequest.URI;
+            this._QueryString     = OtherHTTPRequest.QueryString;
+            SetHeaderField(HTTPHeaderField.Accept, new AcceptTypes(OtherHTTPRequest.Accept.ToArray()));
+            this.ProtocolName     = OtherHTTPRequest.ProtocolName;
+            this.ProtocolVersion  = OtherHTTPRequest.ProtocolVersion;
+
+            this.Content          = OtherHTTPRequest.Content;
+            this.ContentStream    = OtherHTTPRequest.ContentStream;
+
+            foreach (var kvp in OtherHTTPRequest.HeaderFields)
+                Set(kvp.Key, kvp.Value);
+
+        }
+
+        #endregion
+
         #endregion
 
 
@@ -698,6 +733,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+
+        #region SetURI(URI)
+
+        /// <summary>
+        /// Set the HTTP method.
+        /// </summary>
+        /// <param name="URI">The new URI.</param>
+        public HTTPRequestBuilder SetURI(String URI)
+        {
+            this.URI = URI;
+            return this;
+        }
+
+        #endregion
 
         #region Set non-http header fields
 

@@ -336,59 +336,70 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               HTTPRequest  HTTPRequest)
         {
 
-            #region Check if any HTTP delegate matches...
+            HTTPResponse URIMappingResponse      = null;
+            HTTPResponse OnNotificationResponse  = null;
 
-            HTTPDelegate Handler = null;
-
-            try
-            {
-                Handler = GetHandler(HTTPRequest);
-            }
-            catch (Exception e)
-            {
-                Debug.WriteLine(e);
-            }
+            #region 1) Invoke delegate based on URIMapping
 
             try
             {
-                if (Handler != null)
-                    return Handler(HTTPRequest);
+                URIMappingResponse = InvokeHandler(HTTPRequest);
             }
             catch (Exception e)
             {
-                Debug.WriteLine(e);
-            }
 
+                return new HTTPResponseBuilder() {
+                    HTTPStatusCode  = HTTPStatusCode.InternalServerError,
+                    ContentType     = HTTPContentType.TEXT_UTF8,
+                    Content         = ("Error 500 - Internal Server Error!" + Environment.NewLine + e.Message).ToUTF8Bytes(),
+                    Server          = _DefaultServerName,
+                    Connection      = "close"
+                };
+
+            }
 
             #endregion
 
-            #region ...or call default delegate!
+            #region 2) Call OnNotification delegate, but in most cases just ignore the result!
 
             try
             {
 
                 var OnNotificationLocal = OnNotification;
                 if (OnNotificationLocal != null)
-                    return OnNotificationLocal(ConnectionId,
-                                               Timestamp,
-                                               HTTPRequest);
+                    OnNotificationResponse = OnNotificationLocal(ConnectionId,
+                                                                 Timestamp,
+                                                                 HTTPRequest);
 
             }
             catch (Exception e)
             {
-                Debug.WriteLine(e);
+
+                return new HTTPResponseBuilder() {
+                    HTTPStatusCode  = HTTPStatusCode.InternalServerError,
+                    ContentType     = HTTPContentType.TEXT_UTF8,
+                    Content         = ("Error 500 - Internal Server Error!" + Environment.NewLine + e.Message).ToUTF8Bytes(),
+                    Server          = _DefaultServerName,
+                    Connection      = "close"
+                };
+
             }
 
             #endregion
 
+            #region Return result or fail!
 
-            #region ...or fail!
+            if (URIMappingResponse != null)
+                return URIMappingResponse;
+
+            if (OnNotificationResponse != null)
+                return OnNotificationResponse;
 
             return new HTTPResponseBuilder() {
                 HTTPStatusCode  = HTTPStatusCode.InternalServerError,
                 ContentType     = HTTPContentType.TEXT_UTF8,
-                Content         = "Error 500 - Internal Server Error!".ToUTF8Bytes(),
-                Server          = "Hermod",
+                Content         = ("Error 500 - Internal Server Error!").ToUTF8Bytes(),
+                Server          = _DefaultServerName,
                 Connection      = "close"
             };
 
@@ -478,7 +489,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Add Method Callbacks
 
-        #region AddMethodCallback(HTTPMethod, URITemplate, Hostname = "*", HTTPContentType = null, HostAuthentication = false, URIAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false, HTTPDelegate = null)
+        #region AddMethodCallback(HTTPMethod, URITemplate, HTTPContentType, HTTPDelegate)
 
         /// <summary>
         /// Add a method callback for the given URI template.
@@ -486,19 +497,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="URITemplate">The URI template.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
-        /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
-        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
-        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
-        /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
-        public void AddMethodCallback(HTTPMethod          HTTPMethod,
-                                      String              URITemplate,
-                                      HTTPContentType     HTTPContentType,
-                                      HTTPDelegate        HTTPDelegate)
+        public void AddMethodCallback(HTTPMethod       HTTPMethod,
+                                      String           URITemplate,
+                                      HTTPContentType  HTTPContentType,
+                                      HTTPDelegate     HTTPDelegate)
 
         {
 
             _URIMapping.AddHandler(HTTPDelegate,
+                                   "*",
+                                   (URITemplate.IsNotNullOrEmpty()) ? URITemplate     : "/",
+                                   (HTTPMethod      != null)        ? HTTPMethod      : HTTPMethod.GET,
+                                   (HTTPContentType != null)        ? HTTPContentType : HTTPContentType.HTML_UTF8,
+                                   null,
+                                   null,
+                                   null,
+                                   null);
+
+        }
+
+        #endregion
+
+        #region Redirect(HTTPMethod, URITemplate, HTTPContentType, URITarget)
+
+        /// <summary>
+        /// Add a URI based method redirect for the given URI template.
+        /// </summary>
+        /// <param name="HTTPMethod">The HTTP method.</param>
+        /// <param name="URITemplate">The URI template.</param>
+        /// <param name="HTTPContentType">The HTTP content type.</param>
+        /// <param name="URITarget">The target URI of the redirect.</param>
+        public void Redirect(HTTPMethod       HTTPMethod,
+                             String           URITemplate,
+                             HTTPContentType  HTTPContentType,
+                             String           URITarget)
+
+        {
+            HTTPRequest HTTPRequestds;
+          //  var HTTPDelegate = _URIMapping.GetHandler("*", URITarget, HTTPMethod, v => HTTPContentType);
+
+            _URIMapping.AddHandler(req => {
+                return _URIMapping.InvokeHandler(new HTTPRequestBuilder(req).SetURI(URITarget));
+                //return _URIMapping.GetHandler(newreq)(newreq);
+            },
                                    "*",
                                    (URITemplate.IsNotNullOrEmpty()) ? URITemplate     : "/",
                                    (HTTPMethod      != null)        ? HTTPMethod      : HTTPMethod.GET,
@@ -560,10 +602,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return the best matching method handler for the given parameters.
         /// </summary>
-        public HTTPDelegate GetHandler(HTTPRequest HTTPRequest)
+        public HTTPResponse InvokeHandler(HTTPRequest HTTPRequest)
         {
 
-            return _URIMapping.GetHandler(HTTPRequest);
+            return _URIMapping.InvokeHandler(HTTPRequest);
 
         }
 

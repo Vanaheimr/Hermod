@@ -43,7 +43,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The collection of all HTTP headers.
         /// </summary>
-        protected readonly Dictionary<String, Object>  HeaderFields;
+        internal protected readonly Dictionary<String, Object>  HeaderFields;
 
         protected readonly static String[] _LineSeparator   = new String[] { Environment.NewLine };
         protected readonly static Char[]   _ColonSeparator  = new Char[]   { ':' };
