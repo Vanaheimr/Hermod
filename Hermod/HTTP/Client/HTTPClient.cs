@@ -214,11 +214,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           DNSClient  DNSClient  = null)
         {
 
-            this._DNSClient       = (DNSClient != null)
-                                               ? new DNSClient(SearchForIPv6Servers: false)
+            this._DNSClient       = (DNSClient == null)
+                                               ? new DNSClient(SearchForIPv6DNSServers: false)
                                                : DNSClient;
 
-            this.RemoteIPAddress  = _DNSClient.Query<A>(RemoteHost).Select(a => a.IPv4Address).ToArray()[1];
+            this.RemoteIPAddress  = _DNSClient.Query<A>(RemoteHost).Select(ARecord => ARecord.IPv4Address).ToArray()[1];
             this.RemotePort       = RemotePort;
 
         }
@@ -357,7 +357,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Send Request
 
-                // Open stream for reading and writting
+                // Open stream for reading and writing
                 var TCPStream = TCPClient.GetStream();
 
                 var _RequestBytes = (HTTPRequest.EntireRequestHeader + Environment.NewLine + Environment.NewLine).ToUTF8Bytes();

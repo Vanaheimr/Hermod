@@ -32,78 +32,9 @@ using System.Net.NetworkInformation;
 namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 {
 
-    public static class DNSTools
-    {
-
-        public static Byte[] ExtractByteArray(Stream DNSStream, UInt32 LengthOfSegment)
-        {
-
-            if (LengthOfSegment > 0)
-            {
-                var ByteArray = new Byte[LengthOfSegment];
-                DNSStream.Read(ByteArray, 0, (Int32) LengthOfSegment);
-                return ByteArray;
-            }
-
-            return new Byte[0];
-
-        }
-
-        public static String ExtractName(Stream DNSStream)
-        {
-
-            var DNSName          = new StringBuilder();
-            var LengthOfSegment  = 0;
-            var OldPosition      = 0L;
-            var Alias            = String.Empty;
-            var buffer           = new Byte[512];
-
-            do
-            {
-
-                LengthOfSegment = (DNSStream.ReadByte() & Byte.MaxValue);
-
-                if (LengthOfSegment > 0)
-                {
-
-                    if (DNSName.Length > 0)
-                        DNSName.Append(".");
-
-                    // RDATA Compression
-                    if ((LengthOfSegment & 0xC0) == 0xC0)
-                    {
-
-                        OldPosition         = DNSStream.Position;
-                        DNSStream.Position  = ((LengthOfSegment & 0x3F) << 8) | (DNSStream.ReadByte() & Byte.MaxValue);
-                        Alias               = ExtractName(DNSStream);
-                        DNSStream.Position  = OldPosition + 1;
-
-                        return Alias;
-
-                    }
-
-                    else
-                    {
-                        DNSStream.Read(buffer, 0, LengthOfSegment);
-                        DNSName.Append(Encoding.ASCII.GetString(buffer, 0, LengthOfSegment));
-                    }
-
-                }
-
-            }
-            while (LengthOfSegment > 0);
-
-            return DNSName.ToString();
-
-        }
-
-        public static DNSClient GoogleDNS()
-        {
-            return new DNSClient(IPv4Address.Parse("8.8.8.8"));
-        }
-
-    }
-
+    /// <summary>
+    /// A DNS resolver client.
+    /// </summary>
     public class DNSClient
     {
 
@@ -145,66 +76,118 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
         #region Constructor(s)
 
-        #region DNSClient(SearchForIPv4Servers = true, SearchForIPv6Servers = true)
+        #region DNSClient(DNSServer)
 
-        public DNSClient(Boolean  SearchForIPv4Servers = true,
-                         Boolean  SearchForIPv6Servers = true)
-            : this(new IPSocket[0], SearchForIPv4Servers, SearchForIPv6Servers)
+        /// <summary>
+        /// Create a new DNS resolver client.
+        /// </summary>
+        /// <param name="DNSServer">The DNS server to query.</param>
+        public DNSClient(IIPAddress DNSServer)
+
+            : this(new IPSocket[1] { new IPSocket(DNSServer, new IPPort(53)) })
+
         { }
 
         #endregion
 
-        public DNSClient(IIPAddress DNSServer)
-            : this(new IPSocket[1] { new IPSocket(DNSServer, new IPPort(53)) })
-        { }
+        #region DNSClient(DNSServer, Port)
 
+        /// <summary>
+        /// Create a new DNS resolver client.
+        /// </summary>
+        /// <param name="DNSServer">The DNS server to query.</param>
+        /// <param name="Port">The IP port of the DNS server to query.</param>
         public DNSClient(IIPAddress DNSServer, IPPort Port)
+
             : this(new IPSocket[1] { new IPSocket(DNSServer, Port) })
+
         { }
 
+        #endregion
+
+        #region DNSClient(DNSServers)
+
+        /// <summary>
+        /// Create a new DNS resolver client.
+        /// </summary>
+        /// <param name="DNSServers">A list of DNS servers to query.</param>
         public DNSClient(IEnumerable<IIPAddress> DNSServers)
-            : this(DNSServers.Select(v => new IPSocket(v, new IPPort(53))))
+
+            : this(DNSServers.Select(IPAddress => new IPSocket(IPAddress, new IPPort(53))))
+
         { }
 
+        #endregion
+
+        #region DNSClient(DNSServers, Port)
+
+        /// <summary>
+        /// Create a new DNS resolver client.
+        /// </summary>
+        /// <param name="DNSServers">A list of DNS servers to query.</param></param>
+        /// <param name="Port">The common IP port of the DNS servers to query.</param>
         public DNSClient(IEnumerable<IIPAddress> DNSServers, IPPort Port)
-            : this(DNSServers.Select(v => new IPSocket(v, Port)))
+
+            : this(DNSServers.Select(IPAddress => new IPSocket(IPAddress, Port)))
+
         { }
 
-        #region (private) DNSClient(DNSServers, SearchForIPv4Servers = true, SearchForIPv6Servers = true)
+        #endregion
 
-        private DNSClient(IEnumerable<IPSocket>  DNSServers,
-                          Boolean                SearchForIPv4Servers = true,
-                          Boolean                SearchForIPv6Servers = true)
+        #region DNSClient(SearchForIPv4DNSServers = true, SearchForIPv6DNSServers = true)
+
+        /// <summary>
+        /// Create a new DNS resolver client.
+        /// </summary>
+        /// <param name="SearchForIPv4DNSServers">If yes, the DNS client will query a list of DNS servers from the IPv4 network configuration.</param>
+        /// <param name="SearchForIPv6DNSServers">If yes, the DNS client will query a list of DNS servers from the IPv6 network configuration.</param>
+        public DNSClient(Boolean SearchForIPv4DNSServers = true,
+                         Boolean SearchForIPv6DNSServers = true)
+
+            : this(new IPSocket[0], SearchForIPv4DNSServers, SearchForIPv6DNSServers)
+
+        { }
+
+        #endregion
+
+        #region DNSClient(ManualDNSServers, SearchForIPv4DNSServers = true, SearchForIPv6DNSServers = true)
+
+        /// <summary>
+        /// Create a new DNS resolver client.
+        /// </summary>
+        /// <param name="ManualDNSServers">A list of manually configured DNS servers to query.</param>
+        /// <param name="SearchForIPv4DNSServers">If yes, the DNS client will query a list of DNS servers from the IPv4 network configuration.</param>
+        /// <param name="SearchForIPv6DNSServers">If yes, the DNS client will query a list of DNS servers from the IPv6 network configuration.</param>
+        public DNSClient(IEnumerable<IPSocket>  ManualDNSServers,
+                         Boolean                SearchForIPv4DNSServers = true,
+                         Boolean                SearchForIPv6DNSServers = true)
+
         {
 
-            _DNSServers = new List<IPSocket>();
-
-            if (DNSServers == null || DNSServers.Count() == 0)
-            {
-
-                if (SearchForIPv4Servers)
-                    _DNSServers.AddRange(NetworkInterface.
-                                             GetAllNetworkInterfaces().
-                                             Where     (NI        => NI.OperationalStatus == OperationalStatus.Up).
-                                             SelectMany(NI        => NI.GetIPProperties().DnsAddresses).
-                                             Where     (IPAddress => IPAddress.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork).
-                                             Select    (IPAddress => new IPSocket(new IPv4Address(IPAddress), new IPPort(53))));
-
-                if (SearchForIPv6Servers)
-                    _DNSServers.AddRange(NetworkInterface.
-                                             GetAllNetworkInterfaces().
-                                             Where     (NI        => NI.OperationalStatus == OperationalStatus.Up).
-                                             SelectMany(NI        => NI.GetIPProperties().DnsAddresses).
-                                             Where     (IPAddress => IPAddress.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6).
-                                             Select    (IPAddress => new IPSocket(new IPv6Address(IPAddress), new IPPort(53))));
-
-            }
-
-            else
-                this._DNSServers.AddRange(DNSServers);
-
             this.RecursionDesired  = true;
-            this.QueryTimeout      = TimeSpan.FromSeconds(10);
+            this.QueryTimeout      = TimeSpan.FromSeconds(23.5);
+
+            _DNSServers = new List<IPSocket>(ManualDNSServers);
+
+            #region Search for IPv4/IPv6 DNS Servers...
+
+            if (SearchForIPv4DNSServers)
+                _DNSServers.AddRange(NetworkInterface.
+                                         GetAllNetworkInterfaces().
+                                         Where     (NI        => NI.OperationalStatus == OperationalStatus.Up).
+                                         SelectMany(NI        => NI.GetIPProperties().DnsAddresses).
+                                         Where     (IPAddress => IPAddress.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork).
+                                         Select    (IPAddress => new IPSocket(new IPv4Address(IPAddress), new IPPort(53))));
+
+            if (SearchForIPv6DNSServers)
+                _DNSServers.AddRange(NetworkInterface.
+                                         GetAllNetworkInterfaces().
+                                         Where     (NI        => NI.OperationalStatus == OperationalStatus.Up).
+                                         SelectMany(NI        => NI.GetIPProperties().DnsAddresses).
+                                         Where     (IPAddress => IPAddress.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6).
+                                         Select    (IPAddress => new IPSocket(new IPv6Address(IPAddress), new IPPort(53))));
+
+            #endregion
 
             #region Reflect ResourceRecordTypes
 
@@ -293,7 +276,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
             return Query(DomainName, new UInt16[1] { TypeId }).
                        Answers.
                        Where(v => v.GetType() == typeof(T)).
-                       Select(v => v as T);
+                       Cast<T>();
 
         }
 

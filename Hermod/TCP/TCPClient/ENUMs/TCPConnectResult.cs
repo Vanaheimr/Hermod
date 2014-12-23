@@ -21,7 +21,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.TCP
     public enum TCPConnectResult
     {
         Ok,
-        NoDNSGiven,
+        InvalidDomainName,
         NoIPAddressFound,
         UnknownError
     }

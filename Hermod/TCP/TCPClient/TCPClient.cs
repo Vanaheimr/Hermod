@@ -29,39 +29,111 @@ using System.Collections.Generic;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.Services.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.Services.TCP;
+using System.Net;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Services
 {
 
+    public static class Ext
+    {
+
+        public static void Poll(this Socket socket, SelectMode mode, CancellationToken cancellationToken)
+        {
+
+            if (!cancellationToken.CanBeCanceled)
+                return;
+
+            if (socket != null)
+            {
+                do
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                } while (!socket.Poll(1000, mode));
+            }
+
+            else
+                cancellationToken.ThrowIfCancellationRequested();
+
+        }
+
+        public static Socket CreateAndConnectTCPSocket(IIPAddress IP_Address, IPPort Port)
+        {
+
+            Socket _TCPSocket = null;
+
+            if (IP_Address is IPv4Address)
+                _TCPSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+
+            else if (IP_Address is IPv6Address)
+                _TCPSocket = new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp);
+
+            _TCPSocket.Connect(IPAddress.Parse(IP_Address.ToString()), Port.ToUInt16());
+
+            return _TCPSocket;
+
+        }
+
+    }
+
     public class TCPClient
     {
 
         #region Data
 
-        private           A[]        _CachedIPv4Addresses;
-        private           AAAA[]     _CachedIPv6Addresses;
-
-        private           DNSClient         _DNSClient;
-        private           TcpClient         _TcpClient;
-        private           NetworkStream     _TcpStream;
+        private           A[]                    _CachedIPv4Addresses;
+        private           AAAA[]                 _CachedIPv6Addresses;
+        private           List<IPSocket>         OrderedDNS;
+        private           IEnumerator<IPSocket>  OrderedDNSEnumerator;
 
         #endregion
 
         #region Properties
 
-        #region DNSName
+        #region RemoteHost
 
-        public String DNSName { get; set; }
+        private String _RemoteHost;
+
+        public String RemoteHost
+        {
+            get
+            {
+                return _RemoteHost;
+            }
+        }
 
         #endregion
 
         #region ServiceName
 
-        public String ServiceName { get; set; }
+        private String _ServiceName;
+
+        public String ServiceName
+        {
+            get
+            {
+                return _ServiceName;
+            }
+        }
 
         #endregion
+
+        #region RemotePort
+
+        private IPPort _RemotePort;
+
+        public IPPort RemotePort
+        {
+            get
+            {
+                return _RemotePort;
+            }
+        }
+
+        #endregion
+
+
 
         #region UseIPv4
 
@@ -107,9 +179,99 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
 
         #endregion
 
+        #region PreferIPv6
+
+        public Boolean _PreferIPv6;
+
+        public Boolean PreferIPv6
+        {
+
+            get
+            {
+                return _PreferIPv6;
+            }
+
+            set
+            {
+                _PreferIPv6 = value;
+                // Change DNSClient!
+            }
+
+        }
+
+        #endregion
+
         #region ConnectionTimeout
 
-        public TimeSpan ConnectionTimeout { get; set; }
+        public TimeSpan _ConnectionTimeout;
+
+        public TimeSpan ConnectionTimeout
+        {
+
+            get
+            {
+                return _ConnectionTimeout;
+            }
+
+            set
+            {
+                _ConnectionTimeout = value;
+                // Change DNSClient!
+            }
+
+        }
+
+        #endregion
+
+        #region DNSClient
+
+        private readonly DNSClient _DNSClient;
+
+        /// <summary>
+        /// The default server name.
+        /// </summary>
+        public virtual DNSClient DNSClient
+        {
+            get
+            {
+                return _DNSClient;
+            }
+        }
+
+        #endregion
+
+        #region CancellationToken
+
+        public CancellationToken CancellationToken { get; private set; }
+
+        #endregion
+
+
+        #region TCPSocket
+
+        private Socket _TCPSocket;
+
+        public Socket TCPSocket
+        {
+            get
+            {
+                return _TCPSocket;
+            }
+        }
+
+        #endregion
+
+        #region TCPStream
+
+        private NetworkStream _TCPStream;
+
+        public NetworkStream TCPStream
+        {
+            get
+            {
+                return _TCPStream;
+            }
+        }
 
         #endregion
 
@@ -119,7 +281,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
 
         #region Connected
 
-        public delegate void CSConnectedDelegate(Object Sender, String EVSEOperatorName);
+        public delegate void CSConnectedDelegate(Object Sender, String DNSName, IPSocket IPSocket);
 
         public event CSConnectedDelegate Connected;
 
@@ -141,7 +303,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
         /// <param name="PreferIPv6">Prefer IPv6 (instead of IPv4) as networking protocol.</param>
         /// <param name="ConnectionTimeout">The timeout connecting to the remote service.</param>
         /// <param name="DNSClient">An optional DNS client used to resolve DNS names.</param>
-        /// <param name="AutoConnect">Connect to the EVSE operator backend automatically on startup. Default is false.</param>
+        /// <param name="AutoConnect">Connect to the TCP service automatically on startup. Default is false.</param>
         public TCPClient(String     DNSName            = "",
                          String     ServiceName        = "",
                          Boolean    UseIPv4            = true,
@@ -152,19 +314,68 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
                          Boolean    AutoConnect        = false)
         {
 
-            this.DNSName            = DNSName;
-            this.ServiceName        = ServiceName;
-            this._UseIPv4           = UseIPv4;
-            this._UseIPv6           = UseIPv6;
+            this._RemoteHost         = DNSName;
+            this._ServiceName        = ServiceName;
+            this._UseIPv4            = UseIPv4;
+            this._UseIPv6            = UseIPv6;
+            this._PreferIPv6         = PreferIPv6;
 
-            this.ConnectionTimeout  = (ConnectionTimeout.HasValue)
-                                          ? ConnectionTimeout.Value
-                                          : TimeSpan.FromSeconds(60);
+            this._ConnectionTimeout  = (ConnectionTimeout.HasValue)
+                                           ? ConnectionTimeout.Value
+                                           : TimeSpan.FromSeconds(60);
 
-            this._DNSClient         = (DNSClient != null)
-                                          ? DNSClient
-                                          : new DNSClient(SearchForIPv4Servers: _UseIPv4,
-                                                          SearchForIPv6Servers: _UseIPv6);
+            this._DNSClient          = (DNSClient != null)
+                                           ? DNSClient
+                                           : new DNSClient(SearchForIPv4DNSServers: _UseIPv4,
+                                                           SearchForIPv6DNSServers: _UseIPv6);
+
+            if (AutoConnect)
+                Connect();
+
+        }
+
+        #endregion
+
+        #region TCPClient(RemoteHost, RemotePort, ...)
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="RemoteHost"></param>
+        /// <param name="RemotePort"></param>
+        /// <param name="CancellationToken"></param>
+        /// <param name="UseIPv4">Wether to use IPv4 as networking protocol.</param>
+        /// <param name="UseIPv6">Wether to use IPv6 as networking protocol.</param>
+        /// <param name="PreferIPv6">Prefer IPv6 (instead of IPv4) as networking protocol.</param>
+        /// <param name="ConnectionTimeout">The timeout connecting to the remote service.</param>
+        /// <param name="DNSClient">An optional DNS client used to resolve DNS names.</param>
+        /// <param name="AutoConnect">Connect to the TCP service automatically on startup. Default is false.</param>
+        public TCPClient(String              RemoteHost,
+                         IPPort              RemotePort,
+                         CancellationToken   CancellationToken,
+                         Boolean             UseIPv4            = true,
+                         Boolean             UseIPv6            = false,
+                         Boolean             PreferIPv6         = false,
+                         TimeSpan?           ConnectionTimeout  = null,
+                         DNSClient           DNSClient          = null,
+                         Boolean             AutoConnect        = false)
+
+        {
+
+            this._RemoteHost         = RemoteHost;
+            this._RemotePort         = RemotePort;
+            this.CancellationToken   = CancellationToken;
+            this._UseIPv4            = UseIPv4;
+            this._UseIPv6            = UseIPv6;
+            this._PreferIPv6         = PreferIPv6;
+
+            this._ConnectionTimeout  = (ConnectionTimeout.HasValue)
+                                           ? ConnectionTimeout.Value
+                                           : TimeSpan.FromSeconds(60);
+
+            this._DNSClient          = (DNSClient == null)
+                                           ? new DNSClient(SearchForIPv6DNSServers: true)
+                                           : DNSClient;
 
             if (AutoConnect)
                 Connect();
@@ -176,18 +387,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
         #endregion
 
 
-        #region (private) Query DNS
+        #region (private) QueryDNS()
 
         private void QueryDNS()
         {
 
-            var IPv4 = _DNSClient.Query<A>(DNSName);
+            var IPv4 = _DNSClient.Query<A>(RemoteHost);
             if (IPv4.Any())
                 _CachedIPv4Addresses = IPv4.ToArray();
 
-            var IPv6 = _DNSClient.Query<AAAA>(DNSName);
+            var IPv6 = _DNSClient.Query<AAAA>(RemoteHost);
             if (IPv6.Any())
                 _CachedIPv6Addresses = IPv6.ToArray();
+
+            OrderedDNS = (IPv4.Select(ARecord    => new IPSocket(ARecord.   IPv4Address, this.RemotePort)).Concat(
+                          IPv6.Select(AAAARecord => new IPSocket(AAAARecord.IPv6Address, this.RemotePort)))).
+                          ToList();
+
+            OrderedDNSEnumerator = OrderedDNS.GetEnumerator();
 
         }
 
@@ -195,17 +412,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
 
         #region (private) Reconnect()
 
-        private void Reconnect()
+        private Boolean Reconnect(IPSocket IPSocket)
         {
+
+            #region Close previous TCP stream and sockets...
 
             try
             {
 
-                if (_TcpStream != null)
-                    _TcpStream.Close();
-
-                if (_TcpClient != null)
-                    _TcpClient.Close();
+                if (_TCPStream != null)
+                    _TCPStream.Close();
 
             }
             catch (Exception)
@@ -214,17 +430,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
             try
             {
 
-                _TcpClient  = new TcpClient(new System.Net.IPEndPoint(System.Net.IPAddress.Parse(_CachedIPv4Addresses.First().ToString()),
-                                            80));
-                _TcpStream  = _TcpClient.GetStream();
+                if (_TCPSocket != null)
+                    _TCPSocket.Close();
 
             }
             catch (Exception)
+            { }
+
+            #endregion
+
+            try
             {
-                _TcpClient  = null;
-                _TcpStream  = null;
-                // DO SOME LOGGING OR SO!
+
+                _TCPSocket = Ext.CreateAndConnectTCPSocket(IPSocket.IPAddress, IPSocket.Port);
+                _TCPStream = new NetworkStream(_TCPSocket, true);
+
             }
+            catch (Exception e)
+            {
+                _TCPStream  = null;
+                _TCPSocket  = null;
+                return false;
+            }
+
+            var ConnectedLocal = Connected;
+            if (ConnectedLocal != null)
+                ConnectedLocal(this, RemoteHost, IPSocket);
+
+            return true;
 
         }
 
@@ -236,19 +469,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
         public TCPConnectResult Connect()
         {
 
-            if (DNSName == null &&
-                DNSName == String.Empty)
-                return TCPConnectResult.NoDNSGiven;
+            // if already connected => return!
+
+            if (RemoteHost == null &&
+                RemoteHost == String.Empty)
+                return TCPConnectResult.InvalidDomainName;
 
             QueryDNS();
 
-            if (_CachedIPv4Addresses == null &&
-                _CachedIPv6Addresses == null)
+            if (OrderedDNS.Count == 0)
                 return TCPConnectResult.NoIPAddressFound;
 
-            if (_CachedIPv4Addresses.Any())
+            // Get next IP socket in ordered list...
+            while (OrderedDNSEnumerator.MoveNext())
             {
-                Reconnect();
+
+                if (Reconnect(OrderedDNSEnumerator.Current))
+                    return TCPConnectResult.Ok;
+
             }
 
             return TCPConnectResult.UnknownError;
