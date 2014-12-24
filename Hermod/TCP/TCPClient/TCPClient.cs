@@ -58,23 +58,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
 
         }
 
-        public static Socket CreateAndConnectTCPSocket(IIPAddress IP_Address, IPPort Port)
-        {
-
-            Socket _TCPSocket = null;
-
-            if (IP_Address is IPv4Address)
-                _TCPSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-
-            else if (IP_Address is IPv6Address)
-                _TCPSocket = new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp);
-
-            _TCPSocket.Connect(IPAddress.Parse(IP_Address.ToString()), Port.ToUInt16());
-
-            return _TCPSocket;
-
-        }
-
     }
 
     public class TCPClient
@@ -86,6 +69,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
         private           AAAA[]                 _CachedIPv6Addresses;
         private           List<IPSocket>         OrderedDNS;
         private           IEnumerator<IPSocket>  OrderedDNSEnumerator;
+        private           IPSocket               CurrentIPSocket;
 
         #endregion
 
@@ -132,7 +116,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
         }
 
         #endregion
-
 
 
         #region UseIPv4
@@ -281,9 +264,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
 
         #region Connected
 
-        public delegate void CSConnectedDelegate(Object Sender, String DNSName, IPSocket IPSocket);
+        public delegate void TCPConnectedDelegate(Object Sender, String DNSName, IPSocket IPSocket);
 
-        public event CSConnectedDelegate Connected;
+        public event TCPConnectedDelegate Connected;
 
         #endregion
 
@@ -410,9 +393,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
 
         #endregion
 
+        #region (private) CreateAndConnectTCPSocket(_IPAddress, Port)
+
+        private Socket CreateAndConnectTCPSocket(IIPAddress _IPAddress, IPPort Port)
+        {
+
+            Socket _TCPSocket = null;
+
+            if (_IPAddress is IPv4Address)
+                _TCPSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+
+            else if (_IPAddress is IPv6Address)
+                _TCPSocket = new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp);
+
+            _TCPSocket.Connect(IPAddress.Parse(_IPAddress.ToString()), Port.ToUInt16());
+
+            return _TCPSocket;
+
+        }
+
+        #endregion
+
         #region (private) Reconnect()
 
-        private Boolean Reconnect(IPSocket IPSocket)
+        private Boolean Reconnect()
         {
 
             #region Close previous TCP stream and sockets...
@@ -442,7 +446,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
             try
             {
 
-                _TCPSocket = Ext.CreateAndConnectTCPSocket(IPSocket.IPAddress, IPSocket.Port);
+                _TCPSocket = CreateAndConnectTCPSocket(CurrentIPSocket.IPAddress, CurrentIPSocket.Port);
                 _TCPStream = new NetworkStream(_TCPSocket, true);
 
             }
@@ -455,14 +459,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
 
             var ConnectedLocal = Connected;
             if (ConnectedLocal != null)
-                ConnectedLocal(this, RemoteHost, IPSocket);
+                ConnectedLocal(this, RemoteHost, CurrentIPSocket);
 
             return true;
 
         }
 
         #endregion
-
 
         #region Connect()
 
@@ -475,19 +478,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
                 RemoteHost == String.Empty)
                 return TCPConnectResult.InvalidDomainName;
 
-            QueryDNS();
+            var retry = 0;
 
-            if (OrderedDNS.Count == 0)
-                return TCPConnectResult.NoIPAddressFound;
-
-            // Get next IP socket in ordered list...
-            while (OrderedDNSEnumerator.MoveNext())
+            do
             {
 
-                if (Reconnect(OrderedDNSEnumerator.Current))
-                    return TCPConnectResult.Ok;
+                if (OrderedDNS == null)
+                    QueryDNS();
 
-            }
+                if (OrderedDNS.Count == 0)
+                    return TCPConnectResult.NoIPAddressFound;
+
+                // Get next IP socket in ordered list...
+                while (OrderedDNSEnumerator.MoveNext())
+                {
+
+                    CurrentIPSocket = OrderedDNSEnumerator.Current;
+
+                    if (Reconnect())
+                        return TCPConnectResult.Ok;
+
+                }
+
+                OrderedDNS = null;
+                retry++;
+
+            } while (retry < 2);
 
             return TCPConnectResult.UnknownError;
 
