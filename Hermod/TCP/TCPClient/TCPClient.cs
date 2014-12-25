@@ -30,6 +30,9 @@ using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.Services.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.Services.TCP;
 using System.Net;
+using System.Net.Security;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
 
 #endregion
 
@@ -70,6 +73,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
         private           List<IPSocket>         OrderedDNS;
         private           IEnumerator<IPSocket>  OrderedDNSEnumerator;
         private           IPSocket               CurrentIPSocket;
+
+        public const SslProtocols DefaultSslProtocols = SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12;
 
         #endregion
 
@@ -120,66 +125,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
 
         #region UseIPv4
 
-        public Boolean _UseIPv4;
+        private readonly Boolean _UseIPv4;
 
         public Boolean UseIPv4
         {
-
             get
             {
                 return _UseIPv4;
             }
-
-            set
-            {
-                _UseIPv4 = value;
-                // Change DNSClient!
-            }
-
         }
 
         #endregion
 
         #region UseIPv6
 
-        public Boolean _UseIPv6;
+        private readonly Boolean _UseIPv6;
 
         public Boolean UseIPv6
         {
-
             get
             {
                 return _UseIPv6;
             }
-
-            set
-            {
-                _UseIPv6 = value;
-                // Change DNSClient!
-            }
-
         }
 
         #endregion
 
         #region PreferIPv6
 
-        public Boolean _PreferIPv6;
+        private readonly Boolean _PreferIPv6;
 
         public Boolean PreferIPv6
         {
-
             get
             {
                 return _PreferIPv6;
             }
+        }
 
-            set
+        #endregion
+
+        #region UseTLS
+
+        private Boolean _UseTLS;
+
+        public Boolean UseTLS
+        {
+            get
             {
-                _PreferIPv6 = value;
-                // Change DNSClient!
+                return _UseTLS;
             }
-
         }
 
         #endregion
@@ -225,9 +220,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
 
         #region CancellationToken
 
-        public CancellationToken CancellationToken { get; private set; }
+        public CancellationToken? CancellationToken { get; private set; }
 
         #endregion
+
+
+        public X509CertificateCollection ClientCertificates
+        {
+            get;
+            set;
+        }
 
 
         #region TCPSocket
@@ -239,6 +241,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
             get
             {
                 return _TCPSocket;
+            }
+        }
+
+        #endregion
+
+        #region Stream
+
+        private Stream _Stream;
+
+        public Stream Stream
+        {
+            get
+            {
+                return _Stream;
             }
         }
 
@@ -258,6 +274,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
 
         #endregion
 
+        #region TLSStream
+
+        private SslStream _TLSStream;
+
+        public SslStream TLSStream
+        {
+            get
+            {
+                return _TLSStream;
+            }
+        }
+
+        #endregion
+
         #endregion
 
         #region Events
@@ -267,6 +297,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
         public delegate void TCPConnectedDelegate(Object Sender, String DNSName, IPSocket IPSocket);
 
         public event TCPConnectedDelegate Connected;
+
+        #endregion
+
+        #region ValidateRemoteCertificate
+
+        public delegate Boolean ValidateRemoteCertificateDelegate(TCPClient Sender, X509Certificate Certificate, X509Chain CertificateChain, SslPolicyErrors PolicyErrors);
+
+        public event ValidateRemoteCertificateDelegate ValidateRemoteCertificate;
 
         #endregion
 
@@ -292,6 +330,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
                          Boolean    UseIPv4            = true,
                          Boolean    UseIPv6            = false,
                          Boolean    PreferIPv6         = false,
+                         Boolean    UseTLS             = false,
                          TimeSpan?  ConnectionTimeout  = null,
                          DNSClient  DNSClient          = null,
                          Boolean    AutoConnect        = false)
@@ -326,39 +365,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
         /// </summary>
         /// <param name="RemoteHost"></param>
         /// <param name="RemotePort"></param>
-        /// <param name="CancellationToken"></param>
         /// <param name="UseIPv4">Wether to use IPv4 as networking protocol.</param>
         /// <param name="UseIPv6">Wether to use IPv6 as networking protocol.</param>
         /// <param name="PreferIPv6">Prefer IPv6 (instead of IPv4) as networking protocol.</param>
+        /// <param name="UseTLS">Wether Transport Layer Security should be used or not.</param>
+        /// <param name="ValidateRemoteCertificate">A callback for validating the remote server certificate.</param>
         /// <param name="ConnectionTimeout">The timeout connecting to the remote service.</param>
         /// <param name="DNSClient">An optional DNS client used to resolve DNS names.</param>
         /// <param name="AutoConnect">Connect to the TCP service automatically on startup. Default is false.</param>
-        public TCPClient(String              RemoteHost,
-                         IPPort              RemotePort,
-                         CancellationToken   CancellationToken,
-                         Boolean             UseIPv4            = true,
-                         Boolean             UseIPv6            = false,
-                         Boolean             PreferIPv6         = false,
-                         TimeSpan?           ConnectionTimeout  = null,
-                         DNSClient           DNSClient          = null,
-                         Boolean             AutoConnect        = false)
+        /// <param name="CancellationToken"></param>
+        public TCPClient(String                             RemoteHost,
+                         IPPort                             RemotePort,
+                         Boolean                            UseIPv4                     = true,
+                         Boolean                            UseIPv6                     = false,
+                         Boolean                            PreferIPv6                  = false,
+                         Boolean                            UseTLS                      = false,
+                         ValidateRemoteCertificateDelegate  ValidateRemoteCertificate   = null,
+                         TimeSpan?                          ConnectionTimeout           = null,
+                         DNSClient                          DNSClient                   = null,
+                         Boolean                            AutoConnect                 = false,
+                         CancellationToken?                 CancellationToken           = null)
+
 
         {
 
-            this._RemoteHost         = RemoteHost;
-            this._RemotePort         = RemotePort;
-            this.CancellationToken   = CancellationToken;
-            this._UseIPv4            = UseIPv4;
-            this._UseIPv6            = UseIPv6;
-            this._PreferIPv6         = PreferIPv6;
+            this._RemoteHost                = RemoteHost;
+            this._RemotePort                = RemotePort;
+            this.CancellationToken          = CancellationToken != null ? CancellationToken : new CancellationToken();
+            this._UseIPv4                   = UseIPv4;
+            this._UseIPv6                   = UseIPv6;
+            this._PreferIPv6                = PreferIPv6;
+            this._UseTLS                    = UseTLS;
+            this.ValidateRemoteCertificate  = ValidateRemoteCertificate != null
+                                                  ? ValidateRemoteCertificate
+                                                  : (TCPClient, Certificate, CertificateChain, PolicyErrors) => false;
 
-            this._ConnectionTimeout  = (ConnectionTimeout.HasValue)
-                                           ? ConnectionTimeout.Value
-                                           : TimeSpan.FromSeconds(60);
+            this._ConnectionTimeout         = (ConnectionTimeout.HasValue)
+                                                  ? ConnectionTimeout.Value
+                                                  : TimeSpan.FromSeconds(60);
 
-            this._DNSClient          = (DNSClient == null)
-                                           ? new DNSClient(SearchForIPv6DNSServers: true)
-                                           : DNSClient;
+            this._DNSClient                 = (DNSClient == null)
+                                                  ? new DNSClient(SearchForIPv6DNSServers: true)
+                                                  : DNSClient;
 
             if (AutoConnect)
                 Connect();
@@ -419,13 +467,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
         private Boolean Reconnect()
         {
 
-            #region Close previous TCP stream and sockets...
+            #region Close previous streams and sockets...
 
             try
             {
 
                 if (_TCPStream != null)
+                {
                     _TCPStream.Close();
+                    _TCPStream = null;
+                }
 
             }
             catch (Exception)
@@ -434,8 +485,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
             try
             {
 
+                if (_TLSStream != null)
+                {
+                    _TLSStream.Close();
+                    _TLSStream = null;
+                }
+
+            }
+            catch (Exception)
+            { }
+
+            _Stream = null;
+
+            try
+            {
+
                 if (_TCPSocket != null)
+                {
                     _TCPSocket.Close();
+                    _TCPSocket = null;
+                }
 
             }
             catch (Exception)
@@ -448,11 +517,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
 
                 _TCPSocket = CreateAndConnectTCPSocket(CurrentIPSocket.IPAddress, CurrentIPSocket.Port);
                 _TCPStream = new NetworkStream(_TCPSocket, true);
+                _Stream    = _TCPStream;
 
             }
             catch (Exception e)
             {
+                _Stream     = null;
                 _TCPStream  = null;
+                _TLSStream  = null;
                 _TCPSocket  = null;
                 return false;
             }
@@ -510,6 +582,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
         }
 
         #endregion
+
+
+        public void EnableTLS()
+        {
+            _TLSStream = new SslStream(Stream, false, _ValidateRemoteCertificate);
+            _TLSStream.AuthenticateAsClient(RemoteHost, ClientCertificates, DefaultSslProtocols, true);
+            _Stream = _TLSStream;
+        }
+
+        private Boolean _ValidateRemoteCertificate(Object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors errors)
+        {
+
+            var ValidateRemoteCertificateLocal = ValidateRemoteCertificate;
+            if (ValidateRemoteCertificateLocal != null)
+                return ValidateRemoteCertificateLocal(this, certificate, chain, errors);
+
+            return false;
+
+        }
+
 
         #region Disconnect()
 
