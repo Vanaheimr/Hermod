@@ -150,6 +150,7 @@
     <Compile Include="Datastructures\IServer.cs" />
     <Compile Include="ICMP\IICMPPacket.cs" />
     <Compile Include="CSV\UDPCSVReceiver.cs" />
+    <Compile Include="TCP\TCPClient\TLSUsage.cs" />
     <Compile Include="TCP\TCPResult.cs" />
     <Compile Include="UDP\IUDPReceiver.cs" />
     <Compile Include="UDP\MulticastReceiver.cs" />

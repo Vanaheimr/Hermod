@@ -167,9 +167,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
 
         #region UseTLS
 
-        private Boolean _UseTLS;
+        private TLSUsage _UseTLS;
 
-        public Boolean UseTLS
+        public TLSUsage UseTLS
         {
             get
             {
@@ -225,13 +225,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
         #endregion
 
 
-        public X509CertificateCollection ClientCertificates
-        {
-            get;
-            set;
-        }
-
-
         #region TCPSocket
 
         private Socket _TCPSocket;
@@ -283,6 +276,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
             get
             {
                 return _TLSStream;
+            }
+        }
+
+        #endregion
+
+        #region TLSClientCertificates
+
+        private readonly X509CertificateCollection _TLSClientCertificates;
+
+        public X509CertificateCollection TLSClientCertificates
+        {
+            get
+            {
+                return _TLSClientCertificates;
             }
         }
 
@@ -379,7 +386,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
                          Boolean                            UseIPv4                     = true,
                          Boolean                            UseIPv6                     = false,
                          Boolean                            PreferIPv6                  = false,
-                         Boolean                            UseTLS                      = false,
+                         TLSUsage                           UseTLS                      = TLSUsage.STARTTLS,
                          ValidateRemoteCertificateDelegate  ValidateRemoteCertificate   = null,
                          TimeSpan?                          ConnectionTimeout           = null,
                          DNSClient                          DNSClient                   = null,
@@ -519,6 +526,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
                 _TCPStream = new NetworkStream(_TCPSocket, true);
                 _Stream    = _TCPStream;
 
+                if (UseTLS == TLSUsage.TLSSocket)
+                    EnableTLS();
+
             }
             catch (Exception e)
             {
@@ -584,10 +594,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
         #endregion
 
 
-        public void EnableTLS()
+        protected void EnableTLS()
         {
             _TLSStream = new SslStream(Stream, false, _ValidateRemoteCertificate);
-            _TLSStream.AuthenticateAsClient(RemoteHost, ClientCertificates, DefaultSslProtocols, true);
+            _TLSStream.AuthenticateAsClient(RemoteHost, TLSClientCertificates, DefaultSslProtocols, true);
             _Stream = _TLSStream;
         }
 
