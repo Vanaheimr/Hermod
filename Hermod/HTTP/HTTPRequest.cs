@@ -26,6 +26,7 @@ using System.Text;
 using org.GraphDefined.Vanaheimr.Illias;
 using System.Net.Sockets;
 using System.Threading;
+using System.IO;
 
 #endregion
 
@@ -573,9 +574,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region HTTP Body
 
-        private readonly NetworkStream _HTTPBodyStream;
+        private readonly Stream _HTTPBodyStream;
 
-        public NetworkStream HTTPBodyStream
+        public Stream HTTPBodyStream
         {
             get
             {
@@ -598,7 +599,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
         private HTTPRequest(IPSocket       RemoteSocket,
                             String         HTTPHeader,
-                            NetworkStream  HTTPBodyStream)
+                            Stream         HTTPBodyStream)
 
             : this(HTTPHeader)
 
@@ -716,7 +717,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public static Boolean TryParse(IPSocket         RemoteSocket,
                                        String           HTTPHeader,
-                                       NetworkStream    HTTPBodyStream,
+                                       Stream           HTTPBodyStream,
                                        out HTTPRequest  HTTPRequest)
         {
 

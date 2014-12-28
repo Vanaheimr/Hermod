@@ -26,6 +26,9 @@ using System.Net.Sockets;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
 using System.Net;
+using System.Net.Security;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
 
 #endregion
 
@@ -548,6 +551,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
+
+        public void EnableTLSServer(X509Certificate2 TLSCert)
+        {
+            var _TLSStream = new SslStream(Stream);
+            _TLSStream.AuthenticateAsServer(TLSCert, false, SslProtocols.Tls12, false);
+        }
+
+
+        public void Flush()
+        {
+            Stream.Flush();
+        }
 
         #region Close(ClosedBy = ConnectionClosedBy.Server)
 

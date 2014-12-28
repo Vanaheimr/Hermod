@@ -596,9 +596,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
 
         protected void EnableTLS()
         {
-            _TLSStream = new SslStream(Stream, false, _ValidateRemoteCertificate);
-            _TLSStream.AuthenticateAsClient(RemoteHost, TLSClientCertificates, DefaultSslProtocols, true);
-            _Stream = _TLSStream;
+
+            try
+            {
+               _TLSStream  = new SslStream(Stream, false, _ValidateRemoteCertificate);
+               _TLSStream.AuthenticateAsClient(RemoteHost, TLSClientCertificates, DefaultSslProtocols, true);
+               _Stream     = _TLSStream;
+            }
+
+            catch (Exception e)
+            {
+                Console.WriteLine("EnableTLS() failed!");
+            }
+
         }
 
         private Boolean _ValidateRemoteCertificate(Object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors errors)

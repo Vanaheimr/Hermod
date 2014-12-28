@@ -223,7 +223,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this._AllResources                     = new Dictionary<String, Assembly>();
 
-            _HTTPProcessor                         = new HTTPProcessor();
+            _HTTPProcessor                         = new HTTPProcessor(DefaultServerName);
             _HTTPProcessor.OnNotification         += ProcessBoomerang;
             _HTTPProcessor.RequestLog             += (HTTPProcessor, ServerTimestamp, Request)                                 => LogRequest(ServerTimestamp, Request);
             _HTTPProcessor.AccessLog              += (HTTPProcessor, ServerTimestamp, Request, Response)                       => LogAccess (ServerTimestamp, Request, Response);
