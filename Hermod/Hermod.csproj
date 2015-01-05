@@ -106,6 +106,24 @@
     <Compile Include="HTTP\Server\URLMapping\URIMapping.cs" />
     <Compile Include="HTTP\Server\URLMapping\URINode.cs" />
     <Compile Include="HTTP\HTTPSemantics.cs" />
+    <Compile Include="Applications\Mail\AbstractEMailBuilder.cs" />
+    <Compile Include="Applications\Mail\EMail.cs" />
+    <Compile Include="Applications\Mail\EMailBuilder.cs" />
+    <Compile Include="Applications\Mail\Helpers\ContentDispositions.cs" />
+    <Compile Include="Applications\Mail\Helpers\ContentTransferEncoding.cs" />
+    <Compile Include="Applications\Mail\Helpers\EMailAddress.cs" />
+    <Compile Include="Applications\Mail\Helpers\EMailAddressList.cs" />
+    <Compile Include="Applications\Mail\Helpers\EMailBodypart.cs" />
+    <Compile Include="Applications\Mail\Helpers\EMailBuilderExtentionMethods.cs" />
+    <Compile Include="Applications\Mail\Helpers\EMailException.cs" />
+    <Compile Include="Applications\Mail\Helpers\EMailExtentionMethods.cs" />
+    <Compile Include="Applications\Mail\Helpers\EMailSecurity.cs" />
+    <Compile Include="Applications\Mail\Helpers\EMailSecurityException.cs" />
+    <Compile Include="Applications\Mail\Helpers\MailContentTypes.cs" />
+    <Compile Include="Applications\Mail\Helpers\MessageId.cs" />
+    <Compile Include="Applications\Mail\Helpers\SimpleEMailAddress.cs" />
+    <Compile Include="Applications\Mail\HTMLEMailBuilder.cs" />
+    <Compile Include="Applications\Mail\TextEMailBuilder.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Datastructures\IIPAddress.cs" />
     <Compile Include="Datastructures\IPv6Address.cs" />
@@ -118,6 +136,20 @@
     <Compile Include="CSV\TCPCSVCommandProcessor.cs" />
     <Compile Include="Datastructures\Delegates.cs" />
     <Compile Include="CSV\SplitUDPPacketArrow.cs" />
+    <Compile Include="SMTP\SMTPClient\Helpers\MailSentStatus.cs" />
+    <Compile Include="SMTP\SMTPClient\Helpers\SMTPAuthMethods.cs" />
+    <Compile Include="SMTP\SMTPClient\Helpers\SMTPCapabilities.cs" />
+    <Compile Include="SMTP\SMTPClient\Helpers\SMTPClientException.cs" />
+    <Compile Include="SMTP\SMTPClient\Helpers\SMTPExtentions.cs" />
+    <Compile Include="SMTP\SMTPClient\SMTPClient.cs" />
+    <Compile Include="SMTP\SMTPException.cs" />
+    <Compile Include="SMTP\SMTPExtendedResponse.cs" />
+    <Compile Include="SMTP\SMTPResponse.cs" />
+    <Compile Include="SMTP\SMTPServer\Helpers\Delegates.cs" />
+    <Compile Include="SMTP\SMTPServer\Helpers\SMTPServerException.cs" />
+    <Compile Include="SMTP\SMTPServer\SMTPProcessor.cs" />
+    <Compile Include="SMTP\SMTPServer\SMTPServer.cs" />
+    <Compile Include="SMTP\SMTPStatusCode.cs" />
     <Compile Include="TCP\ConnectionClosedBy.cs" />
     <Compile Include="TCP\ATCPServers.cs" />
     <Compile Include="TCP\TCPClientResponse.cs" />
@@ -163,6 +195,10 @@
     <Compile Include="UDP\UDPSender.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\bouncycastle\crypto\crypto.csproj">
+      <Project>{38872a5f-e87e-4fad-b109-8eb7b2e6a4a0}</Project>
+      <Name>crypto</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\Illias\Illias.NET4.5\Illias.NET4.5.csproj">
       <Project>{23d37453-2d4e-4bd8-b40f-3e731fee7712}</Project>
       <Name>Illias.NET4.5</Name>
