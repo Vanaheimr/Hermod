@@ -311,7 +311,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
 
         public delegate Boolean ValidateRemoteCertificateDelegate(TCPClient Sender, X509Certificate Certificate, X509Chain CertificateChain, SslPolicyErrors PolicyErrors);
 
-        public event ValidateRemoteCertificateDelegate ValidateRemoteCertificate;
+        public event ValidateRemoteCertificateDelegate ValidateServerCertificate;
 
         #endregion
 
@@ -376,7 +376,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
         /// <param name="UseIPv6">Wether to use IPv6 as networking protocol.</param>
         /// <param name="PreferIPv6">Prefer IPv6 (instead of IPv4) as networking protocol.</param>
         /// <param name="UseTLS">Wether Transport Layer Security should be used or not.</param>
-        /// <param name="ValidateRemoteCertificate">A callback for validating the remote server certificate.</param>
+        /// <param name="ValidateServerCertificate">A callback for validating the remote server certificate.</param>
         /// <param name="ConnectionTimeout">The timeout connecting to the remote service.</param>
         /// <param name="DNSClient">An optional DNS client used to resolve DNS names.</param>
         /// <param name="AutoConnect">Connect to the TCP service automatically on startup. Default is false.</param>
@@ -387,7 +387,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
                          Boolean                            UseIPv6                     = false,
                          Boolean                            PreferIPv6                  = false,
                          TLSUsage                           UseTLS                      = TLSUsage.STARTTLS,
-                         ValidateRemoteCertificateDelegate  ValidateRemoteCertificate   = null,
+                         ValidateRemoteCertificateDelegate  ValidateServerCertificate   = null,
                          TimeSpan?                          ConnectionTimeout           = null,
                          DNSClient                          DNSClient                   = null,
                          Boolean                            AutoConnect                 = false,
@@ -403,8 +403,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
             this._UseIPv6                   = UseIPv6;
             this._PreferIPv6                = PreferIPv6;
             this._UseTLS                    = UseTLS;
-            this.ValidateRemoteCertificate  = ValidateRemoteCertificate != null
-                                                  ? ValidateRemoteCertificate
+            this.ValidateServerCertificate  = ValidateServerCertificate != null
+                                                  ? ValidateServerCertificate
                                                   : (TCPClient, Certificate, CertificateChain, PolicyErrors) => false;
 
             this._ConnectionTimeout         = (ConnectionTimeout.HasValue)
@@ -614,7 +614,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
         private Boolean _ValidateRemoteCertificate(Object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors errors)
         {
 
-            var ValidateRemoteCertificateLocal = ValidateRemoteCertificate;
+            var ValidateRemoteCertificateLocal = ValidateServerCertificate;
             if (ValidateRemoteCertificateLocal != null)
                 return ValidateRemoteCertificateLocal(this, certificate, chain, errors);
 
