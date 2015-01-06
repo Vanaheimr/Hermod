@@ -100,6 +100,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPContentType ICO                  = new HTTPContentType("image/ico");
         public static readonly HTTPContentType PNG                  = new HTTPContentType("image/png");
         public static readonly HTTPContentType JPEG                 = new HTTPContentType("image/jpeg");
+        public static readonly HTTPContentType SVG                  = new HTTPContentType("image/svg+xml");
 
         #endregion
 

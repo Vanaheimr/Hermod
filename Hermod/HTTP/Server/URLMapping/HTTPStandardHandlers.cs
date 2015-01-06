@@ -103,6 +103,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     case "gif":  ResponseContentType = HTTPContentType.GIF;             break;
                     case "jpg":  ResponseContentType = HTTPContentType.JPEG;            break;
                     case "jpeg": ResponseContentType = HTTPContentType.JPEG;            break;
+                    case "svg":  ResponseContentType = HTTPContentType.SVG;             break;
                     case "png":  ResponseContentType = HTTPContentType.PNG;             break;
                     case "ico":  ResponseContentType = HTTPContentType.ICO;             break;
                     case "swf":  ResponseContentType = HTTPContentType.SWF;             break;
@@ -247,6 +248,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      case "gif":  ResponseContentType = HTTPContentType.GIF;             break;
                                                      case "jpg":  ResponseContentType = HTTPContentType.JPEG;            break;
                                                      case "jpeg": ResponseContentType = HTTPContentType.JPEG;            break;
+                                                     case "svg":  ResponseContentType = HTTPContentType.SVG;             break;
                                                      case "png":  ResponseContentType = HTTPContentType.PNG;             break;
                                                      case "ico":  ResponseContentType = HTTPContentType.ICO;             break;
                                                      case "swf":  ResponseContentType = HTTPContentType.SWF;             break;
