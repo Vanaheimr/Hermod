@@ -437,7 +437,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
         #region Send(MailBuilder, NumberOfRetries = 3)
 
         public Task<MailSentStatus> Send(AbstractEMailBuilder  MailBuilder,
-                                         Byte          NumberOfRetries = 3)
+                                         Byte                  NumberOfRetries = 3)
         {
             return Send(MailBuilder.AsImmutable, NumberOfRetries);
         }
@@ -450,29 +450,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                                          Byte   NumberOfRetries = 3)
         {
 
-            switch (Connect())
+            return new Task<MailSentStatus>(() =>
             {
 
-                case TCP.TCPConnectResult.InvalidDomainName:
-                    break;
+                switch (Connect())
+                {
 
-                case TCP.TCPConnectResult.NoIPAddressFound:
-                    break;
+                    case TCP.TCPConnectResult.InvalidDomainName:
+                        return MailSentStatus.failed;
 
-                case TCP.TCPConnectResult.UnknownError:
-                    break;
+                    case TCP.TCPConnectResult.NoIPAddressFound:
+                        return MailSentStatus.failed;
 
-                case TCP.TCPConnectResult.Ok:
+                    case TCP.TCPConnectResult.UnknownError:
+                        return MailSentStatus.failed;
 
-                    // 220 mail.ahzf.de ESMTP Postfix (Debian/GNU)
-                    var LoginResponse = this._ReadSMTPResponse();
-                    if (LoginResponse.StatusCode != SMTPStatusCode.ServiceReady)
-                        throw new SMTPClientException("SMTP login error: " + LoginResponse.ToString());
+                    case TCP.TCPConnectResult.Ok:
 
-                    switch (LoginResponse.StatusCode)
-                    {
+                        // 220 mail.ahzf.de ESMTP Postfix (Debian/GNU)
+                        var LoginResponse = this._ReadSMTPResponse();
+                        if (LoginResponse.StatusCode != SMTPStatusCode.ServiceReady)
+                            throw new SMTPClientException("SMTP login error: " + LoginResponse.ToString());
 
-                        case SMTPStatusCode.ServiceReady:
+                        switch (LoginResponse.StatusCode)
+                        {
+
+                            case SMTPStatusCode.ServiceReady:
 
                             #region Send EHLO
 
@@ -816,13 +819,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
                             break;
 
-                    }
+                        }
 
-                    break;
+                        return MailSentStatus.ok;
 
-            }
+                    default:
+                        return MailSentStatus.failed;
 
-            return new Task<MailSentStatus>(() => MailSentStatus.ok);
+                }
+
+            });
 
         }
 

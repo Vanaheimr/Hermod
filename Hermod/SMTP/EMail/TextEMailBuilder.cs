@@ -104,7 +104,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
             return new EMailBodypart(ContentType:              MailContentTypes.text_plain,
                                      ContentTransferEncoding:  "quoted-printable",//"8bit",
-                                     Charset:                  "ISO-8859-15",//"utf-8",
+                                     Charset:                  "utf-8",//"ISO-8859-15",
                                      ContentLanguage:          ContentLanguage,
                                      Content:                  new MailBodyString(Text));
 

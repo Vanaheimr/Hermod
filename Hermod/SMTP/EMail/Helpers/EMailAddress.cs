@@ -124,7 +124,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #region Constructor(s)
 
-        #region EMailAddress(SimpleEMailAddress, PublicKey = null, SecretKey = null)
+        #region EMailAddress(SimpleEMailAddress, SecretKey = null, PublicKey = null)
 
         /// <summary>
         /// Create a new e-mail address.
@@ -133,16 +133,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// <param name="PublicKey">The public key for an e-mail address.</param>
         /// <param name="SecretKey">The secret key for an e-mail address.</param>
         public EMailAddress(SimpleEMailAddress  SimpleEMailAddress,
-                            PgpPublicKey        PublicKey   = null,
-                            PgpSecretKey        SecretKey  = null)
+                            PgpSecretKey        SecretKey   = null,
+                            PgpPublicKey        PublicKey   = null)
 
-            : this("", SimpleEMailAddress, PublicKey, SecretKey)
+            : this("", SimpleEMailAddress, SecretKey, PublicKey)
 
         { }
 
         #endregion
 
-        #region EMailAddress(SimpleEMailAddressString, PublicKey = null, SecretKey = null)
+        #region EMailAddress(SimpleEMailAddressString, SecretKey = null, PublicKey = null)
 
         /// <summary>
         /// Create a new e-mail address.
@@ -150,29 +150,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// <param name="SimpleEMailAddressString">A string representation of a simple e-mail address.</param>
         /// <param name="PublicKey">The public key for an e-mail address.</param>
         /// <param name="SecretKey">The secret key for an e-mail address.</param>
-        public EMailAddress(String SimpleEMailAddressString,
-                            PgpPublicKey   PublicKey   = null,
-                            PgpSecretKey  SecretKey  = null)
+        public EMailAddress(String        SimpleEMailAddressString,
+                            PgpSecretKey  SecretKey   = null,
+                            PgpPublicKey  PublicKey   = null)
 
-            : this("", SimpleEMailAddress.Parse(SimpleEMailAddressString), PublicKey, SecretKey)
+            : this("", SimpleEMailAddress.Parse(SimpleEMailAddressString), SecretKey, PublicKey)
 
         { }
 
         #endregion
 
-        #region EMailAddress(OwnerName, SimpleEMailAddress, PublicKey = null, SecretKey = null)
+        #region EMailAddress(OwnerName, SimpleEMailAddress, SecretKey = null, PublicKey = null)
 
         /// <summary>
         /// Create a new e-mail address.
         /// </summary>
         /// <param name="OwnerName">The name of the owner of the e-mail address.</param>
         /// <param name="SimpleEMailAddress">A simple e-mail address.</param>
-        /// <param name="PublicKey">The public key for an e-mail address.</param>
         /// <param name="SecretKey">The secret key for an e-mail address.</param>
-        public EMailAddress(String              OwnerName,
+        /// <param name="PublicKey">The public key for an e-mail address.</param>
+        public EMailAddress(String OwnerName,
                             SimpleEMailAddress  SimpleEMailAddress,
-                            PgpPublicKey        PublicKey   = null,
-                            PgpSecretKey        SecretKey   = null)
+                            PgpSecretKey        SecretKey   = null,
+                            PgpPublicKey        PublicKey   = null)
+
         {
 
             this._OwnerName   = OwnerName.Trim();
@@ -184,7 +185,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #endregion
 
-        #region EMailAddress(OwnerName, SimpleEMailAddressString, PublicKey = null, SecretKey = null)
+        #region EMailAddress(OwnerName, SimpleEMailAddressString, SecretKey = null, PublicKey = null)
 
         /// <summary>
         /// Create a new e-mail address.
@@ -193,12 +194,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// <param name="SimpleEMailAddressString">A string representation of a simple e-mail address.</param>
         /// <param name="PublicKey">The public key for an e-mail address.</param>
         /// <param name="SecretKey">The secret key for an e-mail address.</param>
-        public EMailAddress(String OwnerName,
+        public EMailAddress(String         OwnerName,
                             String         SimpleEMailAddressString,
-                            PgpPublicKey   PublicKey   = null,
-                            PgpSecretKey  SecretKey  = null)
+                            PgpSecretKey   SecretKey   = null,
+                            PgpPublicKey   PublicKey   = null)
 
-            : this(OwnerName, SimpleEMailAddress.Parse(SimpleEMailAddressString), PublicKey, SecretKey)
+            : this(OwnerName, SimpleEMailAddress.Parse(SimpleEMailAddressString), SecretKey, PublicKey)
 
         { }
 

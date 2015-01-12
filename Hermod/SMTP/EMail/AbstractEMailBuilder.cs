@@ -318,6 +318,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         #endregion
 
 
+        public String Passphrase
+        {
+            get;
+            set;
+        }
+
         #region AsImmutable
 
         /// <summary>
@@ -490,11 +496,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
             if (_Attachments.Count == 0)
             {
 
-                if (SecurityLevel == EMailSecurity.auto & From.PublicKey != null)
+                if (SecurityLevel == EMailSecurity.auto & From.SecretKey != null & Passphrase != null)
                 {
 
                     var BodypartToBeSigned  = _EncodeBodyparts();
-                    var aaaa = BodypartToBeSigned.ToText();
+                    var aaaa                = BodypartToBeSigned.ToText();
                     var DataToBeSigned      = BodypartToBeSigned.
 
                                                   // Include headers of this MIME body
@@ -514,7 +520,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
                                                   + "\r\n";
 
                     var sig = OpenPGP.CreateSignature(new MemoryStream(DataToBeSigned.ToUTF8Bytes()),
-                                                      From.SecretKey, "jenaopendata2305?!",
+                                                      From.SecretKey, Passphrase,
                                                       HashAlgorithm: HashAlgorithms.Sha512);
 
                     // MIME Security with OpenPGP (rfc3156, https://tools.ietf.org/html/rfc3156)
