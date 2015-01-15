@@ -493,76 +493,74 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         internal void EncodeBodyparts()
         {
 
+            EMailBodypart BodypartToBeSigned = null;
+
             if (_Attachments.Count == 0)
+                BodypartToBeSigned  = _EncodeBodyparts();
+
+            else
+                BodypartToBeSigned  = new EMailBodypart(ContentType:              MailContentTypes.multipart_mixed,
+                                                        ContentTransferEncoding:  "8bit",
+                                                        Charset:                  "utf-8",
+                                                        NestedBodyparts:          new EMailBodypart[] { _EncodeBodyparts() }.
+                                                                                      Concat(_Attachments)
+                                                       );
+
+
+            if (SecurityLevel        == EMailSecurity.auto &
+                From.SecretKey       != null &
+                Passphrase           != null &
+                To.First().PublicKey == null)
             {
 
-                if (SecurityLevel == EMailSecurity.auto & From.SecretKey != null & Passphrase != null)
-                {
+                var DataToBeSigned      = BodypartToBeSigned.
 
-                    var BodypartToBeSigned  = _EncodeBodyparts();
-                    var aaaa                = BodypartToBeSigned.ToText();
-                    var DataToBeSigned      = BodypartToBeSigned.
+                                              // Include headers of this MIME body
+                                              // https://tools.ietf.org/html/rfc1847 Security Multiparts for MIME:
+                                              ToText().
 
-                                                  // Include headers of this MIME body
-                                                  // https://tools.ietf.org/html/rfc1847 Security Multiparts for MIME:
-                                                  ToText().
+                                              // Any trailing whitespace MUST then be removed from the signed material
+                                              Select(line => line.TrimEnd()).
 
-                                                  // Any trailing whitespace MUST then be removed from the signed material
-                                                  Select(line => line.TrimEnd()).
+                                              // Canonical text format with <CR><LF> line endings
+                                              // https://tools.ietf.org/html/rfc3156 5. OpenPGP signed data
+                                              Aggregate((a, b) => a + "\r\n" + b)
 
-                                                  // Canonical text format with <CR><LF> line endings
-                                                  // https://tools.ietf.org/html/rfc3156 5. OpenPGP signed data
-                                                  Aggregate((a, b) => a + "\r\n" + b)
+                                              // Apply Content-Transfer-Encoding
 
-                                                  // Apply Content-Transfer-Encoding
+                                              // Additional new line
+                                              + "\r\n";
 
-                                                  // Additional new line
-                                                  + "\r\n";
+                var sig = OpenPGP.CreateSignature(new MemoryStream(DataToBeSigned.ToUTF8Bytes()),
+                                                  From.SecretKey, Passphrase,
+                                                  HashAlgorithm: HashAlgorithms.Sha512);
 
-                    var sig = OpenPGP.CreateSignature(new MemoryStream(DataToBeSigned.ToUTF8Bytes()),
-                                                      From.SecretKey, Passphrase,
-                                                      HashAlgorithm: HashAlgorithms.Sha512);
-
-                    // MIME Security with OpenPGP (rfc3156, https://tools.ietf.org/html/rfc3156)
-                    // OpenPGP Message Format     (rfc4880, https://tools.ietf.org/html/rfc4880)
-                    _Body = new EMailBodypart(ContentType:                 MailContentTypes.multipart_signed,
-                                              AdditionalContentTypeInfos:  new List<KeyValuePair<String, String>>() {
-                                                                               new KeyValuePair<String, String>("micalg",   "pgp-sha512"),
-                                                                               new KeyValuePair<String, String>("protocol", "application/pgp-signature"),
-                                                                           },
-                                              ContentTransferEncoding:     "8bit",
-                                              Charset:                     "utf-8",
-                                              NestedBodyparts:             new EMailBodypart[] {
-                                                                               BodypartToBeSigned,
-                                                                               new EMailBodypart(ContentType:              MailContentTypes.application_pgp__signature,
-                                                                                             //    ContentTransferEncoding:  "8bit",
-                                                                                                 Charset:                  "utf-8",
-                                                                                                 ContentDescription:       "OpenPGP digital signature",
-                                                                                                 AdditionalHeaders:        new List<KeyValuePair<String, String>>() {
-                                                                                                                               new KeyValuePair<String, String>("Content-Disposition", ContentDispositions.attachment.ToString() + "; filename=\"signature.asc\""),
-                                                                                                                           },
-                                                                                                 Content:                  new MailBodyString(sig.WriteTo(new MemoryStream(), CloseOutputStream: false).ToUTF8String()))
-                                                                           }
-                                             );
-
-                }
-
-                else
-                    this._Body = _EncodeBodyparts();
+                // MIME Security with OpenPGP (rfc3156, https://tools.ietf.org/html/rfc3156)
+                // OpenPGP Message Format     (rfc4880, https://tools.ietf.org/html/rfc4880)
+                _Body = new EMailBodypart(ContentType:                 MailContentTypes.multipart_signed,
+                                          AdditionalContentTypeInfos:  new List<KeyValuePair<String, String>>() {
+                                                                           new KeyValuePair<String, String>("micalg",   "pgp-sha512"),
+                                                                           new KeyValuePair<String, String>("protocol", "application/pgp-signature"),
+                                                                       },
+                                          ContentTransferEncoding:     "8bit",
+                                          Charset:                     "utf-8",
+                                          NestedBodyparts:             new EMailBodypart[] {
+                                                                           BodypartToBeSigned,
+                                                                           new EMailBodypart(ContentType:              MailContentTypes.application_pgp__signature,
+                                                                                         //    ContentTransferEncoding:  "8bit",
+                                                                                             Charset:                  "utf-8",
+                                                                                             ContentDescription:       "OpenPGP digital signature",
+                                                                                             AdditionalHeaders:        new List<KeyValuePair<String, String>>() {
+                                                                                                                           new KeyValuePair<String, String>("Content-Disposition", ContentDispositions.attachment.ToString() + "; filename=\"signature.asc\""),
+                                                                                                                       },
+                                                                                             Content:                  new MailBodyString(sig.WriteTo(new MemoryStream(), CloseOutputStream: false).ToUTF8String()))
+                                                                       }
+                                         );
 
             }
 
             else
-            {
-
-                _Body = new EMailBodypart(ContentType:              MailContentTypes.multipart_mixed,
-                                          ContentTransferEncoding:  "8bit",
-                                          Charset:                  "utf-8",
-                                          NestedBodyparts:          new EMailBodypart[] { _EncodeBodyparts() }.
-                                                                        Concat(_Attachments)
-                                         );
-
-            }
+                this._Body = _EncodeBodyparts();
 
         }
 
