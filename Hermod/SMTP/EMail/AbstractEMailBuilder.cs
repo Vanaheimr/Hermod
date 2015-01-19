@@ -64,12 +64,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
     public abstract class AbstractEMailBuilder
     {
 
-        //ToDo: "Resent-From", "Resent-Reply-To", "Resent-To", "Resent-Cc", "Resent-Bcc",
-        // readonly MessageIdList   references;
-        // MailboxAddress           resentSender;
-        // DateTimeOffset           resentDate;
-        // string                   resentMessageId;
-
         #region Data
 
         protected internal Dictionary<String, String>  _AdditionalHeaders;
@@ -79,12 +73,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #region Properties
 
+        //ToDo: "resentSender", "resentDate", "resentMessageId", "Resent-From", 
+        //      "Resent-Reply-To", "Resent-To", "Resent-Cc", "Resent-Bcc",
+
         #region From
 
         private EMailAddress _From;
 
         /// <summary>
-        /// The sender of the e-mail.
+        /// The sender of this e-mail.
         /// </summary>
         public EMailAddress From
         {
@@ -109,7 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         private readonly EMailAddressList _To;
 
         /// <summary>
-        /// The receivers of the e-mail.
+        /// The receivers of this e-mail.
         /// </summary>
         public EMailAddressList To
         {
@@ -159,7 +156,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         private readonly EMailAddressList _Cc;
 
         /// <summary>
-        /// Additional receivers of the e-mail.
+        /// Additional receivers of this e-mail.
         /// </summary>
         public EMailAddressList Cc
         {
@@ -184,7 +181,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         private readonly EMailAddressList _Bcc;
 
         /// <summary>
-        /// Hidden receivers of the e-mail.
+        /// Additional but hidden receivers of this e-mail.
         /// </summary>
         public EMailAddressList Bcc
         {
@@ -209,7 +206,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         private String _Subject;
 
         /// <summary>
-        /// The subject of the e-mail.
+        /// The subject of this e-mail.
         /// </summary>
         public String Subject
         {
@@ -231,22 +228,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #region Date
 
-        private DateTime _Date;
-
-        public DateTime Date
-        {
-
-            get
-            {
-                return _Date;
-            }
-
-            set
-            {
-                _Date = value;
-            }
-
-        }
+        /// <summary>
+        /// The sending timestamp of this e-mail.
+        /// </summary>
+        public DateTime Date { get; set; }
 
         #endregion
 
@@ -275,26 +260,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #endregion
 
-        #region SecurityLevel
+        private readonly MessageId _Reference;
 
-        private EMailSecurity _SecurityLevel;
+        private readonly List<MessageId> _References;
+
+        #region SecurityLevel
 
         /// <summary>
         /// The security level of the e-mail.
         /// </summary>
-        public EMailSecurity SecurityLevel
+        public EMailSecurity SecurityLevel { get; set; }
+
+        #endregion
+
+        #region Passphrase
+
+        public String Passphrase
         {
-
-            get
-            {
-                return _SecurityLevel;
-            }
-
-            set
-            {
-                _SecurityLevel = value;
-            }
-
+            get;
+            set;
         }
 
         #endregion
@@ -317,12 +301,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #endregion
 
-
-        public String Passphrase
-        {
-            get;
-            set;
-        }
 
         #region AsImmutable
 
@@ -359,24 +337,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         public AbstractEMailBuilder()
         {
 
-            this._SecurityLevel      = EMailSecurity.auto;
-
             this._To                 = new EMailAddressList();
             this._ReplyTo            = new EMailAddressList();
             this._Cc                 = new EMailAddressList();
             this._Bcc                = new EMailAddressList();
             this._Subject            = "";
-            this._Date               = DateTime.Now;
+            this. Date               = DateTime.Now;
+            this._References         = new List<MessageId>();
             this._AdditionalHeaders  = new Dictionary<String, String>();
             this._Attachments        = new List<EMailBodypart>();
+
+            this. SecurityLevel      = EMailSecurity.autosign;
 
         }
 
         #endregion
 
-        #region AbstractEMailBuilder(Lines)
+        #region AbstractEMailBuilder(TextLines)
 
-        public AbstractEMailBuilder(IEnumerable<String> Lines)
+        /// <summary>
+        /// Parse the given text lines.
+        /// </summary>
+        /// <param name="TextLines">An enumeration of strings.</param>
+        public AbstractEMailBuilder(IEnumerable<String> TextLines)
         {
 
             var Body         = new List<String>();
@@ -385,7 +368,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
             String Property  = null;
             String Value     = null;
 
-            foreach (var Line in Lines)
+            foreach (var Line in TextLines)
             {
 
                 if (ReadBody)
@@ -439,11 +422,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         #endregion
 
 
+        #region AddHeaderValues(Key, Value)
 
         public AbstractEMailBuilder AddHeaderValues(String Key, String Value)
         {
 
-            switch (Key) //.ToLower())
+            //FixMe!
+            switch (Key.ToLower())
             {
 
                 case "from":
@@ -471,8 +456,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         }
 
+        #endregion
+
         #region AddAttachment(EMailBodypart)
 
+        /// <summary>
+        /// Add an attachment to this e-mail.
+        /// </summary>
+        /// <param name="EMailBodypart">An attachment.</param>
         public AbstractEMailBuilder AddAttachment(EMailBodypart EMailBodypart)
         {
             _Attachments.Add(EMailBodypart);
@@ -484,16 +475,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #region (protected, abstract) EncodeBodyparts()
 
+        /// <summary>
+        /// Encode all nested e-mail body parts.
+        /// </summary>
         protected abstract EMailBodypart _EncodeBodyparts();
 
         #endregion
 
         #region (internal) EncodeBodyparts()
 
+        /// <summary>
+        /// Encode this and all nested e-mail body parts.
+        /// </summary>
         internal void EncodeBodyparts()
         {
 
+            var SignTheMail     = false;
+            var EncryptTheMail  = false;
+
             EMailBodypart BodypartToBeSigned = null;
+
+            #region Add attachments, if available...
 
             if (_Attachments.Count == 0)
                 BodypartToBeSigned  = _EncodeBodyparts();
@@ -506,11 +508,63 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
                                                                                       Concat(_Attachments)
                                                        );
 
+            #endregion
 
-            if (SecurityLevel        == EMailSecurity.auto &
-                From.SecretKey       != null &
-                Passphrase           != null &
-                To.First().PublicKey == null)
+            #region Check security settings
+
+            switch (SecurityLevel)
+            {
+
+                case EMailSecurity.autosign:
+
+                    if (From.SecretKey != null & Passphrase.IsNotNullOrEmpty())
+                        SignTheMail = true;
+
+                    break;
+
+
+                case EMailSecurity.sign:
+
+                    if (From.SecretKey == null | Passphrase.IsNullOrEmpty())
+                        throw new ApplicationException("Can not sign the e-mail!");
+
+                    SignTheMail = true;
+
+                    break;
+
+
+                case EMailSecurity.auto:
+
+                    if (From.SecretKey != null & Passphrase.IsNotNullOrEmpty())
+                        SignTheMail = true;
+
+                    if (SignTheMail                      &&
+                        To.Any(v => v.PublicKey != null) &&
+                        Cc.Any(v => v.PublicKey != null))
+                        EncryptTheMail = true;
+
+                    break;
+
+
+                case EMailSecurity.encrypt:
+
+                    if (From.SecretKey          == null  |
+                        Passphrase.IsNullOrEmpty()       |
+                        To.Any(v => v.PublicKey == null) |
+                        Cc.Any(v => v.PublicKey == null))
+                        throw new ApplicationException("Can not sign and encrypt the e-mail!");
+
+                    EncryptTheMail = true;
+
+                    break;
+
+            }
+
+            #endregion
+
+            #region Sign the e-mail
+
+            if (SignTheMail & !EncryptTheMail)
             {
 
                 var DataToBeSigned      = BodypartToBeSigned.
@@ -531,10 +585,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
                                               // Additional new line
                                               + "\r\n";
 
-                var sig = OpenPGP.CreateSignature(new MemoryStream(DataToBeSigned.ToUTF8Bytes()),
-                                                  From.SecretKey, Passphrase,
-                                                  HashAlgorithm: HashAlgorithms.Sha512);
-
                 // MIME Security with OpenPGP (rfc3156, https://tools.ietf.org/html/rfc3156)
                 // OpenPGP Message Format     (rfc4880, https://tools.ietf.org/html/rfc4880)
                 _Body = new EMailBodypart(ContentType:                 MailContentTypes.multipart_signed,
@@ -545,19 +595,68 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
                                           ContentTransferEncoding:     "8bit",
                                           Charset:                     "utf-8",
                                           NestedBodyparts:             new EMailBodypart[] {
+
                                                                            BodypartToBeSigned,
+
                                                                            new EMailBodypart(ContentType:              MailContentTypes.application_pgp__signature,
                                                                                          //    ContentTransferEncoding:  "8bit",
                                                                                              Charset:                  "utf-8",
                                                                                              ContentDescription:       "OpenPGP digital signature",
-                                                                                             AdditionalHeaders:        new List<KeyValuePair<String, String>>() {
-                                                                                                                           new KeyValuePair<String, String>("Content-Disposition", ContentDispositions.attachment.ToString() + "; filename=\"signature.asc\""),
-                                                                                                                       },
-                                                                                             Content:                  new MailBodyString(sig.WriteTo(new MemoryStream(), CloseOutputStream: false).ToUTF8String()))
+                                                                                             ContentDisposition:       ContentDispositions.attachment.ToString() + "; filename=\"signature.asc\"",
+                                                                                             Content:                  new MailBodyString(
+
+                                                                                                                           OpenPGP.CreateSignature(new MemoryStream(DataToBeSigned.ToUTF8Bytes()),
+                                                                                                                                                   From.SecretKey,
+                                                                                                                                                   Passphrase,
+                                                                                                                                                   HashAlgorithm: HashAlgorithms.Sha512).
+
+                                                                                                                                   WriteTo(new MemoryStream(),
+                                                                                                                                           CloseOutputStream: false).
+                                                                                                                                       ToUTF8String())
+
+                                                                                                                       )
+
                                                                        }
                                          );
 
             }
+
+            #endregion
+
+            #region Encrypt the e-mail
+
+            else if (SignTheMail & EncryptTheMail)
+            {
+
+                // MIME Security with OpenPGP (rfc3156, https://tools.ietf.org/html/rfc3156)
+                // OpenPGP Message Format     (rfc4880, https://tools.ietf.org/html/rfc4880)
+                _Body = new EMailBodypart(ContentType:                 MailContentTypes.multipart_encrypted,
+                                          AdditionalContentTypeInfos:  new List<KeyValuePair<String, String>>() {
+                                                                           new KeyValuePair<String, String>("protocol", "application/pgp-encrypted"),
+                                                                       },
+                                          ContentTransferEncoding:     "8bit",
+                                          Charset:                     "utf-8",
+                                          NestedBodyparts:             new EMailBodypart[] {
+
+                                                                           new EMailBodypart(ContentType:          MailContentTypes.application_pgp__encrypted,
+                                                                                             Charset:              "utf-8",
+                                                                                             ContentDescription:   "PGP/MIME version identification",
+                                                                                             ContentDisposition:   ContentDispositions.attachment.ToString() + "; filename=\"signature.asc\"",
+                                                                                             Content:              new MailBodyString("Version: 1")),
+
+                                                                           new EMailBodypart(ContentType:          MailContentTypes.application_octet__stream,
+                                                                                             Charset:              "utf-8",
+                                                                                             ContentDescription:   "OpenPGP encrypted message",
+                                                                                             ContentDisposition:   ContentDispositions.inline.ToString() + "; filename=\"encrypted.asc\"",
+                                                                                             Content:              new MailBodyString(BodypartToBeSigned.ToString())),
+
+                                                                       }
+                                         );
+
+            }
+
+            #endregion
+
 
             else
                 this._Body = _EncodeBodyparts();

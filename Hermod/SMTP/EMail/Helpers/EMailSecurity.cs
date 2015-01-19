@@ -18,12 +18,37 @@
 namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 {
 
+    /// <summary>
+    /// The security level of an e-mail.
+    /// </summary>
     public enum EMailSecurity
     {
 
+        /// <summary>
+        /// Do not use any security features.
+        /// </summary>
         none,
-        auto,
+
+        /// <summary>
+        /// Choose wether to sign the e-mail automagically.
+        /// Will not fail if signing is not possible.
+        /// </summary>
+        autosign,
+
+        /// <summary>
+        /// Signing the e-mail is mandatory.
+        /// </summary>
         sign,
+
+        /// <summary>
+        /// Choose wether to sign and encrypt the e-mail automagically.
+        /// Will not fail if signing and encryption is not possible.
+        /// </summary>
+        auto,
+
+        /// <summary>
+        /// Signing and encrypting the e-mail is mandatory.
+        /// </summary>
         encrypt
 
     }

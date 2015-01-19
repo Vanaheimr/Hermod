@@ -115,6 +115,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #endregion
 
+        #region ContentDisposition
+
+        private String _ContentDisposition;
+
+        /// <summary>
+        /// Content-Disposition
+        /// </summary>
+        public String ContentDisposition
+        {
+            get
+            {
+                return _ContentDisposition;
+            }
+        }
+
+        #endregion
+
         #region MIMEBoundary
 
         private String _MIMEBoundary;
@@ -170,7 +187,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
                        _ContentTransferEncoding != null ? "Content-Transfer-Encoding: " + _ContentTransferEncoding : null,
                        _ContentLanguage.   IsNotNullOrEmpty() ? "Content-Language: "    + _ContentLanguage    : null,
-                       _ContentDescription.IsNotNullOrEmpty() ? "Content-Description: " + _ContentDescription : null
+                       _ContentDescription.IsNotNullOrEmpty() ? "Content-Description: " + _ContentDescription : null,
+                       _ContentDisposition.IsNotNullOrEmpty() ? "Content-Disposition: " + _ContentDisposition : null
 
                 }.
                 Where(line => line.IsNotNullOrEmpty()).
@@ -212,6 +230,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
                              String                                     Charset                     = "utf-8",
                              String                                     ContentLanguage             = null,
                              String                                     ContentDescription          = null,
+                             String                                     ContentDisposition          = null,
                              String                                     MIMEBoundary                = null,
                              IEnumerable<KeyValuePair<String, String>>  AdditionalContentTypeInfos  = null,
                              IEnumerable<KeyValuePair<String, String>>  AdditionalHeaders           = null,
@@ -225,6 +244,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
             this._Charset                     = Charset.                IsNotNullOrEmpty() ? Charset                 : "utf-8";
             this._ContentLanguage             = ContentLanguage;
             this._ContentDescription          = ContentDescription;
+            this._ContentDisposition          = ContentDisposition;
             this._MIMEBoundary                = MIMEBoundary.           IsNotNullOrEmpty() ? MIMEBoundary            : "-8<--" +
                                                     _ContentType.ToString().Replace("_", "/") + "--8<--" +
                                                     _Random.GetBytes(12).ToHexString() + "--8<-";
