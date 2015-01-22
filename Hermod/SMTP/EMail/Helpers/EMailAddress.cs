@@ -18,6 +18,7 @@
 #region Usings
 
 using System;
+using System.Linq;
 using System.Diagnostics;
 
 using Org.BouncyCastle.Bcpg.OpenPgp;
@@ -70,35 +71,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #endregion
 
-        #region SecretKey
+        #region SecretKeyRing
 
-        private readonly PgpSecretKey _SecretKey;
+        private readonly PgpSecretKeyRing _SecretKeyRing;
 
         /// <summary>
-        /// The secret key for the given e-mail address.
+        /// The secret key ring for the given e-mail address.
         /// </summary>
-        public PgpSecretKey SecretKey
+        public PgpSecretKeyRing SecretKeyRing
         {
             get
             {
-                return _SecretKey;
+                return _SecretKeyRing;
             }
         }
 
         #endregion
 
-        #region PublicKey
+        #region PublicKeyRing
 
-        private readonly PgpPublicKey _PublicKey;
+        private readonly PgpPublicKeyRing _PublicKeyRing;
 
         /// <summary>
-        /// The public key for the given e-mail address.
+        /// The public key ring for the given e-mail address.
         /// </summary>
-        public PgpPublicKey PublicKey
+        public PgpPublicKeyRing PublicKeyRing
         {
             get
             {
-                return _PublicKey;
+                return _PublicKeyRing;
             }
         }
 
@@ -112,8 +113,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
             {
 
                 return this.ToString() +
-                       (PublicKey  != null ? " publickey: "  + _PublicKey. KeyId : "") +
-                       (SecretKey != null ? " privatekey: " + _SecretKey.KeyId : "");
+                       (PublicKeyRing != null ? " publickey: "  + _PublicKeyRing.First().KeyId + " (" + _PublicKeyRing.Count() + ")" : "") +
+                       (SecretKeyRing != null ? " privatekey: " + _SecretKeyRing.First().KeyId + " (" + _PublicKeyRing.Count() + ")" : "");
 
             }
         }
@@ -124,82 +125,82 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #region Constructor(s)
 
-        #region EMailAddress(SimpleEMailAddress, SecretKey = null, PublicKey = null)
+        #region EMailAddress(SimpleEMailAddress, SecretKeyRing = null, PublicKeyRing = null)
 
         /// <summary>
         /// Create a new e-mail address.
         /// </summary>
         /// <param name="SimpleEMailAddress">A simple e-mail address.</param>
-        /// <param name="PublicKey">The public key for an e-mail address.</param>
-        /// <param name="SecretKey">The secret key for an e-mail address.</param>
+        /// <param name="PublicKey">The public key ring for an e-mail address.</param>
+        /// <param name="SecretKey">The secret key ring for an e-mail address.</param>
         public EMailAddress(SimpleEMailAddress  SimpleEMailAddress,
-                            PgpSecretKey        SecretKey   = null,
-                            PgpPublicKey        PublicKey   = null)
+                            PgpSecretKeyRing    SecretKeyRing  = null,
+                            PgpPublicKeyRing    PublicKeyRing  = null)
 
-            : this("", SimpleEMailAddress, SecretKey, PublicKey)
+            : this("", SimpleEMailAddress, SecretKeyRing, PublicKeyRing)
 
         { }
 
         #endregion
 
-        #region EMailAddress(SimpleEMailAddressString, SecretKey = null, PublicKey = null)
+        #region EMailAddress(SimpleEMailAddressString, SecretKeyRing = null, PublicKeyRing = null)
 
         /// <summary>
         /// Create a new e-mail address.
         /// </summary>
         /// <param name="SimpleEMailAddressString">A string representation of a simple e-mail address.</param>
-        /// <param name="PublicKey">The public key for an e-mail address.</param>
-        /// <param name="SecretKey">The secret key for an e-mail address.</param>
-        public EMailAddress(String        SimpleEMailAddressString,
-                            PgpSecretKey  SecretKey   = null,
-                            PgpPublicKey  PublicKey   = null)
+        /// <param name="PublicKey">The public key ring for an e-mail address.</param>
+        /// <param name="SecretKey">The secret key ring for an e-mail address.</param>
+        public EMailAddress(String            SimpleEMailAddressString,
+                            PgpSecretKeyRing  SecretKeyRing = null,
+                            PgpPublicKeyRing  PublicKeyRing = null)
 
-            : this("", SimpleEMailAddress.Parse(SimpleEMailAddressString), SecretKey, PublicKey)
+            : this("", SimpleEMailAddress.Parse(SimpleEMailAddressString), SecretKeyRing, PublicKeyRing)
 
         { }
 
         #endregion
 
-        #region EMailAddress(OwnerName, SimpleEMailAddress, SecretKey = null, PublicKey = null)
+        #region EMailAddress(OwnerName, SimpleEMailAddress, SecretKeyRing = null, PublicKeyRing = null)
 
         /// <summary>
         /// Create a new e-mail address.
         /// </summary>
         /// <param name="OwnerName">The name of the owner of the e-mail address.</param>
         /// <param name="SimpleEMailAddress">A simple e-mail address.</param>
-        /// <param name="SecretKey">The secret key for an e-mail address.</param>
-        /// <param name="PublicKey">The public key for an e-mail address.</param>
+        /// <param name="SecretKey">The secret key ring for an e-mail address.</param>
+        /// <param name="PublicKey">The public key ring for an e-mail address.</param>
         public EMailAddress(String OwnerName,
                             SimpleEMailAddress  SimpleEMailAddress,
-                            PgpSecretKey        SecretKey   = null,
-                            PgpPublicKey        PublicKey   = null)
+                            PgpSecretKeyRing    SecretKeyRing = null,
+                            PgpPublicKeyRing    PublicKeyRing = null)
 
         {
 
-            this._OwnerName   = OwnerName.Trim();
-            this._Address     = SimpleEMailAddress;
-            this._PublicKey   = PublicKey;
-            this._SecretKey   = SecretKey;
+            this._OwnerName      = OwnerName.Trim();
+            this._Address        = SimpleEMailAddress;
+            this._PublicKeyRing  = PublicKeyRing;
+            this._SecretKeyRing  = SecretKeyRing;
 
         }
 
         #endregion
 
-        #region EMailAddress(OwnerName, SimpleEMailAddressString, SecretKey = null, PublicKey = null)
+        #region EMailAddress(OwnerName, SimpleEMailAddressString, SecretKeyRing = null, PublicKeyRing = null)
 
         /// <summary>
         /// Create a new e-mail address.
         /// </summary>
         /// <param name="OwnerName">The name of the owner of the e-mail address.</param>
         /// <param name="SimpleEMailAddressString">A string representation of a simple e-mail address.</param>
-        /// <param name="PublicKey">The public key for an e-mail address.</param>
-        /// <param name="SecretKey">The secret key for an e-mail address.</param>
-        public EMailAddress(String         OwnerName,
-                            String         SimpleEMailAddressString,
-                            PgpSecretKey   SecretKey   = null,
-                            PgpPublicKey   PublicKey   = null)
+        /// <param name="PublicKey">The public key ring for an e-mail address.</param>
+        /// <param name="SecretKey">The secret key ring for an e-mail address.</param>
+        public EMailAddress(String            OwnerName,
+                            String            SimpleEMailAddressString,
+                            PgpSecretKeyRing  SecretKeyRing = null,
+                            PgpPublicKeyRing  PublicKeyRing = null)
 
-            : this(OwnerName, SimpleEMailAddress.Parse(SimpleEMailAddressString), SecretKey, PublicKey)
+            : this(OwnerName, SimpleEMailAddress.Parse(SimpleEMailAddressString), SecretKeyRing, PublicKeyRing)
 
         { }
 

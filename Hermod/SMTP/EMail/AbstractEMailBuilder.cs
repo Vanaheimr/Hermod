@@ -273,6 +273,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #endregion
 
+        #region SymmetricKeyAlgorithm
+
+        /// <summary>
+        /// The symmetric key algorithm to use.
+        /// </summary>
+        public SymmetricKeyAlgorithms SymmetricKeyAlgorithm { get; set; }
+
+        #endregion
+
+        #region HashAlgorithm
+
+        /// <summary>
+        /// The hash algorithm to use.
+        /// </summary>
+        public HashAlgorithms HashAlgorithm { get; set; }
+
+        #endregion
+
+        #region CompressionAlgorithm
+
+        /// <summary>
+        /// The compression algorithm to use.
+        /// </summary>
+        public CompressionAlgorithms CompressionAlgorithm { get; set; }
+
+        #endregion
+
         #region Passphrase
 
         public String Passphrase
@@ -337,17 +364,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         public AbstractEMailBuilder()
         {
 
-            this._To                 = new EMailAddressList();
-            this._ReplyTo            = new EMailAddressList();
-            this._Cc                 = new EMailAddressList();
-            this._Bcc                = new EMailAddressList();
-            this._Subject            = "";
-            this. Date               = DateTime.Now;
-            this._References         = new List<MessageId>();
-            this._AdditionalHeaders  = new Dictionary<String, String>();
-            this._Attachments        = new List<EMailBodypart>();
+            this._To                    = new EMailAddressList();
+            this._ReplyTo               = new EMailAddressList();
+            this._Cc                    = new EMailAddressList();
+            this._Bcc                   = new EMailAddressList();
+            this._Subject               = "";
+            this. Date                  = DateTime.Now;
+            this._References            = new List<MessageId>();
+            this._AdditionalHeaders     = new Dictionary<String, String>();
+            this._Attachments           = new List<EMailBodypart>();
 
-            this. SecurityLevel      = EMailSecurity.autosign;
+            this.SecurityLevel          = EMailSecurity.auto;
+            this.SymmetricKeyAlgorithm  = SymmetricKeyAlgorithms.Aes256;
+            this.HashAlgorithm          = HashAlgorithms.Sha512;
+            this.CompressionAlgorithm   = CompressionAlgorithms.Zip;
 
         }
 
@@ -493,15 +523,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
             var SignTheMail     = false;
             var EncryptTheMail  = false;
 
-            EMailBodypart BodypartToBeSigned = null;
+            EMailBodypart BodypartToBeSecured = null;
 
             #region Add attachments, if available...
 
             if (_Attachments.Count == 0)
-                BodypartToBeSigned  = _EncodeBodyparts();
+                BodypartToBeSecured  = _EncodeBodyparts();
 
             else
-                BodypartToBeSigned  = new EMailBodypart(ContentType:              MailContentTypes.multipart_mixed,
+                BodypartToBeSecured  = new EMailBodypart(ContentType:              MailContentTypes.multipart_mixed,
                                                         ContentTransferEncoding:  "8bit",
                                                         Charset:                  "utf-8",
                                                         NestedBodyparts:          new EMailBodypart[] { _EncodeBodyparts() }.
@@ -510,6 +540,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
             #endregion
 
+            var ma = new EMailAddress(this.To.First().OwnerName, this.To.First().Address,
+                                      PublicKeyRing: OpenPGP.ReadPublicKeyRing(File.OpenRead("achim_at_ahzf.de.asc")));
+            this.To.Clear();
+            this.To.Add(ma);
+
             #region Check security settings
 
             switch (SecurityLevel)
@@ -517,7 +552,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
                 case EMailSecurity.autosign:
 
-                    if (From.SecretKey != null & Passphrase.IsNotNullOrEmpty())
+                    if (From.SecretKeyRing != null &
+                        From.SecretKeyRing.Any()   &
+                        Passphrase.IsNotNullOrEmpty())
                         SignTheMail = true;
 
                     break;
@@ -525,7 +562,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
                 case EMailSecurity.sign:
 
-                    if (From.SecretKey == null | Passphrase.IsNullOrEmpty())
+                    if (From.SecretKeyRing == null |
+                       !From.SecretKeyRing.Any()   |
+                        Passphrase.IsNullOrEmpty())
                         throw new ApplicationException("Can not sign the e-mail!");
 
                     SignTheMail = true;
@@ -535,12 +574,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
                 case EMailSecurity.auto:
 
-                    if (From.SecretKey != null & Passphrase.IsNotNullOrEmpty())
+                    if (From.SecretKeyRing != null &
+                        From.SecretKeyRing.Any()   &
+                        Passphrase.IsNotNullOrEmpty())
                         SignTheMail = true;
 
-                    if (SignTheMail                      &&
-                        To.Any(v => v.PublicKey != null) &&
-                        Cc.Any(v => v.PublicKey != null))
+                    if (SignTheMail &&
+                        (!To.Any() | To.Any(v => v.PublicKeyRing != null & v.PublicKeyRing.Any() )) &&
+                        (!Cc.Any() | Cc.Any(v => v.PublicKeyRing != null & v.PublicKeyRing.Any() )))
                         EncryptTheMail = true;
 
                     break;
@@ -548,10 +589,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
                 case EMailSecurity.encrypt:
 
-                    if (From.SecretKey          == null  |
+                    if (From.SecretKeyRing == null  |
+                       !From.SecretKeyRing.Any() |
                         Passphrase.IsNullOrEmpty()       |
-                        To.Any(v => v.PublicKey == null) |
-                        Cc.Any(v => v.PublicKey == null))
+                        To.Any(v => v.PublicKeyRing == null | !v.PublicKeyRing.Any() ) |
+                        Cc.Any(v => v.PublicKeyRing == null | !v.PublicKeyRing.Any() ))
                         throw new ApplicationException("Can not sign and encrypt the e-mail!");
 
                     EncryptTheMail = true;
@@ -567,7 +609,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
             if (SignTheMail & !EncryptTheMail)
             {
 
-                var DataToBeSigned      = BodypartToBeSigned.
+                var DataToBeSigned      = BodypartToBeSecured.
 
                                               // Include headers of this MIME body
                                               // https://tools.ietf.org/html/rfc1847 Security Multiparts for MIME:
@@ -596,7 +638,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
                                           Charset:                     "utf-8",
                                           NestedBodyparts:             new EMailBodypart[] {
 
-                                                                           BodypartToBeSigned,
+                                                                           BodypartToBeSecured,
 
                                                                            new EMailBodypart(ContentType:              MailContentTypes.application_pgp__signature,
                                                                                          //    ContentTransferEncoding:  "8bit",
@@ -606,12 +648,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
                                                                                              Content:                  new MailBodyString(
 
                                                                                                                            OpenPGP.CreateSignature(new MemoryStream(DataToBeSigned.ToUTF8Bytes()),
-                                                                                                                                                   From.SecretKey,
+                                                                                                                                                   From.SecretKeyRing.First(),
                                                                                                                                                    Passphrase,
-                                                                                                                                                   HashAlgorithm: HashAlgorithms.Sha512).
+                                                                                                                                                   HashAlgorithm: HashAlgorithm).
 
-                                                                                                                                   WriteTo(new MemoryStream(),
-                                                                                                                                           CloseOutputStream: false).
+                                                                                                                                   WriteTo(new MemoryStream(), CloseOutputStream: false).
                                                                                                                                        ToUTF8String())
 
                                                                                                                        )
@@ -627,6 +668,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
             else if (SignTheMail & EncryptTheMail)
             {
+
+                var Plaintext   = BodypartToBeSecured.ToText().Aggregate((a, b) => a + "\r\n" + b).ToUTF8Bytes();
+                var Ciphertext  = new MemoryStream();
+
+                OpenPGP.EncryptSignAndZip(InputStream:            new MemoryStream(Plaintext),
+                                          Length:                 (UInt64) Plaintext.Length,
+                                          SecretKey:              From.SecretKeyRing.First(),
+                                          Passphrase:             Passphrase,
+                                          PublicKey:              To.First().PublicKeyRing.First(),
+                                          OutputStream:           Ciphertext,
+                                          SymmetricKeyAlgorithm:  SymmetricKeyAlgorithm,
+                                          HashAlgorithm:          HashAlgorithm,
+                                          CompressionAlgorithm:   CompressionAlgorithm,
+                                          ArmoredOutput:          true,
+                                          Filename:               "encrypted.asc",
+                                          LastModificationTime:   DateTime.UtcNow);
 
                 // MIME Security with OpenPGP (rfc3156, https://tools.ietf.org/html/rfc3156)
                 // OpenPGP Message Format     (rfc4880, https://tools.ietf.org/html/rfc4880)
@@ -648,7 +705,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
                                                                                              Charset:              "utf-8",
                                                                                              ContentDescription:   "OpenPGP encrypted message",
                                                                                              ContentDisposition:   ContentDispositions.inline.ToString() + "; filename=\"encrypted.asc\"",
-                                                                                             Content:              new MailBodyString(BodypartToBeSigned.ToString())),
+                                                                                             Content:              new MailBodyString(Ciphertext.ToArray().ToUTF8String())),
 
                                                                        }
                                          );

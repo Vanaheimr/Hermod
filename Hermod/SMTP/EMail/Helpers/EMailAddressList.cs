@@ -136,6 +136,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         #endregion
 
 
+        #region Clear()
+
+        /// <summary>
+        /// Removes all elements from the e-mail address list.
+        /// </summary>
+        public EMailAddressList Clear()
+        {
+
+            _MailAddressList.Clear();
+
+            return this;
+
+        }
+
+        #endregion
+
+
         #region Implicitly convert EMailAddress -> EMailAddressList
 
         /// <summary>
