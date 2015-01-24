@@ -341,6 +341,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPMethod EDIT          = new HTTPMethod("EDIT");
 
         /// <summary>
+        /// Chekcs wether a resource exists.
+        /// </summary>
+        public static readonly HTTPMethod EXISTS        = new HTTPMethod("EXISTS");
+
+        /// <summary>
         /// Monitors a resource or collection resource for modifications using an eventstream.
         /// </summary>
         public static readonly HTTPMethod MONITOR       = new HTTPMethod("MONITOR");
