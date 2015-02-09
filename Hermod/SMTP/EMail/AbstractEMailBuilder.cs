@@ -532,18 +532,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
             else
                 BodypartToBeSecured  = new EMailBodypart(ContentType:              MailContentTypes.multipart_mixed,
-                                                        ContentTransferEncoding:  "8bit",
-                                                        Charset:                  "utf-8",
-                                                        NestedBodyparts:          new EMailBodypart[] { _EncodeBodyparts() }.
-                                                                                      Concat(_Attachments)
-                                                       );
+                                                         ContentTransferEncoding:  "8bit",
+                                                         Charset:                  "utf-8",
+                                                         NestedBodyparts:          new EMailBodypart[] { _EncodeBodyparts() }.
+                                                                                       Concat(_Attachments));
 
             #endregion
 
-            var ma = new EMailAddress(this.To.First().OwnerName, this.To.First().Address,
-                                      PublicKeyRing: OpenPGP.ReadPublicKeyRing(File.OpenRead("achim_at_ahzf.de.asc")));
-            this.To.Clear();
-            this.To.Add(ma);
+            //var ma = new EMailAddress(this.To.First().OwnerName, this.To.First().Address,
+            //                          PublicKeyRing: OpenPGP.ReadPublicKeyRing(File.OpenRead("achim_at_ahzf.de.asc")));
+            //this.To.Clear();
+            //this.To.Add(ma);
 
             #region Check security settings
 
@@ -580,8 +579,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
                         SignTheMail = true;
 
                     if (SignTheMail &&
-                        (!To.Any() | To.Any(v => v.PublicKeyRing != null & v.PublicKeyRing.Any() )) &&
-                        (!Cc.Any() | Cc.Any(v => v.PublicKeyRing != null & v.PublicKeyRing.Any() )))
+                        (!To.Any() | To.Any(v => v.PublicKeyRing != null && v.PublicKeyRing.Any() )) &&
+                        (!Cc.Any() | Cc.Any(v => v.PublicKeyRing != null && v.PublicKeyRing.Any() )))
                         EncryptTheMail = true;
 
                     break;
