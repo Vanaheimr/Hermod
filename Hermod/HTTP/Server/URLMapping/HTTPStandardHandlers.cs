@@ -420,7 +420,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region RegisterFilesystemFile(this HTTPServer, URITemplate, ResourceFilenameBuilder, ResponseContentType = null, CacheControl = "no-cache")
+        #region RegisterFilesystemFile(this HTTPServer, URITemplate, ResourceFilenameBuilder, DefaultFile = null, ResponseContentType = null, CacheControl = "no-cache")
 
         /// <summary>
         /// Returns internal resources embedded within the given assembly.
@@ -428,11 +428,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPServer">A HTTP server.</param>
         /// <param name="URITemplate">An URI template.</param>
         /// <param name="ResourceFilenameBuilder">The path to the file within the assembly.</param>
+        /// <param name="DefaultFile">If an error occures, return this file.</param>
         /// <param name="ResponseContentType">Set the HTTP MIME content-type of the file. If null try to autodetect the content type based on the filename extention.</param>
         /// <param name="CacheControl">Set the HTTP cache control response header.</param>
         public static void RegisterFilesystemFile(this HTTPServer         HTTPServer,
                                                   String                  URITemplate,
                                                   Func<String[], String>  ResourceFilenameBuilder,
+                                                  String                  DefaultFile          = null,
                                                   HTTPContentType         ResponseContentType  = null,
                                                   String                  CacheControl         = "no-cache")
         {
@@ -468,23 +470,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          HTTPDelegate: Request => {
 
                                              var ResourceFilename = ResourceFilenameBuilder(Request.ParsedURIParameters);
-                                             var FileStream = File.OpenRead(ResourceFilename);
 
-                                             if (FileStream != null)
-                                                 return new HTTPResponseBuilder() {
-                                                     HTTPStatusCode = HTTPStatusCode.OK,
-                                                     ContentType    = ResponseContentType,
-                                                     ContentStream  = FileStream,
-                                                     CacheControl   = CacheControl,
-                                                     Connection     = "close",
-                                                 };
+                                             if (!File.Exists(ResourceFilename) && DefaultFile != null)
+                                                 ResourceFilename = DefaultFile;
 
-                                             else
-                                                 return new HTTPResponseBuilder() {
-                                                     HTTPStatusCode = HTTPStatusCode.NotFound,
-                                                     CacheControl   = "no-cache",
-                                                     Connection     = "close",
-                                                 };
+                                             if (File.Exists(ResourceFilename))
+                                             {
+
+                                                 var FileStream = File.OpenRead(ResourceFilename);
+                                                 if (FileStream != null)
+                                                     return new HTTPResponseBuilder() {
+                                                         HTTPStatusCode  = HTTPStatusCode.OK,
+                                                         ContentType     = ResponseContentType,
+                                                         ContentStream   = FileStream,
+                                                         CacheControl    = CacheControl,
+                                                         Connection      = "close",
+                                                     };
+
+                                             }
+
+                                             return new HTTPResponseBuilder() {
+                                                 HTTPStatusCode  = HTTPStatusCode.NotFound,
+                                                 CacheControl    = "no-cache",
+                                                 Connection      = "close",
+                                             };
 
                                          });
 
