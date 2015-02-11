@@ -444,13 +444,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
         #endregion
 
-        #region Send(Mail, NumberOfRetries = 3)
+        #region Send(Mail, NumberOfRetries = 3, AutoStart = true)
 
-        public Task<MailSentStatus> Send(EMail  Mail,
-                                         Byte   NumberOfRetries = 3)
+        public Task<MailSentStatus> Send(EMail    Mail,
+                                         Byte     NumberOfRetries  = 3,
+                                         Boolean  AutoStart        = true)
         {
 
-            return new Task<MailSentStatus>(() =>
+            var SendMailTask = new Task<MailSentStatus>(() =>
             {
 
                 switch (Connect())
@@ -829,6 +830,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                 }
 
             });
+
+            if (AutoStart)
+                SendMailTask.Start();
+
+            return SendMailTask;
 
         }
 

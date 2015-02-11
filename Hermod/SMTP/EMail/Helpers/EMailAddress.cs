@@ -170,7 +170,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// <param name="SimpleEMailAddress">A simple e-mail address.</param>
         /// <param name="SecretKey">The secret key ring for an e-mail address.</param>
         /// <param name="PublicKey">The public key ring for an e-mail address.</param>
-        public EMailAddress(String OwnerName,
+        public EMailAddress(String              OwnerName,
                             SimpleEMailAddress  SimpleEMailAddress,
                             PgpSecretKeyRing    SecretKeyRing = null,
                             PgpPublicKeyRing    PublicKeyRing = null)

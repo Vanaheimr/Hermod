@@ -331,6 +331,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPMethod ADD           = new HTTPMethod("ADD");
 
         /// <summary>
+        /// Authenticate at the given resource, e.g. for login purposes.
+        /// </summary>
+        public static readonly HTTPMethod AUTH          = new HTTPMethod("AUTH");
+
+        /// <summary>
+        /// Deauthenticate at the given resource, e.g. for login purposes.
+        /// </summary>
+        public static readonly HTTPMethod DEAUTH        = new HTTPMethod("DEAUTH");
+
+        /// <summary>
         /// Update a resource (a replacement for PUT)
         /// </summary>
         public static readonly HTTPMethod UPDATE        = new HTTPMethod("UPDATE");
@@ -341,7 +351,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPMethod EDIT          = new HTTPMethod("EDIT");
 
         /// <summary>
-        /// Chekcs wether a resource exists.
+        /// Checks wether a resource exists.
         /// </summary>
         public static readonly HTTPMethod EXISTS        = new HTTPMethod("EXISTS");
 
