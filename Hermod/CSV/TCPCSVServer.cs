@@ -76,6 +76,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
 
         public event BoomerangSenderHandler<String, DateTime, String[], TCPResult<String>> OnNotification;
 
+        public delegate void OnNewDataHandler(String ConnectionId, DateTime Timestamp, String[] CSVData);
+        public event OnNewDataHandler OnNewData;
+
         #endregion
 
         #region Constructor(s)
