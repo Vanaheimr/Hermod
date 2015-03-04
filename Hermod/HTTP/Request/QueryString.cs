@@ -35,7 +35,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// string strQuery = QueryString.Current.Add("id", "179").ToString();
     /// string strQuery = new QueryString().Add("id", "179").ToString();
     /// </summary>
-    public class QueryString
+    public class QueryString : IEnumerable<KeyValuePair<String, IEnumerable<String>>>
     {
 
         #region Data
@@ -234,6 +234,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
+
+
+        public IEnumerator<KeyValuePair<String, IEnumerable<String>>> GetEnumerator()
+        {
+
+            return _Dictionary.
+                       Select(v => new KeyValuePair<String, IEnumerable<String>>(v.Key, v.Value)).
+                       GetEnumerator();
+
+        }
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+        {
+
+            return _Dictionary.
+                       Select(v => new KeyValuePair<String, IEnumerable<String>>(v.Key, v.Value)).
+                       GetEnumerator();
+
+        }
 
     }
 

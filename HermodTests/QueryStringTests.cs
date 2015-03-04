@@ -62,8 +62,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
 
             Assert.AreEqual(1, QueryString.Count());
             Assert.AreEqual("a", QueryString.First().Key);
-            Assert.AreEqual("b", QueryString.First().Value[0]);
-            Assert.AreEqual("c", QueryString.First().Value[1]);
+            Assert.AreEqual("b", QueryString.First().Value.First());
+            Assert.AreEqual("c", QueryString.First().Value.Skip(1).First());
 
         }
 
@@ -81,7 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
             Assert.AreEqual("a", QueryString.First().Key);
             Assert.AreEqual("b", QueryString.First().Value.First());
             Assert.AreEqual("c", QueryString.Skip(1).First().Key);
-            Assert.AreEqual("d", QueryString.Skip(1).First().Value[0]);
+            Assert.AreEqual("d", QueryString.Skip(1).First().Value.First());
 
         }
 
