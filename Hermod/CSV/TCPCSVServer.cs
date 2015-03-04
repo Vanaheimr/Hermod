@@ -185,8 +185,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
 
             this._TCPCSVProcessor         = new TCPCSVProcessor(SplitCharacters);
             this.SendTo(_TCPCSVProcessor);
-            this.OnNewConnection         += (TCPServer, Timestamp, RemoteSocket, ConnectionId, TCPConnection) => SendNewConnection   (Timestamp, RemoteSocket, ConnectionId, TCPConnection);
-            this.OnConnectionClosed      += (TCPServer, Timestamp, RemoteSocket, ConnectionId, ClosedBy)      => SendConnectionClosed(Timestamp, RemoteSocket, ConnectionId, ClosedBy);
+          //  this.OnNewConnection         += (TCPServer, Timestamp, RemoteSocket, ConnectionId, TCPConnection) => SendNewConnection   (Timestamp, RemoteSocket, ConnectionId, TCPConnection);
+          //  this.OnConnectionClosed      += (TCPServer, Timestamp, RemoteSocket, ConnectionId, ClosedBy)      => SendConnectionClosed(Timestamp, RemoteSocket, ConnectionId, ClosedBy);
 
             this._TCPCSVCommandProcessor  = new TCPCSVCommandProcessor();
             this._TCPCSVProcessor.ConnectTo(_TCPCSVCommandProcessor);
