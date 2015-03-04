@@ -1,0 +1,341 @@
+XBuild Engine Version 12.0
+Mono, Version 4.1.0.0
+Copyright (C) 2005-2013 Various Mono authors
+
+Build started 3/4/2015 3:55:56 PM.
+__________________________________________________
+Project "/home/belectric/new/AdensisDataRouter/libs/Hermod/Hermod.sln" (default target(s)):
+	Target ValidateSolutionConfiguration:
+		Building solution configuration "Release|Mixed Platforms".
+	Target Build:
+		Project "/home/belectric/new/AdensisDataRouter/libs/Illias/Illias/Illias.csproj" (default target(s)):
+			Target PrepareForBuild:
+				Configuration: Release Platform: AnyCPU
+			Target GenerateSatelliteAssemblies:
+			No input files were specified for target GenerateSatelliteAssemblies, skipping.
+			Target GenerateTargetFrameworkMonikerAttribute:
+			Skipping target "GenerateTargetFrameworkMonikerAttribute" because its outputs are up-to-date.
+			Target CoreCompile:
+			Skipping target "CoreCompile" because its outputs are up-to-date.
+		Done building project "/home/belectric/new/AdensisDataRouter/libs/Illias/Illias/Illias.csproj".
+		Project "/home/belectric/new/AdensisDataRouter/libs/Styx/Styx/Styx.csproj" (default target(s)):
+			Target PrepareForBuild:
+				Configuration: Release Platform: AnyCPU
+			Target GenerateSatelliteAssemblies:
+			No input files were specified for target GenerateSatelliteAssemblies, skipping.
+			Target GenerateTargetFrameworkMonikerAttribute:
+			Skipping target "GenerateTargetFrameworkMonikerAttribute" because its outputs are up-to-date.
+			Target CoreCompile:
+			Skipping target "CoreCompile" because its outputs are up-to-date.
+		Done building project "/home/belectric/new/AdensisDataRouter/libs/Styx/Styx/Styx.csproj".
+		Project "/home/belectric/new/AdensisDataRouter/libs/Illias/Illias.NET4.5/Illias.NET4.5.csproj" (default target(s)):
+			Target PrepareForBuild:
+				Configuration: Release Platform: AnyCPU
+			Target GenerateSatelliteAssemblies:
+			No input files were specified for target GenerateSatelliteAssemblies, skipping.
+			Target GenerateTargetFrameworkMonikerAttribute:
+			Skipping target "GenerateTargetFrameworkMonikerAttribute" because its outputs are up-to-date.
+			Target CoreCompile:
+			Skipping target "CoreCompile" because its outputs are up-to-date.
+		Done building project "/home/belectric/new/AdensisDataRouter/libs/Illias/Illias.NET4.5/Illias.NET4.5.csproj".
+		Project "/home/belectric/new/AdensisDataRouter/libs/Styx/Styx.NET4.5/Styx.NET4.5.csproj" (default target(s)):
+			Target PrepareForBuild:
+				Configuration: Release Platform: AnyCPU
+			Target GenerateSatelliteAssemblies:
+			No input files were specified for target GenerateSatelliteAssemblies, skipping.
+			Target GenerateTargetFrameworkMonikerAttribute:
+			Skipping target "GenerateTargetFrameworkMonikerAttribute" because its outputs are up-to-date.
+			Target CoreCompile:
+			Skipping target "CoreCompile" because its outputs are up-to-date.
+		Done building project "/home/belectric/new/AdensisDataRouter/libs/Styx/Styx.NET4.5/Styx.NET4.5.csproj".
+		Project "/home/belectric/new/AdensisDataRouter/libs/BouncyCastle/crypto/crypto.csproj" (default target(s)):
+			Target PrepareForBuild:
+				Configuration: Release Platform: AnyCPU
+			Target GenerateSatelliteAssemblies:
+			No input files were specified for target GenerateSatelliteAssemblies, skipping.
+			Target GenerateTargetFrameworkMonikerAttribute:
+			Skipping target "GenerateTargetFrameworkMonikerAttribute" because its outputs are up-to-date.
+			Target CoreCompile:
+			Skipping target "CoreCompile" because its outputs are up-to-date.
+		Done building project "/home/belectric/new/AdensisDataRouter/libs/BouncyCastle/crypto/crypto.csproj".
+		Project "/home/belectric/new/AdensisDataRouter/libs/Illias/CommonsTests/CommonsTests.csproj" (default target(s)):
+			Target PrepareForBuild:
+				Configuration: Release Platform: AnyCPU
+			Target GenerateSatelliteAssemblies:
+			No input files were specified for target GenerateSatelliteAssemblies, skipping.
+			Target GenerateTargetFrameworkMonikerAttribute:
+			Skipping target "GenerateTargetFrameworkMonikerAttribute" because its outputs are up-to-date.
+			Target CoreCompile:
+			Skipping target "CoreCompile" because its outputs are up-to-date.
+		Done building project "/home/belectric/new/AdensisDataRouter/libs/Illias/CommonsTests/CommonsTests.csproj".
+		Project "/home/belectric/new/AdensisDataRouter/libs/Illias/GeometryTests/GeometryTests.csproj" (default target(s)):
+			Target PrepareForBuild:
+				Configuration: Release Platform: AnyCPU
+			Target GenerateSatelliteAssemblies:
+			No input files were specified for target GenerateSatelliteAssemblies, skipping.
+			Target GenerateTargetFrameworkMonikerAttribute:
+			Skipping target "GenerateTargetFrameworkMonikerAttribute" because its outputs are up-to-date.
+			Target CoreCompile:
+			Skipping target "CoreCompile" because its outputs are up-to-date.
+		Done building project "/home/belectric/new/AdensisDataRouter/libs/Illias/GeometryTests/GeometryTests.csproj".
+		Project "/home/belectric/new/AdensisDataRouter/libs/Hermod/Hermod/Hermod.csproj" (default target(s)):
+			Target PrepareForBuild:
+				Configuration: Release Platform: AnyCPU
+			Target CopyFilesMarkedCopyLocal:
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/BouncyCastle/crypto/bin/Release/BouncyCastle.dll' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/Hermod/bin/Release/BouncyCastle.dll'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/BouncyCastle/crypto/bin/Release/nunit.framework.dll' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/Hermod/bin/Release/nunit.framework.dll'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/BouncyCastle/crypto/bin/Release/nunit.core.interfaces.dll' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/Hermod/bin/Release/nunit.core.interfaces.dll'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/BouncyCastle/crypto/bin/Release/nunit.core.dll' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/Hermod/bin/Release/nunit.core.dll'
+			Target GenerateSatelliteAssemblies:
+			No input files were specified for target GenerateSatelliteAssemblies, skipping.
+			Target GenerateTargetFrameworkMonikerAttribute:
+			Skipping target "GenerateTargetFrameworkMonikerAttribute" because its outputs are up-to-date.
+			Target CoreCompile:
+				Tool /usr/local/lib/mono/4.5/mcs.exe execution started with arguments: /noconfig /debug:pdbonly /optimize+ /out:obj/Release/Vanaheimr.Hermod.dll Helpers/Datastructures/AReadOnlyLocalRemoteSockets.cs DNS/DNSTools.cs Helpers/ExtentionMethods/NetworkingHelpers.cs Helpers/ExtentionMethods/IPAddressHelper.cs Helpers/Datastructures/ILocalSocket.cs HTTP/AHTTPBasePDU.cs HTTP/AHTTPPDU.cs HTTP/AHTTPPDUBuilder.cs HTTP/Client/ClientResult.cs HTTP/Client/HTTPClient.cs HTTP/Client/HTTPClientExtensions.cs HTTP/General/HTTPContentType.cs HTTP/General/HTTPStatusCode.cs HTTP/General/HTTPVersion.cs HTTP/HTTPHeaderField.cs HTTP/HTTPRequest.cs HTTP/HTTPRequestBuilder.cs HTTP/HTTPResponse.cs HTTP/HTTPResponseBuilder.cs HTTP/Request/AcceptType.cs HTTP/Request/AcceptTypes.cs HTTP/Request/HTTPAuthenticationTypes.cs HTTP/Request/HTTPBasicAuthentication.cs HTTP/Request/HTTPMethod.cs HTTP/Request/Parsy.cs HTTP/Request/QueryString.cs HTTP/Response/KeepAliveType.cs HTTP/Server/HTTPExtentions.cs HTTP/Server/Delegates.cs HTTP/Server/URLMapping/HTTPStandardHandlers.cs HTTP/Server/HTTPServer.cs HTTP/Server/Attributes/AuthenticationAttributes.cs HTTP/Server/Attributes/HTTPErrorAttribute.cs HTTP/Server/Attributes/HTTPEventMappingAttribute.cs HTTP/Server/Attributes/HTTPMappingAttribute.cs HTTP/Server/Attributes/HTTPResourcesMappingAttribute.cs HTTP/Server/Attributes/HTTPServiceAttribute.cs HTTP/Server/Helpers/HTTPErrors.cs HTTP/Server/Helpers/HTTPTools.cs HTTP/Server/HTTPResult.cs HTTP/Server/Interfaces/IHTTPBaseService.cs HTTP/Server/Interfaces/IHTTPConnection.cs HTTP/Server/Interfaces/IHTTPService.cs HTTP/Server/Security/HTTPSecurity.cs HTTP/Server/HTTPProcessor.cs HTTP/Server/URLMapping/ContentTypeNode.cs HTTP/Server/URLMapping/HostnameNode.cs HTTP/Server/URLMapping/HTTPEvent.cs HTTP/Server/URLMapping/HTTPEventSource.cs HTTP/Server/URLMapping/HTTPMethodNode.cs HTTP/Server/URLMapping/URIMapping.cs HTTP/Server/URLMapping/URINode.cs HTTP/HTTPSemantics.cs SMTP/EMail/AbstractEMailBuilder.cs SMTP/EMail/EMail.cs SMTP/EMail/EMailBuilder.cs SMTP/EMail/Helpers/ContentDispositions.cs SMTP/EMail/Helpers/ContentTransferEncoding.cs SMTP/EMail/Helpers/EMailAddress.cs SMTP/EMail/Helpers/EMailAddressList.cs SMTP/EMail/Helpers/EMailBodypart.cs SMTP/EMail/Helpers/EMailBuilderExtentionMethods.cs SMTP/EMail/Helpers/EMailException.cs SMTP/EMail/Helpers/EMailExtentionMethods.cs SMTP/EMail/Helpers/EMailSecurity.cs SMTP/EMail/Helpers/EMailSecurityException.cs SMTP/EMail/Helpers/MailContentTypes.cs SMTP/EMail/Helpers/MessageId.cs SMTP/EMail/Helpers/SimpleEMailAddress.cs SMTP/EMail/HTMLEMailBuilder.cs SMTP/EMail/TextEMailBuilder.cs Properties/AssemblyInfo.cs Helpers/Datastructures/IIPAddress.cs Helpers/Datastructures/IPv6Address.cs Helpers/Datastructures/IPPort.cs Helpers/Datastructures/IPv4Address.cs Helpers/Datastructures/IPSocket.cs Helpers/Datastructures/IRemoteSocket.cs CSV/TCPCSVServer.cs Helpers/EOLSearch.cs CSV/TCPCSVCommandProcessor.cs Helpers/Datastructures/Delegates.cs CSV/SplitUDPPacketArrow.cs SMTP/SMTPClient/Helpers/MailSentStatus.cs SMTP/SMTPClient/Helpers/SMTPAuthMethods.cs SMTP/SMTPClient/Helpers/SMTPCapabilities.cs SMTP/SMTPClient/Helpers/SMTPClientException.cs SMTP/SMTPClient/Helpers/SMTPExtentions.cs SMTP/SMTPClient/SMTPClient.cs SMTP/SMTPException.cs SMTP/SMTPExtendedResponse.cs SMTP/SMTPResponse.cs SMTP/SMTPServer/Helpers/Delegates.cs SMTP/SMTPServer/Helpers/SMTPServerException.cs SMTP/SMTPServer/SMTPProcessor.cs SMTP/SMTPServer/SMTPServer.cs SMTP/SMTPStatusCode.cs TCP/ConnectionClosedBy.cs TCP/ATCPServers.cs TCP/TCPClientResponse.cs TCP/Delegates.cs CSV/TCPCSVProcessor.cs CSV/ProcessUDPPacketArrow.cs DNS/NoDNSPaketInformation.cs DNS/DNSCacheEntry.cs DNS/DNSCache.cs DNS/DNSQuery.cs DNS/ENUMs/DNSResponseCodes.cs DNS/ENUMs/DNSResourceRecordTypes.cs DNS/ResourceRecords/A.cs DNS/DNSClient.cs DNS/DNSResponse.cs DNS/ENUMs/DNSQueryClasses.cs DNS/ResourceRecords/CNAME.cs DNS/ResourceRecords/AAAA.cs DNS/ResourceRecords/SSHFP.cs DNS/ResourceRecords/NS.cs DNS/ResourceRecords/MINFO.cs DNS/ResourceRecords/PTR.cs DNS/ResourceRecords/TXT.cs DNS/ResourceRecords/MX.cs DNS/ResourceRecords/ADNSResourceRecord.cs DNS/ResourceRecords/SOA.cs TCP/TCPClient/ENUMs/TCPDisconnectResult.cs TCP/TCPClient/ENUMs/TCPConnectResult.cs TCP/TCPClient/TCPClient.cs Helpers/Datastructures/IServer.cs ICMP/IICMPPacket.cs CSV/UDPCSVReceiver.cs TCP/TCPClient/TLSUsage.cs TCP/TCPResult.cs UDP/IUDPReceiver.cs UDP/MulticastReceiver.cs UDP/UDPMulticastSenderArrow.cs TCP/TCPConnection.cs TCP/TCPServer.cs Helpers/Datastructures/ALocalRemoteSockets.cs UDP/UDPPacket.cs UDP/UDPReceiver.cs UDP/UDPSender.cs /target:library /define:TRACE /nostdlib /reference:../libs/Newtonsoft.Json.dll /reference:/usr/local/lib/mono/4.5/System.dll /reference:/usr/local/lib/mono/4.5/System.IdentityModel.dll /reference:/usr/local/lib/mono/4.5/System.IdentityModel.Selectors.dll /reference:/usr/local/lib/mono/4.5/System.ServiceModel.dll /reference:/usr/local/lib/mono/4.5/System.ServiceModel.Web.dll /reference:/usr/local/lib/mono/4.5/System.Web.dll /reference:/usr/local/lib/mono/4.5/System.Xml.Linq.dll /reference:/usr/local/lib/mono/4.5/System.Data.DataSetExtensions.dll /reference:/usr/local/lib/mono/4.5/Microsoft.CSharp.dll /reference:/usr/local/lib/mono/4.5/System.Data.dll /reference:/usr/local/lib/mono/4.5/System.Xml.dll /reference:/usr/local/lib/mono/4.5/System.Core.dll /reference:/home/belectric/new/AdensisDataRouter/libs/BouncyCastle/crypto/bin/Release//BouncyCastle.dll /reference:/home/belectric/new/AdensisDataRouter/libs/Illias/Illias.NET4.5/bin/Release//Vanaheimr.Illias.NET4.5.dll /reference:/home/belectric/new/AdensisDataRouter/libs/Illias/Illias/bin/Release//Vanaheimr.Illias.dll /reference:/home/belectric/new/AdensisDataRouter/libs/Styx/Styx.NET4.5/bin/Release//Vanaheimr.Styx.NET4.5.dll /reference:/home/belectric/new/AdensisDataRouter/libs/Styx/Styx/bin/Release//Vanaheimr.Styx.dll /reference:/usr/local/lib/mono/4.5/mscorlib.dll /warn:4
+HTTP/Request/Parsy.cs(37,1): warning CS0105: The using directive for `org.GraphDefined.Vanaheimr.Hermod.HTTP' appeared previously in this namespace
+HTTP/AHTTPPDU.cs(93,23): warning CS0108: `org.GraphDefined.Vanaheimr.Hermod.HTTP.AHTTPPDU.Content' hides inherited member `org.GraphDefined.Vanaheimr.Hermod.HTTP.AHTTPBasePDU.Content'. Use the new keyword if hiding was intended
+				HTTP/AHTTPBasePDU.cs(102,23): (Location of the symbol related to previous warning)
+HTTP/AHTTPPDU.cs(102,23): warning CS0108: `org.GraphDefined.Vanaheimr.Hermod.HTTP.AHTTPPDU.ContentStream' hides inherited member `org.GraphDefined.Vanaheimr.Hermod.HTTP.AHTTPBasePDU.ContentStream'. Use the new keyword if hiding was intended
+				HTTP/AHTTPBasePDU.cs(111,23): (Location of the symbol related to previous warning)
+HTTP/Request/QueryString.cs(148,32): warning CS0109: The member `org.GraphDefined.Vanaheimr.Hermod.HTTP.QueryString.Remove(string)' does not hide an inherited member. The new keyword is not required
+CSV/TCPCSVServer.cs(77,92): warning CS0108: `org.GraphDefined.Vanaheimr.Hermod.Services.CSV.TCPCSVServer.OnNotification' hides inherited member `org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP.TCPServer.OnNotification'. Use the new keyword if hiding was intended
+				TCP/TCPServer.cs(359,65): (Location of the symbol related to previous warning)
+HTTP/Client/HTTPClient.cs(598,33): warning CS0219: The variable `TEString' is assigned but its value is never used
+HTTP/General/HTTPContentType.cs(146,17): warning CS0219: The variable `CharSet' is assigned but its value is never used
+HTTP/Server/HTTPServer.cs(537,25): warning CS0168: The variable `HTTPRequestds' is declared but never used
+HTTP/Server/HTTPProcessor.cs(426,30): warning CS0168: The variable `e' is declared but never used
+Helpers/Datastructures/IPv6Address.cs(431,17): warning CS0219: The variable `__IPAddress' is assigned but its value is never used
+SMTP/SMTPClient/SMTPClient.cs(549,33): warning CS0219: The variable `MailServerName' is assigned but its value is never used
+SMTP/SMTPClient/SMTPClient.cs(667,37): warning CS0219: The variable `AuthPLAINResponse' is assigned but its value is never used
+SMTP/SMTPClient/SMTPClient.cs(683,37): warning CS0219: The variable `AuthLOGIN1Response' is assigned but its value is never used
+SMTP/SMTPClient/SMTPClient.cs(684,37): warning CS0219: The variable `AuthLOGIN2Response' is assigned but its value is never used
+SMTP/SMTPClient/SMTPClient.cs(685,37): warning CS0219: The variable `AuthLOGIN3Response' is assigned but its value is never used
+SMTP/SMTPClient/SMTPClient.cs(703,41): warning CS0219: The variable `a2' is assigned but its value is never used
+SMTP/SMTPClient/SMTPClient.cs(708,41): warning CS0219: The variable `b2' is assigned but its value is never used
+SMTP/SMTPClient/SMTPClient.cs(710,41): warning CS0219: The variable `cc' is assigned but its value is never used
+SMTP/SMTPClient/SMTPClient.cs(715,41): warning CS0219: The variable `AuthPLAINResponse' is assigned but its value is never used
+SMTP/SMTPServer/SMTPProcessor.cs(187,17): warning CS0219: The variable `_prvKey' is assigned but its value is never used
+SMTP/SMTPServer/SMTPProcessor.cs(189,17): warning CS0219: The variable `_pubKey1' is assigned but its value is never used
+SMTP/SMTPServer/SMTPProcessor.cs(191,17): warning CS0219: The variable `__privateKey' is assigned but its value is never used
+SMTP/SMTPServer/SMTPProcessor.cs(192,17): warning CS0219: The variable `__publicKey' is assigned but its value is never used
+SMTP/SMTPServer/SMTPProcessor.cs(225,17): warning CS0219: The variable `_prvKey' is assigned but its value is never used
+SMTP/SMTPServer/SMTPProcessor.cs(227,17): warning CS0219: The variable `_pubKey1' is assigned but its value is never used
+SMTP/SMTPServer/SMTPProcessor.cs(229,17): warning CS0219: The variable `__privateKey' is assigned but its value is never used
+SMTP/SMTPServer/SMTPProcessor.cs(230,17): warning CS0219: The variable `__publicKey' is assigned but its value is never used
+SMTP/SMTPServer/SMTPProcessor.cs(290,17): warning CS0219: The variable `_prvKey' is assigned but its value is never used
+SMTP/SMTPServer/SMTPProcessor.cs(292,17): warning CS0219: The variable `_pubKey1' is assigned but its value is never used
+SMTP/SMTPServer/SMTPProcessor.cs(294,17): warning CS0219: The variable `__privateKey' is assigned but its value is never used
+SMTP/SMTPServer/SMTPProcessor.cs(295,17): warning CS0219: The variable `__publicKey' is assigned but its value is never used
+SMTP/SMTPServer/SMTPProcessor.cs(567,49): warning CS0219: The variable `TLSCert' is assigned but its value is never used
+SMTP/SMTPServer/SMTPProcessor.cs(718,30): warning CS0168: The variable `e' is declared but never used
+CSV/TCPCSVProcessor.cs(123,17): warning CS0219: The variable `Buffer' is assigned but its value is never used
+CSV/TCPCSVProcessor.cs(224,55): warning CS0219: The variable `Result' is assigned but its value is never used
+CSV/TCPCSVProcessor.cs(302,30): warning CS0168: The variable `e' is declared but never used
+CSV/TCPCSVProcessor.cs(318,30): warning CS0168: The variable `e' is declared but never used
+DNS/DNSCache.cs(150,34): warning CS0168: The variable `e' is declared but never used
+DNS/DNSClient.cs(253,17): warning CS0219: The variable `length' is assigned but its value is never used
+DNS/DNSClient.cs(316,17): warning CS0219: The variable `IS' is assigned but its value is never used
+DNS/DNSClient.cs(317,17): warning CS0219: The variable `OpCode' is assigned but its value is never used
+DNS/DNSClient.cs(324,17): warning CS0219: The variable `Z' is assigned but its value is never used
+DNS/DNSClient.cs(339,21): warning CS0219: The variable `QuestionName' is assigned but its value is never used
+DNS/DNSClient.cs(340,21): warning CS0219: The variable `TypeId' is assigned but its value is never used
+DNS/DNSClient.cs(341,21): warning CS0219: The variable `ClassId' is assigned but its value is never used
+DNS/DNSResponse.cs(201,17): warning CS0219: The variable `ToDelete' is assigned but its value is never used
+DNS/ResourceRecords/ADNSResourceRecord.cs(159,17): warning CS0219: The variable `RDLength' is assigned but its value is never used
+DNS/ResourceRecords/ADNSResourceRecord.cs(177,17): warning CS0219: The variable `RDLength' is assigned but its value is never used
+TCP/TCPClient/TCPClient.cs(533,30): warning CS0168: The variable `e' is declared but never used
+TCP/TCPClient/TCPClient.cs(607,30): warning CS0168: The variable `e' is declared but never used
+UDP/UDPMulticastSenderArrow.cs(111,17): warning CS0219: The variable `sent' is assigned but its value is never used
+UDP/UDPReceiver.cs(627,41): warning CS0219: The variable `MapperLocal' is assigned but its value is never used
+UDP/UDPReceiver.cs(628,41): warning CS0219: The variable `MapReduceLocal' is assigned but its value is never used
+HTTP/Server/HTTPServer.cs(88,39): warning CS0649: Field `org.GraphDefined.Vanaheimr.Hermod.HTTP.HTTPServer._HTTPSecurity' is never assigned to, and will always have its default value `null'
+HTTP/Server/HTTPProcessor.cs(75,93): warning CS0067: The event `org.GraphDefined.Vanaheimr.Hermod.HTTP.HTTPProcessor.OnStarted' is never used
+SMTP/EMail/AbstractEMailBuilder.cs(263,36): warning CS0169: The private field `org.GraphDefined.Vanaheimr.Hermod.Services.Mail.AbstractEMailBuilder._Reference' is never used
+SMTP/EMail/AbstractEMailBuilder.cs(265,42): warning CS0414: The private field `org.GraphDefined.Vanaheimr.Hermod.Services.Mail.AbstractEMailBuilder._References' is assigned but its value is never used
+CSV/TCPCSVServer.cs(58,33): warning CS0649: Field `org.GraphDefined.Vanaheimr.Hermod.Services.CSV.TCPCSVServer._SplitCharacters' is never assigned to, and will always have its default value `null'
+CSV/TCPCSVCommandProcessor.cs(52,93): warning CS0067: The event `org.GraphDefined.Vanaheimr.Hermod.Services.CSV.TCPCSVCommandProcessor.OnStarted' is never used
+SMTP/SMTPServer/SMTPProcessor.cs(135,93): warning CS0067: The event `org.GraphDefined.Vanaheimr.Hermod.Services.SMTP.SMTPProcessor.OnStarted' is never used
+SMTP/SMTPServer/SMTPServer.cs(87,92): warning CS0067: The event `org.GraphDefined.Vanaheimr.Hermod.Services.SMTP.SMTPServer.OnNotification' is never used
+CSV/TCPCSVProcessor.cs(80,89): warning CS0067: The event `org.GraphDefined.Vanaheimr.Hermod.Services.CSV.TCPCSVProcessor.OnStarted' is never used
+DNS/DNSCache.cs(36,61): warning CS0414: The private field `org.GraphDefined.Vanaheimr.Hermod.Services.DNS.DNSCache.CleanUpTimer' is assigned but its value is never used
+TCP/TCPClient/TCPClient.cs(71,50): warning CS0414: The private field `org.GraphDefined.Vanaheimr.Hermod.Services.TCPClient._CachedIPv4Addresses' is assigned but its value is never used
+TCP/TCPClient/TCPClient.cs(72,50): warning CS0414: The private field `org.GraphDefined.Vanaheimr.Hermod.Services.TCPClient._CachedIPv6Addresses' is assigned but its value is never used
+TCP/TCPClient/TCPClient.cs(286,52): warning CS0649: Field `org.GraphDefined.Vanaheimr.Hermod.Services.TCPClient._TLSClientCertificates' is never assigned to, and will always have its default value `null'
+TCP/TCPConnection.cs(233,51): warning CS0067: The event `org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP.TCPConnection.OnExceptionOccured' is never used
+TCP/TCPServer.cs(76,81): warning CS0414: The private field `org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP.TCPServer.CancellationToken' is assigned but its value is never used
+UDP/UDPPacket.cs(38,45): warning CS0649: Field `org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP.UDPPacket<TData>._UDPReceiver' is never assigned to, and will always have its default value `null'
+UDP/UDPReceiver.cs(46,58): warning CS0414: The private field `org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP.UDPReceiver<TData>.ReceiverTask' is assigned but its value is never used
+UDP/UDPReceiver.cs(49,58): warning CS0414: The private field `org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP.UDPReceiver<TData>.PacketThreadsNameCreator' is assigned but its value is never used
+UDP/UDPReceiver.cs(169,34): warning CS0649: Field `org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP.UDPReceiver<TData>._ReceiverThreadIsBackground' is never assigned to, and will always have its default value `false'
+UDP/UDPSender.cs(227,26): warning CS0649: Field `org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP.UDPSender<T>._IPSocket' is never assigned to, and will always have its default value `null'
+			Target DeployOutputFiles:
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Hermod/Hermod/obj/Release/Vanaheimr.Hermod.dll.mdb' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/Hermod/bin/Release/Vanaheimr.Hermod.dll.mdb'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Hermod/Hermod/obj/Release/Vanaheimr.Hermod.dll' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/Hermod/bin/Release/Vanaheimr.Hermod.dll'
+		Done building project "/home/belectric/new/AdensisDataRouter/libs/Hermod/Hermod/Hermod.csproj".
+		Project "/home/belectric/new/AdensisDataRouter/libs/Styx/StyxTests/StyxTests.csproj" (default target(s)):
+			Target PrepareForBuild:
+				Configuration: Release Platform: AnyCPU
+			Target GenerateSatelliteAssemblies:
+			No input files were specified for target GenerateSatelliteAssemblies, skipping.
+			Target GenerateTargetFrameworkMonikerAttribute:
+			Skipping target "GenerateTargetFrameworkMonikerAttribute" because its outputs are up-to-date.
+			Target CoreCompile:
+			Skipping target "CoreCompile" because its outputs are up-to-date.
+		Done building project "/home/belectric/new/AdensisDataRouter/libs/Styx/StyxTests/StyxTests.csproj".
+		Project "/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodTests/HermodTests.csproj" (default target(s)):
+			Target PrepareForBuild:
+				Configuration: Release Platform: AnyCPU
+				Created directory "bin/Release/"
+				Created directory "obj/Release/"
+			Target CopyFilesMarkedCopyLocal:
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Illias/libs/nunit.framework.dll' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodTests/bin/Release/nunit.framework.dll'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Illias/Illias.NET4.5/bin/Release/Vanaheimr.Illias.NET4.5.dll' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodTests/bin/Release/Vanaheimr.Illias.NET4.5.dll'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Illias/Illias.NET4.5/bin/Release/Vanaheimr.Illias.NET4.5.dll.mdb' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodTests/bin/Release/Vanaheimr.Illias.NET4.5.dll.mdb'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Illias/Illias/bin/Release/Vanaheimr.Illias.dll' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodTests/bin/Release/Vanaheimr.Illias.dll'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Illias/Illias/bin/Release/Vanaheimr.Illias.dll.mdb' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodTests/bin/Release/Vanaheimr.Illias.dll.mdb'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Styx/Styx.NET4.5/bin/Release/Vanaheimr.Styx.NET4.5.dll' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodTests/bin/Release/Vanaheimr.Styx.NET4.5.dll'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Styx/Styx.NET4.5/bin/Release/Vanaheimr.Styx.NET4.5.dll.mdb' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodTests/bin/Release/Vanaheimr.Styx.NET4.5.dll.mdb'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Styx/Styx/bin/Release/Vanaheimr.Styx.dll' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodTests/bin/Release/Vanaheimr.Styx.dll'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Styx/Styx/bin/Release/Vanaheimr.Styx.dll.mdb' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodTests/bin/Release/Vanaheimr.Styx.dll.mdb'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Hermod/Hermod/bin/Release/Vanaheimr.Hermod.dll' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodTests/bin/Release/Vanaheimr.Hermod.dll'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Hermod/Hermod/bin/Release/Vanaheimr.Hermod.dll.mdb' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodTests/bin/Release/Vanaheimr.Hermod.dll.mdb'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Hermod/Hermod/bin/Release/BouncyCastle.dll' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodTests/bin/Release/BouncyCastle.dll'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Hermod/Hermod/bin/Release/Newtonsoft.Json.dll' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodTests/bin/Release/Newtonsoft.Json.dll'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Hermod/Hermod/bin/Release/nunit.core.interfaces.dll' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodTests/bin/Release/nunit.core.interfaces.dll'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Hermod/Hermod/bin/Release/nunit.core.dll' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodTests/bin/Release/nunit.core.dll'
+			Target GenerateSatelliteAssemblies:
+			No input files were specified for target GenerateSatelliteAssemblies, skipping.
+			Target CoreCompile:
+				Tool /usr/local/lib/mono/4.5/mcs.exe execution started with arguments: /noconfig /debug:pdbonly /optimize+ /out:obj/Release/HermodUnitTests.dll HTTPClientTests.cs HTTPServerTests.cs TCPClientRequest.cs IPAddressFactoryTests.cs IPv4AddressTests.cs Properties/AssemblyInfo.cs QueryStringTests.cs obj/Release/.NETFramework,Version=v4.5.AssemblyAttribute.cs /target:library /define:TRACE /nostdlib /reference:../../Illias/libs/nunit.framework.dll /reference:/usr/local/lib/mono/4.5/System.dll /reference:/usr/local/lib/mono/4.5/System.Xml.Linq.dll /reference:/usr/local/lib/mono/4.5/System.Data.DataSetExtensions.dll /reference:/usr/local/lib/mono/4.5/Microsoft.CSharp.dll /reference:/usr/local/lib/mono/4.5/System.Data.dll /reference:/usr/local/lib/mono/4.5/System.Xml.dll /reference:/usr/local/lib/mono/4.5/System.Core.dll /reference:/home/belectric/new/AdensisDataRouter/libs/Illias/Illias.NET4.5/bin/Release//Vanaheimr.Illias.NET4.5.dll /reference:/home/belectric/new/AdensisDataRouter/libs/Illias/Illias/bin/Release//Vanaheimr.Illias.dll /reference:/home/belectric/new/AdensisDataRouter/libs/Styx/Styx.NET4.5/bin/Release//Vanaheimr.Styx.NET4.5.dll /reference:/home/belectric/new/AdensisDataRouter/libs/Styx/Styx/bin/Release//Vanaheimr.Styx.dll /reference:/home/belectric/new/AdensisDataRouter/libs/Hermod/Hermod/bin/Release//Vanaheimr.Hermod.dll /reference:/usr/local/lib/mono/4.5/mscorlib.dll /warn:4
+QueryStringTests.cs(97,17): warning CS0219: The variable `QueryString' is assigned but its value is never used
+QueryStringTests.cs(108,17): warning CS0219: The variable `QueryString' is assigned but its value is never used
+			Target DeployOutputFiles:
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodTests/obj/Release/HermodUnitTests.dll.mdb' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodTests/bin/Release/HermodUnitTests.dll.mdb'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodTests/obj/Release/HermodUnitTests.dll' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodTests/bin/Release/HermodUnitTests.dll'
+		Done building project "/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodTests/HermodTests.csproj".
+		Project "/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodRawIP/HermodRawIP.csproj" (default target(s)):
+			Target PrepareForBuild:
+				Configuration: Release Platform: AnyCPU
+				Created directory "bin/Release/"
+				Created directory "obj/Release/"
+			Target CopyFilesMarkedCopyLocal:
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Illias/Illias.NET4.5/bin/Release/Vanaheimr.Illias.NET4.5.dll' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodRawIP/bin/Release/Vanaheimr.Illias.NET4.5.dll'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Illias/Illias.NET4.5/bin/Release/Vanaheimr.Illias.NET4.5.dll.mdb' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodRawIP/bin/Release/Vanaheimr.Illias.NET4.5.dll.mdb'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Illias/Illias/bin/Release/Vanaheimr.Illias.dll' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodRawIP/bin/Release/Vanaheimr.Illias.dll'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Illias/Illias/bin/Release/Vanaheimr.Illias.dll.mdb' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodRawIP/bin/Release/Vanaheimr.Illias.dll.mdb'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Styx/Styx.NET4.5/bin/Release/Vanaheimr.Styx.NET4.5.dll' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodRawIP/bin/Release/Vanaheimr.Styx.NET4.5.dll'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Styx/Styx.NET4.5/bin/Release/Vanaheimr.Styx.NET4.5.dll.mdb' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodRawIP/bin/Release/Vanaheimr.Styx.NET4.5.dll.mdb'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Styx/Styx/bin/Release/Vanaheimr.Styx.dll' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodRawIP/bin/Release/Vanaheimr.Styx.dll'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Styx/Styx/bin/Release/Vanaheimr.Styx.dll.mdb' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodRawIP/bin/Release/Vanaheimr.Styx.dll.mdb'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Hermod/Hermod/bin/Release/Vanaheimr.Hermod.dll' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodRawIP/bin/Release/Vanaheimr.Hermod.dll'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Hermod/Hermod/bin/Release/Vanaheimr.Hermod.dll.mdb' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodRawIP/bin/Release/Vanaheimr.Hermod.dll.mdb'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Hermod/Hermod/bin/Release/BouncyCastle.dll' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodRawIP/bin/Release/BouncyCastle.dll'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Hermod/Hermod/bin/Release/Newtonsoft.Json.dll' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodRawIP/bin/Release/Newtonsoft.Json.dll'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Hermod/Hermod/bin/Release/nunit.framework.dll' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodRawIP/bin/Release/nunit.framework.dll'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Hermod/Hermod/bin/Release/nunit.core.interfaces.dll' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodRawIP/bin/Release/nunit.core.interfaces.dll'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Hermod/Hermod/bin/Release/nunit.core.dll' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodRawIP/bin/Release/nunit.core.dll'
+			Target GenerateSatelliteAssemblies:
+			No input files were specified for target GenerateSatelliteAssemblies, skipping.
+			Target CoreCompile:
+				Tool /usr/local/lib/mono/4.5/mcs.exe execution started with arguments: /noconfig /debug:pdbonly /optimize+ /out:obj/Release/Vanaheimr.Hermod.RawIP.dll RawIP/AProtocolHeader.cs RawIP/IGMP/IGMPHeader.cs RawIP/IPv4/ICMPHeader.cs RawIP/IPv4/IPv4Header.cs RawIP/IPv6/ICMPv6EchoRequest.cs RawIP/IPv6/ICMPv6Header.cs RawIP/IPv6/IPv6FragmentHeader.cs RawIP/IPv6/IPV6Header.cs RawIP/UDP/UDPHeader.cs RawIP/WinsockIoctl.cs Properties/AssemblyInfo.cs obj/Release/.NETFramework,Version=v4.5.AssemblyAttribute.cs /target:library /define:TRACE /nostdlib /reference:/usr/local/lib/mono/4.5/System.dll /reference:/usr/local/lib/mono/4.5/System.Xml.Linq.dll /reference:/usr/local/lib/mono/4.5/System.Data.DataSetExtensions.dll /reference:/usr/local/lib/mono/4.5/Microsoft.CSharp.dll /reference:/usr/local/lib/mono/4.5/System.Data.dll /reference:/usr/local/lib/mono/4.5/System.Xml.dll /reference:/usr/local/lib/mono/4.5/System.Core.dll /reference:/home/belectric/new/AdensisDataRouter/libs/Illias/Illias.NET4.5/bin/Release//Vanaheimr.Illias.NET4.5.dll /reference:/home/belectric/new/AdensisDataRouter/libs/Illias/Illias/bin/Release//Vanaheimr.Illias.dll /reference:/home/belectric/new/AdensisDataRouter/libs/Styx/Styx.NET4.5/bin/Release//Vanaheimr.Styx.NET4.5.dll /reference:/home/belectric/new/AdensisDataRouter/libs/Styx/Styx/bin/Release//Vanaheimr.Styx.dll /reference:/home/belectric/new/AdensisDataRouter/libs/Hermod/Hermod/bin/Release//Vanaheimr.Hermod.dll /reference:/usr/local/lib/mono/4.5/mscorlib.dll /warn:4
+			Target DeployOutputFiles:
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodRawIP/obj/Release/Vanaheimr.Hermod.RawIP.dll.mdb' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodRawIP/bin/Release/Vanaheimr.Hermod.RawIP.dll.mdb'
+				Copying file from '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodRawIP/obj/Release/Vanaheimr.Hermod.RawIP.dll' to '/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodRawIP/bin/Release/Vanaheimr.Hermod.RawIP.dll'
+		Done building project "/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodRawIP/HermodRawIP.csproj".
+Done building project "/home/belectric/new/AdensisDataRouter/libs/Hermod/Hermod.sln".
+
+Build succeeded.
+
+Warnings:
+
+/home/belectric/new/AdensisDataRouter/libs/Hermod/Hermod.sln (default targets) ->
+(Build target) ->
+/home/belectric/new/AdensisDataRouter/libs/Hermod/Hermod/Hermod.csproj (default targets) ->
+/usr/local/lib/mono/4.5/Microsoft.CSharp.targets (CoreCompile target) ->
+
+	HTTP/Request/Parsy.cs(37,1): warning CS0105: The using directive for `org.GraphDefined.Vanaheimr.Hermod.HTTP' appeared previously in this namespace
+	HTTP/AHTTPPDU.cs(93,23): warning CS0108: `org.GraphDefined.Vanaheimr.Hermod.HTTP.AHTTPPDU.Content' hides inherited member `org.GraphDefined.Vanaheimr.Hermod.HTTP.AHTTPBasePDU.Content'. Use the new keyword if hiding was intended
+	HTTP/AHTTPPDU.cs(102,23): warning CS0108: `org.GraphDefined.Vanaheimr.Hermod.HTTP.AHTTPPDU.ContentStream' hides inherited member `org.GraphDefined.Vanaheimr.Hermod.HTTP.AHTTPBasePDU.ContentStream'. Use the new keyword if hiding was intended
+	HTTP/Request/QueryString.cs(148,32): warning CS0109: The member `org.GraphDefined.Vanaheimr.Hermod.HTTP.QueryString.Remove(string)' does not hide an inherited member. The new keyword is not required
+	CSV/TCPCSVServer.cs(77,92): warning CS0108: `org.GraphDefined.Vanaheimr.Hermod.Services.CSV.TCPCSVServer.OnNotification' hides inherited member `org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP.TCPServer.OnNotification'. Use the new keyword if hiding was intended
+	HTTP/Client/HTTPClient.cs(598,33): warning CS0219: The variable `TEString' is assigned but its value is never used
+	HTTP/General/HTTPContentType.cs(146,17): warning CS0219: The variable `CharSet' is assigned but its value is never used
+	HTTP/Server/HTTPServer.cs(537,25): warning CS0168: The variable `HTTPRequestds' is declared but never used
+	HTTP/Server/HTTPProcessor.cs(426,30): warning CS0168: The variable `e' is declared but never used
+	Helpers/Datastructures/IPv6Address.cs(431,17): warning CS0219: The variable `__IPAddress' is assigned but its value is never used
+	SMTP/SMTPClient/SMTPClient.cs(549,33): warning CS0219: The variable `MailServerName' is assigned but its value is never used
+	SMTP/SMTPClient/SMTPClient.cs(667,37): warning CS0219: The variable `AuthPLAINResponse' is assigned but its value is never used
+	SMTP/SMTPClient/SMTPClient.cs(683,37): warning CS0219: The variable `AuthLOGIN1Response' is assigned but its value is never used
+	SMTP/SMTPClient/SMTPClient.cs(684,37): warning CS0219: The variable `AuthLOGIN2Response' is assigned but its value is never used
+	SMTP/SMTPClient/SMTPClient.cs(685,37): warning CS0219: The variable `AuthLOGIN3Response' is assigned but its value is never used
+	SMTP/SMTPClient/SMTPClient.cs(703,41): warning CS0219: The variable `a2' is assigned but its value is never used
+	SMTP/SMTPClient/SMTPClient.cs(708,41): warning CS0219: The variable `b2' is assigned but its value is never used
+	SMTP/SMTPClient/SMTPClient.cs(710,41): warning CS0219: The variable `cc' is assigned but its value is never used
+	SMTP/SMTPClient/SMTPClient.cs(715,41): warning CS0219: The variable `AuthPLAINResponse' is assigned but its value is never used
+	SMTP/SMTPServer/SMTPProcessor.cs(187,17): warning CS0219: The variable `_prvKey' is assigned but its value is never used
+	SMTP/SMTPServer/SMTPProcessor.cs(189,17): warning CS0219: The variable `_pubKey1' is assigned but its value is never used
+	SMTP/SMTPServer/SMTPProcessor.cs(191,17): warning CS0219: The variable `__privateKey' is assigned but its value is never used
+	SMTP/SMTPServer/SMTPProcessor.cs(192,17): warning CS0219: The variable `__publicKey' is assigned but its value is never used
+	SMTP/SMTPServer/SMTPProcessor.cs(225,17): warning CS0219: The variable `_prvKey' is assigned but its value is never used
+	SMTP/SMTPServer/SMTPProcessor.cs(227,17): warning CS0219: The variable `_pubKey1' is assigned but its value is never used
+	SMTP/SMTPServer/SMTPProcessor.cs(229,17): warning CS0219: The variable `__privateKey' is assigned but its value is never used
+	SMTP/SMTPServer/SMTPProcessor.cs(230,17): warning CS0219: The variable `__publicKey' is assigned but its value is never used
+	SMTP/SMTPServer/SMTPProcessor.cs(290,17): warning CS0219: The variable `_prvKey' is assigned but its value is never used
+	SMTP/SMTPServer/SMTPProcessor.cs(292,17): warning CS0219: The variable `_pubKey1' is assigned but its value is never used
+	SMTP/SMTPServer/SMTPProcessor.cs(294,17): warning CS0219: The variable `__privateKey' is assigned but its value is never used
+	SMTP/SMTPServer/SMTPProcessor.cs(295,17): warning CS0219: The variable `__publicKey' is assigned but its value is never used
+	SMTP/SMTPServer/SMTPProcessor.cs(567,49): warning CS0219: The variable `TLSCert' is assigned but its value is never used
+	SMTP/SMTPServer/SMTPProcessor.cs(718,30): warning CS0168: The variable `e' is declared but never used
+	CSV/TCPCSVProcessor.cs(123,17): warning CS0219: The variable `Buffer' is assigned but its value is never used
+	CSV/TCPCSVProcessor.cs(224,55): warning CS0219: The variable `Result' is assigned but its value is never used
+	CSV/TCPCSVProcessor.cs(302,30): warning CS0168: The variable `e' is declared but never used
+	CSV/TCPCSVProcessor.cs(318,30): warning CS0168: The variable `e' is declared but never used
+	DNS/DNSCache.cs(150,34): warning CS0168: The variable `e' is declared but never used
+	DNS/DNSClient.cs(253,17): warning CS0219: The variable `length' is assigned but its value is never used
+	DNS/DNSClient.cs(316,17): warning CS0219: The variable `IS' is assigned but its value is never used
+	DNS/DNSClient.cs(317,17): warning CS0219: The variable `OpCode' is assigned but its value is never used
+	DNS/DNSClient.cs(324,17): warning CS0219: The variable `Z' is assigned but its value is never used
+	DNS/DNSClient.cs(339,21): warning CS0219: The variable `QuestionName' is assigned but its value is never used
+	DNS/DNSClient.cs(340,21): warning CS0219: The variable `TypeId' is assigned but its value is never used
+	DNS/DNSClient.cs(341,21): warning CS0219: The variable `ClassId' is assigned but its value is never used
+	DNS/DNSResponse.cs(201,17): warning CS0219: The variable `ToDelete' is assigned but its value is never used
+	DNS/ResourceRecords/ADNSResourceRecord.cs(159,17): warning CS0219: The variable `RDLength' is assigned but its value is never used
+	DNS/ResourceRecords/ADNSResourceRecord.cs(177,17): warning CS0219: The variable `RDLength' is assigned but its value is never used
+	TCP/TCPClient/TCPClient.cs(533,30): warning CS0168: The variable `e' is declared but never used
+	TCP/TCPClient/TCPClient.cs(607,30): warning CS0168: The variable `e' is declared but never used
+	UDP/UDPMulticastSenderArrow.cs(111,17): warning CS0219: The variable `sent' is assigned but its value is never used
+	UDP/UDPReceiver.cs(627,41): warning CS0219: The variable `MapperLocal' is assigned but its value is never used
+	UDP/UDPReceiver.cs(628,41): warning CS0219: The variable `MapReduceLocal' is assigned but its value is never used
+	HTTP/Server/HTTPServer.cs(88,39): warning CS0649: Field `org.GraphDefined.Vanaheimr.Hermod.HTTP.HTTPServer._HTTPSecurity' is never assigned to, and will always have its default value `null'
+	HTTP/Server/HTTPProcessor.cs(75,93): warning CS0067: The event `org.GraphDefined.Vanaheimr.Hermod.HTTP.HTTPProcessor.OnStarted' is never used
+	SMTP/EMail/AbstractEMailBuilder.cs(263,36): warning CS0169: The private field `org.GraphDefined.Vanaheimr.Hermod.Services.Mail.AbstractEMailBuilder._Reference' is never used
+	SMTP/EMail/AbstractEMailBuilder.cs(265,42): warning CS0414: The private field `org.GraphDefined.Vanaheimr.Hermod.Services.Mail.AbstractEMailBuilder._References' is assigned but its value is never used
+	CSV/TCPCSVServer.cs(58,33): warning CS0649: Field `org.GraphDefined.Vanaheimr.Hermod.Services.CSV.TCPCSVServer._SplitCharacters' is never assigned to, and will always have its default value `null'
+	CSV/TCPCSVCommandProcessor.cs(52,93): warning CS0067: The event `org.GraphDefined.Vanaheimr.Hermod.Services.CSV.TCPCSVCommandProcessor.OnStarted' is never used
+	SMTP/SMTPServer/SMTPProcessor.cs(135,93): warning CS0067: The event `org.GraphDefined.Vanaheimr.Hermod.Services.SMTP.SMTPProcessor.OnStarted' is never used
+	SMTP/SMTPServer/SMTPServer.cs(87,92): warning CS0067: The event `org.GraphDefined.Vanaheimr.Hermod.Services.SMTP.SMTPServer.OnNotification' is never used
+	CSV/TCPCSVProcessor.cs(80,89): warning CS0067: The event `org.GraphDefined.Vanaheimr.Hermod.Services.CSV.TCPCSVProcessor.OnStarted' is never used
+	DNS/DNSCache.cs(36,61): warning CS0414: The private field `org.GraphDefined.Vanaheimr.Hermod.Services.DNS.DNSCache.CleanUpTimer' is assigned but its value is never used
+	TCP/TCPClient/TCPClient.cs(71,50): warning CS0414: The private field `org.GraphDefined.Vanaheimr.Hermod.Services.TCPClient._CachedIPv4Addresses' is assigned but its value is never used
+	TCP/TCPClient/TCPClient.cs(72,50): warning CS0414: The private field `org.GraphDefined.Vanaheimr.Hermod.Services.TCPClient._CachedIPv6Addresses' is assigned but its value is never used
+	TCP/TCPClient/TCPClient.cs(286,52): warning CS0649: Field `org.GraphDefined.Vanaheimr.Hermod.Services.TCPClient._TLSClientCertificates' is never assigned to, and will always have its default value `null'
+	TCP/TCPConnection.cs(233,51): warning CS0067: The event `org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP.TCPConnection.OnExceptionOccured' is never used
+	TCP/TCPServer.cs(76,81): warning CS0414: The private field `org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP.TCPServer.CancellationToken' is assigned but its value is never used
+	UDP/UDPPacket.cs(38,45): warning CS0649: Field `org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP.UDPPacket<TData>._UDPReceiver' is never assigned to, and will always have its default value `null'
+	UDP/UDPReceiver.cs(46,58): warning CS0414: The private field `org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP.UDPReceiver<TData>.ReceiverTask' is assigned but its value is never used
+	UDP/UDPReceiver.cs(49,58): warning CS0414: The private field `org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP.UDPReceiver<TData>.PacketThreadsNameCreator' is assigned but its value is never used
+	UDP/UDPReceiver.cs(169,34): warning CS0649: Field `org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP.UDPReceiver<TData>._ReceiverThreadIsBackground' is never assigned to, and will always have its default value `false'
+	UDP/UDPSender.cs(227,26): warning CS0649: Field `org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP.UDPSender<T>._IPSocket' is never assigned to, and will always have its default value `null'
+
+/home/belectric/new/AdensisDataRouter/libs/Hermod/Hermod.sln (default targets) ->
+(Build target) ->
+/home/belectric/new/AdensisDataRouter/libs/Hermod/HermodTests/HermodTests.csproj (default targets) ->
+/usr/local/lib/mono/4.5/Microsoft.CSharp.targets (CoreCompile target) ->
+
+	QueryStringTests.cs(97,17): warning CS0219: The variable `QueryString' is assigned but its value is never used
+	QueryStringTests.cs(108,17): warning CS0219: The variable `QueryString' is assigned but its value is never used
+
+	 75 Warning(s)
+	 0 Error(s)
+
+Time Elapsed 00:00:03.0754570
