@@ -74,7 +74,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
         private           IEnumerator<IPSocket>  OrderedDNSEnumerator;
         private           IPSocket               CurrentIPSocket;
 
+#if __MonoCS__
+        public const SslProtocols DefaultSslProtocols = SslProtocols.Tls;
+#else
         public const SslProtocols DefaultSslProtocols = SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12;
+#endif
 
         #endregion
 

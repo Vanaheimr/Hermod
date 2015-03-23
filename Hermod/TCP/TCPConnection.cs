@@ -554,8 +554,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         public void EnableTLSServer(X509Certificate2 TLSCert)
         {
+
+#if __MonoCS__
+            // mono specific code
+#else
             var _TLSStream = new SslStream(Stream);
             _TLSStream.AuthenticateAsServer(TLSCert, false, SslProtocols.Tls12, false);
+#endif
+
         }
 
 
