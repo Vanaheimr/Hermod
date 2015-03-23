@@ -167,16 +167,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region HTTPClient(RemoteIPAddress = null, RemotePort = null)
+        #region HTTPClient(RemoteIPAddress = null, RemotePort = null, DNSClient  = null)
 
         /// <summary>
         /// Create a new HTTPClient using the given optional parameters.
         /// </summary>
         /// <param name="RemoteIPAddress">The IP address to connect to.</param>
         /// <param name="RemotePort">The IP port to connect to.</param>
-        public HTTPClient(IIPAddress  RemoteIPAddress = null,
-                          IPPort      RemotePort      = null)
+        /// <param name="DNSClient">An optional DNS client.</param>
+        public HTTPClient(IIPAddress  RemoteIPAddress  = null,
+                          IPPort      RemotePort       = null,
+                          DNSClient   DNSClient        = null)
         {
+
+            this._DNSClient       = (DNSClient == null)
+                                               ? new DNSClient(SearchForIPv6DNSServers: false)
+                                               : DNSClient;
 
             this.RemoteIPAddress  = RemoteIPAddress;
             this.RemotePort       = RemotePort;
@@ -185,14 +191,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region HTTPClient(Socket)
+        #region HTTPClient(Socket, DNSClient  = null)
 
         /// <summary>
         /// Create a new HTTPClient using the given optional parameters.
         /// </summary>
         /// <param name="RemoteSocket">The IP socket to connect to.</param>
-        public HTTPClient(IPSocket RemoteSocket)
+        /// <param name="DNSClient">An optional DNS client.</param>
+        public HTTPClient(IPSocket   RemoteSocket,
+                          DNSClient  DNSClient  = null)
         {
+
+            this._DNSClient       = (DNSClient == null)
+                                               ? new DNSClient(SearchForIPv6DNSServers: false)
+                                               : DNSClient;
 
             this.RemoteIPAddress  = RemoteSocket.IPAddress;
             this.RemotePort       = RemoteSocket.Port;
