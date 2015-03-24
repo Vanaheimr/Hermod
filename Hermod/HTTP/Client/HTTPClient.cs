@@ -230,7 +230,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                ? new DNSClient(SearchForIPv6DNSServers: false)
                                                : DNSClient;
 
-            this.RemoteIPAddress  = _DNSClient.Query<A>(RemoteHost).Select(ARecord => ARecord.IPv4Address).ToArray()[1];
+            var addresses = _DNSClient.Query<A>(RemoteHost).Select(ARecord => ARecord.IPv4Address).ToArray();
+            this.RemoteIPAddress  = addresses.FirstOrDefault();
             this.RemotePort       = RemotePort;
 
         }
