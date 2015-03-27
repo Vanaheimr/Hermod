@@ -335,11 +335,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public Task<HTTPClient> Execute(HTTPRequest                        HTTPRequest,
                                         Action<HTTPRequest, HTTPResponse>  RequestResponseDelegate  = null,
-                                        UInt32                             Timeout                  = 20000)
+                                        UInt32                             TimeoutMSec              = 20000)
         {
 
             return Task<HTTPClient>.Factory.StartNew(
-                () => { Execute_Synced(HTTPRequest, RequestResponseDelegate, Timeout); return this; },
+                () => { Execute_Synced(HTTPRequest, RequestResponseDelegate, TimeoutMSec); return this; },
+                TaskCreationOptions.AttachedToParent);
+
+        }
+
+
+        public Task<HTTPResponse> ExecuteReturnResult(HTTPRequest                        HTTPRequest,
+                                                      Action<HTTPRequest, HTTPResponse>  RequestResponseDelegate  = null,
+                                                      UInt32                             TimeoutMSec              = 20000)
+        {
+
+            return Task<HTTPResponse>.Factory.StartNew(
+                () => { return Execute_Synced(HTTPRequest, RequestResponseDelegate, TimeoutMSec); },
                 TaskCreationOptions.AttachedToParent);
 
         }
@@ -347,7 +359,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public HTTPResponse Execute_Synced(HTTPRequest                        HTTPRequest,
                                            Action<HTTPRequest, HTTPResponse>  RequestResponseDelegate  = null,
-                                           UInt32                             Timeout                  = 20000)
+                                           UInt32                             TimeoutMSec              = 20000)
         {
 
             //Debug.WriteLine(DateTime.Now + " HTTPClient started...");
@@ -400,7 +412,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     while (!TCPStream.DataAvailable)
                     {
 
-                        if (sw.ElapsedMilliseconds >= Timeout)
+                        if (sw.ElapsedMilliseconds >= TimeoutMSec)
                         {
                             //Debug.WriteLine(DateTime.Now + " HTTPClient timeout after " + Timeout + "ms!");
                             TCPClient.Close();
