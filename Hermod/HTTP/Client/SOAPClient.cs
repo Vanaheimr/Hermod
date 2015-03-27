@@ -169,13 +169,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="QueryXML">The SOAP query XML.</param>
         /// <param name="SOAPAction">The SOAP action.</param>
         /// <param name="OnSuccess">The delegate to call for every successful result.</param>
-        /// <param name="OnFault">The delegate to call whenever a SOAP fault XML or an exception occured.</param>
+        /// <param name="OnSOAPFault">The delegate to call whenever a SOAP fault XML or an exception occured.</param>
         /// <param name="TimeoutMSec">The timeout of the HTTP client</param>
         /// <returns>The data structured after it had been processed by the OnSuccess delegate, or a fault.</returns>
         public Task<HTTPResponse<T>> Query<T>(XElement                                       QueryXML,
                                               String                                         SOAPAction,
                                               Func<HTTPResponse<XElement>, HTTPResponse<T>>  OnSuccess,
-                                              Func<HTTPResponse<XElement>, HTTPResponse<T>>  OnFault,
+                                              Func<HTTPResponse<XElement>, HTTPResponse<T>>  OnSOAPFault,
+                                              Action<HTTPResponse>                           OnHTTPError,
+                                              Action<DateTime, Object, Exception>            OnException,
                                               UInt32                                         TimeoutMSec = 60000)
 
         {
@@ -191,8 +193,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             if (OnSuccess == null)
                 throw new ArgumentException("The 'OnSuccess'-delegate must not be null!");
 
-            if (OnFault == null)
+            if (OnSOAPFault == null)
                 throw new ArgumentException("The 'OnSuccess'-delegate must not be null!");
+
+            if (OnHTTPError == null)
+                throw new ArgumentException("The 'OnHTTPError'-delegate must not be null!");
+
+            if (OnException == null)
+                throw new ArgumentException("The 'OnException'-delegate must not be null!");
 
             #endregion
 
@@ -206,14 +214,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             return this.ExecuteReturnResult(builder, TimeoutMSec: TimeoutMSec).
                         ContinueWith(HttpResponseTask => {
 
-                            if (HttpResponseTask.Result == null)
+                            if (HttpResponseTask.Result                == null ||
+                                HttpResponseTask.Result.HTTPStatusCode != HTTPStatusCode.OK)
                             {
 
-                                var OnFaultLocal = OnFault;
-                                if (OnFaultLocal != null)
-                                    return OnFaultLocal(new HTTPResponse<XElement>(HttpResponseTask.Result, new XElement("HTTPClientError")));
+                                var OnHTTPErrorLocal = OnHTTPError;
+                                if (OnHTTPErrorLocal != null)
+                                    OnHTTPErrorLocal(HttpResponseTask.Result);
 
-                                return new HTTPResponse<XElement>(HttpResponseTask.Result, new XElement("error")) as HTTPResponse<T>;
+                                return new HTTPResponse<XElement>(HttpResponseTask.Result,
+                                                                  new XElement("HTTPError"),
+                                                                  IsFault: true) as HTTPResponse<T>;
 
                             }
 
@@ -260,21 +271,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
                                 }
 
-                                var OnFaultLocal = OnFault;
-                                if (OnFaultLocal != null)
-                                    return OnFaultLocal(new HTTPResponse<XElement>(HttpResponseTask.Result, SOAPXML));
+                                var OnSOAPFaultLocal = OnSOAPFault;
+                                if (OnSOAPFaultLocal != null)
+                                    return OnSOAPFaultLocal(new HTTPResponse<XElement>(HttpResponseTask.Result, SOAPXML));
 
-                                return new HTTPResponse<XElement>(HttpResponseTask.Result, new XElement("SOAPFault")) as HTTPResponse<T>;
+                                return new HTTPResponse<XElement>(HttpResponseTask.Result,
+                                                                  new XElement("SOAPFault"),
+                                                                  IsFault: true) as HTTPResponse<T>;
 
 
                             } catch (Exception e)
                             {
 
-                                var OnFaultLocal = OnFault;
-                                if (OnFaultLocal != null)
-                                    return OnFaultLocal(new HTTPResponse<XElement>(HttpResponseTask.Result, e));
+                                var OnExceptionLocal = OnException;
+                                if (OnExceptionLocal != null)
+                                    OnExceptionLocal(DateTime.Now, this, e);
 
-                                return new HTTPResponse<XElement>(HttpResponseTask.Result, new XElement("exception", e.Message)) as HTTPResponse<T>;
+                                //var OnFaultLocal = OnSOAPFault;
+                                //if (OnFaultLocal != null)
+                                //    return OnFaultLocal(new HTTPResponse<XElement>(HttpResponseTask.Result, e));
+
+                                return new HTTPResponse<XElement>(HttpResponseTask.Result,
+                                                                  new XElement("exception", e.Message),
+                                                                  IsFault: true) as HTTPResponse<T>;
 
                             }
 
