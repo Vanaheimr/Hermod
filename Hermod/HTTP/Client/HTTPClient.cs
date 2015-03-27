@@ -665,8 +665,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         ReadBlockLength = false;
 
                                     }
+
                                     else
                                     {
+                                        // Reaching this point seems to be an endless loop!
+                                        break;
 
                                     }
 

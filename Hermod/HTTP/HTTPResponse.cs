@@ -30,6 +30,22 @@ using System.Net.Sockets;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
+    public class HTTPResponse<T>
+    {
+
+        public readonly HTTPResponse HttpResponse;
+
+        public readonly T            Content;
+
+        public HTTPResponse(HTTPResponse  _HttpResponse,
+                            T             _Content)
+        {
+            HttpResponse  = _HttpResponse;
+            Content       = _Content;
+        }
+
+    }
+
     /// <summary>
     /// A read-only HTTP response header.
     /// </summary>
