@@ -33,15 +33,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public class HTTPResponse<T>
     {
 
-        public readonly HTTPResponse HttpResponse;
+        public  readonly HTTPResponse   HttpResponse;
 
-        public readonly T            Content;
+        public  readonly T              Content;
+
+        public  readonly Exception      Exception;
+
+
+        private readonly Boolean        IsFault;
+
+
+        public Boolean HasErrors
+        {
+            get
+            {
+                return Exception != null && !IsFault;
+            }
+        }
 
         public HTTPResponse(HTTPResponse  _HttpResponse,
-                            T             _Content)
+                            T             _Content,
+                            Boolean       IsFault = false)
         {
             HttpResponse  = _HttpResponse;
             Content       = _Content;
+            IsFault       = IsFault;
+            Exception     = null;
+        }
+
+        public HTTPResponse(Exception e)
+        {
+            HttpResponse  = null;
+            Content       = default(T);
+            IsFault       = true;
+            Exception     = e;
         }
 
     }

@@ -141,7 +141,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         #region Query(Query, SOAPAction)
 
-        public HTTPResponse Query(String Query, String SOAPAction)
+        public HTTPResponse Query(XElement  Query,
+                                  String    SOAPAction)
         {
 
             var builder = this.POST(_URIPrefix);
@@ -195,7 +196,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             var builder = this.POST(_URIPrefix);
             builder.Host               = HTTPVirtualHost;
-            builder.Content            = QueryXML.ToString().ToUTF8Bytes();
+            builder.Content            = QueryXML.ToUTF8Bytes();
             builder.ContentType        = HTTPContentType.XMLTEXT_UTF8;
             builder.Set("SOAPAction",  SOAPAction);
             builder.UserAgent          = UserAgent;
