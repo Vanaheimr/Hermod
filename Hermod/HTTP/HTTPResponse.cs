@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2014, Achim 'ahzf' Friedland <achim@graphdefined.org>
+ * Copyright (c) 2010-2015, Achim 'ahzf' Friedland <achim@graphdefined.org>
  * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,18 +20,23 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Threading;
-using System.Diagnostics;
 using System.Collections.Generic;
-using System.Net.Sockets;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
+    #region HTTPResponse<T>
+
+    /// <summary>
+    /// A helper class to transport HTTP data and its metadata.
+    /// </summary>
+    /// <typeparam name="T">The type of the transported data.</typeparam>
     public class HTTPResponse<T>
     {
+
+        #region Properties
 
         public  readonly HTTPResponse   HttpResponse;
 
@@ -43,6 +48,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         private readonly Boolean        IsFault;
 
 
+        #region HasErrors
+
         public Boolean HasErrors
         {
             get
@@ -50,6 +57,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return Exception != null && !IsFault;
             }
         }
+
+        #endregion
+
+        #endregion
+
+        #region Constructor(s)
 
         public HTTPResponse(HTTPResponse  HttpResponse,
                             T             Content,
@@ -78,7 +91,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.Exception     = e;
         }
 
+        #endregion
+
     }
+
+    #endregion
+
+    #region HTTPResponse
 
     /// <summary>
     /// A read-only HTTP response header.
@@ -357,11 +376,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
 
+        #region (override) ToString()
+
+        /// <summary>
+        /// Returns a string representation of this object.
+        /// </summary>
+        /// <returns>A string representation of this object.</returns>
         public override String ToString()
         {
             return HTTPStatusCode.ToString();
         }
 
+        #endregion
+
     }
+
+    #endregion
 
 }

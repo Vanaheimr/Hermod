@@ -141,15 +141,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         #endregion
 
 
-        #region Query(Query, SOAPAction)
+        #region Query(QueryXML, SOAPAction)
 
-        public HTTPResponse Query(XElement  Query,
+        public HTTPResponse Query(XElement  QueryXML,
                                   String    SOAPAction)
         {
 
             var builder = this.POST(_URIPrefix);
             builder.Host         = HTTPVirtualHost;
-            builder.Content      = Query.ToUTF8Bytes();
+            builder.Content      = QueryXML.ToUTF8Bytes();
             builder.ContentType  = HTTPContentType.XMLTEXT_UTF8;
             builder.Set("SOAPAction", SOAPAction);
             builder.UserAgent    = UserAgent;
@@ -264,24 +264,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                 if (OnFaultLocal != null)
                                     return OnFaultLocal(new HTTPResponse<XElement>(HttpResponseTask.Result, SOAPXML));
 
-                                return new HTTPResponse<XElement>(HttpResponseTask.Result, new XElement("error")) as HTTPResponse<T>;
+                                return new HTTPResponse<XElement>(HttpResponseTask.Result, new XElement("SOAPFault")) as HTTPResponse<T>;
+
 
                             } catch (Exception e)
                             {
 
                                 var OnFaultLocal = OnFault;
                                 if (OnFaultLocal != null)
-                                    return OnFaultLocal(new HTTPResponse<XElement>(
-                                                            HttpResponseTask.Result,
-                                                            new XElement("SOAPXMLProcessingException",
-                                                                new XElement("Host",       HTTPVirtualHost),
-                                                                new XElement("SOAPAction", SOAPAction),
-                                                                new XElement("Exception",  e.Message)
-                                                            ),
-                                                            IsFault: true
-                                                        ));
+                                    return OnFaultLocal(new HTTPResponse<XElement>(HttpResponseTask.Result, e));
 
-                                return new HTTPResponse<XElement>(HttpResponseTask.Result, new XElement("error")) as HTTPResponse<T>;
+                                return new HTTPResponse<XElement>(HttpResponseTask.Result, new XElement("exception", e.Message)) as HTTPResponse<T>;
 
                             }
 
