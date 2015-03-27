@@ -51,22 +51,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
         }
 
-        public HTTPResponse(HTTPResponse  _HttpResponse,
-                            T             _Content,
+        public HTTPResponse(HTTPResponse  HttpResponse,
+                            T             Content,
                             Boolean       IsFault = false)
         {
-            HttpResponse  = _HttpResponse;
-            Content       = _Content;
-            IsFault       = IsFault;
-            Exception     = null;
+            this.HttpResponse  = HttpResponse;
+            this.Content       = Content;
+            this.IsFault       = IsFault;
+            this.Exception     = null;
         }
 
         public HTTPResponse(Exception e)
         {
-            HttpResponse  = null;
-            Content       = default(T);
-            IsFault       = true;
-            Exception     = e;
+            this.HttpResponse  = null;
+            this.Content       = default(T);
+            this.IsFault       = true;
+            this.Exception     = e;
+        }
+
+        public HTTPResponse(HTTPResponse  HttpResponse,
+                            Exception     e)
+        {
+            this.HttpResponse  = HttpResponse;
+            this.Content       = default(T);
+            this.IsFault       = true;
+            this.Exception     = e;
         }
 
     }

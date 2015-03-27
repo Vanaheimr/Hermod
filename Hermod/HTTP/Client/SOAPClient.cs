@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2013, Achim 'ahzf' Friedland <achim@graph-database.org>
+ * Copyright (c) 2010-2015, Achim 'ahzf' Friedland <achim@graph-database.org>
  * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,10 +21,8 @@ using System;
 using System.Linq;
 using System.Xml.Linq;
 using System.Threading.Tasks;
-using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Services.DNS;
 
@@ -33,8 +31,10 @@ using org.GraphDefined.Vanaheimr.Hermod.Services.DNS;
 namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 {
 
+    #region SOAP XML Namespace
+
     /// <summary>
-    /// SOAP XML Namespaces
+    /// SOAP XML Namespace
     /// </summary>
     public static class NS
     {
@@ -46,13 +46,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
     }
 
+    #endregion
+
+    #region SOAPClient
+
     /// <summary>
     /// A specialized HTTP client for the Simple Object Access Protocol (SOAP).
     /// </summary>
     public class SOAPClient : HTTPClient
     {
-
-
 
         #region Properties
 
@@ -269,7 +271,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
                                 var OnFaultLocal = OnFault;
                                 if (OnFaultLocal != null)
-                                    return OnFaultLocal(new HTTPResponse<XElement>(HttpResponseTask.Result, new XElement("SOAPXMLProcessingException", e.Message)));
+                                    return OnFaultLocal(new HTTPResponse<XElement>(
+                                                            HttpResponseTask.Result,
+                                                            new XElement("SOAPXMLProcessingException",
+                                                                new XElement("Host",       HTTPVirtualHost),
+                                                                new XElement("SOAPAction", SOAPAction),
+                                                                new XElement("Exception",  e.Message)
+                                                            ),
+                                                            IsFault: true
+                                                        ));
 
                                 return new HTTPResponse<XElement>(HttpResponseTask.Result, new XElement("error")) as HTTPResponse<T>;
 
@@ -282,5 +292,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         #endregion
 
     }
+
+    #endregion
 
 }
