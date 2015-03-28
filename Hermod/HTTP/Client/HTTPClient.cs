@@ -751,12 +751,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <returns>A string representation of this object.</returns>
         public override String ToString()
         {
-
-            var _TypeName    = this.GetType().Name;
-            var _GenericType = this.GetType().GetGenericArguments()[0].Name;
-
-            return String.Concat(RemoteIPAddress.ToString(), ":", RemotePort);
-
+            return String.Concat(this.GetType().Name, " ", RemoteIPAddress.ToString(), ":", RemotePort);
         }
 
         #endregion

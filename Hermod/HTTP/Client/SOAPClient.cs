@@ -176,7 +176,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                               String                                         SOAPAction,
                                               Func<HTTPResponse<XElement>, HTTPResponse<T>>  OnSuccess,
                                               Func<HTTPResponse<XElement>, HTTPResponse<T>>  OnSOAPFault,
-                                              Action<HTTPResponse>                           OnHTTPError,
+                                              Action<DateTime, Object, HTTPResponse>         OnHTTPError,
                                               Action<DateTime, Object, Exception>            OnException,
                                               UInt32                                         TimeoutMSec = 60000)
 
@@ -214,13 +214,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             return this.ExecuteReturnResult(builder, TimeoutMSec: TimeoutMSec).
                         ContinueWith(HttpResponseTask => {
 
-                            if (HttpResponseTask.Result                == null ||
-                                HttpResponseTask.Result.HTTPStatusCode != HTTPStatusCode.OK)
+                            if (HttpResponseTask.Result                == null              ||
+                                HttpResponseTask.Result.HTTPStatusCode != HTTPStatusCode.OK ||
+                                HttpResponseTask.Result.Content        == null              ||
+                                HttpResponseTask.Result.Content.Length == 0)
                             {
 
                                 var OnHTTPErrorLocal = OnHTTPError;
                                 if (OnHTTPErrorLocal != null)
-                                    OnHTTPErrorLocal(HttpResponseTask.Result);
+                                    OnHTTPErrorLocal(DateTime.Now, this, HttpResponseTask.Result);
 
                                 return new HTTPResponse<XElement>(HttpResponseTask.Result,
                                                                   new XElement("HTTPError"),
