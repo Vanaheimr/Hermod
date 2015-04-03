@@ -80,7 +80,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region RemoteIPAddress
 
         /// <summary>
-        /// The IP address to connect to.
+        /// The IP Address to connect to.
         /// </summary>
         public IIPAddress RemoteIPAddress { get; set; }
 
@@ -148,7 +148,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The default server name.
         /// </summary>
-        public virtual DNSClient DNSClient
+        public DNSClient DNSClient
         {
             get
             {
@@ -167,25 +167,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region HTTPClient(RemoteIPAddress = null, RemotePort = null, DNSClient  = null)
+        #region HTTPClient(RemoteIPAddress, RemotePort, DNSClient  = null)
 
         /// <summary>
         /// Create a new HTTPClient using the given optional parameters.
         /// </summary>
-        /// <param name="RemoteIPAddress">The IP address to connect to.</param>
-        /// <param name="RemotePort">The IP port to connect to.</param>
+        /// <param name="RemoteIPAddress">The remote IP address to connect to.</param>
+        /// <param name="RemotePort">The remote IP port to connect to.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
-        public HTTPClient(IIPAddress  RemoteIPAddress  = null,
-                          IPPort      RemotePort       = null,
-                          DNSClient   DNSClient        = null)
+        public HTTPClient(IIPAddress  RemoteIPAddress,
+                          IPPort      RemotePort,
+                          DNSClient   DNSClient  = null)
         {
-
-            this._DNSClient       = (DNSClient == null)
-                                               ? new DNSClient(SearchForIPv6DNSServers: false)
-                                               : DNSClient;
 
             this.RemoteIPAddress  = RemoteIPAddress;
             this.RemotePort       = RemotePort;
+            this._DNSClient       = DNSClient == null
+                                       ? new DNSClient()
+                                       : DNSClient;
 
         }
 
@@ -196,43 +195,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTPClient using the given optional parameters.
         /// </summary>
-        /// <param name="RemoteSocket">The IP socket to connect to.</param>
+        /// <param name="RemoteSocket">The remote IP socket to connect to.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public HTTPClient(IPSocket   RemoteSocket,
                           DNSClient  DNSClient  = null)
-        {
 
-            this._DNSClient       = (DNSClient == null)
-                                               ? new DNSClient(SearchForIPv6DNSServers: false)
-                                               : DNSClient;
+            : this(RemoteSocket.IPAddress, RemoteSocket.Port, DNSClient)
 
-            this.RemoteIPAddress  = RemoteSocket.IPAddress;
-            this.RemotePort       = RemoteSocket.Port;
-
-        }
+        { }
 
         #endregion
 
-        #region HTTPClient(RemoteHost, RemotePort = null, DNSClient  = null)
+        #region HTTPClient(RemoteHost, RemotePort, DNSClient  = null)
 
         /// <summary>
         /// Create a new HTTPClient using the given optional parameters.
         /// </summary>
-        /// <param name="RemoteHost">The IP host to connect to.</param>
-        /// <param name="RemotePort">The IP port to connect to.</param>
+        /// <param name="RemoteHost">The remote hostname to connect to.</param>
+        /// <param name="RemotePort">The remote IP port to connect to.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public HTTPClient(String     RemoteHost,
-                          IPPort     RemotePort = null,
+                          IPPort     RemotePort,
                           DNSClient  DNSClient  = null)
         {
 
-            this._DNSClient       = (DNSClient == null)
-                                               ? new DNSClient(SearchForIPv6DNSServers: false)
-                                               : DNSClient;
-
-            var addresses = _DNSClient.Query<A>(RemoteHost).Select(ARecord => ARecord.IPv4Address).ToArray();
-            this.RemoteIPAddress  = addresses.FirstOrDefault();
+            this.Hostname         = RemoteHost;
             this.RemotePort       = RemotePort;
+            this._DNSClient       = DNSClient == null
+                                       ? new DNSClient()
+                                       : DNSClient;
 
         }
 
@@ -376,7 +367,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
 
                 if (TCPClient == null)
-                    TCPClient = new TcpClient(this.RemoteIPAddress.ToString(), this.RemotePort.ToInt32());
+                {
+
+                    if (RemoteIPAddress == null)
+                    {
+
+                        var IPv4AddressTask = _DNSClient.
+                                                  Query<A>(Hostname).
+                                                      ContinueWith(QueryTask => QueryTask.Result.
+                                                                                    Select(ARecord => ARecord.IPv4Address).
+                                                                                    FirstOrDefault());
+                        IPv4AddressTask.Wait();
+
+                        this.RemoteIPAddress = IPv4AddressTask.Result;
+
+                    }
+
+                    TCPClient = new TcpClient(RemoteIPAddress.ToString(), this.RemotePort.ToInt32());
+ 
+                }
 
                 //TCPClient.ReceiveTimeout = 5000;
 

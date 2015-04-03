@@ -26,6 +26,7 @@ using System.Net.Sockets;
 using System.Reflection;
 using System.Collections.Generic;
 using System.Net.NetworkInformation;
+using System.Threading.Tasks;
 
 #endregion
 
@@ -228,33 +229,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
         #region Query(DomainName, params ResourceRecordTypes)
 
-        public DNSInfo Query(String           DomainName,
-                             params UInt16[]  ResourceRecordTypes)
+        public Task<DNSInfo> Query(String           DomainName,
+                                   params UInt16[]  ResourceRecordTypes)
         {
 
-            if (ResourceRecordTypes.Length == 0)
-                ResourceRecordTypes = new UInt16[1] { 255 };
+            return Task<DNSInfo>.Factory.StartNew(() => {
 
-            // Preparing the DNS query packet
-            var QueryPacket = new DNSQuery(DomainName, ResourceRecordTypes) {
-                                      RecursionDesired = RecursionDesired
-                                  };
+                if (ResourceRecordTypes.Length == 0)
+                    ResourceRecordTypes = new UInt16[1] { 255 };
 
-            // Query DNS server(s)...
-            var serverAddress  = IPAddress.Parse(DNSServers.First().IPAddress.ToString());
-            var endPoint       = (EndPoint) new IPEndPoint(serverAddress, DNSServers.First().Port.ToInt32());
-            var socket         = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout,    (Int32) QueryTimeout.TotalMilliseconds);
-            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, (Int32) QueryTimeout.TotalMilliseconds);
-            socket.Connect(endPoint);
-            socket.SendTo(QueryPacket.Serialize(), endPoint);
+                // Preparing the DNS query packet
+                var QueryPacket = new DNSQuery(DomainName, ResourceRecordTypes) {
+                                          RecursionDesired = RecursionDesired
+                                      };
 
-            var data    = new Byte[512];
-            var length  = socket.ReceiveFrom(data, ref endPoint);
+                // Query DNS server(s)...
+                var serverAddress  = IPAddress.Parse(DNSServers.First().IPAddress.ToString());
+                var endPoint       = (EndPoint) new IPEndPoint(serverAddress, DNSServers.First().Port.ToInt32());
+                var socket         = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout,    (Int32) QueryTimeout.TotalMilliseconds);
+                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, (Int32) QueryTimeout.TotalMilliseconds);
+                socket.Connect(endPoint);
+                socket.SendTo(QueryPacket.Serialize(), endPoint);
 
-            socket.Shutdown(SocketShutdown.Both);
+                var data    = new Byte[512];
+                var length  = socket.ReceiveFrom(data, ref endPoint);
 
-            return ReadResponse(new MemoryStream(data));
+                socket.Shutdown(SocketShutdown.Both);
+
+                return ReadResponse(new MemoryStream(data));
+
+            },
+            TaskCreationOptions.AttachedToParent);
 
         }
 
@@ -262,7 +268,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
         #region Query<T>(DomainName)
 
-        public IEnumerable<T> Query<T>(String DomainName)
+        public Task<IEnumerable<T>> Query<T>(String DomainName)
             where T : ADNSResourceRecord
         {
 
@@ -271,12 +277,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
             if (TypeIdField == null)
                 throw new ArgumentException("Constant field 'TypeId' of type '" + typeof(T).Name + "' was not found!");
 
-            var TypeId = (UInt16) TypeIdField.GetValue(typeof(T));
+            return Query(DomainName,
+                         new UInt16[1] { (UInt16) TypeIdField.GetValue(typeof(T)) }).
 
-            return Query(DomainName, new UInt16[1] { TypeId }).
-                       Answers.
-                       Where(v => v.GetType() == typeof(T)).
-                       Cast<T>();
+                       ContinueWith(QueryTask => QueryTask.Result.
+                                                     Answers.
+                                                     Where(v => v.GetType() == typeof(T)).
+                                                     Cast<T>());
 
         }
 
@@ -284,20 +291,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
         #region QueryFirst<T>(DomainName)
 
-        public T QueryFirst<T>(String DomainName)
+        public Task<T> QueryFirst<T>(String DomainName)
             where T : ADNSResourceRecord
         {
-            return Query<T>(DomainName).FirstOrDefault();
+
+            return Query<T>(DomainName).
+                       ContinueWith(QueryTask => QueryTask.Result.
+                                                     FirstOrDefault());
+
         }
 
         #endregion
 
         #region Query<T1, T2>(DomainName, Mapper)
 
-        public IEnumerable<T2> Query<T1, T2>(String DomainName, Func<T1, T2> Mapper)
+        public Task<IEnumerable<T2>> Query<T1, T2>(String DomainName, Func<T1, T2> Mapper)
             where T1 : ADNSResourceRecord
         {
-            return Query<T1>(DomainName).Select(v => Mapper(v));
+
+            return Query<T1>(DomainName).
+                       ContinueWith(QueryTask => QueryTask.Result.
+                                                     Select(v => Mapper(v)));
+
         }
 
         #endregion

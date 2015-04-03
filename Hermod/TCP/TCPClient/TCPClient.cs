@@ -434,16 +434,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
         private void QueryDNS()
         {
 
-            var IPv4 = _DNSClient.Query<A>(RemoteHost);
-            if (IPv4.Any())
-                _CachedIPv4Addresses = IPv4.ToArray();
+            var IPv4Task = _DNSClient.Query<A>(RemoteHost);
+            IPv4Task.Wait();
+            if (IPv4Task.Result.Any())
+                _CachedIPv4Addresses = IPv4Task.Result.ToArray();
 
-            var IPv6 = _DNSClient.Query<AAAA>(RemoteHost);
-            if (IPv6.Any())
-                _CachedIPv6Addresses = IPv6.ToArray();
+            var IPv6Task = _DNSClient.Query<AAAA>(RemoteHost);
+            IPv6Task.Wait();
+            if (IPv6Task.Result.Any())
+                _CachedIPv6Addresses = IPv6Task.Result.ToArray();
 
-            OrderedDNS = (IPv4.Select(ARecord    => new IPSocket(ARecord.   IPv4Address, this.RemotePort)).Concat(
-                          IPv6.Select(AAAARecord => new IPSocket(AAAARecord.IPv6Address, this.RemotePort)))).
+            OrderedDNS = (_CachedIPv4Addresses.Select(ARecord    => new IPSocket(ARecord.   IPv4Address, this.RemotePort)).Concat(
+                          _CachedIPv6Addresses.Select(AAAARecord => new IPSocket(AAAARecord.IPv6Address, this.RemotePort)))).
                           ToList();
 
             OrderedDNSEnumerator = OrderedDNS.GetEnumerator();
