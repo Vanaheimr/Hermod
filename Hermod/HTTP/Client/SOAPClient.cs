@@ -121,6 +121,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="HTTPVirtualHost">The HTTP virtual host to use.</param>
         /// <param name="URIPrefix">The URI-prefix of the SOAP service.</param>
         /// <param name="UserAgent">The HTTP user agent to use.</param>
+        /// <param name="DNSClient">An optional DNS client.</param>
         public SOAPClient(String     SOAPHost,
                           IPPort     SOAPPort,
                           String     HTTPVirtualHost,
@@ -170,7 +171,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="SOAPAction">The SOAP action.</param>
         /// <param name="OnSuccess">The delegate to call for every successful result.</param>
         /// <param name="OnSOAPFault">The delegate to call whenever a SOAP fault XML or an exception occured.</param>
-        /// <param name="TimeoutMSec">The timeout of the HTTP client</param>
+        /// <param name="Timeout">The timeout of the HTTP client [default 60 sec.]</param>
         /// <returns>The data structured after it had been processed by the OnSuccess delegate, or a fault.</returns>
         public Task<HTTPResponse<T>> Query<T>(XElement                                       QueryXML,
                                               String                                         SOAPAction,
@@ -178,7 +179,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                               Func<HTTPResponse<XElement>, HTTPResponse<T>>  OnSOAPFault,
                                               Action<DateTime, Object, HTTPResponse>         OnHTTPError,
                                               Action<DateTime, Object, Exception>            OnException,
-                                              UInt32                                         TimeoutMSec = 60000)
+                                              TimeSpan                                       Timeout)
 
         {
 
@@ -211,7 +212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             builder.Set("SOAPAction",  SOAPAction);
             builder.UserAgent          = UserAgent;
 
-            return this.ExecuteReturnResult(builder, TimeoutMSec: TimeoutMSec).
+            return this.ExecuteReturnResult(builder, Timeout: Timeout).
                         ContinueWith(HttpResponseTask => {
 
                             if (HttpResponseTask.Result                == null              ||
