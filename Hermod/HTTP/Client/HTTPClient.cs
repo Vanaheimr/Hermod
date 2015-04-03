@@ -290,31 +290,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
-        public Task<T> Execute<T>(HTTPRequest HTTPRequest, Action<HTTPRequest> HTTPRequestDelegate, Func<HTTPRequest, HTTPResponse, T> RequestResponseDelegate)
+        public Task<T> Execute<T>(HTTPRequest                         HTTPRequest,
+                                  Action<HTTPRequest>                 HTTPRequestDelegate,
+                                  Func<HTTPRequest, HTTPResponse, T>  RequestResponseDelegate)
         {
 
             if (HTTPRequestDelegate != null)
                 HTTPRequestDelegate(HTTPRequest);
 
-            return Execute(HTTPRequest, RequestResponseDelegate);
+            return GetResponse(HTTPRequest, RequestResponseDelegate);
 
         }
 
 
-        public Task<T> Execute<T>(HTTPRequest HTTPRequest, Func<HTTPRequest, HTTPResponse, T> RequestResponseDelegate)
+        public Task<T> GetResponse<T>(HTTPRequest                         HTTPRequest,
+                                      Func<HTTPRequest, HTTPResponse, T>  RequestResponseDelegate,
+                                      TimeSpan?                           Timeout                  = null)
         {
 
             return Task<T>.Factory.StartNew(() => {
 
                 T _T = default(T);
-                Execute(HTTPRequest, new Action<HTTPRequest, HTTPResponse>((request, response) => _T = RequestResponseDelegate(request, response))).Wait();
+
+                Execute(HTTPRequest,
+                        new Action<HTTPRequest, HTTPResponse>((request, response) =>
+                                _T = RequestResponseDelegate(request, response))).
+
+                            Wait((Int32) Timeout.Value.TotalMilliseconds);
+
                 return _T;
 
             });
 
         }
 
-        public Task<HTTPClient> Execute(HTTPRequest HTTPRequest, Action<HTTPRequest> HTTPRequestDelegate, Action<HTTPRequest, HTTPResponse> RequestResponseDelegate)
+        public Task<HTTPClient> Execute(HTTPRequest                        HTTPRequest,
+                                        Action<HTTPRequest>                HTTPRequestDelegate,
+                                        Action<HTTPRequest, HTTPResponse>  RequestResponseDelegate)
         {
 
             if (HTTPRequestDelegate != null)
