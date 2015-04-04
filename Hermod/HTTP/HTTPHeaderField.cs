@@ -101,6 +101,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <seealso cref="http://restpatterns.org"/>
     /// <seealso cref="http://en.wikipedia.org/wiki/List_of_HTTP_header_fields"/>
     /// <seealso cref="http://www.and.org/texts/server-http"/>
+    /// <seealso cref="http://www.iana.org/assignments/message-headers/message-headers.xhtml"/>
     public class HTTPHeaderField : IEquatable<HTTPHeaderField>, IComparable<HTTPHeaderField>, IComparable
     {
 
