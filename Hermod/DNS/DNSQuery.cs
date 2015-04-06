@@ -30,11 +30,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
         #region Data
 
-        public String                    DomainName;
-        public Boolean                   RecursionDesired { get; set; }
+        public UInt16[]         QueryTypes;
+        public DNSQueryClasses  QueryClass;
 
-        public UInt16[]                  QueryTypes;
-        public DNSQueryClasses           QueryClass;
+        #endregion
+
+        #region Properties
+
+        #region DomainName
+
+        private String _DomainName;
+
+        public String DomainName
+        {
+            get
+            {
+                return _DomainName;
+            }
+        }
+
+        #endregion
+
+        #region TransactionId
+
+        private readonly Int32 _TransactionId;
+
+        public Int32 TransactionId
+        {
+            get
+            {
+                return _TransactionId;
+            }
+        }
+
+        #endregion
+
+        #region RecursionDesired
+
+        private Boolean _RecursionDesired;
+
+        public Boolean RecursionDesired
+        {
+            get
+            {
+                return _RecursionDesired;
+            }
+        }
+
+        #endregion
 
         #endregion
 
@@ -48,24 +91,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
         #endregion
 
-        #region DNSQuery(DomainName, params DNSResourceRecordType)
+        #region DNSQuery(DomainName, params DNSResourceRecordTypes)
 
         public DNSQuery(String           DomainName,
-                        params UInt16[]  DNSResourceRecordType)
+                        params UInt16[]  DNSResourceRecordTypes)
+
+            : this(DomainName, true, DNSResourceRecordTypes)
+
+        { }
+
+        #endregion
+
+        #region DNSQuery(DomainName, RecursionDesired, params DNSResourceRecordTypes)
+
+        public DNSQuery(String           DomainName,
+                        Boolean          RecursionDesired,
+                        params UInt16[]  DNSResourceRecordTypes)
         {
 
-            if (DNSResourceRecordType == null || DNSResourceRecordType.Length == 0)
+            if (DNSResourceRecordTypes == null || DNSResourceRecordTypes.Length == 0)
                 QueryTypes = new UInt16[1] { 255 };
 
             else
-                QueryTypes = DNSResourceRecordType;
+                QueryTypes = DNSResourceRecordTypes;
 
-            if (QueryTypes.Length > 2305) // Just because of the numbers ;)
+            if (QueryTypes.Length > 2305) // Just because of the number ;)
                 throw new ArgumentException("Too many DNSResourceRecordTypes!");
 
-            this.DomainName        = DomainName;
-            this.RecursionDesired  = true;
-            this.QueryClass        = DNSQueryClasses.IN;
+            this._DomainName        = DomainName;
+            this._TransactionId     = new Random().Next(55555);
+            this._RecursionDesired  = RecursionDesired;
+            this.QueryClass         = DNSQueryClasses.IN;
 
         }
 
@@ -82,8 +138,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
             var DNSPacket = new Byte[512];
 
             #region DNS Query Packet Header
-
-            var TransactionId = new Random().Next(55555);
 
             // TransactionId (2 Bytes)
             DNSPacket[ 0] = (Byte) (TransactionId >> 8);

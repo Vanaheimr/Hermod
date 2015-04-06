@@ -21,19 +21,25 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Threading;
+using System.Diagnostics;
+
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 {
 
+    /// <summary>
+    /// A cache for DNS entries.
+    /// </summary>
     public class DNSCache
     {
 
         #region Data
 
-        private readonly Dictionary<String, DNSCacheEntry>  InternalDNSCache;
-        private readonly Timer                              CleanUpTimer;
+        private readonly Dictionary<String, DNSCacheEntry>  _DNSCache;
+        private readonly Timer                              _CleanUpTimer;
 
         #endregion
 
@@ -47,12 +53,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
         #endregion
 
-        #region DNSCache(CleanUpTime)
+        #region DNSCache(CleanUpEvery)
 
-        public DNSCache(TimeSpan CleanUpTime)
+        public DNSCache(TimeSpan CleanUpEvery)
         {
-            this.InternalDNSCache  = new Dictionary<String, DNSCacheEntry>();
-            this.CleanUpTimer      = new Timer(CleanUp, null, TimeSpan.FromMinutes(1), CleanUpTime);
+            this._DNSCache      = new Dictionary<String, DNSCacheEntry>();
+            this._CleanUpTimer  = new Timer(RemoveExpiredCacheEntries, null, TimeSpan.FromMinutes(1), CleanUpEvery);
         }
 
         #endregion
@@ -60,30 +66,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
         #endregion
 
 
-        #region Add(Domainname, Response)
+        #region Add(Domainname, DNSInformation)
 
-        public DNSCache Add(String   Domainname,
-                            DNSInfo  Response)
+        public DNSCache Add(String    Domainname,
+                            DNSInfo   DNSInformation)
         {
 
-            lock (InternalDNSCache)
+            lock (_DNSCache)
             {
 
                 DNSCacheEntry CacheEntry = null;
 
-                if (!InternalDNSCache.TryGetValue(Domainname, out CacheEntry))
-                    InternalDNSCache.Add(Domainname, new DNSCacheEntry(
-                                                         DateTime.Now + TimeSpan.FromSeconds(Response.Answers.First().TimeToLive.TotalSeconds / 2),
-                                                         DateTime.Now + Response.Answers.First().TimeToLive,
-                                                         Response));
+                if (!_DNSCache.TryGetValue(Domainname, out CacheEntry))
+                    _DNSCache.Add(Domainname, new DNSCacheEntry(
+                                                         DateTime.Now + TimeSpan.FromSeconds(DNSInformation.Answers.First().TimeToLive.TotalSeconds / 2),
+                                                         DateTime.Now + DNSInformation.Answers.First().TimeToLive,
+                                                         DNSInformation));
 
                 else
                 {
                     // ToDo: Merge of DNS responses!
-                    InternalDNSCache[Domainname] = new DNSCacheEntry(
-                                                       DateTime.Now + TimeSpan.FromSeconds(Response.Answers.First().TimeToLive.TotalSeconds / 2),
-                                                       DateTime.Now + Response.Answers.First().TimeToLive,
-                                                       Response);
+                    _DNSCache[Domainname] = new DNSCacheEntry(
+                                                       DateTime.Now + TimeSpan.FromSeconds(DNSInformation.Answers.First().TimeToLive.TotalSeconds / 2),
+                                                       DateTime.Now + DNSInformation.Answers.First().TimeToLive,
+                                                       DNSInformation);
                 }
 
                 return this;
@@ -94,22 +100,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
         #endregion
 
-        #region Add(Domainname, ResourceRecord)
+        #region Add(Domainname, Origin, ResourceRecord)
 
         public DNSCache Add(String              Domainname,
+                            IPSocket            Origin,
                             ADNSResourceRecord  ResourceRecord)
         {
 
-            lock (InternalDNSCache)
+            lock (_DNSCache)
             {
 
                 DNSCacheEntry CacheEntry = null;
 
-                if (!InternalDNSCache.TryGetValue(Domainname, out CacheEntry))
-                    InternalDNSCache.Add(Domainname, new DNSCacheEntry(
+                Debug.WriteLine("[" + DateTime.Now + "] Adding '" + Domainname + "' to the DNS cache!");
+
+                if (!_DNSCache.TryGetValue(Domainname, out CacheEntry))
+                    _DNSCache.Add(Domainname, new DNSCacheEntry(
                                                          DateTime.Now + TimeSpan.FromSeconds(ResourceRecord.TimeToLive.TotalSeconds / 2),
                                                          DateTime.Now + ResourceRecord.TimeToLive,
-                                                         new DNSInfo(QueryId:              new Random().Next(),
+                                                         new DNSInfo(Origin:               Origin,
+                                                                     QueryId:              new Random().Next(),
                                                                      IsAuthorativeAnswer:  false,
                                                                      IsTruncated:          false,
                                                                      RecursionDesired:     false,
@@ -133,17 +143,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
         #endregion
 
+        #region GetDNSInfo(DomainName)
 
-        #region (private) CleanUp(State)
-
-        private void CleanUp(Object State)
+        public DNSInfo GetDNSInfo(String DomainName)
         {
 
-            if (Monitor.TryEnter(InternalDNSCache))
+            lock (_DNSCache)
+            {
+
+                DNSCacheEntry CacheEntry = null;
+
+                if (_DNSCache.TryGetValue(DomainName, out CacheEntry))
+                    return CacheEntry.DNSInfo;
+
+                return null;
+
+            }
+
+        }
+
+        #endregion
+
+
+        #region (private, Timer) RemoveExpiredCacheEntries(State)
+
+        private void RemoveExpiredCacheEntries(Object State)
+        {
+
+            if (Monitor.TryEnter(_DNSCache))
             {
 
                 try
                 {
+
+                    var Now             = DateTime.Now;
+
+                    var ExpiredEntries  = _DNSCache.
+                                              Where(entry => entry.Value.EndOfLife < Now).
+                                              ToArray();
+
+                    ExpiredEntries.ForEach(entry => _DNSCache.Remove(entry.Key));
+
+#if DEBUG
+                    ExpiredEntries.ForEach(entry => Debug.WriteLine("[" + Now + "] Removed '" + entry.Key + "' from the DNS cache!"));
+#endif
 
                 }
 
@@ -153,7 +196,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
                 finally
                 {
-                    Monitor.Exit(InternalDNSCache);
+                    Monitor.Exit(_DNSCache);
                 }
 
             }
@@ -161,6 +204,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
         }
 
         #endregion
+
 
     }
 

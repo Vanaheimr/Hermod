@@ -158,11 +158,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
         #endregion
 
+
+        #region Origin
+
+        private readonly IPSocket _Origin;
+
+        /// <summary>
+        /// The source of the DNS information.
+        /// </summary>
+        public IPSocket Origin
+        {
+            get
+            {
+                return _Origin;
+            }
+        }
+
+        #endregion
+
         #endregion
 
         #region Constructor(s)
 
-        public DNSInfo(Int32                            QueryId,
+        public DNSInfo(IPSocket                         Origin,
+                       Int32                            QueryId,
                        Boolean                          IsAuthorativeAnswer,
                        Boolean                          IsTruncated,
                        Boolean                          RecursionDesired,
@@ -173,6 +192,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
                        IEnumerable<ADNSResourceRecord>  AdditionalRecords)
         {
 
+            this._Origin              = Origin;
             this._QueryId             = QueryId;
             this._AuthorativeAnswer   = IsAuthorativeAnswer;
             this._IsTruncated         = IsTruncated;

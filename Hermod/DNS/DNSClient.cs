@@ -27,6 +27,9 @@ using System.Reflection;
 using System.Collections.Generic;
 using System.Net.NetworkInformation;
 using System.Threading.Tasks;
+using System.Diagnostics;
+
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -34,14 +37,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 {
 
     /// <summary>
-    /// A DNS resolver client.
+    /// A DNS client.
     /// </summary>
     public class DNSClient
     {
 
         #region Data
 
-        private readonly Dictionary<UInt16, ConstructorInfo> RRLookup;
+        private readonly Dictionary<UInt16, ConstructorInfo>  _RRLookup;
+        private readonly DNSCache                             _DNSCache;
 
         #endregion
 
@@ -165,6 +169,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
         {
 
+            this._DNSCache         = new DNSCache();
             this.RecursionDesired  = true;
             this.QueryTimeout      = TimeSpan.FromSeconds(23.5);
 
@@ -192,7 +197,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
             #region Reflect ResourceRecordTypes
 
-            this.RRLookup          = new Dictionary<UInt16, ConstructorInfo>();
+            this._RRLookup          = new Dictionary<UInt16, ConstructorInfo>();
 
             FieldInfo        TypeIdField;
             ConstructorInfo  Constructor;
@@ -214,7 +219,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
                 if (Constructor == null)
                     throw new ArgumentException("Constructor<String, Stream> of type '" + _ActualType.Name + "' was not found!");
 
-                RRLookup.Add((UInt16) TypeIdField.GetValue(_ActualType), Constructor);
+                _RRLookup.Add((UInt16) TypeIdField.GetValue(_ActualType), Constructor);
 
             }
 
@@ -227,42 +232,193 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
         #endregion
 
 
+        #region (private) ReadResponse(Origin, ExpectedTransactionId, DNSBuffer)
+
+        private DNSInfo ReadResponse(IPSocket Origin, Int32 ExpectedTransactionId, Stream DNSBuffer)
+        {
+
+            #region DNS Header
+
+            var RequestId       = ((DNSBuffer.ReadByte() & Byte.MaxValue) << 8) + (DNSBuffer.ReadByte() & Byte.MaxValue);
+
+            if (ExpectedTransactionId != RequestId)
+                throw new Exception("Security Alert: Mallory might send us faked DNS replies! [" + ExpectedTransactionId + " != " + RequestId + "]");
+
+            var Byte2           = DNSBuffer.ReadByte();
+            var IS              = (Byte2 & 128) == 128;
+            var OpCode          = (Byte2 >> 3 & 15);
+            var AA              = (Byte2 & 4) == 4;
+            var TC              = (Byte2 & 2) == 2;
+            var RD              = (Byte2 & 1) == 1;
+
+            var Byte3           = DNSBuffer.ReadByte();
+            var RA              = (Byte3 & 128) == 128;
+            var Z               = (Byte3 & 1);    //reserved, not used
+            var ResponseCode    = (DNSResponseCodes) (Byte3 & 15);
+
+            var QuestionCount   = ((DNSBuffer.ReadByte() & Byte.MaxValue) << 8) | (DNSBuffer.ReadByte() & Byte.MaxValue);
+            var AnswerCount     = ((DNSBuffer.ReadByte() & Byte.MaxValue) << 8) | (DNSBuffer.ReadByte() & Byte.MaxValue);
+            var AuthorityCount  = ((DNSBuffer.ReadByte() & Byte.MaxValue) << 8) | (DNSBuffer.ReadByte() & Byte.MaxValue);
+            var AdditionalCount = ((DNSBuffer.ReadByte() & Byte.MaxValue) << 8) | (DNSBuffer.ReadByte() & Byte.MaxValue);
+
+            #endregion
+
+            //ToDo: Does this make sense?
+            #region Process Questions
+
+            DNSBuffer.Seek(12, SeekOrigin.Begin);
+
+            for (var i = 0; i < QuestionCount; ++i) {
+                var QuestionName  = DNSTools.ExtractName(DNSBuffer);
+                var TypeId        = (UInt16)          ((DNSBuffer.ReadByte() & Byte.MaxValue) << 8 | DNSBuffer.ReadByte() & Byte.MaxValue);
+                var ClassId       = (DNSQueryClasses) ((DNSBuffer.ReadByte() & Byte.MaxValue) << 8 | DNSBuffer.ReadByte() & Byte.MaxValue);
+            }
+
+            #endregion
+
+            var Answers            = new List<ADNSResourceRecord>();
+            var Authorities        = new List<ADNSResourceRecord>();
+            var AdditionalRecords  = new List<ADNSResourceRecord>();
+
+            for (var i = 0; i < AnswerCount; ++i)
+                Answers.Add(ReadResourceRecord(DNSBuffer));
+
+            for (var i = 0; i < AuthorityCount; ++i)
+                Authorities.Add(ReadResourceRecord(DNSBuffer));
+
+            for (var i = 0; i < AdditionalCount; ++i)
+                AdditionalRecords.Add(ReadResourceRecord(DNSBuffer));
+
+            return new DNSInfo(Origin, RequestId, AA, TC, RD, RA, ResponseCode, Answers, Authorities, AdditionalRecords);
+
+        }
+
+        #endregion
+
+        #region (private) ReadResourceRecord(DNSStream)
+
+        private ADNSResourceRecord ReadResourceRecord(Stream DNSStream)
+        {
+
+            var ResourceName  = DNSTools.ExtractName(DNSStream);
+            var TypeId        = (UInt16) ((DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue);
+
+            ConstructorInfo Constructor;
+
+            if (_RRLookup.TryGetValue(TypeId, out Constructor))
+                return (ADNSResourceRecord) Constructor.Invoke(new Object[2] {
+                                                                   ResourceName,
+                                                                   DNSStream
+                                                               });
+
+            Debug.WriteLine("Unknown DNS resource record '" + TypeId + "' for '" + ResourceName + "' received!");
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region (private) AddToCache(DomainName, DNSInformation)
+
+        private void AddToCache(String    DomainName,
+                                DNSInfo   DNSInformation)
+        {
+
+            if (DNSInformation.Answers != null)
+                DNSInformation.
+                    Answers.
+                    ForEach(ResourceRecord => _DNSCache.Add(DomainName,
+                                                            DNSInformation.Origin,
+                                                            ResourceRecord));
+
+        }
+
+        #endregion
+
+
         #region Query(DomainName, params ResourceRecordTypes)
 
         public Task<DNSInfo> Query(String           DomainName,
                                    params UInt16[]  ResourceRecordTypes)
         {
 
-            return Task<DNSInfo>.Factory.StartNew(() => {
+            if (ResourceRecordTypes.Length == 0)
+                ResourceRecordTypes = new UInt16[1] { 255 };
 
-                if (ResourceRecordTypes.Length == 0)
-                    ResourceRecordTypes = new UInt16[1] { 255 };
+            #region Try to get an answer from the DNS cache
 
-                // Preparing the DNS query packet
-                var QueryPacket = new DNSQuery(DomainName, ResourceRecordTypes) {
-                                          RecursionDesired = RecursionDesired
-                                      };
+            var DNSInfo = _DNSCache.GetDNSInfo(DomainName);
 
-                // Query DNS server(s)...
-                var serverAddress  = IPAddress.Parse(DNSServers.First().IPAddress.ToString());
-                var endPoint       = (EndPoint) new IPEndPoint(serverAddress, DNSServers.First().Port.ToInt32());
-                var socket         = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout,    (Int32) QueryTimeout.TotalMilliseconds);
-                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, (Int32) QueryTimeout.TotalMilliseconds);
-                socket.Connect(endPoint);
-                socket.SendTo(QueryPacket.Serialize(), endPoint);
+            if (DNSInfo != null)
+            {
+                var tcs = new TaskCompletionSource<DNSInfo>();
+                tcs.SetResult(DNSInfo);
+                return tcs.Task;
+            }
 
-                var data    = new Byte[512];
-                var length  = socket.ReceiveFrom(data, ref endPoint);
+            #endregion
 
-                socket.Shutdown(SocketShutdown.Both);
+            #region Query all DNS server(s) in parallel...
 
-                return ReadResponse(new MemoryStream(data));
+            // Preparing the DNS query packet
+            var QueryPacket = new DNSQuery(DomainName, RecursionDesired, ResourceRecordTypes);
 
-            },
-            TaskCreationOptions.AttachedToParent);
+            var AllDNSServerRequests = DNSServers.Select(DNSServer => {
+
+                return Task<DNSInfo>.Factory.StartNew(() => {
+
+                    var data = new Byte[512];
+                    Int32  length;
+                    Socket socket = null;
+
+                    try
+                    {
+
+                        var serverAddress  = IPAddress.Parse(DNSServer.IPAddress.ToString());
+                        var endPoint       = (EndPoint) new IPEndPoint(serverAddress, DNSServer.Port.ToInt32());
+                        socket             = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+                        socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout,    (Int32) QueryTimeout.TotalMilliseconds);
+                        socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, (Int32) QueryTimeout.TotalMilliseconds);
+                        socket.Connect(endPoint);
+                        socket.SendTo(QueryPacket.Serialize(), endPoint);
+
+                        length = socket.ReceiveFrom(data, ref endPoint);
+
+                    }
+                    catch (Exception e)
+                    {
+                        // A SocketException might be thrown after the timeout was reached!
+                        Debug.WriteLine("DNS server '" + DNSServer.ToString() + "' did not respond within " + QueryTimeout.TotalSeconds + " seconds!");
+                    }
+                    finally
+                    {
+                        if (socket != null)
+                            socket.Shutdown(SocketShutdown.Both);
+                    }
+
+                    return ReadResponse(DNSServer, QueryPacket.TransactionId, new MemoryStream(data));
+
+                },
+                TaskCreationOptions.AttachedToParent);
+
+            }).ToArray();
+
+            // Cache all replies...
+            AllDNSServerRequests.
+                ForEach(DNSServerTask => DNSServerTask.ContinueWith(x => {
+                                                           if (x.Result != null)
+                                                              AddToCache(DomainName, x.Result);
+                                                       }));
+
+            // Return first/fastest reply
+            var FirstReply = Task.WhenAny(AllDNSServerRequests);
+
+            return FirstReply.Result;
 
         }
+
+        #endregion
 
         #endregion
 
@@ -317,87 +473,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
         #endregion
 
-
-        #region (private) ReadResponse(DNSBuffer)
-
-        private DNSInfo ReadResponse(Stream DNSBuffer)
-        {
-
-            #region DNS Header
-
-            var RequestId       = ((DNSBuffer.ReadByte() & Byte.MaxValue) << 8) + (DNSBuffer.ReadByte() & Byte.MaxValue);
-
-            var Byte2           = DNSBuffer.ReadByte();
-            var IS              = (Byte2 & 128) == 128;
-            var OpCode          = (Byte2 >> 3 & 15);
-            var AA              = (Byte2 & 4) == 4;
-            var TC              = (Byte2 & 2) == 2;
-            var RD              = (Byte2 & 1) == 1;
-
-            var Byte3           = DNSBuffer.ReadByte();
-            var RA              = (Byte3 & 128) == 128;
-            var Z               = (Byte3 & 1);    //reserved, not used
-            var ResponseCode    = (DNSResponseCodes) (Byte3 & 15);
-
-            var QuestionCount   = ((DNSBuffer.ReadByte() & Byte.MaxValue) << 8) | (DNSBuffer.ReadByte() & Byte.MaxValue);
-            var AnswerCount     = ((DNSBuffer.ReadByte() & Byte.MaxValue) << 8) | (DNSBuffer.ReadByte() & Byte.MaxValue);
-            var AuthorityCount  = ((DNSBuffer.ReadByte() & Byte.MaxValue) << 8) | (DNSBuffer.ReadByte() & Byte.MaxValue);
-            var AdditionalCount = ((DNSBuffer.ReadByte() & Byte.MaxValue) << 8) | (DNSBuffer.ReadByte() & Byte.MaxValue);
-
-            #endregion
-
-            #region Process Questions
-
-            DNSBuffer.Seek(12, SeekOrigin.Begin);
-
-            for (var i = 0; i < QuestionCount; ++i) {
-                var QuestionName  = DNSTools.ExtractName(DNSBuffer);
-                var TypeId        = (UInt16)          ((DNSBuffer.ReadByte() & Byte.MaxValue) << 8 | DNSBuffer.ReadByte() & Byte.MaxValue);
-                var ClassId       = (DNSQueryClasses) ((DNSBuffer.ReadByte() & Byte.MaxValue) << 8 | DNSBuffer.ReadByte() & Byte.MaxValue);
-            }
-
-            #endregion
-
-            var Answers            = new List<ADNSResourceRecord>();
-            var Authorities        = new List<ADNSResourceRecord>();
-            var AdditionalRecords  = new List<ADNSResourceRecord>();
-
-            for (var i = 0; i < AnswerCount; ++i)
-                Answers.Add(ReadResourceRecord(DNSBuffer));
-
-            for (var i = 0; i < AuthorityCount; ++i)
-                Authorities.Add(ReadResourceRecord(DNSBuffer));
-
-            for (var i = 0; i < AdditionalCount; ++i)
-                AdditionalRecords.Add(ReadResourceRecord(DNSBuffer));
-
-            return new DNSInfo(RequestId, AA, TC, RD, RA, ResponseCode, Answers, Authorities, AdditionalRecords);
-
-        }
-
-        #endregion
-
-        #region (private) ReadResourceRecord(DNSStream)
-
-        private ADNSResourceRecord ReadResourceRecord(Stream DNSStream)
-        {
-
-            var ResourceName  = DNSTools.ExtractName(DNSStream);
-            var TypeId        = (UInt16) ((DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue);
-
-            ConstructorInfo Constructor;
-
-            if (RRLookup.TryGetValue(TypeId, out Constructor))
-                return (ADNSResourceRecord) Constructor.Invoke(new Object[2] {
-                                                                   ResourceName,
-                                                                   DNSStream
-                                                               });
-
-            return null;
-
-        }
-
-        #endregion
 
     }
 

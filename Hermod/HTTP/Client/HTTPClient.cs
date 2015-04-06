@@ -393,7 +393,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                     Select(ARecord => ARecord.IPv4Address).
                                                                                     FirstOrDefault());
                         IPv4AddressTask.Wait();
-
+                        Debug.WriteLine(DateTime.Now + " ready");
                         this.RemoteIPAddress = IPv4AddressTask.Result;
 
                     }
