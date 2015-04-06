@@ -339,8 +339,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
         #region Query(DomainName, params ResourceRecordTypes)
 
-        public Task<DNSInfo> Query(String           DomainName,
-                                   params UInt16[]  ResourceRecordTypes)
+        public async Task<DNSInfo> Query(String           DomainName,
+                                         params UInt16[]  ResourceRecordTypes)
         {
 
             if (ResourceRecordTypes.Length == 0)
@@ -352,9 +352,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
             if (DNSInfo != null)
             {
-                var tcs = new TaskCompletionSource<DNSInfo>();
-                tcs.SetResult(DNSInfo);
-                return tcs.Task;
+                //var tcs = new TaskCompletionSource<DNSInfo>();
+                //tcs.SetResult(DNSInfo);
+                //return tcs.Task;
+                return DNSInfo;
             }
 
             #endregion
@@ -389,7 +390,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
                     catch (Exception e)
                     {
                         // A SocketException might be thrown after the timeout was reached!
-                        Debug.WriteLine("DNS server '" + DNSServer.ToString() + "' did not respond within " + QueryTimeout.TotalSeconds + " seconds!");
+                        throw new Exception("DNS server '" + DNSServer.ToString() + "' did not respond within " + QueryTimeout.TotalSeconds + " seconds!");
                     }
                     finally
                     {
@@ -407,14 +408,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
             // Cache all replies...
             AllDNSServerRequests.
                 ForEach(DNSServerTask => DNSServerTask.ContinueWith(x => {
-                                                           if (x.Result != null)
-                                                              AddToCache(DomainName, x.Result);
+                                                           try
+                                                           {
+                                                               if (x.Result != null)
+                                                                   AddToCache(DomainName, x.Result);
+                                                           }
+                                                           catch (Exception e)
+                                                           {
+                                                               Debug.WriteLine("[" + DateTime.Now + "] DNS exception " + e.Message);
+                                                           }
                                                        }));
 
             // Return first/fastest reply
             var FirstReply = Task.WhenAny(AllDNSServerRequests);
 
-            return FirstReply.Result;
+            return FirstReply.Result.Result;
 
         }
 
@@ -424,7 +432,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
         #region Query<T>(DomainName)
 
-        public Task<IEnumerable<T>> Query<T>(String DomainName)
+        public async Task<IEnumerable<T>> Query<T>(String DomainName)
             where T : ADNSResourceRecord
         {
 
@@ -439,7 +447,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
                        ContinueWith(QueryTask => QueryTask.Result.
                                                      Answers.
                                                      Where(v => v.GetType() == typeof(T)).
-                                                     Cast<T>());
+                                                     Cast<T>()).Result;
 
         }
 

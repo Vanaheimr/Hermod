@@ -387,14 +387,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (RemoteIPAddress == null)
                     {
 
-                        var IPv4AddressTask = _DNSClient.
-                                                  Query<A>(Hostname).
-                                                      ContinueWith(QueryTask => QueryTask.Result.
-                                                                                    Select(ARecord => ARecord.IPv4Address).
-                                                                                    FirstOrDefault());
-                        IPv4AddressTask.Wait();
-                        Debug.WriteLine(DateTime.Now + " ready");
-                        this.RemoteIPAddress = IPv4AddressTask.Result;
+                        try
+                        {
+
+                            var IPv4AddressTask = _DNSClient.
+                                                      Query<A>(Hostname).
+                                                          ContinueWith(QueryTask => QueryTask.Result.
+                                                                                        Select(ARecord => ARecord.IPv4Address).
+                                                                                        FirstOrDefault());
+
+                            IPv4AddressTask.Wait();
+
+                            this.RemoteIPAddress = IPv4AddressTask.Result;
+
+                        }
+                        catch (Exception e)
+                        {
+                            Debug.WriteLine("[" + DateTime.Now + "] " + e.Message);
+                        }
 
                     }
 
