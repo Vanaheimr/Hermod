@@ -285,7 +285,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         // HTTP Server Sent Events
 
-        #region (internal) AddEventSource(EventIdentification, MaxNumberOfCachedEvents = 100, RetryIntervall = null)
+        #region (internal) AddEventSource(EventIdentification, MaxNumberOfCachedEvents = 500, RetryIntervall = null)
 
         /// <summary>
         /// Add a HTTP Sever Sent Events source.
@@ -294,7 +294,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
         /// <param name="RetryIntervall">The retry intervall.</param>
         internal HTTPEventSource AddEventSource(String     EventIdentification,
-                                                UInt32     MaxNumberOfCachedEvents  = 100,
+                                                UInt32     MaxNumberOfCachedEvents  = 500,
                                                 TimeSpan?  RetryIntervall           = null)
         {
 
@@ -313,7 +313,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (internal) AddEventSource(MethodInfo, Host, URITemplate, EventIdentification, MaxNumberOfCachedEvents = 100, RetryIntervall = null, IsSharedEventSource = false, HostAuthentication = false, URIAuthentication = false)
+        #region (internal) AddEventSource(MethodInfo, Host, URITemplate, EventIdentification, MaxNumberOfCachedEvents = 500, RetryIntervall = null, IsSharedEventSource = false, HostAuthentication = false, URIAuthentication = false)
 
         /// <summary>
         /// Add a method call back for the given URI template and
@@ -330,7 +330,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
         /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
         internal HTTPEventSource AddEventSource(String              EventIdentification,
-                                                UInt32              MaxNumberOfCachedEvents     = 100,
+                                                UInt32              MaxNumberOfCachedEvents     = 500,
                                                 TimeSpan?           RetryIntervall              = null,
 
                                                 String              Hostname                    = "*",

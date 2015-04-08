@@ -652,7 +652,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region AddEventSource(MethodInfo, Host, URITemplate, HTTPMethod, EventIdentification, MaxNumberOfCachedEvents = 100, RetryIntervall = null, IsSharedEventSource = false, HostAuthentication = false, URIAuthentication = false)
+        #region AddEventSource(MethodInfo, Host, URITemplate, HTTPMethod, EventIdentification, MaxNumberOfCachedEvents = 500, RetryIntervall = null, IsSharedEventSource = false, HostAuthentication = false, URIAuthentication = false)
 
         /// <summary>
         /// Add a method call back for the given URI template and
@@ -669,7 +669,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
         /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
         public HTTPEventSource AddEventSource(String              EventIdentification,
-                                              UInt32              MaxNumberOfCachedEvents     = 100,
+                                              UInt32              MaxNumberOfCachedEvents     = 500,
                                               TimeSpan?           RetryIntervall              = null,
 
                                               String              Hostname                    = "*",

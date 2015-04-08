@@ -113,13 +113,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
         /// <param name="RetryIntervall">The retry intervall.</param>
         public HTTPEventSource(String     EventIdentification,
-                               UInt64     MaxNumberOfCachedEvents = 100,
+                               UInt64     MaxNumberOfCachedEvents = 500,
                                TimeSpan?  RetryIntervall          = null)
         {
 
             EventIdentification.FailIfNullOrEmpty();
 
-            this.QueueOfEvents            = new TSQueue<HTTPEvent>();
+            this.QueueOfEvents            = new TSQueue<HTTPEvent>(MaxNumberOfCachedEvents);
             this._EventIdentification     = EventIdentification;
             this.MaxNumberOfCachedEvents  = MaxNumberOfCachedEvents;
             this.RetryIntervall           = (RetryIntervall.HasValue) ? RetryIntervall.Value : TimeSpan.FromSeconds(30);
