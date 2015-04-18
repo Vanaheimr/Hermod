@@ -115,8 +115,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
         private readonly String _DefaultServerName;
 
         /// <summary>
-        /// The default HTTP servername, used whenever
-        /// no HTTP Host-header had been given.
+        /// The default SMTP servername.
         /// </summary>
         public String DefaultServerName
         {
@@ -132,34 +131,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
         #region Events
 
-        public   event StartedEventHandler                                                  OnStarted;
+        public   event StartedEventHandler                                                      OnStarted;
 
         /// <summary>
         /// An event called whenever a request came in.
         /// </summary>
-        internal event InternalAccessLogHandler                                             AccessLog;
+        internal event InternalAccessLogHandler                                                 AccessLog;
 
         /// <summary>
         /// An event called whenever a request resulted in an error.
         /// </summary>
-        internal event InternalErrorLogHandler                                              ErrorLog;
+        internal event InternalErrorLogHandler                                                  ErrorLog;
 
-        public   event BoomerangSenderHandler<String, DateTime, EMail, SMTPExtendedResponse>  OnNotification;
+        public   event BoomerangSenderHandler<String, DateTime, EMail, SMTPExtendedResponse>    OnNotification;
 
-        public   event CompletedEventHandler                                                OnCompleted;
+        public   event CompletedEventHandler                                                    OnCompleted;
 
 
-        public   event ExceptionOccuredEventHandler                                         OnExceptionOccured;
+        public   event ExceptionOccuredEventHandler                                             OnExceptionOccured;
 
         #endregion
 
         #region Constructor(s)
 
         /// <summary>
-        /// This processor will accept incoming HTTP TCP connections and
-        /// decode the transmitted data as HTTP requests.
+        /// This processor will accept incoming SMTP TCP connections and
+        /// decode the transmitted data as SMTP requests.
         /// </summary>
-        /// <param name="DefaultServername">The default HTTP servername, used whenever no HTTP Host-header had been given.</param>
+        /// <param name="DefaultServername">The default SMTP servername.</param>
         public SMTPProcessor(String DefaultServername = SMTPServer.__DefaultServerName)
         {
 
@@ -169,186 +168,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
         #endregion
 
-        private static readonly X509V1CertificateGenerator v1CertGen = new X509V1CertificateGenerator();
-        private static readonly X509V3CertificateGenerator v3CertGen = new X509V3CertificateGenerator();
 
-        public static Tuple<AsymmetricCipherKeyPair, Org.BouncyCastle.X509.X509Certificate>
-            CreateMasterCert()
-
-        {
-
-            var kpgen = new RsaKeyPairGenerator();
-            kpgen.Init(new KeyGenerationParameters(new SecureRandom(new CryptoApiRandomGenerator()), 2048));
-
-            var keyPair = kpgen.GenerateKeyPair();
-            AsymmetricKeyParameter privKey = keyPair.Private;
-            AsymmetricKeyParameter pubKey  = keyPair.Public;
-
-            var _prvKey       = Convert.ToBase64String(UTF8Encoding.UTF8.GetBytes(privKey.ToString()));
-            var _pubKey       = Convert.ToBase64String(UTF8Encoding.UTF8.GetBytes(pubKey. ToString()));
-            var _pubKey1      = Convert.ToBase64String(UTF8Encoding.UTF8.GetBytes(_pubKey.ToString()));
-
-            var __privateKey  = Convert.ToBase64String(PrivateKeyInfoFactory.      CreatePrivateKeyInfo      (keyPair.Private).GetDerEncoded());
-            var __publicKey   = Convert.ToBase64String(SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(keyPair.Public). GetDerEncoded());
-
-
-            // create the certificate - version 1
-            v1CertGen.SetSerialNumber       (BigInteger.One);
-            v1CertGen.SetIssuerDN           (new X509Name("C=DE, O=GraphDefined Vanaheimr, OU=Vanaheimr Primary Certificate"));
-            v1CertGen.SetNotBefore          (DateTime.UtcNow.AddDays(-1));
-            v1CertGen.SetNotAfter           (DateTime.UtcNow.AddYears(5));
-            v1CertGen.SetSubjectDN          (new X509Name("C=DE, O=GraphDefined Vanaheimr, OU=Vanaheimr Primary Certificate"));
-            v1CertGen.SetPublicKey          (pubKey);
-            v1CertGen.SetSignatureAlgorithm ("SHA1WithRSAEncryption");
-
-            var cert = v1CertGen.Generate(privKey);
-            cert.CheckValidity(DateTime.UtcNow);
-            cert.Verify(pubKey);
-
-            return new Tuple<AsymmetricCipherKeyPair, Org.BouncyCastle.X509.X509Certificate>(keyPair, cert);
-
-        }
-
-        public static Tuple<AsymmetricCipherKeyPair, Org.BouncyCastle.X509.X509Certificate>
-            CreateIntermediateCert(AsymmetricKeyParameter                 caPrivKey,
-                                   Org.BouncyCastle.X509.X509Certificate  caCert)
-
-        {
-
-            var kpgen = new RsaKeyPairGenerator();
-            kpgen.Init(new KeyGenerationParameters(new SecureRandom(new CryptoApiRandomGenerator()), 2048));
-
-            var keyPair = kpgen.GenerateKeyPair();
-            AsymmetricKeyParameter privKey = keyPair.Private;
-            AsymmetricKeyParameter pubKey  = keyPair.Public;
-
-            var _prvKey       = Convert.ToBase64String(UTF8Encoding.UTF8.GetBytes(privKey.ToString()));
-            var _pubKey       = Convert.ToBase64String(UTF8Encoding.UTF8.GetBytes(pubKey. ToString()));
-            var _pubKey1      = Convert.ToBase64String(UTF8Encoding.UTF8.GetBytes(_pubKey.ToString()));
-
-            var __privateKey  = Convert.ToBase64String(PrivateKeyInfoFactory.      CreatePrivateKeyInfo      (keyPair.Private).GetDerEncoded());
-            var __publicKey   = Convert.ToBase64String(SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(keyPair.Public). GetDerEncoded());
-
-
-            // subject name table.
-            var attrs = new Dictionary<DerObjectIdentifier, String>();
-            attrs.Add(X509Name.C,            "DE");
-            attrs.Add(X509Name.O,            "GraphDefined Vanaheimr");
-            attrs.Add(X509Name.OU,           "Vanaheimr Intermediate Certificate");
-            attrs.Add(X509Name.EmailAddress, "im-ca@graphdefined.org");
-
-            var order = new List<DerObjectIdentifier>();
-            order.Add(X509Name.C);
-            order.Add(X509Name.O);
-            order.Add(X509Name.OU);
-            order.Add(X509Name.EmailAddress);
-
-            // create the certificate - version 3
-            v3CertGen.Reset();
-            v3CertGen.SetSerialNumber       (BigInteger.Two);
-            v3CertGen.SetIssuerDN           (PrincipalUtilities.GetSubjectX509Principal(caCert));
-            v3CertGen.SetNotBefore          (DateTime.UtcNow.AddDays(-1));
-            v3CertGen.SetNotAfter           (DateTime.UtcNow.AddYears(5));
-            v3CertGen.SetSubjectDN          (new X509Name(order, attrs));
-            v3CertGen.SetPublicKey          (pubKey);
-            v3CertGen.SetSignatureAlgorithm ("SHA1WithRSAEncryption");
-
-            // extensions
-            v3CertGen.AddExtension(X509Extensions.SubjectKeyIdentifier,
-                                   false,
-                                   new SubjectKeyIdentifierStructure(pubKey));
-
-            v3CertGen.AddExtension(X509Extensions.AuthorityKeyIdentifier,
-                                   false,
-                                   new AuthorityKeyIdentifierStructure(caCert));
-
-            v3CertGen.AddExtension(X509Extensions.BasicConstraints,
-                                   true,
-                                   new BasicConstraints(0));
-
-            var cert = v3CertGen.Generate(caPrivKey);
-            cert.CheckValidity(DateTime.UtcNow);
-            cert.Verify(caCert.GetPublicKey());
-
-            return new Tuple<AsymmetricCipherKeyPair, Org.BouncyCastle.X509.X509Certificate>(keyPair, cert);
-
-        }
-
-        public static Tuple<AsymmetricCipherKeyPair, Org.BouncyCastle.X509.X509Certificate>
-            CreateCert(AsymmetricKeyParameter caPrivKey,
-                       AsymmetricKeyParameter caPubKey)
-
-        {
-
-            var kpgen = new RsaKeyPairGenerator();
-            kpgen.Init(new KeyGenerationParameters(new SecureRandom(new CryptoApiRandomGenerator()), 2048));
-
-            var keyPair = kpgen.GenerateKeyPair();
-            AsymmetricKeyParameter privKey = keyPair.Private;
-            AsymmetricKeyParameter pubKey  = keyPair.Public;
-
-            var _prvKey       = Convert.ToBase64String(UTF8Encoding.UTF8.GetBytes(privKey.ToString()));
-            var _pubKey       = Convert.ToBase64String(UTF8Encoding.UTF8.GetBytes(pubKey. ToString()));
-            var _pubKey1      = Convert.ToBase64String(UTF8Encoding.UTF8.GetBytes(_pubKey.ToString()));
-
-            var __privateKey  = Convert.ToBase64String(PrivateKeyInfoFactory.      CreatePrivateKeyInfo      (keyPair.Private).GetDerEncoded());
-            var __publicKey   = Convert.ToBase64String(SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(keyPair.Public). GetDerEncoded());
-
-
-            // signers name table.
-            var sAttrs = new Dictionary<DerObjectIdentifier, String>();
-            sAttrs.Add(X509Name.C, "AU");
-            sAttrs.Add(X509Name.O, "The Legion of the Bouncy Castle");
-            sAttrs.Add(X509Name.OU, "Bouncy Intermediate Certificate");
-            sAttrs.Add(X509Name.EmailAddress, "feedback-crypto@bouncycastle.org");
-
-            var sOrder = new List<DerObjectIdentifier>();
-            sOrder.Add(X509Name.C);
-            sOrder.Add(X509Name.O);
-            sOrder.Add(X509Name.OU);
-            sOrder.Add(X509Name.EmailAddress);
-
-            // subjects name table.
-            var attrs = new Dictionary<DerObjectIdentifier, String>();
-            attrs.Add(X509Name.C, "AU");
-            attrs.Add(X509Name.O, "The Legion of the Bouncy Castle");
-            attrs.Add(X509Name.L, "Melbourne");
-            attrs.Add(X509Name.CN, "Eric H. Echidna");
-            attrs.Add(X509Name.EmailAddress, "feedback-crypto@bouncycastle.org");
-
-            var order = new List<DerObjectIdentifier>();
-            order.Add(X509Name.C);
-            order.Add(X509Name.O);
-            order.Add(X509Name.L);
-            order.Add(X509Name.CN);
-            order.Add(X509Name.EmailAddress);
-
-            // create the certificate - version 3
-            v3CertGen.Reset();
-            v3CertGen.SetSerialNumber(BigInteger.Three);
-            v3CertGen.SetIssuerDN(new X509Name(sOrder, sAttrs));
-            v3CertGen.SetNotBefore(DateTime.UtcNow.AddMonths(-1));
-            v3CertGen.SetNotAfter(DateTime.UtcNow.AddMonths(1));
-            v3CertGen.SetSubjectDN(new X509Name(order, attrs));
-            v3CertGen.SetPublicKey(pubKey);
-            v3CertGen.SetSignatureAlgorithm("SHA1WithRSAEncryption");
-
-            // add the extensions
-            v3CertGen.AddExtension(X509Extensions.SubjectKeyIdentifier,
-                                   false,
-                                   new SubjectKeyIdentifierStructure(pubKey));
-
-            v3CertGen.AddExtension(X509Extensions.AuthorityKeyIdentifier,
-                                   false,
-                                   new AuthorityKeyIdentifierStructure(caPubKey));
-
-            var cert = v3CertGen.Generate(caPrivKey);
-            cert.CheckValidity(DateTime.UtcNow);
-            cert.Verify(caPubKey);
-
-            return new Tuple<AsymmetricCipherKeyPair, Org.BouncyCastle.X509.X509Certificate>(keyPair, cert);
-
-        }
 
         #region NotifyErrors(...)
 
@@ -399,7 +219,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
             try
             {
 
-                TCPConnection.WriteLineSMTP(SMTPStatusCode.ServiceReady, "mx.vanaheimr.com ESMTP Vanaheimr Mail Transport Service");
+                TCPConnection.WriteLineSMTP(SMTPStatusCode.ServiceReady,
+                                            _DefaultServerName + " ESMTP Vanaheimr Hermod Mail Transport Service");
 
                 do
                 {
@@ -548,23 +369,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
                                         else
                                         {
-
-                                            var MasterCert                  = CreateMasterCert();
-                                            var MasterCert_PrivateKey       = MasterCert.Item1.Private;
-                                            var MasterCert_PublicKey        = MasterCert.Item1.Public;
-                                            var MasterCert_X509Cert         = MasterCert.Item2;
-
-                                            var IntermediateCert            = CreateIntermediateCert(MasterCert_PrivateKey, MasterCert_X509Cert);
-                                            var IntermediateCert_PrivateKey = IntermediateCert.Item1.Private;
-                                            var IntermediateCert_PublicKey  = IntermediateCert.Item1.Public;
-                                            var IntermediateCert_X509Cert   = IntermediateCert.Item2;
-
-                                            var Cert                        = CreateCert(IntermediateCert_PrivateKey, IntermediateCert_PublicKey);
-                                            var Cert_PrivateKey             = Cert.Item1.Private;
-                                            var Cert_PublicKey              = Cert.Item1.Public;
-                                            var Cert_X509Cert               = Cert.Item2;
-
-                                            var TLSCert                     = new X509Certificate2(Cert_X509Cert.GetEncoded(), "");
 
                                             TCPConnection.WriteLineSMTP(SMTPStatusCode.ServiceReady, "2.0.0 Ready to start TLS");
 

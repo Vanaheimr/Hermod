@@ -33,6 +33,7 @@ using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Services.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using System.Diagnostics;
+using System.Security.Cryptography.X509Certificates;
 
 #endregion
 
@@ -165,6 +166,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="IPPort">An IP port to listen on.</param>
         /// <param name="DefaultServerName">The default HTTP servername, used whenever no HTTP Host-header had been given.</param>
+        /// <param name="X509Certificate">Use this X509 certificate for TLS.</param>
         /// <param name="CallingAssemblies">A list of calling assemblies to include e.g. into embedded ressources lookups.</param>
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
@@ -178,6 +180,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
         public HTTPServer(IPPort                            IPPort                            = null,
                           String                            DefaultServerName                 = __DefaultServerName,
+                          X509Certificate2                  X509Certificate                   = null,
                           IEnumerable<Assembly>             CallingAssemblies                 = null,
                           String                            ServerThreadName                  = null,
                           ThreadPriority                    ServerThreadPriority              = ThreadPriority.AboveNormal,
@@ -191,6 +194,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           Boolean                           Autostart                         = false)
 
             : base(DefaultServerName,
+                   X509Certificate,
                    ServerThreadName,
                    ServerThreadPriority,
                    ServerThreadIsBackground,

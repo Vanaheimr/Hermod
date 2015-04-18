@@ -25,6 +25,7 @@ using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
+using System.Security.Cryptography.X509Certificates;
 
 #endregion
 
@@ -73,6 +74,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         }
 
         #endregion
+
+        #region X509Certificate
+
+        private readonly X509Certificate2 _X509Certificate;
+
+        /// <summary>
+        /// The X509 certificate.
+        /// </summary>
+        public X509Certificate2 X509Certificate
+        {
+            get
+            {
+                return _X509Certificate;
+            }
+        }
+
+        #endregion
+
 
         #region ServerThreadName
 
@@ -399,6 +418,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// Create a new TCP service allowing to attach multiple TCP servers on different IP sockets.
         /// </summary>
         /// <param name="ServiceBanner">The service banner transmitted to a TCP client after connection initialization.</param>
+        /// <param name="X509Certificate">Use this X509 certificate for TLS.</param>
         /// <param name="ServerThreadName">An optional name of the TCP server threads.</param>
         /// <param name="ServerThreadPriority">An optional priority of the TCP server threads (default: AboveNormal).</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server threads are a background thread or not (default: yes).</param>
@@ -410,6 +430,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="Autostart">Start the TCP server threads immediately (default: no).</param>
         public ATCPServers(String                            ServiceBanner                     = TCPServer.__DefaultServiceBanner,
+                           X509Certificate2                  X509Certificate                   = null,
                            String                            ServerThreadName                  = TCPServer.__DefaultServerThreadName,
                            ThreadPriority                    ServerThreadPriority              = ThreadPriority.AboveNormal,
                            Boolean                           ServerThreadIsBackground          = true,
@@ -428,6 +449,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             #region TCP Server
 
             this._ServiceBanner                    = ServiceBanner;
+            this._X509Certificate                  = X509Certificate;
+
+            #endregion
+
+            #region Server thread related
+
             this._ServerThreadName                 = ServerThreadName;
             this._ServerThreadPriority             = ServerThreadPriority;
             this._ServerThreadIsBackground         = ServerThreadIsBackground;

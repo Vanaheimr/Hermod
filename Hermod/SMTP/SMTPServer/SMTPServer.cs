@@ -32,6 +32,7 @@ using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Services.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Services.Mail;
+using System.Security.Cryptography.X509Certificates;
 
 #endregion
 
@@ -39,7 +40,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 {
 
     /// <summary>
-    /// A HTTP/1.1 server.
+    /// A SMTP server.
     /// </summary>
     public class SMTPServer : ATCPServers,
                               IBoomerangSender<String, DateTime, EMail, SMTPExtendedResponse>
@@ -84,7 +85,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
         #region Events
 
-        public event BoomerangSenderHandler<String, DateTime, EMail, SMTPExtendedResponse> OnNotification;
+        public event BoomerangSenderHandler<String, DateTime, EMail, SMTPExtendedResponse>  OnNotification;
 
         /// <summary>
         /// An event called whenever a request could successfully be processed.
@@ -101,9 +102,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
         #region Constructor(s)
 
         /// <summary>
-        /// Initialize the HTTP server using the given parameters.
+        /// Initialize the SMTP server using the given parameters.
         /// </summary>
-        /// <param name="DefaultServerName">The default HTTP servername, used whenever no HTTP Host-header had been given.</param>
+        /// <param name="IPPort"></param>
+        /// <param name="DefaultServerName">The default SMTP servername.</param>
+        /// <param name="X509Certificate">Use this X509 certificate for TLS.</param><
+        /// <param name="CallingAssemblies">Calling assemblies.</param>
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
@@ -113,9 +117,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
         /// <param name="ConnectionThreadsAreBackground">Whether the TCP connection threads are background threads or not (default: yes).</param>
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
-        /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
+        /// <param name="Autostart">Start the SMTP server thread immediately (default: no).</param>
         public SMTPServer(IPPort                            IPPort                            = null,
                           String                            DefaultServerName                 = __DefaultServerName,
+                          X509Certificate2                  X509Certificate                   = null,
                           IEnumerable<Assembly>             CallingAssemblies                 = null,
                           String                            ServerThreadName                  = null,
                           ThreadPriority                    ServerThreadPriority              = ThreadPriority.AboveNormal,
@@ -129,6 +134,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                           Boolean                           Autostart                         = false)
 
             : base(DefaultServerName,
+                   X509Certificate,
                    ServerThreadName,
                    ServerThreadPriority,
                    ServerThreadIsBackground,
