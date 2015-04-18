@@ -506,22 +506,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
                                         TCPConnection.WriteLineSMTP(SMTPStatusCode.StartMailInput, "Ok Send data ending with <CRLF>.<CRLF>");
 
-                                        var SB = new StringBuilder();
-                                        var ST = "";
+                                        var MailTextBuilder  = new StringBuilder();
+                                        var MailLine         = "";
 
                                         do
                                         {
 
-                                            ST = TCPConnection.ReadLine();
+                                            MailLine = TCPConnection.ReadLine();
 
-                                            if (ST != ".")
-                                                SB.AppendLine(ST);
+                                            // "." == End-of-EMail...
+                                            if (MailLine != null && MailLine != ".")
+                                                MailTextBuilder.AppendLine(MailLine);
 
-                                        } while (ST != ".");
+                                        } while (MailLine != ".");
 
-                                        MailText = SB.ToString();
+                                        MailText = MailTextBuilder.ToString();
 
-                                        TCPConnection.WriteLineSMTP(SMTPStatusCode.Ok, "Message received: 20040120203404.CCCC18555.mx1.example.com@client.example.com");
+                                        TCPConnection.WriteLineSMTP(SMTPStatusCode.Ok, "Message received: 20040120203404.CCCC18555.mx1.example.com@opendata.social");
+
+                                        Debug.WriteLine(MailText);
+                                        Debug.WriteLine(".");
 
                                         var OnNotificationLocal = OnNotification;
                                         if (OnNotificationLocal != null)

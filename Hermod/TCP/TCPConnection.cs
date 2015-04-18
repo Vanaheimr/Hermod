@@ -47,6 +47,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         protected readonly TcpClient      TCPClient;
         protected readonly NetworkStream  Stream;
 
+        // For method 'ReadLine(...)'...
+        private            Boolean        SkipNextN  = false;
+
         #endregion
 
         #region Properties
@@ -493,26 +496,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             if (Stream.DataAvailable)
             {
 
-                Byte ByteValue;
+                Int32 ByteValue;
                 var ByteArray  = new Byte[MaxLength];
                 var Position   = 0;
 
-                while (Stream.DataAvailable)
+                // Do not stop (on slow connections)
+                //  before a valid EOL was found!
+                while (true)
                 {
 
-                    ByteValue = (Byte) Stream.ReadByte();
+                    ByteValue = Stream.ReadByte();
 
-                    if (Position == 0 && ByteValue == '\n')
+                    #region Nothing or a '\r' or a '\n' was read!
+
+                    // Nothing was read!
+                    if (ByteValue == -1)
+                    {
+                        Thread.Sleep(SleepingTimeMS);
                         continue;
+                    }
 
-                    ByteArray[Position++] = ByteValue;
+                    // Last time a '\r' was read, thus this might be the '\n' of it!
+                    if (SkipNextN && ByteValue == '\n')
+                    {
+                        SkipNextN = false;
+                        continue;
+                    }
 
-                    Debug.WriteLine(ByteValue + "-");
+                    if (ByteValue == '\r')
+                    {
+                        SkipNextN = true;
+                        break;
+                    }
 
-                    if (ByteValue == '\r' ||
-                        ByteValue == '\n' ||
+                    if (ByteValue == '\n' ||
                         Position  == MaxLength)
                         break;
+
+                    #endregion
+
+                    ByteArray[Position++] = (Byte) ByteValue;
 
                 }
 
@@ -522,15 +545,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                     if (Encoding == null)
                         Encoding = Encoding.UTF8;
 
-                    Array.Resize(ref ByteArray, (Int32) Position - 1);
+                    Array.Resize(ref ByteArray, (Int32) Position);
 
                     return Encoding.GetString(ByteArray);
 
                 }
 
+                // An empty line was read!
+                return "";
+
             }
 
-            return String.Empty;
+            return null;
 
         }
 
