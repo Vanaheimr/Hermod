@@ -436,13 +436,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services
 
             var IPv4Task = _DNSClient.Query<A>(RemoteHost);
             IPv4Task.Wait();
-            if (IPv4Task.Result.Any())
-                _CachedIPv4Addresses = IPv4Task.Result.ToArray();
+            _CachedIPv4Addresses = IPv4Task.Result.ToArray();
 
             var IPv6Task = _DNSClient.Query<AAAA>(RemoteHost);
             IPv6Task.Wait();
-            if (IPv6Task.Result.Any())
-                _CachedIPv6Addresses = IPv6Task.Result.ToArray();
+            _CachedIPv6Addresses = IPv6Task.Result.ToArray();
 
             OrderedDNS = (_CachedIPv4Addresses.Select(ARecord    => new IPSocket(ARecord.   IPv4Address, this.RemotePort)).Concat(
                           _CachedIPv6Addresses.Select(AAAARecord => new IPSocket(AAAARecord.IPv6Address, this.RemotePort)))).

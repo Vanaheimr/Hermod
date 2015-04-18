@@ -349,45 +349,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
         #endregion
 
-        #region (private) _ReadSMTPResponse()
+        #region (private) ReadSMTPResponse()
 
-        private SMTPExtendedResponse _ReadSMTPResponse()
+        private SMTPExtendedResponse ReadSMTPResponse()
         {
 
-            if (input == null || input.Length == 0)
+            try
             {
 
-                input = new Byte[64 * 1024];
+                if (input == null || input.Length == 0)
+                {
 
-                var nread = 0;
+                    input = new Byte[64 * 1024];
 
-                TCPSocket.Poll(SelectMode.SelectRead, CancellationToken.Value);
+                    var nread = 0;
 
-                if ((nread = Stream.Read(input, 0, input.Length)) == 0)
-                    throw new Exception("The SMTP server unexpectedly disconnected.");
+                    TCPSocket.Poll(SelectMode.SelectRead, CancellationToken.Value);
 
-                Array.Resize(ref input, nread);
+                    if ((nread = Stream.Read(input, 0, input.Length)) == 0)
+                        throw new Exception("The SMTP server unexpectedly disconnected.");
 
+                    Array.Resize(ref input, nread);
+
+                }
+
+                var aa = input.TakeWhile(b => b != ' ' && b != '-').ToArray().ToUTF8String();
+                var more = input[aa.Length] == '-';
+                var resp = input.Skip(aa.Length + 1).
+                                 TakeWhile(b => b != '\r' && b != '\n').
+                                 ToArray();
+
+                var scode = SMTPStatusCode.SyntaxError;
+                UInt16 _scode;
+
+                if (UInt16.TryParse(aa, out _scode))
+                    scode = (SMTPStatusCode)_scode;
+
+                if (more)
+                    input = input.Skip(aa.Length + 1 + resp.Length).SkipWhile(b => b == '\r' || b == '\n').
+                                  ToArray();
+                else
+                    input = null;
+
+                return new SMTPExtendedResponse(scode, resp.ToUTF8String().Trim(), more);
+
+            } catch (Exception e)
+            {
+                return new SMTPExtendedResponse(SMTPStatusCode.TransactionFailed, e.Message);
             }
-
-            var aa   = input.TakeWhile(b => b != ' ' && b != '-').ToArray().ToUTF8String();
-            var more = input[aa.Length] == '-';
-            var resp = input.Skip(aa.Length + 1).
-                             TakeWhile(b => b != '\r' && b != '\n').
-                             ToArray();
-
-            var scode = SMTPStatusCode.SyntaxError;
-            UInt16 _scode;
-
-            if (UInt16.TryParse(aa, out _scode))
-                scode = (SMTPStatusCode) _scode;
-
-            if (more)
-                input = input.Skip(aa.Length + 1 + resp.Length).SkipWhile(b => b == '\r' || b == '\n').ToArray();
-            else
-                input = null;
-
-            return new SMTPExtendedResponse(scode, resp.ToUTF8String().Trim(), more);
 
         }
 
@@ -402,7 +411,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
             SMTPExtendedResponse SR = null;
             do
             {
-                SR = this._ReadSMTPResponse();
+                SR = this.ReadSMTPResponse();
                 ResponseList.Add(SR);
             } while (SR.MoreDataAvailable);
 
@@ -417,8 +426,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
         protected SMTPExtendedResponse SendCommandAndWait(String Command)
         {
+
             SendCommand(Command);
-            return _ReadSMTPResponse();
+            Debug.WriteLine(">> " + Command);
+
+            return ReadSMTPResponse();
+
         }
 
         #endregion
@@ -427,8 +440,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
         protected IEnumerable<SMTPExtendedResponse> SendCommandAndWaits(String Command)
         {
+
             SendCommand(Command);
+            Debug.WriteLine(">> " + Command);
+
             return ReadSMTPResponses();
+
         }
 
         #endregion
@@ -469,7 +486,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                     case TCP.TCPConnectResult.Ok:
 
                         // 220 mail.ahzf.de ESMTP Postfix (Debian/GNU)
-                        var LoginResponse = this._ReadSMTPResponse();
+                        var LoginResponse = this.ReadSMTPResponse();
                         if (LoginResponse.StatusCode != SMTPStatusCode.ServiceReady)
                             throw new SMTPClientException("SMTP login error: " + LoginResponse.ToString());
 

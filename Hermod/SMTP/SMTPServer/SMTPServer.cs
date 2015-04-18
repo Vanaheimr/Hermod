@@ -43,14 +43,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
     /// A SMTP server.
     /// </summary>
     public class SMTPServer : ATCPServers,
-                              IBoomerangSender<String, DateTime, EMail, SMTPExtendedResponse>
+                              IArrowSender<SMTPServer, EMail, String>
+                              //IBoomerangSender<String, DateTime, EMail, SMTPExtendedResponse>
     {
 
         #region Data
 
         internal const    String             __DefaultServerName  = "Vanaheimr Hermod SMTP Service v0.1";
 
-        private readonly  SMTPProcessor      _SMTPProcessor;
+        private readonly  SMTPConnection      _SMTPProcessor;
 
         #endregion
 
@@ -85,12 +86,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
         #region Events
 
-        public event BoomerangSenderHandler<String, DateTime, EMail, SMTPExtendedResponse>  OnNotification;
+        //public event BoomerangSenderHandler<String, DateTime, EMail, SMTPExtendedResponse>  OnNotification;
 
-        /// <summary>
-        /// An event called whenever a request could successfully be processed.
-        /// </summary>
-        public event AccessLogHandler                                                       AccessLog;
+        public event NotificationEventHandler<SMTPServer, EMail, String> OnNotification;
+
+        ///// <summary>
+        ///// An event called whenever a request could successfully be processed.
+        ///// </summary>
+        //public event AccessLogHandler                                                       AccessLog;
 
         /// <summary>
         /// An event called whenever a request resulted in an error.
@@ -148,12 +151,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
         {
 
-            this._DefaultServerName                = DefaultServerName;
+            this._DefaultServerName         = DefaultServerName;
 
-            _SMTPProcessor                         = new SMTPProcessor(DefaultServerName);
-            _SMTPProcessor.OnNotification         += ProcessBoomerang;
-            _SMTPProcessor.AccessLog              += (HTTPProcessor, ServerTimestamp, Request, Response)                       => LogAccess (ServerTimestamp, Request, Response);
-            _SMTPProcessor.ErrorLog               += (HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException) => LogError  (ServerTimestamp, Request, Response, Error, LastException);
+            _SMTPProcessor                  = new SMTPConnection(DefaultServerName);
+            _SMTPProcessor.OnNotification  += ProcessNotification;
+            _SMTPProcessor.ErrorLog        += (HTTPProcessor, ServerTimestamp, SMTPCommand, Request, Response, Error, LastException) => LogError (ServerTimestamp, SMTPCommand, Request, Response, Error, LastException);
 
             if (IPPort != null)
                 this.AttachTCPPort(IPPort);
@@ -257,46 +259,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
         #region ProcessBoomerang(ConnectionId, Timestamp, HTTPRequest)
 
-        private SMTPExtendedResponse ProcessBoomerang(String    ConnectionId,
-                                              DateTime  Timestamp,
-                                              EMail     EMail)
-        {
+        //private SMTPExtendedResponse ProcessBoomerang(String    ConnectionId,
+        //                                              DateTime  Timestamp,
+        //                                              EMail     EMail)
+        //{
 
-            return new SMTPExtendedResponse(SMTPStatusCode.BadCommandSequence);
+        //    return new SMTPExtendedResponse(SMTPStatusCode.BadCommandSequence);
 
-        }
+        //}
 
         #endregion
 
 
+        private void ProcessNotification(EMail EMail, String Text)
+        {
 
+            var OnNotificationLocal = OnNotification;
+            if (OnNotificationLocal != null)
+                OnNotificationLocal(this, EMail, Text);
+
+        }
 
 
 
 
         // SMTP Logging...
-
-        #region LogAccess(ServerTimestamp, EMail, Response)
-
-        /// <summary>
-        /// Log an successful request processing.
-        /// </summary>
-        /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
-        /// <param name="EMail">The incoming request.</param>
-        /// <param name="Response">The outgoing response.</param>
-        public void LogAccess(DateTime      ServerTimestamp,
-                              EMail         EMail,
-                              SMTPExtendedResponse  Response)
-        {
-
-            var AccessLogLocal = AccessLog;
-
-            if (AccessLogLocal != null)
-                AccessLogLocal(this, ServerTimestamp, EMail, Response);
-
-        }
-
-        #endregion
 
         #region LogError(ServerTimestamp, EMail, Response, Error = null, LastException = null)
 
@@ -308,23 +295,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
         /// <param name="HTTPResponse">The outgoing response.</param>
         /// <param name="Error">The occured error.</param>
         /// <param name="LastException">The last occured exception.</param>
-        public void LogError(DateTime      ServerTimestamp,
-                             EMail         EMail,
+        public void LogError(DateTime              ServerTimestamp,
+                             String                SMTPCommand,
+                             EMail                 EMail,
                              SMTPExtendedResponse  Response,
-                             String        Error          = null,
-                             Exception     LastException  = null)
+                             String                Error          = null,
+                             Exception             LastException  = null)
         {
 
             var ErrorLogLocal = ErrorLog;
 
             if (ErrorLogLocal != null)
-                ErrorLogLocal(this, ServerTimestamp, EMail, Response, Error, LastException);
+                ErrorLogLocal(this, ServerTimestamp, SMTPCommand, EMail, Response, Error, LastException);
 
         }
 
         #endregion
 
 
+
+
+        
 
     }
 

@@ -29,6 +29,7 @@ using System.Net;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
+using System.Diagnostics;
 
 #endregion
 
@@ -408,7 +409,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// Read a string value from the TCP connection.
         /// </summary>
-        /// <param name=param name="MaxLength">The maximal length of the string.</param>
+        /// <param name="MaxLength">The maximal length of the string.</param>
         /// <param name="Encoding">The character encoding of the string (default: UTF8).</param>
         /// <param name="SleepingTimeMS">When no data is currently available wait at least this amount of time [milliseconds].</param>
         /// <param name="MaxInitialWaitingTimeMS">When no data is currently available wait at most this amount of time [milliseconds].</param>
@@ -429,29 +430,101 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             if (Stream.DataAvailable)
             {
 
-                Byte NumberOfBytes;
-                var array = new Byte[MaxLength];
-                var pos = 0;
+                Byte ByteValue;
+                var ByteArray  = new Byte[MaxLength];
+                var Position   = 0U;
 
                 while (Stream.DataAvailable)
                 {
 
-                    NumberOfBytes = (Byte) Stream.ReadByte();
+                    ByteValue = (Byte) Stream.ReadByte();
 
-                    array[pos++] = NumberOfBytes;
+                    ByteArray[Position++] = ByteValue;
 
-                    if (NumberOfBytes == 0x00 || pos == MaxLength)
+                    if (ByteValue == 0x00 ||
+                        Position  == MaxLength)
                         break;
 
                 }
 
-                if (pos > 0)
+                if (Position > 0)
                 {
 
                     if (Encoding == null)
                         Encoding = Encoding.UTF8;
 
-                    return Encoding.GetString(array).Trim();
+                    Array.Resize(ref ByteArray, (Int32) Position - 1);
+
+                    return Encoding.GetString(ByteArray);
+
+                }
+
+            }
+
+            return String.Empty;
+
+        }
+
+        #endregion
+
+        #region ReadLine(MaxLength = 65535, Encoding = null, SleepingTimeMS = 5, MaxInitialWaitingTimeMS = 500)
+
+        /// <summary>
+        /// Read a line from the TCP connection.
+        /// </summary>
+        /// <param name="MaxLength">The maximal length of the string.</param>
+        /// <param name="Encoding">The character encoding of the string (default: UTF8).</param>
+        /// <param name="SleepingTimeMS">When no data is currently available wait at least this amount of time [milliseconds].</param>
+        /// <param name="MaxInitialWaitingTimeMS">When no data is currently available wait at most this amount of time [milliseconds].</param>
+        public String ReadLine(Int32 MaxLength = 65535, Encoding Encoding = null, UInt16 SleepingTimeMS = 5, UInt32 MaxInitialWaitingTimeMS = 500)
+        {
+
+            if (!Stream.CanRead)
+                return String.Empty;
+
+            var WaitingTimeMS = 0;
+
+            while (!Stream.DataAvailable && (WaitingTimeMS < MaxInitialWaitingTimeMS))
+            {
+                Thread.Sleep(SleepingTimeMS);
+                WaitingTimeMS += SleepingTimeMS;
+            }
+
+            if (Stream.DataAvailable)
+            {
+
+                Byte ByteValue;
+                var ByteArray  = new Byte[MaxLength];
+                var Position   = 0;
+
+                while (Stream.DataAvailable)
+                {
+
+                    ByteValue = (Byte) Stream.ReadByte();
+
+                    if (Position == 0 && ByteValue == '\n')
+                        continue;
+
+                    ByteArray[Position++] = ByteValue;
+
+                    Debug.WriteLine(ByteValue + "-");
+
+                    if (ByteValue == '\r' ||
+                        ByteValue == '\n' ||
+                        Position  == MaxLength)
+                        break;
+
+                }
+
+                if (Position > 0)
+                {
+
+                    if (Encoding == null)
+                        Encoding = Encoding.UTF8;
+
+                    Array.Resize(ref ByteArray, (Int32) Position - 1);
+
+                    return Encoding.GetString(ByteArray);
 
                 }
 

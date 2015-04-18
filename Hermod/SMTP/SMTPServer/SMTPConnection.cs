@@ -21,6 +21,10 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Net.Security;
+using System.Collections.Generic;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
@@ -29,7 +33,7 @@ using org.GraphDefined.Vanaheimr.Hermod.Services;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Services.Mail;
-using System.Security.Cryptography.X509Certificates;
+
 using Org.BouncyCastle.Pkcs;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Math;
@@ -39,11 +43,8 @@ using Org.BouncyCastle.Crypto.Generators;
 using Org.BouncyCastle.Security;
 using Org.BouncyCastle.Crypto.Prng;
 using Org.BouncyCastle.X509.Extension;
-using System.Collections.Generic;
 using Org.BouncyCastle.Asn1;
-using System.Net.Security;
-using System.Security.Authentication;
-
+using System.Diagnostics;
 
 #endregion
 
@@ -53,10 +54,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
     public static class Ext3
     {
 
-        public static void WriteSMTP(this TCPConnection TCPConn, SMTPStatusCode Statuscode, String Text)
+        public static void WriteSMTP(this TCPConnection TCPConn, SMTPStatusCode StatusCode, String Text)
         {
-            TCPConn.WriteToResponseStream(((Int32) Statuscode) + " " + Text);
+
+            TCPConn.WriteToResponseStream(((Int32) StatusCode) + " " + Text);
+            Debug.WriteLine(">> " +       ((Int32) StatusCode) + " " + Text);
+
             TCPConn.Flush();
+
         }
 
         public static void WriteLineSMTP(this TCPConnection TCPConn, params SMTPResponse[] Response)
@@ -66,7 +71,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
             Response.
                 Where(line => line.Response.IsNotNullOrEmpty()).
-                ForEachCounted((i, response) => TCPConn.WriteLineToResponseStream(((Int32) response.StatusCode) + (i < n ? "-" : " ") + response.Response));
+                ForEachCounted((i, response) => {
+                    TCPConn.WriteLineToResponseStream(((Int32) response.StatusCode) + (i < n ? "-" : " ") + response.Response);
+                    Debug.WriteLine(">> " +           ((Int32) response.StatusCode) + (i < n ? "-" : " ") + response.Response);
+                });
 
             TCPConn.Flush();
 
@@ -79,7 +87,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
             Response.
                 Where(line => line.IsNotNullOrEmpty()).
-                ForEachCounted((i, response) => TCPConn.WriteLineToResponseStream(((Int32)StatusCode) + (i < n ? "-" : " ") + response));
+                ForEachCounted((i, response) => {
+                    TCPConn.WriteLineToResponseStream(((Int32) StatusCode) + (i < n ? "-" : " ") + response);
+                    Debug.WriteLine(">> " +           ((Int32) StatusCode) + (i < n ? "-" : " ") + response);
+                });
 
             TCPConn.Flush();
 
@@ -95,11 +106,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
 
     /// <summary>
-    /// This processor will accept incoming SMTP TCP connections and
-    /// decode the transmitted data as SMTP requests.
+    /// Accept incoming SMTP TCP connections and
+    /// decode the transmitted data as E-Mails.
     /// </summary>
-    public class SMTPProcessor : IArrowReceiver<TCPConnection>,
-                                 IBoomerangSender<String, DateTime, EMail, SMTPExtendedResponse>
+    public class SMTPConnection : IArrowReceiver<TCPConnection>,
+                                  IArrowSender<EMail, String>
     {
 
         #region Data
@@ -133,20 +144,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
         public   event StartedEventHandler                                                      OnStarted;
 
-        /// <summary>
-        /// An event called whenever a request came in.
-        /// </summary>
-        internal event InternalAccessLogHandler                                                 AccessLog;
+        public   event NotificationEventHandler<EMail, String>                                  OnNotification;
+
+        public   event CompletedEventHandler                                                    OnCompleted;
 
         /// <summary>
         /// An event called whenever a request resulted in an error.
         /// </summary>
         internal event InternalErrorLogHandler                                                  ErrorLog;
-
-        public   event BoomerangSenderHandler<String, DateTime, EMail, SMTPExtendedResponse>    OnNotification;
-
-        public   event CompletedEventHandler                                                    OnCompleted;
-
 
         public   event ExceptionOccuredEventHandler                                             OnExceptionOccured;
 
@@ -159,7 +164,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
         /// decode the transmitted data as SMTP requests.
         /// </summary>
         /// <param name="DefaultServername">The default SMTP servername.</param>
-        public SMTPProcessor(String DefaultServername = SMTPServer.__DefaultServerName)
+        public SMTPConnection(String DefaultServername = SMTPServer.__DefaultServerName)
         {
 
             this._DefaultServerName  = DefaultServername;
@@ -172,25 +177,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
         #region NotifyErrors(...)
 
-        private void NotifyErrors(TCPConnection   TCPConnection,
-                                  DateTime        Timestamp,
-                                  SMTPStatusCode  SMTPStatusCode,
-                                  EMail           EMail            = null,
-                                  SMTPExtendedResponse    Response         = null,
-                                  String          Error            = null,
-                                  Exception       LastException    = null,
-                                  Boolean         CloseConnection  = true)
+        private void NotifyErrors(TCPConnection         TCPConnection,
+                                  DateTime              Timestamp,
+                                  String                SMTPCommand,
+                                  SMTPStatusCode        SMTPStatusCode,
+                                  EMail                 EMail            = null,
+                                  SMTPExtendedResponse  Response         = null,
+                                  String                Error            = null,
+                                  Exception             LastException    = null,
+                                  Boolean               CloseConnection  = true)
         {
-
-            #region Call OnError delegates
 
             var ErrorLogLocal = ErrorLog;
             if (ErrorLogLocal != null)
             {
-                ErrorLogLocal(this, Timestamp, EMail, Response, Error, LastException);
+                ErrorLogLocal(this, Timestamp, SMTPCommand, EMail, Response, Error, LastException);
             }
-
-            #endregion
 
         }
 
@@ -218,6 +220,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
             try
             {
+
+                var MailFroms  = new List<String>();
+                var RcptTos    = new List<String>();
+                var MailText   = "";
 
                 TCPConnection.WriteLineSMTP(SMTPStatusCode.ServiceReady,
                                             _DefaultServerName + " ESMTP Vanaheimr Hermod Mail Transport Service");
@@ -278,12 +284,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
                                         SMTPCommand = Encoding.UTF8.GetString(MemoryStream.ToArray()).Trim();
 
+                                        Debug.WriteLine("<< " + SMTPCommand);
+
                                     }
-                                    catch (Exception)
+                                    catch (Exception e)
                                     {
 
                                         NotifyErrors(TCPConnection,
                                                      RequestTimestamp,
+                                                     "",
                                                      SMTPStatusCode.SyntaxError,
                                                      Error: "Protocol Error: Invalid UTF8 encoding!");
 
@@ -291,11 +300,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
                                     #endregion
 
-                                    #region Try to parse the SMTP command
+                                    #region Try to parse SMTP commands
+
+                                    #region ""
+
+                                    if (SMTPCommand == "")
+                                    { }
+
+                                    #endregion
 
                                     #region HELO <MailClientName>
 
-                                    if (SMTPCommand.ToUpper().Trim().StartsWith("HELO"))
+                                    else if (SMTPCommand.ToUpper().StartsWith("HELO"))
                                     {
 
                                         if (SMTPCommand.Trim().Length > 5 && SMTPCommand.Trim()[4] == ' ')
@@ -319,7 +335,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
                                     #region EHLO <MailClientName>
 
-                                    else if (SMTPCommand.ToUpper().Trim().StartsWith("EHLO"))
+                                    else if (SMTPCommand.ToUpper().StartsWith("EHLO"))
                                     {
 
                                         if (SMTPCommand.Trim().Length > 5 && SMTPCommand.Trim()[4] == ' ')
@@ -358,7 +374,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
                                     #region STARTTLS
 
-                                    else if (SMTPCommand.Trim().ToUpper() == "STARTTLS")
+                                    else if (SMTPCommand.ToUpper() == "STARTTLS")
                                     {
 
                                         if (TLSEnabled)
@@ -372,8 +388,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
                                             TCPConnection.WriteLineSMTP(SMTPStatusCode.ServiceReady, "2.0.0 Ready to start TLS");
 
-//                                            var _TLSStream = new SslStream(TCPConnection.NetworkStream);
-//                                            _TLSStream.AuthenticateAsServer(TLSCert, false, SslProtocols.Tls12, false);
+                                            //                                            var _TLSStream = new SslStream(TCPConnection.NetworkStream);
+                                            //                                            _TLSStream.AuthenticateAsServer(TLSCert, false, SslProtocols.Tls12, false);
                                             TLSEnabled = true;
 
                                         }
@@ -384,7 +400,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
                                     #region AUTH LOGIN|PLAIN|...
 
-                                    else if (SMTPCommand.ToUpper().Trim().StartsWith("AUTH "))
+                                    else if (SMTPCommand.ToUpper().StartsWith("AUTH "))
                                     {
 
                                         if (!TLSEnabled)
@@ -394,9 +410,130 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
                                     #endregion
 
+                                    #region MAIL FROM: <SenderMailAddress>
+
+                                    else if (SMTPCommand.ToUpper().StartsWith("MAIL FROM"))
+                                    {
+
+                                        var SMTPCommandParts = SMTPCommand.Split(new Char[2] { ' ', ':' }, StringSplitOptions.RemoveEmptyEntries);
+
+                                        if (SMTPCommandParts.Length >= 3)
+                                        {
+
+                                            var MailFrom = SMTPCommandParts[2];
+
+                                            TCPConnection.WriteLineSMTP(SMTPStatusCode.Ok, "2.1.0 " + MailFrom + " Sender ok");
+
+                                            if (MailFrom[0] == '<' && MailFrom[MailFrom.Length - 1] == '>')
+                                                MailFrom = MailFrom.Substring(1, MailFrom.Length - 3);
+
+                                            MailFroms.Add(MailFrom);
+
+                                        }
+                                        else
+                                        {
+                                            // 501 Syntax: EHLO hostname
+                                            TCPConnection.WriteLineSMTP(SMTPStatusCode.SyntaxError, "Syntax: MAIL FROM: <mail@domain.tld>");
+                                        }
+
+                                    }
+
+                                    #endregion
+
+                                    #region RCPT TO: <ReceiverMailAddress>
+
+                                    else if (SMTPCommand.ToUpper().StartsWith("RCPT TO"))
+                                    {
+
+                                        var SMTPCommandParts = SMTPCommand.Split(new Char[2] { ' ', ':' }, StringSplitOptions.RemoveEmptyEntries);
+
+                                        if (SMTPCommandParts.Length >= 3)
+                                        {
+
+                                            var RcptTo = SMTPCommandParts[2];
+
+                                            // telnet: > telnet mx1.example.com smtp
+                                            // telnet: Trying 192.0.2.2...
+                                            // telnet: Connected to mx1.example.com.
+                                            // telnet: Escape character is '^]'.
+                                            // server: 220 mx1.example.com ESMTP server ready Tue, 20 Jan 2004 22:33:36 +0200
+                                            // client: HELO client.example.com
+                                            // server: 250 mx1.example.com
+                                            // client: MAIL from: <sender@example.com>
+                                            // server: 250 Sender <sender@example.com> Ok
+                                            // client: RCPT to: <recipient@example.com>
+                                            // server: 250 Recipient <recipient@example.com> Ok
+                                            // client: DATA
+                                            // server: 354 Ok Send data ending with <CRLF>.<CRLF>
+                                            // client: From: sender@example.com
+                                            // client: To: recipient@example.com
+                                            // client: Subject: Test message
+                                            // client: 
+                                            // client: This is a test message.
+                                            // client: .
+                                            // server: 250 Message received: 20040120203404.CCCC18555.mx1.example.com@client.example.com
+                                            // client: QUIT
+                                            // server: 221 mx1.example.com ESMTP server closing connection
+
+                                            // MAIL FROM: mail@domain.ext
+                                            // 250 2.1.0 mail@domain.ext... Sender ok
+                                            // 
+                                            // RCPT TO: mail@otherdomain.ext
+                                            // 250 2.1.0 mail@otherdomain.ext... Recipient ok
+
+                                            TCPConnection.WriteLineSMTP(SMTPStatusCode.Ok, "2.1.0 " + RcptTo + " Recipient ok");
+
+                                            if (RcptTo[0] == '<' && RcptTo[RcptTo.Length - 1] == '>')
+                                                RcptTo = RcptTo.Substring(1, RcptTo.Length - 3);
+
+                                            RcptTos.Add(RcptTo);
+
+                                        }
+                                        else
+                                        {
+                                            // 501 Syntax: EHLO hostname
+                                            TCPConnection.WriteLineSMTP(SMTPStatusCode.SyntaxError, "Syntax: RCPT TO: <mail@domain.tld>");
+                                        }
+
+                                    }
+
+                                    #endregion
+
+                                    #region DATA
+
+                                    else if (SMTPCommand.ToUpper().StartsWith("DATA"))
+                                    {
+
+                                        TCPConnection.WriteLineSMTP(SMTPStatusCode.StartMailInput, "Ok Send data ending with <CRLF>.<CRLF>");
+
+                                        var SB = new StringBuilder();
+                                        var ST = "";
+
+                                        do
+                                        {
+
+                                            ST = TCPConnection.ReadLine();
+
+                                            if (ST != ".")
+                                                SB.AppendLine(ST);
+
+                                        } while (ST != ".");
+
+                                        MailText = SB.ToString();
+
+                                        TCPConnection.WriteLineSMTP(SMTPStatusCode.Ok, "Message received: 20040120203404.CCCC18555.mx1.example.com@client.example.com");
+
+                                        var OnNotificationLocal = OnNotification;
+                                        if (OnNotificationLocal != null)
+                                            OnNotificationLocal(null, MailText);
+
+                                    }
+
+                                    #endregion
+
                                     #region QUIT
 
-                                    else if (SMTPCommand.ToUpper().Trim() == "QUIT")
+                                    else if (SMTPCommand.ToUpper() == "QUIT")
                                     {
                                         TCPConnection.WriteLineSMTP(SMTPStatusCode.ServiceClosingTransmissionChannel, "2.0.0 closing connection");
                                         ClientClose = true;
@@ -409,51 +546,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                                     else
                                         NotifyErrors(TCPConnection,
                                                      RequestTimestamp,
+                                                     SMTPCommand.Trim(),
                                                      SMTPStatusCode.BadCommandSequence,
                                                      Error: "Invalid SMTP command!");
 
                                     #endregion
-
-                                    #endregion
-
-                                    #region Call OnNotification delegate
-
-                                    SMTPExtendedResponse _SMTPResponse = null;
-
-                                    var OnNotificationLocal = OnNotification;
-                                    if (OnNotificationLocal != null)
-                                    {
-
-                                        // ToDo: How to read request body by application code?!
-                                        //_SMTPResponse = OnNotification("TCPConnectionId",
-                                        //                               RequestTimestamp,
-                                        //                               RequestHeader);
-
-                                        //TCPConnection.WriteToResponseStream(_SMTPResponse.RawHTTPHeader.ToUTF8Bytes());
-
-                                        //if (_SMTPResponse.Content != null)
-                                        //    TCPConnection.WriteToResponseStream(_SMTPResponse.Content);
-
-                                        //else if (_SMTPResponse.ContentStream != null)
-                                        //    TCPConnection.WriteToResponseStream(_SMTPResponse.ContentStream);
-
-                                        //if (_SMTPResponse.Connection.ToLower().Contains("close"))
-                                        //    ServerClose = true;
-
-                                    }
-
-                                    #endregion
-
-                                    #region Call AccessLog delegate
-
-                                    if (_SMTPResponse != null)
-                                    {
-
-                                        //var AccessLogLocal = AccessLog;
-                                        //if (AccessLogLocal != null)
-                                        //    AccessLogLocal(this, RequestTimestamp, RequestHeader, _SMTPResponse);
-
-                                    }
 
                                     #endregion
 

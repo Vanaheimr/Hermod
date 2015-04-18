@@ -148,7 +148,7 @@
     <Compile Include="SMTP\SMTPResponse.cs" />
     <Compile Include="SMTP\SMTPServer\Helpers\Delegates.cs" />
     <Compile Include="SMTP\SMTPServer\Helpers\SMTPServerException.cs" />
-    <Compile Include="SMTP\SMTPServer\SMTPProcessor.cs" />
+    <Compile Include="SMTP\SMTPServer\SMTPConnection.cs" />
     <Compile Include="SMTP\SMTPServer\SMTPServer.cs" />
     <Compile Include="SMTP\SMTPStatusCode.cs" />
     <Compile Include="TCP\ConnectionClosedBy.cs" />
