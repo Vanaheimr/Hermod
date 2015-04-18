@@ -356,7 +356,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                                             // 250 DSN
                                             TCPConnection.WriteLineSMTP(SMTPStatusCode.Ok,
                                                                         DefaultServerName,
-                                                                        "STARTTLS",
+                                                             //           "STARTTLS",
                                                                         TLSEnabled ? "AUTH PLAIN LOGIN" : null,
                                                                         "ENHANCEDSTATUSCODES",
                                                                         "8BITMIME");
