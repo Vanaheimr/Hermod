@@ -390,8 +390,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                                             // 250 DSN
                                             TCPConnection.WriteLineSMTP(SMTPStatusCode.Ok,
                                                                         DefaultServerName,
+                                                                        "VRFY",
                                                                         _UseTLS     ? "STARTTLS"         : null,
                                                                         _TLSEnabled ? "AUTH PLAIN LOGIN" : null,
+                                                                        "SIZE 204800000",
                                                                         "ENHANCEDSTATUSCODES",
                                                                         "8BITMIME");
 
@@ -569,6 +571,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
                                     #endregion
 
+                                    #region RSET
+
+                                    else if (SMTPCommand.ToUpper() == "RSET")
+                                    {
+                                        TCPConnection.WriteLineSMTP(SMTPStatusCode.Ok, "2.0.0 Ok");
+                                        MailClientName = "";
+                                        MailFroms.Clear();
+                                        RcptTos.  Clear();
+                                        MailText = "";
+                                    }
+
+                                    #endregion
+
+                                    #region NOOP
+
+                                    else if (SMTPCommand.ToUpper() == "NOOP")
+                                    {
+                                        TCPConnection.WriteLineSMTP(SMTPStatusCode.Ok, "2.0.0 Ok");
+                                    }
+
+                                    #endregion
+
+                                    #region VRFY
+
+                                    else if (SMTPCommand.ToUpper().StartsWith("VRFY"))
+                                    {
+                                        TCPConnection.WriteLineSMTP(SMTPStatusCode.CannotVerifyUserWillAttemptDelivery, "2.0.0 Send some mail. I'll try my best!");
+                                        MailClientName = "";
+                                        MailFroms.Clear();
+                                        RcptTos.Clear();
+                                        MailText = "";
+                                    }
+
+                                    #endregion
+
                                     #region QUIT
 
                                     else if (SMTPCommand.ToUpper() == "QUIT")
@@ -582,11 +619,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                                     #region else error...
 
                                     else
+                                    {
+
+                                        TCPConnection.WriteLineSMTP(SMTPStatusCode.CommandUnrecognized, "2.0.0 I don't understand how to handle '" + SMTPCommand + "'!");
+
                                         NotifyErrors(TCPConnection,
                                                      RequestTimestamp,
                                                      SMTPCommand.Trim(),
                                                      SMTPStatusCode.BadCommandSequence,
                                                      Error: "Invalid SMTP command!");
+
+                                    }
 
                                     #endregion
 
