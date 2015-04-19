@@ -82,6 +82,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
         #endregion
 
+        #region UseTLS
+
+        private readonly Boolean _UseTLS;
+
+        public Boolean UseTLS
+        {
+            get
+            {
+                return _UseTLS;
+            }
+        }
+
+        #endregion
+
         #endregion
 
         #region Events
@@ -109,7 +123,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
         /// </summary>
         /// <param name="IPPort"></param>
         /// <param name="DefaultServerName">The default SMTP servername.</param>
-        /// <param name="X509Certificate">Use this X509 certificate for TLS.</param><
+        /// <param name="X509Certificate">Use this X509 certificate for TLS.</param>
+        /// <param name="UseTLS">Use TLS (implicit true, if a X509 certificate was given!).</param>
         /// <param name="CallingAssemblies">Calling assemblies.</param>
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
@@ -124,6 +139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
         public SMTPServer(IPPort                            IPPort                            = null,
                           String                            DefaultServerName                 = __DefaultServerName,
                           X509Certificate2                  X509Certificate                   = null,
+                          Boolean?                          UseTLS                            = true,
                           IEnumerable<Assembly>             CallingAssemblies                 = null,
                           String                            ServerThreadName                  = null,
                           ThreadPriority                    ServerThreadPriority              = ThreadPriority.AboveNormal,
@@ -152,8 +168,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
         {
 
             this._DefaultServerName         = DefaultServerName;
+            this._UseTLS                    = UseTLS.HasValue
+                                                 ? UseTLS.Value
+                                                 : (X509Certificate != null
+                                                       ? true
+                                                       : false);
 
-            _SMTPProcessor                  = new SMTPConnection(DefaultServerName);
+            _SMTPProcessor                  = new SMTPConnection(DefaultServerName, this._UseTLS);
             _SMTPProcessor.OnNotification  += ProcessNotification;
             _SMTPProcessor.ErrorLog        += (HTTPProcessor, ServerTimestamp, SMTPCommand, Request, Response, Error, LastException) => LogError (ServerTimestamp, SMTPCommand, Request, Response, Error, LastException);
 

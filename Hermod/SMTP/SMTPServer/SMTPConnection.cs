@@ -138,6 +138,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
         #endregion
 
+        #region UseTLS
+
+        private readonly Boolean _UseTLS;
+
+        public Boolean UseTLS
+        {
+            get
+            {
+                return _UseTLS;
+            }
+        }
+
+        #endregion
+
+        #region TLSEnabled
+
+        private Boolean _TLSEnabled;
+
+        /// <summary>
+        /// TLS was enabled for this SMTP connection.
+        /// </summary>
+        public Boolean TLSEnabled
+        {
+            get
+            {
+                return _TLSEnabled;
+            }
+        }
+
+        #endregion
+
         #endregion
 
         #region Events
@@ -164,10 +195,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
         /// decode the transmitted data as SMTP requests.
         /// </summary>
         /// <param name="DefaultServername">The default SMTP servername.</param>
-        public SMTPConnection(String DefaultServername = SMTPServer.__DefaultServerName)
+        /// <param name="UseTLS">Allow TLS on SMTP connections.</param>
+        public SMTPConnection(String  DefaultServername  = SMTPServer.__DefaultServerName,
+                              Boolean UseTLS             = true)
         {
 
             this._DefaultServerName  = DefaultServername;
+            this._UseTLS             = UseTLS;
+            this._TLSEnabled         = false;
 
         }
 
@@ -213,7 +248,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
             var EndOfSMTPCommand  = EOLSearch.NotYet;
             var ClientClose       = false;
             var ServerClose       = false;
-            var TLSEnabled        = false;
             var MailClientName    = "";
 
             #endregion
@@ -343,7 +377,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
                                             MailClientName = SMTPCommand.Trim().Substring(5);
 
-                                            // 250-mail.ahzf.de
+                                            // 250-mail.graphdefined.org
                                             // 250-PIPELINING
                                             // 250-SIZE 204800000
                                             // 250-VRFY
@@ -356,8 +390,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                                             // 250 DSN
                                             TCPConnection.WriteLineSMTP(SMTPStatusCode.Ok,
                                                                         DefaultServerName,
-                                                             //           "STARTTLS",
-                                                                        TLSEnabled ? "AUTH PLAIN LOGIN" : null,
+                                                                        _UseTLS     ? "STARTTLS"         : null,
+                                                                        _TLSEnabled ? "AUTH PLAIN LOGIN" : null,
                                                                         "ENHANCEDSTATUSCODES",
                                                                         "8BITMIME");
 
@@ -377,7 +411,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                                     else if (SMTPCommand.ToUpper() == "STARTTLS")
                                     {
 
-                                        if (TLSEnabled)
+                                        if (_TLSEnabled)
                                             TCPConnection.WriteLineSMTP(SMTPStatusCode.BadCommandSequence, "5.5.1 TLS already started");
 
                                         else if (MailClientName.IsNullOrEmpty())
@@ -390,7 +424,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
                                             //                                            var _TLSStream = new SslStream(TCPConnection.NetworkStream);
                                             //                                            _TLSStream.AuthenticateAsServer(TLSCert, false, SslProtocols.Tls12, false);
-                                            TLSEnabled = true;
+                                            _TLSEnabled = true;
 
                                         }
 
@@ -403,7 +437,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                                     else if (SMTPCommand.ToUpper().StartsWith("AUTH "))
                                     {
 
-                                        if (!TLSEnabled)
+                                        if (!_TLSEnabled)
                                             TCPConnection.WriteLineSMTP(SMTPStatusCode.BadCommandSequence, "5.5.1 STARTTLS first");
 
                                     }
