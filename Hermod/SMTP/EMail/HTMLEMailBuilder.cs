@@ -113,12 +113,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// <summary>
         /// Create a new HTML e-mail builder.
         /// </summary>
-        /// <param name="ContentLanguage">The language of the e-mail body.</param>
-        public HTMLEMailBuilder(String ContentLanguage = null)
+        public HTMLEMailBuilder()
         {
-            this._ContentLanguage  = ContentLanguage;
-            this.PlainText         = "";
-            this.HTMLText          = "";
+            this.PlainText  = "";
+            this.HTMLText   = "";
         }
 
         #endregion

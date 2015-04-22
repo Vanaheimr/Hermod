@@ -131,9 +131,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// Create a new e-mail address.
         /// </summary>
         /// <param name="SimpleEMailAddress">A simple e-mail address.</param>
-        /// <param name="PublicKey">The public key ring for an e-mail address.</param>
-        /// <param name="SecretKey">The secret key ring for an e-mail address.</param>
-        public EMailAddress(SimpleEMailAddress  SimpleEMailAddress,
+        /// <param name="SecretKeyRing">The secret key ring for an e-mail address.</param>
+        /// <param name="PublicKeyRing">The public key ring for an e-mail address.</param>
+        public EMailAddress(SimpleEMailAddress SimpleEMailAddress,
                             PgpSecretKeyRing    SecretKeyRing  = null,
                             PgpPublicKeyRing    PublicKeyRing  = null)
 
@@ -149,9 +149,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// Create a new e-mail address.
         /// </summary>
         /// <param name="SimpleEMailAddressString">A string representation of a simple e-mail address.</param>
-        /// <param name="PublicKey">The public key ring for an e-mail address.</param>
-        /// <param name="SecretKey">The secret key ring for an e-mail address.</param>
-        public EMailAddress(String            SimpleEMailAddressString,
+        /// <param name="SecretKeyRing">The secret key ring for an e-mail address.</param>
+        /// <param name="PublicKeyRing">The public key ring for an e-mail address.</param>
+        public EMailAddress(String SimpleEMailAddressString,
                             PgpSecretKeyRing  SecretKeyRing = null,
                             PgpPublicKeyRing  PublicKeyRing = null)
 
@@ -168,8 +168,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// </summary>
         /// <param name="OwnerName">The name of the owner of the e-mail address.</param>
         /// <param name="SimpleEMailAddress">A simple e-mail address.</param>
-        /// <param name="SecretKey">The secret key ring for an e-mail address.</param>
-        /// <param name="PublicKey">The public key ring for an e-mail address.</param>
+        /// <param name="SecretKeyRing">The secret key ring for an e-mail address.</param>
+        /// <param name="PublicKeyRing">The public key ring for an e-mail address.</param>
         public EMailAddress(String              OwnerName,
                             SimpleEMailAddress  SimpleEMailAddress,
                             PgpSecretKeyRing    SecretKeyRing = null,
@@ -193,8 +193,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// </summary>
         /// <param name="OwnerName">The name of the owner of the e-mail address.</param>
         /// <param name="SimpleEMailAddressString">A string representation of a simple e-mail address.</param>
-        /// <param name="PublicKey">The public key ring for an e-mail address.</param>
-        /// <param name="SecretKey">The secret key ring for an e-mail address.</param>
+        /// <param name="SecretKeyRing">The public key ring for an e-mail address.</param>
+        /// <param name="PublicKeyRing">The secret key ring for an e-mail address.</param>
         public EMailAddress(String            OwnerName,
                             String            SimpleEMailAddressString,
                             PgpSecretKeyRing  SecretKeyRing = null,
@@ -222,6 +222,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         }
 
         #endregion
+
+
+        public static EMailAddress Parse(String EMailString)
+        {
+
+            //var a = EMailString.IndexOf(' ');
+            var b = EMailString.IndexOf('<');
+            var c = EMailString.IndexOf('>');
+
+            if (b > 0 && c > 0 && c > b)
+                return new EMailAddress(EMailString.Remove(b, c-b+1).Trim(), SimpleEMailAddress.Parse(EMailString.Substring(b+1, c-b-1).Trim()));
+
+            return new EMailAddress("", SimpleEMailAddress.Parse(EMailString));
+
+        }
+
 
 
         #region (override) ToString()

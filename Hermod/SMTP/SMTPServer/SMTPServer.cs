@@ -43,8 +43,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
     /// A SMTP server.
     /// </summary>
     public class SMTPServer : ATCPServers,
-                              IArrowSender<SMTPServer, EMail, String>
-                              //IBoomerangSender<String, DateTime, EMail, SMTPExtendedResponse>
+                              IArrowSender<SMTPServer, EMailEnvelop>
     {
 
         #region Data
@@ -100,19 +99,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
         #region Events
 
-        //public event BoomerangSenderHandler<String, DateTime, EMail, SMTPExtendedResponse>  OnNotification;
-
-        public event NotificationEventHandler<SMTPServer, EMail, String> OnNotification;
-
-        ///// <summary>
-        ///// An event called whenever a request could successfully be processed.
-        ///// </summary>
-        //public event AccessLogHandler                                                       AccessLog;
+        public event NotificationEventHandler<SMTPServer, EMailEnvelop>  OnNotification;
 
         /// <summary>
         /// An event called whenever a request resulted in an error.
         /// </summary>
-        public event ErrorLogHandler                                                        ErrorLog;
+        public event ErrorLogHandler                                     ErrorLog;
 
         #endregion
 
@@ -292,12 +284,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
         #endregion
 
 
-        private void ProcessNotification(EMail EMail, String Text)
+        private void ProcessNotification(EMailEnvelop MailEnvelop)
         {
 
             var OnNotificationLocal = OnNotification;
             if (OnNotificationLocal != null)
-                OnNotificationLocal(this, EMail, Text);
+                OnNotificationLocal(this, MailEnvelop);
 
         }
 
@@ -333,10 +325,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
         #endregion
 
-
-
-
-        
 
     }
 

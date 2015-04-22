@@ -23,6 +23,7 @@ using System.Collections.Generic;
 using System.Security.Cryptography;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Text;
 
 #endregion
 
@@ -208,7 +209,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
             MailBuilder.EncodeBodyparts();
 
             this._From               = MailBuilder.From;
-                                       // ToDo: Deep cloning
+                                       // ToDo: Deep cloning!
             this._To                 = new EMailAddressList(MailBuilder.To);
             this._ReplyTo            = new EMailAddressList(MailBuilder.ReplyTo);
             this._Cc                 = new EMailAddressList(MailBuilder.Cc);

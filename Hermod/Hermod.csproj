@@ -107,6 +107,8 @@
     <Compile Include="HTTP\Server\URLMapping\URIMapping.cs" />
     <Compile Include="HTTP\Server\URLMapping\URINode.cs" />
     <Compile Include="HTTP\HTTPSemantics.cs" />
+    <Compile Include="SMTP\EMail\EMailEnvelop.cs" />
+    <Compile Include="SMTP\EMail\Helpers\MailBodyString.cs" />
     <Compile Include="SMTP\EMail\AbstractEMailBuilder.cs" />
     <Compile Include="SMTP\EMail\EMail.cs" />
     <Compile Include="SMTP\EMail\EMailBuilder.cs" />
@@ -121,9 +123,11 @@
     <Compile Include="SMTP\EMail\Helpers\EMailSecurity.cs" />
     <Compile Include="SMTP\EMail\Helpers\EMailSecurityException.cs" />
     <Compile Include="SMTP\EMail\Helpers\MailContentTypes.cs" />
+    <Compile Include="SMTP\EMail\Helpers\ListId.cs" />
     <Compile Include="SMTP\EMail\Helpers\MessageId.cs" />
     <Compile Include="SMTP\EMail\Helpers\SimpleEMailAddress.cs" />
     <Compile Include="SMTP\EMail\HTMLEMailBuilder.cs" />
+    <Compile Include="SMTP\EMail\MailinglistEMailBuilder.cs" />
     <Compile Include="SMTP\EMail\TextEMailBuilder.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Helpers\Datastructures\IIPAddress.cs" />

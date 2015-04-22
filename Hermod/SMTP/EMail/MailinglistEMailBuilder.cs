@@ -25,12 +25,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 {
 
     /// <summary>
-    /// A TEXT e-mail builder.
+    /// A mailinglist e-mail builder.
     /// </summary>
-    public class TextEMailBuilder : AbstractEMailBuilder
+    public class MailinglistEMailBuilder : AbstractEMailBuilder
     {
 
         #region Properties
+
+        #region ListId
+
+        private ListId _ListId;
+
+        /// <summary>
+        /// The unique identification of the mailinglist.
+        /// </summary>
+        public ListId ListId
+        {
+
+            get
+            {
+                return _ListId;
+            }
+
+            set
+            {
+                if (value != null)
+                    _ListId = value;
+            }
+
+        }
+
+        #endregion
+
 
         #region Text
 
@@ -86,9 +112,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         #region Constructor(s)
 
         /// <summary>
-        /// Create a new TEXT e-mail builder.
+        /// Create a new mailinglist e-mail builder.
         /// </summary>
-        public TextEMailBuilder()
+        public MailinglistEMailBuilder()
         {
             this.Text = "";
         }

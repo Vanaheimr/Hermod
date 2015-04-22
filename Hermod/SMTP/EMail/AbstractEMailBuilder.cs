@@ -31,33 +31,6 @@ using Org.BouncyCastle.Bcpg;
 namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 {
 
-    public class MailBodyString
-    {
-
-        private readonly String[] _Lines;
-
-        public IEnumerable<String> Lines
-        {
-            get
-            {
-                return _Lines;
-            }
-        }
-
-
-        public MailBodyString(String Lines)
-        {
-            this._Lines = Lines.Replace("\r\n", "\n").Split(new Char[] { '\n' }, StringSplitOptions.None);
-        }
-
-        public MailBodyString(IEnumerable<String> Lines)
-        {
-            this._Lines = Lines.ToArray();
-        }
-
-    }
-
-
     /// <summary>
     /// An e-mail builder.
     /// </summary>
@@ -501,6 +474,126 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         }
 
         #endregion
+
+
+
+        public static T Parse<T>(String MailText)
+            where T : AbstractEMailBuilder, new()
+        {
+
+            T Mail;
+            if (TryParse<T>(MailText, out Mail))
+                return Mail;
+
+            return null;
+
+        }
+
+
+        public static Boolean TryParse<T>(String MailText, out T Mail)
+            where T : AbstractEMailBuilder, new()
+        {
+
+            #region Parse MailText
+
+            String[] MailHeaderLine;
+
+            var MailHeaders          = new List<KeyValuePair<String, String>>();
+            var Key                  = "";
+            var Value                = "";
+            var CopyBody             = false;
+            var MailBody             = new List<String>();
+            var SplitMailHeaderLine  = new Char[1] { ':' };
+
+            foreach (var MailLine in MailText.Split(new String[] { "\r\n", "\r", "\n" }, StringSplitOptions.None))
+            {
+
+                if (MailLine == "")
+                    CopyBody = true;
+
+                if (!CopyBody)
+                {
+
+                    if (!MailLine.StartsWith(" "))
+                    {
+
+                        if (Key != "")
+                        {
+                            MailHeaders.Add(new KeyValuePair<String, String>(Key, Value));
+                            Key   = "";
+                            Value = "";
+                        }
+
+                        MailHeaderLine = MailLine.Split(SplitMailHeaderLine, 2);
+
+                        if (MailHeaderLine.Length == 2)
+                        {
+                            Key   = MailHeaderLine[0].Trim();
+                            Value = MailHeaderLine[1].Trim();
+                        }
+
+                    }
+
+                    else
+                        Value += " " + MailLine.Trim();
+
+                }
+
+                else
+                    MailBody.Add(MailLine);
+
+            }
+
+            #endregion
+
+            var _From       = EMailAddress.Parse(MailHeaders.
+                                                     Where(kvp => kvp.Key.ToLower() == "from").
+                                                     FirstOrDefault().
+                                                     Value);
+
+            var _Tos        = new EMailAddressList(MailHeaders.
+                                                       Where(kvp => kvp.Key.ToLower() == "to").
+                                                       FirstOrDefault().
+                                                       Value.
+                                                       Split(new Char[] { ',' }).
+                                                       Select(v => EMailAddress.Parse(v.Trim())));
+
+            //this._ReplyTo            = new EMailAddressList(MailBuilder.ReplyTo);
+            //this._Cc                 = new EMailAddressList(MailBuilder.Cc);
+            //this._Bcc                = new EMailAddressList(MailBuilder.Bcc);
+
+            var _Subject    = MailHeaders.
+                                  Where(kvp => kvp.Key.ToLower() == "subject").
+                                  FirstOrDefault().
+                                  Value;
+
+            // this._Date               = MailBuilder.Date;
+            // this._MessageId          = MailBuilder.MessageId;
+            // this._AdditionalHeaders  = new Dictionary<String, String>();
+
+            //MailBuilder._AdditionalHeaders.ForEach(v => { this._AdditionalHeaders.Add(v.Key, v.Value); });
+            //this._Bodypart           = MailBuilder.Body;
+
+
+            var _MessageId  = MessageId.Parse(MailHeaders.
+                                      Where(kvp => kvp.Key.ToLower() == "message-id").
+                                      FirstOrDefault().
+                                      Value);
+
+
+
+
+            Mail = new T() {
+                               From       = _From,
+                               To         = _Tos,
+                               Subject    = _Subject,
+                               MessageId  = _MessageId,
+                           //    Text       = MailBody
+                           };
+
+            return true;
+
+        }
 
 
         #region (protected, abstract) EncodeBodyparts()

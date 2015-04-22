@@ -110,7 +110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
     /// decode the transmitted data as E-Mails.
     /// </summary>
     public class SMTPConnection : IArrowReceiver<TCPConnection>,
-                                  IArrowSender<EMail, String>
+                                  IArrowSender<EMailEnvelop>
     {
 
         #region Data
@@ -173,18 +173,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
         #region Events
 
-        public   event StartedEventHandler                                                      OnStarted;
+        public   event StartedEventHandler                            OnStarted;
 
-        public   event NotificationEventHandler<EMail, String>                                  OnNotification;
+        public   event NotificationEventHandler<EMailEnvelop>         OnNotification;
 
-        public   event CompletedEventHandler                                                    OnCompleted;
+        public   event CompletedEventHandler                          OnCompleted;
 
         /// <summary>
         /// An event called whenever a request resulted in an error.
         /// </summary>
-        internal event InternalErrorLogHandler                                                  ErrorLog;
+        internal event InternalErrorLogHandler                        ErrorLog;
 
-        public   event ExceptionOccuredEventHandler                                             OnExceptionOccured;
+        public   event ExceptionOccuredEventHandler                   OnExceptionOccured;
 
         #endregion
 
@@ -255,8 +255,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
             try
             {
 
-                var MailFroms  = new List<String>();
-                var RcptTos    = new List<String>();
+                var MailFroms  = new EMailAddressList();
+                var RcptTos    = new EMailAddressList();
                 var MailText   = "";
 
                 TCPConnection.WriteLineSMTP(SMTPStatusCode.ServiceReady,
@@ -463,7 +463,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                                             if (MailFrom[0] == '<' && MailFrom[MailFrom.Length - 1] == '>')
                                                 MailFrom = MailFrom.Substring(1, MailFrom.Length - 3);
 
-                                            MailFroms.Add(MailFrom);
+                                            MailFroms.Add(EMailAddress.Parse(MailFrom));
 
                                         }
                                         else
@@ -522,7 +522,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                                             if (RcptTo[0] == '<' && RcptTo[RcptTo.Length - 1] == '>')
                                                 RcptTo = RcptTo.Substring(1, RcptTo.Length - 3);
 
-                                            RcptTos.Add(RcptTo);
+                                            RcptTos.Add(EMailAddress.Parse(RcptTo));
 
                                         }
                                         else
@@ -565,7 +565,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
                                         var OnNotificationLocal = OnNotification;
                                         if (OnNotificationLocal != null)
-                                            OnNotificationLocal(null, MailText);
+                                            OnNotificationLocal(new EMailEnvelop(MailFroms, RcptTos, AbstractEMailBuilder.Parse<EMailBuilder>(MailText)));
 
                                     }
 

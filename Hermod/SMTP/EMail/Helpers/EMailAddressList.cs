@@ -42,18 +42,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #region Constructor(s)
 
-        #region EMailAddressList()
-
-        /// <summary>
-        /// Create a new e-mail address list.
-        /// </summary>
-        public EMailAddressList()
-        {
-            this._MailAddressList = new List<EMailAddress>();
-        }
-
-        #endregion
-
         #region EMailAddressList(EMailAddressList)
 
         /// <summary>
@@ -74,6 +62,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// </summary>
         /// <param name="EMailAddressList">A list of e-mail addresses.</param>
         public EMailAddressList(params EMailAddress[] EMailAddressList)
+        {
+
+            this._MailAddressList = EMailAddressList != null
+                                        ? new List<EMailAddress>()
+                                        : new List<EMailAddress>(EMailAddressList);
+
+        }
+
+        #endregion
+
+        #region EMailAddressList(EMailAddressList)
+
+        /// <summary>
+        /// Create a new e-mail address list.
+        /// </summary>
+        /// <param name="EMailAddressList">A list of e-mail addresses.</param>
+        public EMailAddressList(IEnumerable<EMailAddress> EMailAddressList)
         {
             this._MailAddressList = new List<EMailAddress>(EMailAddressList);
         }
@@ -214,7 +219,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
                 return String.Empty;
 
             return _MailAddressList.
-                       Select(EMA => EMA.OwnerName + " <" + EMA.Address.Value + ">").
+                       Select(EMA => EMA.OwnerName.IsNotNullOrEmpty()
+                                        ? EMA.OwnerName + " <" + EMA.Address.Value + ">"
+                                        : "<" + EMA.Address.Value + ">").
                        Aggregate((a, b) => a + ", " + b).
                        Trim();
 
