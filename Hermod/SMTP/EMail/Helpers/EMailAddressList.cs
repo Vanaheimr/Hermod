@@ -65,8 +65,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         {
 
             this._MailAddressList = EMailAddressList != null
-                                        ? new List<EMailAddress>()
-                                        : new List<EMailAddress>(EMailAddressList);
+                                        ? new List<EMailAddress>(EMailAddressList)
+                                        : new List<EMailAddress>();
 
         }
 
