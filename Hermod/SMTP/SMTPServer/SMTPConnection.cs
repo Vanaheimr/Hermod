@@ -444,7 +444,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                                             TCPConnection.WriteLineSMTP(SMTPStatusCode.Ok, "2.1.0 " + MailFrom + " Sender ok");
 
                                             if (MailFrom[0] == '<' && MailFrom[MailFrom.Length - 1] == '>')
-                                                MailFrom = MailFrom.Substring(1, MailFrom.Length - 3);
+                                                MailFrom = MailFrom.Substring(1, MailFrom.Length - 2);
 
                                             MailFroms.Add(EMailAddress.Parse(MailFrom));
 

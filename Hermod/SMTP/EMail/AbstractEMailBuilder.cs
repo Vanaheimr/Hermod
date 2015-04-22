@@ -595,13 +595,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
             //"text/plain; charset=utf-8"
 
 
+            var _Body = new EMailBodypart(MailContentTypes.text_plain, Content: new MailBodyString(MailBody));
 
             Mail = new T() {
                                From       = _From,
                                To         = _Tos,
                                Subject    = _Subject,
                                MessageId  = _MessageId,
-                               Body       = new EMailBodypart(MailContentTypes.text_plain, Content: new MailBodyString(MailBody))
+                               Body       = _Body
                            };
 
             return true;

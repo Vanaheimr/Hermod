@@ -18,6 +18,9 @@
 #region Usings
 
 using System;
+using System.Linq;
+
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -34,7 +37,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #region ListId
 
-        private ListId _ListId;
+        //private ListId _ListId;
 
         /// <summary>
         /// The unique identification of the mailinglist.
@@ -44,13 +47,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
             get
             {
-                return _ListId;
+                return ListId.Parse(base._AdditionalHeaders.
+                                        Where(kvp => kvp.Key.ToLower() == "list-id").
+                                        FirstOrDefault().
+                                        Value);
             }
 
             set
             {
                 if (value != null)
-                    _ListId = value;
+                    base._AdditionalHeaders.Add("List-Id", value.ToString());
             }
 
         }
@@ -60,7 +66,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #region Text
 
-        private String _TextBody;
+        //private String _TextBody;
 
         /// <summary>
         /// The body of the text e-mail.
@@ -70,14 +76,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
             get
             {
-                return _TextBody;
+                return base.Body.Content.AggregateWith(Environment.NewLine);
             }
 
-            set
-            {
-                if (value != null && value != String.Empty && value.Trim() != "")
-                    _TextBody = value;
-            }
+            //set
+            //{
+            //    if (value != null && value != String.Empty && value.Trim() != "")
+            //        _TextBody = value;
+            //}
 
         }
 
@@ -116,7 +122,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// </summary>
         public MailinglistEMailBuilder()
         {
-            this.Text = "";
+            //this.Text = "";
         }
 
         #endregion

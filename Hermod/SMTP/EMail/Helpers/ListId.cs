@@ -20,6 +20,8 @@
 using System;
 using System.Text.RegularExpressions;
 
+using org.GraphDefined.Vanaheimr.Illias;
+
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
@@ -101,6 +103,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// <param name="ListId"></param>
         private ListId(String ListId)
         {
+
+            if (ListId.IsNullOrEmpty())
+                throw new ArgumentNullException("The ListId must not be null or empty!");
 
             var RegExpr = Mail.ListId.ListIdRegularExpression.Match(ListId.Trim());
 

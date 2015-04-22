@@ -251,13 +251,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
                     //SendCommand("In-Reply-To: " + Mail.);
                     //SendCommand("References: "  + multiple message Ids);
 
-                    // List-Help:
-                    // List-Unsubscribe:
-                    // List-Subscribe:
-                    // List-Archive:
-                    // Precedence: bulk
-
-
                     // Content-Transfer-Encoding: quoted-printable
 
                 }.
@@ -267,8 +260,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
                 Concat(Bodypart.Headers).
 
                 Concat(AdditionalHeaders.
-                       Where(kvp => kvp.Value != null).
-                       Select((k, v) => k + ": " + v));
+                           Where (kvp => kvp.Value != null).
+                           Select(kvp => kvp.Key + ": " + kvp.Value));
 
             }
 

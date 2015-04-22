@@ -20,6 +20,8 @@
 using System;
 using System.Collections.Generic;
 
+using org.GraphDefined.Vanaheimr.Illias;
+
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
@@ -35,7 +37,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #region Text
 
-        private IEnumerable<String> _TextBody;
+        //private IEnumerable<String> _TextBody;
 
         /// <summary>
         /// The body of the e-mail.
@@ -45,14 +47,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
             get
             {
-                return _TextBody;
+                return base.Body.Content;
             }
 
-            set
-            {
-                if (value != null)
-                    _TextBody = value;
-            }
+            //set
+            //{
+            //    if (value != null)
+            //        _TextBody = value;
+            //}
 
         }
 

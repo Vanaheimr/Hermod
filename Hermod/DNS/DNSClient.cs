@@ -405,7 +405,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
             }).ToArray();
 
-            // Cache all replies...
+            #endregion
+
+            #region Cache all replies...
+
             AllDNSServerRequests.
                 ForEach(DNSServerTask => DNSServerTask.ContinueWith(x => {
                                                            try
@@ -419,14 +422,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
                                                            }
                                                        }));
 
+            #endregion
+
             // Return first/fastest reply
             var FirstReply = Task.WhenAny(AllDNSServerRequests);
 
             return FirstReply.Result.Result;
 
         }
-
-        #endregion
 
         #endregion
 
