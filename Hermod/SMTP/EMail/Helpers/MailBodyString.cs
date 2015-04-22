@@ -52,7 +52,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         public MailBodyString(IEnumerable<String> Lines)
         {
-            this._Lines = Lines.ToArray();
+
+            this._Lines = Lines != null
+                              ? Lines.ToArray()
+                              : new String[0];
+
         }
 
     }

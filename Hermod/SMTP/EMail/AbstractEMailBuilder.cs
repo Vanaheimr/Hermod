@@ -644,8 +644,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
                 case EMailSecurity.autosign:
 
-                    if (From.SecretKeyRing != null &
-                        From.SecretKeyRing.Any()   &
+                    if (From.SecretKeyRing != null &&
+                        From.SecretKeyRing.Any()   &&
                         Passphrase.IsNotNullOrEmpty())
                         SignTheMail = true;
 
@@ -654,8 +654,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
                 case EMailSecurity.sign:
 
-                    if (From.SecretKeyRing == null |
-                       !From.SecretKeyRing.Any()   |
+                    if (From.SecretKeyRing == null ||
+                       !From.SecretKeyRing.Any()   ||
                         Passphrase.IsNullOrEmpty())
                         throw new ApplicationException("Can not sign the e-mail!");
 
@@ -666,8 +666,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
                 case EMailSecurity.auto:
 
-                    if (From.SecretKeyRing != null &
-                        From.SecretKeyRing.Any()   &
+                    if (From.SecretKeyRing != null &&
+                        From.SecretKeyRing.Any()   &&
                         Passphrase.IsNotNullOrEmpty())
                         SignTheMail = true;
 
@@ -681,11 +681,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
                 case EMailSecurity.encrypt:
 
-                    if (From.SecretKeyRing == null  |
-                       !From.SecretKeyRing.Any() |
-                        Passphrase.IsNullOrEmpty()       |
-                        To.Any(v => v.PublicKeyRing == null | !v.PublicKeyRing.Any() ) |
-                        Cc.Any(v => v.PublicKeyRing == null | !v.PublicKeyRing.Any() ))
+                    if (From.SecretKeyRing == null  ||
+                       !From.SecretKeyRing.Any()    ||
+                        Passphrase.IsNullOrEmpty()  ||
+                        To.Any(v => v.PublicKeyRing == null || !v.PublicKeyRing.Any() ) ||
+                        Cc.Any(v => v.PublicKeyRing == null || !v.PublicKeyRing.Any() ))
                         throw new ApplicationException("Can not sign and encrypt the e-mail!");
 
                     EncryptTheMail = true;

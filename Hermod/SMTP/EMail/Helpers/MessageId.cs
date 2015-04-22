@@ -114,10 +114,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// <summary>
         /// Parse an e-mail message identification from a string.
         /// </summary>
-        /// <param name="EMailAddress">A string representation of a simple e-mail address.</param>
+        /// <param name="MessageId">A string representation of an e-mail message identification.</param>
         public static MessageId Parse(String MessageId)
         {
-            return new MessageId(MessageId);
+
+            return MessageId != null
+                      ? new MessageId(MessageId)
+                      : null;
+
         }
 
         #endregion
@@ -127,10 +131,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// <summary>
         /// Try to parse an e-mail message identification from a string.
         /// </summary>
-        /// <param name="MessageIdString">A string representation of a simple e-mail address.</param>
+        /// <param name="MessageIdString">A string representation of an e-mail message identification.</param>
         /// <param name="MessageId">The parsed e-mail message identification.</param>
         public static Boolean TryParse(String MessageIdString, out MessageId MessageId)
         {
+
+            MessageId = null;
+
+            if (MessageIdString == null)
+                return false;
 
             if (SimpleEMailAddress.EMailRegularExpression.Match(MessageIdString.Trim()).Success)
             {
@@ -138,7 +147,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
                 return true;
             }
 
-            MessageId = null;
             return false;
 
         }
