@@ -756,7 +756,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
                                 // MAIL FROM:<test@example.com>
                                 /// 250 2.1.0 Ok
-                                var MailFromCommand = "MAIL FROM: <" + MailFrom.Address.Value + ">";
+                                var MailFromCommand = "MAIL FROM: <" + MailFrom.Address.ToString() + ">";
 
                                 if      (Capabilities.HasFlag(SmtpCapabilities.EightBitMime))
                                     MailFromCommand += " BODY=8BITMIME";
@@ -771,13 +771,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
                             #endregion
 
-                            #region MAIL TO(s):
+                            #region RCPT TO(s):
 
                             // RCPT TO:<user@example.com>
                             /// 250 2.1.5 Ok
                             EMailEnvelop.RcptTo.ForEach(Rcpt => {
 
-                                var _RcptToResponse = SendCommandAndWait("RCPT TO: <" + Rcpt.Address.Value + ">");
+                                var _RcptToResponse = SendCommandAndWait("RCPT TO: <" + Rcpt.Address.ToString() + ">");
 
                                 switch (_RcptToResponse.StatusCode)
                                 {

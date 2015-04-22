@@ -78,8 +78,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #region Value
 
-        private readonly String _Value;
-
         /// <summary>
         /// The string value of a simple e-mail address.
         /// </summary>
@@ -87,7 +85,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         {
             get
             {
-                return _Value;
+                return _User + "@" + _Domain;
             }
         }
 
@@ -111,7 +109,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
             this._User    = RegExpr.Groups[1].Value;
             this._Domain  = RegExpr.Groups[2].Value.ToLower();
-            this._Value   = _User + "@" + _Domain;
 
         }
 
@@ -207,7 +204,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// <returns>true|false</returns>
         public static Boolean operator < (SimpleEMailAddress SimpleEMailAddress1, SimpleEMailAddress SimpleEMailAddress2)
         {
-            return SimpleEMailAddress1._Value.CompareTo(SimpleEMailAddress2._Value) < 0;
+            return SimpleEMailAddress1.Value.CompareTo(SimpleEMailAddress2.Value) < 0;
         }
 
         #endregion
@@ -237,7 +234,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// <returns>true|false</returns>
         public static Boolean operator >(SimpleEMailAddress SimpleEMailAddress1, SimpleEMailAddress SimpleEMailAddress2)
         {
-            return SimpleEMailAddress1._Value.CompareTo(SimpleEMailAddress2._Value) > 0;
+            return SimpleEMailAddress1.Value.CompareTo(SimpleEMailAddress2.Value) > 0;
         }
 
         #endregion
@@ -278,7 +275,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
             if ((Object) _SimpleEMailAddress == null)
                 throw new ArgumentException("The given object is not a SimpleEMailAddress!");
 
-            return (this._Value).CompareTo(_SimpleEMailAddress._Value);
+            return (this.Value).CompareTo(_SimpleEMailAddress.Value);
 
         }
 
@@ -296,7 +293,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
             if ((Object) SimpleEMailAddress == null)
                 throw new ArgumentNullException();
 
-            return (this._Value).CompareTo(SimpleEMailAddress._Value);
+            return (this.Value).CompareTo(SimpleEMailAddress.Value);
 
         }
 
@@ -343,7 +340,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
             if ((Object) SimpleEMailAddress == null)
                 return false;
 
-            return this._Value.Equals(SimpleEMailAddress._Value);
+            return this.Value.Equals(SimpleEMailAddress.Value);
 
         }
 
@@ -359,7 +356,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
         {
-            return _Value.GetHashCode();
+            return Value.GetHashCode();
         }
 
         #endregion
@@ -371,7 +368,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// </summary>
         public override String ToString()
         {
-            return _Value;
+            return Value;
         }
 
         #endregion

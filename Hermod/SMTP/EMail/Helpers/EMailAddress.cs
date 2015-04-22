@@ -23,6 +23,8 @@ using System.Diagnostics;
 
 using Org.BouncyCastle.Bcpg.OpenPgp;
 
+using org.GraphDefined.Vanaheimr.Illias;
+
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
@@ -227,14 +229,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         public static EMailAddress Parse(String EMailString)
         {
 
-            //var a = EMailString.IndexOf(' ');
             var b = EMailString.IndexOf('<');
             var c = EMailString.IndexOf('>');
 
             if (b > 0 && c > 0 && c > b)
                 return new EMailAddress(EMailString.Remove(b, c-b+1).Trim(), SimpleEMailAddress.Parse(EMailString.Substring(b+1, c-b-1).Trim()));
 
-            return new EMailAddress("", SimpleEMailAddress.Parse(EMailString));
+            return new EMailAddress(SimpleEMailAddress.Parse(EMailString));
 
         }
 
@@ -247,7 +248,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// </summary>
         public override String ToString()
         {
-            return (_OwnerName + " <" + _Address + ">").Trim();
+
+            return _OwnerName.IsNotNullOrEmpty()
+                       ? (_OwnerName + " <" + _Address + ">").Trim()
+                       : _Address.ToString();
+
         }
 
         #endregion
