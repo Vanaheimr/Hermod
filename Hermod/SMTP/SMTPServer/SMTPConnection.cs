@@ -503,7 +503,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                                             TCPConnection.WriteLineSMTP(SMTPStatusCode.Ok, "2.1.0 " + RcptTo + " Recipient ok");
 
                                             if (RcptTo[0] == '<' && RcptTo[RcptTo.Length - 1] == '>')
-                                                RcptTo = RcptTo.Substring(1, RcptTo.Length - 3);
+                                                RcptTo = RcptTo.Substring(1, RcptTo.Length - 2);
 
                                             RcptTos.Add(EMailAddress.Parse(RcptTo));
 

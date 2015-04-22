@@ -119,20 +119,59 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #endregion
 
-        #region EMailEnvelop(RemoteSocket, MailFrom, RcptTo, MailBuilder)
+        #region EMailEnvelop(EMail)
+
+        /// <summary>
+        /// Create a new e-mail envelop based on the given e-mail.
+        /// </summary>
+        /// <param name="EMail">An e-mail.</param>
+        public EMailEnvelop(EMail EMail)
+        {
+
+            this._MailFrom  = new EMailAddressList(EMail.From);
+            this._RcptTo    = new EMailAddressList(EMail.To);
+            this._Mail      = EMail;
+
+        }
+
+        #endregion
+
+        #region EMailEnvelop(MailFrom, RcptTo, EMail)
 
         /// <summary>
         /// Create a new e-mail envelop based on the given sender
         /// and receiver addresses and the e-mail builder data.
         /// </summary>
-        /// <param name="RemoteSocket">The remote socket of the incoming SMTP connection.</param>
+        /// <param name="MailFrom">The sender(s) of the e-mail.</param>
+        /// <param name="RcptTo">The receiver(s) of the e-mail.</param>
+        /// <param name="EMail">An e-mail.</param>
+        public EMailEnvelop(EMailAddressList  MailFrom,
+                            EMailAddressList  RcptTo,
+                            EMail             EMail)
+        {
+
+            this._MailFrom  = MailFrom;
+            this._RcptTo    = RcptTo;
+            this._Mail      = EMail;
+
+        }
+
+        #endregion
+
+        #region EMailEnvelop(MailFrom, RcptTo, MailBuilder, RemoteSocket = null)
+
+        /// <summary>
+        /// Create a new e-mail envelop based on the given sender
+        /// and receiver addresses and the e-mail builder data.
+        /// </summary>
         /// <param name="MailFrom">The sender(s) of the e-mail.</param>
         /// <param name="RcptTo">The receiver(s) of the e-mail.</param>
         /// <param name="MailBuilder">An e-mail builder.</param>
-        public EMailEnvelop(IPSocket              RemoteSocket,
-                            EMailAddressList      MailFrom,
+        /// <param name="RemoteSocket">The remote socket of the incoming SMTP connection.</param>
+        public EMailEnvelop(EMailAddressList      MailFrom,
                             EMailAddressList      RcptTo,
-                            AbstractEMailBuilder  MailBuilder)
+                            AbstractEMailBuilder  MailBuilder,
+                            IPSocket              RemoteSocket = null)
         {
 
             MailBuilder.EncodeBodyparts();

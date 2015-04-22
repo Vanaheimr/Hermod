@@ -451,21 +451,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
         #endregion
 
 
-        #region Send(MailBuilder, NumberOfRetries = 3)
+        #region Send(MailBuilder, NumberOfRetries = 3, AutoStart = true)
 
         public Task<MailSentStatus> Send(AbstractEMailBuilder  MailBuilder,
-                                         Byte                  NumberOfRetries = 3)
+                                         Byte                  NumberOfRetries  = 3,
+                                         Boolean               AutoStart        = true)
         {
             return Send(MailBuilder.AsImmutable, NumberOfRetries);
         }
 
         #endregion
 
-        #region Send(Mail, NumberOfRetries = 3, AutoStart = true)
+        #region Send(EMail, NumberOfRetries = 3, AutoStart = true)
 
-        public Task<MailSentStatus> Send(EMail    Mail,
+        public Task<MailSentStatus> Send(EMail    EMail,
                                          Byte     NumberOfRetries  = 3,
                                          Boolean  AutoStart        = true)
+        {
+            return Send(new EMailEnvelop(EMail), NumberOfRetries);
+        }
+
+        #endregion
+
+        #region Send(EMailEnvelop, NumberOfRetries = 3, AutoStart = true)
+
+        public Task<MailSentStatus> Send(EMailEnvelop  EMailEnvelop,
+                                         Byte          NumberOfRetries  = 3,
+                                         Boolean       AutoStart        = true)
         {
 
             var SendMailTask = new Task<MailSentStatus>(() =>
@@ -739,18 +751,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
                             #region MAIL FROM:
 
-                            // MAIL FROM:<test@example.com>
-                            /// 250 2.1.0 Ok
-                            var MailFromCommand = "MAIL FROM: <" + Mail.From.Address.Value + ">";
+                            foreach (var MailFrom in EMailEnvelop.MailFrom)
+                            {
 
-                            if      (Capabilities.HasFlag(SmtpCapabilities.EightBitMime))
-                                MailFromCommand += " BODY=8BITMIME";
-                            else if (Capabilities.HasFlag(SmtpCapabilities.BinaryMime))
-                                MailFromCommand += " BODY=BINARYMIME";
+                                // MAIL FROM:<test@example.com>
+                                /// 250 2.1.0 Ok
+                                var MailFromCommand = "MAIL FROM: <" + MailFrom.Address.Value + ">";
 
-                            var _MailFromResponse = SendCommandAndWait(MailFromCommand);
-                            if (_MailFromResponse.StatusCode != SMTPStatusCode.Ok)
-                                throw new SMTPClientException("SMTP MAIL FROM command error: " + _MailFromResponse.ToString());
+                                if      (Capabilities.HasFlag(SmtpCapabilities.EightBitMime))
+                                    MailFromCommand += " BODY=8BITMIME";
+                                else if (Capabilities.HasFlag(SmtpCapabilities.BinaryMime))
+                                    MailFromCommand += " BODY=BINARYMIME";
+
+                                var _MailFromResponse = SendCommandAndWait(MailFromCommand);
+                                if (_MailFromResponse.StatusCode != SMTPStatusCode.Ok)
+                                    throw new SMTPClientException("SMTP MAIL FROM command error: " + _MailFromResponse.ToString());
+
+                            }
 
                             #endregion
 
@@ -758,7 +775,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
                             // RCPT TO:<user@example.com>
                             /// 250 2.1.5 Ok
-                            Mail.To.ForEach(Rcpt => {
+                            EMailEnvelop.RcptTo.ForEach(Rcpt => {
 
                                 var _RcptToResponse = SendCommandAndWait("RCPT TO: <" + Rcpt.Address.Value + ">");
 
@@ -799,17 +816,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                                 throw new SMTPClientException("SMTP DATA command error: " + _DataResponse.ToString());
 
                             // Send e-mail headers...
-                            Mail.Headers.ForEach(line => SendCommand(line));
-                            SendCommand("Message-Id: <"   + (Mail.MessageId != null
-                                                                ? Mail.MessageId.ToString()
-                                                                : GenerateMessageId(Mail, RemoteHost).ToString()) + ">");
+                            EMailEnvelop.Mail.Headers.ForEach(line => SendCommand(line));
+                            SendCommand("Message-Id: <"   + (EMailEnvelop.Mail.MessageId != null
+                                                                ? EMailEnvelop.Mail.MessageId.ToString()
+                                                                : GenerateMessageId(EMailEnvelop.Mail, RemoteHost).ToString()) + ">");
 
                             SendCommand("");
 
                             // Send e-mail body(parts)...
-                            if (Mail.Body != null)
+                            if (EMailEnvelop.Mail.Body != null)
                             {
-                                Mail.Bodypart.ToText(false).ForEach(line => SendCommand(line));
+                                EMailEnvelop.Mail.Bodypart.ToText(false).ForEach(line => SendCommand(line));
                                 SendCommand("");
                             }
 

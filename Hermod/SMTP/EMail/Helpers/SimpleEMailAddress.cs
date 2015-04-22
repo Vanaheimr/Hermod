@@ -110,7 +110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
                 throw new ArgumentNullException("Invalid e-mail address!");
 
             this._User    = RegExpr.Groups[1].Value;
-            this._Domain  = RegExpr.Groups[2].Value;
+            this._Domain  = RegExpr.Groups[2].Value.ToLower();
             this._Value   = _User + "@" + _Domain;
 
         }
