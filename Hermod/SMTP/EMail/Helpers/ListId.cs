@@ -101,7 +101,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
                 throw new ArgumentNullException("Invalid e-mail message identification!");
 
             this._RandomPart  = RegExpr.Groups[1].Value;
-            this._DomainPart  = RegExpr.Groups[2].Value;
+            this._DomainPart  = RegExpr.Groups[2].Value.ToLower();
             this._Value       = _RandomPart + "@" + _DomainPart;
 
         }

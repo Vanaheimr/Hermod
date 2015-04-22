@@ -293,10 +293,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// </summary>
         public EMailBodypart Body
         {
+
             get
             {
                 return _Body;
             }
+
+            set
+            {
+                if (value != null)
+                    _Body = value;
+            }
+
         }
 
         #endregion
@@ -580,6 +588,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
                                       FirstOrDefault().
                                       Value);
 
+            var _ContentType = MailHeaders.
+                                      Where(kvp => kvp.Key.ToLower() == "content-type").
+                                      FirstOrDefault().
+                                      Value;
+            //"text/plain; charset=utf-8"
 
 
 
@@ -588,7 +601,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
                                To         = _Tos,
                                Subject    = _Subject,
                                MessageId  = _MessageId,
-                           //    Text       = MailBody
+                               Body       = new EMailBodypart(MailContentTypes.text_plain, Content: new MailBodyString(MailBody))
                            };
 
             return true;

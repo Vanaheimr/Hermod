@@ -235,7 +235,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
                              IEnumerable<KeyValuePair<String, String>>  AdditionalContentTypeInfos  = null,
                              IEnumerable<KeyValuePair<String, String>>  AdditionalHeaders           = null,
                              IEnumerable<EMailBodypart>                 NestedBodyparts             = null,
-                             MailBodyString                             Content = null)
+                             MailBodyString                             Content                     = null)
 
         {
 
