@@ -47,7 +47,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         public MailBodyString(String Lines)
         {
-            this._Lines = Lines.Replace("\r\n", "\n").Split(new Char[] { '\n' }, StringSplitOptions.None);
+
+            this._Lines = Lines != null
+                              ? Lines.Replace("\r\n", "\n").Split(new Char[] { '\n' }, StringSplitOptions.None)
+                              : new String[0];
+
         }
 
         public MailBodyString(IEnumerable<String> Lines)
