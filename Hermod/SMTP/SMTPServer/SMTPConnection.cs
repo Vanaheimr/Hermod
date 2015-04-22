@@ -21,30 +21,13 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Net.Security;
-using System.Collections.Generic;
-using System.Security.Authentication;
-using System.Security.Cryptography.X509Certificates;
+using System.Diagnostics;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using org.GraphDefined.Vanaheimr.Hermod.Services;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Services.Mail;
-
-using Org.BouncyCastle.Pkcs;
-using Org.BouncyCastle.Crypto;
-using Org.BouncyCastle.Math;
-using Org.BouncyCastle.Asn1.X509;
-using Org.BouncyCastle.X509;
-using Org.BouncyCastle.Crypto.Generators;
-using Org.BouncyCastle.Security;
-using Org.BouncyCastle.Crypto.Prng;
-using Org.BouncyCastle.X509.Extension;
-using Org.BouncyCastle.Asn1;
-using System.Diagnostics;
 
 #endregion
 
@@ -565,7 +548,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
                                         var OnNotificationLocal = OnNotification;
                                         if (OnNotificationLocal != null)
-                                            OnNotificationLocal(new EMailEnvelop(MailFroms, RcptTos, AbstractEMailBuilder.Parse<EMailBuilder>(MailText)));
+                                            OnNotificationLocal(new EMailEnvelop(RemoteSocket:  TCPConnection.RemoteSocket,
+                                                                                 MailFrom:      MailFroms,
+                                                                                 RcptTo:        RcptTos,
+                                                                                 MailBuilder:   AbstractEMailBuilder.Parse<EMailBuilder>(MailText)));
 
                                     }
 

@@ -18,26 +18,24 @@
 #region Usings
 
 using System;
-using System.Linq;
-using System.Xml.Linq;
 using System.Threading;
 using System.Reflection;
-using System.Diagnostics;
 using System.Collections.Generic;
+using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Illias.ConsoleLog;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
-using org.GraphDefined.Vanaheimr.Hermod.Services.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Services.Mail;
-using System.Security.Cryptography.X509Certificates;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 {
+
+    public delegate void NewSMTPConnectionHandler(SMTPServer SMTPServer, DateTime Timestamp, IPSocket RemoteSocket, TCPConnection TCPConnection);
+
 
     /// <summary>
     /// A SMTP server.
@@ -50,7 +48,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
         internal const    String             __DefaultServerName  = "Vanaheimr Hermod SMTP Service v0.1";
 
-        private readonly  SMTPConnection      _SMTPProcessor;
+        private readonly  SMTPConnection     _SMTPProcessor;
 
         #endregion
 
@@ -98,6 +96,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
         #endregion
 
         #region Events
+
+        public event NewSMTPConnectionHandler                            OnNewConnection;
 
         public event NotificationEventHandler<SMTPServer, EMailEnvelop>  OnNotification;
 
@@ -168,7 +168,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
             _SMTPProcessor                  = new SMTPConnection(DefaultServerName, this._UseTLS);
             _SMTPProcessor.OnNotification  += ProcessNotification;
-            _SMTPProcessor.ErrorLog        += (HTTPProcessor, ServerTimestamp, SMTPCommand, Request, Response, Error, LastException) => LogError (ServerTimestamp, SMTPCommand, Request, Response, Error, LastException);
+            _SMTPProcessor.ErrorLog        += (HTTPProcessor, ServerTimestamp, SMTPCommand, Request, Response, Error, LastException) =>
+                                                  LogError (ServerTimestamp, SMTPCommand, Request, Response, Error, LastException);
 
             if (IPPort != null)
                 this.AttachTCPPort(IPPort);
@@ -201,7 +202,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
         public SMTPServer AttachTCPPorts(params IPPort[] Ports)
         {
 
-            base.AttachTCPPorts(_TCPServer => _TCPServer.SendTo(_SMTPProcessor), Ports);
+            base.AttachTCPPorts(_TCPServer => {
+                _TCPServer.OnNewConnection += ProcessTCPServerOnNewConnection;
+                _TCPServer.SendTo(_SMTPProcessor);
+            }, Ports);
 
             return this;
 
@@ -227,7 +231,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
         public SMTPServer AttachTCPSockets(params IPSocket[] Sockets)
         {
 
-            base.AttachTCPSockets(_TCPServer => _TCPServer.SendTo(_SMTPProcessor), Sockets);
+            base.AttachTCPSockets(_TCPServer => {
+                _TCPServer.OnNewConnection += ProcessTCPServerOnNewConnection;
+                _TCPServer.SendTo(_SMTPProcessor);
+            }, Sockets);
 
             return this;
 
@@ -270,19 +277,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
         // Events
 
-        #region ProcessBoomerang(ConnectionId, Timestamp, HTTPRequest)
+        private void ProcessTCPServerOnNewConnection(TCPServer      TCPServer,
+                                                     DateTime       Timestamp,
+                                                     IPSocket       RemoteSocket,
+                                                     String         ConnectionId,
+                                                     TCPConnection  TCPConnection)
+        {
 
-        //private SMTPExtendedResponse ProcessBoomerang(String    ConnectionId,
-        //                                              DateTime  Timestamp,
-        //                                              EMail     EMail)
-        //{
+            var OnNewConnectionLocal = OnNewConnection;
+            if (OnNewConnectionLocal != null)
+                OnNewConnectionLocal(this, Timestamp, RemoteSocket, TCPConnection);
 
-        //    return new SMTPExtendedResponse(SMTPStatusCode.BadCommandSequence);
-
-        //}
-
-        #endregion
-
+        }
 
         private void ProcessNotification(EMailEnvelop MailEnvelop)
         {

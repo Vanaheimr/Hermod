@@ -26,6 +26,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #region Properties
 
+        #region RemoteSocket
+
+        private readonly IPSocket _RemoteSocket;
+
+        /// <summary>
+        /// The remote socket of the incoming SMTP connection.
+        /// </summary>
+        public IPSocket RemoteSocket
+        {
+            get
+            {
+                return _RemoteSocket;
+            }
+        }
+
+        #endregion
+
         #region MailFrom
 
         private readonly EMailAddressList _MailFrom;
@@ -102,25 +119,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #endregion
 
-        #region EMailEnvelop(MailFrom, RcptTo, MailBuilder)
+        #region EMailEnvelop(RemoteSocket, MailFrom, RcptTo, MailBuilder)
 
         /// <summary>
         /// Create a new e-mail envelop based on the given sender
         /// and receiver addresses and the e-mail builder data.
         /// </summary>
+        /// <param name="RemoteSocket">The remote socket of the incoming SMTP connection.</param>
         /// <param name="MailFrom">The sender(s) of the e-mail.</param>
         /// <param name="RcptTo">The receiver(s) of the e-mail.</param>
         /// <param name="MailBuilder">An e-mail builder.</param>
-        public EMailEnvelop(EMailAddressList      MailFrom,
+        public EMailEnvelop(IPSocket              RemoteSocket,
+                            EMailAddressList      MailFrom,
                             EMailAddressList      RcptTo,
                             AbstractEMailBuilder  MailBuilder)
         {
 
             MailBuilder.EncodeBodyparts();
 
-            this._MailFrom  = MailFrom;
-            this._RcptTo    = RcptTo;
-            this._Mail      = new EMail(MailBuilder);
+            this._RemoteSocket  = RemoteSocket;
+            this._MailFrom      = MailFrom;
+            this._RcptTo        = RcptTo;
+            this._Mail          = new EMail(MailBuilder);
 
         }
 
