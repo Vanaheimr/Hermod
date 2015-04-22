@@ -18,7 +18,7 @@
 #region Usings
 
 using System;
-using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 
 #endregion
 
@@ -31,37 +31,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
     public class ListId : IComparable, IComparable<ListId>, IEquatable<ListId>
     {
 
-        #region Properties
-
-        #region RandomPart
-
-        private readonly String _RandomPart;
+        #region Public constants
 
         /// <summary>
-        /// The random part of an e-mail message identification.
+        /// A regular expression to validate a List-Id e-mail header field.
         /// </summary>
-        public String RandomPart
+        public static readonly Regex ListIdRegularExpression = new Regex("^([^<]+)<([^>]+)>$");
+
+        #endregion
+
+        #region Properties
+
+        #region Name
+
+        private readonly String _Name;
+
+        /// <summary>
+        /// The name of the mailing list.
+        /// </summary>
+        public String Name
         {
             get
             {
-                return _RandomPart;
+                return _Name;
             }
         }
 
         #endregion
 
-        #region DomainPart
+        #region Identification
 
-        private readonly String _DomainPart;
+        private readonly String _Identification;
 
         /// <summary>
-        /// The domain part of an e-mail message identification.
+        /// The unique identification of the mailing list.
         /// </summary>
-        public String DomainPart
+        public String Identification
         {
             get
             {
-                return _DomainPart;
+                return _Identification;
             }
         }
 
@@ -69,16 +78,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #region Value
 
-        private readonly String _Value;
-
         /// <summary>
-        /// The string value of an e-mail message identification.
+        /// The string value of a mailing list identification.
         /// </summary>
         public String Value
         {
             get
             {
-                return _Value;
+                return _Name + " <" + _Identification + ">";
             }
         }
 
@@ -95,14 +102,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         private ListId(String ListId)
         {
 
-            var RegExpr = SimpleEMailAddress.EMailRegularExpression.Match(ListId.Trim());
+            var RegExpr = Mail.ListId.ListIdRegularExpression.Match(ListId.Trim());
 
             if (!RegExpr.Success)
-                throw new ArgumentNullException("Invalid e-mail message identification!");
+                throw new ArgumentNullException("Invalid mailing list identification!");
 
-            this._RandomPart  = RegExpr.Groups[1].Value;
-            this._DomainPart  = RegExpr.Groups[2].Value.ToLower();
-            this._Value       = _RandomPart + "@" + _DomainPart;
+            this._Name            = RegExpr.Groups[1].Value.Trim();
+            this._Identification  = RegExpr.Groups[2].Value.Trim().ToLower();
 
         }
 
@@ -198,7 +204,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// <returns>true|false</returns>
         public static Boolean operator < (ListId ListId1, ListId ListId2)
         {
-            return ListId1._Value.CompareTo(ListId2._Value) < 0;
+            return ListId1.Value.CompareTo(ListId2.Value) < 0;
         }
 
         #endregion
@@ -228,7 +234,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// <returns>true|false</returns>
         public static Boolean operator >(ListId ListId1, ListId ListId2)
         {
-            return ListId1._Value.CompareTo(ListId2._Value) > 0;
+            return ListId1.Value.CompareTo(ListId2.Value) > 0;
         }
 
         #endregion
@@ -269,7 +275,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
             if ((Object) _ListId == null)
                 throw new ArgumentException("The given object is not a ListId!");
 
-            return (this._Value).CompareTo(_ListId._Value);
+            return (this.Value).CompareTo(_ListId.Value);
 
         }
 
@@ -287,7 +293,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
             if ((Object) ListId == null)
                 throw new ArgumentNullException();
 
-            return (this._Value).CompareTo(ListId._Value);
+            return (this.Value).CompareTo(ListId.Value);
 
         }
 
@@ -334,7 +340,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
             if ((Object) ListId == null)
                 return false;
 
-            return this._Value.Equals(ListId._Value);
+            return this.Value.Equals(ListId.Value);
 
         }
 
@@ -350,7 +356,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
         {
-            return _Value.GetHashCode();
+            return Value.GetHashCode();
         }
 
         #endregion
@@ -363,7 +369,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// <returns>A formated string representation of this object.</returns>
         public override String ToString()
         {
-            return _RandomPart + "@" + _DomainPart;
+            return Value;
         }
 
         #endregion
