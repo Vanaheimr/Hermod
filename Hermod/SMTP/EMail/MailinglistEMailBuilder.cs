@@ -71,16 +71,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
             get
             {
-                return SimpleEMailAddress.Parse(base._AdditionalHeaders.
-                                                    Where(kvp => kvp.Key.ToLower() == "list-post").
-                                                    FirstOrDefault().
-                                                    Value);
+
+                var v = base._AdditionalHeaders.
+                            Where(kvp => kvp.Key.ToLower() == "list-post").
+                            FirstOrDefault();
+
+                if (v.Key.IsNullOrEmpty())
+                    return null;
+
+                return SimpleEMailAddress.Parse(v.Value.Replace("mailto:", ""));
+
             }
 
             set
             {
                 if (value != null)
-                    base._AdditionalHeaders.Add("List-Post", value.ToString());
+                    base._AdditionalHeaders.Add("List-Post", "<mailto:" + value.ToString() + ">");
             }
 
         }
