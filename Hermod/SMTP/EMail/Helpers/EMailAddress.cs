@@ -232,7 +232,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
             var b = EMailString.IndexOf('<');
             var c = EMailString.IndexOf('>');
 
-            if (b > 0 && c > 0 && c > b)
+            if (b >= 0 && c > b)
                 return new EMailAddress(EMailString.Remove(b, c-b+1).Trim(), SimpleEMailAddress.Parse(EMailString.Substring(b+1, c-b-1).Trim()));
 
             return new EMailAddress(SimpleEMailAddress.Parse(EMailString));
