@@ -37,8 +37,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #region ListId
 
-        //private ListId _ListId;
-
         /// <summary>
         /// The unique identification of the mailinglist.
         /// </summary>
@@ -63,28 +61,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #endregion
 
+        #region ListPost
+
+        /// <summary>
+        /// The e-mail address of the mailinglist for posting new e-mails.
+        /// </summary>
+        public SimpleEMailAddress ListPost
+        {
+
+            get
+            {
+                return SimpleEMailAddress.Parse(base._AdditionalHeaders.
+                                                    Where(kvp => kvp.Key.ToLower() == "list-post").
+                                                    FirstOrDefault().
+                                                    Value);
+            }
+
+            set
+            {
+                if (value != null)
+                    base._AdditionalHeaders.Add("List-Post", value.ToString());
+            }
+
+        }
+
+        #endregion
+
 
         #region Text
-
-        //private String _TextBody;
 
         /// <summary>
         /// The body of the text e-mail.
         /// </summary>
         public String Text
         {
-
             get
             {
                 return base.Body.Content.AggregateWith(Environment.NewLine);
             }
-
-            //set
-            //{
-            //    if (value != null && value != String.Empty && value.Trim() != "")
-            //        _TextBody = value;
-            //}
-
         }
 
         #endregion
@@ -121,9 +135,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// Create a new mailinglist e-mail builder.
         /// </summary>
         public MailinglistEMailBuilder()
-        {
-            //this.Text = "";
-        }
+        { }
 
         #endregion
 
