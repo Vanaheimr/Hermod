@@ -55,6 +55,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
         private readonly List<IPSocket> _DNSServers;
 
+        /// <summary>
+        /// The DNS servers used by this DNS client.
+        /// </summary>
         public IEnumerable<IPSocket> DNSServers
         {
             get
@@ -67,13 +70,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
         #region QueryTimeout
 
-        public TimeSpan  QueryTimeout       { get; set; }
+        /// <summary>
+        /// The DNS query timeout.
+        /// </summary>
+        public TimeSpan  QueryTimeout  { get; set; }
 
         #endregion
 
         #region RecursionDesired
 
-        public Boolean   RecursionDesired   { get; set; }
+        /// <summary>
+        /// Wether DNS recursion is desired.
+        /// </summary>
+        public Boolean  RecursionDesired  { get; set; }
 
         #endregion
 
@@ -484,6 +493,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
         #endregion
 
+
+        #region ToString()
+
+        /// <summary>
+        /// Get a string representation of this object.
+        /// </summary>
+        public override String ToString()
+        {
+            return "Using DNS servers: " + _DNSServers.Select(v => v.ToString()).AggregateWith(", ");
+        }
+
+        #endregion
 
     }
 
