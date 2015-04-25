@@ -169,7 +169,7 @@
     <Compile Include="DNS\ENUMs\DNSResourceRecordTypes.cs" />
     <Compile Include="DNS\ResourceRecords\A.cs" />
     <Compile Include="DNS\DNSClient.cs" />
-    <Compile Include="DNS\DNSResponse.cs" />
+    <Compile Include="DNS\DNSInfo.cs" />
     <Compile Include="DNS\ENUMs\DNSQueryClasses.cs" />
     <Compile Include="DNS\ResourceRecords\CNAME.cs" />
     <Compile Include="DNS\ResourceRecords\AAAA.cs" />

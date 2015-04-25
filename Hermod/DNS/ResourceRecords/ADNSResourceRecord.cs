@@ -155,6 +155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
             this._Class         = (DNSQueryClasses) ((DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue);
             this._TimeToLive    = TimeSpan.FromSeconds((DNSStream.ReadByte() & byte.MaxValue) << 24 | (DNSStream.ReadByte() & byte.MaxValue) << 16 | (DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue);
+            this._EndOfLife     = DateTime.Now + _TimeToLive;
 
             var RDLength        = (DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue;
 
@@ -173,9 +174,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
             this._Type          = Type;
             this._Class         = (DNSQueryClasses) ((DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue);
             this._TimeToLive    = TimeSpan.FromSeconds((DNSStream.ReadByte() & byte.MaxValue) << 24 | (DNSStream.ReadByte() & byte.MaxValue) << 16 | (DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue);
+            this._EndOfLife     = DateTime.Now + _TimeToLive;
 
             var RDLength        = (DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue;
-//>>>>>>> f833198bd494f11a1fa4aac057f2e6e8aafe0d8d
 
         }
 
@@ -193,6 +194,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
             this._Type          = Type;
             this._Class         = Class;
             this._TimeToLive    = TimeToLive;
+            this._EndOfLife     = DateTime.Now + _TimeToLive;
 
         }
 
@@ -211,6 +213,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
             this._Type          = Type;
             this._Class         = Class;
             this._TimeToLive    = TimeToLive;
+            this._EndOfLife     = DateTime.Now + _TimeToLive;
             this._RText         = RText;
 
         }

@@ -47,6 +47,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
         #region DNSCache()
 
+        /// <summary>
+        /// Create a new DNS cache.
+        /// </summary>
         public DNSCache()
             : this(TimeSpan.FromMinutes(1))
         { }
@@ -55,10 +58,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
         #region DNSCache(CleanUpEvery)
 
+        /// <summary>
+        /// Create a new DNS cache.
+        /// </summary>
+        /// <param name="CleanUpEvery">How often to remove outdated entries from DNS cache.</param>
         public DNSCache(TimeSpan CleanUpEvery)
         {
+
             this._DNSCache      = new Dictionary<String, DNSCacheEntry>();
             this._CleanUpTimer  = new Timer(RemoveExpiredCacheEntries, null, TimeSpan.FromMinutes(1), CleanUpEvery);
+
+            _DNSCache.Add("loopback",
+                          new DNSCacheEntry(DateTime.Now,
+                                            DateTime.Now + TimeSpan.FromDays(3650),
+                                            new DNSInfo(new IPSocket(IPv4Address.Parse("127.0.0.1"), IPPort.Parse(53)),
+                                                        0,
+                                                        true,
+                                                        false,
+                                                        false,
+                                                        false,
+                                                        DNSResponseCodes.NoError,
+                                                        new ADNSResourceRecord[] {
+                                                            new A("loopback", DNSQueryClasses.IN, TimeSpan.FromDays(3650), IPv4Address.Parse("127.0.0.1"))
+                                                        },
+                                                        new ADNSResourceRecord[0],
+                                                        new ADNSResourceRecord[0])
+                                           ));
+
         }
 
         #endregion

@@ -27,6 +27,9 @@ using System.Threading;
 namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 {
 
+    /// <summary>
+    /// A DNS cache entry.
+    /// </summary>
     public class DNSCacheEntry
     {
 
@@ -36,6 +39,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
         private DateTime _RefreshTime;
 
+        /// <summary>
+        /// The timestamp of the last refresh.
+        /// </summary>
         public DateTime RefreshTime
         {
             get
@@ -50,6 +56,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
         private DateTime _EndOfLife;
 
+        /// <summary>
+        /// The timestamp when this entry gets invalidated.
+        /// </summary>
         public DateTime EndOfLife
         {
             get
@@ -64,6 +73,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
         private DNSInfo _DNSInfo;
 
+        /// <summary>
+        /// The cached DNS information.
+        /// </summary>
         public DNSInfo DNSInfo
         {
             get
@@ -78,13 +90,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
         #region Constructor(s)
 
+        /// <summary>
+        /// Create a new DNS cache entry.
+        /// </summary>
+        /// <param name="RefreshTime">The timestamp of the last refresh.</param>
+        /// <param name="EndOfLife">The timestamp when this entry gets invalidated.</param>
+        /// <param name="DNSInfo">The cached DNS information.</param>
         public DNSCacheEntry(DateTime  RefreshTime,
                              DateTime  EndOfLife,
                              DNSInfo   DNSInfo)
         {
+
             this._RefreshTime  = RefreshTime;
             this._EndOfLife    = EndOfLife;
             this._DNSInfo      = DNSInfo;
+
         }
 
         #endregion

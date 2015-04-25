@@ -33,6 +33,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
         #region Data
 
+        /// <summary>
+        /// The type Id of this DNS resource record.
+        /// </summary>
         public const UInt16 TypeId = 1;
 
         #endregion
@@ -41,6 +44,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
         private readonly IPv4Address _IPv4Address;
 
+        /// <summary>
+        /// The IPv4 address.
+        /// </summary>
         public IPv4Address IPv4Address
         {
             get
@@ -55,29 +61,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
         #region A(Stream)
 
+        /// <summary>
+        /// Parse a DNS A resource record from the given stream.
+        /// </summary>
+        /// <param name="Stream">A stream of bytes.</param>
         public A(Stream  Stream)
+
             : base(Stream, TypeId)
+
         {
+
             this._IPv4Address  = new IPv4Address(Stream);
+
         }
 
         #endregion
 
         #region A(Name, Stream)
 
+        /// <summary>
+        /// Parse a DNS A resource record from the given stream.
+        /// </summary>
+        /// <param name="Name">The DNS name.</param>
+        /// <param name="Stream">A stream of bytes.</param>
         public A(String  Name,
                  Stream  Stream)
 
             : base(Name, TypeId, Stream)
 
         {
+
             this._IPv4Address  = new IPv4Address(Stream);
+
         }
 
         #endregion
 
         #region A(Name, Class, TimeToLive, IPv4Address)
 
+        /// <summary>
+        /// Create a new DNS A resource record.
+        /// </summary>
+        /// <param name="Name">The DNS name.</param>
+        /// <param name="Class">The DNS class.</param>
+        /// <param name="TimeToLive">The timestamp when this resource records gets invalidated.</param>
+        /// <param name="IPv4Address">The IPv4 address of this resource record.</param>
         public A(String           Name,
                  DNSQueryClasses  Class,
                  TimeSpan         TimeToLive,
@@ -86,7 +114,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
             : base(Name, TypeId, Class, TimeToLive, IPv4Address.ToString())
 
         {
+
             this._IPv4Address  = IPv4Address;
+
         }
 
         #endregion
