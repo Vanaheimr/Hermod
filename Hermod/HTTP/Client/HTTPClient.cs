@@ -29,6 +29,7 @@ using System.Threading.Tasks;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Services.DNS;
+using System.Text.RegularExpressions;
 
 #endregion
 
@@ -390,15 +391,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         try
                         {
 
-                            var IPv4AddressTask = _DNSClient.
-                                                      Query<A>(Hostname).
-                                                          ContinueWith(QueryTask => QueryTask.Result.
-                                                                                        Select(ARecord => ARecord.IPv4Address).
-                                                                                        FirstOrDefault());
+                            var RegExpr = new Regex(@"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b");
 
-                            IPv4AddressTask.Wait();
+                            if (RegExpr.IsMatch(Hostname))
+                                this.RemoteIPAddress = IPv4Address.Parse(Hostname);
 
-                            this.RemoteIPAddress = IPv4AddressTask.Result;
+                            else
+                            {
+
+                                var IPv4AddressTask = _DNSClient.
+                                                          Query<A>(Hostname).
+                                                              ContinueWith(QueryTask => QueryTask.Result.
+                                                                                            Select(ARecord => ARecord.IPv4Address).
+                                                                                            FirstOrDefault());
+
+                                IPv4AddressTask.Wait();
+
+                                this.RemoteIPAddress = IPv4AddressTask.Result;
+
+                            }
 
                         }
                         catch (Exception e)
