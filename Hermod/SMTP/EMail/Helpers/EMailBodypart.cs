@@ -44,13 +44,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #region ContentType
 
-        private MailContentTypes _ContentType;
+        private readonly MailContentTypes _ContentType;
 
         public MailContentTypes ContentType
         {
             get
             {
                 return _ContentType;
+            }
+        }
+
+        #endregion
+
+        #region ContentTypeString
+
+        private readonly String _ContentTypeString;
+
+        public String ContentTypeString
+        {
+            get
+            {
+                return _ContentTypeString;
             }
         }
 
@@ -226,6 +240,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// Create a new e-mail bodypart.
         /// </summary>
         public EMailBodypart(MailContentTypes                           ContentType,
+                             String                                     ContentTypeString           = null,
                              String                                     ContentTransferEncoding     = null,
                              String                                     Charset                     = "utf-8",
                              String                                     ContentLanguage             = null,
@@ -240,6 +255,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         {
 
             this._ContentType                 = ContentType;
+            this._ContentTypeString           = ContentTypeString;
             this._ContentTransferEncoding     = ContentTransferEncoding;//.IsNotNullOrEmpty() ? ContentTransferEncoding : "8bit";
             this._Charset                     = Charset.                IsNotNullOrEmpty() ? Charset                 : "utf-8";
             this._ContentLanguage             = ContentLanguage;
@@ -287,18 +303,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         {
 
             var AllHeaders = IncludeHeaders   ? Headers      : new String[0];
-            var Boundary   = _Content != null ? String.Empty : "--" + MIMEBoundary;
 
             if (_Content != null)
                 AllHeaders = AllHeaders.
-                                 Concat(new String[] { Boundary }).
-                                 Concat(_Content.Lines).
-                                 Concat(new String[] { "" });
+                                 Concat(_Content.Lines);
 
             else
                 AllHeaders = AllHeaders.
                                  Concat(_NestedBodyparts.
-                                            SelectMany(bodypart => new String[] { "", Boundary }.
+                                            SelectMany(bodypart => new String[] { "", MIMEBoundary }.
                                                                    Concat(bodypart.ToText(true)))).
                                  Concat(new String[] { "", "--" + MIMEBoundary + "--" });
 

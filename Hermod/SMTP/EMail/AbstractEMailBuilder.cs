@@ -490,6 +490,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         {
 
             T Mail;
+            if (TryParse<T>(MailText.Split(new String[] { "\r\n", "\r", "\n" }, StringSplitOptions.None), out Mail))
+                return Mail;
+
+            return null;
+
+        }
+
+        public static Boolean TryParse<T>(String MailText, out T Mail)
+            where T : AbstractEMailBuilder, new()
+        {
+            return TryParse(MailText.Split(new String[] { "\r\n", "\r", "\n" }, StringSplitOptions.None), out Mail);
+        }
+
+
+
+        public static T Parse<T>(IEnumerable<String> MailText)
+            where T : AbstractEMailBuilder, new()
+        {
+
+            T Mail;
             if (TryParse<T>(MailText, out Mail))
                 return Mail;
 
@@ -497,8 +517,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         }
 
-
-        public static Boolean TryParse<T>(String MailText, out T Mail)
+        public static Boolean TryParse<T>(IEnumerable<String> MailText, out T Mail)
             where T : AbstractEMailBuilder, new()
         {
 
@@ -513,11 +532,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
             var MailBody             = new List<String>();
             var SplitMailHeaderLine  = new Char[1] { ':' };
 
-            foreach (var MailLine in MailText.Split(new String[] { "\r\n", "\r", "\n" }, StringSplitOptions.None))
+            foreach (var MailLine in MailText)
             {
 
-                if (MailLine == "")
+                if (MailLine == "" && !CopyBody)
+                {
                     CopyBody = true;
+                    continue;
+                }
 
                 if (!CopyBody)
                 {
@@ -588,14 +610,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
                                       FirstOrDefault().
                                       Value);
 
-            var _ContentType = MailHeaders.
+            var _ContentTypeString = MailHeaders.
                                       Where(kvp => kvp.Key.ToLower() == "content-type").
                                       FirstOrDefault().
                                       Value;
-            //"text/plain; charset=utf-8"
 
+            var _Body = new EMailBodypart(ContentType:        MailContentTypes.unknown,
+                                          ContentTypeString:  _ContentTypeString,
+                                          Content:            new MailBodyString(MailBody));
 
-            var _Body = new EMailBodypart(MailContentTypes.text_plain, Content: new MailBodyString(MailBody));
 
             Mail = new T() {
                                From       = _From,

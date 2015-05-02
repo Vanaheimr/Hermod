@@ -33,6 +33,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         application_pgp__signature,
         application_pgp__encrypted,
 
+        unknown
+
     }
 
 }

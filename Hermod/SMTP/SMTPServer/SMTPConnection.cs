@@ -22,6 +22,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Diagnostics;
+using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
@@ -33,60 +34,6 @@ using org.GraphDefined.Vanaheimr.Hermod.Services.Mail;
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 {
-
-    public static class Ext3
-    {
-
-        public static void WriteSMTP(this TCPConnection TCPConn, SMTPStatusCode StatusCode, String Text)
-        {
-
-            TCPConn.WriteToResponseStream(((Int32) StatusCode) + " " + Text);
-            Debug.WriteLine(">> " +       ((Int32) StatusCode) + " " + Text);
-
-            TCPConn.Flush();
-
-        }
-
-        public static void WriteLineSMTP(this TCPConnection TCPConn, params SMTPResponse[] Response)
-        {
-
-            var n = (UInt64) Response.Where(line => line.Response.IsNotNullOrEmpty()).Count();
-
-            Response.
-                Where(line => line.Response.IsNotNullOrEmpty()).
-                ForEachCounted((i, response) => {
-                    TCPConn.WriteLineToResponseStream(((Int32) response.StatusCode) + (i < n ? "-" : " ") + response.Response);
-                    Debug.WriteLine(">> " +           ((Int32) response.StatusCode) + (i < n ? "-" : " ") + response.Response);
-                });
-
-            TCPConn.Flush();
-
-        }
-
-        public static void WriteLineSMTP(this TCPConnection TCPConn, SMTPStatusCode StatusCode, params String[] Response)
-        {
-
-            var n = (UInt64) Response.Where(line => line.IsNotNullOrEmpty()).Count();
-
-            Response.
-                Where(line => line.IsNotNullOrEmpty()).
-                ForEachCounted((i, response) => {
-                    TCPConn.WriteLineToResponseStream(((Int32) StatusCode) + (i < n ? "-" : " ") + response);
-                    Debug.WriteLine(">> " +           ((Int32) StatusCode) + (i < n ? "-" : " ") + response);
-                });
-
-            TCPConn.Flush();
-
-        }
-
-    }
-
-    public enum SMTPServerStatus
-    {
-        commandmode,
-        mailmode
-    }
-
 
     /// <summary>
     /// Accept incoming SMTP TCP connections and
@@ -240,7 +187,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
                 var MailFroms  = new EMailAddressList();
                 var RcptTos    = new EMailAddressList();
-                var MailText   = "";
 
                 TCPConnection.WriteLineSMTP(SMTPStatusCode.ServiceReady,
                                             _DefaultServerName + " ESMTP Vanaheimr Hermod Mail Transport Service");
@@ -525,8 +471,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
                                         TCPConnection.WriteLineSMTP(SMTPStatusCode.StartMailInput, "Ok Send data ending with <CRLF>.<CRLF>");
 
-                                        var MailTextBuilder  = new StringBuilder();
-                                        var MailLine         = "";
+                                        var MailText  = new List<String>();
+                                        var MailLine  = "";
 
                                         do
                                         {
@@ -535,23 +481,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
                                             // "." == End-of-EMail...
                                             if (MailLine != null && MailLine != ".")
-                                                MailTextBuilder.AppendLine(MailLine);
+                                                MailText.Add(MailLine);
 
                                         } while (MailLine != ".");
 
-                                        MailText = MailTextBuilder.ToString();
-
-                                        TCPConnection.WriteLineSMTP(SMTPStatusCode.Ok, "Message received: 20040120203404.CCCC18555.mx1.example.com@opendata.social");
-
-                                        Debug.WriteLine(MailText);
-                                        Debug.WriteLine(".");
+                                        TCPConnection.WriteLineSMTP(SMTPStatusCode.Ok, "Message received: 20040120203404.CCCC18555.mx1.example.com@" + _DefaultServerName);
 
                                         var OnNotificationLocal = OnNotification;
                                         if (OnNotificationLocal != null)
                                             OnNotificationLocal(new EMailEnvelop(RemoteSocket:  TCPConnection.RemoteSocket,
                                                                                  MailFrom:      MailFroms,
                                                                                  RcptTo:        RcptTos,
-                                                                                 MailBuilder:   AbstractEMailBuilder.Parse<EMailBuilder>(MailText)));
+                                                                                 MailText:      MailText));
 
                                     }
 
@@ -565,7 +506,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                                         MailClientName = "";
                                         MailFroms.Clear();
                                         RcptTos.  Clear();
-                                        MailText = "";
                                     }
 
                                     #endregion
@@ -587,7 +527,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                                         MailClientName = "";
                                         MailFroms.Clear();
                                         RcptTos.Clear();
-                                        MailText = "";
                                     }
 
                                     #endregion
