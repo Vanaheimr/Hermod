@@ -810,6 +810,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             try
             {
 
+                if (_ListenerThread == null)
+                    Debug.WriteLine("[" + DateTime.Now + "] An exception occured in Hermod.TCPServer.Start(MaxClientConnections) [_ListenerThread == null]!");
+
                 // Start the TCPListenerThread
                 _ListenerThread.Start();
 
