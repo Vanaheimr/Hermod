@@ -26,6 +26,7 @@ using System.Collections.Concurrent;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
+using System.Diagnostics;
 
 #endregion
 
@@ -534,7 +535,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 // bytes.PutInteger(endian, tcpKeepalive,      0);
                 // bytes.PutInteger(endian, tcpKeepaliveIdle,  4);
                 // bytes.PutInteger(endian, tcpKeepaliveIntvl, 8);
-                // 
+
                 // fd.IOControl(IOControlCode.KeepAliveValues, (byte[])bytes, null);
 
                 #endregion
@@ -767,8 +768,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             }
 
             else
-                Task.Factory.StartNew(() =>
-                {
+                Task.Factory.StartNew(() => {
 
                     Thread.Sleep(Delay);
                     Start();
@@ -795,11 +795,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             if (MaxClientConnections != __DefaultMaxClientConnections)
                 _MaxClientConnections = MaxClientConnections;
 
-            // Start the TCPListener
-            _TCPListener.Start((Int32) _MaxClientConnections);
+            try
+            {
 
-            // Start the TCPListenerThread
-            _ListenerThread.Start();
+                // Start the TCPListener
+                _TCPListener.Start((Int32) _MaxClientConnections);
+
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine("[" + DateTime.Now + "] An exception occured in Hermod.TCPServer.Start(MaxClientConnections) [_TCPListener.Start((Int32) _MaxClientConnections)]: " + e.Message + Environment.NewLine + e.StackTrace);
+            }
+
+            try
+            {
+
+                // Start the TCPListenerThread
+                _ListenerThread.Start();
+
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine("[" + DateTime.Now + "] An exception occured in Hermod.TCPServer.Start(MaxClientConnections) [_ListenerThread.Start()]: " + e.Message + Environment.NewLine + e.StackTrace);
+            }
+
 
             // Wait until socket has opened
             while (!_IsRunning)
