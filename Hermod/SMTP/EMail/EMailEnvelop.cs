@@ -133,6 +133,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
             get
             {
 
+                // Skip the mail header and skip the newline after the mail header...
                 return _MailText != null
                     ? _MailText.SkipWhile(line => line.IsNotNullOrEmpty()).Skip(1)
                     : new String[] { "" };

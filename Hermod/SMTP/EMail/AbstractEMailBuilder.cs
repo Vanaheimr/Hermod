@@ -537,6 +537,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
                 if (MailLine == "" && !CopyBody)
                 {
+                    MailHeaders.Add(new KeyValuePair<String, String>(Key, Value));
                     CopyBody = true;
                     continue;
                 }
