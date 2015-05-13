@@ -34,13 +34,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
     /// <summary>
     /// An e-mail builder.
     /// </summary>
-    public abstract class AbstractEMailBuilder
+    public abstract class AbstractEMailBuilder : AbstractEMail
     {
 
         #region Data
 
-        protected internal Dictionary<String, String>  _AdditionalHeaders;
-        protected readonly List<EMailBodypart>         _Attachments;
+        protected readonly List<EMailBodypart> _Attachments;
 
         #endregion
 
@@ -61,13 +60,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
             get
             {
-                return _From;
+
+                if (_From != null)
+                    return _From;
+
+                var _FromString = MailHeaders.
+                                      Where(kvp => kvp.Key.ToLower() == "from").
+                                      FirstOrDefault();
+
+                if (_FromString.Key != null)
+                {
+                    _From = EMailAddress.Parse(_FromString.Value);
+                    return _From;
+                }
+
+                return null;
+
             }
 
             set
             {
+
                 if (value != null)
+                {
+
                     _From = value;
+
+                    this.SetEMailHeader("From", value.ToString());
+
+                }
+
             }
 
         }
@@ -76,7 +98,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #region To
 
-        private readonly EMailAddressList _To;
+        private EMailAddressList _To;
 
         /// <summary>
         /// The receivers of this e-mail.
@@ -86,13 +108,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
             get
             {
-                return _To;
+
+                if (_To != null)
+                    return _To;
+
+                var _ToString = MailHeaders.
+                                      Where(kvp => kvp.Key.ToLower() == "to").
+                                      FirstOrDefault();
+
+                if (_ToString.Key != null)
+                {
+                    _To = EMailAddressList.Parse(_ToString.Value);
+                    return _To;
+                }
+
+                return null;
+
             }
 
             set
             {
+
                 if (value != null)
-                    _To.Add(value);
+                {
+
+                    _To = value;
+
+                    this.SetEMailHeader("To", value.ToString());
+
+                }
+
             }
 
         }
@@ -186,13 +231,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
             get
             {
-                return _Subject;
+
+                if (_Subject != null)
+                    return _Subject;
+
+                var _String = MailHeaders.
+                                      Where(kvp => kvp.Key.ToLower() == "subject").
+                                      FirstOrDefault();
+
+                if (_String.Key != null)
+                {
+                    _Subject = _String.Value;
+                    return _Subject;
+                }
+
+                return "";
+
             }
 
             set
             {
+
                 if (value != null && value != String.Empty && value.Trim() != "")
+                {
                     _Subject = value.Trim();
+                    this.SetEMailHeader("Subject", value.ToString());
+                }
+
             }
 
         }
@@ -286,7 +351,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #region Body
 
-        protected EMailBodypart _Body;
+        private EMailBodypart _Body;
 
         /// <summary>
         /// The e-mail body.
@@ -343,6 +408,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// Create a new e-mail builder.
         /// </summary>
         public AbstractEMailBuilder()
+            : base()
         {
 
             this._To                    = new EMailAddressList();
@@ -352,7 +418,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
             this._Subject               = "";
             this. Date                  = DateTime.Now;
             this._References            = new List<MessageId>();
-            this._AdditionalHeaders     = new Dictionary<String, String>();
             this._Attachments           = new List<EMailBodypart>();
 
             this.SecurityLevel          = EMailSecurity.auto;
@@ -364,67 +429,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #endregion
 
-        #region AbstractEMailBuilder(TextLines)
+        #region AbstractEMailBuilder(MailText)
 
         /// <summary>
-        /// Parse the given text lines.
+        /// Parse the e-mail from the given text lines.
         /// </summary>
-        /// <param name="TextLines">An enumeration of strings.</param>
-        public AbstractEMailBuilder(IEnumerable<String> TextLines)
+        /// <param name="MailText">The E-Mail as an enumeration of strings.</param>
+        public AbstractEMailBuilder(IEnumerable<String> MailText)
+            : base(MailText)
         {
 
-            var Body         = new List<String>();
-            var ReadBody     = false;
-
-            String Property  = null;
-            String Value     = null;
-
-            foreach (var Line in TextLines)
-            {
-
-                if (ReadBody)
-                    Body.Add(Line);
-
-                else if (Line.IsNullOrEmpty())
-                {
-
-                    ReadBody = true;
-
-                    if (Property != null)
-                        AddHeaderValues(Property, Value);
-
-                    Property = null;
-                    Value    = null;
-
-                }
-
-                // The current line is part of a previous line
-                else if (Line.StartsWith(" ") ||
-                         Line.StartsWith("\t"))
-                {
-
-                    // Only if this is the first line ever read!
-                    if (Property.IsNullOrEmpty())
-                        throw new Exception("Invalid headers found!");
-
-                    Value += " " + Line.Trim();
-
-                }
-
-                else
-                {
-
-                    if (Property != null)
-                        AddHeaderValues(Property, Value);
-
-                    var Splitted = Line.Split(new Char[] { ':' }, 2, StringSplitOptions.None);
-
-                    Property = Splitted[0].Trim();
-                    Value    = Splitted[1].Trim();
-
-                }
-
-            }
+            this._Body = new EMailBodypart(MailText);
 
         }
 
@@ -432,42 +447,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #endregion
 
-
-        #region AddHeaderValues(Key, Value)
-
-        public AbstractEMailBuilder AddHeaderValues(String Key, String Value)
-        {
-
-            //FixMe!
-            switch (Key.ToLower())
-            {
-
-                case "from":
-                    this._From = new EMailAddress(SimpleEMailAddress.Parse(Value));
-                    break;
-
-                case "to":
-                    this._To.Add(new EMailAddress(SimpleEMailAddress.Parse(Value)));
-                    break;
-
-                case "cc":
-                    this._To.Add(new EMailAddress(SimpleEMailAddress.Parse(Value)));
-                    break;
-
-                case "subject":
-                    this._Subject = Value;
-                    break;
-
-                default: _AdditionalHeaders.Add(Key, Value);
-                    break;
-
-            }
-
-            return this;
-
-        }
-
-        #endregion
 
         #region AddAttachment(EMailBodypart)
 
@@ -485,153 +464,141 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
 
 
-        public static T Parse<T>(String MailText)
-            where T : AbstractEMailBuilder, new()
-        {
-
-            T Mail;
-            if (TryParse<T>(MailText.Split(new String[] { "\r\n", "\r", "\n" }, StringSplitOptions.None), out Mail))
-                return Mail;
-
-            return null;
-
-        }
-
-        public static Boolean TryParse<T>(String MailText, out T Mail)
-            where T : AbstractEMailBuilder, new()
-        {
-            return TryParse(MailText.Split(new String[] { "\r\n", "\r", "\n" }, StringSplitOptions.None), out Mail);
-        }
 
 
+        //public static T Parse<T>(IEnumerable<String> MailText)
+        //    where T : AbstractEMailBuilder, new()
+        //{
 
-        public static T Parse<T>(IEnumerable<String> MailText)
-            where T : AbstractEMailBuilder, new()
-        {
+        //    T Mail;
+        //    if (TryParse<T>(MailText, out Mail))
+        //        return Mail;
 
-            T Mail;
-            if (TryParse<T>(MailText, out Mail))
-                return Mail;
+        //    return null;
 
-            return null;
+        //}
 
-        }
+        //public static Boolean TryParse<T>(IEnumerable<String> MailText, out T Mail)
+        //    where T : AbstractEMailBuilder, new()
+        //{
 
-        public static Boolean TryParse<T>(IEnumerable<String> MailText, out T Mail)
-            where T : AbstractEMailBuilder, new()
-        {
+        //    #region Parse MailText
 
-            #region Parse MailText
+        //    List<KeyValuePair<String, String>>  MailHeaders;
+        //    List<String>                        MailBody;
 
-            String[] MailHeaderLine;
+        //    Tools.ParseMail(MailText, out MailHeaders, out MailBody);
 
-            var MailHeaders          = new List<KeyValuePair<String, String>>();
-            var Key                  = "";
-            var Value                = "";
-            var CopyBody             = false;
-            var MailBody             = new List<String>();
-            var SplitMailHeaderLine  = new Char[1] { ':' };
+        //    #endregion
 
-            foreach (var MailLine in MailText)
-            {
+        //    var _From       = EMailAddress.Parse(MailHeaders.
+        //                                             Where(kvp => kvp.Key.ToLower() == "from").
+        //                                             FirstOrDefault().
+        //                                             Value);
 
-                if (MailLine == "" && !CopyBody)
-                {
-                    MailHeaders.Add(new KeyValuePair<String, String>(Key, Value));
-                    CopyBody = true;
-                    continue;
-                }
+        //    var _Tos        = new EMailAddressList(MailHeaders.
+        //                                               Where(kvp => kvp.Key.ToLower() == "to").
+        //                                               FirstOrDefault().
+        //                                               Value.
+        //                                               Split(new Char[] { ',' }).
+        //                                               Select(v => EMailAddress.Parse(v.Trim())));
 
-                if (!CopyBody)
-                {
+        //    //this._ReplyTo            = new EMailAddressList(MailBuilder.ReplyTo);
+        //    //this._Cc                 = new EMailAddressList(MailBuilder.Cc);
+        //    //this._Bcc                = new EMailAddressList(MailBuilder.Bcc);
 
-                    if (!MailLine.StartsWith(" "))
-                    {
+        //    var _Subject    = MailHeaders.
+        //                          Where(kvp => kvp.Key.ToLower() == "subject").
+        //                          FirstOrDefault().
+        //                          Value;
 
-                        if (Key != "")
-                        {
-                            MailHeaders.Add(new KeyValuePair<String, String>(Key, Value));
-                            Key   = "";
-                            Value = "";
-                        }
+        //    // this._Date               = MailBuilder.Date;
+        //    // this._MessageId          = MailBuilder.MessageId;
+        //    // this._AdditionalHeaders  = new Dictionary<String, String>();
 
-                        MailHeaderLine = MailLine.Split(SplitMailHeaderLine, 2);
-
-                        if (MailHeaderLine.Length == 2)
-                        {
-                            Key   = MailHeaderLine[0].Trim();
-                            Value = MailHeaderLine[1].Trim();
-                        }
-
-                    }
-
-                    else
-                        Value += " " + MailLine.Trim();
-
-                }
-
-                else
-                    MailBody.Add(MailLine);
-
-            }
-
-            #endregion
-
-            var _From       = EMailAddress.Parse(MailHeaders.
-                                                     Where(kvp => kvp.Key.ToLower() == "from").
-                                                     FirstOrDefault().
-                                                     Value);
-
-            var _Tos        = new EMailAddressList(MailHeaders.
-                                                       Where(kvp => kvp.Key.ToLower() == "to").
-                                                       FirstOrDefault().
-                                                       Value.
-                                                       Split(new Char[] { ',' }).
-                                                       Select(v => EMailAddress.Parse(v.Trim())));
-
-            //this._ReplyTo            = new EMailAddressList(MailBuilder.ReplyTo);
-            //this._Cc                 = new EMailAddressList(MailBuilder.Cc);
-            //this._Bcc                = new EMailAddressList(MailBuilder.Bcc);
-
-            var _Subject    = MailHeaders.
-                                  Where(kvp => kvp.Key.ToLower() == "subject").
-                                  FirstOrDefault().
-                                  Value;
-
-            // this._Date               = MailBuilder.Date;
-            // this._MessageId          = MailBuilder.MessageId;
-            // this._AdditionalHeaders  = new Dictionary<String, String>();
-
-            //MailBuilder._AdditionalHeaders.ForEach(v => { this._AdditionalHeaders.Add(v.Key, v.Value); });
-            //this._Bodypart           = MailBuilder.Body;
+        //    //MailBuilder._AdditionalHeaders.ForEach(v => { this._AdditionalHeaders.Add(v.Key, v.Value); });
+        //    //this._Bodypart           = MailBuilder.Body;
 
 
-            var _MessageId  = MessageId.Parse(MailHeaders.
-                                      Where(kvp => kvp.Key.ToLower() == "message-id").
-                                      FirstOrDefault().
-                                      Value);
+        //    var _MessageId  = MessageId.Parse(MailHeaders.
+        //                              Where(kvp => kvp.Key.ToLower() == "message-id").
+        //                              FirstOrDefault().
+        //                              Value);
 
-            var _ContentTypeString = MailHeaders.
-                                      Where(kvp => kvp.Key.ToLower() == "content-type").
-                                      FirstOrDefault().
-                                      Value;
+        //    // "multipart/alternative; boundary=\"------------060700010003060400080506\""
+        //    var _ContentTypeString = MailHeaders.
+        //                              Where(kvp => kvp.Key.ToLower() == "content-type").
+        //                              FirstOrDefault().
+        //                              Value;
 
-            var _Body = new EMailBodypart(ContentType:        MailContentTypes.unknown,
-                                          ContentTypeString:  _ContentTypeString,
-                                          Content:            new MailBodyString(MailBody));
+        //    String MIMEBoundary = null;
+
+        //    EMailBodypart _Body = null;
+
+        //    if (_ContentTypeString.Contains("boundary="))
+        //    {
+
+        //        MIMEBoundary = _ContentTypeString.Substring(_ContentTypeString.IndexOf("boundary=") + 9).Trim();
+
+        //        if (MIMEBoundary.StartsWith(@""""))
+        //            MIMEBoundary = MIMEBoundary.Remove(0, 1);
+
+        //        if (MIMEBoundary.EndsWith(@""""))
+        //            MIMEBoundary = MIMEBoundary.Substring(0, MIMEBoundary.Length - 1);
+
+        //        _ContentTypeString = _ContentTypeString.Substring(0, _ContentTypeString.IndexOf("boundary=")).Trim();
+
+        //        if (_ContentTypeString.EndsWith(@";"))
+        //            _ContentTypeString = _ContentTypeString.Substring(0, _ContentTypeString.Length - 1);
 
 
-            Mail = new T() {
-                               From       = _From,
-                               To         = _Tos,
-                               Subject    = _Subject,
-                               MessageId  = _MessageId,
-                               Body       = _Body
-                           };
+        //        var MIMEBoundaryCheck    = "--" + MIMEBoundary;
+        //        var MIMEBoundaryCheckEnd = "--" + MIMEBoundary + "--";
 
-            return true;
+        //        var ListOfList = new List<List<String>>();
+        //        var List       = new List<String>();
 
-        }
+        //        foreach (var line in MailBody)
+        //        {
+
+        //            if (line == MIMEBoundaryCheck ||
+        //                line == MIMEBoundaryCheckEnd)
+        //            {
+        //                ListOfList.Add(List);
+        //                List = new List<String>();
+        //            }
+
+        //            else
+        //                List.Add(line);
+
+        //        }
+
+        //        _Body = new EMailBodypart(ContentType:        MailContentTypes.unknown,
+        //                                  ContentTypeString:  _ContentTypeString,
+        //                                  MIMEBoundary:       MIMEBoundary,
+        //                                  Content:            new MailBodyString(ListOfList[0]),
+        //                                  NestedBodyparts:    ListOfList.Skip(1).Select(list => new EMailBodypart(list)));
+
+        //    }
+
+        //    else
+        //        _Body = new EMailBodypart(ContentType:        MailContentTypes.unknown,
+        //                                  ContentTypeString:  _ContentTypeString,
+        //                                  MIMEBoundary:       MIMEBoundary,
+        //                                  Content:            new MailBodyString(MailBody));
+
+
+        //    Mail = new T() {
+        //                       From       = _From,
+        //                       To         = _Tos,
+        //                       Subject    = _Subject,
+        //                       MessageId  = _MessageId,
+        //                       Body       = _Body
+        //                   };
+
+        //    return true;
+
+        //}
 
 
         #region (protected, abstract) EncodeBodyparts()
@@ -658,13 +625,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
             #region Add attachments, if available...
 
-            if (_Attachments.Count == 0)
+            if (_Attachments       == null ||
+                _Attachments.Count == 0)
                 BodypartToBeSecured  = _EncodeBodyparts();
 
             else
-                BodypartToBeSecured  = new EMailBodypart(ContentType:              MailContentTypes.multipart_mixed,
+                BodypartToBeSecured  = new EMailBodypart(ContentType:              new MailContentType(MailContentTypes.multipart_mixed) { CharSet = "utf-8" }.GenerateMIMEBoundary(),
                                                          ContentTransferEncoding:  "8bit",
-                                                         Charset:                  "utf-8",
                                                          NestedBodyparts:          new EMailBodypart[] { _EncodeBodyparts() }.
                                                                                        Concat(_Attachments));
 
@@ -759,23 +726,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
                 // MIME Security with OpenPGP (rfc3156, https://tools.ietf.org/html/rfc3156)
                 // OpenPGP Message Format     (rfc4880, https://tools.ietf.org/html/rfc4880)
-                _Body = new EMailBodypart(ContentType:                 MailContentTypes.multipart_signed,
-                                          AdditionalContentTypeInfos:  new List<KeyValuePair<String, String>>() {
-                                                                           new KeyValuePair<String, String>("micalg",   "pgp-sha512"),
-                                                                           new KeyValuePair<String, String>("protocol", "application/pgp-signature"),
+                _Body = new EMailBodypart(ContentType:                 new MailContentType(MailContentTypes.multipart_signed) {
+                                                                           MicAlg    = "pgp-sha512",
+                                                                           Protocol  = "application/pgp-signature",
+                                                                           CharSet   = "utf-8",
                                                                        },
                                           ContentTransferEncoding:     "8bit",
-                                          Charset:                     "utf-8",
                                           NestedBodyparts:             new EMailBodypart[] {
 
                                                                            BodypartToBeSecured,
 
-                                                                           new EMailBodypart(ContentType:              MailContentTypes.application_pgp__signature,
+                                                                           new EMailBodypart(ContentType:              new MailContentType(MailContentTypes.application_pgp__signature) { CharSet = "utf-8" },
                                                                                          //    ContentTransferEncoding:  "8bit",
-                                                                                             Charset:                  "utf-8",
                                                                                              ContentDescription:       "OpenPGP digital signature",
                                                                                              ContentDisposition:       ContentDispositions.attachment.ToString() + "; filename=\"signature.asc\"",
-                                                                                             Content:                  new MailBodyString(
+                                                                                             Content:                  new String[] {
 
                                                                                                                            OpenPGP.CreateSignature(new MemoryStream(DataToBeSigned.ToUTF8Bytes()),
                                                                                                                                                    From.SecretKeyRing.First(),
@@ -783,9 +748,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
                                                                                                                                                    HashAlgorithm: HashAlgorithm).
 
                                                                                                                                    WriteTo(new MemoryStream(), CloseOutputStream: false).
-                                                                                                                                       ToUTF8String())
+                                                                                                                                       ToUTF8String()
 
-                                                                                                                       )
+                                                                                                                       })
 
                                                                        }
                                          );
@@ -817,25 +782,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
                 // MIME Security with OpenPGP (rfc3156, https://tools.ietf.org/html/rfc3156)
                 // OpenPGP Message Format     (rfc4880, https://tools.ietf.org/html/rfc4880)
-                _Body = new EMailBodypart(ContentType:                 MailContentTypes.multipart_encrypted,
-                                          AdditionalContentTypeInfos:  new List<KeyValuePair<String, String>>() {
-                                                                           new KeyValuePair<String, String>("protocol", "application/pgp-encrypted"),
+                _Body = new EMailBodypart(ContentType:                 new MailContentType(MailContentTypes.multipart_encrypted) {
+                                                                           Protocol = "application/pgp-encrypted",
+                                                                           CharSet  = "utf-8",
                                                                        },
                                           ContentTransferEncoding:     "8bit",
-                                          Charset:                     "utf-8",
                                           NestedBodyparts:             new EMailBodypart[] {
 
-                                                                           new EMailBodypart(ContentType:          MailContentTypes.application_pgp__encrypted,
-                                                                                             Charset:              "utf-8",
+                                                                           new EMailBodypart(ContentType:          new MailContentType(MailContentTypes.application_pgp__encrypted) { CharSet = "utf-8" },
                                                                                              ContentDescription:   "PGP/MIME version identification",
                                                                                              ContentDisposition:   ContentDispositions.attachment.ToString() + "; filename=\"signature.asc\"",
-                                                                                             Content:              new MailBodyString("Version: 1")),
+                                                                                             Content:              new String[] { "Version: 1" }),
 
-                                                                           new EMailBodypart(ContentType:          MailContentTypes.application_octet__stream,
-                                                                                             Charset:              "utf-8",
+                                                                           new EMailBodypart(ContentType:          new MailContentType(MailContentTypes.application_octet__stream) { CharSet = "utf-8" },
                                                                                              ContentDescription:   "OpenPGP encrypted message",
                                                                                              ContentDisposition:   ContentDispositions.inline.ToString() + "; filename=\"encrypted.asc\"",
-                                                                                             Content:              new MailBodyString(Ciphertext.ToArray().ToUTF8String())),
+                                                                                             Content:              new String[] { Ciphertext.ToArray().ToUTF8String() }),
 
                                                                        }
                                          );
@@ -846,7 +808,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
 
             else
-                this._Body = _EncodeBodyparts();
+                this._Body = BodypartToBeSecured;
 
         }
 

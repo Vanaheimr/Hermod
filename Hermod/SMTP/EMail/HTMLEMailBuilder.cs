@@ -19,6 +19,8 @@
 
 using System;
 
+using org.GraphDefined.Vanaheimr.Illias;
+
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
@@ -49,7 +51,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
             set
             {
-                if (value != null && value != String.Empty && value.Trim() != "")
+                if (value != null && value.Trim().IsNotNullOrEmpty())
                     _PlainTextBodypart = value;
             }
 
@@ -74,32 +76,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
             set
             {
-                if (value != null && value != String.Empty && value.Trim() != "")
+                if (value != null && value.Trim().IsNotNullOrEmpty())
                     _HTMLTextBodypart = value;
-            }
-
-        }
-
-        #endregion
-
-        #region ContentLanguage
-
-        private String _ContentLanguage;
-
-        /// <summary>
-        /// The language of the e-mail body.
-        /// </summary>
-        public String ContentLanguage
-        {
-            get
-            {
-                return _ContentLanguage;
-            }
-
-            set
-            {
-                if (value != null && value != String.Empty && value.Trim() != "")
-                    _ContentLanguage = value;
             }
 
         }
@@ -115,8 +93,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// </summary>
         public HTMLEMailBuilder()
         {
+
+            this.ContentType = new MailContentType() { ContentType = MailContentTypes.multipart_alternative };
+
+            this.SetEMailHeader("Content-Transfer-Encoding",  "8bit");
+            this.SetEMailHeader("Charset",                    "utf-8");
+
             this.PlainText  = "";
             this.HTMLText   = "";
+
         }
 
         #endregion
@@ -124,27 +109,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #region (protected, override) _EncodeBodyparts()
 
+        /// <summary>
+        /// Encode all information to a valid e-mail body.
+        /// </summary>
         protected override EMailBodypart _EncodeBodyparts()
         {
 
-            return new EMailBodypart(ContentType:              MailContentTypes.multipart_alternative,
-                                     ContentTransferEncoding:  "8bit",
-                                     Charset:                  "utf-8",
-                                     NestedBodyparts:          new EMailBodypart[] {
+            return new EMailBodypart(EMailBuilder:     this,
+                                     Content:          new String[] { "This is a multi-part message in MIME format." },
+                                     NestedBodyparts:  new EMailBodypart[] {
 
-                                                                   new EMailBodypart(ContentType:              MailContentTypes.text_plain,
-                                                                                     ContentTransferEncoding:  "8bit",
-                                                                                     Charset:                  "utf-8",
-                                                                                     ContentLanguage:          ContentLanguage,
-                                                                                     Content:                  new MailBodyString(PlainText)),
+                                                           new EMailBodypart(ContentType:              new MailContentType(MailContentTypes.text_plain) { CharSet = "utf-8" },
+                                                                             ContentTransferEncoding:  this.ContentTransferEncoding,
+                                                                             ContentLanguage:          this.ContentLanguage,
+                                                                             Content:                  new String[] { PlainText }),
 
-                                                                   new EMailBodypart(ContentType:              MailContentTypes.text_html,
-                                                                                     ContentTransferEncoding:  "8bit",
-                                                                                     Charset:                  "utf-8",
-                                                                                     ContentLanguage:          ContentLanguage,
-                                                                                     Content:                  new MailBodyString(HTMLText))
+                                                           new EMailBodypart(ContentType:              new MailContentType(MailContentTypes.text_html)  { CharSet = "utf-8" },
+                                                                             ContentTransferEncoding:  this.ContentTransferEncoding,
+                                                                             ContentLanguage:          this.ContentLanguage,
+                                                                             Content:                  new String[] { HTMLText })
 
-                                                               });
+                                                       });
 
         }
 

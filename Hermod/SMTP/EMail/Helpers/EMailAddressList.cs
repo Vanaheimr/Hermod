@@ -50,7 +50,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// <param name="EMailAddressList">Another e-mail address list.</param>
         public EMailAddressList(EMailAddressList EMailAddressList)
         {
-            this._MailAddressList = new List<EMailAddress>(EMailAddressList);
+
+            this._MailAddressList = EMailAddressList != null
+                                        ? new List<EMailAddress>(EMailAddressList)
+                                        : new List<EMailAddress>();
+
         }
 
         #endregion
@@ -80,7 +84,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// <param name="EMailAddressList">A list of e-mail addresses.</param>
         public EMailAddressList(IEnumerable<EMailAddress> EMailAddressList)
         {
-            this._MailAddressList = new List<EMailAddress>(EMailAddressList);
+
+            this._MailAddressList = EMailAddressList != null
+                                        ? new List<EMailAddress>(EMailAddressList)
+                                        : new List<EMailAddress>();
+
         }
 
         #endregion
@@ -139,6 +147,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         }
 
         #endregion
+
+
+
+        public static EMailAddressList Parse(String EMailAddressListString)
+        {
+
+            return new EMailAddressList(EMailAddressListString.
+                                             Split(new String[] { ",", ";" }, StringSplitOptions.None).
+                                             Select(v => EMailAddress.Parse(v.Trim())));
+
+        }
+
 
 
         #region Clear()
@@ -222,7 +242,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
                        Select(EMA => EMA.OwnerName.IsNotNullOrEmpty()
                                         ? EMA.OwnerName + " <" + EMA.Address.Value + ">"
                                         : "<" + EMA.Address.Value + ">").
-                       Aggregate((a, b) => a + ", " + b).
+                       AggregateWith(", ").
                        Trim();
 
         }

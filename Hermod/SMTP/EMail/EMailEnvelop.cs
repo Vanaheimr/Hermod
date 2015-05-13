@@ -271,7 +271,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
             this._MailFrom      = MailFrom;
             this._RcptTo        = RcptTo;
             this._Mail          = new EMail(MailBuilder);
-            this._MailText      = _Mail.Headers.
+            this._MailText      = _Mail.MailHeaders.
                                         Concat(new String[] { "" }).
                                         Concat(_Mail.Bodypart.ToText(false));
 

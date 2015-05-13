@@ -151,6 +151,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #endregion
 
+        #region (static) IsValid(EMailAddress)
+
+        /// <summary>
+        /// Checks if the given string is a valid simple e-mail address.
+        /// </summary>
+        /// <param name="EMailAddressString">A string representation of a simple e-mail address.</param>
+        public static Boolean IsValid(String EMailAddressString)
+        {
+
+            return EMailRegularExpression.
+                       Match(EMailAddressString.Trim()).
+                       Success;
+
+        }
+
+        #endregion
+
 
         #region Operator overloading
 

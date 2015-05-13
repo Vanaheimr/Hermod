@@ -101,11 +101,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         protected override EMailBodypart _EncodeBodyparts()
         {
 
-            return new EMailBodypart(ContentType:              MailContentTypes.text_plain,
+            return new EMailBodypart(ContentType:              new MailContentType(MailContentTypes.text_plain) { CharSet = "utf-8" },//"ISO-8859-15",
                                      ContentTransferEncoding:  "quoted-printable",//"8bit",
-                                     Charset:                  "utf-8",//"ISO-8859-15",
                                      ContentLanguage:          ContentLanguage,
-                                     Content:                  new MailBodyString(Text));
+                                     Content:                  new String[] { Text });
 
         }
 

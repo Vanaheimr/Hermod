@@ -21,6 +21,7 @@ using System;
 using System.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Collections.Generic;
 
 #endregion
 
@@ -37,6 +38,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #region ListId
 
+        private ListId _ListId;
+
         /// <summary>
         /// The unique identification of the mailinglist.
         /// </summary>
@@ -45,16 +48,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
             get
             {
-                return ListId.Parse(base._AdditionalHeaders.
+
+                if (_ListId != null)
+                    return _ListId;
+
+                var _ListIdString = MailHeaders.
                                         Where(kvp => kvp.Key.ToLower() == "list-id").
-                                        FirstOrDefault().
-                                        Value);
+                                        FirstOrDefault();
+
+                if (_ListIdString.Key != null)
+                {
+                    _ListId = ListId.Parse(_ListIdString.Value);
+                    return _ListId;
+                }
+
+                return null;
+
             }
 
             set
             {
+
                 if (value != null)
-                    base._AdditionalHeaders.Add("List-Id", value.ToString());
+                {
+
+                    _ListId = value;
+
+                    this.SetEMailHeader("List-Id", value.ToString());
+
+                }
+
             }
 
         }
@@ -62,6 +85,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         #endregion
 
         #region ListPost
+
+        private SimpleEMailAddress _ListPost;
 
         /// <summary>
         /// The e-mail address of the mailinglist for posting new e-mails.
@@ -72,61 +97,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
             get
             {
 
-                var v = base._AdditionalHeaders.
-                            Where(kvp => kvp.Key.ToLower() == "list-post").
-                            FirstOrDefault();
+                if (_ListPost != null)
+                    return _ListPost;
 
-                if (v.Key.IsNullOrEmpty())
-                    return null;
+                var _ListPostString = MailHeaders.
+                                      Where(kvp => kvp.Key.ToLower() == "list-post").
+                                      First();
 
-                return SimpleEMailAddress.Parse(v.Value.Replace("mailto:", ""));
+                if (_ListPostString.Key != "")
+                {
+                    _ListPost = SimpleEMailAddress.Parse(_ListPostString.Value.Replace("mailto:", ""));
+                    return _ListPost;
+                }
+
+                return null;
 
             }
 
             set
             {
+
                 if (value != null)
-                    base._AdditionalHeaders.Add("List-Post", "<mailto:" + value.ToString() + ">");
-            }
+                {
 
-        }
+                    _ListPost = value;
 
-        #endregion
+                    this.SetEMailHeader("List-Post", "<mailto:" + value.ToString() + ">");
 
+                }
 
-        #region Text
-
-        /// <summary>
-        /// The body of the text e-mail.
-        /// </summary>
-        public String Text
-        {
-            get
-            {
-                return base.Body.Content.AggregateWith(Environment.NewLine);
-            }
-        }
-
-        #endregion
-
-        #region ContentLanguage
-
-        private String _ContentLanguage;
-
-        /// <summary>
-        /// The language of the e-mail body.
-        /// </summary>
-        public String ContentLanguage
-        {
-            get
-            {
-                return _ContentLanguage;
-            }
-
-            set
-            {
-                if (value != null && value != String.Empty && value.Trim() != "")
-                    _ContentLanguage = value;
             }
 
         }
@@ -137,11 +136,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #region Constructor(s)
 
+        #region AbstractEMailBuilder(MailText)
+
         /// <summary>
         /// Create a new mailinglist e-mail builder.
         /// </summary>
         public MailinglistEMailBuilder()
         { }
+
+        #endregion
+
+        #region MailinglistEMailBuilder(MailText)
+
+        /// <summary>
+        /// Parse the e-mail from the given text lines.
+        /// </summary>
+        /// <param name="MailText">The E-Mail as an enumeration of strings.</param>
+        public MailinglistEMailBuilder(IEnumerable<String> MailText)
+            : base(MailText)
+        { }
+
+        #endregion
 
         #endregion
 
@@ -151,11 +166,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         protected override EMailBodypart _EncodeBodyparts()
         {
 
-            return new EMailBodypart(ContentType:              MailContentTypes.text_plain,
-                                     ContentTransferEncoding:  "quoted-printable",//"8bit",
-                                     Charset:                  "utf-8",//"ISO-8859-15",
-                                     ContentLanguage:          ContentLanguage,
-                                     Content:                  new MailBodyString(Text));
+            //return new EMailBodypart(ContentType:              MailContentTypes.text_plain,
+            //                         ContentTransferEncoding:  "quoted-printable",//"8bit",
+            //                         Charset:                  "utf-8",//"ISO-8859-15",
+            //                         ContentLanguage:          ContentLanguage,
+            //                         Content:                  new String[] { Text });
+
+            return this.Body;
 
         }
 

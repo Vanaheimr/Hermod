@@ -816,7 +816,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                                 throw new SMTPClientException("SMTP DATA command error: " + _DataResponse.ToString());
 
                             // Send e-mail headers...
-                            EMailEnvelop.Mail.Headers.ForEach(line => SendCommand(line));
+                            EMailEnvelop.Mail.MailHeaders.ForEach(line => SendCommand(line));
                             SendCommand("Message-Id: <"   + (EMailEnvelop.Mail.MessageId != null
                                                                 ? EMailEnvelop.Mail.MessageId.ToString()
                                                                 : GenerateMessageId(EMailEnvelop.Mail, RemoteHost).ToString()) + ">");
@@ -824,7 +824,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                             SendCommand("");
 
                             // Send e-mail body(parts)...
-                            if (EMailEnvelop.Mail.Body != null)
+                            if (EMailEnvelop.Mail.MailBody != null)
                             {
                                 EMailEnvelop.Mail.Bodypart.ToText(false).ForEach(line => SendCommand(line));
                                 SendCommand("");

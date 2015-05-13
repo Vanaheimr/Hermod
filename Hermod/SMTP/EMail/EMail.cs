@@ -165,20 +165,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #endregion
 
-        #region AdditionalHeaders
-
-        private Dictionary<String, String> _AdditionalHeaders;
-
-        public Dictionary<String, String> AdditionalHeaders
-        {
-            get
-            {
-                return _AdditionalHeaders;
-            }
-        }
-
-        #endregion
-
 
         #region Body
 
@@ -217,9 +203,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
             this._Subject            = MailBuilder.Subject;
             this._Date               = MailBuilder.Date;
             this._MessageId          = MailBuilder.MessageId;
-            this._AdditionalHeaders  = new Dictionary<String, String>();
 
-            MailBuilder._AdditionalHeaders.ForEach(v => { this._AdditionalHeaders.Add(v.Key, v.Value); });
             this._Bodypart           = MailBuilder.Body;
 
         }
@@ -229,7 +213,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         #endregion
 
 
-        public IEnumerable<String> Headers
+        public IEnumerable<String> MailHeaders
         {
 
             get
@@ -257,21 +241,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
                 Where(line => line != null).
 
                 // Content-Type; Char-Set and more...
-                Concat(Bodypart.Headers).
-
-                Concat(AdditionalHeaders.
-                           Where (kvp => kvp.Value != null).
-                           Select(kvp => kvp.Key + ": " + kvp.Value));
+                Concat(Bodypart.MailHeaders.Select(v => v.Key + ": " + v.Value));// Headers);
 
             }
 
         }
 
-        public IEnumerable<String> Body
+        public IEnumerable<String> MailBody
         {
             get
             {
-                return Bodypart.ToText(true);
+                return Bodypart.ToText(false);
+            }
+        }
+
+
+        public IEnumerable<String> MailText
+        {
+            get
+            {
+                return MailHeaders.Concat(new String[] { "" }).Concat(MailBody);
             }
         }
 

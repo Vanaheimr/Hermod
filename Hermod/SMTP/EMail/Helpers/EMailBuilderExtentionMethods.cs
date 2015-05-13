@@ -36,19 +36,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         public static AbstractEMailBuilder AddAttachment(this AbstractEMailBuilder  MailBuilder,
                                                          Byte[]                     ByteArray,
                                                          String                     Filename         = null,
-                                                         MailContentTypes            ContentType      = MailContentTypes.text_plain,
+                                                         MailContentTypes           ContentType      = MailContentTypes.text_plain,
                                                          String                     ContentLanguage  = null)
         {
 
             return MailBuilder.AddAttachment(
-                new EMailBodypart(ContentType:              ContentType,
+                new EMailBodypart(ContentType:              new MailContentType(ContentType) { CharSet = "utf-8" },
                                   ContentTransferEncoding:  "base64",
-                                  Charset:                  "utf-8",
                                   ContentLanguage:          ContentLanguage,
-                                  AdditionalHeaders:        new List<KeyValuePair<String, String>>() {
-                                                                new KeyValuePair<String, String>("Content-Disposition", ContentDispositions.attachment.ToString() + "; filename=\"" + Filename + "\"")
-                                                            },
-                                  Content:                  new MailBodyString(Convert.ToBase64String(ByteArray))));
+                                  Content:                  new String[] { Convert.ToBase64String(ByteArray) }).
+                                  SetEMailHeader("Content-Disposition", ContentDispositions.attachment.ToString() + "; filename=\"" + Filename + "\"")  );
 
         }
 
@@ -59,19 +56,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         public static AbstractEMailBuilder AddAttachment(this AbstractEMailBuilder  MailBuilder,
                                                          Stream                     FileStream,
                                                          String                     Filename         = null,
-                                                         MailContentTypes            ContentType      = MailContentTypes.text_plain,
+                                                         MailContentTypes           ContentType      = MailContentTypes.text_plain,
                                                          String                     ContentLanguage  = null)
         {
 
             return MailBuilder.AddAttachment(
-                new EMailBodypart(ContentType:              ContentType,
+
+                new EMailBodypart(ContentType:              new MailContentType(ContentType) { CharSet = "utf-8" },
                                   ContentTransferEncoding:  "base64",
-                                  Charset:                  "utf-8",
                                   ContentLanguage:          ContentLanguage,
-                                  AdditionalHeaders:        new List<KeyValuePair<String, String>>() {
-                                                                new KeyValuePair<String, String>("Content-Disposition", ContentDispositions.attachment.ToString() + "; filename=\"" + Filename + "\"")
-                                                            },
-                                  Content:                  new MailBodyString(Convert.ToBase64String("FileStream".ToUTF8Bytes()))));
+                                  Content:                  new String[] { Convert.ToBase64String("FileStream".ToUTF8Bytes()) }).
+
+                                  SetEMailHeader("Content-Disposition", ContentDispositions.attachment.ToString() + "; filename=\"" + Filename + "\""));
 
         }
 
@@ -82,19 +78,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         public static AbstractEMailBuilder AddAttachment(this AbstractEMailBuilder  MailBuilder,
                                                          FileInfo                   FileInfo,
                                                          String                     Filename         = null,
-                                                         MailContentTypes            ContentType      = MailContentTypes.text_plain,
+                                                         MailContentTypes           ContentType      = MailContentTypes.text_plain,
                                                          String                     ContentLanguage  = null)
         {
 
             return MailBuilder.AddAttachment(
-                new EMailBodypart(ContentType:              ContentType,
+
+                new EMailBodypart(ContentType:              new MailContentType(ContentType) { CharSet = "utf-8" },
                                   ContentTransferEncoding:  "base64",
-                                  Charset:                  "utf-8",
                                   ContentLanguage:          ContentLanguage,
-                                  AdditionalHeaders:        new List<KeyValuePair<String, String>>() {
-                                                                new KeyValuePair<String, String>("Content-Disposition", ContentDispositions.attachment.ToString() + "; filename=\"" + Filename + "\"")
-                                                            },
-                                  Content:                  new MailBodyString(Convert.ToBase64String(File.ReadAllBytes(FileInfo.FullName)))));
+                                  Content:                  new String[] { Convert.ToBase64String(File.ReadAllBytes(FileInfo.FullName)) }).
+
+                                  SetEMailHeader("Content-Disposition", ContentDispositions.attachment.ToString() + "; filename=\"" + Filename + "\""));
 
         }
 
