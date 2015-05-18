@@ -19,7 +19,6 @@
 
 using System;
 using System.Linq;
-using System.Text.RegularExpressions;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -47,6 +46,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         private MailContentTypes _ContentType;
 
+        /// <summary>
+        /// The content type.
+        /// </summary>
         public MailContentTypes ContentType
         {
 
@@ -68,6 +70,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         private String _CharSet;
 
+        /// <summary>
+        /// The character set.
+        /// </summary>
         public String CharSet
         {
 
@@ -89,6 +94,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         private String _MIMEBoundary;
 
+        /// <summary>
+        /// The MIME boundary.
+        /// </summary>
         public String MIMEBoundary
         {
 
@@ -111,6 +119,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         private String _MicAlg;
 
+        /// <summary>
+        /// MicAlg part. Used e.g. for PGP/GPG.
+        /// </summary>
         public String MicAlg
         {
 
@@ -133,6 +144,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         private String _Protocol;
 
+        /// <summary>
+        /// Protocol part. Used e.g. for PGP/GPG.
+        /// </summary>
         public String Protocol
         {
 
@@ -293,9 +307,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         public override String ToString()
         {
 
-            return _ContentType.ToString().Replace("__", "+").Replace("_", "/") +
-                   (CharSet.     IsNotNullOrEmpty() ? "; charset=\""  + CharSet      + "\"" : "") +
-                   (MIMEBoundary.IsNotNullOrEmpty() ? "; boundary=\"" + MIMEBoundary + "\"" : "");
+            return _ContentType.ToString().Replace("__", "-").Replace("_", "/") +
+                   (CharSet.     IsNotNullOrEmpty() ?        "; charset=\""  + CharSet      + "\"" : "") +
+                   (MIMEBoundary.IsNotNullOrEmpty() ? ";\r\n    boundary=\"" + MIMEBoundary + "\"" : "") +
+                   (MicAlg.      IsNotNullOrEmpty() ? ";\r\n    micalg=\""   + MicAlg       + "\"" : "") +
+                   (Protocol.    IsNotNullOrEmpty() ? ";\r\n    protocol=\"" + Protocol     + "\"" : "");
 
         }
 

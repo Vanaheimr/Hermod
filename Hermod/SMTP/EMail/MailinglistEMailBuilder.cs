@@ -136,12 +136,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #region Constructor(s)
 
-        #region AbstractEMailBuilder(MailText)
+        #region AbstractEMailBuilder()
 
         /// <summary>
         /// Create a new mailinglist e-mail builder.
         /// </summary>
         public MailinglistEMailBuilder()
+        { }
+
+        #endregion
+
+        #region MailinglistEMailBuilder(EMail)
+
+        /// <summary>
+        /// Parse the e-mail from the given e-mail.
+        /// </summary>
+        /// <param name="EMail">An e-mail.</param>
+        public MailinglistEMailBuilder(EMail EMail)
+            : base(EMail)
         { }
 
         #endregion
@@ -166,6 +178,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         protected override EMailBodypart _EncodeBodyparts()
         {
             return this.Body;
+        }
+
+        #endregion
+
+
+        #region ToString()
+
+        /// <summary>
+        /// Return a string represtentation of this object.
+        /// </summary>
+        public override String ToString()
+        {
+            return "E-Mail " + Subject + " from " + Date;
         }
 
         #endregion

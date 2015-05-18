@@ -119,12 +119,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
                                                            new EMailBodypart(ContentTypeBuilder:       AMail => new MailContentType(AMail, MailContentTypes.text_plain) { CharSet = "utf-8" },
                                                                              ContentTransferEncoding:  this.ContentTransferEncoding,
                                                                              ContentLanguage:          this.ContentLanguage,
-                                                                             Content:                  new String[] { PlainText }),
+                                                                             Content:                  PlainText.Split(TextLineSplitter, StringSplitOptions.None)),
 
                                                            new EMailBodypart(ContentTypeBuilder:       AMail => new MailContentType(AMail, MailContentTypes.text_html)  { CharSet = "utf-8" },
                                                                              ContentTransferEncoding:  this.ContentTransferEncoding,
                                                                              ContentLanguage:          this.ContentLanguage,
-                                                                             Content:                  new String[] { HTMLText })
+                                                                             Content:                  HTMLText.Split(TextLineSplitter, StringSplitOptions.None))
 
                                                        });
 

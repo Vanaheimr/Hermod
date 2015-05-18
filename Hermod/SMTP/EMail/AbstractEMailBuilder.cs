@@ -39,6 +39,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #region Data
 
+        protected static readonly String[] TextLineSplitter = new String[] { "\r\n", "\r", "\n" };
+
         protected readonly List<EMailBodypart> _Attachments;
 
         #endregion
@@ -455,6 +457,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
             this.HashAlgorithm          = HashAlgorithms.Sha512;
             this.CompressionAlgorithm   = CompressionAlgorithms.Zip;
 
+            _MailHeaders.Add(new KeyValuePair<String, String>("MIME-Version", "1.0"));
+
+        }
+
+        #endregion
+
+        #region AbstractEMailBuilder(EMail)
+
+        /// <summary>
+        /// Parse the e-mail from the given e-mail.
+        /// </summary>
+        /// <param name="EMail">An e-mail.</param>
+        public AbstractEMailBuilder(EMail EMail)
+            : base(EMail)
+        {
+
+            this._Body = new EMailBodypart(EMail.ToText);
+
         }
 
         #endregion
@@ -511,7 +531,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// <summary>
         /// Encode this and all nested e-mail body parts.
         /// </summary>
-        internal void EncodeBodyparts()
+        internal AbstractEMailBuilder EncodeBodyparts()
         {
 
             var SignTheMail     = false;
@@ -612,10 +632,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
                                               // https://tools.ietf.org/html/rfc3156 5. OpenPGP signed data
                                               Aggregate((a, b) => a + "\r\n" + b)
 
-                                              // Apply Content-Transfer-Encoding
-
-                                              // Additional new line
-                                              + "\r\n";
+                                              //ToDo: Apply Content-Transfer-Encoding
+                                              ;
 
                 // MIME Security with OpenPGP (rfc3156, https://tools.ietf.org/html/rfc3156)
                 // OpenPGP Message Format     (rfc4880, https://tools.ietf.org/html/rfc4880)
@@ -702,6 +720,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
             else
                 this._Body = BodypartToBeSecured;
+
+            return this;
 
         }
 

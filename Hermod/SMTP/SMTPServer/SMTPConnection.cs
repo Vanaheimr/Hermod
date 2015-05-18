@@ -489,10 +489,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
                                         var OnNotificationLocal = OnNotification;
                                         if (OnNotificationLocal != null)
-                                            OnNotificationLocal(new EMailEnvelop(RemoteSocket:  TCPConnection.RemoteSocket,
-                                                                                 MailFrom:      MailFroms,
+                                            OnNotificationLocal(new EMailEnvelop(MailFrom:      MailFroms,
                                                                                  RcptTo:        RcptTos,
-                                                                                 MailText:      MailText));
+                                                                                 EMail:         new EMail(MailText),
+                                                                                 RemoteSocket:  TCPConnection.RemoteSocket));
 
                                     }
 

@@ -820,7 +820,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                             {
 
                                 EMailEnvelop.Mail.
-                                             MailHeaders.
+                                             Header.
                                              Select(header => header.Key + ": " + header.Value).
                                              ForEach(line => SendCommand(line));
 
@@ -831,17 +831,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                                 SendCommand("");
 
                                 // Send e-mail body(parts)...
-                                if (EMailEnvelop.Mail.MailBody != null)
-                                {
+                                //if (EMailEnvelop.Mail.MailBody != null)
+                                //{
                                     EMailEnvelop.Mail.Body.ToText(false).ForEach(line => SendCommand(line));
                                     SendCommand("");
-                                }
+                                //}
 
                             }
 
-                            else if (EMailEnvelop.MailText != null)
+                            else if (EMailEnvelop.Mail.ToText != null)
                             {
-                                EMailEnvelop.MailText.ForEach(line => SendCommand(line));
+                                EMailEnvelop.Mail.ToText.ForEach(line => SendCommand(line));
                                 SendCommand("");
                             }
 

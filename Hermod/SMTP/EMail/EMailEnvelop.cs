@@ -87,61 +87,61 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #endregion
 
-        #region MailText
+        //#region MailText
 
-        protected readonly IEnumerable<String> _MailText;
+        //protected readonly IEnumerable<String> _MailText;
 
-        /// <summary>
-        /// The embedded e-mail as text.
-        /// </summary>
-        public IEnumerable<String> MailText
-        {
-            get
-            {
-                return _MailText;
-            }
-        }
+        ///// <summary>
+        ///// The embedded e-mail as text.
+        ///// </summary>
+        //public IEnumerable<String> MailText
+        //{
+        //    get
+        //    {
+        //        return _MailText;
+        //    }
+        //}
 
-        #endregion
+        //#endregion
 
-        #region MailHeader
+        //#region MailHeader
 
-        /// <summary>
-        /// The embedded e-mail header as text.
-        /// </summary>
-        public IEnumerable<String> MailHeader
-        {
-            get
-            {
+        ///// <summary>
+        ///// The embedded e-mail header as text.
+        ///// </summary>
+        //public IEnumerable<String> MailHeader
+        //{
+        //    get
+        //    {
 
-                return _MailText != null
-                    ? _MailText.TakeWhile(line => line.IsNotNullOrEmpty())
-                    : new String[] { "" };
+        //        return _MailText != null
+        //            ? _MailText.TakeWhile(line => line.IsNotNullOrEmpty())
+        //            : new String[] { "" };
 
-            }
-        }
+        //    }
+        //}
 
-        #endregion
+        //#endregion
 
-        #region MailBody
+        //#region MailBody
 
-        /// <summary>
-        /// The embedded e-mail body as text.
-        /// </summary>
-        public IEnumerable<String> MailBody
-        {
-            get
-            {
+        ///// <summary>
+        ///// The embedded e-mail body as text.
+        ///// </summary>
+        //public IEnumerable<String> MailBody
+        //{
+        //    get
+        //    {
 
-                // Skip the mail header and skip the newline after the mail header...
-                return _MailText != null
-                    ? _MailText.SkipWhile(line => line.IsNotNullOrEmpty()).Skip(1)
-                    : new String[] { "" };
+        //        // Skip the mail header and skip the newline after the mail header...
+        //        return _MailText != null
+        //            ? _MailText.SkipWhile(line => line.IsNotNullOrEmpty()).Skip(1)
+        //            : new String[] { "" };
 
-            }
-        }
+        //    }
+        //}
 
-        #endregion
+        //#endregion
 
         #region Mail
 
@@ -202,7 +202,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #endregion
 
-        #region EMailEnvelop(MailFrom, RcptTo, EMail)
+        #region EMailEnvelop(MailFrom, RcptTo, EMail, RemoteSocket = null)
 
         /// <summary>
         /// Create a new e-mail envelop based on the given sender
@@ -211,39 +211,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// <param name="MailFrom">The sender(s) of the e-mail.</param>
         /// <param name="RcptTo">The receiver(s) of the e-mail.</param>
         /// <param name="EMail">An e-mail.</param>
+        /// <param name="RemoteSocket">The remote socket of the incoming SMTP connection.</param>
         public EMailEnvelop(EMailAddressList  MailFrom,
                             EMailAddressList  RcptTo,
-                            EMail             EMail)
+                            EMail             EMail,
+                            IPSocket          RemoteSocket  = null)
         {
 
-            this._MailFrom  = MailFrom;
-            this._RcptTo    = RcptTo;
-            this._Mail      = EMail;
-
-        }
-
-        #endregion
-
-        #region EMailEnvelop(MailFrom, RcptTo, MailText)
-
-        /// <summary>
-        /// Create a new e-mail envelop based on the given sender
-        /// and receiver addresses and the e-mail builder data.
-        /// </summary>
-        /// <param name="MailFrom">The sender(s) of the e-mail.</param>
-        /// <param name="RcptTo">The receiver(s) of the e-mail.</param>
-        /// <param name="MailText">The e-mail as enumeration of strings.</param>
-        /// <param name="RemoteSocket">The remote socket of the incoming SMTP connection.</param>
-        public EMailEnvelop(EMailAddressList      MailFrom,
-                            EMailAddressList      RcptTo,
-                            IEnumerable<String>   MailText,
-                            IPSocket              RemoteSocket  = null)
-        {
-
-            this._RemoteSocket  = RemoteSocket;
             this._MailFrom      = MailFrom;
             this._RcptTo        = RcptTo;
-            this._MailText      = MailText;
+            this._Mail          = EMail;
+            this._RemoteSocket  = RemoteSocket;
 
         }
 
@@ -265,16 +243,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
                             IPSocket              RemoteSocket  = null)
         {
 
-            //MailBuilder.EncodeBodyparts();
-
             this._RemoteSocket  = RemoteSocket;
             this._MailFrom      = MailFrom;
             this._RcptTo        = RcptTo;
             this._Mail          = new EMail(MailBuilder);
-            this._MailText      = _Mail.MailText;
-                                        //Select(header => header.Key + ": " + header.Value + Environment.NewLine).
-                                        //Concat(new String[] { "" }).
-                                        //Concat(_Mail.Body.ToText(false));
 
         }
 

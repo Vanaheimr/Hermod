@@ -303,19 +303,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// </summary>
         public AbstractEMail()
         {
-            this._MailText      = new List<String>();
-            this._MailHeaders   = new List<KeyValuePair<String, String>>();
-            this._MailBody      = new List<String>();
+
+            _MailText      = new List<String>();
+            _MailHeaders   = new List<KeyValuePair<String, String>>();
+            _MailBody      = new List<String>();
+
         }
 
         #endregion
 
-        #region AbstractEMail(MailText)
+        #region AbstractEMail(EMail)
+
+        /// <summary>
+        /// Parse the e-mail from the given e-mail.
+        /// </summary>
+        /// <param name="EMail">An e-mail.</param>
+        /// <param name="MailTextFilter">A filter delegate for filtering e-mail headers.</param>
+        public AbstractEMail(EMail                  EMail,
+                             Func<String, Boolean>  MailTextFilter = null)
+            : this()
+        {
+
+            if (EMail.ToText != null)
+            {
+                this._MailText = EMail.ToText;
+                Tools.ParseMail(this._MailText, out _MailHeaders, out _MailBody);
+            }
+
+            if (MailTextFilter != null)
+                _MailHeaders = new List<KeyValuePair<String, String>>(_MailHeaders.Where(header => MailTextFilter(header.Key.ToLower())));
+
+        }
+
+        #endregion
+
+        #region AbstractEMail(MailText, MailTextFilter = null)
 
         /// <summary>
         /// Parse the e-mail from the given text lines.
         /// </summary>
         /// <param name="MailText">The E-Mail as an enumeration of strings.</param>
+        /// <param name="MailTextFilter">A filter delegate for filtering e-mail headers.</param>
         public AbstractEMail(IEnumerable<String>    MailText,
                              Func<String, Boolean>  MailTextFilter = null)
             : this()
@@ -328,9 +356,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
             }
 
             if (MailTextFilter != null)
-            {
                 _MailHeaders = new List<KeyValuePair<String, String>>(_MailHeaders.Where(header => MailTextFilter(header.Key.ToLower())));
-            }
 
         }
 
