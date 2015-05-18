@@ -94,13 +94,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         public HTMLEMailBuilder()
         {
 
-            this.ContentType = new MailContentType() { ContentType = MailContentTypes.multipart_alternative };
+            this.ContentType  = new MailContentType(this, MailContentTypes.multipart_alternative) { CharSet = "utf-8" };
 
-            this.SetEMailHeader("Content-Transfer-Encoding",  "8bit");
-            this.SetEMailHeader("Charset",                    "utf-8");
-
-            this.PlainText  = "";
-            this.HTMLText   = "";
+            this.PlainText    = "";
+            this.HTMLText     = "";
 
         }
 
@@ -119,12 +116,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
                                      Content:          new String[] { "This is a multi-part message in MIME format." },
                                      NestedBodyparts:  new EMailBodypart[] {
 
-                                                           new EMailBodypart(ContentType:              new MailContentType(MailContentTypes.text_plain) { CharSet = "utf-8" },
+                                                           new EMailBodypart(ContentTypeBuilder:       AMail => new MailContentType(AMail, MailContentTypes.text_plain) { CharSet = "utf-8" },
                                                                              ContentTransferEncoding:  this.ContentTransferEncoding,
                                                                              ContentLanguage:          this.ContentLanguage,
                                                                              Content:                  new String[] { PlainText }),
 
-                                                           new EMailBodypart(ContentType:              new MailContentType(MailContentTypes.text_html)  { CharSet = "utf-8" },
+                                                           new EMailBodypart(ContentTypeBuilder:       AMail => new MailContentType(AMail, MailContentTypes.text_html)  { CharSet = "utf-8" },
                                                                              ContentTransferEncoding:  this.ContentTransferEncoding,
                                                                              ContentLanguage:          this.ContentLanguage,
                                                                              Content:                  new String[] { HTMLText })

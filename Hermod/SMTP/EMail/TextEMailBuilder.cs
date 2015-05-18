@@ -90,7 +90,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// </summary>
         public TextEMailBuilder()
         {
-            this.Text = "";
+
+            this.ContentType  = new MailContentType(this, MailContentTypes.text_plain) { CharSet = "utf-8" };
+
+            this.Text         = "";
+
         }
 
         #endregion
@@ -101,7 +105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         protected override EMailBodypart _EncodeBodyparts()
         {
 
-            return new EMailBodypart(ContentType:              new MailContentType(MailContentTypes.text_plain) { CharSet = "utf-8" },//"ISO-8859-15",
+            return new EMailBodypart(ContentTypeBuilder:       AMail => new MailContentType(AMail, MailContentTypes.text_plain) { CharSet = "utf-8" },//"ISO-8859-15",
                                      ContentTransferEncoding:  "quoted-printable",//"8bit",
                                      ContentLanguage:          ContentLanguage,
                                      Content:                  new String[] { Text });

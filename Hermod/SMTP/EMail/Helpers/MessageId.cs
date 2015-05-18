@@ -20,6 +20,8 @@
 using System;
 using System.Security.Cryptography;
 
+using org.GraphDefined.Vanaheimr.Illias;
+
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
@@ -109,17 +111,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         #endregion
 
 
-        #region (static) Parse(EMailAddress)
+        #region (static) Parse(MessageIdString)
 
         /// <summary>
         /// Parse an e-mail message identification from a string.
         /// </summary>
         /// <param name="MessageId">A string representation of an e-mail message identification.</param>
-        public static MessageId Parse(String MessageId)
+        public static MessageId Parse(String MessageIdString)
         {
 
-            return MessageId != null
-                      ? new MessageId(MessageId)
+            return MessageIdString.IsNotNullOrEmpty()
+                      ? new MessageId(MessageIdString)
                       : null;
 
         }

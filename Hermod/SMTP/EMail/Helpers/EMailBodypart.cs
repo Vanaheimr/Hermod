@@ -39,7 +39,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #region Content
 
-        private readonly IEnumerable<String> _Content;
+        //private readonly IEnumerable<String> _Content;
 
         /// <summary>
         /// The content of this e-mail body.
@@ -48,7 +48,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         {
             get
             {
-                return _Content;
+                return _MailBody;
             }
         }
 
@@ -77,26 +77,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// <summary>
         /// Create a new e-mail bodypart.
         /// </summary>
-        public EMailBodypart(AbstractEMailBuilder                       EMailBuilder,
-                             IEnumerable<KeyValuePair<String, String>>  AdditionalContentTypeInfos  = null,
-                             IEnumerable<EMailBodypart>                 NestedBodyparts             = null,
-                             IEnumerable<String>                        Content                     = null)
+        public EMailBodypart(AbstractEMailBuilder        EMailBuilder,
+                             IEnumerable<String>         Content          = null,
+                             IEnumerable<EMailBodypart>  NestedBodyparts  = null)
 
         {
 
-            this.ContentType                  = EMailBuilder.ContentType;
-            this._ContentTransferEncoding     = EMailBuilder.ContentTransferEncoding;//.IsNotNullOrEmpty() ? ContentTransferEncoding : "8bit";
-            this._ContentLanguage             = EMailBuilder.ContentLanguage;
-            this._ContentDescription          = EMailBuilder.ContentDescription;
-            this._ContentDisposition          = EMailBuilder.ContentDisposition;
+            // Only copy all e-mail headers starting with "content"...
+            base._MailHeaders.AddRange(EMailBuilder.MailHeaders.Where(header => header.Key.ToLower().StartsWith("content")));
 
-            this._Content                     = Content;
-            this._NestedBodyparts             = NestedBodyparts != null
-                                                    ? (IEnumerable<EMailBodypart>) new List<EMailBodypart>(NestedBodyparts)
-                                                    : (IEnumerable<EMailBodypart>) new EMailBodypart[0];
+            this._MailBody.AddRange(Content);
+            this._NestedBodyparts         = NestedBodyparts != null
+                                                ? new List<EMailBodypart>(NestedBodyparts)
+                                                : (IEnumerable<EMailBodypart>) new EMailBodypart[0];
 
             if (_NestedBodyparts.Count() > 0)
-                _ContentType.GenerateMIMEBoundary();
+                this.ContentType.GenerateMIMEBoundary();
 
         }
 
@@ -107,30 +103,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// <summary>
         /// Create a new e-mail bodypart.
         /// </summary>
-        public EMailBodypart(MailContentType                         ContentType,
-                             String                                     ContentTransferEncoding     = null,
-                             String                                     ContentLanguage             = null,
-                             String                                     ContentDescription          = null,
-                             String                                     ContentDisposition          = null,
-                             String                                     MIMEBoundary                = null,
-                             IEnumerable<EMailBodypart>                 NestedBodyparts             = null,
-                             IEnumerable<String>                        Content                     = null)
+        public EMailBodypart(Func<AbstractEMail, MailContentType>  ContentTypeBuilder,
+                             String                                ContentTransferEncoding  = null,
+                             String                                ContentLanguage          = null,
+                             String                                ContentDescription       = null,
+                             String                                ContentDisposition       = null,
+                             String                                MIMEBoundary             = null,
+                             IEnumerable<EMailBodypart>            NestedBodyparts          = null,
+                             IEnumerable<String>                   Content                  = null)
 
         {
 
-            this.ContentType                  = ContentType;
-            this._ContentTransferEncoding     = ContentTransferEncoding;//.IsNotNullOrEmpty() ? ContentTransferEncoding : "8bit";
-            this._ContentLanguage             = ContentLanguage;
-            this._ContentDescription          = ContentDescription;
-            this._ContentDisposition          = ContentDisposition;
+            this.ContentType              = ContentTypeBuilder(this);
+            this.ContentTransferEncoding  = ContentTransferEncoding;
+            this.ContentLanguage          = ContentLanguage;
+            this.ContentDescription       = ContentDescription;
+            this.ContentDisposition       = ContentDisposition;
 
-            this._Content                     = Content;
-            this._NestedBodyparts             = NestedBodyparts != null
-                                                    ? new List<EMailBodypart>(NestedBodyparts)
-                                                    : new List<EMailBodypart>();
+            if (Content != null)
+                this._MailBody.AddRange(Content);
+
+            this._NestedBodyparts         = NestedBodyparts != null
+                                                ? new List<EMailBodypart>(NestedBodyparts)
+                                                : new List<EMailBodypart>();
 
             if (_NestedBodyparts.Count() > 0)
-                _ContentType.GenerateMIMEBoundary();
+                ContentType.GenerateMIMEBoundary();
 
         }
 
@@ -143,17 +141,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// </summary>
         /// <param name="MailText">The E-Mail as an enumeration of strings.</param>
         public EMailBodypart(IEnumerable<String> MailText)
-            : base(MailText)
+            : base(MailText, header => header.ToLower().StartsWith("content"))
         {
 
-            if (_ContentType == null)
-                _ContentType = new MailContentType(GetEMailHeader("Content-Type"));
+            if (ContentType == null)
+                ContentType = new MailContentType(this, GetEMailHeader("Content-Type"));
 
-            if (_ContentType.Text.Contains("boundary="))
+            if (ContentType.Text.Contains("boundary="))
             {
 
-                var MIMEBoundaryCheck    = "--" + _ContentType.MIMEBoundary;
-                var MIMEBoundaryCheckEnd = "--" + _ContentType.MIMEBoundary + "--";
+                var MIMEBoundaryCheck    = "--" + ContentType.MIMEBoundary;
+                var MIMEBoundaryCheckEnd = "--" + ContentType.MIMEBoundary + "--";
 
                 var ListOfList = new List<List<String>>();
                 var List       = new List<String>();
@@ -173,7 +171,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
                 }
 
-                _Content         = ListOfList[0];
+                this._MailBody.Clear();
+                this._MailBody.AddRange(ListOfList[0]);
                 _NestedBodyparts = ListOfList.Skip(1).Select(list => new EMailBodypart(list)).ToList();
 
             }
@@ -181,7 +180,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
             else
             {
 
-                _Content         = MailBody;
+                //this._MailBody.Clear();
+                //this._MailBody.AddRange(MailBody);
                 _NestedBodyparts = new EMailBodypart[0];
 
             }
@@ -204,13 +204,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
                                        Concat(new String[] { "" })
                                  : new String[0]).
 
-                             Concat(_Content != null ? _Content : new String[0]).
+                             Concat(_MailBody != null ? _MailBody : (IEnumerable<String>) new String[0]).
 
                              Concat(_NestedBodyparts.
-                                        SelectMany(bodypart => new String[] { "--" + _ContentType.MIMEBoundary }.
+                                        SelectMany(bodypart => new String[] { "--" + ContentType.MIMEBoundary }.
                                         Concat(bodypart.ToText(true)))).
 
-                             Concat(_NestedBodyparts.Count() > 0 ? new String[] { "--" + _ContentType.MIMEBoundary + "--" } : new String[0]);
+                             Concat(_NestedBodyparts.Count() > 0 ? new String[] { "--" + ContentType.MIMEBoundary + "--" } : new String[0]);
 
             return AllHeaders;
 

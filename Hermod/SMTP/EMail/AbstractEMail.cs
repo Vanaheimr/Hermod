@@ -123,7 +123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #region MailText
 
-        private readonly IEnumerable<String> _MailText;
+        protected readonly IEnumerable<String> _MailText;
 
         /// <summary>
         /// The E-Mail as enumeration of strings.
@@ -140,7 +140,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #region MailHeaders
 
-        private readonly List<KeyValuePair<String, String>> _MailHeaders;
+        protected readonly List<KeyValuePair<String, String>> _MailHeaders;
 
         /// <summary>
         /// The E-Mail header as enumeration of strings.
@@ -157,7 +157,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #region MailBody
 
-        private readonly List<String> _MailBody;
+        protected readonly List<String> _MailBody;
 
         /// <summary>
         /// The E-Mail body as enumeration of strings.
@@ -175,14 +175,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #region ContentType
 
-        protected MailContentType _ContentType;
+        private MailContentType _ContentType;
 
+        /// <summary>
+        /// The content type of the e-mail.
+        /// </summary>
         public MailContentType ContentType
         {
 
             get
             {
+
+                if (_ContentType == null)
+                    _ContentType = new MailContentType(this, this.GetEMailHeader("Content-Type"));
+
                 return _ContentType;
+
             }
 
             set
@@ -200,62 +208,86 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #region ContentTransferEncoding
 
-        protected String _ContentTransferEncoding;
-
         public String ContentTransferEncoding
         {
+
             get
             {
-                return _ContentTransferEncoding;
+                return this.GetEMailHeader("Content-Transfer-Encoding");
             }
+
+            set
+            {
+                if (value.IsNotNullOrEmpty())
+                    this.SetEMailHeader("Content-Transfer-Encoding", value);
+            }
+
         }
 
         #endregion
 
         #region ContentLanguage
 
-        protected String _ContentLanguage;
-
         public String ContentLanguage
         {
+
             get
             {
-                return _ContentLanguage;
+                return this.GetEMailHeader("Content-Language");
             }
+
+            set
+            {
+                if (value.IsNotNullOrEmpty())
+                    this.SetEMailHeader("Content-Language", value);
+            }
+
         }
 
         #endregion
 
         #region ContentDescription
 
-        protected String _ContentDescription;
-
         /// <summary>
-        /// Content-Description
+        /// A short text to decripte the content of the e-mail body(part).
         /// </summary>
         public String ContentDescription
         {
+
             get
             {
-                return _ContentDescription;
+                return this.GetEMailHeader("Content-Description");
             }
+
+            set
+            {
+                if (value.IsNotNullOrEmpty())
+                    this.SetEMailHeader("Content-Description", value);
+            }
+
         }
 
         #endregion
 
         #region ContentDisposition
 
-        protected String _ContentDisposition;
-
         /// <summary>
         /// Content-Disposition
         /// </summary>
         public String ContentDisposition
         {
+
             get
             {
-                return _ContentDisposition;
+                return this.GetEMailHeader("Content-Disposition");
             }
+
+            set
+            {
+                if (value.IsNotNullOrEmpty())
+                    this.SetEMailHeader("Content-Disposition", value);
+            }
+
         }
 
         #endregion
@@ -270,8 +302,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// Parse the e-mail from the given text lines.
         /// </summary>
         public AbstractEMail()
-            : this(new String[0])
-        { }
+        {
+            this._MailText      = new List<String>();
+            this._MailHeaders   = new List<KeyValuePair<String, String>>();
+            this._MailBody      = new List<String>();
+        }
 
         #endregion
 
@@ -281,14 +316,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// Parse the e-mail from the given text lines.
         /// </summary>
         /// <param name="MailText">The E-Mail as an enumeration of strings.</param>
-        public AbstractEMail(IEnumerable<String> MailText)
+        public AbstractEMail(IEnumerable<String>    MailText,
+                             Func<String, Boolean>  MailTextFilter = null)
+            : this()
         {
 
-            this._MailText      = MailText != null ? MailText : new String[0];
-            this._MailHeaders   = new List<KeyValuePair<String, String>>();
-            this._MailBody      = new List<String>();
+            if (MailText != null)
+            {
+                this._MailText = MailText;
+                Tools.ParseMail(this._MailText, out _MailHeaders, out _MailBody);
+            }
 
-            Tools.ParseMail(MailText, out _MailHeaders, out _MailBody);
+            if (MailTextFilter != null)
+            {
+                _MailHeaders = new List<KeyValuePair<String, String>>(_MailHeaders.Where(header => MailTextFilter(header.Key.ToLower())));
+            }
+
+        }
+
+        #endregion
+
+        #region AbstractEMail(MailHeaders)
+
+        /// <summary>
+        /// Create a new e-mail.
+        /// </summary>
+        /// <param name="MailHeaders">The E-Mail headers.</param>
+        public AbstractEMail(IEnumerable<KeyValuePair<String, String>> MailHeaders)
+            : this()
+        {
+
+            if (MailHeaders != null)
+                this._MailHeaders.AddRange(MailHeaders);
 
         }
 

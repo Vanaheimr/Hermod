@@ -816,17 +816,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                                 throw new SMTPClientException("SMTP DATA command error: " + _DataResponse.ToString());
 
                             // Send e-mail headers...
-                            EMailEnvelop.Mail.MailHeaders.ForEach(line => SendCommand(line));
-                            SendCommand("Message-Id: <"   + (EMailEnvelop.Mail.MessageId != null
-                                                                ? EMailEnvelop.Mail.MessageId.ToString()
-                                                                : GenerateMessageId(EMailEnvelop.Mail, RemoteHost).ToString()) + ">");
-
-                            SendCommand("");
-
-                            // Send e-mail body(parts)...
-                            if (EMailEnvelop.Mail.MailBody != null)
+                            if (EMailEnvelop.Mail != null)
                             {
-                                EMailEnvelop.Mail.Bodypart.ToText(false).ForEach(line => SendCommand(line));
+
+                                EMailEnvelop.Mail.
+                                             MailHeaders.
+                                             Select(header => header.Key + ": " + header.Value).
+                                             ForEach(line => SendCommand(line));
+
+                                SendCommand("Message-Id: <" + (EMailEnvelop.Mail.MessageId != null
+                                                                    ? EMailEnvelop.Mail.MessageId.ToString()
+                                                                    : GenerateMessageId(EMailEnvelop.Mail, RemoteHost).ToString()) + ">");
+
+                                SendCommand("");
+
+                                // Send e-mail body(parts)...
+                                if (EMailEnvelop.Mail.MailBody != null)
+                                {
+                                    EMailEnvelop.Mail.Body.ToText(false).ForEach(line => SendCommand(line));
+                                    SendCommand("");
+                                }
+
+                            }
+
+                            else if (EMailEnvelop.MailText != null)
+                            {
+                                EMailEnvelop.MailText.ForEach(line => SendCommand(line));
                                 SendCommand("");
                             }
 

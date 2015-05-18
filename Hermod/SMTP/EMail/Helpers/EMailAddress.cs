@@ -153,7 +153,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// <param name="SimpleEMailAddressString">A string representation of a simple e-mail address.</param>
         /// <param name="SecretKeyRing">The secret key ring for an e-mail address.</param>
         /// <param name="PublicKeyRing">The public key ring for an e-mail address.</param>
-        public EMailAddress(String SimpleEMailAddressString,
+        public EMailAddress(String            SimpleEMailAddressString,
                             PgpSecretKeyRing  SecretKeyRing = null,
                             PgpPublicKeyRing  PublicKeyRing = null)
 
@@ -228,6 +228,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         public static EMailAddress Parse(String EMailString)
         {
+
+            if (EMailString.IsNullOrEmpty())
+                return null;
 
             var b = EMailString.IndexOf('<');
             var c = EMailString.IndexOf('>');

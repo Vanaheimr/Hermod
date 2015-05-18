@@ -265,15 +265,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
                             IPSocket              RemoteSocket  = null)
         {
 
-            MailBuilder.EncodeBodyparts();
+            //MailBuilder.EncodeBodyparts();
 
             this._RemoteSocket  = RemoteSocket;
             this._MailFrom      = MailFrom;
             this._RcptTo        = RcptTo;
             this._Mail          = new EMail(MailBuilder);
-            this._MailText      = _Mail.MailHeaders.
-                                        Concat(new String[] { "" }).
-                                        Concat(_Mail.Bodypart.ToText(false));
+            this._MailText      = _Mail.MailText;
+                                        //Select(header => header.Key + ": " + header.Value + Environment.NewLine).
+                                        //Concat(new String[] { "" }).
+                                        //Concat(_Mail.Body.ToText(false));
 
         }
 

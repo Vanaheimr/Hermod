@@ -36,7 +36,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #region Data
 
-        private static readonly Random _Random = new Random();
+        private        readonly  AbstractEMail   _EMailHeader;
+        private static readonly  Random          _Random         = new Random();
 
         #endregion
 
@@ -169,73 +170,87 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #region Constructor(s)
 
-        #region MailContentType(ContentType = MailContentTypes.unknown)
+        #region MailContentType(EMailHeader, ContentType = MailContentTypes.unknown)
 
         /// <summary>
         /// Create a new e-mail content type.
         /// </summary>
         /// <param name="ContentType">The content type.</param>
-        public MailContentType(MailContentTypes ContentType = MailContentTypes.unknown)
+        public MailContentType(AbstractEMail     EMailHeader,
+                               MailContentTypes  ContentType = MailContentTypes.unknown)
         {
-            this._ContentType = ContentType;
+
+            this._EMailHeader  = EMailHeader;
+            this._ContentType  = ContentType;
+
         }
 
         #endregion
 
-        #region MailContentType(ContentTypeString)
+        #region MailContentType(EMailHeader, ContentTypeString)
 
         /// <summary>
         /// Create a new e-mail content type by parsing the given string.
         /// </summary>
         /// <param name="ContentTypeString"></param>
-        public MailContentType(String ContentTypeString)
+        public MailContentType(AbstractEMail  EMailHeader,
+                               String         ContentTypeString)
         {
 
-            this._Text = ContentTypeString;
+            this._EMailHeader  = EMailHeader;
+            this._Text         = ContentTypeString;
 
             var Splitted = ContentTypeString.
                                Split(new String[] { ";" }, StringSplitOptions.RemoveEmptyEntries).
                                Select(v => v.Trim()).
                                ToArray();
 
-            if (!Enum.TryParse<MailContentTypes>(Splitted[0].Replace("/", "_").Replace("+", "__"), out this._ContentType))
-                this._ContentType = MailContentTypes.unknown;
+            if (Splitted.Length == 0)
+                this._ContentType = MailContentTypes.text_plain;
+
+            else if (!Enum.TryParse<MailContentTypes>(Splitted[0].Replace("/", "_").Replace("+", "__"), out this._ContentType))
+                this._ContentType = MailContentTypes.text_plain;
 
 
-            foreach (var SubInformation in Splitted.Skip(1))
-            {
-
-                if (SubInformation.ToLower().StartsWith("charset="))
+            else
+                foreach (var SubInformation in Splitted.Skip(1))
                 {
 
-                    _CharSet = SubInformation.Substring("charset=".Length).Trim().ToLower();
+                    if (SubInformation.ToLower().StartsWith("charset="))
+                    {
 
-                    if (_CharSet.StartsWith(@""""))
-                        _CharSet = _CharSet.Remove(0, 1);
+                        _CharSet = SubInformation.Substring("charset=".Length).Trim().ToLower();
 
-                    if (_CharSet.EndsWith(@""""))
-                        _CharSet = _CharSet.Substring(0, _CharSet.Length - 1);
+                        if (_CharSet.StartsWith(@""""))
+                            _CharSet = _CharSet.Remove(0, 1);
 
-                    continue;
+                        if (_CharSet.EndsWith(@""""))
+                            _CharSet = _CharSet.Substring(0, _CharSet.Length - 1);
+
+                        continue;
+
+                    }
+
+                    if (SubInformation.ToLower().StartsWith("boundary="))
+                    {
+
+                        _MIMEBoundary = SubInformation.Substring("boundary=".Length).Trim();
+
+                        if (_MIMEBoundary.StartsWith(@""""))
+                            _MIMEBoundary = _MIMEBoundary.Remove(0, 1);
+
+                        if (_MIMEBoundary.EndsWith(@""""))
+                            _MIMEBoundary = _MIMEBoundary.Substring(0, MIMEBoundary.Length - 1);
+
+                        continue;
+
+                    }
 
                 }
 
-                if (SubInformation.ToLower().StartsWith("boundary="))
-                {
-
-                    _MIMEBoundary = SubInformation.Substring("boundary=".Length).Trim();
-
-                    if (_MIMEBoundary.StartsWith(@""""))
-                        _MIMEBoundary = _MIMEBoundary.Remove(0, 1);
-
-                    if (_MIMEBoundary.EndsWith(@""""))
-                        _MIMEBoundary = _MIMEBoundary.Substring(0, MIMEBoundary.Length - 1);
-
-                    continue;
-
-                }
-
-            }
+            // Update text-version within the e-mail header
+            if (_EMailHeader != null)
+                _EMailHeader.SetEMailHeader("Content-Type", this.ToString());
 
         }
 
@@ -244,18 +259,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         #endregion
 
 
+        #region GenerateMIMEBoundary()
 
+        /// <summary>
+        /// Generate a valid MIME boundary, if it does not exist.
+        /// </summary>
         public MailContentType GenerateMIMEBoundary()
         {
 
             if (_MIMEBoundary == null)
+            {
+
                 _MIMEBoundary = "-8<--" + _ContentType.ToString().Replace("_", "/") + "--8<--" + _Random.GetBytes(12).ToHexString() + "--8<-";
+
+                // Update text-version within the e-mail header
+                if (_EMailHeader != null)
+                    _EMailHeader.SetEMailHeader("Content-Type", this.ToString());
+
+            }
 
             return this;
 
         }
 
-
+        #endregion
 
 
         #region (override) ToString()

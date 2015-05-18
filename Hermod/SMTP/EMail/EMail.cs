@@ -33,153 +33,105 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
     public class EMail
     {
 
-        #region Properties
-
-        #region From
-
-        private readonly EMailAddress _From;
+        #region Well-known e-mail headers
 
         /// <summary>
         /// The sender of the e-mail.
         /// </summary>
-        public EMailAddress From
-        {
-            get
-            {
-                return _From;
-            }
-        }
-
-        #endregion
-
-        #region To
-
-        private readonly EMailAddressList _To;
+        public readonly EMailAddress        From;
 
         /// <summary>
         /// The receivers of the e-mail.
         /// </summary>
-        public EMailAddressList To
-        {
-            get
-            {
-                return _To;
-            }
-        }
-
-        #endregion
-
-        #region ReplyTo
-
-        private readonly EMailAddressList _ReplyTo;
-
-        /// <summary>
-        /// The receivers of any reply on this e-mail.
-        /// </summary>
-        public EMailAddressList ReplyTo
-        {
-            get
-            {
-                return _ReplyTo;
-            }
-        }
-
-        #endregion
-
-        #region Cc
-
-        private readonly EMailAddressList _Cc;
+        public readonly EMailAddressList    To;
 
         /// <summary>
         /// Additional receivers of the e-mail.
         /// </summary>
-        public EMailAddressList Cc
-        {
-            get
-            {
-                return _Cc;
-            }
-        }
-
-        #endregion
-
-        #region Bcc
-
-        private readonly EMailAddressList _Bcc;
+        public readonly EMailAddressList    Cc;
 
         /// <summary>
         /// Hidden receivers of the e-mail.
         /// </summary>
-        public EMailAddressList Bcc
-        {
-            get
-            {
-                return _Bcc;
-            }
-        }
+        public readonly EMailAddressList    Bcc;
 
-        #endregion
+        /// <summary>
+        /// The receivers of any reply on this e-mail.
+        /// </summary>
+        public readonly EMailAddressList    ReplyTo;
 
-        #region Subject
+        /// <summary>
+        /// The subject of the e-mail.
+        /// </summary>
+        public readonly String              Subject;
 
-        private String _Subject;
-
-        public String Subject
-        {
-            get
-            {
-                return _Subject;
-            }
-        }
-
-        #endregion
-
-        #region Date
-
-        private DateTime _Date;
-
-        public DateTime Date
-        {
-            get
-            {
-                return _Date;
-            }
-        }
-
-        #endregion
-
-        #region MessageId
-
-        private MessageId _MessageId;
+        /// <summary>
+        /// The sending timestamp of the e-mail.
+        /// </summary>
+        public readonly DateTime            Date;
 
         /// <summary>
         /// The unique message identification of the e-mail.
         /// </summary>
-        public MessageId MessageId
+        public readonly MessageId           MessageId;
+
+        #endregion
+
+        #region Properties
+
+        #region MailHeaders
+
+        private readonly List<KeyValuePair<String, String>> _MailHeaders;
+
+        /// <summary>
+        /// The E-Mail header as enumeration of strings.
+        /// </summary>
+        public IEnumerable<KeyValuePair<String, String>> MailHeaders
         {
             get
             {
-                return _MessageId;
+                return _MailHeaders;
+            }
+        }
+
+        #endregion
+
+        #region MailBody
+
+        /// <summary>
+        /// The E-Mail body as enumeration of strings.
+        /// </summary>
+        public readonly IEnumerable<String> MailBody;
+
+        #endregion
+
+        #region MailText
+
+        /// <summary>
+        /// The E-Mail as enumeration of strings.
+        /// </summary>
+        public IEnumerable<String> MailText
+        {
+            get
+            {
+
+                return _MailHeaders.
+                            Select(headers => headers.Key + ": " + headers.Value).
+                            Concat(new String[] { "" }).
+                            Concat(MailBody);
+
             }
         }
 
         #endregion
 
 
+        
+
+
         #region Body
 
-        protected readonly EMailBodypart _Bodypart;
-
-        /// <summary>
-        /// The e-mail body.
-        /// </summary>
-        public EMailBodypart Bodypart
-        {
-            get
-            {
-                return _Bodypart;
-            }
-        }
+        public readonly EMailBodypart Body;
 
         #endregion
 
@@ -194,76 +146,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
             MailBuilder.EncodeBodyparts();
 
-            this._From               = MailBuilder.From;
-                                       // ToDo: Deep cloning!
-            this._To                 = new EMailAddressList(MailBuilder.To);
-            this._ReplyTo            = new EMailAddressList(MailBuilder.ReplyTo);
-            this._Cc                 = new EMailAddressList(MailBuilder.Cc);
-            this._Bcc                = new EMailAddressList(MailBuilder.Bcc);
-            this._Subject            = MailBuilder.Subject;
-            this._Date               = MailBuilder.Date;
-            this._MessageId          = MailBuilder.MessageId;
+            _MailHeaders    = new List<KeyValuePair<String, String>>(MailBuilder.MailHeaders.Where(header => !header.Key.ToLower().StartsWith("content")));
+            _MailHeaders.AddRange(MailBuilder.Body.MailHeaders);
 
-            this._Bodypart           = MailBuilder.Body;
+            this.From       = EMailAddress.    Parse(MailBuilder.GetEMailHeader("From"));
+            this.To         = EMailAddressList.Parse(MailBuilder.GetEMailHeader("To"));
+            this.Cc         = EMailAddressList.Parse(MailBuilder.GetEMailHeader("Cc"));
+            this.Bcc        = EMailAddressList.Parse(MailBuilder.GetEMailHeader("Bcc"));
+            this.ReplyTo    = EMailAddressList.Parse(MailBuilder.GetEMailHeader("ReplyTo"));
+            this.Subject    =                        MailBuilder.GetEMailHeader("Subject");
+            this.Date       = DateTime.        Parse(MailBuilder.GetEMailHeader("Date"));
+            this.MessageId  = MessageId.       Parse(MailBuilder.GetEMailHeader("Message-ID"));
+
+            Body            = MailBuilder.Body;
+            MailBody        = Body.ToText(false);
 
         }
 
         #endregion
 
         #endregion
-
-
-        public IEnumerable<String> MailHeaders
-        {
-
-            get
-            {
-
-                return new String[] {
-
-                    "MIME-Version: 1.0",
-                    "From: "        + From,
-                    "To: "          + To,
-                    ReplyTo.Any() ? "Reply-To: " + ReplyTo : null,
-                    Cc.     Any() ? "Cc: "       + Cc      : null,
-                    Bcc.    Any() ? "Bcc: "      + Bcc     : null,
-
-                    // Subject: =?UTF-8?...
-                    "Subject: "     + Subject,
-                    "Date: "        + Date.ToUniversalTime().ToString("R"),
-
-                    //SendCommand("In-Reply-To: " + Mail.);
-                    //SendCommand("References: "  + multiple message Ids);
-
-                    // Content-Transfer-Encoding: quoted-printable
-
-                }.
-                Where(line => line != null).
-
-                // Content-Type; Char-Set and more...
-                Concat(Bodypart.MailHeaders.Select(v => v.Key + ": " + v.Value));// Headers);
-
-            }
-
-        }
-
-        public IEnumerable<String> MailBody
-        {
-            get
-            {
-                return Bodypart.ToText(false);
-            }
-        }
-
-
-        public IEnumerable<String> MailText
-        {
-            get
-            {
-                return MailHeaders.Concat(new String[] { "" }).Concat(MailBody);
-            }
-        }
-
 
     }
 

@@ -154,8 +154,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         {
 
             return new EMailAddressList(EMailAddressListString.
-                                             Split(new String[] { ",", ";" }, StringSplitOptions.None).
-                                             Select(v => EMailAddress.Parse(v.Trim())));
+                                             Split (new String[] { ",", ";" }, StringSplitOptions.None).
+                                             Select(textaddr  => EMailAddress.Parse(textaddr.Trim())).
+                                             Where (addresses => addresses != null));
 
         }
 

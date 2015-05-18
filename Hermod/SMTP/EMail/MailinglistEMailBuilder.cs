@@ -165,15 +165,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         protected override EMailBodypart _EncodeBodyparts()
         {
-
-            //return new EMailBodypart(ContentType:              MailContentTypes.text_plain,
-            //                         ContentTransferEncoding:  "quoted-printable",//"8bit",
-            //                         Charset:                  "utf-8",//"ISO-8859-15",
-            //                         ContentLanguage:          ContentLanguage,
-            //                         Content:                  new String[] { Text });
-
             return this.Body;
-
         }
 
         #endregion
