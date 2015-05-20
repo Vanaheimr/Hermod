@@ -40,6 +40,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #endregion
 
+        #region Properties
+
+        #region Count
+
+        /// <summary>
+        /// The number of stored e-mail addresses.
+        /// </summary>
+        public UInt64 Count
+        {
+            get
+            {
+                return (UInt64) _MailAddressList.Count;
+            }
+        }
+
+        #endregion
+
+        #endregion
+
         #region Constructor(s)
 
         #region EMailAddressList(EMailAddressList)

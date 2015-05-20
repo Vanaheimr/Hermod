@@ -36,7 +36,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// <summary>
         /// A regular expression to validate a simple e-mail address.
         /// </summary>
-        public static readonly Regex EMailRegularExpression = new Regex("^([^@]+)@([^@]+)$");
+        public static readonly Regex EMailRegularExpression = new Regex("^<?([^@]+)@([^@\\>]+)>?$");
 
         #endregion
 

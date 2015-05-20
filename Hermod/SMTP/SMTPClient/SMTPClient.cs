@@ -824,9 +824,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                                              Select(header => header.Key + ": " + header.Value).
                                              ForEach(line => SendCommand(line));
 
-                                SendCommand("Message-Id: <" + (EMailEnvelop.Mail.MessageId != null
-                                                                    ? EMailEnvelop.Mail.MessageId.ToString()
-                                                                    : GenerateMessageId(EMailEnvelop.Mail, RemoteHost).ToString()) + ">");
+                                //SendCommand("Message-Id: <" + (EMailEnvelop.Mail.MessageId != null
+                                //                                    ? EMailEnvelop.Mail.MessageId.ToString()
+                                //                                    : GenerateMessageId(EMailEnvelop.Mail, RemoteHost).ToString()) + ">");
 
                                 SendCommand("");
 

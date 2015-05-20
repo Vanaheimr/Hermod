@@ -34,7 +34,83 @@ using org.GraphDefined.Vanaheimr.Hermod.Services.Mail;
 namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 {
 
-    public delegate void NewSMTPConnectionHandler(SMTPServer SMTPServer, DateTime Timestamp, IPSocket RemoteSocket, TCPConnection TCPConnection);
+    public class MAIL_FROM_FilterResponse
+    {
+
+        public readonly Boolean  Forward;
+        public readonly String   Description;
+
+        public MAIL_FROM_FilterResponse(Boolean  Forward,
+                                        String   Description)
+        {
+
+            this.Forward      = Forward;
+            this.Description  = Description;
+
+        }
+
+        public static MAIL_FROM_FilterResponse Allowed
+        {
+            get
+            {
+                return new MAIL_FROM_FilterResponse(true, "Sender ok");
+            }
+        }
+
+        public static MAIL_FROM_FilterResponse Denied
+        {
+            get
+            {
+                return new MAIL_FROM_FilterResponse(false, "Access denied");
+            }
+        }
+
+    }
+
+    public class RCPT_TO_FilterResponse
+    {
+
+        public readonly Boolean Forward;
+        public readonly String Description;
+
+        public RCPT_TO_FilterResponse(Boolean Forward,
+                                      String Description)
+        {
+
+            this.Forward = Forward;
+            this.Description = Description;
+
+        }
+
+        public static RCPT_TO_FilterResponse Allowed
+        {
+            get
+            {
+                return new RCPT_TO_FilterResponse(true, "Recipient ok");
+            }
+        }
+
+        public static RCPT_TO_FilterResponse Denied
+        {
+            get
+            {
+                return new RCPT_TO_FilterResponse(false, "Access denied");
+            }
+        }
+
+        public static RCPT_TO_FilterResponse RelayDenied
+        {
+            get
+            {
+                return new RCPT_TO_FilterResponse(false, "Relay access denied");
+            }
+        }
+
+    }
+
+
+    public delegate void NewSMTPConnectionHandler     (SMTPServer SMTPServer, DateTime Timestamp, IPSocket RemoteSocket, TCPConnection TCPConnection);
+    public delegate void IncomingEMailEnvelopeHandler (SMTPServer SMTPServer, IEnumerable<String> MAIL_FROM, IEnumerable<String> RCPT_TO);
 
 
     /// <summary>
@@ -48,7 +124,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
         internal const    String             __DefaultServerName  = "Vanaheimr Hermod SMTP Service v0.1";
 
-        private readonly  SMTPConnection     _SMTPProcessor;
+        private readonly  SMTPConnection     _SMTPConnection;
 
         #endregion
 
@@ -98,6 +174,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
         #region Events
 
         public event NewSMTPConnectionHandler                            OnNewConnection;
+
+        public delegate MAIL_FROM_FilterResponse MAIL_FROM_FilterHandler(SMTPServer SMTPServer, String MAIL_FROM);
+        public delegate RCPT_TO_FilterResponse   RCPT_TO_FilterHandler  (SMTPServer SMTPServer, String RCPT_TO);
+
+        public event MAIL_FROM_FilterHandler      MAIL_FROMFilter;
+        public event RCPT_TO_FilterHandler        RCPT_TOFilter;
+        public event IncomingEMailEnvelopeHandler OnIncomingEMailEnvelope;
 
         public event NotificationEventHandler<SMTPServer, EMailEnvelop>  OnNotification;
 
@@ -166,10 +249,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                                                        ? true
                                                        : false);
 
-            _SMTPProcessor                  = new SMTPConnection(DefaultServerName, this._UseTLS);
-            _SMTPProcessor.OnNotification  += ProcessNotification;
-            _SMTPProcessor.ErrorLog        += (HTTPProcessor, ServerTimestamp, SMTPCommand, Request, Response, Error, LastException) =>
-                                                  LogError (ServerTimestamp, SMTPCommand, Request, Response, Error, LastException);
+            _SMTPConnection                  = new SMTPConnection(DefaultServerName, this._UseTLS);
+            _SMTPConnection.MAIL_FROMFilter += Process_MAIL_FROMFilter;
+            _SMTPConnection.RCPT_TOFilter   += Process_RCPT_TOFilter;
+            _SMTPConnection.OnNotification  += ProcessNotification;
+            _SMTPConnection.ErrorLog        += (HTTPProcessor, ServerTimestamp, SMTPCommand, Request, Response, Error, LastException) =>
+                                                     LogError (ServerTimestamp, SMTPCommand, Request, Response, Error, LastException);
 
             if (IPPort != null)
                 this.AttachTCPPort(IPPort);
@@ -204,7 +289,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
             base.AttachTCPPorts(_TCPServer => {
                 _TCPServer.OnNewConnection += ProcessTCPServerOnNewConnection;
-                _TCPServer.SendTo(_SMTPProcessor);
+                _TCPServer.SendTo(_SMTPConnection);
             }, Ports);
 
             return this;
@@ -233,7 +318,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
             base.AttachTCPSockets(_TCPServer => {
                 _TCPServer.OnNewConnection += ProcessTCPServerOnNewConnection;
-                _TCPServer.SendTo(_SMTPProcessor);
+                _TCPServer.SendTo(_SMTPConnection);
             }, Sockets);
 
             return this;
@@ -262,9 +347,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
         {
 
             base.DetachTCPPorts(_TCPServer => {
-                                    _TCPServer.OnNotification      -= _SMTPProcessor.ProcessArrow;
-                                    _TCPServer.OnExceptionOccured  -= _SMTPProcessor.ProcessExceptionOccured;
-                                    _TCPServer.OnCompleted         -= _SMTPProcessor.ProcessCompleted;
+                                    _TCPServer.OnNotification      -= _SMTPConnection.ProcessArrow;
+                                    _TCPServer.OnExceptionOccured  -= _SMTPConnection.ProcessExceptionOccured;
+                                    _TCPServer.OnCompleted         -= _SMTPConnection.ProcessCompleted;
                                 },
                                 Ports);
 
@@ -287,6 +372,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
             var OnNewConnectionLocal = OnNewConnection;
             if (OnNewConnectionLocal != null)
                 OnNewConnectionLocal(this, Timestamp, RemoteSocket, TCPConnection);
+
+        }
+
+        private MAIL_FROM_FilterResponse Process_MAIL_FROMFilter(String MAIL_FROM)
+        {
+
+            var MAIL_FROMFilterLocal = MAIL_FROMFilter;
+            if (MAIL_FROMFilterLocal != null)
+                return MAIL_FROMFilterLocal(this, MAIL_FROM);
+
+            return null;
+
+        }
+
+        private RCPT_TO_FilterResponse Process_RCPT_TOFilter(String RCPT_TO)
+        {
+
+            var RCPT_TOFilterLocal = RCPT_TOFilter;
+            if (RCPT_TOFilterLocal != null)
+                return RCPT_TOFilterLocal(this, RCPT_TO);
+
+            return null;
 
         }
 

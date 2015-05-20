@@ -105,6 +105,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
         public   event StartedEventHandler                            OnStarted;
 
+        public delegate MAIL_FROM_FilterResponse MAIL_FROM_FilterHandler(String MAIL_FROM);
+        public delegate RCPT_TO_FilterResponse   RCPT_TO_FilterHandler  (String RCPT_TO);
+
+        public   event MAIL_FROM_FilterHandler                        MAIL_FROMFilter;
+        public   event RCPT_TO_FilterHandler                          RCPT_TOFilter;
+        public   event IncomingEMailEnvelopeHandler                   OnIncomingEMailEnvelope;
+
         public   event NotificationEventHandler<EMailEnvelop>         OnNotification;
 
         public   event CompletedEventHandler                          OnCompleted;
@@ -387,12 +394,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
                                             var MailFrom = SMTPCommandParts[2];
 
-                                            TCPConnection.WriteLineSMTP(SMTPStatusCode.Ok, "2.1.0 " + MailFrom + " Sender ok");
-
                                             if (MailFrom[0] == '<' && MailFrom[MailFrom.Length - 1] == '>')
                                                 MailFrom = MailFrom.Substring(1, MailFrom.Length - 2);
 
-                                            MailFroms.Add(EMailAddress.Parse(MailFrom));
+                                            MAIL_FROM_FilterResponse _SMTPFilterResponse = null;
+
+                                            var MAIL_FROMFilterLocal = MAIL_FROMFilter;
+                                            if (MAIL_FROMFilterLocal != null)
+                                                _SMTPFilterResponse = MAIL_FROMFilterLocal(MailFrom);
+
+                                            if (_SMTPFilterResponse == null)
+                                            {
+                                                TCPConnection.WriteLineSMTP(SMTPStatusCode.Ok, "2.1.0 " + MailFrom + " Sender ok");
+                                                MailFroms.Add(EMailAddress.Parse(MailFrom));
+                                            }
+
+                                            else if (_SMTPFilterResponse.Forward)
+                                            {
+                                                TCPConnection.WriteLineSMTP(SMTPStatusCode.Ok, "2.1.0 " + MailFrom + " " + _SMTPFilterResponse.Description);
+                                                MailFroms.Add(EMailAddress.Parse(MailFrom));
+                                            }
+
+                                            else
+                                                TCPConnection.WriteLineSMTP(SMTPStatusCode.TransactionFailed, "5.7.1 " + _SMTPFilterResponse.Description);
 
                                         }
                                         else
@@ -426,8 +450,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                                             // server: 250 mx1.example.com
                                             // client: MAIL from: <sender@example.com>
                                             // server: 250 Sender <sender@example.com> Ok
+                                            //         250 2.1.0 Ok
                                             // client: RCPT to: <recipient@example.com>
                                             // server: 250 Recipient <recipient@example.com> Ok
+
+                                            // server: 554 5.7.1 <recipient@example.com>: Relay access denied
+
                                             // client: DATA
                                             // server: 354 Ok Send data ending with <CRLF>.<CRLF>
                                             // client: From: sender@example.com
@@ -446,12 +474,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                                             // RCPT TO: mail@otherdomain.ext
                                             // 250 2.1.0 mail@otherdomain.ext... Recipient ok
 
-                                            TCPConnection.WriteLineSMTP(SMTPStatusCode.Ok, "2.1.0 " + RcptTo + " Recipient ok");
-
                                             if (RcptTo[0] == '<' && RcptTo[RcptTo.Length - 1] == '>')
                                                 RcptTo = RcptTo.Substring(1, RcptTo.Length - 2);
 
-                                            RcptTos.Add(EMailAddress.Parse(RcptTo));
+                                            RCPT_TO_FilterResponse _SMTPFilterResponse = null;
+
+                                            var RCPT_TOFilterLocal = RCPT_TOFilter;
+                                            if (RCPT_TOFilterLocal != null)
+                                                _SMTPFilterResponse = RCPT_TOFilterLocal(RcptTo);
+
+                                            if (_SMTPFilterResponse == null)
+                                            {
+                                                TCPConnection.WriteLineSMTP(SMTPStatusCode.Ok, "2.1.0 " + RcptTo + " Recipient ok");
+                                                RcptTos.Add(EMailAddress.Parse(RcptTo));
+                                            }
+
+                                            else if (_SMTPFilterResponse.Forward) {
+                                                TCPConnection.WriteLineSMTP(SMTPStatusCode.Ok, "2.1.0 " + RcptTo + " " + _SMTPFilterResponse.Description);
+                                                RcptTos.Add(EMailAddress.Parse(RcptTo));
+                                            }
+
+                                            else
+                                                TCPConnection.WriteLineSMTP(SMTPStatusCode.TransactionFailed, "5.7.1 " + _SMTPFilterResponse.Description);
 
                                         }
                                         else
@@ -464,35 +508,71 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
                                     #endregion
 
+                                    //ToDo: Check if "MAIL FROM" and "RCPT TO" is set!
                                     #region DATA
 
                                     else if (SMTPCommand.ToUpper().StartsWith("DATA"))
                                     {
 
-                                        TCPConnection.WriteLineSMTP(SMTPStatusCode.StartMailInput, "Ok Send data ending with <CRLF>.<CRLF>");
+                                        if (MailFroms.Count == 0 || RcptTos.  Count == 0)
+                                            TCPConnection.WriteLineSMTP(SMTPStatusCode.BadCommandSequence, "Bad command sequence!");
 
-                                        var MailText  = new List<String>();
-                                        var MailLine  = "";
-
-                                        do
+                                        else
                                         {
 
-                                            MailLine = TCPConnection.ReadLine();
+                                            TCPConnection.WriteLineSMTP(SMTPStatusCode.StartMailInput, "Ok Send data ending with <CRLF>.<CRLF>");
 
-                                            // "." == End-of-EMail...
-                                            if (MailLine != null && MailLine != ".")
-                                                MailText.Add(MailLine);
+                                            var MailText  = new List<String>();
+                                            var MailLine  = "";
 
-                                        } while (MailLine != ".");
+                                            do
+                                            {
 
-                                        TCPConnection.WriteLineSMTP(SMTPStatusCode.Ok, "Message received: 20040120203404.CCCC18555.mx1.example.com@" + _DefaultServerName);
+                                                MailLine = TCPConnection.ReadLine();
 
-                                        var OnNotificationLocal = OnNotification;
-                                        if (OnNotificationLocal != null)
-                                            OnNotificationLocal(new EMailEnvelop(MailFrom:      MailFroms,
-                                                                                 RcptTo:        RcptTos,
-                                                                                 EMail:         new EMail(MailText),
-                                                                                 RemoteSocket:  TCPConnection.RemoteSocket));
+                                                // "." == End-of-EMail...
+                                                if (MailLine != null && MailLine != ".")
+                                                    MailText.Add(MailLine);
+
+                                            } while (MailLine != ".");
+
+                                            EMail IncomingMail = null;
+
+                                            try
+                                            {
+                                                IncomingMail = new EMail(MailText);
+                                            }
+                                            catch (Exception)
+                                            { }
+
+                                            if (IncomingMail == null)
+                                            {
+
+                                                TCPConnection.WriteLineSMTP(SMTPStatusCode.TransactionFailed, "The e-mail could not be parsed!");
+
+                                                Debug.WriteLine("[" + DateTime.Now + "] Incoming e-mail could not be parsed!");
+                                                Debug.WriteLine(MailText.AggregateWith(Environment.NewLine));
+
+                                            }
+
+                                            var _MessageId = IncomingMail.MessageId;
+
+                                            if (_MessageId == null)
+                                            {
+                                                _MessageId = MessageId.Parse(Guid.NewGuid().ToString() + "@" + _DefaultServerName);
+                                                IncomingMail = new EMail(new String[] { "Message-Id: " + _MessageId + Environment.NewLine }.Concat(MailText));
+                                            }
+
+                                            TCPConnection.WriteLineSMTP(SMTPStatusCode.Ok, "Message received: " + _MessageId);
+
+                                            var OnNotificationLocal = OnNotification;
+                                            if (OnNotificationLocal != null)
+                                                OnNotificationLocal(new EMailEnvelop(MailFrom:      MailFroms,
+                                                                                     RcptTo:        RcptTos,
+                                                                                     EMail:         IncomingMail,
+                                                                                     RemoteSocket:  TCPConnection.RemoteSocket));
+
+                                        }
 
                                     }
 
