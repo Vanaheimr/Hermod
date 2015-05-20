@@ -521,6 +521,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
                                             TCPConnection.WriteLineSMTP(SMTPStatusCode.StartMailInput, "Ok Send data ending with <CRLF>.<CRLF>");
 
+                                            #region Read all e-mail lines...
+
                                             var MailText  = new List<String>();
                                             var MailLine  = "";
 
@@ -534,6 +536,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                                                     MailText.Add(MailLine);
 
                                             } while (MailLine != ".");
+
+                                            #endregion
+
+                                            #region Try to parse the incoming e-mail...
 
                                             EMail IncomingMail = null;
 
@@ -554,6 +560,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
                                             }
 
+                                            #endregion
+
+                                            #region Generate a MessageId... if needed!
+
                                             var _MessageId = IncomingMail.MessageId;
 
                                             if (_MessageId == null)
@@ -561,6 +571,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                                                 _MessageId = MessageId.Parse(Guid.NewGuid().ToString() + "@" + _DefaultServerName);
                                                 IncomingMail = EMail.Parse(new String[] { "Message-Id: " + _MessageId + Environment.NewLine }.Concat(MailText));
                                             }
+
+                                            #endregion
 
                                             TCPConnection.WriteLineSMTP(SMTPStatusCode.Ok, "Message received: " + _MessageId);
 
