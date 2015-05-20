@@ -508,13 +508,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
                                     #endregion
 
-                                    //ToDo: Check if "MAIL FROM" and "RCPT TO" is set!
                                     #region DATA
 
                                     else if (SMTPCommand.ToUpper().StartsWith("DATA"))
                                     {
 
-                                        if (MailFroms.Count == 0 || RcptTos.  Count == 0)
+                                        if (MailFroms.Count == 0 || RcptTos.Count == 0)
                                             TCPConnection.WriteLineSMTP(SMTPStatusCode.BadCommandSequence, "Bad command sequence!");
 
                                         else
@@ -540,7 +539,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
                                             try
                                             {
-                                                IncomingMail = new EMail(MailText);
+                                                IncomingMail = EMail.Parse(MailText);
                                             }
                                             catch (Exception)
                                             { }
@@ -560,7 +559,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                                             if (_MessageId == null)
                                             {
                                                 _MessageId = MessageId.Parse(Guid.NewGuid().ToString() + "@" + _DefaultServerName);
-                                                IncomingMail = new EMail(new String[] { "Message-Id: " + _MessageId + Environment.NewLine }.Concat(MailText));
+                                                IncomingMail = EMail.Parse(new String[] { "Message-Id: " + _MessageId + Environment.NewLine }.Concat(MailText));
                                             }
 
                                             TCPConnection.WriteLineSMTP(SMTPStatusCode.Ok, "Message received: " + _MessageId);

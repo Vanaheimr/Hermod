@@ -160,6 +160,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #endregion
 
+        #region (private) EMail(MailText)
+
+        /// <summary>
+        /// Parse an e-mail from the given enumeration of strings.
+        /// </summary>
+        /// <param name="MailText">An enumeration of strings.</param>
+        private EMail(IEnumerable<String> MailText)
+
+            : this(MailText.TakeWhile(line => line.IsNotNullOrEmpty()).ToKeyValuePairs(':'))
+
+        {
+
+            Body  = new EMailBodypart(MailText);
+
+        }
+
+        #endregion
+
         #region EMail(MailBuilder)
 
         /// <summary>
@@ -178,24 +196,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
             //ToDo: Do a real deep-copy here!
             Body  = MailBuilder.Body;
-
-        }
-
-        #endregion
-
-        #region EMail(MailText)
-
-        /// <summary>
-        /// Parse an e-mail from the given enumeration of strings.
-        /// </summary>
-        /// <param name="MailText">An enumeration of strings.</param>
-        public EMail(IEnumerable<String> MailText)
-
-            : this(MailText.TakeWhile(line => line.IsNotNullOrEmpty()).ToKeyValuePairs(':'))
-
-        {
-
-            Body  = new EMailBodypart(MailText);
 
         }
 
@@ -226,6 +226,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 
         #endregion
 
+        #region (static) Parse(MailText)
+
+        /// <summary>
+        /// Parse an e-mail from the given enumeration of strings.
+        /// </summary>
+        /// <param name="MailText">An enumeration of strings.</param>
+        public static EMail Parse(IEnumerable<String> MailText)
+        {
+            return new EMail(MailText);
+        }
+
+        #endregion
 
     }
 
