@@ -127,6 +127,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   new JProperty("exception",   e.Message)).ToString().ToUTF8Bytes()
                 };
 
+                // this.GetEventSource(Semantics.DebugLog).
+                //     SubmitSubEvent("InvalidJSONRequest",
+                //                    new JObject(
+                //                        new JProperty("@context",        "http://emi3group.org/contexts/InvalidJSONRequest.jsonld"),
+                //                        new JProperty("Timestamp",       DateTime.Now.ToIso8601()),
+                //                        new JProperty("RemoteSocket",    HTTPRequest.RemoteSocket.ToString()),
+                //                        new JProperty("RoamingNetwork",  RoamingNetwork),
+                //                        new JProperty("EVSEId",          EVSEId)
+                //                    ).ToString().
+                //                      Replace(Environment.NewLine, ""));
+
                 return false;
 
             }
