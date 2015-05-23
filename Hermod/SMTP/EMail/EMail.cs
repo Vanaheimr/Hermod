@@ -168,7 +168,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
         /// <param name="MailText">An enumeration of strings.</param>
         private EMail(IEnumerable<String> MailText)
 
-            : this(MailText.TakeWhile(line => line.IsNotNullOrEmpty()).ToKeyValuePairs(':'))
+            : this(MailText.TakeWhile(line => line.IsNotNullOrEmpty()).
+                            AggregateIndentedLines().
+                            ToKeyValuePairs(':'))
 
         {
 
