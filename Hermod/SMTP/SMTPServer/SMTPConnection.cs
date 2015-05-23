@@ -533,7 +533,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 
                                                 // "." == End-of-EMail...
                                                 if (MailLine != null && MailLine != ".")
+                                                {
                                                     MailText.Add(MailLine);
+                                                    Debug.WriteLine("<<< " + MailLine);
+                                                }
 
                                             } while (MailLine != ".");
 
