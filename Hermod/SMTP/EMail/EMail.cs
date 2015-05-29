@@ -199,6 +199,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
             //ToDo: Do a real deep-copy here!
             Body  = MailBuilder.Body;
 
+            //ToDo: Work-aroung for PGP/GPG!
+            this.From = MailBuilder.From;
+            this.To   = MailBuilder.To;
+            this.Cc   = MailBuilder.Cc;
+
         }
 
         #endregion
