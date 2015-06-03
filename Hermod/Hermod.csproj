@@ -112,7 +112,6 @@
     <Compile Include="SMTP\EMail\EMailEnvelop.cs" />
     <Compile Include="SMTP\EMail\AbstractEMailBuilder.cs" />
     <Compile Include="SMTP\EMail\EMail.cs" />
-    <Compile Include="SMTP\EMail\EMailBuilder.cs" />
     <Compile Include="SMTP\EMail\Helpers\ContentDispositions.cs" />
     <Compile Include="SMTP\EMail\Helpers\ContentTransferEncoding.cs" />
     <Compile Include="SMTP\EMail\Helpers\EMailAddress.cs" />

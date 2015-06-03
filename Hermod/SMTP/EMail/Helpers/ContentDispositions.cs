@@ -18,10 +18,24 @@
 namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
 {
 
+    /// <summary>
+    /// An enumeration of conent dispositions.
+    /// </summary>
+    /// <seealso cref="http://www.iana.org/go/rfc2183"/>
+    /// <seealso cref="http://www.iana.org/assignments/cont-disp/cont-disp.xhtml"/>
     public enum ContentDispositions
     {
+
+        /// <summary>
+        /// The content of the e-mail is inlined and displayed automatically.
+        /// </summary>
         inline,
+
+        /// <summary>
+        /// The content of the e-mail is an attachment .
+        /// </summary>
         attachment
+
     }
 
 }
