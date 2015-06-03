@@ -331,6 +331,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPMethod ADD           = new HTTPMethod("ADD");
 
         /// <summary>
+        /// SET the value of a resource (a replacement for PUT and POST)
+        /// </summary>
+        public static readonly HTTPMethod SET           = new HTTPMethod("SET");
+
+        /// <summary>
         /// Authenticate at the given resource, e.g. for login purposes.
         /// </summary>
         public static readonly HTTPMethod AUTH          = new HTTPMethod("AUTH");
