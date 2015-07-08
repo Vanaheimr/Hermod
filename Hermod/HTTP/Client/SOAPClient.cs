@@ -161,7 +161,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         #endregion
 
-        #region Query(QueryXML, SOAPAction, OnSuccess, OnFault, TimeoutMSec = 60000)
+        #region Query(QueryXML, SOAPAction, OnSuccess, OnSOAPFault, OnHTTPError, OnException, TimeoutMSec = 60000)
 
         /// <summary>
         /// Create a new SOAP query task.
@@ -170,8 +170,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="QueryXML">The SOAP query XML.</param>
         /// <param name="SOAPAction">The SOAP action.</param>
         /// <param name="OnSuccess">The delegate to call for every successful result.</param>
-        /// <param name="OnSOAPFault">The delegate to call whenever a SOAP fault XML or an exception occured.</param>
-        /// <param name="Timeout">The timeout of the HTTP client [default 60 sec.]</param>
+        /// <param name="OnSOAPFault">The delegate to call whenever a SOAP fault occured.</param>
+        /// <param name="OnHTTPError">The delegate to call whenever a HTTP error occured.</param>
+        /// <param name="OnException">The delegate to call whenever an exception occured.</param>
+        /// <param name="QueryTimeout">an optional timeout of the HTTP client [default 60 sec.]</param>
         /// <returns>The data structured after it had been processed by the OnSuccess delegate, or a fault.</returns>
         public Task<HTTPResponse<T>> Query<T>(XElement                                       QueryXML,
                                               String                                         SOAPAction,
@@ -179,7 +181,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                               Func<HTTPResponse<XElement>, HTTPResponse<T>>  OnSOAPFault,
                                               Action<DateTime, Object, HTTPResponse>         OnHTTPError,
                                               Action<DateTime, Object, Exception>            OnException,
-                                              TimeSpan                                       Timeout)
+                                              TimeSpan?                                      QueryTimeout = null)
 
         {
 
@@ -212,7 +214,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             builder.Set("SOAPAction",  SOAPAction);
             builder.UserAgent          = UserAgent;
 
-            return this.ExecuteReturnResult(builder, Timeout: Timeout).
+            return this.ExecuteReturnResult(builder, Timeout: QueryTimeout != null ? QueryTimeout : TimeSpan.FromSeconds(60)).
                         ContinueWith(HttpResponseTask => {
 
                             if (HttpResponseTask.Result                == null              ||
