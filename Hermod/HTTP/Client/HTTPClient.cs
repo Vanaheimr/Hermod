@@ -366,7 +366,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                            TimeSpan?                          Timeout                  = null)
         {
 
-            //Debug.WriteLine(DateTime.Now + " HTTPClient started...");
+            //DebugX.Log("HTTPClient started...");
 
             #region Data
 
@@ -381,6 +381,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             try
             {
+
+                #region Check DNS or connect to IP address...
 
                 if (TCPClient == null)
                 {
@@ -420,8 +422,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     TCPClient = new TcpClient(RemoteIPAddress.ToString(), this.RemotePort.ToInt32());
- 
+
                 }
+
+                #endregion
 
                 //TCPClient.ReceiveTimeout = 5000;
 

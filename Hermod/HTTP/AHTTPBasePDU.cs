@@ -217,7 +217,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             UInt16 HostPort    = 80;
 
             if (HostHeader.Length == 1)
-                HeaderFields[HTTPHeaderField.Host.Name] = HeaderFields[HTTPHeaderField.Host.Name].ToString() + ":80";
+                HeaderFields[HTTPHeaderField.Host.Name] = HeaderFields[HTTPHeaderField.Host.Name].ToString();// + ":80"; ":80" will cause side effects!
 
             else if ((HostHeader.Length == 2 && !UInt16.TryParse(HostHeader[1], out HostPort)) || HostHeader.Length > 2)
             {

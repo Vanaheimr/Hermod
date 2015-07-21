@@ -70,7 +70,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
             get
             {
-                return HTTPMethod.ToString() + " " + this.URI + QueryString + " " + ProtocolName + "/" + ProtocolVersion;
+                return HTTPMethod.ToString() + " " + this.FakeURIPrefix + this.URI + QueryString + " " + ProtocolName + "/" + ProtocolVersion;
             }
         }
 
@@ -95,6 +95,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 _x_HTTPMethod = value;
             }
         }
+
+        #endregion
+
+        #region FakeURIPrefix
+
+        public String FakeURIPrefix { get; set; }
 
         #endregion
 

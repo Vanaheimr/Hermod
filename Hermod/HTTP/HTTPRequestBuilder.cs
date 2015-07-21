@@ -90,6 +90,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region FakeURIPrefix
+
+        public String FakeURIPrefix { get; set; }
+
+        #endregion
+
         #region URI
 
         private String _URI;
@@ -1446,6 +1452,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 HTTPRequest.TryParse(EntireRequestHeader, Content, out _HTTPRequest);
             else
                 HTTPRequest.TryParse(EntireRequestHeader, out _HTTPRequest);
+
+            _HTTPRequest.FakeURIPrefix = this.FakeURIPrefix;
 
             return _HTTPRequest;
 

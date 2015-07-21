@@ -211,8 +211,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             builder.Host               = HTTPVirtualHost;
             builder.Content            = QueryXML.ToUTF8Bytes();
             builder.ContentType        = HTTPContentType.XMLTEXT_UTF8;
-            builder.Set("SOAPAction",  SOAPAction);
+            builder.Set("SOAPAction",  @"""" + SOAPAction + @"""");
             builder.UserAgent          = UserAgent;
+            builder.FakeURIPrefix      = "https://" + HTTPVirtualHost;
 
             return this.ExecuteReturnResult(builder, Timeout: QueryTimeout != null ? QueryTimeout : TimeSpan.FromSeconds(60)).
                         ContinueWith(HttpResponseTask => {
