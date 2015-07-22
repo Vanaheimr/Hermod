@@ -127,16 +127,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   new JProperty("exception",   e.Message)).ToString().ToUTF8Bytes()
                 };
 
-                // this.GetEventSource(Semantics.DebugLog).
-                //     SubmitSubEvent("InvalidJSONRequest",
-                //                    new JObject(
-                //                        new JProperty("@context",        "http://emi3group.org/contexts/InvalidJSONRequest.jsonld"),
-                //                        new JProperty("Timestamp",       DateTime.Now.ToIso8601()),
-                //                        new JProperty("RemoteSocket",    HTTPRequest.RemoteSocket.ToString()),
-                //                        new JProperty("RoamingNetwork",  RoamingNetwork),
-                //                        new JProperty("EVSEId",          EVSEId)
-                //                    ).ToString().
-                //                      Replace(Environment.NewLine, ""));
+                return false;
+
+            }
+
+            HTTPResp = null;
+
+            return true;
+
+        }
+
+        #endregion
+
+        #region TryParseJSONRequestBodyArray()
+
+        public static Boolean TryParseJSONRequestBodyArray(this HTTPRequest Request, out String[] JSONArray, out HTTPResponse HTTPResp, String Context = null)
+        {
+
+            var RequestBodyString = Request.GetRequestBodyAsUTF8String(HTTPContentType.JSON_UTF8);
+            if (RequestBodyString.HasErrors)
+            {
+                JSONArray  = null;
+                HTTPResp   = RequestBodyString.Error;
+                return false;
+            }
+
+            try
+            {
+                JSONArray = JArray.Parse(RequestBodyString.Data).Select(v => v.ToString()).ToArray();
+            }
+            catch (Exception e)
+            {
+
+                JSONArray  = null;
+
+                HTTPResp   = new HTTPResponseBuilder() {
+                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                    ContentType     = HTTPContentType.JSON_UTF8,
+                    Content         = new JObject(new JProperty("@context",    Context),
+                                                  new JProperty("description", "Invalid JSON request body!"),
+                                                  new JProperty("exception",   e.Message)).ToString().ToUTF8Bytes()
+                };
 
                 return false;
 
