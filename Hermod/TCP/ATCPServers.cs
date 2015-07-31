@@ -26,6 +26,7 @@ using System.Collections.Generic;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
 using System.Security.Cryptography.X509Certificates;
+using org.GraphDefined.Vanaheimr.Hermod.Services.DNS;
 
 #endregion
 
@@ -48,6 +49,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         #endregion
 
         #region Properties
+
+        #region DNSClient
+
+        private readonly DNSClient _DNSClient;
+
+        /// <summary>
+        /// The DNS server to use.
+        /// </summary>
+        public DNSClient DNSClient
+        {
+            get
+            {
+                return _DNSClient;
+            }
+        }
+
+        #endregion
 
         #region ServiceBanner
 
@@ -428,6 +446,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ConnectionThreadsAreBackground">Whether the TCP connection threads are background threads or not (default: yes).</param>
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
+        /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="Autostart">Start the TCP server threads immediately (default: no).</param>
         public ATCPServers(String                            ServiceBanner                     = TCPServer.__DefaultServiceBanner,
                            X509Certificate2                  X509Certificate                   = null,
@@ -440,11 +459,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                            Boolean                           ConnectionThreadsAreBackground    = true,
                            TimeSpan?                         ConnectionTimeout                 = null,
                            UInt32                            MaxClientConnections              = TCPServer.__DefaultMaxClientConnections,
+                           DNSClient                         DNSClient                         = null,
                            Boolean                           Autostart                         = false)
 
         {
 
             this._TCPServers  = new List<TCPServer>();
+            this._DNSClient   = DNSClient;
 
             #region TCP Server
 

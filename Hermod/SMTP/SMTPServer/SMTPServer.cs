@@ -28,6 +28,7 @@ using org.GraphDefined.Vanaheimr.Styx.Arrows;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Services.Mail;
+using org.GraphDefined.Vanaheimr.Hermod.Services.DNS;
 
 #endregion
 
@@ -210,6 +211,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
         /// <param name="ConnectionThreadsAreBackground">Whether the TCP connection threads are background threads or not (default: yes).</param>
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
+        /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="Autostart">Start the SMTP server thread immediately (default: no).</param>
         public SMTPServer(IPPort                            IPPort                            = null,
                           String                            DefaultServerName                 = __DefaultServerName,
@@ -225,6 +227,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                           Boolean                           ConnectionThreadsAreBackground    = true,
                           TimeSpan?                         ConnectionTimeout                 = null,
                           UInt32                            MaxClientConnections              = TCPServer.__DefaultMaxClientConnections,
+                          DNSClient                         DNSClient                         = null,
                           Boolean                           Autostart                         = false)
 
             : base(DefaultServerName,
@@ -238,6 +241,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                    ConnectionThreadsAreBackground,
                    ConnectionTimeout,
                    MaxClientConnections,
+                   DNSClient,
                    false)
 
         {

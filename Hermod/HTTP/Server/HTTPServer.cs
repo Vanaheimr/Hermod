@@ -34,6 +34,7 @@ using org.GraphDefined.Vanaheimr.Hermod.Services.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using System.Diagnostics;
 using System.Security.Cryptography.X509Certificates;
+using org.GraphDefined.Vanaheimr.Hermod.Services.DNS;
 
 #endregion
 
@@ -177,6 +178,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ConnectionThreadsAreBackground">Whether the TCP connection threads are background threads or not (default: yes).</param>
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
+        /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
         public HTTPServer(IPPort                            IPPort                            = null,
                           String                            DefaultServerName                 = __DefaultServerName,
@@ -191,6 +193,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           Boolean                           ConnectionThreadsAreBackground    = true,
                           TimeSpan?                         ConnectionTimeout                 = null,
                           UInt32                            MaxClientConnections              = TCPServer.__DefaultMaxClientConnections,
+                          DNSClient                         DNSClient                         = null,
                           Boolean                           Autostart                         = false)
 
             : base(DefaultServerName,
@@ -204,6 +207,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    ConnectionThreadsAreBackground,
                    ConnectionTimeout,
                    MaxClientConnections,
+                   DNSClient,
                    false)
 
         {
