@@ -74,6 +74,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.Exception     = null;
         }
 
+        public HTTPResponse()
+        {
+            this.HttpResponse  = new HTTPResponse() { HTTPStatusCode = HTTPStatusCode.OK };
+            this.Content       = default(T);
+            this.IsFault       = false;
+            this.Exception     = null;
+        }
+
         public HTTPResponse(Exception e)
         {
             this.HttpResponse  = null;
