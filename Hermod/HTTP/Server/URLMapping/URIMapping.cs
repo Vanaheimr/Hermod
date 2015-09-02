@@ -242,14 +242,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 // Caused e.g. by the naming of the variables within the
                 // URI templates, there could be multiple matches!
-                foreach (var _Match in _Matches)
-                {
+                //foreach (var _Match in _Matches)
+                //{
+
+                // Use best matching URL Handler!
+                var _Match2 = _Matches.First();
 
                     #region Copy MethodHandler Parameters
 
                     var _Parameters = new List<String>();
-                    for (var i = 1; i < _Match.Match.Groups.Count; i++)
-                        _Parameters.Add(_Match.Match.Groups[i].Value);
+                    for (var i = 1; i < _Match2.Match.Groups.Count; i++)
+                        _Parameters.Add(_Match2.Match.Groups[i].Value.Replace("/", ""));
 
                     var ParsedURIParametersDelegateLocal = ParsedURIParametersDelegate;
                     if (ParsedURIParametersDelegateLocal != null)
@@ -258,7 +261,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     #endregion
 
                     // If HTTPMethod was found...
-                    if (_Match.URLNode.HTTPMethods.TryGetValue(HTTPMethod, out _HTTPMethodNode))
+                    if (_Match2.URLNode.HTTPMethods.TryGetValue(HTTPMethod, out _HTTPMethodNode))
                     {
 
                         // Get HTTPContentTypeNode
@@ -269,10 +272,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     }
 
-                }
+                //}
 
                 // No HTTPMethod was found => return best matching URL Handler
-                return _Matches.First().URLNode.RequestHandler;
+                return _Match2.URLNode.RequestHandler;
 
                 //return GetErrorHandler(Host, URL, HTTPMethod, HTTPContentType, HTTPStatusCode.BadRequest);
 
