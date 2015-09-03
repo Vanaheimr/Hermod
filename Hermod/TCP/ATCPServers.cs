@@ -368,6 +368,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         #endregion
 
 
+        #region IsStarted
+
+        private Boolean _IsStarted = false;
+
+        /// <summary>
+        /// Is the server already started?
+        /// </summary>
+        public Boolean IsStarted
+        {
+            get
+            {
+                return _IsStarted;
+            }
+        }
+
+        #endregion
+
         #region NumberOfClients
 
         /// <summary>
@@ -761,6 +778,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                 foreach (var TCPServer in _TCPServers)
                     TCPServer.Start();
+
+                _IsStarted = true;
 
                 SendStarted(this, DateTime.Now);
 
