@@ -529,6 +529,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region AddMethodCallback(HTTPMethod, URITemplates, HTTPContentType, HTTPDelegate)
+
+        /// <summary>
+        /// Add a method callback for the given URI template.
+        /// </summary>
+        /// <param name="HTTPMethod">The HTTP method.</param>
+        /// <param name="URITemplates">The URI templates.</param>
+        /// <param name="HTTPContentType">The HTTP content type.</param>
+        /// <param name="HTTPDelegate">The method to call.</param>
+        public void AddMethodCallback(HTTPMethod       HTTPMethod,
+                                      String[]         URITemplates,
+                                      HTTPContentType  HTTPContentType,
+                                      HTTPDelegate     HTTPDelegate)
+
+        {
+
+            URITemplates.ForEach(URITemplate =>
+                _URIMapping.AddHandler(HTTPDelegate,
+                                       "*",
+                                       (URITemplate.IsNotNullOrEmpty()) ? URITemplate     : "/",
+                                       (HTTPMethod      != null)        ? HTTPMethod      : HTTPMethod.GET,
+                                       (HTTPContentType != null)        ? HTTPContentType : HTTPContentType.HTML_UTF8,
+                                       null,
+                                       null,
+                                       null,
+                                       null));
+
+        }
+
+        #endregion
+
         #region Redirect(HTTPMethod, URITemplate, HTTPContentType, URITarget)
 
         /// <summary>
