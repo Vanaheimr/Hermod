@@ -115,6 +115,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Properties
 
+        #region HTTPRequest
+
+        private readonly HTTPRequest _HTTPRequest;
+
+        public HTTPRequest  HTTPRequest
+        {
+            get
+            {
+                return _HTTPRequest;
+            }
+        }
+
+        #endregion
+
+
         #region Age
 
         public UInt64? Age
@@ -275,39 +290,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region HTTPResponse()
+        #region HTTPResponse(HTTPRequest = null)
 
         public HTTPResponse()
-        { }
+        {
+            this._HTTPRequest = HTTPRequest;
+        }
 
         #endregion
 
-        #region HTTPResponse(HTTPHeader)
+        #region HTTPResponse(HTTPRequest, HTTPHeader)
 
-        public HTTPResponse(String HTTPHeader)
+        public HTTPResponse(HTTPRequest  HTTPRequest,
+                            String       HTTPHeader)
         {
+
+            this._HTTPRequest = HTTPRequest;
+
             if (ParseResponseHeader(HTTPHeader))
                 base.ContentStream = new MemoryStream();
+
         }
 
         #endregion
 
-        #region HTTPResponse(HTTPHeader, Content)
+        #region HTTPResponse(HTTPRequest, HTTPHeader, Content)
 
-        public HTTPResponse(String HTTPHeader, Byte[] Content)
+        public HTTPResponse(HTTPRequest  HTTPRequest,
+                            String       HTTPHeader,
+                            Byte[]       Content)
         {
+
+            this._HTTPRequest = HTTPRequest;
+
             if (ParseResponseHeader(HTTPHeader))
                 base.Content = Content;
+
         }
 
         #endregion
 
-        #region HTTPResponse(HTTPHeader, ContentStream)
+        #region HTTPResponse(HTTPRequest, HTTPHeader, ContentStream)
 
-        public HTTPResponse(String HTTPHeader, Stream ContentStream)
+        public HTTPResponse(HTTPRequest  HTTPRequest,
+                            String       HTTPHeader,
+                            Stream       ContentStream)
         {
+
+            this._HTTPRequest = HTTPRequest;
+
             if (ParseResponseHeader(HTTPHeader))
                 base.ContentStream = ContentStream;
+
         }
 
         #endregion

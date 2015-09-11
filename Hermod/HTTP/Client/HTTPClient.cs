@@ -581,7 +581,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 _MemoryStream.Seek(0, SeekOrigin.Begin);
                 _MemoryStream.Read(HeaderBytes, 0, HeaderBytes.Length);
 
-                var _HTTPResponse = new HTTPResponse(HeaderBytes.ToUTF8String());
+                var _HTTPResponse = new HTTPResponse(HTTPRequest, HeaderBytes.ToUTF8String());
 
                 #endregion
 

@@ -38,6 +38,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Properties
 
+        #region HTTPRequest
+
+        private readonly HTTPRequest _HTTPRequest;
+
+        public HTTPRequest HTTPRequest
+        {
+            get
+            {
+                return _HTTPRequest;
+            }
+        }
+
+        #endregion
+
+
         #region Non-http header fields
 
         #region HTTPHeader
@@ -330,19 +345,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region HTTPResponseBuilder()
-
         /// <summary>
         /// Create a new HTTP response.
         /// </summary>
-        public HTTPResponseBuilder()
+        /// <param name="HTTPRequest">The HTTP request for this response.</param>
+        public HTTPResponseBuilder(HTTPRequest HTTPRequest = null)
         {
-            this.HTTPStatusCode  = HTTPStatusCode.ImATeapot;
-            this.ProtocolName    = "HTTP";
-            this.ProtocolVersion = new HTTPVersion(1, 1);
+            this._HTTPRequest     = HTTPRequest;
+            this.HTTPStatusCode   = HTTPStatusCode.ImATeapot;
+            this.ProtocolName     = "HTTP";
+            this.ProtocolVersion  = new HTTPVersion(1, 1);
         }
-
-        #endregion
 
         #endregion
 
@@ -639,13 +652,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             PrepareImmutability();
 
             if (Content != null)
-                return new HTTPResponse(HTTPHeader, Content);
+                return new HTTPResponse(_HTTPRequest, HTTPHeader, Content);
 
             else if (ContentStream != null)
-                return new HTTPResponse(HTTPHeader, ContentStream);
+                return new HTTPResponse(_HTTPRequest, HTTPHeader, ContentStream);
 
             else
-                return new HTTPResponse(HTTPHeader);
+                return new HTTPResponse(_HTTPRequest, HTTPHeader);
 
         }
 
