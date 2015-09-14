@@ -330,6 +330,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
 
         #region (private) AddToCache(DomainName, DNSInformation)
 
+        /// <summary>
+        /// Add a DNS cache entry.
+        /// </summary>
+        /// <param name="DomainName">The domain name.</param>
+        /// <param name="DNSInformation">The DNS information</param>
         private void AddToCache(String    DomainName,
                                 DNSInfo   DNSInformation)
         {
@@ -340,6 +345,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
                     ForEach(ResourceRecord => _DNSCache.Add(DomainName,
                                                             DNSInformation.Origin,
                                                             ResourceRecord));
+
+        }
+
+        #endregion
+
+        #region AddToCache(DomainName, ARecord)
+
+        /// <summary>
+        /// Add a DNS cache entry.
+        /// </summary>
+        /// <param name="DomainName">The domain name.</param>
+        /// <param name="ARecord">A DNS record</param>
+        public void AddToCache(String  DomainName,
+                               A       ARecord)
+        {
+
+            _DNSCache.Add(DomainName, IPSocket.Localhost(new IPPort(53)), ARecord);
 
         }
 

@@ -30,6 +30,9 @@ using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Services.DNS;
 using System.Text.RegularExpressions;
+using System.Security.Cryptography.X509Certificates;
+using System.Net.Security;
+using System.Security.Authentication;
 
 #endregion
 
@@ -158,6 +161,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
+
+        public X509Certificate ClientCert { get; set; }
+
+        public X509Certificate2 ServerCert { get; set; }
+
+        public RemoteCertificateValidationCallback RemoteCertificateValidator { get; set; }
+
+        public LocalCertificateSelectionCallback ClientCertificateSelector { get; set; }
+
+        public Boolean UseTLS { get; set; }
 
         #endregion
 
@@ -429,13 +442,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 //TCPClient.ReceiveTimeout = 5000;
 
-                #region Send Request
+                #region Create (Crypto-)Stream
 
                 // Open stream for reading and writing
-                var TCPStream = TCPClient.GetStream();
+                var TCPStream  = TCPClient.GetStream();
+                var TLSStream  = UseTLS
+                                     ? new SslStream(TCPStream,
+                                                     false,
+                                                     RemoteCertificateValidator)
+                                                 //    ClientCertificateSelector,
+                                                     //EncryptionPolicy.RequireEncryption)
+                                     : null;
+
+                Stream HTTPStream = null;
+
+                if (UseTLS)
+                {
+                    HTTPStream = TLSStream;
+                    TLSStream.AuthenticateAsClient(Hostname);//, new X509CertificateCollection(new X509Certificate[] { ClientCert }), SslProtocols.Default, false);
+                }
+
+                else
+                    HTTPStream = TCPStream;
+
+                #endregion
+
+                #region Send Request
 
                 var _RequestBytes = (HTTPRequest.EntireRequestHeader + Environment.NewLine + Environment.NewLine).ToUTF8Bytes();
-                TCPStream.Write(_RequestBytes, 0, _RequestBytes.Length);
+                HTTPStream.Write(_RequestBytes, 0, _RequestBytes.Length);
 
                 var RequestBodyLength = (Int32) HTTPRequest.ContentLength;
 
@@ -443,7 +478,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     RequestBodyLength = Math.Min((Int32)HTTPRequest.ContentLength, HTTPRequest.Content.Length);
 
                 if (HTTPRequest.ContentLength > 0)
-                    TCPStream.Write(HTTPRequest.Content, 0, RequestBodyLength);
+                    HTTPStream.Write(HTTPRequest.Content, 0, RequestBodyLength);
 
                 var _MemoryStream  = new MemoryStream();
                 var _Buffer        = new Byte[10485760]; // A smaller value leads to read errors!
@@ -486,9 +521,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Read
 
-                TCPStream.ReadTimeout = 2;
+                HTTPStream.ReadTimeout = 2;
 
-                while (!_EndOfHTTPHeader || TCPStream != null || TCPStream.DataAvailable || !TCPClient.Connected)
+                while (!_EndOfHTTPHeader || HTTPStream != null || TCPStream.DataAvailable || !TCPClient.Connected)
                 {
 
                     try
@@ -504,7 +539,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                             while (TCPStream.DataAvailable)
                             {
-                                _MemoryStream.Write(_Buffer, 0, TCPStream.Read(_Buffer, 0, _Buffer.Length));
+                                _MemoryStream.Write(_Buffer, 0, HTTPStream.Read(_Buffer, 0, _Buffer.Length));
                                 OldDataSize = _MemoryStream.Length;
                                 sw.Restart();
                             }
@@ -609,7 +644,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             while (TCPStream.DataAvailable && _StillToRead < 0)
                             {
                                 _CurrentBufferSize = Math.Min(_Buffer.Length, (Int32)_StillToRead);
-                                _Read = TCPStream.Read(_Buffer, 0, _CurrentBufferSize);
+                                _Read = HTTPStream.Read(_Buffer, 0, _CurrentBufferSize);
                                 _HTTPResponse.ContentStream.Write(_Buffer, 0, _Read);
                                 _StillToRead -= _Read;
                                 Retries = 0;
@@ -654,7 +689,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                             while (TCPStream.DataAvailable)
                             {
-                                _HTTPResponse.ContentStream.Write(_Buffer, 0, TCPStream.Read(_Buffer, 0, _Buffer.Length));
+                                _HTTPResponse.ContentStream.Write(_Buffer, 0, HTTPStream.Read(_Buffer, 0, _Buffer.Length));
                                 Retries = 0;
                             }
 
@@ -756,7 +791,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     _HTTPResponse.Connection == "close")
                 {
                     TCPClient.Close();
-                    TCPStream = null;
+                    HTTPStream = null;
                     TCPClient = null;
                 }
 
