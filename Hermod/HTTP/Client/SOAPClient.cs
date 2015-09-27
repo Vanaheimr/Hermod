@@ -173,7 +173,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="OnSOAPFault">The delegate to call whenever a SOAP fault occured.</param>
         /// <param name="OnHTTPError">The delegate to call whenever a HTTP error occured.</param>
         /// <param name="OnException">The delegate to call whenever an exception occured.</param>
-        /// <param name="QueryTimeout">an optional timeout of the HTTP client [default 60 sec.]</param>
+        /// <param name="QueryTimeout">An optional timeout of the HTTP client [default 60 sec.]</param>
         /// <returns>The data structured after it had been processed by the OnSuccess delegate, or a fault.</returns>
         public Task<HTTPResponse<T>> Query<T>(XElement                                       QueryXML,
                                               String                                         SOAPAction,
