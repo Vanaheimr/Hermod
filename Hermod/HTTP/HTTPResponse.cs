@@ -99,6 +99,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.Exception     = e;
         }
 
+        public HTTPResponse(HTTPResponse  HttpResponse,
+                            T             Content,
+                            Exception     e)
+        {
+            this.HttpResponse  = HttpResponse;
+            this.Content       = Content;
+            this.IsFault       = true;
+            this.Exception     = e;
+        }
+
         #endregion
 
     }

@@ -811,10 +811,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
             catch (Exception e)
             {
-                Debug.WriteLine(DateTime.Now + " " + e.Message);
+                Debug.WriteLine(DateTime.Now + " [HTTPClient] " + e.Message);
+                throw e;
             }
-
-            return null;
 
         }
 
