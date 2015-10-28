@@ -175,13 +175,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="OnException">The delegate to call whenever an exception occured.</param>
         /// <param name="QueryTimeout">An optional timeout of the HTTP client [default 60 sec.]</param>
         /// <returns>The data structured after it had been processed by the OnSuccess delegate, or a fault.</returns>
-        public Task<HTTPResponse<T>> Query<T>(XElement                                       QueryXML,
-                                              String                                         SOAPAction,
-                                              Func<HTTPResponse<XElement>, HTTPResponse<T>>  OnSuccess,
-                                              Func<HTTPResponse<XElement>, HTTPResponse<T>>  OnSOAPFault,
-                                              Action<DateTime, Object, HTTPResponse>         OnHTTPError,
-                                              Action<DateTime, Object, Exception>            OnException,
-                                              TimeSpan?                                      QueryTimeout = null)
+        public Task<HTTPResponse<T>> Query<T>(XElement                                                         QueryXML,
+                                              String                                                           SOAPAction,
+                                              Func<HTTPResponse<XElement>,                   HTTPResponse<T>>  OnSuccess,
+                                              Func<DateTime, Object, HTTPResponse<XElement>, HTTPResponse<T>>  OnSOAPFault,
+                                              Func<DateTime, Object, HTTPResponse,           HTTPResponse<T>>  OnHTTPError,
+                                              Func<DateTime, Object, Exception,              HTTPResponse<T>>  OnException,
+                                              TimeSpan?                                                        QueryTimeout = null)
 
         {
 
@@ -226,7 +226,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
                                 var OnHTTPErrorLocal = OnHTTPError;
                                 if (OnHTTPErrorLocal != null)
-                                    OnHTTPErrorLocal(DateTime.Now, this, HttpResponseTask.Result);
+                                    return OnHTTPErrorLocal(DateTime.Now, this, HttpResponseTask.Result);
 
                                 return new HTTPResponse<XElement>(HttpResponseTask.Result,
                                                                   new XElement("HTTPError"),
@@ -279,7 +279,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
                                 var OnSOAPFaultLocal = OnSOAPFault;
                                 if (OnSOAPFaultLocal != null)
-                                    return OnSOAPFaultLocal(new HTTPResponse<XElement>(HttpResponseTask.Result, SOAPXML));
+                                    return OnSOAPFaultLocal(DateTime.Now, this, new HTTPResponse<XElement>(HttpResponseTask.Result, SOAPXML));
 
                                 return new HTTPResponse<XElement>(HttpResponseTask.Result,
                                                                   new XElement("SOAPFault"),
