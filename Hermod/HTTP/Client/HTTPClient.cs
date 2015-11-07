@@ -135,7 +135,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private TcpClient TCPClient;
+        private TcpClient       TCPClient;
+        private NetworkStream   TCPStream;
+        private SslStream       TLSStream;
+        private Stream          HTTPStream;
 
         #endregion
 
@@ -452,13 +455,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                            TimeSpan?                          Timeout                  = null)
         {
 
-            //DebugX.Log("HTTPClient started...");
+            DebugX.Log("[" + DateTime.Now.ToIso8601() + "] HTTPClient started...");
 
             #region Data
 
-            Boolean _EndOfHTTPHeader    = false;
-            long    _Length             = 0;
-            long    EndOfHeaderPosition = 6;
+            var HTTPHeaderBytes  = new Byte[0];
+            var sw               = new Stopwatch();
 
             if (!Timeout.HasValue)
                 Timeout = TimeSpan.FromSeconds(60);
@@ -468,10 +470,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             try
             {
 
-                #region Check DNS or connect to IP address...
+                #region Create TCP connection (possibly also do DNS lookups)
 
                 if (TCPClient == null)
                 {
+
+                    #region DNS lookup...
 
                     if (RemoteIPAddress == null)
                     {
@@ -507,27 +511,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     }
 
+                    #endregion
+
+                    sw.Start();
+
                     TCPClient = new TcpClient(RemoteIPAddress.ToString(), this.RemotePort.ToInt32());
+                    TCPClient.ReceiveTimeout = (Int32) Timeout.Value.TotalMilliseconds;
 
                 }
 
                 #endregion
 
-                //TCPClient.ReceiveTimeout = 5000;
-
                 #region Create (Crypto-)Stream
 
-                // Open stream for reading and writing
-                var TCPStream  = TCPClient.GetStream();
-                var TLSStream  = UseTLS
-                                     ? new SslStream(TCPStream,
-                                                     false,
-                                                     RemoteCertificateValidator)
-                                                 //    ClientCertificateSelector,
-                                                     //EncryptionPolicy.RequireEncryption)
-                                     : null;
+                TCPStream  = TCPClient.GetStream();
+                TCPStream.ReadTimeout = (Int32) Timeout.Value.TotalMilliseconds;
 
-                Stream HTTPStream = null;
+                TLSStream  = UseTLS
+                                 ? new SslStream(TCPStream,
+                                                 false,
+                                                 RemoteCertificateValidator)
+                                             //    ClientCertificateSelector,
+                                                 //EncryptionPolicy.RequireEncryption)
+                                 : null;
+
+                if (TLSStream != null)
+                    TLSStream.ReadTimeout = (Int32) Timeout.Value.TotalMilliseconds;
+
+                HTTPStream = null;
 
                 if (UseTLS)
                 {
@@ -538,30 +549,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 else
                     HTTPStream = TCPStream;
 
+                HTTPStream.ReadTimeout = (Int32) Timeout.Value.TotalMilliseconds;
+
                 #endregion
 
                 #region Send Request
 
-                var _RequestBytes = (HTTPRequest.EntireRequestHeader + Environment.NewLine + Environment.NewLine).ToUTF8Bytes();
-                HTTPStream.Write(_RequestBytes, 0, _RequestBytes.Length);
+                HTTPStream.Write(String.Concat(HTTPRequest.EntireRequestHeader,
+                                               Environment.NewLine,
+                                               Environment.NewLine).
+                                 ToUTF8Bytes());
 
-                var RequestBodyLength = (Int32) HTTPRequest.ContentLength;
+                var RequestBodyLength = HTTPRequest.Content == null
+                                            ? (Int32) HTTPRequest.ContentLength
+                                            : Math.Min((Int32) HTTPRequest.ContentLength, HTTPRequest.Content.Length);
 
-                if (HTTPRequest.Content != null)
-                    RequestBodyLength = Math.Min((Int32)HTTPRequest.ContentLength, HTTPRequest.Content.Length);
-
-                if (HTTPRequest.ContentLength > 0)
+                if (RequestBodyLength > 0)
                     HTTPStream.Write(HTTPRequest.Content, 0, RequestBodyLength);
 
                 var _MemoryStream  = new MemoryStream();
-                var _Buffer        = new Byte[10485760]; // A smaller value leads to read errors!
-                var sw             = new Stopwatch();
+                var _Buffer        = new Byte[10485760]; // 10 MBytes, a smaller value leads to read errors!
 
                 #endregion
 
-                #region Wait for the server to react!
-
-                sw.Start();
+                #region Wait timeout/2 for the server to react!
 
                 try
                 {
@@ -569,14 +580,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     while (!TCPStream.DataAvailable)
                     {
 
-                        if (sw.ElapsedMilliseconds >= Timeout.Value.TotalMilliseconds)
+                        if (sw.ElapsedMilliseconds >= Timeout.Value.TotalMilliseconds / 2)
                         {
-                            //Debug.WriteLine(DateTime.Now + " HTTPClient timeout after " + Timeout + "ms!");
                             TCPClient.Close();
-                            throw new ApplicationException(DateTime.Now + " Could not read from the TCP stream!");
+                            throw new ApplicationException("[" + DateTime.Now + "] Could not read from the TCP stream for " + sw.ElapsedMilliseconds + "ms!");
                         }
 
-                        Thread.Sleep(5);
+                        Thread.Sleep(1);
 
                     }
 
@@ -586,110 +596,80 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     Debug.WriteLine(DateTime.Now + " " + e.Message);
                 }
 
-                //Debug.WriteLine(DateTime.Now + " HTTPClient got first response after " + sw.ElapsedMilliseconds + "ms!");
-
-                sw.Stop();
+                Debug.WriteLine("[" + DateTime.Now + "] HTTPClient (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") got first response after " + sw.ElapsedMilliseconds + "ms!");
 
                 #endregion
 
-                #region Read
+                #region Read the entire HTTP header, and maybe some of the HTTP body
 
-                HTTPStream.ReadTimeout = 2;
+                var CurrentDataLength = 0;
 
-                while (!_EndOfHTTPHeader || HTTPStream != null || TCPStream.DataAvailable || !TCPClient.Connected)
+                do
                 {
 
-                    try
+                    #region When data available, write it to the buffer...
+
+                    while (TCPStream.DataAvailable)
                     {
 
-                        var OldDataSize       = 0L;
-                        var EndOfReadTimeout  = 500;
+                        CurrentDataLength = HTTPStream.Read(_Buffer, 0, _Buffer.Length);
 
-                        #region Read the entire stream into the memory <= Rethink this someday!
-
-                        do
+                        if (CurrentDataLength > -1)
                         {
-
-                            while (TCPStream.DataAvailable)
-                            {
-                                _MemoryStream.Write(_Buffer, 0, HTTPStream.Read(_Buffer, 0, _Buffer.Length));
-                                OldDataSize = _MemoryStream.Length;
-                                sw.Restart();
-                            }
-
-                            if (OldDataSize < _MemoryStream.Length)
-                                Debug.WriteLine(DateTime.Now + " Read " + _MemoryStream.Length + " bytes of data (" + sw.ElapsedMilliseconds + "ms)!");
-
-                            Thread.Sleep(5);
-
+                            _MemoryStream.Write(_Buffer, 0, CurrentDataLength);
+                            Debug.WriteLine("[" + DateTime.Now + "] Read " + CurrentDataLength + " bytes from HTTP connection (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") (" + sw.ElapsedMilliseconds + "ms)!");
                         }
-                        while (TCPStream.DataAvailable || sw.ElapsedMilliseconds < EndOfReadTimeout);
-
-                        //Debug.WriteLine(DateTime.Now + " Finally read " + _MemoryStream.Length + " bytes of data (" + sw.ElapsedMilliseconds + "ms)!");
-
-                        sw.Stop();
-
-                        #endregion
-
-                        #region Walk through the stream and search for two consecutive newlines indicating the end of the HTTP header
-
-                        _Length = _MemoryStream.Length;
-
-                        if (_Length > 4)
-                        {
-
-                            _MemoryStream.Seek(0, SeekOrigin.Begin);
-
-                            int state = 0;
-                            int _int = 0;
-                            _EndOfHTTPHeader = false;
-
-                            while (!_EndOfHTTPHeader || _int == -1)
-                            {
-
-                                _int = _MemoryStream.ReadByte();
-
-                                switch (state)
-                                {
-                                    case 0: if (_int == 0x0d) state = 1; else state = 0; break;
-                                    case 1: if (_int == 0x0a) state = 2; else state = 0; break;
-                                    case 2: if (_int == 0x0d) state = 3; else state = 0; break;
-                                    case 3: if (_int == 0x0a) _EndOfHTTPHeader = true; else state = 0; break;
-                                    default: state = 0; break;
-                                }
-
-                            }
-
-                            if (_EndOfHTTPHeader)
-                                break;
-
-                        }
-
-                        #endregion
 
                     }
 
-                    catch (Exception e)
+                    #endregion
+
+                    #region Check if the entire HTTP header was already read into the buffer
+
+                    if (_MemoryStream.Length > 4)
                     {
-                        Debug.WriteLine(DateTime.Now + " " + e.Message);
+
+                        var MemoryCopy = _MemoryStream.ToArray();
+
+                        for (var pos = 3; pos < MemoryCopy.Length; pos++)
+                        {
+
+                            if (MemoryCopy[pos    ] == 0x0a &&
+                                MemoryCopy[pos - 1] == 0x0d &&
+                                MemoryCopy[pos - 2] == 0x0a &&
+                                MemoryCopy[pos - 3] == 0x0d)
+                            {
+                                Array.Resize(ref HTTPHeaderBytes, pos - 3);
+                                Array.Copy(MemoryCopy, 0, HTTPHeaderBytes, 0, pos - 3);
+                            }
+
+                        }
+
+                        if (HTTPHeaderBytes.Length > 0)
+                            Debug.WriteLine("[" + DateTime.Now + "] End of (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") HTTP header at " + HTTPHeaderBytes.Length + " bytes (" + sw.ElapsedMilliseconds + "ms)!");
+
                     }
+                    else
+                        Thread.Sleep(1);
+
+                    #endregion
 
                 }
+                // Note: Delayed parts of the HTTP body may not be read into the buffer
+                //       => Must be read later!
+                while (TCPStream.DataAvailable ||
+                       ((sw.ElapsedMilliseconds < HTTPStream.ReadTimeout) && HTTPHeaderBytes.Length == 0));
 
-                if (_EndOfHTTPHeader == false)
-                    throw new ApplicationException(DateTime.Now + " Could not find the end of the HTTP protocol header!");
-
-                EndOfHeaderPosition = _MemoryStream.Position - 3;
+                Debug.WriteLine("[" + DateTime.Now + "] Finally read " + _MemoryStream.Length + " bytes of HTTP client (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") data (" + sw.ElapsedMilliseconds + "ms)!");
 
                 #endregion
 
                 #region Copy HTTP header data
 
-                var HeaderBytes = new Byte[EndOfHeaderPosition - 1];
-                _MemoryStream.Seek(0, SeekOrigin.Begin);
-                _MemoryStream.Read(HeaderBytes, 0, HeaderBytes.Length);
+                if (HTTPHeaderBytes.Length == 0)
+                    throw new ApplicationException(DateTime.Now + " Could not find the end of the HTTP protocol header!");
 
-                var _HTTPResponse = new HTTPResponse(HTTPRequest, HeaderBytes.ToUTF8String());
+                var _HTTPResponse = new HTTPResponse(HTTPRequest, HTTPHeaderBytes.ToUTF8String());
 
                 #endregion
 
@@ -700,51 +680,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (_HTTPResponse.ContentLength.HasValue && _HTTPResponse.ContentLength.Value > 0)
                 {
 
-                    try
+                    _MemoryStream.Seek(HTTPHeaderBytes.Length + 4, SeekOrigin.Begin);
+                    var _Read = _MemoryStream.Read(_Buffer, 0, _Buffer.Length);
+                    var _StillToRead = (Int32) _HTTPResponse.ContentLength.Value - _Read;
+                    _HTTPResponse.ContentStream.Write(_Buffer, 0, _Read);
+                    var _CurrentBufferSize = 0;
+
+                    do
                     {
 
-                        _MemoryStream.Seek(4, SeekOrigin.Current);
-                        var _Read = _MemoryStream.Read(_Buffer, 0, _Buffer.Length);
-                        var _StillToRead = (Int32)_HTTPResponse.ContentLength.Value - _Read;
-                        _HTTPResponse.ContentStream.Write(_Buffer, 0, _Read);
-                        var _CurrentBufferSize = 0;
-
-                        var Retries = 0;
-
-                        while (Retries < 10)
+                        while (TCPStream.DataAvailable && _StillToRead > 0)
                         {
-
-                            while (TCPStream.DataAvailable && _StillToRead < 0)
-                            {
-                                _CurrentBufferSize = Math.Min(_Buffer.Length, (Int32)_StillToRead);
-                                _Read = HTTPStream.Read(_Buffer, 0, _CurrentBufferSize);
-                                _HTTPResponse.ContentStream.Write(_Buffer, 0, _Read);
-                                _StillToRead -= _Read;
-                                Retries = 0;
-                            }
-
-                            if (_StillToRead <= 0)
-                                break;
-
-                            Thread.Sleep(10);
-                            Retries++;
-
+                            _CurrentBufferSize = Math.Min(_Buffer.Length, (Int32) _StillToRead);
+                            _Read = HTTPStream.Read(_Buffer, 0, _CurrentBufferSize);
+                            _HTTPResponse.ContentStream.Write(_Buffer, 0, _Read);
+                            _StillToRead -= _Read;
                         }
 
-                        _HTTPResponse.ContentStreamToArray();
+                        if (_StillToRead <= 0)
+                            break;
+
+                        Thread.Sleep(1);
 
                     }
+                    while (sw.ElapsedMilliseconds < HTTPStream.ReadTimeout);
 
-                    catch (Exception e)
-                    {
-                        Debug.WriteLine(DateTime.Now + " " + e.Message);
-                    }
+                    _HTTPResponse.ContentStreamToArray();
 
                 }
 
                 #endregion
 
-                #region ...or read till timeout!
+                #region ...or read till timeout (e.g. for chunked transport)!
 
                 else
                 {
@@ -752,7 +719,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     try
                     {
 
-                        _MemoryStream.Seek(4, SeekOrigin.Current);
+                        _MemoryStream.Seek(HTTPHeaderBytes.Length + 4, SeekOrigin.Begin);
                         _HTTPResponse.ContentStream.Write(_Buffer, 0, _MemoryStream.Read(_Buffer, 0, _Buffer.Length));
 
                         var Retries = 0;
@@ -892,11 +859,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
+        #region Close()
+
         public void Close()
         {
-            if (TCPClient != null)
-                TCPClient.Close();
+
+            try
+            {
+                if (HTTPStream != null)
+                {
+                    HTTPStream.Close();
+                    HTTPStream.Dispose();
+                }
+            }
+            catch (Exception)
+            { }
+
+            try
+            {
+                if (TLSStream != null)
+                {
+                    TLSStream.Close();
+                    TLSStream.Dispose();
+                }
+            }
+            catch (Exception)
+            { }
+
+            try
+            {
+                if (TCPStream != null)
+                {
+                    TCPStream.Close();
+                    TCPStream.Dispose();
+                }
+            }
+            catch (Exception)
+            { }
+
+            try
+            {
+                if (TCPClient != null)
+                {
+                    TCPClient.Close();
+                    //TCPClient.Dispose();
+                }
+            }
+            catch (Exception)
+            { }
+
         }
+
+        #endregion
 
 
         #region ToString()
@@ -917,7 +931,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public void Dispose()
         {
-            //throw new NotImplementedException();
+            Close();
         }
 
         #endregion

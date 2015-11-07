@@ -144,20 +144,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         #region Query(QueryXML, SOAPAction)
 
-        public HTTPResponse Query(XElement  QueryXML,
-                                  String    SOAPAction)
-        {
-
-            var builder = this.POST(_URIPrefix);
-            builder.Host         = HTTPVirtualHost;
-            builder.Content      = QueryXML.ToUTF8Bytes();
-            builder.ContentType  = HTTPContentType.XMLTEXT_UTF8;
-            builder.Set("SOAPAction", SOAPAction);
-            builder.UserAgent    = UserAgent;
-
-            return this.Execute_Synced(builder);
-
-        }
+        //public HTTPResponse Query(XElement  QueryXML,
+        //                          String    SOAPAction)
+        //{
+        //
+        //    var builder = this.POST(_URIPrefix);
+        //    builder.Host         = HTTPVirtualHost;
+        //    builder.Content      = QueryXML.ToUTF8Bytes();
+        //    builder.ContentType  = HTTPContentType.XMLTEXT_UTF8;
+        //    builder.Set("SOAPAction", SOAPAction);
+        //    builder.UserAgent    = UserAgent;
+        //
+        //    return this.Execute_Synced(builder);
+        //
+        //}
 
         #endregion
 

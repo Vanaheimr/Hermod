@@ -117,7 +117,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <returns>A HTTP request object.</returns>
         public static HTTPRequestBuilder POST(this HTTPClient HTTPClient, String URI = "/", Action<HTTPRequestBuilder> BuilderAction = null)
         {
-            return HTTPClient.CreateRequest(HTTPMethod.POST, URI, BuilderAction);
+
+            return HTTPClient.
+                       CreateRequest(HTTPMethod.POST, URI, BuilderAction).
+                       // Always send a Content-Length header, even when it's value is zero
+                       SetContentLength(0);
+
         }
 
         #endregion

@@ -165,7 +165,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Initialize the HTTP server using the given parameters.
         /// </summary>
-        /// <param name="IPPort">An IP port to listen on.</param>
+        /// <param name="TCPPort">An IP port to listen on.</param>
         /// <param name="DefaultServerName">The default HTTP servername, used whenever no HTTP Host-header had been given.</param>
         /// <param name="X509Certificate">Use this X509 certificate for TLS.</param>
         /// <param name="CallingAssemblies">A list of calling assemblies to include e.g. into embedded ressources lookups.</param>
@@ -180,7 +180,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
-        public HTTPServer(IPPort                            IPPort                            = null,
+        public HTTPServer(IPPort                            TCPPort                            = null,
                           String                            DefaultServerName                 = __DefaultServerName,
                           X509Certificate2                  X509Certificate                   = null,
                           IEnumerable<Assembly>             CallingAssemblies                 = null,
@@ -239,8 +239,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             _HTTPProcessor.AccessLog              += (HTTPProcessor, ServerTimestamp, Request, Response)                       => LogAccess (ServerTimestamp, Request, Response);
             _HTTPProcessor.ErrorLog               += (HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException) => LogError  (ServerTimestamp, Request, Response, Error, LastException);
 
-            if (IPPort != null)
-                this.AttachTCPPort(IPPort);
+            if (TCPPort != null)
+                this.AttachTCPPort(TCPPort);
 
             if (Autostart)
                 Start();

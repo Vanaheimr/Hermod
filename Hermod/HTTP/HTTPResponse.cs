@@ -309,15 +309,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region HTTPResponse(HTTPRequest, HTTPHeader)
+        #region HTTPResponse(HTTPRequest, HTTPHeaderAsText)
 
         public HTTPResponse(HTTPRequest  HTTPRequest,
-                            String       HTTPHeader)
+                            String       HTTPHeaderAsText)
         {
 
             this._HTTPRequest = HTTPRequest;
 
-            if (ParseResponseHeader(HTTPHeader))
+            if (ParseResponseHeader(HTTPHeaderAsText))
                 base.ContentStream = new MemoryStream();
 
         }
