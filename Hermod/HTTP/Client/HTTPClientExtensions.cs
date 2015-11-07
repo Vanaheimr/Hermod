@@ -115,9 +115,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPClient">A HTTP client.</param>
         /// <param name="URI">An URL path.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequestBuilder POST(this HTTPClient HTTPClient, String URI = "/")
+        public static HTTPRequestBuilder POST(this HTTPClient HTTPClient, String URI = "/", Action<HTTPRequestBuilder> BuilderAction = null)
         {
-            return HTTPClient.CreateRequest(HTTPMethod.POST, URI);
+            return HTTPClient.CreateRequest(HTTPMethod.POST, URI, BuilderAction);
         }
 
         #endregion

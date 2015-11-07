@@ -40,6 +40,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Properties
 
+        private readonly HTTPClient _HTTPClient;
+
         #region Non-http header fields
 
         #region EntireRequestHeader
@@ -683,8 +685,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP request.
         /// </summary>
-        public HTTPRequestBuilder()
+        public HTTPRequestBuilder(HTTPClient Client)
         {
+
+            this._HTTPClient      = Client;
+
             this.HTTPStatusCode   = HTTPStatusCode.OK;
             this.HTTPMethod       = HTTPMethod.GET;
             this.URI              = "/";
@@ -692,6 +697,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             SetHeaderField(HTTPHeaderField.Accept, new AcceptTypes());
             this.ProtocolName     = "HTTP";
             this.ProtocolVersion  = new HTTPVersion(1, 1);
+
         }
 
         #endregion
@@ -1415,9 +1421,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+
+        #region Set(Field, Value)
+
         public void Set(String Field, Object Value)
         {
             SetHeaderField(new HTTPHeaderField(Field, typeof(Object), HeaderFieldType.Request, RequestPathSemantic.both), Value);
+        }
+
+        #endregion
+
+
+        public Task<HTTPResponse> ExecuteReturnResult()
+        {
+            return this._HTTPClient.ExecuteReturnResult(AsImmutable());
         }
 
 

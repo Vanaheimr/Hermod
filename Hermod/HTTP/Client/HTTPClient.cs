@@ -58,6 +58,75 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     }
 
 
+    public class HTTPSClient : HTTPClient
+    {
+
+        #region HTTPSClient(RemoteIPAddress, RemotePort = null, DNSClient  = null)
+
+        /// <summary>
+        /// Create a new HTTPClient using the given optional parameters.
+        /// </summary>
+        /// <param name="RemoteIPAddress">The remote IP address to connect to.</param>
+        /// <param name="RemotePort">An optional remote IP port to connect to [default: 443].</param>
+        /// <param name="DNSClient">An optional DNS client.</param>
+        public HTTPSClient(IIPAddress  RemoteIPAddress,
+                           IPPort      RemotePort = null,
+                           DNSClient   DNSClient  = null)
+
+            : base(RemoteIPAddress,
+                   RemotePort != null ? RemotePort : IPPort.Parse(443),
+                   DNSClient)
+
+        {
+            UseTLS = true;
+        }
+
+        #endregion
+
+        #region HTTPSClient(Socket, DNSClient  = null)
+
+        /// <summary>
+        /// Create a new HTTPClient using the given optional parameters.
+        /// </summary>
+        /// <param name="RemoteSocket">The remote IP socket to connect to.</param>
+        /// <param name="DNSClient">An optional DNS client.</param>
+        public HTTPSClient(IPSocket   RemoteSocket,
+                           DNSClient  DNSClient  = null)
+
+            : base(RemoteSocket,
+                   DNSClient)
+
+        {
+            UseTLS = true;
+        }
+
+        #endregion
+
+        #region HTTPSClient(RemoteHost, RemotePort = null, DNSClient  = null)
+
+        /// <summary>
+        /// Create a new HTTPClient using the given optional parameters.
+        /// </summary>
+        /// <param name="RemoteHost">The remote hostname to connect to.</param>
+        /// <param name="RemotePort">An optional remote IP port to connect to [default: 443].</param>
+        /// <param name="DNSClient">An optional DNS client.</param>
+        public HTTPSClient(String     RemoteHost,
+                           IPPort     RemotePort = null,
+                           DNSClient  DNSClient  = null)
+
+            : base(RemoteHost,
+                   RemotePort != null ? RemotePort : IPPort.Parse(443),
+                   DNSClient)
+
+        {
+            UseTLS = true;
+        }
+
+        #endregion
+
+    }
+
+
     /// <summary>
     /// A http client.
     /// </summary>
@@ -220,7 +289,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region HTTPClient(RemoteHost, RemotePort, DNSClient  = null)
+        #region HTTPClient(RemoteHost, RemotePort = null, DNSClient  = null)
 
         /// <summary>
         /// Create a new HTTPClient using the given optional parameters.
@@ -229,15 +298,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RemotePort">The remote IP port to connect to.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public HTTPClient(String     RemoteHost,
-                          IPPort     RemotePort,
+                          IPPort     RemotePort = null,
                           DNSClient  DNSClient  = null)
         {
 
-            this.Hostname         = RemoteHost;
-            this.RemotePort       = RemotePort;
-            this._DNSClient       = DNSClient == null
-                                       ? new DNSClient()
-                                       : DNSClient;
+            this.Hostname    = RemoteHost;
+
+            this.RemotePort  = RemotePort != null
+                                  ? RemotePort
+                                  : IPPort.Parse(80);
+
+            this._DNSClient  = DNSClient != null
+                                  ? DNSClient
+                                  : new DNSClient();
 
         }
 
@@ -246,7 +319,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region CreateRequest(HTTPMethod, URI = "/", BuilderAction = null)
+        #region CreateRequest(HTTPClient, HTTPMethod, URI = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP request.
@@ -260,7 +333,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                 Action<HTTPRequestBuilder>  BuilderAction  = null)
         {
 
-            var Builder     = new HTTPRequestBuilder() {
+            var Builder     = new HTTPRequestBuilder(this) {
                 HTTPMethod  = HTTPMethod,
                 URI         = URI
             };
@@ -287,9 +360,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                 Action<HTTPRequestBuilder>  BuilderAction  = null)
         {
 
-            var Builder = new HTTPRequestBuilder() {
+            var Builder = new HTTPRequestBuilder(this) {
                 HTTPMethod  = new HTTPMethod(HTTPMethod),
-                URI     = URI
+                URI         = URI
             };
 
             BuilderAction.FailSafeInvoke(Builder);
