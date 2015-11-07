@@ -377,98 +377,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region Execute(HTTPRequest, RequestResponseDelegate = null, Timeout = null)
 
-
-
-        public Task<T> Execute<T>(HTTPRequest                         HTTPRequest,
-                                  Action<HTTPRequest>                 HTTPRequestDelegate,
-                                  Func<HTTPRequest, HTTPResponse, T>  RequestResponseDelegate)
+        /// <summary>
+        /// Execute the given HTTP request and return its result.
+        /// </summary>
+        /// <param name="HTTPRequest">A HTTP request.</param>
+        /// <param name="RequestResponseDelegate">An otional delegate for processing the HTTP request/response.</param>
+        /// <param name="Timeout">An optional timeout.</param>
+        public async Task<HTTPResponse> Execute(HTTPRequest                        HTTPRequest,
+                                                Action<HTTPRequest, HTTPResponse>  RequestResponseDelegate  = null,
+                                                TimeSpan?                          Timeout                  = null)
         {
 
-            if (HTTPRequestDelegate != null)
-                HTTPRequestDelegate(HTTPRequest);
+            var task = Task<HTTPResponse>.Factory.StartNew(() => {
 
-            return GetResponse(HTTPRequest, RequestResponseDelegate);
+                DebugX.Log("[" + DateTime.Now.ToIso8601() + "] HTTPClient started...");
 
-        }
+                #region Data
 
+                var HTTPHeaderBytes  = new Byte[0];
+                var sw               = new Stopwatch();
 
-        public Task<T> GetResponse<T>(HTTPRequest                         HTTPRequest,
-                                      Func<HTTPRequest, HTTPResponse, T>  RequestResponseDelegate,
-                                      TimeSpan?                           Timeout                  = null)
-        {
+                if (!Timeout.HasValue)
+                    Timeout = TimeSpan.FromSeconds(60);
 
-            return Task<T>.Factory.StartNew(() => {
-
-                T _T = default(T);
-
-                Execute(HTTPRequest,
-                        new Action<HTTPRequest, HTTPResponse>((request, response) =>
-                                _T = RequestResponseDelegate(request, response))).
-
-                            Wait((Int32) Timeout.Value.TotalMilliseconds);
-
-                return _T;
-
-            });
-
-        }
-
-        public Task<HTTPClient> Execute(HTTPRequest                        HTTPRequest,
-                                        Action<HTTPRequest>                HTTPRequestDelegate,
-                                        Action<HTTPRequest, HTTPResponse>  RequestResponseDelegate)
-        {
-
-            if (HTTPRequestDelegate != null)
-                HTTPRequestDelegate(HTTPRequest);
-
-            return Execute(HTTPRequest, RequestResponseDelegate);
-
-        }
-
-        public Task<HTTPClient> Execute(HTTPRequest                        HTTPRequest,
-                                        Action<HTTPRequest, HTTPResponse>  RequestResponseDelegate  = null,
-                                        TimeSpan?                          Timeout                  = null)
-        {
-
-            return Task<HTTPClient>.Factory.StartNew(
-                () => { Execute_Synced(HTTPRequest, RequestResponseDelegate, Timeout); return this; },
-                TaskCreationOptions.AttachedToParent);
-
-        }
-
-
-        public Task<HTTPResponse> ExecuteReturnResult(HTTPRequest                        HTTPRequest,
-                                                      Action<HTTPRequest, HTTPResponse>  RequestResponseDelegate  = null,
-                                                      TimeSpan?                          Timeout                  = null)
-        {
-
-            return Task<HTTPResponse>.Factory.StartNew(
-                () => { return Execute_Synced(HTTPRequest, RequestResponseDelegate, Timeout); },
-                TaskCreationOptions.AttachedToParent);
-
-        }
-
-
-        public HTTPResponse Execute_Synced(HTTPRequest                        HTTPRequest,
-                                           Action<HTTPRequest, HTTPResponse>  RequestResponseDelegate  = null,
-                                           TimeSpan?                          Timeout                  = null)
-        {
-
-            DebugX.Log("[" + DateTime.Now.ToIso8601() + "] HTTPClient started...");
-
-            #region Data
-
-            var HTTPHeaderBytes  = new Byte[0];
-            var sw               = new Stopwatch();
-
-            if (!Timeout.HasValue)
-                Timeout = TimeSpan.FromSeconds(60);
-
-            #endregion
-
-            try
-            {
+                #endregion
 
                 #region Create TCP connection (possibly also do DNS lookups)
 
@@ -609,50 +543,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #region When data available, write it to the buffer...
 
-                    while (TCPStream.DataAvailable)
-                    {
-
-                        CurrentDataLength = HTTPStream.Read(_Buffer, 0, _Buffer.Length);
-
-                        if (CurrentDataLength > -1)
-                        {
-                            _MemoryStream.Write(_Buffer, 0, CurrentDataLength);
-                            Debug.WriteLine("[" + DateTime.Now + "] Read " + CurrentDataLength + " bytes from HTTP connection (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") (" + sw.ElapsedMilliseconds + "ms)!");
-                        }
-
-                    }
-
-                    #endregion
-
-                    #region Check if the entire HTTP header was already read into the buffer
-
-                    if (_MemoryStream.Length > 4)
-                    {
-
-                        var MemoryCopy = _MemoryStream.ToArray();
-
-                        for (var pos = 3; pos < MemoryCopy.Length; pos++)
+                        while (TCPStream.DataAvailable)
                         {
 
-                            if (MemoryCopy[pos    ] == 0x0a &&
-                                MemoryCopy[pos - 1] == 0x0d &&
-                                MemoryCopy[pos - 2] == 0x0a &&
-                                MemoryCopy[pos - 3] == 0x0d)
+                            CurrentDataLength = HTTPStream.Read(_Buffer, 0, _Buffer.Length);
+
+                            if (CurrentDataLength > -1)
                             {
-                                Array.Resize(ref HTTPHeaderBytes, pos - 3);
-                                Array.Copy(MemoryCopy, 0, HTTPHeaderBytes, 0, pos - 3);
+                                _MemoryStream.Write(_Buffer, 0, CurrentDataLength);
+                                Debug.WriteLine("[" + DateTime.Now + "] Read " + CurrentDataLength + " bytes from HTTP connection (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") (" + sw.ElapsedMilliseconds + "ms)!");
                             }
 
                         }
 
-                        if (HTTPHeaderBytes.Length > 0)
-                            Debug.WriteLine("[" + DateTime.Now + "] End of (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") HTTP header at " + HTTPHeaderBytes.Length + " bytes (" + sw.ElapsedMilliseconds + "ms)!");
+                        #endregion
 
-                    }
-                    else
-                        Thread.Sleep(1);
+                    #region Check if the entire HTTP header was already read into the buffer
 
-                    #endregion
+                        if (_MemoryStream.Length > 4)
+                        {
+
+                            var MemoryCopy = _MemoryStream.ToArray();
+
+                            for (var pos = 3; pos < MemoryCopy.Length; pos++)
+                            {
+
+                                if (MemoryCopy[pos    ] == 0x0a &&
+                                    MemoryCopy[pos - 1] == 0x0d &&
+                                    MemoryCopy[pos - 2] == 0x0a &&
+                                    MemoryCopy[pos - 3] == 0x0d)
+                                {
+                                    Array.Resize(ref HTTPHeaderBytes, pos - 3);
+                                    Array.Copy(MemoryCopy, 0, HTTPHeaderBytes, 0, pos - 3);
+                                }
+
+                            }
+
+                            if (HTTPHeaderBytes.Length > 0)
+                                Debug.WriteLine("[" + DateTime.Now + "] End of (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") HTTP header at " + HTTPHeaderBytes.Length + " bytes (" + sw.ElapsedMilliseconds + "ms)!");
+
+                        }
+                        else
+                            Thread.Sleep(1);
+
+                        #endregion
 
                 }
                 // Note: Delayed parts of the HTTP body may not be read into the buffer
@@ -837,27 +771,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #endregion
 
+                #region Call the optional HTTPResponse delegate(s)
 
-                #region Call HTTPResponse delegates
+                    var RequestResponseDelegateLocal = RequestResponseDelegate;
+                    if (RequestResponseDelegateLocal != null)
+                        RequestResponseDelegateLocal(HTTPRequest, _HTTPResponse);
 
-                var RequestResponseDelegateLocal = RequestResponseDelegate;
-                if (RequestResponseDelegateLocal != null)
-                    RequestResponseDelegateLocal(HTTPRequest, _HTTPResponse);
-
-                #endregion
+                    #endregion
 
                 return _HTTPResponse;
 
-            }
-            catch (Exception e)
-            {
-                Debug.WriteLine(DateTime.Now + " [HTTPClient] " + e.Message);
-                throw e;
-            }
+            }, TaskCreationOptions.AttachedToParent);
+
+            return await task;
 
         }
 
-
+        #endregion
 
         #region Close()
 
@@ -912,6 +842,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region IDisposable Members
+
+        public void Dispose()
+        {
+            Close();
+        }
+
+        #endregion
 
         #region ToString()
 
@@ -922,16 +860,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public override String ToString()
         {
             return String.Concat(this.GetType().Name, " ", RemoteIPAddress.ToString(), ":", RemotePort);
-        }
-
-        #endregion
-
-
-        #region IDisposable Members
-
-        public void Dispose()
-        {
-            Close();
         }
 
         #endregion

@@ -142,25 +142,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         #endregion
 
 
-        #region Query(QueryXML, SOAPAction)
-
-        //public HTTPResponse Query(XElement  QueryXML,
-        //                          String    SOAPAction)
-        //{
-        //
-        //    var builder = this.POST(_URIPrefix);
-        //    builder.Host         = HTTPVirtualHost;
-        //    builder.Content      = QueryXML.ToUTF8Bytes();
-        //    builder.ContentType  = HTTPContentType.XMLTEXT_UTF8;
-        //    builder.Set("SOAPAction", SOAPAction);
-        //    builder.UserAgent    = UserAgent;
-        //
-        //    return this.Execute_Synced(builder);
-        //
-        //}
-
-        #endregion
-
         #region Query(QueryXML, SOAPAction, OnSuccess, OnSOAPFault, OnHTTPError, OnException, TimeoutMSec = 60000)
 
         /// <summary>
@@ -215,7 +196,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             builder.UserAgent          = UserAgent;
             builder.FakeURIPrefix      = "https://" + HTTPVirtualHost;
 
-            return this.ExecuteReturnResult(builder, Timeout: QueryTimeout != null ? QueryTimeout : TimeSpan.FromSeconds(60)).
+            return this.Execute(builder, Timeout: QueryTimeout != null ? QueryTimeout : TimeSpan.FromSeconds(60)).
                         ContinueWith(HttpResponseTask => {
 
                             if (HttpResponseTask.Result                == null              ||
