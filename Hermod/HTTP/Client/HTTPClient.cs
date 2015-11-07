@@ -19,20 +19,17 @@
 
 using System;
 using System.IO;
-using System.Net;
 using System.Linq;
-using System.Threading;
-using System.Diagnostics;
 using System.Net.Sockets;
+using System.Net.Security;
+using System.Threading;
 using System.Threading.Tasks;
-
-using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
-using org.GraphDefined.Vanaheimr.Hermod.Services.DNS;
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Security.Cryptography.X509Certificates;
-using System.Net.Security;
-using System.Security.Authentication;
+
+using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.Services.DNS;
 
 #endregion
 
@@ -54,75 +51,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
-
-    }
-
-
-    public class HTTPSClient : HTTPClient
-    {
-
-        #region HTTPSClient(RemoteIPAddress, RemotePort = null, DNSClient  = null)
-
-        /// <summary>
-        /// Create a new HTTPClient using the given optional parameters.
-        /// </summary>
-        /// <param name="RemoteIPAddress">The remote IP address to connect to.</param>
-        /// <param name="RemotePort">An optional remote IP port to connect to [default: 443].</param>
-        /// <param name="DNSClient">An optional DNS client.</param>
-        public HTTPSClient(IIPAddress  RemoteIPAddress,
-                           IPPort      RemotePort = null,
-                           DNSClient   DNSClient  = null)
-
-            : base(RemoteIPAddress,
-                   RemotePort != null ? RemotePort : IPPort.Parse(443),
-                   DNSClient)
-
-        {
-            UseTLS = true;
-        }
-
-        #endregion
-
-        #region HTTPSClient(Socket, DNSClient  = null)
-
-        /// <summary>
-        /// Create a new HTTPClient using the given optional parameters.
-        /// </summary>
-        /// <param name="RemoteSocket">The remote IP socket to connect to.</param>
-        /// <param name="DNSClient">An optional DNS client.</param>
-        public HTTPSClient(IPSocket   RemoteSocket,
-                           DNSClient  DNSClient  = null)
-
-            : base(RemoteSocket,
-                   DNSClient)
-
-        {
-            UseTLS = true;
-        }
-
-        #endregion
-
-        #region HTTPSClient(RemoteHost, RemotePort = null, DNSClient  = null)
-
-        /// <summary>
-        /// Create a new HTTPClient using the given optional parameters.
-        /// </summary>
-        /// <param name="RemoteHost">The remote hostname to connect to.</param>
-        /// <param name="RemotePort">An optional remote IP port to connect to [default: 443].</param>
-        /// <param name="DNSClient">An optional DNS client.</param>
-        public HTTPSClient(String     RemoteHost,
-                           IPPort     RemotePort = null,
-                           DNSClient  DNSClient  = null)
-
-            : base(RemoteHost,
-                   RemotePort != null ? RemotePort : IPPort.Parse(443),
-                   DNSClient)
-
-        {
-            UseTLS = true;
-        }
-
-        #endregion
 
     }
 
@@ -242,7 +170,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public LocalCertificateSelectionCallback ClientCertificateSelector { get; set; }
 
-        public Boolean UseTLS { get; set; }
+        #region UseTLS
+
+        private readonly Boolean _UseTLS;
+
+        public Boolean UseTLS
+        {
+            get
+            {
+                return _UseTLS;
+            }
+        }
+
+        #endregion
 
         #endregion
 
@@ -253,21 +193,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region HTTPClient(RemoteIPAddress, RemotePort, DNSClient  = null)
+        #region HTTPClient(RemoteIPAddress, RemotePort, UseTLS = false, DNSClient  = null)
 
         /// <summary>
         /// Create a new HTTPClient using the given optional parameters.
         /// </summary>
         /// <param name="RemoteIPAddress">The remote IP address to connect to.</param>
         /// <param name="RemotePort">The remote IP port to connect to.</param>
+        /// <param name="UseTLS">Use transport layer security [default: false].</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public HTTPClient(IIPAddress  RemoteIPAddress,
                           IPPort      RemotePort,
+                          Boolean     UseTLS     = false,
                           DNSClient   DNSClient  = null)
         {
 
             this.RemoteIPAddress  = RemoteIPAddress;
             this.RemotePort       = RemotePort;
+            this._UseTLS          = UseTLS;
             this._DNSClient       = DNSClient == null
                                        ? new DNSClient()
                                        : DNSClient;
@@ -276,32 +219,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region HTTPClient(Socket, DNSClient  = null)
+        #region HTTPClient(Socket, UseTLS = false, DNSClient  = null)
 
         /// <summary>
         /// Create a new HTTPClient using the given optional parameters.
         /// </summary>
         /// <param name="RemoteSocket">The remote IP socket to connect to.</param>
+        /// <param name="UseTLS">Use transport layer security [default: false].</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public HTTPClient(IPSocket   RemoteSocket,
+                          Boolean    UseTLS     = false,
                           DNSClient  DNSClient  = null)
 
-            : this(RemoteSocket.IPAddress, RemoteSocket.Port, DNSClient)
+            : this(RemoteSocket.IPAddress, RemoteSocket.Port, UseTLS, DNSClient)
 
         { }
 
         #endregion
 
-        #region HTTPClient(RemoteHost, RemotePort = null, DNSClient  = null)
+        #region HTTPClient(RemoteHost, RemotePort = null, UseTLS = false, DNSClient  = null)
 
         /// <summary>
         /// Create a new HTTPClient using the given optional parameters.
         /// </summary>
         /// <param name="RemoteHost">The remote hostname to connect to.</param>
         /// <param name="RemotePort">The remote IP port to connect to.</param>
+        /// <param name="UseTLS">Use transport layer security [default: false].</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public HTTPClient(String     RemoteHost,
                           IPPort     RemotePort = null,
+                          Boolean    UseTLS     = false,
                           DNSClient  DNSClient  = null)
         {
 
@@ -310,6 +257,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.RemotePort  = RemotePort != null
                                   ? RemotePort
                                   : IPPort.Parse(80);
+
+            this._UseTLS     = UseTLS;
 
             this._DNSClient  = DNSClient != null
                                   ? DNSClient

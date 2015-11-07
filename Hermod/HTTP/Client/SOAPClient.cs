@@ -121,15 +121,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="HTTPVirtualHost">The HTTP virtual host to use.</param>
         /// <param name="URIPrefix">The URI-prefix of the SOAP service.</param>
         /// <param name="UserAgent">The HTTP user agent to use.</param>
+        /// <param name="UseTLS">Use transport layer security [default: false].</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public SOAPClient(String     SOAPHost,
                           IPPort     SOAPPort,
                           String     HTTPVirtualHost,
                           String     URIPrefix,
                           String     UserAgent  = "GraphDefined SOAP-Client",
+                          Boolean    UseTLS     = false,
                           DNSClient  DNSClient  = null)
 
-            : base(SOAPHost, SOAPPort, DNSClient)
+            : base(SOAPHost, SOAPPort, UseTLS, DNSClient)
 
         {
 
