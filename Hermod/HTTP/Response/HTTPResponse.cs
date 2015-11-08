@@ -350,7 +350,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this._HTTPRequest = HTTPRequest;
 
             if (ParseResponseHeader(HTTPHeader))
-                base.ContentStream = ContentStream;
+                base.ContentStream  = ContentStream;
 
         }
 
@@ -415,7 +415,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region NewContentStream()
 
+        public MemoryStream NewContentStream()
+        {
+
+            var _MemoryStream = new MemoryStream();
+
+            base.ContentStream = _MemoryStream;
+
+            return _MemoryStream;
+
+        }
+
+        #endregion
+
+        #region ContentStreamToArray(DataStream = null)
 
         public void ContentStreamToArray(Stream DataStream = null)
         {
@@ -426,6 +441,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Content = ((MemoryStream) DataStream).ToArray();
 
         }
+
+        #endregion
 
 
         #region (override) ToString()

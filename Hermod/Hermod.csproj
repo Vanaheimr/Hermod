@@ -71,10 +71,10 @@
     <Compile Include="HTTP\General\HTTPStatusCode.cs" />
     <Compile Include="HTTP\General\HTTPVersion.cs" />
     <Compile Include="HTTP\HTTPHeaderField.cs" />
-    <Compile Include="HTTP\HTTPRequest.cs" />
-    <Compile Include="HTTP\HTTPRequestBuilder.cs" />
-    <Compile Include="HTTP\HTTPResponse.cs" />
-    <Compile Include="HTTP\HTTPResponseBuilder.cs" />
+    <Compile Include="HTTP\Request\HTTPRequest.cs" />
+    <Compile Include="HTTP\Request\HTTPRequestBuilder.cs" />
+    <Compile Include="HTTP\Response\HTTPResponse.cs" />
+    <Compile Include="HTTP\Response\HTTPResponseBuilder.cs" />
     <Compile Include="HTTP\Request\AcceptType.cs" />
     <Compile Include="HTTP\Request\AcceptTypes.cs" />
     <Compile Include="HTTP\Request\HTTPAuthenticationTypes.cs" />

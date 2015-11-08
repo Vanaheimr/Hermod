@@ -47,17 +47,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region GET(this HTTPClient, URI = "/")
+        #region GET(this HTTPClient, URI = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP GET request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
         /// <param name="URI">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequestBuilder GET(this HTTPClient HTTPClient, String URI = "/")
+        public static HTTPRequestBuilder GET(this HTTPClient             HTTPClient,
+                                             String                      URI = "/",
+                                             Action<HTTPRequestBuilder>  BuilderAction = null)
         {
-            return HTTPClient.CreateRequest(HTTPMethod.GET, URI);
+            return HTTPClient.CreateRequest(HTTPMethod.GET, URI, BuilderAction);
         }
 
         #endregion
@@ -107,15 +110,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region POST(this HTTPClient, URI = "/")
+        #region POST(this HTTPClient, URI = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP POST request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
         /// <param name="URI">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequestBuilder POST(this HTTPClient HTTPClient, String URI = "/", Action<HTTPRequestBuilder> BuilderAction = null)
+        public static HTTPRequestBuilder POST(this HTTPClient             HTTPClient,
+                                              String                      URI = "/",
+                                              Action<HTTPRequestBuilder>  BuilderAction = null)
         {
 
             return HTTPClient.
