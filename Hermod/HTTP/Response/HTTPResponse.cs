@@ -298,6 +298,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+
+        #region Exception
+
+        private readonly Exception _Exception;
+
+        public Exception Exception
+        {
+            get
+            {
+                return _Exception;
+            }
+        }
+
+        #endregion
+
+        #region HasException
+
+        public Boolean HasException
+        {
+            get
+            {
+                return _Exception != null;
+            }
+        }
+
+        #endregion
+
         #endregion
 
         #region Constructor(s)
@@ -359,15 +386,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region HTTPResponse(Exception)
 
         public HTTPResponse(Exception Exception)
+        {
 
-            : this(HTTPStatusCode.ExceptionOccured,
+            base.HTTPStatusCode  = HTTPStatusCode;
+            this._Exception      = Exception;
 
-                   Exception.Message +
-                   Environment.NewLine +
-                   Environment.NewLine +
-                   Exception.StackTrace)
-
-        { }
+        }
 
         #endregion
 

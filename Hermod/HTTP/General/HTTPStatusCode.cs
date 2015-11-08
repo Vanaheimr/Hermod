@@ -41,7 +41,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The code of this HTTP status code
         /// </summary>
         public UInt32 Code { get; private set; }
-        
+
         #endregion
 
         #region Name
@@ -736,10 +736,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               "request successfully. " + Environment.NewLine +
                                               "For example: This request is required to be " +
                                               "conditional; try using the 'If-Match'-header.");
-
-        public static readonly HTTPStatusCode ExceptionOccured = new HTTPStatusCode(
-                                              499,
-                                              "Exception Occured");
 
         #endregion
 

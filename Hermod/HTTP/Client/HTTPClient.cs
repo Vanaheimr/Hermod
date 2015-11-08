@@ -341,6 +341,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Execute(HTTPRequestDelegate, Timeout = null)
+
+        /// <summary>
+        /// Execute the given HTTP request and return its result.
+        /// </summary>
+        /// <param name="HTTPRequest">A HTTP request.</param>
+        /// <param name="Timeout">An optional timeout.</param>
+        public async Task<HTTPResponse> Execute(Func<HTTPClient, HTTPRequest>  HTTPRequestDelegate,
+                                                TimeSpan?                      Timeout = null)
+        {
+            return await Execute(HTTPRequestDelegate(this), null, Timeout);
+        }
+
+        #endregion
+
         #region Execute(HTTPRequest, RequestResponseDelegate, Timeout = null)
 
         /// <summary>
