@@ -737,6 +737,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               "For example: This request is required to be " +
                                               "conditional; try using the 'If-Match'-header.");
 
+        public static readonly HTTPStatusCode ExceptionOccured = new HTTPStatusCode(
+                                              499,
+                                              "Exception Occured");
+
         #endregion
 
         #region 5xx Server Error

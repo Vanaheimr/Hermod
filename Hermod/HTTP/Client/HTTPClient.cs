@@ -358,392 +358,394 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 //DebugX.Log("[" + DateTime.Now.ToIso8601() + "] HTTPClient started...");
 
-                #region Data
+                HTTPResponse _HTTPResponse = null;
 
-                var HTTPHeaderBytes  = new Byte[0];
-                var sw               = new Stopwatch();
-
-                if (!Timeout.HasValue)
-                    Timeout = TimeSpan.FromSeconds(60);
-
-                #endregion
-
-                #region Create TCP connection (possibly also do DNS lookups)
-
-                if (TCPClient == null)
+                try
                 {
 
-                    #region DNS lookup...
+                    #region Data
 
-                    if (RemoteIPAddress == null)
+                    var HTTPHeaderBytes  = new Byte[0];
+                    var sw               = new Stopwatch();
+
+                    if (!Timeout.HasValue)
+                        Timeout = TimeSpan.FromSeconds(60);
+
+                    #endregion
+
+                    #region Create TCP connection (possibly also do DNS lookups)
+
+                    if (TCPClient == null)
+                    {
+
+                        #region DNS lookup...
+
+                        if (RemoteIPAddress == null)
+                        {
+
+                            try
+                            {
+
+                                var RegExpr = new Regex(@"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b");
+
+                                if (RegExpr.IsMatch(Hostname))
+                                    this.RemoteIPAddress = IPv4Address.Parse(Hostname);
+
+                                else
+                                {
+
+                                    var IPv4AddressTask = _DNSClient.
+                                                              Query<A>(Hostname).
+                                                                  ContinueWith(QueryTask => QueryTask.Result.
+                                                                                                Select(ARecord => ARecord.IPv4Address).
+                                                                                                FirstOrDefault());
+
+                                    IPv4AddressTask.Wait();
+
+                                    this.RemoteIPAddress = IPv4AddressTask.Result;
+
+                                }
+
+                            }
+                            catch (Exception e)
+                            {
+                                Debug.WriteLine("[" + DateTime.Now + "] " + e.Message);
+                            }
+
+                        }
+
+                        #endregion
+
+                        sw.Start();
+
+                        TCPClient = new TcpClient(RemoteIPAddress.ToString(), this.RemotePort.ToInt32());
+                        TCPClient.ReceiveTimeout = (Int32) Timeout.Value.TotalMilliseconds;
+
+                    }
+
+                    #endregion
+
+                    #region Create (Crypto-)Stream
+
+                    TCPStream  = TCPClient.GetStream();
+                    TCPStream.ReadTimeout = (Int32) Timeout.Value.TotalMilliseconds;
+
+                    TLSStream  = UseTLS
+                                     ? new SslStream(TCPStream,
+                                                     false,
+                                                     RemoteCertificateValidator)
+                                                 //    ClientCertificateSelector,
+                                                     //EncryptionPolicy.RequireEncryption)
+                                     : null;
+
+                    if (TLSStream != null)
+                        TLSStream.ReadTimeout = (Int32) Timeout.Value.TotalMilliseconds;
+
+                    HTTPStream = null;
+
+                    if (UseTLS)
+                    {
+                        HTTPStream = TLSStream;
+                        TLSStream.AuthenticateAsClient(Hostname);//, new X509CertificateCollection(new X509Certificate[] { ClientCert }), SslProtocols.Default, false);
+                    }
+
+                    else
+                        HTTPStream = TCPStream;
+
+                    HTTPStream.ReadTimeout = (Int32) Timeout.Value.TotalMilliseconds;
+
+                    #endregion
+
+                    #region Send Request
+
+                    HTTPStream.Write(String.Concat(HTTPRequest.EntireRequestHeader,
+                                                   Environment.NewLine,
+                                                   Environment.NewLine).
+                                     ToUTF8Bytes());
+
+                    var RequestBodyLength = HTTPRequest.Content == null
+                                                ? (Int32) HTTPRequest.ContentLength
+                                                : Math.Min((Int32) HTTPRequest.ContentLength, HTTPRequest.Content.Length);
+
+                    if (RequestBodyLength > 0)
+                        HTTPStream.Write(HTTPRequest.Content, 0, RequestBodyLength);
+
+                    var _MemoryStream  = new MemoryStream();
+                    var _Buffer        = new Byte[10485760]; // 10 MBytes, a smaller value leads to read errors!
+
+                    #endregion
+
+                    #region Wait timeout for the server to react!
+
+                    while (!TCPStream.DataAvailable)
+                    {
+
+                        if (sw.ElapsedMilliseconds >= Timeout.Value.TotalMilliseconds)
+                        {
+                            TCPClient.Close();
+                            throw new Exception("[" + DateTime.Now + "] Could not read from the TCP stream for " + sw.ElapsedMilliseconds + "ms!");
+                        }
+
+                        Thread.Sleep(1);
+
+                    }
+
+                    //Debug.WriteLine("[" + DateTime.Now + "] HTTPClient (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") got first response after " + sw.ElapsedMilliseconds + "ms!");
+
+                    #endregion
+
+                    #region Read the entire HTTP header, and maybe some of the HTTP body
+
+                    var CurrentDataLength = 0;
+
+                    do
+                    {
+
+                        #region When data available, write it to the buffer...
+
+                        while (TCPStream.DataAvailable)
+                        {
+
+                            CurrentDataLength = HTTPStream.Read(_Buffer, 0, _Buffer.Length);
+
+                            if (CurrentDataLength > -1)
+                            {
+                                _MemoryStream.Write(_Buffer, 0, CurrentDataLength);
+                                //Debug.WriteLine("[" + DateTime.Now + "] Read " + CurrentDataLength + " bytes from HTTP connection (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") (" + sw.ElapsedMilliseconds + "ms)!");
+                            }
+
+                        }
+
+                        #endregion
+
+                        #region Check if the entire HTTP header was already read into the buffer
+
+                        if (_MemoryStream.Length > 4)
+                        {
+
+                            var MemoryCopy = _MemoryStream.ToArray();
+
+                            for (var pos = 3; pos < MemoryCopy.Length; pos++)
+                            {
+
+                                if (MemoryCopy[pos    ] == 0x0a &&
+                                    MemoryCopy[pos - 1] == 0x0d &&
+                                    MemoryCopy[pos - 2] == 0x0a &&
+                                    MemoryCopy[pos - 3] == 0x0d)
+                                {
+                                    Array.Resize(ref HTTPHeaderBytes, pos - 3);
+                                    Array.Copy(MemoryCopy, 0, HTTPHeaderBytes, 0, pos - 3);
+                                    break;
+                                }
+
+                            }
+
+                            //if (HTTPHeaderBytes.Length > 0)
+                            //    Debug.WriteLine("[" + DateTime.Now + "] End of (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") HTTP header at " + HTTPHeaderBytes.Length + " bytes (" + sw.ElapsedMilliseconds + "ms)!");
+
+                        }
+                        else
+                            Thread.Sleep(1);
+
+                        #endregion
+
+                    }
+                    // Note: Delayed parts of the HTTP body may not be read into the buffer
+                    //       => Must be read later!
+                    while (TCPStream.DataAvailable ||
+                           ((sw.ElapsedMilliseconds < HTTPStream.ReadTimeout) && HTTPHeaderBytes.Length == 0));
+
+                    //Debug.WriteLine("[" + DateTime.Now + "] Finally read " + _MemoryStream.Length + " bytes of HTTP client (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") data (" + sw.ElapsedMilliseconds + "ms)!");
+
+                    #endregion
+
+                    #region Copy HTTP header data
+
+                    if (HTTPHeaderBytes.Length == 0)
+                        throw new ApplicationException(DateTime.Now + " Could not find the end of the HTTP protocol header!");
+
+                    _HTTPResponse = new HTTPResponse(HTTPRequest, HTTPHeaderBytes.ToUTF8String());
+
+                    #endregion
+
+                    #region Read 'Content-Length' bytes...
+
+                    // Copy only the number of bytes given within
+                    // the HTTP header element 'Content-Length'!
+                    if (_HTTPResponse.ContentLength.HasValue && _HTTPResponse.ContentLength.Value > 0)
+                    {
+
+                        _MemoryStream.Seek(HTTPHeaderBytes.Length + 4, SeekOrigin.Begin);
+                        var _Read = _MemoryStream.Read(_Buffer, 0, _Buffer.Length);
+                        var _StillToRead = (Int32) _HTTPResponse.ContentLength.Value - _Read;
+                        _HTTPResponse.ContentStream.Write(_Buffer, 0, _Read);
+                        var _CurrentBufferSize = 0;
+
+                        do
+                        {
+
+                            while (TCPStream.DataAvailable && _StillToRead > 0)
+                            {
+                                _CurrentBufferSize = Math.Min(_Buffer.Length, (Int32) _StillToRead);
+                                _Read = HTTPStream.Read(_Buffer, 0, _CurrentBufferSize);
+                                _HTTPResponse.ContentStream.Write(_Buffer, 0, _Read);
+                                _StillToRead -= _Read;
+                            }
+
+                            if (_StillToRead <= 0)
+                                break;
+
+                            Thread.Sleep(1);
+
+                        }
+                        while (sw.ElapsedMilliseconds < HTTPStream.ReadTimeout);
+
+                        _HTTPResponse.ContentStreamToArray();
+
+                    }
+
+                    #endregion
+
+                    #region ...or read till timeout (e.g. for chunked transport)!
+
+                    else
                     {
 
                         try
                         {
 
-                            var RegExpr = new Regex(@"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b");
+                            _MemoryStream.Seek(HTTPHeaderBytes.Length + 4, SeekOrigin.Begin);
+                            _HTTPResponse.NewContentStream();
+                            _HTTPResponse.ContentStream.Write(_Buffer, 0, _MemoryStream.Read(_Buffer, 0, _Buffer.Length));
 
-                            if (RegExpr.IsMatch(Hostname))
-                                this.RemoteIPAddress = IPv4Address.Parse(Hostname);
+                            var Retries = 0;
 
-                            else
+                            while (Retries < 10)
                             {
 
-                                var IPv4AddressTask = _DNSClient.
-                                                          Query<A>(Hostname).
-                                                              ContinueWith(QueryTask => QueryTask.Result.
-                                                                                            Select(ARecord => ARecord.IPv4Address).
-                                                                                            FirstOrDefault());
+                                while (TCPStream.DataAvailable)
+                                {
+                                    _HTTPResponse.ContentStream.Write(_Buffer, 0, HTTPStream.Read(_Buffer, 0, _Buffer.Length));
+                                    Retries = 0;
+                                }
 
-                                IPv4AddressTask.Wait();
-
-                                this.RemoteIPAddress = IPv4AddressTask.Result;
+                                Thread.Sleep(10);
+                                Retries++;
 
                             }
 
-                        }
-                        catch (Exception e)
-                        {
-                            Debug.WriteLine("[" + DateTime.Now + "] " + e.Message);
-                        }
-
-                    }
-
-                    #endregion
-
-                    sw.Start();
-
-                    TCPClient = new TcpClient(RemoteIPAddress.ToString(), this.RemotePort.ToInt32());
-                    TCPClient.ReceiveTimeout = (Int32) Timeout.Value.TotalMilliseconds;
-
-                }
-
-                #endregion
-
-                #region Create (Crypto-)Stream
-
-                TCPStream  = TCPClient.GetStream();
-                TCPStream.ReadTimeout = (Int32) Timeout.Value.TotalMilliseconds;
-
-                TLSStream  = UseTLS
-                                 ? new SslStream(TCPStream,
-                                                 false,
-                                                 RemoteCertificateValidator)
-                                             //    ClientCertificateSelector,
-                                                 //EncryptionPolicy.RequireEncryption)
-                                 : null;
-
-                if (TLSStream != null)
-                    TLSStream.ReadTimeout = (Int32) Timeout.Value.TotalMilliseconds;
-
-                HTTPStream = null;
-
-                if (UseTLS)
-                {
-                    HTTPStream = TLSStream;
-                    TLSStream.AuthenticateAsClient(Hostname);//, new X509CertificateCollection(new X509Certificate[] { ClientCert }), SslProtocols.Default, false);
-                }
-
-                else
-                    HTTPStream = TCPStream;
-
-                HTTPStream.ReadTimeout = (Int32) Timeout.Value.TotalMilliseconds;
-
-                #endregion
-
-                #region Send Request
-
-                HTTPStream.Write(String.Concat(HTTPRequest.EntireRequestHeader,
-                                               Environment.NewLine,
-                                               Environment.NewLine).
-                                 ToUTF8Bytes());
-
-                var RequestBodyLength = HTTPRequest.Content == null
-                                            ? (Int32) HTTPRequest.ContentLength
-                                            : Math.Min((Int32) HTTPRequest.ContentLength, HTTPRequest.Content.Length);
-
-                if (RequestBodyLength > 0)
-                    HTTPStream.Write(HTTPRequest.Content, 0, RequestBodyLength);
-
-                var _MemoryStream  = new MemoryStream();
-                var _Buffer        = new Byte[10485760]; // 10 MBytes, a smaller value leads to read errors!
-
-                #endregion
-
-                #region Wait timeout/2 for the server to react!
-
-                try
-                {
-
-                    while (!TCPStream.DataAvailable)
-                    {
-
-                        if (sw.ElapsedMilliseconds >= Timeout.Value.TotalMilliseconds / 2)
-                        {
-                            TCPClient.Close();
-                            throw new ApplicationException("[" + DateTime.Now + "] Could not read from the TCP stream for " + sw.ElapsedMilliseconds + "ms!");
-                        }
-
-                        Thread.Sleep(1);
-
-                    }
-
-                }
-                catch (Exception e)
-                {
-                    Debug.WriteLine(DateTime.Now + " " + e.Message);
-                }
-
-                //Debug.WriteLine("[" + DateTime.Now + "] HTTPClient (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") got first response after " + sw.ElapsedMilliseconds + "ms!");
-
-                #endregion
-
-                #region Read the entire HTTP header, and maybe some of the HTTP body
-
-                var CurrentDataLength = 0;
-
-                do
-                {
-
-                    #region When data available, write it to the buffer...
-
-                    while (TCPStream.DataAvailable)
-                    {
-
-                        CurrentDataLength = HTTPStream.Read(_Buffer, 0, _Buffer.Length);
-
-                        if (CurrentDataLength > -1)
-                        {
-                            _MemoryStream.Write(_Buffer, 0, CurrentDataLength);
-                            //Debug.WriteLine("[" + DateTime.Now + "] Read " + CurrentDataLength + " bytes from HTTP connection (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") (" + sw.ElapsedMilliseconds + "ms)!");
-                        }
-
-                    }
-
-                    #endregion
-
-                    #region Check if the entire HTTP header was already read into the buffer
-
-                    if (_MemoryStream.Length > 4)
-                    {
-
-                        var MemoryCopy = _MemoryStream.ToArray();
-
-                        for (var pos = 3; pos < MemoryCopy.Length; pos++)
-                        {
-
-                            if (MemoryCopy[pos    ] == 0x0a &&
-                                MemoryCopy[pos - 1] == 0x0d &&
-                                MemoryCopy[pos - 2] == 0x0a &&
-                                MemoryCopy[pos - 3] == 0x0d)
-                            {
-                                Array.Resize(ref HTTPHeaderBytes, pos - 3);
-                                Array.Copy(MemoryCopy, 0, HTTPHeaderBytes, 0, pos - 3);
-                                break;
-                            }
-
-                        }
-
-                        //if (HTTPHeaderBytes.Length > 0)
-                        //    Debug.WriteLine("[" + DateTime.Now + "] End of (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") HTTP header at " + HTTPHeaderBytes.Length + " bytes (" + sw.ElapsedMilliseconds + "ms)!");
-
-                    }
-                    else
-                        Thread.Sleep(1);
-
-                    #endregion
-
-                }
-                // Note: Delayed parts of the HTTP body may not be read into the buffer
-                //       => Must be read later!
-                while (TCPStream.DataAvailable ||
-                       ((sw.ElapsedMilliseconds < HTTPStream.ReadTimeout) && HTTPHeaderBytes.Length == 0));
-
-                //Debug.WriteLine("[" + DateTime.Now + "] Finally read " + _MemoryStream.Length + " bytes of HTTP client (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") data (" + sw.ElapsedMilliseconds + "ms)!");
-
-                #endregion
-
-                #region Copy HTTP header data
-
-                if (HTTPHeaderBytes.Length == 0)
-                    throw new ApplicationException(DateTime.Now + " Could not find the end of the HTTP protocol header!");
-
-                var _HTTPResponse = new HTTPResponse(HTTPRequest, HTTPHeaderBytes.ToUTF8String());
-
-                #endregion
-
-                #region Read 'Content-Length' bytes...
-
-                // Copy only the number of bytes given within
-                // the HTTP header element 'Content-Length'!
-                if (_HTTPResponse.ContentLength.HasValue && _HTTPResponse.ContentLength.Value > 0)
-                {
-
-                    _MemoryStream.Seek(HTTPHeaderBytes.Length + 4, SeekOrigin.Begin);
-                    var _Read = _MemoryStream.Read(_Buffer, 0, _Buffer.Length);
-                    var _StillToRead = (Int32) _HTTPResponse.ContentLength.Value - _Read;
-                    _HTTPResponse.ContentStream.Write(_Buffer, 0, _Read);
-                    var _CurrentBufferSize = 0;
-
-                    do
-                    {
-
-                        while (TCPStream.DataAvailable && _StillToRead > 0)
-                        {
-                            _CurrentBufferSize = Math.Min(_Buffer.Length, (Int32) _StillToRead);
-                            _Read = HTTPStream.Read(_Buffer, 0, _CurrentBufferSize);
-                            _HTTPResponse.ContentStream.Write(_Buffer, 0, _Read);
-                            _StillToRead -= _Read;
-                        }
-
-                        if (_StillToRead <= 0)
-                            break;
-
-                        Thread.Sleep(1);
-
-                    }
-                    while (sw.ElapsedMilliseconds < HTTPStream.ReadTimeout);
-
-                    _HTTPResponse.ContentStreamToArray();
-
-                }
-
-                #endregion
-
-                #region ...or read till timeout (e.g. for chunked transport)!
-
-                else
-                {
-
-                    try
-                    {
-
-                        _MemoryStream.Seek(HTTPHeaderBytes.Length + 4, SeekOrigin.Begin);
-                        _HTTPResponse.NewContentStream();
-                        _HTTPResponse.ContentStream.Write(_Buffer, 0, _MemoryStream.Read(_Buffer, 0, _Buffer.Length));
-
-                        var Retries = 0;
-
-                        while (Retries < 10)
-                        {
-
-                            while (TCPStream.DataAvailable)
-                            {
-                                _HTTPResponse.ContentStream.Write(_Buffer, 0, HTTPStream.Read(_Buffer, 0, _Buffer.Length));
-                                Retries = 0;
-                            }
-
-                            Thread.Sleep(10);
-                            Retries++;
-
-                        }
-
-                        if (_HTTPResponse.TransferEncoding == "chunked")
-                        {
-
-                            //Debug.WriteLine(DateTime.Now + " Chunked encoding detected");
-
-                            var TEContent        = ((MemoryStream) _HTTPResponse.ContentStream).ToArray();
-                            var TEString         = TEContent.ToUTF8String();
-                            var ReadBlockLength  = true;
-                            var TEMemStram       = new MemoryStream();
-                            var LastPos          = 0;
-
-                            var i = 0;
-                            do
+                            if (_HTTPResponse.TransferEncoding == "chunked")
                             {
 
-                                if (i > 2 &&
-                                    ReadBlockLength &&
-                                    TEContent[i - 1] == '\n' &&
-                                    TEContent[i - 2] == '\r')
+                                //Debug.WriteLine(DateTime.Now + " Chunked encoding detected");
+
+                                var TEContent        = ((MemoryStream) _HTTPResponse.ContentStream).ToArray();
+                                var TEString         = TEContent.ToUTF8String();
+                                var ReadBlockLength  = true;
+                                var TEMemStram       = new MemoryStream();
+                                var LastPos          = 0;
+
+                                var i = 0;
+                                do
                                 {
 
-                                    var len = TEContent.ReadTEBlockLength(LastPos, i - LastPos - 2);
-
-                                    //Debug.WriteLine(DateTime.Now + " Chunked encoded block of length " + len + " bytes detected");
-
-                                    if (len == 0)
-                                        break;
-
-                                    if (i + len <= TEContent.Length)
+                                    if (i > 2 &&
+                                        ReadBlockLength &&
+                                        TEContent[i - 1] == '\n' &&
+                                        TEContent[i - 2] == '\r')
                                     {
 
-                                        TEMemStram.Write(TEContent, i, len);
-                                        i = i + len;
+                                        var len = TEContent.ReadTEBlockLength(LastPos, i - LastPos - 2);
 
-                                        if (TEContent[i] == 0x0d)
-                                            i++;
+                                        //Debug.WriteLine(DateTime.Now + " Chunked encoded block of length " + len + " bytes detected");
 
-                                        if (i < TEContent.Length - 1)
+                                        if (len == 0)
+                                            break;
+
+                                        if (i + len <= TEContent.Length)
                                         {
-                                            if (TEContent[i] == 0x0a)
+
+                                            TEMemStram.Write(TEContent, i, len);
+                                            i = i + len;
+
+                                            if (TEContent[i] == 0x0d)
                                                 i++;
+
+                                            if (i < TEContent.Length - 1)
+                                            {
+                                                if (TEContent[i] == 0x0a)
+                                                    i++;
+                                            }
+                                            else
+                                            {
+                                            }
+
+                                            LastPos = i;
+
+                                            ReadBlockLength = false;
+
                                         }
+
                                         else
                                         {
+                                            // Reaching this point seems to be an endless loop!
+                                            break;
+
                                         }
-
-                                        LastPos = i;
-
-                                        ReadBlockLength = false;
 
                                     }
 
                                     else
                                     {
-                                        // Reaching this point seems to be an endless loop!
-                                        break;
-
+                                        ReadBlockLength = true;
+                                        i++;
                                     }
 
-                                }
+                                } while (i < TEContent.Length);
 
-                                else
-                                {
-                                    ReadBlockLength = true;
-                                    i++;
-                                }
+                                _HTTPResponse.ContentStreamToArray(TEMemStram);
 
-                            } while (i < TEContent.Length);
+                            }
 
-                            _HTTPResponse.ContentStreamToArray(TEMemStram);
+                            else
+                                _HTTPResponse.ContentStreamToArray();
 
                         }
 
-                        else
-                            _HTTPResponse.ContentStreamToArray();
+                        catch (Exception e)
+                        {
+                            Debug.WriteLine(DateTime.Now + " " + e.Message);
+                        }
 
                     }
 
-                    catch (Exception e)
+                    #endregion
+
+                    #region Close connection if requested!
+
+                    if (_HTTPResponse.Connection == null ||
+                        _HTTPResponse.Connection == "close")
                     {
-                        Debug.WriteLine(DateTime.Now + " " + e.Message);
+                        TCPClient.Close();
+                        HTTPStream = null;
+                        TCPClient = null;
                     }
 
-                }
+                    #endregion
 
-                #endregion
-
-                #region Close connection if requested!
-
-                if (_HTTPResponse.Connection == null ||
-                    _HTTPResponse.Connection == "close")
-                {
-                    TCPClient.Close();
-                    HTTPStream = null;
-                    TCPClient = null;
-                }
-
-                #endregion
-
-                #region Call the optional HTTPResponse delegate(s)
+                    #region Call the optional HTTPResponse delegate(s)
 
                     var RequestResponseDelegateLocal = RequestResponseDelegate;
                     if (RequestResponseDelegateLocal != null)
                         RequestResponseDelegateLocal(HTTPRequest, _HTTPResponse);
 
                     #endregion
+
+                }
+                catch (Exception e)
+                {
+                    _HTTPResponse = new HTTPResponse(e);
+                }
 
                 return _HTTPResponse;
 

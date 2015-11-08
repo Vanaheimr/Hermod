@@ -22,6 +22,8 @@ using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 
+using org.GraphDefined.Vanaheimr.Illias;
+
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
@@ -300,12 +302,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region HTTPResponse(HTTPRequest = null)
+        #region HTTPResponse()
 
         public HTTPResponse()
-        {
-            this._HTTPRequest = HTTPRequest;
-        }
+        { }
 
         #endregion
 
@@ -351,6 +351,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (ParseResponseHeader(HTTPHeader))
                 base.ContentStream  = ContentStream;
+
+        }
+
+        #endregion
+
+        #region HTTPResponse(Exception)
+
+        public HTTPResponse(Exception Exception)
+
+            : this(HTTPStatusCode.ExceptionOccured,
+
+                   Exception.Message +
+                   Environment.NewLine +
+                   Environment.NewLine +
+                   Exception.StackTrace)
+
+        { }
+
+        #endregion
+
+        #region HTTPResponse(HTTPStatusCode, Content = null)
+
+        public HTTPResponse(HTTPStatusCode  HTTPStatusCode,
+                            String          Content = null)
+        {
+
+            base.HTTPStatusCode  = HTTPStatusCode;
+            base.Content         = Content.ToUTF8Bytes();
 
         }
 
