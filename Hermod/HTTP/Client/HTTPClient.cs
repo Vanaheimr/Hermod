@@ -358,6 +358,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 //DebugX.Log("[" + DateTime.Now.ToIso8601() + "] HTTPClient started...");
 
+                Thread.CurrentThread.Priority = ThreadPriority.BelowNormal;
+
                 HTTPResponse _HTTPResponse = null;
 
                 try
