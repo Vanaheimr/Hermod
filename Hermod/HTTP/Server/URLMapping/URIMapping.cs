@@ -146,18 +146,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         internal HTTPResponse InvokeHandler(HTTPRequest HTTPRequest)
         {
 
-            lock (Lock)
-            {
+            return GetHandler((HTTPRequest.Host.IsNullOrEmpty()) ? "*" : HTTPRequest.Host,
+                              (HTTPRequest.URI. IsNullOrEmpty()) ? "/" : HTTPRequest.URI,
+                               HTTPRequest.HTTPMethod,
+                               AvailableContentTypes => HTTPRequest.Accept.BestMatchingContentType(AvailableContentTypes),
+                               ParsedURIParameters   => HTTPRequest.ParsedURIParameters = ParsedURIParameters.ToArray())
 
-                return GetHandler((HTTPRequest.Host.IsNullOrEmpty()) ? "*" : HTTPRequest.Host,
-                                  (HTTPRequest.URI. IsNullOrEmpty()) ? "/" : HTTPRequest.URI,
-                                   HTTPRequest.HTTPMethod,
-                                   AvailableContentTypes => HTTPRequest.Accept.BestMatchingContentType(AvailableContentTypes),
-                                   ParsedURIParameters   => HTTPRequest.ParsedURIParameters = ParsedURIParameters.ToArray())
-
-                                   (HTTPRequest);
-
-            }
+                               (HTTPRequest);
 
         }
 
@@ -434,17 +429,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             EventSourceIdentification.FailIfNullOrEmpty();
 
-            lock (Lock)
-            {
+            HTTPEventSource _HTTPEventSource;
 
-                HTTPEventSource _HTTPEventSource;
+            if (_EventSources.TryGetValue(EventSourceIdentification, out _HTTPEventSource))
+                return _HTTPEventSource;
 
-                if (_EventSources.TryGetValue(EventSourceIdentification, out _HTTPEventSource))
-                    return _HTTPEventSource;
-
-                return null;
-
-            }
+            return null;
 
         }
 
