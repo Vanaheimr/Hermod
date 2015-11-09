@@ -271,7 +271,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region CreateRequest(HTTPClient, HTTPMethod, URI = "/", BuilderAction = null)
+        #region CreateRequest(HTTPClient, HTTPMethod, URI, CancellationToken, BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP request.
@@ -281,7 +281,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A new HTTPRequest object.</returns>
         public HTTPRequestBuilder CreateRequest(HTTPMethod                  HTTPMethod,
-                                                String                      URI            = "/",
+                                                String                      URI,
+                                                
                                                 Action<HTTPRequestBuilder>  BuilderAction  = null)
         {
 
@@ -300,63 +301,65 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region CreateRequest(HTTPMethod, URI = "/", BuilderAction = null)
 
-        /// <summary>
-        /// Create a new HTTP request.
-        /// </summary>
-        /// <param name="HTTPMethod">A HTTP method.</param>
-        /// <param name="URI">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A new HTTPRequest object.</returns>
-        public HTTPRequestBuilder CreateRequest(String                      HTTPMethod,
-                                                String                      URI        = "/",
-                                                Action<HTTPRequestBuilder>  BuilderAction  = null)
-        {
+        ///// <summary>
+        ///// Create a new HTTP request.
+        ///// </summary>
+        ///// <param name="HTTPMethod">A HTTP method.</param>
+        ///// <param name="URI">An URL path.</param>
+        ///// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        ///// <returns>A new HTTPRequest object.</returns>
+        //public HTTPRequestBuilder CreateRequest(String                      HTTPMethod,
+        //                                        String                      URI        = "/",
+        //                                        Action<HTTPRequestBuilder>  BuilderAction  = null)
+        //{
 
-            var Builder = new HTTPRequestBuilder(this) {
-                HTTPMethod  = new HTTPMethod(HTTPMethod),
-                URI         = URI
-            };
+        //    var Builder = new HTTPRequestBuilder(this) {
+        //        HTTPMethod  = new HTTPMethod(HTTPMethod),
+        //        URI         = URI
+        //    };
 
-            BuilderAction.FailSafeInvoke(Builder);
+        //    BuilderAction.FailSafeInvoke(Builder);
 
-            return Builder;
+        //    return Builder;
 
-        }
+        //}
 
         #endregion
 
 
-        #region Execute(HTTPRequest, Timeout = null)
+        #region Execute(HTTPRequest, Timeout = null, CancellationToken = null)
 
         /// <summary>
         /// Execute the given HTTP request and return its result.
         /// </summary>
         /// <param name="HTTPRequest">A HTTP request.</param>
         /// <param name="Timeout">An optional timeout.</param>
-        public async Task<HTTPResponse> Execute(HTTPRequest  HTTPRequest,
-                                                TimeSpan?    Timeout = null)
+        public async Task<HTTPResponse> Execute(HTTPRequest         HTTPRequest,
+                                                TimeSpan?           Timeout            = null,
+                                                CancellationToken?  CancellationToken  = null)
         {
-            return await Execute(HTTPRequest, null, Timeout);
+            return await Execute(HTTPRequest, null, Timeout, CancellationToken);
         }
 
         #endregion
 
-        #region Execute(HTTPRequestDelegate, Timeout = null)
+        #region Execute(HTTPRequestDelegate, Timeout = null, CancellationToken = null)
 
         /// <summary>
         /// Execute the given HTTP request and return its result.
         /// </summary>
-        /// <param name="HTTPRequest">A HTTP request.</param>
+        /// <param name="HTTPRequestDelegate">A HTTP request.</param>
         /// <param name="Timeout">An optional timeout.</param>
         public async Task<HTTPResponse> Execute(Func<HTTPClient, HTTPRequest>  HTTPRequestDelegate,
-                                                TimeSpan?                      Timeout = null)
+                                                TimeSpan?                      Timeout            = null,
+                                                CancellationToken?             CancellationToken  = null)
         {
-            return await Execute(HTTPRequestDelegate(this), null, Timeout);
+            return await Execute(HTTPRequestDelegate(this), null, Timeout, CancellationToken);
         }
 
         #endregion
 
-        #region Execute(HTTPRequest, RequestResponseDelegate, Timeout = null)
+        #region Execute(HTTPRequest, RequestResponseDelegate, Timeout = null, CancellationToken = null)
 
         /// <summary>
         /// Execute the given HTTP request and return its result.
@@ -366,7 +369,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timeout">An optional timeout.</param>
         public async Task<HTTPResponse> Execute(HTTPRequest                        HTTPRequest,
                                                 Action<HTTPRequest, HTTPResponse>  RequestResponseDelegate,
-                                                TimeSpan?                          Timeout  = null)
+                                                TimeSpan?                          Timeout            = null,
+                                                CancellationToken?                 CancellationToken  = null)
         {
 
             var task = Task<HTTPResponse>.Factory.StartNew(() => {

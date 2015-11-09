@@ -25,6 +25,7 @@ using System.Threading.Tasks;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Services.DNS;
+using System.Threading;
 
 #endregion
 
@@ -164,7 +165,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                               Func<DateTime, Object, HTTPResponse<XElement>, HTTPResponse<T>>  OnSOAPFault,
                                               Func<DateTime, Object, HTTPResponse,           HTTPResponse<T>>  OnHTTPError,
                                               Func<DateTime, Object, Exception,              HTTPResponse<T>>  OnException,
-                                              TimeSpan?                                                        QueryTimeout = null)
+                                              CancellationToken?                                               CancellationToken  = null,
+                                              TimeSpan?                                                        QueryTimeout       = null)
 
         {
 
@@ -198,7 +200,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             builder.UserAgent          = UserAgent;
             builder.FakeURIPrefix      = "https://" + HTTPVirtualHost;
 
-            return this.Execute(builder, Timeout: QueryTimeout != null ? QueryTimeout : TimeSpan.FromSeconds(60)).
+            return this.Execute(builder,
+                                Timeout:            QueryTimeout != null ? QueryTimeout : TimeSpan.FromSeconds(60),
+                                CancellationToken:  CancellationToken.HasValue ? CancellationToken.Value : new CancellationTokenSource().Token).
+
                         ContinueWith(HttpResponseTask => {
 
                             if (HttpResponseTask.Result                == null              ||
