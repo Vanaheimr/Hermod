@@ -498,7 +498,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #region Wait timeout for the server to react!
 
-                    Debug.WriteLine("[" + DateTime.Now + "] HTTPClient timeout: " + Timeout.Value.ToString());
+                    //Debug.WriteLine("[" + DateTime.Now + "] HTTPClient timeout: " + Timeout.Value.ToString());
 
                     while (!TCPStream.DataAvailable)
                     {
@@ -513,7 +513,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     }
 
-                    Debug.WriteLine("[" + DateTime.Now + "] HTTPClient (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") got first response after " + sw.ElapsedMilliseconds + "ms!");
+                    //Debug.WriteLine("[" + DateTime.Now + "] HTTPClient (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") got first response after " + sw.ElapsedMilliseconds + "ms!");
 
                     #endregion
 
@@ -534,7 +534,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             if (CurrentDataLength > -1)
                             {
                                 _MemoryStream.Write(_Buffer, 0, CurrentDataLength);
-                                Debug.WriteLine("[" + DateTime.Now + "] Read " + CurrentDataLength + " bytes from HTTP connection (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") (" + sw.ElapsedMilliseconds + "ms)!");
+                //                Debug.WriteLine("[" + DateTime.Now + "] Read " + CurrentDataLength + " bytes from HTTP connection (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") (" + sw.ElapsedMilliseconds + "ms)!");
                             }
 
                         }
@@ -563,8 +563,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                             }
 
-                            if (HTTPHeaderBytes.Length > 0)
-                                Debug.WriteLine("[" + DateTime.Now + "] End of (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") HTTP header at " + HTTPHeaderBytes.Length + " bytes (" + sw.ElapsedMilliseconds + "ms)!");
+                            //if (HTTPHeaderBytes.Length > 0)
+                            //    Debug.WriteLine("[" + DateTime.Now + "] End of (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") HTTP header at " + HTTPHeaderBytes.Length + " bytes (" + sw.ElapsedMilliseconds + "ms)!");
 
                         }
 
@@ -578,7 +578,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     while (TCPStream.DataAvailable ||
                            ((sw.ElapsedMilliseconds < HTTPStream.ReadTimeout) && HTTPHeaderBytes.Length == 0));
 
-                    Debug.WriteLine("[" + DateTime.Now + "] Finally read " + _MemoryStream.Length + " bytes of HTTP client (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") data (" + sw.ElapsedMilliseconds + "ms)!");
+                    //Debug.WriteLine("[" + DateTime.Now + "] Finally read " + _MemoryStream.Length + " bytes of HTTP client (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") data (" + sw.ElapsedMilliseconds + "ms)!");
 
                     #endregion
 
