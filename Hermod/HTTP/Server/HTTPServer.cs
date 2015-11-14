@@ -59,9 +59,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Properties
 
+        #region URIPrefix
+
+        private readonly String _URIPrefix;
+
+        public String URIPrefix
+        {
+            get
+            {
+                return _URIPrefix;
+            }
+        }
+
+        #endregion
+
         #region DefaultServerName
 
-        private String _DefaultServerName;
+        private readonly String _DefaultServerName;
 
         /// <summary>
         /// The default HTTP servername, used whenever
@@ -69,18 +83,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public String DefaultServerName
         {
-
             get
             {
                 return _DefaultServerName;
             }
+        }
 
-            set
+        #endregion
+
+        #region HTTPRoot
+
+        private readonly String _HTTPRoot;
+
+        public String HTTPRoot
+        {
+            get
             {
-                if (value.IsNotNullOrEmpty())
-                    _DefaultServerName = value;
+                return _HTTPRoot;
             }
-
         }
 
         #endregion
@@ -180,8 +200,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
-        public HTTPServer(IPPort                            TCPPort                            = null,
+        public HTTPServer(IPPort                            TCPPort                           = null,
+                          String                            URIPrefix                         = "",
                           String                            DefaultServerName                 = __DefaultServerName,
+                          String                            HTTPRoot                          = "",
                           X509Certificate2                  X509Certificate                   = null,
                           IEnumerable<Assembly>             CallingAssemblies                 = null,
                           String                            ServerThreadName                  = null,
@@ -212,7 +234,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
+            this._URIPrefix                        = URIPrefix;
             this._DefaultServerName                = DefaultServerName;
+            this._HTTPRoot                         = HTTPRoot;
             this._URIMapping                       = new URIMapping();
             this._CallingAssemblies                = new List<Assembly>() { Assembly.GetExecutingAssembly(), typeof(HTTPServer).Assembly };
 
@@ -517,9 +541,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             _URIMapping.AddHandler(HTTPDelegate,
                                    "*",
-                                   (URITemplate.IsNotNullOrEmpty()) ? URITemplate     : "/",
-                                   (HTTPMethod      != null)        ? HTTPMethod      : HTTPMethod.GET,
-                                   (HTTPContentType != null)        ? HTTPContentType : HTTPContentType.HTML_UTF8,
+                                   (URITemplate.IsNotNullOrEmpty()) ? _URIPrefix + URITemplate : _URIPrefix + "/",
+                                   (HTTPMethod      != null)        ? HTTPMethod               : HTTPMethod.GET,
+                                   (HTTPContentType != null)        ? HTTPContentType          : HTTPContentType.HTML_UTF8,
                                    null,
                                    null,
                                    null,
@@ -548,9 +572,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             URITemplates.ForEach(URITemplate =>
                 _URIMapping.AddHandler(HTTPDelegate,
                                        "*",
-                                       (URITemplate.IsNotNullOrEmpty()) ? URITemplate     : "/",
-                                       (HTTPMethod      != null)        ? HTTPMethod      : HTTPMethod.GET,
-                                       (HTTPContentType != null)        ? HTTPContentType : HTTPContentType.HTML_UTF8,
+                                       (URITemplate.IsNotNullOrEmpty()) ? _URIPrefix + URITemplate : _URIPrefix + "/",
+                                       (HTTPMethod      != null)        ? HTTPMethod               : HTTPMethod.GET,
+                                       (HTTPContentType != null)        ? HTTPContentType          : HTTPContentType.HTML_UTF8,
                                        null,
                                        null,
                                        null,
@@ -583,9 +607,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 //return _URIMapping.GetHandler(newreq)(newreq);
             },
                                    "*",
-                                   (URITemplate.IsNotNullOrEmpty()) ? URITemplate     : "/",
-                                   (HTTPMethod      != null)        ? HTTPMethod      : HTTPMethod.GET,
-                                   (HTTPContentType != null)        ? HTTPContentType : HTTPContentType.HTML_UTF8,
+                                   (URITemplate.IsNotNullOrEmpty()) ? _URIPrefix + URITemplate : _URIPrefix + "/",
+                                   (HTTPMethod      != null)        ? HTTPMethod               : HTTPMethod.GET,
+                                   (HTTPContentType != null)        ? HTTPContentType          : HTTPContentType.HTML_UTF8,
                                    null,
                                    null,
                                    null,
@@ -622,7 +646,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             _URIMapping.AddHandler(HTTPDelegate,
                                    Hostname,
-                                   URITemplate,
+                                   _URIPrefix + URITemplate,
                                    (HTTPMethod != null) ? HTTPMethod : HTTPMethod.GET,
                                    HTTPContentType,
                                    HostAuthentication,
@@ -729,7 +753,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               RetryIntervall,
 
                                               Hostname,
-                                              URITemplate,
+                                              _URIPrefix + URITemplate,
                                               HTTPMethod,
 
                                               HostAuthentication,

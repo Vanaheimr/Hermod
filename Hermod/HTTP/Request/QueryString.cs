@@ -207,6 +207,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
+        public UInt32 GetUInt32OrDefault(String  Parameter,
+                                         UInt32  DefaultValue = 0)
+        {
+
+            List<String> Values;
+            UInt32 Int;
+
+            if (_Dictionary.TryGetValue(Parameter, out Values))
+                if (UInt32.TryParse(Values.LastOrDefault(), out Int))
+                    return Int;
+
+            return DefaultValue;
+
+        }
+
 
 
         #region ToString()
