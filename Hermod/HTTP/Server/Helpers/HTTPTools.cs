@@ -48,7 +48,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
                 HTTPStatusCode = HTTPStatusCode.MovedPermanently,
                 CacheControl   = "no-cache",
-                Location       = Location
+                Location       = Location,
+                Connection     = "close"
             };
 
         }
@@ -75,7 +76,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
                 HTTPStatusCode = HTTPStatusCode.TemporaryRedirect,
                 CacheControl   = "no-cache",
-                Location       = Location
+                Location       = Location,
+                Connection     = "close"
             };
 
         }
