@@ -174,9 +174,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        public String Get(String Parameter)
+        public String GetString(String Parameter)
         {
-            return _Dictionary[Parameter].LastOrDefault();
+
+            List<String> Value = null;
+
+            if (_Dictionary.TryGetValue(Parameter, out Value))
+                return Value.LastOrDefault();
+
+            return null;
+
+        }
+
+        public String GetStringOrDefault(String Parameter, String DefaultValue)
+        {
+
+            List<String> Value = null;
+
+            if (_Dictionary.TryGetValue(Parameter, out Value))
+                if (Value != null && Value.Count > 0)
+                    return Value.Last();
+
+            return DefaultValue;
+
         }
 
         public Int32? GetInt32(String Parameter)
