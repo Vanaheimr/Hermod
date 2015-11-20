@@ -599,13 +599,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              String           URITarget)
 
         {
-            HTTPRequest HTTPRequestds;
-          //  var HTTPDelegate = _URIMapping.GetHandler("*", URITarget, HTTPMethod, v => HTTPContentType);
 
-            _URIMapping.AddHandler(req => {
-                return _URIMapping.InvokeHandler(new HTTPRequestBuilder(req).SetURI(URITarget));
-                //return _URIMapping.GetHandler(newreq)(newreq);
-            },
+            _URIMapping.AddHandler(req => _URIMapping.InvokeHandler(new HTTPRequestBuilder(req).SetURI(URITarget)),
                                    "*",
                                    (URITemplate.IsNotNullOrEmpty()) ? _URIPrefix + URITemplate : _URIPrefix + "/",
                                    (HTTPMethod      != null)        ? HTTPMethod               : HTTPMethod.GET,

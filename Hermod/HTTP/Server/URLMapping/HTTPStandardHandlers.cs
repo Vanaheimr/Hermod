@@ -92,10 +92,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region RegisterMovedTemporarilyHandler(this HTTPServer, URITemplate, URITarget)
+        #region RegisterEventStreamHandler(this HTTPServer, URITemplate, EventSource)
 
         /// <summary>
-        /// Register a MovedTemporarily handler.
+        /// Register a EventStream handler.
         /// </summary>
         public static void RegisterEventStreamHandler(this HTTPServer  HTTPServer,
                                                       String           URITemplate,
