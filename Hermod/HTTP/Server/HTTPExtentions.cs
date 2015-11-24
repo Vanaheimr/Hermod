@@ -42,6 +42,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public static class HTTPExtentions
     {
 
+        #region CreateJObject(params Properties)
+
+        public static JObject CreateJObject(params JProperty[] Properties)
+        {
+
+            var FilteredData = Properties.Where(p => p != null).ToArray();
+
+            return (FilteredData.Length > 0)
+                       ? new JObject(FilteredData)
+                       : new JObject();
+
+        }
+
+        #endregion
+
         #region (protected) GetRequestBodyAsUTF8String(this Request, HTTPContentType)
 
         public static HTTPResult<String> GetRequestBodyAsUTF8String(this HTTPRequest  Request,
@@ -71,44 +86,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ParseJSONRequestBody()
 
-        public static HTTPResult<JObject> ParseJSONRequestBody(this HTTPRequest Request)
+        #region TryParseJObjectRequestBody(this Request, out JSON, out HTTPResponse, AllowEmptyHTTPBody = false, JSONLDContext = null)
+
+        public static Boolean TryParseJObjectRequestBody(this HTTPRequest  HTTPRequest,
+                                                         out JObject       JSON,
+                                                         out HTTPResponse  HTTPResponse,
+                                                         Boolean           AllowEmptyHTTPBody = false,
+                                                         String            JSONLDContext      = null)
         {
 
-            var RequestBodyString = Request.GetRequestBodyAsUTF8String(HTTPContentType.JSON_UTF8);
-            if (RequestBodyString.HasErrors)
-                return new HTTPResult<JObject>(RequestBodyString.Error);
+            #region AllowEmptyHTTPBody
 
-            JObject RequestBodyJSON;
+            JSON          = null;
+            HTTPResponse  = null;
 
-            try
+            if (HTTPRequest.ContentLength == 0 && AllowEmptyHTTPBody)
             {
-                RequestBodyJSON = JObject.Parse(RequestBodyString.Data);
+
+                HTTPResponse = new HTTPResponseBuilder() {
+                    HTTPStatusCode = HTTPStatusCode.OK,
+                };
+
+                return false;
+
             }
-            catch (Exception)
-            {
-                return new HTTPResult<JObject>(Request, HTTPStatusCode.BadRequest);
-            }
 
-            return new HTTPResult<JObject>(RequestBodyJSON);
+            #endregion
 
-        }
+            #region Get text body
 
-        #endregion
-
-        #region TryParseJSONRequestBody()
-
-        public static Boolean TryParseJSONRequestBody(this HTTPRequest Request, out JObject JSON, out HTTPResponse HTTPResp, String Context = null)
-        {
-
-            var RequestBodyString = Request.GetRequestBodyAsUTF8String(HTTPContentType.JSON_UTF8);
+            var RequestBodyString = HTTPRequest.GetRequestBodyAsUTF8String(HTTPContentType.JSON_UTF8);
             if (RequestBodyString.HasErrors)
             {
-                JSON      = null;
-                HTTPResp  = RequestBodyString.Error;
+                HTTPResponse  = RequestBodyString.Error;
                 return false;
             }
+
+            #endregion
+
+            #region Try to parse the JSON
 
             try
             {
@@ -117,69 +134,99 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             catch (Exception e)
             {
 
-                JSON      = null;
-
-                HTTPResp  = new HTTPResponseBuilder() {
+                HTTPResponse  = new HTTPResponseBuilder() {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     ContentType     = HTTPContentType.JSON_UTF8,
-                    Content         = new JObject(new JProperty("@context",    Context),
-                                                  new JProperty("description", "Invalid JSON request body!"),
-                                                  new JProperty("exception",   e.Message)).ToString().ToUTF8Bytes()
+                    Content         = CreateJObject(JSONLDContext.IsNotNullOrEmpty()
+                                                        ? new JProperty("context",  JSONLDContext)
+                                                        : null,
+                                                    new JProperty("description",  "Invalid JSON request body!"),
+                                                    new JProperty("hint",         e.Message)).
+                                                    ToUTF8Bytes()
                 };
 
                 return false;
 
             }
 
-            HTTPResp = null;
-
             return true;
+
+            #endregion
 
         }
 
         #endregion
 
-        #region TryParseJSONRequestBodyArray()
+        #region TryParseJArrayRequestBody(this Request, out JSON, out HTTPResponse, AllowEmptyHTTPBody = false, JSONLDContext = null)
 
-        public static Boolean TryParseJSONRequestBodyArray(this HTTPRequest Request, out String[] JSONArray, out HTTPResponse HTTPResp, String Context = null)
+        public static Boolean TryParseJArrayRequestBody(this HTTPRequest  HTTPRequest,
+                                                        out JArray        JSON,
+                                                        out HTTPResponse  HTTPResponse,
+                                                        Boolean           AllowEmptyHTTPBody = false,
+                                                        String            JSONLDContext      = null)
         {
 
-            var RequestBodyString = Request.GetRequestBodyAsUTF8String(HTTPContentType.JSON_UTF8);
+            #region AllowEmptyHTTPBody
+
+            JSON          = null;
+            HTTPResponse  = null;
+
+            if (HTTPRequest.ContentLength == 0 && AllowEmptyHTTPBody)
+            {
+
+                HTTPResponse = new HTTPResponseBuilder() {
+                    HTTPStatusCode = HTTPStatusCode.OK,
+                };
+
+                return false;
+
+            }
+
+            #endregion
+
+            #region Get text body
+
+            var RequestBodyString = HTTPRequest.GetRequestBodyAsUTF8String(HTTPContentType.JSON_UTF8);
             if (RequestBodyString.HasErrors)
             {
-                JSONArray  = null;
-                HTTPResp   = RequestBodyString.Error;
+                HTTPResponse  = RequestBodyString.Error;
                 return false;
             }
 
+            #endregion
+
+            #region Try to parse the JSON
+
             try
             {
-                JSONArray = JArray.Parse(RequestBodyString.Data).Select(v => v.ToString()).ToArray();
+                JSON = JArray.Parse(RequestBodyString.Data);
             }
             catch (Exception e)
             {
 
-                JSONArray  = null;
-
-                HTTPResp   = new HTTPResponseBuilder() {
+                HTTPResponse  = new HTTPResponseBuilder() {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     ContentType     = HTTPContentType.JSON_UTF8,
-                    Content         = new JObject(new JProperty("@context",    Context),
-                                                  new JProperty("description", "Invalid JSON request body!"),
-                                                  new JProperty("exception",   e.Message)).ToString().ToUTF8Bytes()
+                    Content         = CreateJObject(JSONLDContext.IsNotNullOrEmpty()
+                                                        ? new JProperty("context",  JSONLDContext)
+                                                        : null,
+                                                    new JProperty("description",  "Invalid JSON request body!"),
+                                                    new JProperty("hint",         e.Message)).
+                                                    ToUTF8Bytes()
                 };
 
                 return false;
 
             }
 
-            HTTPResp = null;
-
             return true;
+
+            #endregion
 
         }
 
         #endregion
+
 
         #region ParseXMLRequestBody()
 
