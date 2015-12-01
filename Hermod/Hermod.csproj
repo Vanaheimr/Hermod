@@ -209,11 +209,11 @@
       <Project>{38872a5f-e87e-4fad-b109-8eb7b2e6a4a0}</Project>
       <Name>crypto</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\Illias\Illias.NET4.5\Illias.csproj">
+    <ProjectReference Include="..\..\Illias\Illias\Illias.csproj">
       <Project>{23d37453-2d4e-4bd8-b40f-3e731fee7712}</Project>
       <Name>Illias</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\Styx\Styx.NET4.5\Styx.csproj">
+    <ProjectReference Include="..\..\Styx\Styx\Styx.csproj">
       <Project>{af76ecc0-2ca5-4cff-9e1e-ff5478c4b6e4}</Project>
       <Name>Styx</Name>
     </ProjectReference>
