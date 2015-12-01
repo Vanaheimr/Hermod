@@ -25,10 +25,26 @@ using System;
 namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
 {
 
+    /// <summary>
+    /// An SMTP exception.
+    /// </summary>
     public class SMTPClientException : SMTPException
     {
 
-        public SMTPClientException(String Message, Exception InnerException = null)
+        /// <summary>
+        /// Create a new SMTP exception.
+        /// </summary>
+        /// <param name="Message">The exception message.</param>
+        public SMTPClientException(String Message)
+            : base(Message, null)
+        { }
+
+        /// <summary>
+        /// Create a new SMTP exception.
+        /// </summary>
+        /// <param name="Message">The exception message.</param>
+        /// <param name="InnerException">An optional inner exception.</param>
+        public SMTPClientException(String Message, Exception InnerException)
             : base(Message, InnerException)
         { }
 
