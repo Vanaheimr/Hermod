@@ -22,7 +22,7 @@ using System.Text.RegularExpressions;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
+namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 {
 
     /// <summary>

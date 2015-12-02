@@ -17,12 +17,12 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Hermod.Services.Mail;
+using org.GraphDefined.Vanaheimr.Hermod.Mail;
 using System;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
+namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
     public class SMTPException : ApplicationException

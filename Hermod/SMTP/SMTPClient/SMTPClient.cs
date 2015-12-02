@@ -20,20 +20,21 @@
 using System;
 using System.Text;
 using System.Linq;
-using System.Net.Sockets;
 using System.Threading;
+using System.Net.Sockets;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Security.Cryptography;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Hermod.Services.DNS;
-using org.GraphDefined.Vanaheimr.Hermod.Services.Mail;
-using System.Security.Cryptography;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Hermod.Mail;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
+namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
     public static class Ext2
@@ -486,16 +487,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
                 switch (Connect())
                 {
 
-                    case TCP.TCPConnectResult.InvalidDomainName:
+                    case Sockets.TCP.TCPConnectResult.InvalidDomainName:
                         return MailSentStatus.failed;
 
-                    case TCP.TCPConnectResult.NoIPAddressFound:
+                    case Sockets.TCP.TCPConnectResult.NoIPAddressFound:
                         return MailSentStatus.failed;
 
-                    case TCP.TCPConnectResult.UnknownError:
+                    case Sockets.TCP.TCPConnectResult.UnknownError:
                         return MailSentStatus.failed;
 
-                    case TCP.TCPConnectResult.Ok:
+                    case Sockets.TCP.TCPConnectResult.Ok:
 
                         // 220 mail.ahzf.de ESMTP Postfix (Debian/GNU)
                         var LoginResponse = this.ReadSMTPResponse();

@@ -20,19 +20,12 @@
 using System;
 using System.Linq;
 using System.Xml.Linq;
-using System.Threading;
-using System.Reflection;
-using System.Collections.Generic;
 
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Illias.ConsoleLog;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
-using org.GraphDefined.Vanaheimr.Hermod.Services.TCP;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets;
-using System.Diagnostics;
 
 #endregion
 

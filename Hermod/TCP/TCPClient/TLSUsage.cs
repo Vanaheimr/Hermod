@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Services
+namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 {
 
     public enum TLSUsage

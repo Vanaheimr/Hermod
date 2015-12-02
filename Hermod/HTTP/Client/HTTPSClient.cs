@@ -19,7 +19,7 @@
 
 using System;
 
-using org.GraphDefined.Vanaheimr.Hermod.Services.DNS;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 

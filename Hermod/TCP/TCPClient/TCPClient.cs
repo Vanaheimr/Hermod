@@ -19,24 +19,20 @@
 
 using System;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Net.Sockets;
-using System.Collections.Generic;
-
-using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Hermod.Services.DNS;
-using org.GraphDefined.Vanaheimr.Hermod.Services.TCP;
 using System.Net;
+using System.Linq;
+using System.Threading;
+using System.Net.Sockets;
 using System.Net.Security;
+using System.Collections.Generic;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
+
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Services
+namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 {
 
     public static class Ext

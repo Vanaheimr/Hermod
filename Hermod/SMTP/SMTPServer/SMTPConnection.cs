@@ -28,11 +28,12 @@ using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
-using org.GraphDefined.Vanaheimr.Hermod.Services.Mail;
+using org.GraphDefined.Vanaheimr.Hermod.Mail;
+using org.GraphDefined.Vanaheimr.Hermod.Services;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
+namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
     /// <summary>

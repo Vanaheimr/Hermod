@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
+namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
     public enum MailSentStatus

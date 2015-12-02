@@ -29,7 +29,7 @@ using System.Net.NetworkInformation;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
+namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
     public static class DNSTools

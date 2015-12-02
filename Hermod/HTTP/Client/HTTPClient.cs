@@ -29,7 +29,7 @@ using System.Text.RegularExpressions;
 using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Hermod.Services.DNS;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 

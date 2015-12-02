@@ -20,11 +20,11 @@
 using System;
 using System.Threading.Tasks;
 
-using org.GraphDefined.Vanaheimr.Hermod.Services.SMTP;
+using org.GraphDefined.Vanaheimr.Hermod.SMTP;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
+namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 {
 
     public static class EMailExtentionMethods

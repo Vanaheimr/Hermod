@@ -22,7 +22,7 @@ using System.Text;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Services.DNS
+namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
     public class DNSQuery

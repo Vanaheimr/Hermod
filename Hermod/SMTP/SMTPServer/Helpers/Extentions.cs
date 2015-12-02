@@ -26,7 +26,7 @@ using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
+namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
     public static class Ext3

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Services.Mail
+namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 {
 
     public enum ContentTransferEncoding2

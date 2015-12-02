@@ -21,7 +21,7 @@ using System;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Services.SMTP
+namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
     [Flags]

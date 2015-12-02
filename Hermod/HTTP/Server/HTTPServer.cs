@@ -19,22 +19,18 @@
 
 using System;
 using System.Linq;
-using System.Xml.Linq;
 using System.Threading;
 using System.Reflection;
 using System.Collections.Generic;
+using System.Security.Cryptography.X509Certificates;
 
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Illias.ConsoleLog;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
-using org.GraphDefined.Vanaheimr.Hermod.Services.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
-using System.Diagnostics;
-using System.Security.Cryptography.X509Certificates;
-using org.GraphDefined.Vanaheimr.Hermod.Services.DNS;
 
 #endregion
 
