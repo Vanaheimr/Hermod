@@ -440,7 +440,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region TryParseEnum(myCode, out myHTTPMethod)
 
         /// <summary>
-        /// Tries to find the apropriate HTTPMethod for the given HTTPMethods.
+        /// Tries to find the appropriate HTTPMethod for the given HTTPMethods.
         /// </summary>
         /// <param name="myCode">A HTTPMethod code</param>
         /// <param name="myHTTPMethod">The parsed HTTPMethod</param>
@@ -463,7 +463,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region TryParseString(myMethodname, out myHTTPMethod)
 
         /// <summary>
-        /// Tries to find the apropriate HTTPMethod for the given string.
+        /// Tries to find the appropriate HTTPMethod for the given string.
         /// </summary>
         /// <param name="myMethodname">A HTTPMethod code</param>
         /// <param name="myHTTPStatusCode">The parsed HTTPMethod</param>
@@ -623,10 +623,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ToString()
+        #region (override) ToString()
 
         /// <summary>
-        /// Return a string represtentation of this object.
+        /// Return a string representation of this object.
         /// </summary>
         public override String ToString()
         {

@@ -216,7 +216,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
 
         #endregion
 
-        #region ToString()
+        #region (override) ToString()
 
         /// <summary>
         /// Return a string representation of this object.

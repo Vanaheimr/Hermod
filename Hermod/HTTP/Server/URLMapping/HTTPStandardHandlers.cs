@@ -165,7 +165,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  String           CacheControl         = "no-cache")
         {
 
-            #region Get the apropriate content type based on the suffix of the requested resource
+            #region Get the appropriate content type based on the suffix of the requested resource
 
             if (ResponseContentType == null)
                 switch (ResourceFilename.Remove(0, ResourceFilename.LastIndexOf(".") + 1))
@@ -309,7 +309,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     var FileName = FilePath.Substring(FilePath.LastIndexOf("/") + 1);
 
-                    // Get the apropriate content type based on the suffix of the requested resource
+                    // Get the appropriate content type based on the suffix of the requested resource
                     switch (FileName.Remove(0, FileName.LastIndexOf(".") + 1))
                     {
                         case "htm" : ResponseContentType = HTTPContentType.HTML_UTF8;       break;
@@ -440,7 +440,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                  var FileName = FilePath.Substring(FilePath.LastIndexOf("/") + 1);
 
-                                                 // Get the apropriate content type based on the suffix of the requested resource
+                                                 // Get the appropriate content type based on the suffix of the requested resource
                                                  switch (FileName.Remove(0, FileName.LastIndexOf(".") + 1))
                                                  {
                                                      case "htm":  ResponseContentType = HTTPContentType.HTML_UTF8;       break;
@@ -566,7 +566,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   String                  CacheControl         = "no-cache")
         {
 
-            #region Get the apropriate content type based on the suffix returned by the ResourceFilenameBuilder
+            #region Get the appropriate content type based on the suffix returned by the ResourceFilenameBuilder
 
                                                                                   // NumberOfTemplateParameters
             var _ResourceFilename = ResourceFilenameBuilder(Enumerable.Repeat("", URITemplate.Count(c => c == '{')).ToArray());
@@ -667,7 +667,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                  var FileName = FilePath.Substring(FilePath.LastIndexOf("/") + 1);
 
-                                                 // Get the apropriate content type based on the suffix of the requested resource
+                                                 // Get the appropriate content type based on the suffix of the requested resource
                                                  switch (FileName.Remove(0, FileName.LastIndexOf(".") + 1))
                                                  {
                                                      case "htm":  ResponseContentType = HTTPContentType.HTML_UTF8;       break;

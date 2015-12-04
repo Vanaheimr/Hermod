@@ -83,7 +83,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region TryParseVersionString(VersionString, out HTTPVersion)
 
         /// <summary>
-        /// Tries to find the apropriate HTTPVersion for the given string, e.g. "HTTP/1.1".
+        /// Tries to find the appropriate HTTPVersion for the given string, e.g. "HTTP/1.1".
         /// </summary>
         /// <param name="VersionString">A HTTP version as stirng, e.g. "HTTP/1.1"</param>
         /// <param name="HTTPVersion">The parsed HTTP version</param>
@@ -329,10 +329,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ToString()
+        #region (override) ToString()
 
         /// <summary>
-        /// Return a string represtentation of this object.
+        /// Return a string representation of this object.
         /// </summary>
         public override String ToString()
         {

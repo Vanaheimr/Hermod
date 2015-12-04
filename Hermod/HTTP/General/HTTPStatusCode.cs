@@ -866,7 +866,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region ParseInt(myCode)
 
         /// <summary>
-        /// Tries to find the apropriate HTTPStatusCode for the given integer
+        /// Tries to find the appropriate HTTPStatusCode for the given integer
         /// or returns HTTPStatusCode.BadRequest.
         /// </summary>
         /// <param name="myCode">A HTTPStatusCode code</param>
@@ -892,7 +892,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region ParseString(myCode)
 
         /// <summary>
-        /// Tries to find the apropriate HTTPStatusCode for the given string
+        /// Tries to find the appropriate HTTPStatusCode for the given string
         /// or returns HTTPStatusCode.BadRequest.
         /// </summary>
         /// <param name="myCode">A HTTPStatusCode code as string</param>
@@ -925,7 +925,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region TryParseInt(myCode, out myHTTPStatusCode)
 
         /// <summary>
-        /// Tries to find the apropriate HTTPStatusCode for the given integer.
+        /// Tries to find the appropriate HTTPStatusCode for the given integer.
         /// </summary>
         /// <param name="myCode">A HTTPStatusCode code</param>
         /// <param name="myHTTPStatusCode">The parsed HTTPStatusCode</param>
@@ -952,7 +952,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region TryParseString(myCode, out myHTTPStatusCode)
 
         /// <summary>
-        /// Tries to find the apropriate HTTPStatusCode for the given string.
+        /// Tries to find the appropriate HTTPStatusCode for the given string.
         /// </summary>
         /// <param name="myCode">A HTTPStatusCode code</param>
         /// <param name="myHTTPStatusCode">The parsed HTTPStatusCode</param>
@@ -1179,10 +1179,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ToString()
+        #region (override) ToString()
 
         /// <summary>
-        /// Return a string represtentation of this object.
+        /// Return a string representation of this object.
         /// </summary>
         public override String ToString()
         {
