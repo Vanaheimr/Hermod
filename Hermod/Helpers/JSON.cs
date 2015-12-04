@@ -23,14 +23,64 @@ using System.Linq;
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Text;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
+    public static class JSONObject
+    {
+
+        #region Create(params Properties)
+
+        public static JObject Create(params JProperty[] Properties)
+        {
+
+            var FilteredData = Properties.Where(p => p != null).ToArray();
+
+            return (FilteredData.Length > 0)
+                       ? new JObject(FilteredData)
+                       : new JObject();
+
+        }
+
+        #endregion
+
+    }
+
     public static class JSON
     {
+
+        #region ToUTF8Bytes(this JSONArray)
+
+        public static Byte[] ToUTF8Bytes(this JArray JSONArray)
+        {
+
+            if (JSONArray == null)
+                return new Byte[0];
+
+            return Encoding.UTF8.GetBytes(JSONArray.ToString());
+
+        }
+
+        #endregion
+
+        #region ToUTF8Bytes(this JSONObject)
+
+        public static Byte[] ToUTF8Bytes(this JObject JSONObject)
+        {
+
+            if (JSONObject == null)
+                return new Byte[0];
+
+            return Encoding.UTF8.GetBytes(JSONObject.ToString());
+
+        }
+
+        #endregion
+
 
         #region ToJSON(this Timestamp, JPropertyKey)
 
