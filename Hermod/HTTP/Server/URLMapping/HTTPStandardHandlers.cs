@@ -52,19 +52,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              return new HTTPResponseBuilder() {
 
-                                                 HTTPStatusCode = HTTPStatusCode.OK,
-                                                 CacheControl   = "no-cache",
-                                                 Connection     = "close",
-                                                 ContentType    = HTTPContentType.TEXT_UTF8,
-                                                 Content        = ("Incoming http connection from '" + Request.RemoteSocket + "'" +
-                                                                    Environment.NewLine + Environment.NewLine +
-                                                                    Request.RawHTTPHeader +
-                                                                    Environment.NewLine + Environment.NewLine +
-                                                                    "Method => "         + Request.HTTPMethod      + Environment.NewLine +
-                                                                    "URL => "            + Request.URI         + Environment.NewLine +
-                                                                    "QueryString => "    + Request.QueryString     + Environment.NewLine +
-                                                                    "Protocol => "       + Request.ProtocolName    + Environment.NewLine +
-                                                                    "Version => "        + Request.ProtocolVersion + Environment.NewLine).ToUTF8Bytes()
+                                                 HTTPStatusCode  = HTTPStatusCode.OK,
+                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Date            = DateTime.Now,
+                                                 CacheControl    = "no-cache",
+                                                 Connection      = "close",
+                                                 ContentType     = HTTPContentType.TEXT_UTF8,
+                                                 Content         = ("Incoming http connection from '" + Request.RemoteSocket + "'" +
+                                                                     Environment.NewLine + Environment.NewLine +
+                                                                     Request.RawHTTPHeader +
+                                                                     Environment.NewLine + Environment.NewLine +
+                                                                     "Method => "         + Request.HTTPMethod      + Environment.NewLine +
+                                                                     "URL => "            + Request.URI         + Environment.NewLine +
+                                                                     "QueryString => "    + Request.QueryString     + Environment.NewLine +
+                                                                     "Protocol => "       + Request.ProtocolName    + Environment.NewLine +
+                                                                     "Version => "        + Request.ProtocolVersion + Environment.NewLine).ToUTF8Bytes()
 
                                              };
 
@@ -133,6 +135,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              return new HTTPResponseBuilder()
                                              {
                                                  HTTPStatusCode  = HTTPStatusCode.OK,
+                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Date            = DateTime.Now,
                                                  ContentType     = HTTPContentType.EVENTSTREAM,
                                                  CacheControl    = "no-cache",
                                                  Connection      = "keep-alive",
@@ -196,11 +200,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              if (FileStream != null)
                                                  return new HTTPResponseBuilder() {
-                                                     HTTPStatusCode = HTTPStatusCode.OK,
-                                                     ContentType    = ResponseContentType,
-                                                     ContentStream  = FileStream,
-                                                     CacheControl   = CacheControl,
-                                                     Connection     = "close",
+                                                     HTTPStatusCode  = HTTPStatusCode.OK,
+                                                     Server          = HTTPServer.DefaultServerName,
+                                                     Date            = DateTime.Now,
+                                                     ContentType     = ResponseContentType,
+                                                     ContentStream   = FileStream,
+                                                     CacheControl    = CacheControl,
+                                                     Connection      = "close",
                                                  };
 
                                              else
@@ -257,9 +263,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                  else
                                                      return new HTTPResponseBuilder() {
-                                                         HTTPStatusCode = HTTPStatusCode.NotFound,
-                                                         CacheControl   = "no-cache",
-                                                         Connection     = "close",
+                                                         HTTPStatusCode  = HTTPStatusCode.NotFound,
+                                                         Server          = HTTPServer.DefaultServerName,
+                                                         Date            = DateTime.Now,
+                                                         CacheControl    = "no-cache",
+                                                         Connection      = "close",
                                                      };
 
                                                  #endregion
@@ -333,6 +341,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     return new HTTPResponseBuilder() {
                         HTTPStatusCode  = HTTPStatusCode.OK,
+                        Server          = HTTPServer.DefaultServerName,
+                        Date            = DateTime.Now,
                         ContentType     = ResponseContentType,
                         ContentStream   = FileStream,
                         CacheControl    = "public, max-age=300",
@@ -387,6 +397,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (ErrorStream != null)
                         return new HTTPResponseBuilder() {
                             HTTPStatusCode  = HTTPStatusCode.NotFound,
+                            Server          = HTTPServer.DefaultServerName,
+                            Date            = DateTime.Now,
                             ContentType     = ResponseContentType,
                             ContentStream   = ErrorStream,
                             CacheControl    = "no-cache",
@@ -399,9 +411,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     else
                         return new HTTPResponseBuilder() {
-                            HTTPStatusCode = HTTPStatusCode.NotFound,
-                            CacheControl   = "no-cache",
-                            Connection     = "close",
+                            HTTPStatusCode  = HTTPStatusCode.NotFound,
+                            Server          = HTTPServer.DefaultServerName,
+                            Date            = DateTime.Now,
+                            CacheControl    = "no-cache",
+                            Connection      = "close",
                         };
 
                     #endregion
@@ -464,6 +478,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                  return new HTTPResponseBuilder() {
                                                      HTTPStatusCode  = HTTPStatusCode.OK,
+                                                     Server          = HTTPServer.DefaultServerName,
+                                                     Date            = DateTime.Now,
                                                      ContentType     = ResponseContentType,
                                                      ContentStream   = FileStream,
                                                      CacheControl    = "public, max-age=300",
@@ -517,11 +533,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                  if (ErrorStream != null)
                                                      return new HTTPResponseBuilder() {
-                                                         HTTPStatusCode = HTTPStatusCode.NotFound,
-                                                         ContentType    = ResponseContentType,
-                                                         ContentStream  = ErrorStream,
-                                                         CacheControl   = "no-cache",
-                                                         Connection     = "close",
+                                                         HTTPStatusCode  = HTTPStatusCode.NotFound,
+                                                         Server          = HTTPServer.DefaultServerName,
+                                                         Date            = DateTime.Now,
+                                                         ContentType     = ResponseContentType,
+                                                         ContentStream   = ErrorStream,
+                                                         CacheControl    = "no-cache",
+                                                         Connection      = "close",
                                                      };
 
                                                  #endregion
@@ -530,9 +548,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                  else
                                                      return new HTTPResponseBuilder() {
-                                                         HTTPStatusCode = HTTPStatusCode.NotFound,
-                                                         CacheControl   = "no-cache",
-                                                         Connection     = "close",
+                                                         HTTPStatusCode  = HTTPStatusCode.NotFound,
+                                                         Server          = HTTPServer.DefaultServerName,
+                                                         Date            = DateTime.Now,
+                                                         CacheControl    = "no-cache",
+                                                         Connection      = "close",
                                                      };
 
                                                  #endregion
@@ -608,6 +628,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  if (FileStream != null)
                                                      return new HTTPResponseBuilder() {
                                                          HTTPStatusCode  = HTTPStatusCode.OK,
+                                                         Server          = HTTPServer.DefaultServerName,
+                                                         Date            = DateTime.Now,
                                                          ContentType     = ResponseContentType,
                                                          ContentStream   = FileStream,
                                                          CacheControl    = CacheControl,
@@ -618,6 +640,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              return new HTTPResponseBuilder() {
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
+                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Date            = DateTime.Now,
                                                  CacheControl    = "no-cache",
                                                  Connection      = "close",
                                              };
@@ -691,6 +715,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                  return new HTTPResponseBuilder() {
                                                      HTTPStatusCode  = HTTPStatusCode.OK,
+                                                     Server          = HTTPServer.DefaultServerName,
+                                                     Date            = DateTime.Now,
                                                      ContentType     = ResponseContentType,
                                                      ContentStream   = FileStream,
                                                      CacheControl    = "public, max-age=300",
@@ -706,6 +732,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              else
                                                  return new HTTPResponseBuilder() {
                                                      HTTPStatusCode = HTTPStatusCode.NotFound,
+                                                     Server          = HTTPServer.DefaultServerName,
+                                                     Date            = DateTime.Now,
                                                      CacheControl   = "no-cache",
                                                      Connection     = "close",
                                                  };

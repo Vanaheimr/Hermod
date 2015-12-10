@@ -360,6 +360,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region Set(HeaderField, Value)
+
+        /// <summary>
+        /// Set a HTTP header field.
+        /// A field value of NULL will remove the field from the header.
+        /// </summary>
+        /// <param name="HeaderField">The header field.</param>
+        /// <param name="Value">The value. NULL will remove the field from the header.</param>
+        public HTTPResponseBuilder Set(HTTPHeaderField HeaderField, Object Value)
+        {
+
+            base.SetHeaderField(HeaderField, Value);
+
+            return this;
+
+        }
+
+        #endregion
+
+
         #region (implicit operator) HTTPResponseBuilder => HTTPResponse
 
         /// <summary>

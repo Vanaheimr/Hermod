@@ -65,7 +65,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Add a method callback for the given URI template.
         /// </summary>
         /// <param name="HTTPDelegate">A delegate called for each incoming HTTP request.</param>
-        /// <param name="Host">The HTTP host.</param>
+        /// <param name="Hostname">The HTTP hostname.</param>
         /// <param name="URITemplate">The URI template.</param>
         /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
@@ -73,6 +73,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
+        /// <param name="DefaultErrorHandler">The default error handler.</param>
         internal void AddHandler(HTTPDelegate        HTTPDelegate,
 
                                  String              Hostname                    = "*",
@@ -95,7 +96,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #region Initial Checks
 
                 if (HTTPDelegate == null)
-                    throw new ArgumentNullException("HTTPDelegate", "The HTTPDelegate must not be null!");
+                    throw new ArgumentNullException("HTTPDelegate", "The given parameter must not be null!");
 
                 if (Hostname.IsNullOrEmpty())
                     Hostname = "*";

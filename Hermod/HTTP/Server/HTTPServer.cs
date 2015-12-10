@@ -55,20 +55,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Properties
 
-        #region URIPrefix
-
-        private readonly String _URIPrefix;
-
-        public String URIPrefix
-        {
-            get
-            {
-                return _URIPrefix;
-            }
-        }
-
-        #endregion
-
         #region DefaultServerName
 
         private readonly String _DefaultServerName;
@@ -197,7 +183,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
         public HTTPServer(IPPort                            TCPPort                           = null,
-                          String                            URIPrefix                         = "",
+                        //  String                            URIPrefix                         = "",
                           String                            DefaultServerName                 = __DefaultServerName,
                           String                            HTTPRoot                          = "",
                           X509Certificate2                  X509Certificate                   = null,
@@ -230,7 +216,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this._URIPrefix                        = URIPrefix;
             this._DefaultServerName                = DefaultServerName;
             this._HTTPRoot                         = HTTPRoot;
             this._URIMapping                       = new URIMapping();
@@ -525,6 +510,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Add Method Callbacks
 
+        #region AddMethodCallback(Hostname, HTTPMethod, URITemplate, HTTPContentType, HTTPDelegate)
+
+        /// <summary>
+        /// Add a method callback for the given URI template.
+        /// </summary>
+        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <param name="HTTPMethod">The HTTP method.</param>
+        /// <param name="URITemplate">The URI template.</param>
+        /// <param name="HTTPContentType">The HTTP content type.</param>
+        /// <param name="HTTPDelegate">The method to call.</param>
+        public void AddMethodCallback(String           Hostname,
+                                      HTTPMethod       HTTPMethod,
+                                      String           URITemplate,
+                                      HTTPContentType  HTTPContentType,
+                                      HTTPDelegate     HTTPDelegate)
+
+        {
+
+            #region Initial checks
+
+            if (Hostname.IsNullOrEmpty())
+                throw new ArgumentNullException("Hostname",         "The given parameter must not be null or empty!");
+
+            if (HTTPMethod == null)
+                throw new ArgumentNullException("HTTPMethod",       "The given parameter must not be null!");
+
+            if (URITemplate.IsNullOrEmpty())
+                throw new ArgumentNullException("URITemplate",      "The given parameter must not be null or empty!");
+
+            if (HTTPContentType == null)
+                throw new ArgumentNullException("HTTPContentType",  "The given parameter must not be null!");
+
+            if (HTTPDelegate == null)
+                throw new ArgumentNullException("HTTPDelegate",     "The given parameter must not be null!");
+
+            #endregion
+
+            _URIMapping.AddHandler(HTTPDelegate,
+                                   Hostname,
+                                   URITemplate,
+                                   HTTPMethod,
+                                   HTTPContentType,
+                                   null,
+                                   null,
+                                   null,
+                                   null);
+
+        }
+
+        #endregion
+
         #region AddMethodCallback(HTTPMethod, URITemplate, HTTPContentType, HTTPDelegate)
 
         /// <summary>
@@ -541,15 +577,83 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
+            #region Initial checks
+
+            if (HTTPMethod == null)
+                throw new ArgumentNullException("HTTPMethod", "The given parameter must not be null!");
+
+            if (URITemplate.IsNullOrEmpty())
+                throw new ArgumentNullException("URITemplate", "The given parameter must not be null or empty!");
+
+            if (HTTPContentType == null)
+                throw new ArgumentNullException("HTTPContentType", "The given parameter must not be null!");
+
+            if (HTTPDelegate == null)
+                throw new ArgumentNullException("HTTPDelegate", "The given parameter must not be null!");
+
+            #endregion
+
             _URIMapping.AddHandler(HTTPDelegate,
                                    "*",
-                                   (URITemplate.IsNotNullOrEmpty()) ? _URIPrefix + URITemplate : _URIPrefix + "/",
-                                   (HTTPMethod      != null)        ? HTTPMethod               : HTTPMethod.GET,
-                                   (HTTPContentType != null)        ? HTTPContentType          : HTTPContentType.HTML_UTF8,
+                                   URITemplate,
+                                   HTTPMethod,
+                                   HTTPContentType,
                                    null,
                                    null,
                                    null,
                                    null);
+
+        }
+
+        #endregion
+
+        #region AddMethodCallback(Hostname, HTTPMethod, URITemplates, HTTPContentType, HTTPDelegate)
+
+        /// <summary>
+        /// Add a method callback for the given URI template.
+        /// </summary>
+        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <param name="HTTPMethod">The HTTP method.</param>
+        /// <param name="URITemplates">The URI templates.</param>
+        /// <param name="HTTPContentType">The HTTP content type.</param>
+        /// <param name="HTTPDelegate">The method to call.</param>
+        public void AddMethodCallback(String               Hostname,
+                                      HTTPMethod           HTTPMethod,
+                                      IEnumerable<String>  URITemplates,
+                                      HTTPContentType      HTTPContentType,
+                                      HTTPDelegate         HTTPDelegate)
+
+        {
+
+            #region Initial checks
+
+            if (Hostname.IsNullOrEmpty())
+                throw new ArgumentNullException("Hostname",         "The given parameter must not be null or empty!");
+
+            if (HTTPMethod == null)
+                throw new ArgumentNullException("HTTPMethod",       "The given parameter must not be null!");
+
+            if (URITemplates == null || !URITemplates.Any())
+                throw new ArgumentNullException("URITemplates",     "The given parameter must not be null or empty!");
+
+            if (HTTPContentType == null)
+                throw new ArgumentNullException("HTTPContentType",  "The given parameter must not be null!");
+
+            if (HTTPDelegate == null)
+                throw new ArgumentNullException("HTTPDelegate",     "The given parameter must not be null!");
+
+            #endregion
+
+            URITemplates.ForEach(URITemplate =>
+                _URIMapping.AddHandler(HTTPDelegate,
+                                       Hostname,
+                                       URITemplate,
+                                       HTTPMethod,
+                                       HTTPContentType,
+                                       null,
+                                       null,
+                                       null,
+                                       null));
 
         }
 
@@ -564,19 +668,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URITemplates">The URI templates.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
-        public void AddMethodCallback(HTTPMethod       HTTPMethod,
-                                      String[]         URITemplates,
-                                      HTTPContentType  HTTPContentType,
-                                      HTTPDelegate     HTTPDelegate)
+        public void AddMethodCallback(HTTPMethod           HTTPMethod,
+                                      IEnumerable<String>  URITemplates,
+                                      HTTPContentType      HTTPContentType,
+                                      HTTPDelegate         HTTPDelegate)
 
         {
+
+            #region Initial checks
+
+            if (HTTPMethod == null)
+                throw new ArgumentNullException("HTTPMethod",       "The given parameter must not be null!");
+
+            if (URITemplates == null || !URITemplates.Any())
+                throw new ArgumentNullException("URITemplates",     "The given parameter must not be null or empty!");
+
+            if (HTTPContentType == null)
+                throw new ArgumentNullException("HTTPContentType",  "The given parameter must not be null!");
+
+            if (HTTPDelegate == null)
+                throw new ArgumentNullException("HTTPDelegate",     "The given parameter must not be null!");
+
+            #endregion
 
             URITemplates.ForEach(URITemplate =>
                 _URIMapping.AddHandler(HTTPDelegate,
                                        "*",
-                                       (URITemplate.IsNotNullOrEmpty()) ? _URIPrefix + URITemplate : _URIPrefix + "/",
-                                       (HTTPMethod      != null)        ? HTTPMethod               : HTTPMethod.GET,
-                                       (HTTPContentType != null)        ? HTTPContentType          : HTTPContentType.HTML_UTF8,
+                                       URITemplate,
+                                       HTTPMethod,
+                                       HTTPContentType,
                                        null,
                                        null,
                                        null,
@@ -585,6 +705,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
+
 
         #region Redirect(HTTPMethod, URITemplate, HTTPContentType, URITarget)
 
@@ -604,9 +725,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             _URIMapping.AddHandler(req => _URIMapping.InvokeHandler(new HTTPRequestBuilder(req).SetURI(URITarget)),
                                    "*",
-                                   (URITemplate.IsNotNullOrEmpty()) ? _URIPrefix + URITemplate : _URIPrefix + "/",
-                                   (HTTPMethod      != null)        ? HTTPMethod               : HTTPMethod.GET,
-                                   (HTTPContentType != null)        ? HTTPContentType          : HTTPContentType.HTML_UTF8,
+                                   (URITemplate.IsNotNullOrEmpty()) ? URITemplate     : "/",
+                                   (HTTPMethod      != null)        ? HTTPMethod      : HTTPMethod.GET,
+                                   (HTTPContentType != null)        ? HTTPContentType : HTTPContentType.HTML_UTF8,
                                    null,
                                    null,
                                    null,
@@ -623,14 +744,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="URITemplate">The URI template.</param>
+        /// <param name="Hostname">The HTTP hostname.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
         /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
         /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
-        public void AddMethodCallback(HTTPMethod          HTTPMethod                  = null,
-                                      String              URITemplate                 = "/",
+        public void AddMethodCallback(HTTPMethod          HTTPMethod,
+                                      String              URITemplate,
                                       String              Hostname                    = "*",
                                       HTTPContentType     HTTPContentType             = null,
                                       HTTPAuthentication  HostAuthentication          = null,
@@ -641,9 +763,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
+            #region Initial checks
+
+            if (HTTPMethod == null)
+                throw new ArgumentNullException("HTTPMethod", "The given parameter must not be null!");
+
+            if (URITemplate.IsNullOrEmpty())
+                throw new ArgumentNullException("URITemplate", "The given parameter must not be null or empty!");
+
+            if (HTTPDelegate == null)
+                throw new ArgumentNullException("HTTPDelegate", "The given parameter must not be null!");
+
+            #endregion
+
             _URIMapping.AddHandler(HTTPDelegate,
                                    Hostname,
-                                   _URIPrefix + URITemplate,
+                                   URITemplate,
                                    (HTTPMethod != null) ? HTTPMethod : HTTPMethod.GET,
                                    HTTPContentType,
                                    HostAuthentication,
@@ -750,7 +885,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               RetryIntervall,
 
                                               Hostname,
-                                              _URIPrefix + URITemplate,
+                                              URITemplate,
                                               HTTPMethod,
 
                                               HostAuthentication,
