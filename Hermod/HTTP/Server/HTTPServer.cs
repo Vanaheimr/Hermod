@@ -184,9 +184,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
         public HTTPServer(IPPort                            TCPPort                           = null,
-                        //  String                            URIPrefix                         = "",
                           String                            DefaultServerName                 = __DefaultServerName,
-                          String                            HTTPRoot                          = "",
                           X509Certificate2                  X509Certificate                   = null,
                           IEnumerable<Assembly>             CallingAssemblies                 = null,
                           String                            ServerThreadName                  = null,
