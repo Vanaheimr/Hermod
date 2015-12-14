@@ -31,6 +31,7 @@ using org.GraphDefined.Vanaheimr.Styx.Arrows;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
+using System.Diagnostics;
 
 #endregion
 
@@ -366,14 +367,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 while (e.InnerException != null)
                     e = e.InnerException;
 
+                var ErrorMessage = new JObject(new JProperty("description",  e.Message),
+                                               new JProperty("stacktrace",   e.StackTrace),
+                                               new JProperty("source",       e.TargetSite.Module.Name),
+                                               new JProperty("type",         e.TargetSite.ReflectedType.Name));
+
+                Debug.WriteLine("HTTPServer => InternalServerError" + Environment.NewLine + ErrorMessage.ToString());
+
                 return new HTTPResponseBuilder() {
                     HTTPStatusCode  = HTTPStatusCode.InternalServerError,
                     ContentType     = HTTPContentType.JSON_UTF8,
-                    Content         = new JObject(new JProperty("description",  e.Message),
-                                                  new JProperty("stacktrace",   e.StackTrace),
-                                                  new JProperty("source",       e.TargetSite.Module.Name),
-                                                  new JProperty("type",         e.TargetSite.ReflectedType.Name)).
-                                                  ToUTF8Bytes(),
+                    Content         = ErrorMessage.ToUTF8Bytes(),
                     Server          = _DefaultServerName,
                     Connection      = "close"
                 };
@@ -397,14 +401,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             catch (Exception e)
             {
 
+                while (e.InnerException != null)
+                    e = e.InnerException;
+
+                var ErrorMessage = new JObject(new JProperty("description",  e.Message),
+                                               new JProperty("stacktrace",   e.StackTrace),
+                                               new JProperty("source",       e.TargetSite.Module.Name),
+                                               new JProperty("type",         e.TargetSite.ReflectedType.Name));
+
+                Debug.WriteLine("HTTPServer => InternalServerError" + Environment.NewLine + ErrorMessage.ToString());
+
                 return new HTTPResponseBuilder() {
                     HTTPStatusCode  = HTTPStatusCode.InternalServerError,
                     ContentType     = HTTPContentType.JSON_UTF8,
-                    Content         = new JObject(new JProperty("description",  e.Message),
-                                                  new JProperty("stacktrace",   e.StackTrace),
-                                                  new JProperty("source",       e.TargetSite.Module.Name),
-                                                  new JProperty("type",         e.TargetSite.ReflectedType.Name)).
-                                                  ToUTF8Bytes(),
+                    Content         = ErrorMessage.ToUTF8Bytes(),
                     Server          = _DefaultServerName,
                     Connection      = "close"
                 };
@@ -420,6 +430,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (OnNotificationResponse != null)
                 return OnNotificationResponse;
+
+            Debug.WriteLine("URIMappingResponse AND OnNotificationResponse in ProcessBoomerang() had been null!");
 
             return new HTTPResponseBuilder() {
                 HTTPStatusCode  = HTTPStatusCode.InternalServerError,
