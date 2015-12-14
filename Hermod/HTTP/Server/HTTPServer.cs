@@ -370,6 +370,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     HTTPStatusCode  = HTTPStatusCode.InternalServerError,
                     ContentType     = HTTPContentType.JSON_UTF8,
                     Content         = new JObject(new JProperty("description",  e.Message),
+                                                  new JProperty("stacktrace",   e.StackTrace),
                                                   new JProperty("source",       e.TargetSite.Module.Name),
                                                   new JProperty("type",         e.TargetSite.ReflectedType.Name)).
                                                   ToUTF8Bytes(),
@@ -398,8 +399,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 return new HTTPResponseBuilder() {
                     HTTPStatusCode  = HTTPStatusCode.InternalServerError,
-                    ContentType     = HTTPContentType.TEXT_UTF8,
-                    Content         = ("Error 500 - Internal Server Error!" + Environment.NewLine + e.Message).ToUTF8Bytes(),
+                    ContentType     = HTTPContentType.JSON_UTF8,
+                    Content         = new JObject(new JProperty("description",  e.Message),
+                                                  new JProperty("stacktrace",   e.StackTrace),
+                                                  new JProperty("source",       e.TargetSite.Module.Name),
+                                                  new JProperty("type",         e.TargetSite.ReflectedType.Name)).
+                                                  ToUTF8Bytes(),
                     Server          = _DefaultServerName,
                     Connection      = "close"
                 };
@@ -418,8 +423,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             return new HTTPResponseBuilder() {
                 HTTPStatusCode  = HTTPStatusCode.InternalServerError,
-                ContentType     = HTTPContentType.TEXT_UTF8,
-                Content         = ("Error 500 - Internal Server Error!").ToUTF8Bytes(),
+                ContentType     = HTTPContentType.JSON_UTF8,
+                Content         = new JObject(
+                                      new JProperty("description", "URIMappingResponse AND OnNotificationResponse in ProcessBoomerang() had been null!")
+                                  ).ToUTF8Bytes(),
                 Server          = _DefaultServerName,
                 Connection      = "close"
             };
