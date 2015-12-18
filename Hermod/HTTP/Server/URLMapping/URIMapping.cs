@@ -86,7 +86,88 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                  HTTPAuthentication  HTTPMethodAuthentication    = null,
                                  HTTPAuthentication  ContentTypeAuthentication   = null,
 
-                                 HTTPDelegate        DefaultErrorHandler         = null)
+                                 HTTPDelegate        DefaultErrorHandler         = null,
+                                 Boolean             AllowReplacement            = false)
+
+        {
+
+            lock (Lock)
+            {
+
+                #region Initial Checks
+
+                if (HTTPDelegate == null)
+                    throw new ArgumentNullException("HTTPDelegate", "The given parameter must not be null!");
+
+                if (Hostname.IsNullOrEmpty())
+                    Hostname = "*";
+
+                if (URITemplate.IsNullOrEmpty())
+                    URITemplate = "/";
+
+                if (HTTPMethod == null && HTTPContentType != null)
+                    throw new ArgumentNullException("If HTTPMethod is null the HTTPContentType must also be null!");
+
+                #endregion
+
+                #region AddOrUpdate HostNode
+
+                HostnameNode _HostnameNode = null;
+                if (!_HostnameNodes.TryGetValue(Hostname, out _HostnameNode))
+                {
+                    _HostnameNode = new HostnameNode(Hostname, HostAuthentication, HTTPDelegate, DefaultErrorHandler);
+                    _HostnameNodes.Add(Hostname, _HostnameNode);
+                }
+
+                #endregion
+
+                _HostnameNode.AddHandler(HTTPDelegate,
+
+                                         URITemplate,
+                                         HTTPMethod,
+                                         HTTPContentType,
+
+                                         URIAuthentication,
+                                         HTTPMethodAuthentication,
+                                         ContentTypeAuthentication,
+
+                                         DefaultErrorHandler,
+                                         AllowReplacement);
+
+            }
+
+        }
+
+        #endregion
+
+        #region (internal) AddHandler(HTTPDelegate, Hostname = "*", URITemplate = "/", HTTPMethod = null, HTTPContentType = null, HostAuthentication = null, URIAuthentication = null, HTTPMethodAuthentication = null, ContentTypeAuthentication = null, DefaultErrorHandler = null)
+
+        /// <summary>
+        /// Add a method callback for the given URI template.
+        /// </summary>
+        /// <param name="HTTPDelegate">A delegate called for each incoming HTTP request.</param>
+        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <param name="URITemplate">The URI template.</param>
+        /// <param name="HTTPMethod">The HTTP method.</param>
+        /// <param name="HTTPContentType">The HTTP content type.</param>
+        /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
+        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
+        /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
+        /// <param name="DefaultErrorHandler">The default error handler.</param>
+        internal void ReplaceHandler(HTTPDelegate        HTTPDelegate,
+
+                                     String              Hostname                    = "*",
+                                     String              URITemplate                 = "/",
+                                     HTTPMethod          HTTPMethod                  = null,
+                                     HTTPContentType     HTTPContentType             = null,
+
+                                     HTTPAuthentication  HostAuthentication          = null,
+                                     HTTPAuthentication  URIAuthentication           = null,
+                                     HTTPAuthentication  HTTPMethodAuthentication    = null,
+                                     HTTPAuthentication  ContentTypeAuthentication   = null,
+
+                                     HTTPDelegate        DefaultErrorHandler         = null)
 
         {
 

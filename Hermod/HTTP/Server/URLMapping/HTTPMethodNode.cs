@@ -174,7 +174,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public void AddHandler(HTTPDelegate        HTTPDelegate,
                                HTTPContentType     HTTPContentType            = null,
                                HTTPAuthentication  ContentTypeAuthentication  = null,
-                               HTTPDelegate        DefaultErrorHandler        = null)
+                               HTTPDelegate        DefaultErrorHandler        = null,
+                               Boolean             AllowReplacement           = false)
 
         {
 
@@ -193,7 +194,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
             else
-                throw new ArgumentException("Duplicate HTTP API definition!");
+            {
+                if (!AllowReplacement)
+                    throw new ArgumentException("Duplicate HTTP API definition!");
+                else
+                {
+                    _ContentTypeNode = new ContentTypeNode(HTTPContentType, ContentTypeAuthentication, HTTPDelegate, DefaultErrorHandler);
+                    _HTTPContentTypes[HTTPContentType] = _ContentTypeNode;
+                }
+            }
 
         }
 

@@ -274,7 +274,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              }
 
-                                         });
+                                         }, AllowReplacement: false);
 
             return;
 
@@ -646,7 +646,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Connection      = "close",
                                              };
 
-                                         });
+                                         }, AllowReplacement: false);
 
             return;
 
@@ -738,7 +738,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      Connection     = "close",
                                                  };
 
-                                         });
+                                         }, AllowReplacement: false);
 
             return;
 

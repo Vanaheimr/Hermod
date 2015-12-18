@@ -241,7 +241,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPAuthentication  HTTPMethodAuthentication    = null,
                                HTTPAuthentication  ContentTypeAuthentication   = null,
 
-                               HTTPDelegate        DefaultErrorHandler         = null)
+                               HTTPDelegate        DefaultErrorHandler         = null,
+                               Boolean             AllowReplacement            = false)
 
         {
 
@@ -259,7 +260,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                        ContentTypeAuthentication,
 
-                                       DefaultErrorHandler);
+                                       DefaultErrorHandler,
+                                       AllowReplacement);
 
         }
 

@@ -590,7 +590,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public void AddMethodCallback(HTTPMethod       HTTPMethod,
                                       String           URITemplate,
                                       HTTPContentType  HTTPContentType,
-                                      HTTPDelegate     HTTPDelegate)
+                                      HTTPDelegate     HTTPDelegate,
+                                      Boolean          AllowReplacement = false)
 
         {
 
@@ -618,7 +619,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    null,
                                    null,
                                    null,
-                                   null);
+                                   null,
+                                   AllowReplacement: AllowReplacement);
 
         }
 
