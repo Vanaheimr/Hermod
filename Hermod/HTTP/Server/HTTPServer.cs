@@ -74,20 +74,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region HTTPRoot
-
-        private readonly String _HTTPRoot;
-
-        public String HTTPRoot
-        {
-            get
-            {
-                return _HTTPRoot;
-            }
-        }
-
-        #endregion
-
         #region HTTPSecurity
 
         private readonly HTTPSecurity _HTTPSecurity;
@@ -216,7 +202,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             this._DefaultServerName                = DefaultServerName;
-            this._HTTPRoot                         = HTTPRoot;
             this._URIMapping                       = new URIMapping();
             this._CallingAssemblies                = new List<Assembly>() { Assembly.GetExecutingAssembly(), typeof(HTTPServer).Assembly };
 
