@@ -282,7 +282,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region RegisterResourcesFolder(this HTTPServer, URITemplate, ResourcePath, ResourceAssembly = null, DefaultFilename = "index.html")
+        #region RegisterResourcesFolder(this HTTPServer, URITemplate, ResourcePath, ResourceAssembly = null, DefaultFilename = "index.html", HTTPRealm = null, HTTPLogin = null, HTTPPassword = null)
 
         /// <summary>
         /// Returns internal resources embedded within the given assembly.
@@ -292,22 +292,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ResourcePath">The path to the file within the assembly.</param>
         /// <param name="ResourceAssembly">Optionally the assembly where the resources are located (default: the calling assembly).</param>
         /// <param name="DefaultFilename">The default file to load.</param>
+        /// <param name="HTTPRealm">An optional realm for HTTP basic authentication.</param>
+        /// <param name="HTTPLogin">An optional login for HTTP basic authentication.</param>
+        /// <param name="HTTPPassword">An optional password for HTTP basic authentication.</param>
         public static void RegisterResourcesFolder(this HTTPServer  HTTPServer,
                                                    String           URITemplate,
                                                    String           ResourcePath,
                                                    Assembly         ResourceAssembly  = null,
-                                                   String           DefaultFilename   = "index.html")
+                                                   String           DefaultFilename   = "index.html",
+                                                   String           HTTPRealm         = null,
+                                                   String           HTTPLogin         = null,
+                                                   String           HTTPPassword      = null)
         {
 
             if (ResourceAssembly == null)
                 ResourceAssembly = Assembly.GetCallingAssembly();
 
 
-            HTTPDelegate RequestResponse = Request => {
+            HTTPDelegate GetEmbeddedResources = Request => {
+
+                #region Check HTTP Basic Authentication
+
+                if (HTTPLogin.IsNotNullOrEmpty() && HTTPPassword.IsNotNullOrEmpty())
+                {
+
+                    if (Request.Authorization          == null        ||
+                        Request.Authorization.Username != HTTPLogin   ||
+                        Request.Authorization.Password != HTTPPassword)
+                        return new HTTPResponseBuilder() {
+                            HTTPStatusCode   = HTTPStatusCode.Unauthorized,
+                            Server           = HTTPServer.DefaultServerName,
+                            Date             = DateTime.Now,
+                            WWWAuthenticate  = @"Basic realm=""" + HTTPRealm + @"""",
+                            ContentType      = HTTPContentType.TEXT_UTF8,
+                            Content          = "Unauthorized Access!".ToUTF8Bytes(),
+                            Connection       = "close"
+                        };
+
+                }
+
+                #endregion
+
 
                 HTTPContentType ResponseContentType = null;
 
-                var FilePath    = DefaultFilename.Replace("/", ".");
+                var FilePath    = (Request.ParsedURIParameters != null && Request.ParsedURIParameters.Length > 0)
+                                      ? Request.ParsedURIParameters.Last().Replace("/", ".")
+                                      : DefaultFilename.Replace("/", ".");
+
                 var FileStream  = ResourceAssembly.GetManifestResourceStream(ResourcePath + "." + FilePath);
 
                 if (FileStream != null)
@@ -424,144 +456,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             };
 
+
             // ~/map
             HTTPServer.AddMethodCallback(HTTPMethod.GET,
-                             URITemplate.EndsWith("/") ? URITemplate.Substring(0, URITemplate.Length) : URITemplate,
-                             HTTPDelegate: RequestResponse);
+                                         URITemplate.EndsWith("/") ? URITemplate.Substring(0, URITemplate.Length) : URITemplate,
+                                         HTTPDelegate: GetEmbeddedResources);
 
             // ~/map/
             HTTPServer.AddMethodCallback(HTTPMethod.GET,
-                             URITemplate + (URITemplate.EndsWith("/") ? "" : "/"),
-                             HTTPDelegate: RequestResponse);
+                                         URITemplate + (URITemplate.EndsWith("/") ? "" : "/"),
+                                         HTTPDelegate: GetEmbeddedResources);
 
             // ~/map/file.name
             HTTPServer.AddMethodCallback(HTTPMethod.GET,
                                          URITemplate + (URITemplate.EndsWith("/") ? "{ResourceName}" : "/{ResourceName}"),
-                                         HTTPDelegate: Request => {
-
-                                             HTTPContentType ResponseContentType = null;
-
-                                             var FilePath = (Request.ParsedURIParameters != null && Request.ParsedURIParameters.Length > 0)
-                                                                ? Request.ParsedURIParameters.Last().Replace("/", ".")
-                                                                : DefaultFilename.Replace("/", ".");
-
-                                             var FileStream = ResourceAssembly.GetManifestResourceStream(ResourcePath + "." + FilePath);
-
-                                             if (FileStream != null)
-                                             {
-
-                                                 #region Choose HTTP Content Type based on the file name extention...
-
-                                                 var FileName = FilePath.Substring(FilePath.LastIndexOf("/") + 1);
-
-                                                 // Get the appropriate content type based on the suffix of the requested resource
-                                                 switch (FileName.Remove(0, FileName.LastIndexOf(".") + 1))
-                                                 {
-                                                     case "htm":  ResponseContentType = HTTPContentType.HTML_UTF8;       break;
-                                                     case "html": ResponseContentType = HTTPContentType.HTML_UTF8;       break;
-                                                     case "css":  ResponseContentType = HTTPContentType.CSS_UTF8;        break;
-                                                     case "gif":  ResponseContentType = HTTPContentType.GIF;             break;
-                                                     case "jpg":  ResponseContentType = HTTPContentType.JPEG;            break;
-                                                     case "jpeg": ResponseContentType = HTTPContentType.JPEG;            break;
-                                                     case "svg":  ResponseContentType = HTTPContentType.SVG;             break;
-                                                     case "png":  ResponseContentType = HTTPContentType.PNG;             break;
-                                                     case "ico":  ResponseContentType = HTTPContentType.ICO;             break;
-                                                     case "swf":  ResponseContentType = HTTPContentType.SWF;             break;
-                                                     case "js":   ResponseContentType = HTTPContentType.JAVASCRIPT_UTF8; break;
-                                                     case "txt":  ResponseContentType = HTTPContentType.TEXT_UTF8;       break;
-                                                     default:     ResponseContentType = HTTPContentType.OCTETSTREAM;     break;
-                                                 }
-
-                                                 #endregion
-
-                                                 #region Create HTTP Response
-
-                                                 return new HTTPResponseBuilder() {
-                                                     HTTPStatusCode  = HTTPStatusCode.OK,
-                                                     Server          = HTTPServer.DefaultServerName,
-                                                     Date            = DateTime.Now,
-                                                     ContentType     = ResponseContentType,
-                                                     ContentStream   = FileStream,
-                                                     CacheControl    = "public, max-age=300",
-                                                     //Expires         = "Mon, 25 Jun 2015 21:31:12 GMT",
-                                                     KeepAlive       = new KeepAliveType(TimeSpan.FromMinutes(5), 500),
-                                                     Connection      = "Keep-Alive",
-                                                 };
-
-                                                 #endregion
-
-                                             }
-
-                                             else
-                                             {
-
-                                                 #region Try to find a appropriate customized errorpage...
-
-                                                 Stream ErrorStream = null;
-
-                                                 Request.BestMatchingAcceptType = Request.Accept.BestMatchingContentType(new HTTPContentType[] { HTTPContentType.HTML_UTF8, HTTPContentType.TEXT_UTF8 });
-
-                                                 if (Request.BestMatchingAcceptType == HTTPContentType.HTML_UTF8)
-                                                 {
-                                                     ResponseContentType = HTTPContentType.HTML_UTF8;
-                                                     ErrorStream         = ResourceAssembly.GetManifestResourceStream(ResourcePath.Substring(0, ResourcePath.LastIndexOf(".")) + ".ErrorPages." + "404.html");
-                                                 }
-
-                                                 else if (Request.BestMatchingAcceptType == HTTPContentType.TEXT_UTF8)
-                                                 {
-                                                     ResponseContentType = HTTPContentType.TEXT_UTF8;
-                                                     ErrorStream         = ResourceAssembly.GetManifestResourceStream(ResourcePath.Substring(0, ResourcePath.LastIndexOf(".")) + ".ErrorPages." + "404.txt");
-                                                 }
-
-                                                 else if (Request.BestMatchingAcceptType == HTTPContentType.JSON_UTF8)
-                                                 {
-                                                     ResponseContentType = HTTPContentType.JSON_UTF8;
-                                                     ErrorStream         = ResourceAssembly.GetManifestResourceStream(ResourcePath.Substring(0, ResourcePath.LastIndexOf(".")) + ".ErrorPages." + "404.js");
-                                                 }
-
-                                                 else if (Request.BestMatchingAcceptType == HTTPContentType.XML_UTF8)
-                                                 {
-                                                     ResponseContentType = HTTPContentType.XML_UTF8;
-                                                     ErrorStream         = ResourceAssembly.GetManifestResourceStream(ResourcePath.Substring(0, ResourcePath.LastIndexOf(".")) + ".ErrorPages." + "404.xml");
-                                                 }
-
-                                                 else if (Request.BestMatchingAcceptType == HTTPContentType.ALL)
-                                                 {
-                                                     ResponseContentType = HTTPContentType.HTML_UTF8;
-                                                     ErrorStream         = ResourceAssembly.GetManifestResourceStream(ResourcePath.Substring(0, ResourcePath.LastIndexOf(".")) + ".ErrorPages." + "404.html");
-                                                 }
-
-                                                 if (ErrorStream != null)
-                                                     return new HTTPResponseBuilder() {
-                                                         HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                                         Server          = HTTPServer.DefaultServerName,
-                                                         Date            = DateTime.Now,
-                                                         ContentType     = ResponseContentType,
-                                                         ContentStream   = ErrorStream,
-                                                         CacheControl    = "no-cache",
-                                                         Connection      = "close",
-                                                     };
-
-                                                 #endregion
-
-                                                 #region ...or send a default error page!
-
-                                                 else
-                                                     return new HTTPResponseBuilder() {
-                                                         HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                                         Server          = HTTPServer.DefaultServerName,
-                                                         Date            = DateTime.Now,
-                                                         CacheControl    = "no-cache",
-                                                         Connection      = "close",
-                                                     };
-
-                                                 #endregion
-
-                                             }
-
-                                         });
-
-            return;
+                                         HTTPDelegate: GetEmbeddedResources);
 
         }
 
