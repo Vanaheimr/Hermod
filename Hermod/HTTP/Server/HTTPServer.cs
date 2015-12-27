@@ -92,39 +92,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region CallingAssemblies
+        //#region CallingAssemblies
 
-        private readonly IList<Assembly> _CallingAssemblies;
+        //private readonly IList<Assembly> _CallingAssemblies;
 
-        /// <summary>
-        /// The list of calling assemblies.
-        /// </summary>
-        public IEnumerable<Assembly> CallingAssemblies
-        {
-            get
-            {
-                return _CallingAssemblies;
-            }
-        }
+        ///// <summary>
+        ///// The list of calling assemblies.
+        ///// </summary>
+        //public IEnumerable<Assembly> CallingAssemblies
+        //{
+        //    get
+        //    {
+        //        return _CallingAssemblies;
+        //    }
+        //}
 
-        #endregion
+        //#endregion
 
-        #region AllResources
+        //#region AllResources
 
-        private readonly Dictionary<String, Assembly> _AllResources;
+        //private readonly Dictionary<String, Assembly> _AllResources;
 
-        /// <summary>
-        /// All discovered embedded resources.
-        /// </summary>
-        public Dictionary<String, Assembly> AllResources
-        {
-            get
-            {
-                return _AllResources;
-            }
-        }
+        ///// <summary>
+        ///// All discovered embedded resources.
+        ///// </summary>
+        //public Dictionary<String, Assembly> AllResources
+        //{
+        //    get
+        //    {
+        //        return _AllResources;
+        //    }
+        //}
 
-        #endregion
+        //#endregion
 
         #endregion
 
@@ -203,24 +203,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this._DefaultServerName                = DefaultServerName;
             this._URIMapping                       = new URIMapping();
-            this._CallingAssemblies                = new List<Assembly>() { Assembly.GetExecutingAssembly(), typeof(HTTPServer).Assembly };
+            //this._CallingAssemblies                = new List<Assembly>() { Assembly.GetExecutingAssembly(), typeof(HTTPServer).Assembly };
 
-            if (CallingAssemblies != null)
-            {
+            //if (CallingAssemblies != null)
+            //{
 
-                this._CallingAssemblies.AddAndReturnList(CallingAssemblies);
+            //    this._CallingAssemblies.AddAndReturnList(CallingAssemblies);
 
-                CallingAssemblies.
-                    SelectMany(_Assembly => _Assembly.GetManifestResourceNames().
-                                                      Select(_Resource => new {
-                                                          Assembly   = _Assembly,
-                                                          Ressource  = _Resource
-                                                      })).
-                    ForEach(v => this._AllResources.Add(v.Ressource, v.Assembly));
+            //    CallingAssemblies.
+            //        SelectMany(_Assembly => _Assembly.GetManifestResourceNames().
+            //                                          Select(_Resource => new {
+            //                                              Assembly   = _Assembly,
+            //                                              Ressource  = _Resource
+            //                                          })).
+            //        ForEach(v => this._AllResources.Add(v.Ressource, v.Assembly));
 
-            }
+            //}
 
-            this._AllResources                     = new Dictionary<String, Assembly>();
+            //this._AllResources                     = new Dictionary<String, Assembly>();
 
             _HTTPProcessor                         = new HTTPProcessor(DefaultServerName);
             _HTTPProcessor.OnNotification         += ProcessBoomerang;
