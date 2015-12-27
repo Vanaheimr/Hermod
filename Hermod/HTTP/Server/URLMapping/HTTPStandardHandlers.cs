@@ -479,7 +479,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region RegisterFilesystemFile(this HTTPServer, URITemplate, ResourceFilenameBuilder, DefaultFile = null, ResponseContentType = null, CacheControl = "no-cache")
 
         /// <summary>
-        /// Returns internal resources embedded within the given assembly.
+        /// Returns a resource from the given file system location.
         /// </summary>
         /// <param name="HTTPServer">A HTTP server.</param>
         /// <param name="URITemplate">An URI template.</param>
@@ -566,7 +566,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region RegisterFilesystemFolder(this HTTPServer, URITemplate, ResourcePath, DefaultFilename = "index.html")
 
         /// <summary>
-        /// Returns internal resources embedded within the given assembly.
+        /// Returns resources from the given file system location.
         /// </summary>
         /// <param name="HTTPServer">A HTTP server.</param>
         /// <param name="URITemplate">An URI template.</param>
@@ -575,7 +575,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static void RegisterFilesystemFolder(this HTTPServer         HTTPServer,
                                                     String                  URITemplate,
                                                     Func<String[], String>  ResourcePath,
-                                                    String                  DefaultFilename   = "index.html")
+                                                    String                  DefaultFilename  = "index.html")
         {
 
             HTTPServer.AddMethodCallback(HTTPMethod.GET,
@@ -650,6 +650,126 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          }, AllowReplacement: false);
 
             return;
+
+        }
+
+        #endregion
+
+        #region RegisterWatchedFilesystemFolder(this HTTPServer, URITemplate, ResourcePath, DefaultFilename = "index.html")
+
+        private static void FileWasChanged(HTTPServer source, String HTTPSSE_EventIdentification, String ChangeType, String FileName)
+        {
+            source.
+                GetEventSource(HTTPSSE_EventIdentification).
+                SubmitSubEvent(ChangeType,
+                               @"{ ""timestamp"": """ + DateTime.Now.ToIso8601() +  @""", ""filename"": """ + FileName + @""" }");
+        }
+
+        private static void FileWasRenamed(object source, RenamedEventArgs e)
+        {
+            Console.WriteLine("File: {0} renamed to {1}", e.OldFullPath, e.FullPath);
+        }
+
+        private static void FileWatcherError(object sender, ErrorEventArgs e)
+        {
+            Console.WriteLine("File watcher exception: " + e.GetException().Message);
+        }
+
+        /// <summary>
+        /// Returns resources from the given file system location.
+        /// </summary>
+        /// <param name="HTTPServer">A HTTP server.</param>
+        /// <param name="URITemplate">An URI template.</param>
+        /// <param name="ResourcePath">The path to the file within the assembly.</param>
+        /// <param name="DefaultFilename">The default file to load.</param>
+        public static void RegisterWatchedFileSystemFolder(this HTTPServer         HTTPServer,
+                                                           String                  URITemplate,
+                                                           String                  FileSystemLocation,
+                                                           String                  HTTPSSE_EventIdentification,
+                                                           String                  HTTPSSE_URITemplate,
+                                                 //          Func<String[], String>  ResourcePath,
+                                                           String                  DefaultFilename  = "index.html")
+        {
+
+            #region Setup file system watcher
+
+            var watcher = new FileSystemWatcher() {
+                              Path                   = FileSystemLocation,
+                              NotifyFilter           = NotifyFilters.FileName |
+                                                       NotifyFilters.DirectoryName |
+                                                       NotifyFilters.LastWrite,
+                              //Filter                 = "*.html",//|*.css|*.js|*.json",
+                              IncludeSubdirectories  = true,
+                              InternalBufferSize     = 4 * 4096
+                          };
+
+            watcher.Created += (s, e) => FileWasChanged(HTTPServer, HTTPSSE_EventIdentification, e.ChangeType.ToString(), e.FullPath.Remove(0, FileSystemLocation.Length).Replace(Path.DirectorySeparatorChar, '/'));
+            watcher.Changed += (s, e) => FileWasChanged(HTTPServer, HTTPSSE_EventIdentification, e.ChangeType.ToString(), e.FullPath.Remove(0, FileSystemLocation.Length).Replace(Path.DirectorySeparatorChar, '/'));
+            watcher.Renamed += FileWasRenamed;
+            watcher.Deleted += (s, e) => FileWasChanged(HTTPServer, HTTPSSE_EventIdentification, e.ChangeType.ToString(), e.FullPath.Remove(0, FileSystemLocation.Length).Replace(Path.DirectorySeparatorChar, '/'));
+            watcher.Error   += FileWatcherError;
+
+            #endregion
+
+            HTTPServer.AddEventSource(HTTPSSE_EventIdentification, URITemplate: HTTPSSE_URITemplate);
+
+            HTTPServer.AddMethodCallback(HTTPMethod.GET,
+                                         URITemplate + (URITemplate.EndsWith("/") ? "{ResourceName}" : "/{ResourceName}"),
+                                         HTTPContentType: HTTPContentType.PNG,
+                                         HTTPDelegate: Request => {
+
+                                             HTTPContentType ResponseContentType = null;
+
+                                             var NumberOfTemplateParameters = URITemplate.Count(c => c == '{');
+
+                                             var FilePath    = (Request.ParsedURIParameters != null && Request.ParsedURIParameters.Length > NumberOfTemplateParameters)
+                                                                   ? Request.ParsedURIParameters.Last().Replace('/', Path.DirectorySeparatorChar)
+                                                                   : DefaultFilename.Replace('/', Path.DirectorySeparatorChar);
+
+                                             var FileStream  = File.OpenRead(FileSystemLocation + Path.DirectorySeparatorChar + FilePath);
+
+                                             if (FileStream != null)
+                                             {
+
+                                                 #region Choose HTTP Content Type based on the file name extention...
+
+                                                 ResponseContentType = HTTPContentType.ForFileExtention(FilePath.Remove(0, FilePath.LastIndexOf(".") + 1),
+                                                                                                        () => HTTPContentType.OCTETSTREAM).FirstOrDefault();
+
+                                                 #endregion
+
+                                                 #region Create HTTP Response
+
+                                                 return new HTTPResponseBuilder() {
+                                                     HTTPStatusCode  = HTTPStatusCode.OK,
+                                                     Server          = HTTPServer.DefaultServerName,
+                                                     Date            = DateTime.Now,
+                                                     ContentType     = ResponseContentType,
+                                                     ContentStream   = FileStream,
+                                                     CacheControl    = "public, max-age=300",
+                                                     //Expires         = "Mon, 25 Jun 2015 21:31:12 GMT",
+                                                     KeepAlive       = new KeepAliveType(TimeSpan.FromMinutes(5), 500),
+                                                     Connection      = "Keep-Alive"
+                                                 };
+
+                                                 #endregion
+
+                                             }
+
+                                             else
+                                                 return new HTTPResponseBuilder() {
+                                                     HTTPStatusCode  = HTTPStatusCode.NotFound,
+                                                     Server          = HTTPServer.DefaultServerName,
+                                                     Date            = DateTime.Now,
+                                                     CacheControl    = "no-cache",
+                                                     Connection      = "close",
+                                                 };
+
+                                         }, AllowReplacement: false);
+
+
+            // And now my watch begins...
+            watcher.EnableRaisingEvents = true;
 
         }
 

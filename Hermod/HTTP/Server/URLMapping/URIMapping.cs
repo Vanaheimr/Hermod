@@ -393,20 +393,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (internal) AddEventSource(MethodInfo, Host, URITemplate, EventIdentification, MaxNumberOfCachedEvents = 500, RetryIntervall = null, IsSharedEventSource = false, HostAuthentication = false, URIAuthentication = false)
+        #region (internal) AddEventSource(EventIdentification, MaxNumberOfCachedEvents = 500, RetryIntervall = null, Hostname = "*", URITemplate = "/", HTTPMethod = null, HostAuthentication = null, URIAuthentication = null)
 
         /// <summary>
         /// Add a method call back for the given URI template and
         /// add a HTTP Sever Sent Events source.
         /// </summary>
-        /// <param name="HTTPDelegate">The method to call.</param>
-        /// <param name="Host">The HTTP host.</param>
-        /// <param name="URITemplate">The URI template.</param>
-        /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="EventIdentification">The unique identification of the event source.</param>
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
         /// <param name="RetryIntervall">The retry intervall.</param>
-        /// <param name="IsSharedEventSource">Whether this event source will be shared.</param>
+        /// <param name="Hostname">The HTTP host.</param>
+        /// <param name="URITemplate">The URI template.</param>
+        /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
         /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
         internal HTTPEventSource AddEventSource(String              EventIdentification,

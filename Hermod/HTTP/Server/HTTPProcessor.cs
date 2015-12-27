@@ -324,7 +324,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             TCPConnection.WriteToResponseStream(_HTTPResponse.Content);
 
                                         else if (_HTTPResponse.ContentStream != null)
+                                        {
                                             TCPConnection.WriteToResponseStream(_HTTPResponse.ContentStream);
+                                            _HTTPResponse.ContentStream.Dispose();
+                                        }
 
                                         if (_HTTPResponse.Connection.ToLower().Contains("close"))
                                             ServerClose = true;

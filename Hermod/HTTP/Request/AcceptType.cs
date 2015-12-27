@@ -91,8 +91,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            this.ContentType = new HTTPContentType(AcceptString);
-            this.Quality     = Quality;
+            this.ContentType  = HTTPContentType.ForMediaType(AcceptString, () => new HTTPContentType(AcceptString));
+            this.Quality      = Quality;
 
         }
 
@@ -115,13 +115,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
 
                 case 1:
-                    ContentType = new HTTPContentType(AcceptString);
-                    Quality     = 1.0;
+                    ContentType  = HTTPContentType.ForMediaType(AcceptString, () => new HTTPContentType(AcceptString));
+                    Quality      = 1.0;
                     break;
 
                 case 2:
-                    this.ContentType = new HTTPContentType(SplittedAcceptString[0]);
-                    this.Quality     = Double.Parse(SplittedAcceptString[1].Substring(2));
+                    this.ContentType  = HTTPContentType.ForMediaType(AcceptString, () => new HTTPContentType(SplittedAcceptString[0]));
+                    this.Quality      = Double.Parse(SplittedAcceptString[1].Substring(2));
                     break;
 
                 default: throw new ArgumentException("Could not parse the given AcceptString!");
@@ -165,7 +165,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPStatusCode">An object to compare with.</param>
+        /// <param name="AcceptType">An object to compare with.</param>
         public Int32 CompareTo(AcceptType AcceptType)
         {
 
@@ -218,15 +218,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <returns>True if both match; False otherwise.</returns>
         public Boolean Equals(AcceptType AcceptType)
         {
-            
+
             if ((Object) AcceptType == null)
                 return false;
 
             if (ContentType.Equals(AcceptType.ContentType))
                 return true;
 
-            if (ContentType.GetMediaSubType() == "*" &&
-                ContentType.GetMediaType().Equals(AcceptType.ContentType.GetMediaType()))
+            if (ContentType.MediaSubType == "*" &&
+                ContentType.MediaTypePrefix.Equals(AcceptType.ContentType.MediaTypePrefix))
                 return true;
 
             return false;
