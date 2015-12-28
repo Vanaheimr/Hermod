@@ -21,6 +21,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Reflection;
+using System.Diagnostics;
 using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
 
@@ -29,9 +30,8 @@ using Newtonsoft.Json.Linq;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
-using System.Diagnostics;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 
 #endregion
 
@@ -90,41 +90,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
-
-
-        //#region CallingAssemblies
-
-        //private readonly IList<Assembly> _CallingAssemblies;
-
-        ///// <summary>
-        ///// The list of calling assemblies.
-        ///// </summary>
-        //public IEnumerable<Assembly> CallingAssemblies
-        //{
-        //    get
-        //    {
-        //        return _CallingAssemblies;
-        //    }
-        //}
-
-        //#endregion
-
-        //#region AllResources
-
-        //private readonly Dictionary<String, Assembly> _AllResources;
-
-        ///// <summary>
-        ///// All discovered embedded resources.
-        ///// </summary>
-        //public Dictionary<String, Assembly> AllResources
-        //{
-        //    get
-        //    {
-        //        return _AllResources;
-        //    }
-        //}
-
-        //#endregion
 
         #endregion
 
@@ -201,32 +166,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this._DefaultServerName                = DefaultServerName;
-            this._URIMapping                       = new URIMapping();
-            //this._CallingAssemblies                = new List<Assembly>() { Assembly.GetExecutingAssembly(), typeof(HTTPServer).Assembly };
+            this._DefaultServerName         = DefaultServerName;
+            this._URIMapping                = new URIMapping();
 
-            //if (CallingAssemblies != null)
-            //{
-
-            //    this._CallingAssemblies.AddAndReturnList(CallingAssemblies);
-
-            //    CallingAssemblies.
-            //        SelectMany(_Assembly => _Assembly.GetManifestResourceNames().
-            //                                          Select(_Resource => new {
-            //                                              Assembly   = _Assembly,
-            //                                              Ressource  = _Resource
-            //                                          })).
-            //        ForEach(v => this._AllResources.Add(v.Ressource, v.Assembly));
-
-            //}
-
-            //this._AllResources                     = new Dictionary<String, Assembly>();
-
-            _HTTPProcessor                         = new HTTPProcessor(DefaultServerName);
-            _HTTPProcessor.OnNotification         += ProcessBoomerang;
-            _HTTPProcessor.RequestLog             += (HTTPProcessor, ServerTimestamp, Request)                                 => LogRequest(ServerTimestamp, Request);
-            _HTTPProcessor.AccessLog              += (HTTPProcessor, ServerTimestamp, Request, Response)                       => LogAccess (ServerTimestamp, Request, Response);
-            _HTTPProcessor.ErrorLog               += (HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException) => LogError  (ServerTimestamp, Request, Response, Error, LastException);
+            _HTTPProcessor                  = new HTTPProcessor(DefaultServerName);
+            _HTTPProcessor.OnNotification  += ProcessBoomerang;
+            _HTTPProcessor.RequestLog      += (HTTPProcessor, ServerTimestamp, Request)                                 => LogRequest(ServerTimestamp, Request);
+            _HTTPProcessor.AccessLog       += (HTTPProcessor, ServerTimestamp, Request, Response)                       => LogAccess (ServerTimestamp, Request, Response);
+            _HTTPProcessor.ErrorLog        += (HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException) => LogError  (ServerTimestamp, Request, Response, Error, LastException);
 
             if (TCPPort != null)
                 this.AttachTCPPort(TCPPort);
@@ -433,11 +380,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-
-
-
-
-
         // HTTP Logging...
 
         #region LogRequest(ServerTimestamp, Request)
@@ -510,7 +452,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
-        #region Add Method Callbacks
+        #region Method Callbacks
 
         #region AddMethodCallback(Hostname, HTTPMethod, URITemplate, HTTPContentType, HTTPDelegate)
 
@@ -794,9 +736,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #endregion
-
-        #region Get Method Callbacks
 
         #region GetHandler(Host, URL, HTTPMethod = null, HTTPContentType = null)
 
@@ -814,8 +753,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-
-        #region Add HTTP Server Sent Events
+        #region HTTP Server Sent Events
 
         #region AddEventSource(EventIdentification)
 
@@ -902,7 +840,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #endregion
 
         #region Get HTTP Server Sent Events
 
@@ -942,6 +879,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
             return GetEventSources(EventSourceSelector);
         }
+
+        #endregion
 
         #endregion
 
