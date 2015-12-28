@@ -38,12 +38,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Hostname
 
-        private readonly String _Hostname;
+        private readonly HTTPHostname _Hostname;
 
         /// <summary>
         /// The hostname for this (virtual) http service.
         /// </summary>
-        public String Hostname
+        public HTTPHostname Hostname
         {
             get
             {
@@ -146,7 +146,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RequestHandler">The default delegate to call for any request to this hostname.</param>
         /// <param name="HostAuthentication">This and all subordinated nodes demand an explicit host authentication.</param>
         /// <param name="DefaultErrorHandler">The default error handling delegate.</param>
-        internal HostnameNode(String              Hostname,
+        internal HostnameNode(HTTPHostname        Hostname,
                               HTTPAuthentication  HostAuthentication   = null,
                               HTTPDelegate        RequestHandler       = null,
                               HTTPDelegate        DefaultErrorHandler  = null)
@@ -155,9 +155,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Check Hostname
 
-            Hostname.FailIfNullOrEmpty();
+            if (Hostname == null)
+                throw new ArgumentNullException("Hostname", "The given HTTP hostname must not be null!");
 
-            var    HostHeader  = Hostname.Split(new Char[1] { ':' }, StringSplitOptions.None).Select(v => v.Trim()).ToArray();
+            var    HostHeader  = Hostname.ToString().Split(new Char[1] { ':' }, StringSplitOptions.None).Select(v => v.Trim()).ToArray();
             UInt16 HostPort    = 80;
 
             // 1.2.3.4          => 1.2.3.4:80
@@ -171,14 +172,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // rfc 2616 - 3.2.2
             // If the port is empty or not given, port 80 is assumed.
             if (HostHeader.Length == 1)
-                this._Hostname = Hostname + ":" + HostPort;
+                this._Hostname = HTTPHostname.Parse(Hostname + ":" + HostPort);
 
             else if ((HostHeader.Length == 2 && (!UInt16.TryParse(HostHeader[1], out HostPort) && HostHeader[1] != "*")) ||
                       HostHeader.Length  > 2)
                       throw new ArgumentException("Invalid Hostname!", "Hostname");
 
             else
-                this._Hostname = HostHeader[0] + ":" + HostHeader[1];
+                this._Hostname = HTTPHostname.Parse(HostHeader[0] + ":" + HostHeader[1]);
 
             #endregion
 

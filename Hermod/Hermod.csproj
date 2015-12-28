@@ -69,6 +69,7 @@
     <Compile Include="HTTP\Client\HTTPClientExtensions.cs" />
     <Compile Include="HTTP\Client\SOAPClient.cs" />
     <Compile Include="HTTP\General\HTTPContentType.cs" />
+    <Compile Include="HTTP\General\HTTPHostname.cs" />
     <Compile Include="HTTP\General\HTTPStatusCode.cs" />
     <Compile Include="HTTP\General\HTTPVersion.cs" />
     <Compile Include="HTTP\HTTPHeaderField.cs" />

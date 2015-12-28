@@ -22,6 +22,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Diagnostics;
 
 #endregion
 
@@ -36,6 +37,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// HTTP content type.
     /// </summary>
+    [DebuggerDisplay("{DebugView}")]
     public sealed class HTTPContentType : IEquatable<HTTPContentType>,
                                           IComparable<HTTPContentType>,
                                           IComparable
@@ -122,6 +124,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             get
             {
                 return _FileExtentions;
+            }
+        }
+
+        #endregion
+
+        #region DebugView
+
+        /// <summary>
+        /// Return a string representation of this object.
+        /// </summary>
+        public String DebugView
+        {
+            get
+            {
+                return String.Concat(MediaType, ", charset=", CharSet, (FileExtentions != null & FileExtentions.Any()) ? ", file extentions: " + FileExtentions.Aggregate((a, b) => a + ", " + b) : "");
             }
         }
 
@@ -478,7 +495,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public override String ToString()
         {
-            return String.Concat(MediaType, ", ", "charset=", CharSet, (FileExtentions != null & FileExtentions.Any()) ? ", file extentions: " + FileExtentions.Aggregate((a, b) => a + ", " + b) : "");
+            return String.Concat(MediaType, "; charset=", CharSet.ToString().Replace("UTF8", "utf-8"));
         }
 
         #endregion

@@ -454,7 +454,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Method Callbacks
 
-        #region AddMethodCallback(Hostname, HTTPMethod, URITemplate, HTTPContentType, HTTPDelegate)
+        #region AddMethodCallback(Hostname, HTTPMethod, URITemplate, HTTPContentType, HTTPDelegate, AllowReplacement = false)
 
         /// <summary>
         /// Add a method callback for the given URI template.
@@ -464,18 +464,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URITemplate">The URI template.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
-        public void AddMethodCallback(String           Hostname,
+        public void AddMethodCallback(HTTPHostname     Hostname,
                                       HTTPMethod       HTTPMethod,
                                       String           URITemplate,
                                       HTTPContentType  HTTPContentType,
-                                      HTTPDelegate     HTTPDelegate)
+                                      HTTPDelegate     HTTPDelegate,
+                                      Boolean          AllowReplacement = false)
 
         {
 
             #region Initial checks
 
-            if (Hostname.IsNullOrEmpty())
-                throw new ArgumentNullException("Hostname",         "The given parameter must not be null or empty!");
+            if (Hostname == null)
+                Hostname = HTTPHostname.Any;
 
             if (HTTPMethod == null)
                 throw new ArgumentNullException("HTTPMethod",       "The given parameter must not be null!");
@@ -499,13 +500,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    null,
                                    null,
                                    null,
-                                   null);
+                                   null,
+                                   null,
+                                   AllowReplacement);
 
         }
 
         #endregion
 
-        #region AddMethodCallback(HTTPMethod, URITemplate, HTTPContentType, HTTPDelegate)
+        #region AddMethodCallback(HTTPMethod, URITemplate, HTTPContentType, HTTPDelegate, AllowReplacement = false)
 
         /// <summary>
         /// Add a method callback for the given URI template.
@@ -539,7 +542,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #endregion
 
             _URIMapping.AddHandler(HTTPDelegate,
-                                   "*",
+                                   HTTPHostname.Any,
                                    URITemplate,
                                    HTTPMethod,
                                    HTTPContentType,
@@ -547,13 +550,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    null,
                                    null,
                                    null,
-                                   AllowReplacement: AllowReplacement);
+                                   null,
+                                   AllowReplacement);
 
         }
 
         #endregion
 
-        #region AddMethodCallback(Hostname, HTTPMethod, URITemplates, HTTPContentType, HTTPDelegate)
+        #region AddMethodCallback(Hostname, HTTPMethod, URITemplates, HTTPContentType, HTTPDelegate, AllowReplacement = false)
 
         /// <summary>
         /// Add a method callback for the given URI template.
@@ -563,18 +567,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URITemplates">The URI templates.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
-        public void AddMethodCallback(String               Hostname,
+        public void AddMethodCallback(HTTPHostname         Hostname,
                                       HTTPMethod           HTTPMethod,
                                       IEnumerable<String>  URITemplates,
                                       HTTPContentType      HTTPContentType,
-                                      HTTPDelegate         HTTPDelegate)
+                                      HTTPDelegate         HTTPDelegate,
+                                      Boolean              AllowReplacement = false)
 
         {
 
             #region Initial checks
 
-            if (Hostname.IsNullOrEmpty())
-                throw new ArgumentNullException("Hostname",         "The given parameter must not be null or empty!");
+            if (Hostname == null)
+                Hostname = HTTPHostname.Any;
 
             if (HTTPMethod == null)
                 throw new ArgumentNullException("HTTPMethod",       "The given parameter must not be null!");
@@ -599,13 +604,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        null,
                                        null,
                                        null,
-                                       null));
+                                       null,
+                                       null,
+                                       AllowReplacement));
 
         }
 
         #endregion
 
-        #region AddMethodCallback(HTTPMethod, URITemplates, HTTPContentType, HTTPDelegate)
+        #region AddMethodCallback(HTTPMethod, URITemplates, HTTPContentType, HTTPDelegate, AllowReplacement = false)
 
         /// <summary>
         /// Add a method callback for the given URI template.
@@ -617,7 +624,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public void AddMethodCallback(HTTPMethod           HTTPMethod,
                                       IEnumerable<String>  URITemplates,
                                       HTTPContentType      HTTPContentType,
-                                      HTTPDelegate         HTTPDelegate)
+                                      HTTPDelegate         HTTPDelegate,
+                                      Boolean              AllowReplacement = false)
 
         {
 
@@ -639,14 +647,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             URITemplates.ForEach(URITemplate =>
                 _URIMapping.AddHandler(HTTPDelegate,
-                                       "*",
+                                       HTTPHostname.Any,
                                        URITemplate,
                                        HTTPMethod,
                                        HTTPContentType,
                                        null,
                                        null,
                                        null,
-                                       null));
+                                       null,
+                                       null,
+                                       AllowReplacement));
 
         }
 
@@ -670,7 +680,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             _URIMapping.AddHandler(req => _URIMapping.InvokeHandler(new HTTPRequestBuilder(req).SetURI(URITarget)),
-                                   "*",
+                                   HTTPHostname.Any,
                                    (URITemplate.IsNotNullOrEmpty()) ? URITemplate     : "/",
                                    (HTTPMethod      != null)        ? HTTPMethod      : HTTPMethod.GET,
                                    (HTTPContentType != null)        ? HTTPContentType : HTTPContentType.HTML_UTF8,
@@ -683,7 +693,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region AddMethodCallback(HTTPMethod, URITemplate, Hostname = "*", HTTPContentType = null, HostAuthentication = false, URIAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false, HTTPDelegate = null)
+        #region AddMethodCallback(HTTPMethod, URITemplate, Hostname = HTTPHostname.Any, HTTPContentType = null, HostAuthentication = false, URIAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false, HTTPDelegate = null)
 
         /// <summary>
         /// Add a method callback for the given URI template.
@@ -699,13 +709,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPDelegate">The method to call.</param>
         public void AddMethodCallback(HTTPMethod          HTTPMethod,
                                       String              URITemplate,
-                                      String              Hostname                    = "*",
+                                      HTTPHostname        Hostname                    = null,
                                       HTTPContentType     HTTPContentType             = null,
                                       HTTPAuthentication  HostAuthentication          = null,
                                       HTTPAuthentication  URIAuthentication           = null,
                                       HTTPAuthentication  HTTPMethodAuthentication    = null,
                                       HTTPAuthentication  ContentTypeAuthentication   = null,
-                                      HTTPDelegate        HTTPDelegate                = null)
+                                      HTTPDelegate        HTTPDelegate                = null,
+                                      Boolean             AllowReplacement            = false)
 
         {
 
@@ -730,14 +741,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    HostAuthentication,
                                    URIAuthentication,
                                    HTTPMethodAuthentication,
-                                   ContentTypeAuthentication);
+                                   ContentTypeAuthentication,
+                                   null,
+                                   AllowReplacement);
 
         }
 
         #endregion
 
 
-        #region GetHandler(Host, URL, HTTPMethod = null, HTTPContentType = null)
+        #region GetHandler(HTTPRequest)
 
         /// <summary>
         /// Return the best matching method handler for the given parameters.
@@ -809,7 +822,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               UInt32              MaxNumberOfCachedEvents     = 500,
                                               TimeSpan?           RetryIntervall              = null,
 
-                                              String              Hostname                    = "*",
+                                              HTTPHostname        Hostname                    = null,
                                               String              URITemplate                 = "/",
                                               HTTPMethod          HTTPMethod                  = null,
                                               HTTPContentType     HTTPContentType             = null,
@@ -840,8 +853,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-
-        #region Get HTTP Server Sent Events
 
         #region GetEventSource(EventSourceIdentification)
 
@@ -879,8 +890,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
             return GetEventSources(EventSourceSelector);
         }
-
-        #endregion
 
         #endregion
 

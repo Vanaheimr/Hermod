@@ -675,14 +675,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             Console.WriteLine("File watcher exception: " + e.GetException().Message);
         }
 
+
         /// <summary>
         /// Returns resources from the given file system location.
         /// </summary>
         /// <param name="HTTPServer">A HTTP server.</param>
         /// <param name="URITemplate">An URI template.</param>
-        /// <param name="ResourcePath">The path to the file within the assembly.</param>
         /// <param name="DefaultFilename">The default file to load.</param>
         public static void RegisterWatchedFileSystemFolder(this HTTPServer         HTTPServer,
+                                                           String                  URITemplate,
+                                                           String                  FileSystemLocation,
+                                                           String                  HTTPSSE_EventIdentification,
+                                                           String                  HTTPSSE_URITemplate,
+                                                           String                  DefaultFilename  = "index.html")
+        {
+
+            RegisterWatchedFileSystemFolder(HTTPServer,
+                                            HTTPHostname.Any,
+                                            URITemplate,
+                                            FileSystemLocation,
+                                            HTTPSSE_EventIdentification,
+                                            HTTPSSE_URITemplate,
+                                            DefaultFilename);
+
+        }
+
+        /// <summary>
+        /// Returns resources from the given file system location.
+        /// </summary>
+        /// <param name="HTTPServer">A HTTP server.</param>
+        /// <param name="URITemplate">An URI template.</param>
+        /// <param name="DefaultFilename">The default file to load.</param>
+        public static void RegisterWatchedFileSystemFolder(this HTTPServer         HTTPServer,
+                                                           HTTPHostname            Hostname,
                                                            String                  URITemplate,
                                                            String                  FileSystemLocation,
                                                            String                  HTTPSSE_EventIdentification,
@@ -713,10 +738,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             HTTPServer.AddEventSource(HTTPSSE_EventIdentification, URITemplate: HTTPSSE_URITemplate);
 
-            HTTPServer.AddMethodCallback(HTTPMethod.GET,
+            HTTPServer.AddMethodCallback(Hostname,
+                                         HTTPMethod.GET,
                                          URITemplate + (URITemplate.EndsWith("/") ? "{ResourceName}" : "/{ResourceName}"),
-                                         HTTPContentType: HTTPContentType.PNG,
-                                         HTTPDelegate: Request => {
+                                         HTTPContentType.PNG,
+                                         Request => {
 
                                              HTTPContentType ResponseContentType = null;
 
@@ -726,44 +752,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                    ? Request.ParsedURIParameters.Last().Replace('/', Path.DirectorySeparatorChar)
                                                                    : DefaultFilename.Replace('/', Path.DirectorySeparatorChar);
 
-                                             var FileStream  = File.OpenRead(FileSystemLocation + Path.DirectorySeparatorChar + FilePath);
-
-                                             if (FileStream != null)
+                                             try
                                              {
 
-                                                 #region Choose HTTP Content Type based on the file name extention...
+                                                 var FileStream = File.OpenRead(FileSystemLocation + Path.DirectorySeparatorChar + FilePath);
 
-                                                 ResponseContentType = HTTPContentType.ForFileExtention(FilePath.Remove(0, FilePath.LastIndexOf(".") + 1),
-                                                                                                        () => HTTPContentType.OCTETSTREAM).FirstOrDefault();
+                                                 if (FileStream != null)
+                                                 {
 
-                                                 #endregion
+                                                     #region Choose HTTP Content Type based on the file name extention...
 
-                                                 #region Create HTTP Response
+                                                     ResponseContentType = HTTPContentType.ForFileExtention(FilePath.Remove(0, FilePath.LastIndexOf(".") + 1),
+                                                                                                            () => HTTPContentType.OCTETSTREAM).FirstOrDefault();
 
-                                                 return new HTTPResponseBuilder() {
-                                                     HTTPStatusCode  = HTTPStatusCode.OK,
-                                                     Server          = HTTPServer.DefaultServerName,
-                                                     Date            = DateTime.Now,
-                                                     ContentType     = ResponseContentType,
-                                                     ContentStream   = FileStream,
-                                                     CacheControl    = "public, max-age=300",
-                                                     //Expires         = "Mon, 25 Jun 2015 21:31:12 GMT",
-                                                     KeepAlive       = new KeepAliveType(TimeSpan.FromMinutes(5), 500),
-                                                     Connection      = "Keep-Alive"
-                                                 };
+                                                     #endregion
 
-                                                 #endregion
+                                                     #region Create HTTP Response
+
+                                                     return new HTTPResponseBuilder() {
+                                                         HTTPStatusCode  = HTTPStatusCode.OK,
+                                                         Server          = HTTPServer.DefaultServerName,
+                                                         Date            = DateTime.Now,
+                                                         ContentType     = ResponseContentType,
+                                                         ContentStream   = FileStream,
+                                                         CacheControl    = "public, max-age=300",
+                                                         //Expires         = "Mon, 25 Jun 2015 21:31:12 GMT",
+                                                         KeepAlive       = new KeepAliveType(TimeSpan.FromMinutes(5), 500),
+                                                         Connection      = "Keep-Alive"
+                                                     };
+
+                                                     #endregion
+
+                                                 }
 
                                              }
+                                             catch (FileNotFoundException e)
+                                             {
+                                             }
 
-                                             else
-                                                 return new HTTPResponseBuilder() {
-                                                     HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                                     Server          = HTTPServer.DefaultServerName,
-                                                     Date            = DateTime.Now,
-                                                     CacheControl    = "no-cache",
-                                                     Connection      = "close",
-                                                 };
+                                             return new HTTPResponseBuilder() {
+                                                 HTTPStatusCode  = HTTPStatusCode.NotFound,
+                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Date            = DateTime.Now,
+                                                 ContentType     = HTTPContentType.TEXT_UTF8,
+                                                 Content         = "Error 404 - Not found!".ToUTF8Bytes(),
+                                                 CacheControl    = "no-cache",
+                                                 Connection      = "close",
+                                             };
 
                                          }, AllowReplacement: false);
 

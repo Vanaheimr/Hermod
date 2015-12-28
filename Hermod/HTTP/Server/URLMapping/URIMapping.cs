@@ -37,9 +37,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private readonly static Object                                 Lock = new Object();
-        private readonly        Dictionary<String, HostnameNode>       _HostnameNodes;
-        private readonly        Dictionary<String, HTTPEventSource>    _EventSources;
+        private readonly static Object                                     Lock = new Object();
+        private readonly        Dictionary<HTTPHostname, HostnameNode>     _HostnameNodes;
+        private readonly        Dictionary<String,       HTTPEventSource>  _EventSources;
 
         #endregion
 
@@ -50,8 +50,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         internal URIMapping()
         {
-            _HostnameNodes  = new Dictionary<String, HostnameNode>();
-            _EventSources   = new Dictionary<String, HTTPEventSource>();
+            _HostnameNodes  = new Dictionary<HTTPHostname, HostnameNode>();
+            _EventSources   = new Dictionary<String,       HTTPEventSource>();
         }
 
         #endregion
@@ -76,7 +76,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         internal void AddHandler(HTTPDelegate        HTTPDelegate,
 
-                                 String              Hostname                    = "*",
+                                 HTTPHostname        Hostname                    = null,
                                  String              URITemplate                 = "/",
                                  HTTPMethod          HTTPMethod                  = null,
                                  HTTPContentType     HTTPContentType             = null,
@@ -99,8 +99,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (HTTPDelegate == null)
                     throw new ArgumentNullException("HTTPDelegate", "The given parameter must not be null!");
 
-                if (Hostname.IsNullOrEmpty())
-                    Hostname = "*";
+                if (Hostname == null)
+                    Hostname = HTTPHostname.Any;
 
                 if (URITemplate.IsNullOrEmpty())
                     URITemplate = "/";
@@ -157,7 +157,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         internal void ReplaceHandler(HTTPDelegate        HTTPDelegate,
 
-                                     String              Hostname                    = "*",
+                                     HTTPHostname        Hostname                    = null,
                                      String              URITemplate                 = "/",
                                      HTTPMethod          HTTPMethod                  = null,
                                      HTTPContentType     HTTPContentType             = null,
@@ -179,8 +179,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (HTTPDelegate == null)
                     throw new ArgumentNullException("HTTPDelegate", "The given parameter must not be null!");
 
-                if (Hostname.IsNullOrEmpty())
-                    Hostname = "*";
+                if (Hostname == null)
+                    Hostname = HTTPHostname.Any;
 
                 if (URITemplate.IsNullOrEmpty())
                     URITemplate = "/";
@@ -228,13 +228,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         internal HTTPResponse InvokeHandler(HTTPRequest HTTPRequest)
         {
 
-            return GetHandler((HTTPRequest.Host.IsNullOrEmpty()) ? "*" : HTTPRequest.Host,
-                              (HTTPRequest.URI. IsNullOrEmpty()) ? "/" : HTTPRequest.URI,
-                               HTTPRequest.HTTPMethod,
-                               AvailableContentTypes => HTTPRequest.Accept.BestMatchingContentType(AvailableContentTypes),
-                               ParsedURIParameters   => HTTPRequest.ParsedURIParameters = ParsedURIParameters.ToArray())
+            var Handler = GetHandler(HTTPRequest.Host == null        ? HTTPHostname.Any : HTTPRequest.Host,
+                                     HTTPRequest.URI.IsNullOrEmpty() ? "/"              : HTTPRequest.URI,
+                                     HTTPRequest.HTTPMethod,
+                                     AvailableContentTypes => HTTPRequest.Accept.BestMatchingContentType(AvailableContentTypes),
+                                     ParsedURIParameters   => HTTPRequest.ParsedURIParameters = ParsedURIParameters.ToArray());
 
-                               (HTTPRequest);
+            if (Handler != null)
+                return Handler(HTTPRequest);
+
+            return new HTTPResponseBuilder(HTTPRequest) {
+                HTTPStatusCode  = HTTPStatusCode.NotFound,
+                Server          = HTTPRequest.Host.ToString(),
+                Date            = DateTime.Now,
+                ContentType     = HTTPContentType.TEXT_UTF8,
+                Content         = "Error 404 - Not Found!".ToUTF8Bytes(),
+                Connection      = "close"
+            };
 
         }
 
@@ -245,14 +255,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return the best matching method handler for the given parameters.
         /// </summary>
-        internal HTTPDelegate GetHandler(String                                    Host,
+        internal HTTPDelegate GetHandler(HTTPHostname                              Host,
                                          String                                    URI,
                                          HTTPMethod                                HTTPMethod                   = null,
                                          Func<HTTPContentType[], HTTPContentType>  HTTPContentTypeSelector      = null,
                                          Action<IEnumerable<String>>               ParsedURIParametersDelegate  = null)
         {
 
-            Host                     = Host.IsNullOrEmpty()            ? "*"                            : Host;
+            Host                     = Host                    == null ? HTTPHostname.Any               : Host;
             URI                      = URI. IsNullOrEmpty()            ? "/"                            : URI;
             HTTPMethod               = HTTPMethod              == null ? HTTPMethod.GET                 : HTTPMethod;
             HTTPContentTypeSelector  = HTTPContentTypeSelector == null ? v => HTTPContentType.HTML_UTF8 : HTTPContentTypeSelector;
@@ -264,7 +274,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HostnameNode _HostNode = null;
                 if (!_HostnameNodes.TryGetValue(Host, out _HostNode))
-                    if (!_HostnameNodes.TryGetValue("*", out _HostNode))
+                    if (!_HostnameNodes.TryGetValue(HTTPHostname.Any, out _HostNode))
                         return null;
                         //return GetErrorHandler(Host, URL, HTTPMethod, HTTPContentType, HTTPStatusCode.BadRequest);
 
@@ -304,8 +314,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (!_Matches.Any())
                 {
 
-                    if (_HostNode.RequestHandler != null)
-                        return _HostNode.RequestHandler;
+                    //if (_HostNode.RequestHandler != null)
+                    //    return _HostNode.RequestHandler;
 
                     return null;
 
@@ -411,7 +421,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                 UInt32              MaxNumberOfCachedEvents     = 500,
                                                 TimeSpan?           RetryIntervall              = null,
 
-                                                String              Hostname                    = "*",
+                                                HTTPHostname        Hostname                    = null,
                                                 String              URITemplate                 = "/",
                                                 HTTPMethod          HTTPMethod                  = null,
 

@@ -288,11 +288,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Host
 
-        public String Host
+        public HTTPHostname Host
         {
             get
             {
-                return GetHeaderField(HTTPHeaderField.Host);
+                return HTTPHostname.Parse(GetHeaderField(HTTPHeaderField.Host));
             }
         }
 
