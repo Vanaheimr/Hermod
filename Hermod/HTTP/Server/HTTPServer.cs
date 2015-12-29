@@ -867,6 +867,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region UseEventSource(EventSourceIdentification, Action)
+
+        /// <summary>
+        /// Call the given delegate for the event source identified
+        /// by the given event source identification.
+        /// </summary>
+        /// <param name="EventSourceIdentification">A string to identify an event source.</param>
+        /// <param name="Action">A delegate.</param>
+        public void UseEventSource(String                   EventSourceIdentification,
+                                   Action<HTTPEventSource>  Action)
+        {
+
+            if (Action == null)
+                return;
+
+            var EventSource = _URIMapping.GetEventSource(EventSourceIdentification);
+
+            if (EventSource != null)
+                Action(EventSource);
+
+        }
+
+        #endregion
+
+        #region UseEventSource(EventSourceIdentification, DataSource, Action)
+
+        /// <summary>
+        /// Call the given delegate for the event source identified
+        /// by the given event source identification.
+        /// </summary>
+        /// <param name="EventSourceIdentification">A string to identify an event source.</param>
+        /// <param name="DataSource">A enumeration of data.</param>
+        /// <param name="Action">A delegate.</param>
+        public void UseEventSource<T>(String                      EventSourceIdentification,
+                                      IEnumerable<T>              DataSource,
+                                      Action<HTTPEventSource, T>  Action)
+        {
+
+            if (DataSource == null || !DataSource.Any() || Action == null)
+                return;
+
+            var EventSource = _URIMapping.GetEventSource(EventSourceIdentification);
+
+            if (EventSource != null)
+                foreach (var Data in DataSource)
+                    Action(EventSource, Data);
+
+        }
+
+        #endregion
+
         #region TryGetEventSource(EventSourceIdentification, EventSource)
 
         /// <summary>
