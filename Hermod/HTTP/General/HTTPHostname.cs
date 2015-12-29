@@ -34,27 +34,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
     {
 
-        #region Data
-
-        /// <summary>
-        /// The internal identification.
-        /// </summary>
-        protected readonly String _Id;
-
-        #endregion
-
         #region Properties
 
-        #region New
+        #region Name
+
+        private readonly String _Name;
 
         /// <summary>
-        /// Generate a new unique identification of an Electric Vehicle Roaming Network (EVRN Id).
+        /// The hostname.
         /// </summary>
-        public static HTTPHostname New
+        public String Name
         {
             get
             {
-                return new HTTPHostname(Guid.NewGuid().ToString());
+                return _Name;
+            }
+        }
+
+        #endregion
+
+        #region Port
+
+        private readonly UInt16? _Port;
+
+        /// <summary>
+        /// The TCP/IP port.
+        /// </summary>
+        public UInt16? Port
+        {
+            get
+            {
+                return _Port;
+            }
+        }
+
+        #endregion
+
+        #region Any
+
+        /// <summary>
+        /// The HTTP 'ANY' host or "*".
+        /// </summary>
+        public static HTTPHostname Any
+        {
+            get
+            {
+                return new HTTPHostname("*", null);
             }
         }
 
@@ -69,23 +94,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
             get
             {
-                return (UInt64) _Id.Length;
-            }
-        }
-
-        #endregion
-
-
-        #region Any
-
-        /// <summary>
-        /// The HTTP 'ANY' host or "*".
-        /// </summary>
-        public static HTTPHostname Any
-        {
-            get
-            {
-                return new HTTPHostname("*");
+                return (UInt64) ToString().Length;
             }
         }
 
@@ -96,19 +105,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Constructor(s)
 
         /// <summary>
-        /// Generate a new HTTP hostname based on the given string.
+        /// Generate a new HTTP hostname based on the given name and port.
         /// </summary>
-        private HTTPHostname(String Text)
+        private HTTPHostname(String   Name,
+                             UInt16?  Port)
         {
 
-            #region Initial checks
+            if (Name == null)
+                Name = "*";
 
-            if (Text.IsNullOrEmpty())
-                throw new ArgumentException("The parameter must not be null or empty!", "Text");
-
-            #endregion
-
-            _Id = Text.Trim();
+            _Name  = (Name.Trim().IsNullOrEmpty() ? Name.Trim() : "*");
+            _Port  = Port;
 
         }
 
@@ -118,62 +125,80 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Parse(Text)
 
         /// <summary>
-        /// Parse the given string as an Electric Vehicle Roaming Network (EVRN Id).
+        /// Parse the given text as HTTP hostname.
         /// </summary>
-        /// <param name="Text">A text representation of an Electric Vehicle Roaming Network identification.</param>
+        /// <param name="Text"></param>
         public static HTTPHostname Parse(String Text)
         {
-            return new HTTPHostname(Text);
-        }
 
-        #endregion
+            UInt16 Port;
+            var Parts = Text.Trim().Split(':');
 
-        #region TryParse(Text, out RoamingNetworkId)
-
-        /// <summary>
-        /// Parse the given string as an Electric Vehicle Roaming Network (EVRN Id).
-        /// </summary>
-        /// <param name="Text">A text representation of an Electric Vehicle Roaming Network identification.</param>
-        /// <param name="RoamingNetworkId">The parsed Electric Vehicle Roaming Network identification.</param>
-        public static Boolean TryParse(String Text, out HTTPHostname RoamingNetworkId)
-        {
-
-            #region Initial checks
-
-            if (Text.IsNullOrEmpty())
+            if (Parts.Length == 2)
             {
-                RoamingNetworkId = null;
-                return false;
+
+                if (Parts[1].Trim() == "*")
+                    return new HTTPHostname(Parts[0].Trim(), null);
+
+                if (UInt16.TryParse(Parts[1].Trim(), out Port))
+                    return new HTTPHostname(Parts[0].Trim(), Port);
+
             }
 
-            #endregion
-
-            try
-            {
-                RoamingNetworkId = new HTTPHostname(Text);
-                return true;
-            }
-            catch (Exception)
-            {
-                RoamingNetworkId = null;
-                return false;
-            }
+            throw new ArgumentException("The given text is not a valid HTTP hostname!", "Text");
 
         }
 
         #endregion
 
-        #region Clone
+        #region Parse(Name, Port = null)
 
         /// <summary>
-        /// Clone this Electric Vehicle Roaming Network identification.
+        /// Parse the given name and port as HTTP hostname.
         /// </summary>
-        public HTTPHostname Clone
+        /// <param name="Name">The name of the HTTP hostname.</param>
+        /// <param name="Port">The TCP/IP port.</param>
+        public static HTTPHostname Parse(String   Name,
+                                         UInt16?  Port = null)
         {
-            get
+            return new HTTPHostname(Name, Port);
+        }
+
+        #endregion
+
+        #region TryParse(Text, out Hostname)
+
+        /// <summary>
+        /// Parse the given string as a HTTP hostname.
+        /// </summary>
+        /// <param name="Text">A text representation of a HTTP hostname.</param>
+        /// <param name="Hostname">The parsed HTTP hostname.</param>
+        public static Boolean TryParse(String Text, out HTTPHostname Hostname)
+        {
+
+            UInt16 Port;
+            var Parts = Text.Trim().Split(':');
+
+            if (Parts.Length == 2)
             {
-                return new HTTPHostname(new String(_Id.ToCharArray()));
+
+                if (Parts[1].Trim() == "*")
+                {
+                    Hostname = new HTTPHostname(Parts[0].Trim(), null);
+                    return true;
+                }
+
+                if (UInt16.TryParse(Parts[1].Trim(), out Port))
+                {
+                    Hostname = new HTTPHostname(Parts[0].Trim(), Port);
+                    return true;
+                }
+
             }
+
+            Hostname = null;
+            return false;
+
         }
 
         #endregion
@@ -181,112 +206,112 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Operator overloading
 
-        #region Operator == (RoamingNetworkId1, RoamingNetworkId2)
+        #region Operator == (Hostname1, Hostname2)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="RoamingNetworkId1">A HTTPHostname.</param>
-        /// <param name="RoamingNetworkId2">Another HTTPHostname.</param>
+        /// <param name="Hostname1">A HTTPHostname.</param>
+        /// <param name="Hostname2">Another HTTPHostname.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (HTTPHostname RoamingNetworkId1, HTTPHostname RoamingNetworkId2)
+        public static Boolean operator == (HTTPHostname Hostname1, HTTPHostname Hostname2)
         {
 
             // If both are null, or both are same instance, return true.
-            if (Object.ReferenceEquals(RoamingNetworkId1, RoamingNetworkId2))
+            if (Object.ReferenceEquals(Hostname1, Hostname2))
                 return true;
 
             // If one is null, but not both, return false.
-            if (((Object) RoamingNetworkId1 == null) || ((Object) RoamingNetworkId2 == null))
+            if (((Object) Hostname1 == null) || ((Object) Hostname2 == null))
                 return false;
 
-            return RoamingNetworkId1.Equals(RoamingNetworkId2);
+            return Hostname1.Equals(Hostname2);
 
         }
 
         #endregion
 
-        #region Operator != (RoamingNetworkId1, RoamingNetworkId2)
+        #region Operator != (Hostname1, Hostname2)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="RoamingNetworkId1">A HTTPHostname.</param>
-        /// <param name="RoamingNetworkId2">Another HTTPHostname.</param>
+        /// <param name="Hostname1">A HTTPHostname.</param>
+        /// <param name="Hostname2">Another HTTPHostname.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator != (HTTPHostname RoamingNetworkId1, HTTPHostname RoamingNetworkId2)
+        public static Boolean operator != (HTTPHostname Hostname1, HTTPHostname Hostname2)
         {
-            return !(RoamingNetworkId1 == RoamingNetworkId2);
+            return !(Hostname1 == Hostname2);
         }
 
         #endregion
 
-        #region Operator <  (RoamingNetworkId1, RoamingNetworkId2)
+        #region Operator <  (Hostname1, Hostname2)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="RoamingNetworkId1">A HTTPHostname.</param>
-        /// <param name="RoamingNetworkId2">Another HTTPHostname.</param>
+        /// <param name="Hostname1">A HTTPHostname.</param>
+        /// <param name="Hostname2">Another HTTPHostname.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator < (HTTPHostname RoamingNetworkId1, HTTPHostname RoamingNetworkId2)
+        public static Boolean operator < (HTTPHostname Hostname1, HTTPHostname Hostname2)
         {
 
-            if ((Object) RoamingNetworkId1 == null)
-                throw new ArgumentNullException("The given RoamingNetworkId1 must not be null!");
+            if ((Object) Hostname1 == null)
+                throw new ArgumentNullException("The given Hostname1 must not be null!");
 
-            return RoamingNetworkId1.CompareTo(RoamingNetworkId2) < 0;
-
-        }
-
-        #endregion
-
-        #region Operator <= (RoamingNetworkId1, RoamingNetworkId2)
-
-        /// <summary>
-        /// Compares two instances of this object.
-        /// </summary>
-        /// <param name="RoamingNetworkId1">A HTTPHostname.</param>
-        /// <param name="RoamingNetworkId2">Another HTTPHostname.</param>
-        /// <returns>true|false</returns>
-        public static Boolean operator <= (HTTPHostname RoamingNetworkId1, HTTPHostname RoamingNetworkId2)
-        {
-            return !(RoamingNetworkId1 > RoamingNetworkId2);
-        }
-
-        #endregion
-
-        #region Operator >  (RoamingNetworkId1, RoamingNetworkId2)
-
-        /// <summary>
-        /// Compares two instances of this object.
-        /// </summary>
-        /// <param name="RoamingNetworkId1">A HTTPHostname.</param>
-        /// <param name="RoamingNetworkId2">Another HTTPHostname.</param>
-        /// <returns>true|false</returns>
-        public static Boolean operator > (HTTPHostname RoamingNetworkId1, HTTPHostname RoamingNetworkId2)
-        {
-
-            if ((Object) RoamingNetworkId1 == null)
-                throw new ArgumentNullException("The given RoamingNetworkId1 must not be null!");
-
-            return RoamingNetworkId1.CompareTo(RoamingNetworkId2) > 0;
+            return Hostname1.CompareTo(Hostname2) < 0;
 
         }
 
         #endregion
 
-        #region Operator >= (RoamingNetworkId1, RoamingNetworkId2)
+        #region Operator <= (Hostname1, Hostname2)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="RoamingNetworkId1">A HTTPHostname.</param>
-        /// <param name="RoamingNetworkId2">Another HTTPHostname.</param>
+        /// <param name="Hostname1">A HTTPHostname.</param>
+        /// <param name="Hostname2">Another HTTPHostname.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator >= (HTTPHostname RoamingNetworkId1, HTTPHostname RoamingNetworkId2)
+        public static Boolean operator <= (HTTPHostname Hostname1, HTTPHostname Hostname2)
         {
-            return !(RoamingNetworkId1 < RoamingNetworkId2);
+            return !(Hostname1 > Hostname2);
+        }
+
+        #endregion
+
+        #region Operator >  (Hostname1, Hostname2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="Hostname1">A HTTPHostname.</param>
+        /// <param name="Hostname2">Another HTTPHostname.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator > (HTTPHostname Hostname1, HTTPHostname Hostname2)
+        {
+
+            if ((Object) Hostname1 == null)
+                throw new ArgumentNullException("The given Hostname1 must not be null!");
+
+            return Hostname1.CompareTo(Hostname2) > 0;
+
+        }
+
+        #endregion
+
+        #region Operator >= (Hostname1, Hostname2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="Hostname1">A HTTPHostname.</param>
+        /// <param name="Hostname2">Another HTTPHostname.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator >= (HTTPHostname Hostname1, HTTPHostname Hostname2)
+        {
+            return !(Hostname1 < Hostname2);
         }
 
         #endregion
@@ -307,30 +332,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Object == null)
                 throw new ArgumentNullException("The given object must not be null!");
 
-            // Check if the given object is an RoamingNetworkId.
-            var RoamingNetworkId = Object as HTTPHostname;
-            if ((Object) RoamingNetworkId == null)
-                throw new ArgumentException("The given object is not a RoamingNetworkId!");
+            // Check if the given object is an Hostname.
+            var Hostname = Object as HTTPHostname;
+            if ((Object) Hostname == null)
+                throw new ArgumentException("The given object is not a Hostname!");
 
-            return CompareTo(RoamingNetworkId);
+            return CompareTo(Hostname);
 
         }
 
         #endregion
 
-        #region CompareTo(RoamingNetworkId)
+        #region CompareTo(Hostname)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="RoamingNetworkId">An object to compare with.</param>
-        public Int32 CompareTo(HTTPHostname RoamingNetworkId)
+        /// <param name="Hostname">An object to compare with.</param>
+        public Int32 CompareTo(HTTPHostname Hostname)
         {
 
-            if ((Object) RoamingNetworkId == null)
-                throw new ArgumentNullException("The given RoamingNetworkId must not be null!");
+            if ((Object) Hostname == null)
+                throw new ArgumentNullException("The given Hostname must not be null!");
 
-            return _Id.CompareTo(RoamingNetworkId._Id);
+            return ToString().CompareTo(Hostname.ToString());
 
         }
 
@@ -353,31 +378,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Object == null)
                 return false;
 
-            // Check if the given object is an RoamingNetworkId.
-            var RoamingNetworkId = Object as HTTPHostname;
-            if ((Object) RoamingNetworkId == null)
+            // Check if the given object is an Hostname.
+            var Hostname = Object as HTTPHostname;
+            if ((Object) Hostname == null)
                 return false;
 
-            return this.Equals(RoamingNetworkId);
+            return this.Equals(Hostname);
 
         }
 
         #endregion
 
-        #region Equals(RoamingNetworkId)
+        #region Equals(Hostname)
 
         /// <summary>
-        /// Compares two RoamingNetworkIds for equality.
+        /// Compares two Hostnames for equality.
         /// </summary>
-        /// <param name="RoamingNetworkId">A RoamingNetworkId to compare with.</param>
+        /// <param name="Hostname">A Hostname to compare with.</param>
         /// <returns>True if both match; False otherwise.</returns>
-        public Boolean Equals(HTTPHostname RoamingNetworkId)
+        public Boolean Equals(HTTPHostname Hostname)
         {
 
-            if ((Object) RoamingNetworkId == null)
+            if ((Object) Hostname == null)
                 return false;
 
-            return _Id.Equals(RoamingNetworkId._Id);
+            return ToString().Equals(Hostname.ToString());
 
         }
 
@@ -393,7 +418,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
         {
-            return _Id.GetHashCode();
+            unchecked
+            {
+                return _Name.GetHashCode() * 17 ^ (_Port != null ? _Port.Value : 0);
+            }
         }
 
         #endregion
@@ -405,7 +433,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public override String ToString()
         {
-            return _Id.ToString();
+            return _Name + ":" + (_Port.HasValue ? _Port.Value.ToString() : "*");
         }
 
         #endregion
