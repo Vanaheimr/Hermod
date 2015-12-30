@@ -85,6 +85,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region AnyHost
+
+        /// <summary>
+        /// Return an new HTTP hostname having a hostname wildcard, e.g. "*:443".
+        /// </summary>
+        public HTTPHostname AnyHost
+        {
+            get
+            {
+                return new HTTPHostname("*", _Port);
+            }
+        }
+
+        #endregion
+
+        #region AnyPort
+
+        /// <summary>
+        /// Return an new HTTP hostname having a port wildcard, e.g. "localhost:*".
+        /// </summary>
+        public HTTPHostname AnyPort
+        {
+            get
+            {
+                return new HTTPHostname(_Name, null);
+            }
+        }
+
+        #endregion
+
         #region Length
 
         /// <summary>
