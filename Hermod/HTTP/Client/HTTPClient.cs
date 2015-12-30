@@ -282,7 +282,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <returns>A new HTTPRequest object.</returns>
         public HTTPRequestBuilder CreateRequest(HTTPMethod                  HTTPMethod,
                                                 String                      URI,
-                                                
                                                 Action<HTTPRequestBuilder>  BuilderAction  = null)
         {
 

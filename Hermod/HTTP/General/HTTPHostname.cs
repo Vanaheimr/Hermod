@@ -144,7 +144,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Name == null)
                 Name = "*";
 
-            _Name  = (Name.Trim().IsNullOrEmpty() ? Name.Trim() : "*");
+            _Name  = (Name.Trim().IsNullOrEmpty() ? "*" : Name.Trim());
             _Port  = Port;
 
         }
@@ -164,7 +164,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             UInt16 Port;
             var Parts = Text.Trim().Split(':');
 
-            if (Parts.Length == 2)
+            if (Parts.Length == 1)
+                return new HTTPHostname(Parts[0].Trim(), null);
+
+            else if (Parts.Length == 2)
             {
 
                 if (Parts[1].Trim() == "*")

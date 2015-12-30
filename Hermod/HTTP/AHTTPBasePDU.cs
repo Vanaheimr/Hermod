@@ -202,10 +202,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // 3. If the host as determined by rule 1 or 2 is not a valid host on the server,
             //    the response MUST be a 400 (Bad Request) error message. (Not valid for proxies?!)
             if (!HeaderFields.ContainsKey(HTTPHeaderField.Host.Name))
-            {
-                this.HTTPStatusCode = HTTPStatusCode.BadRequest;
-                return false;
-            }
+                throw new Exception("The HTTP PDU does not have a HOST header!");
 
             // rfc 2616 - 3.2.2
             // If the port is empty or not given, port 80 is assumed.

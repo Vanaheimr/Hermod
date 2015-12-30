@@ -1446,9 +1446,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         protected override void PrepareImmutability()
         {
-
             base.PrepareImmutability();
-
         }
 
         #endregion
