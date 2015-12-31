@@ -469,7 +469,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       String           URITemplate,
                                       HTTPContentType  HTTPContentType,
                                       HTTPDelegate     HTTPDelegate,
-                                      Boolean          AllowReplacement = false)
+                                      URIReplacement   AllowReplacement = URIReplacement.Fail)
 
         {
 
@@ -521,7 +521,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       String           URITemplate,
                                       HTTPContentType  HTTPContentType,
                                       HTTPDelegate     HTTPDelegate,
-                                      Boolean          AllowReplacement = false)
+                                      URIReplacement   AllowReplacement = URIReplacement.Fail)
 
         {
 
@@ -572,7 +572,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       IEnumerable<String>  URITemplates,
                                       HTTPContentType      HTTPContentType,
                                       HTTPDelegate         HTTPDelegate,
-                                      Boolean              AllowReplacement = false)
+                                      URIReplacement       AllowReplacement = URIReplacement.Fail)
 
         {
 
@@ -625,7 +625,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       IEnumerable<String>  URITemplates,
                                       HTTPContentType      HTTPContentType,
                                       HTTPDelegate         HTTPDelegate,
-                                      Boolean              AllowReplacement = false)
+                                      URIReplacement       AllowReplacement = URIReplacement.Fail)
 
         {
 
@@ -716,7 +716,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPAuthentication  HTTPMethodAuthentication    = null,
                                       HTTPAuthentication  ContentTypeAuthentication   = null,
                                       HTTPDelegate        HTTPDelegate                = null,
-                                      Boolean             AllowReplacement            = false)
+                                      URIReplacement      AllowReplacement            = URIReplacement.Fail)
 
         {
 

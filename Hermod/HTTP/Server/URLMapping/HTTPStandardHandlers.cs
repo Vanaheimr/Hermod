@@ -274,7 +274,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              }
 
-                                         }, AllowReplacement: false);
+                                         }, AllowReplacement: URIReplacement.Fail);
 
             return;
 
@@ -555,7 +555,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Connection      = "close",
                                              };
 
-                                         }, AllowReplacement: false);
+                                         }, AllowReplacement: URIReplacement.Fail);
 
             return;
 
@@ -647,7 +647,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      Connection     = "close",
                                                  };
 
-                                         }, AllowReplacement: false);
+                                         }, AllowReplacement: URIReplacement.Fail);
 
             return;
 
@@ -800,7 +800,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Connection      = "close",
                                              };
 
-                                         }, AllowReplacement: false);
+                                         }, AllowReplacement: URIReplacement.Fail);
 
 
             // And now my watch begins...

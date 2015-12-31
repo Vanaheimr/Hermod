@@ -207,7 +207,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPAuthentication  ContentTypeAuthentication   = null,
 
                                HTTPDelegate        DefaultErrorHandler         = null,
-                               Boolean             AllowReplacement            = false)
+                               URIReplacement      AllowReplacement            = URIReplacement.Fail)
 
         {
 

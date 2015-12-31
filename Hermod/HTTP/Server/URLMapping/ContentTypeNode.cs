@@ -117,6 +117,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region URIReplacement
+
+        private readonly URIReplacement _AllowReplacement;
+
+        public URIReplacement AllowReplacement
+        {
+            get
+            {
+                return _AllowReplacement;
+            }
+        }
+
+        #endregion
+
         #endregion
 
         #region (internal) Constructor(s)
@@ -128,10 +142,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPContentTypeAuthentication">This and all subordinated nodes demand an explicit HTTP content type authentication.</param>
         /// <param name="RequestHandler">The default delegate to call for any request to this URI template.</param>
         /// <param name="DefaultErrorHandler">The default error handling delegate.</param>
+        /// <param name="AllowReplacement">How to handle duplicate URI handlers.</param>
         internal ContentTypeNode(HTTPContentType     HTTPContentType,
                                  HTTPAuthentication  HTTPContentTypeAuthentication   = null,
                                  HTTPDelegate        RequestHandler                  = null,
-                                 HTTPDelegate        DefaultErrorHandler             = null)
+                                 HTTPDelegate        DefaultErrorHandler             = null,
+                                 URIReplacement      AllowReplacement                = URIReplacement.Fail)
         {
 
             if (HTTPContentType == null)
@@ -141,6 +157,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this._HTTPContentTypeAuthentication  = HTTPContentTypeAuthentication;
             this._RequestHandler                 = RequestHandler;
             this._DefaultErrorHandler            = DefaultErrorHandler;
+            this._AllowReplacement               = AllowReplacement;
 
             this._ErrorHandlers                  = new Dictionary<HTTPStatusCode, HTTPDelegate>();
 

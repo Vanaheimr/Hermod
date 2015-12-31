@@ -175,7 +175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPContentType     HTTPContentType            = null,
                                HTTPAuthentication  ContentTypeAuthentication  = null,
                                HTTPDelegate        DefaultErrorHandler        = null,
-                               Boolean             AllowReplacement           = false)
+                               URIReplacement      AllowReplacement           = URIReplacement.Fail)
 
         {
 
@@ -189,19 +189,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             else if (!_HTTPContentTypes.TryGetValue(HTTPContentType, out _ContentTypeNode))
             {
-                _ContentTypeNode = new ContentTypeNode(HTTPContentType, ContentTypeAuthentication, HTTPDelegate, DefaultErrorHandler);
+                _ContentTypeNode = new ContentTypeNode(HTTPContentType, ContentTypeAuthentication, HTTPDelegate, DefaultErrorHandler, AllowReplacement);
                 _HTTPContentTypes.Add(HTTPContentType, _ContentTypeNode);
             }
 
             else
             {
-                if (!AllowReplacement)
-                    throw new ArgumentException("Duplicate HTTP API definition!");
-                else
+
+                if (_ContentTypeNode.AllowReplacement == URIReplacement.Allow)
                 {
-                    _ContentTypeNode = new ContentTypeNode(HTTPContentType, ContentTypeAuthentication, HTTPDelegate, DefaultErrorHandler);
+                    _ContentTypeNode = new ContentTypeNode(HTTPContentType, ContentTypeAuthentication, HTTPDelegate, DefaultErrorHandler, AllowReplacement);
                     _HTTPContentTypes[HTTPContentType] = _ContentTypeNode;
                 }
+
+                if (_ContentTypeNode.AllowReplacement == URIReplacement.Ignore)
+                {
+                }
+
+                else
+                    throw new ArgumentException("Duplicate HTTP API definition!");
+
             }
 
         }

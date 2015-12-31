@@ -109,6 +109,7 @@
     <Compile Include="HTTP\Server\URLMapping\HTTPEventSource.cs" />
     <Compile Include="HTTP\Server\URLMapping\HTTPMethodNode.cs" />
     <Compile Include="HTTP\Server\URLMapping\URIMapping.cs" />
+    <Compile Include="HTTP\Server\URLMapping\URIReplacement.cs" />
     <Compile Include="HTTP\Server\URLMapping\URINode.cs" />
     <Compile Include="HTTP\HTTPSemantics.cs" />
     <Compile Include="SMTP\EMail\AbstractEMail.cs" />
