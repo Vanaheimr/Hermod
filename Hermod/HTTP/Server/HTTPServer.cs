@@ -382,15 +382,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         // HTTP Logging...
 
-        #region LogRequest(ServerTimestamp, Request)
+        #region (internal) LogRequest(ServerTimestamp, Request)
 
         /// <summary>
         /// Log an incoming request.
         /// </summary>
         /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
         /// <param name="Request">The incoming request.</param>
-        public void LogRequest(DateTime     ServerTimestamp,
-                               HTTPRequest  Request)
+        internal void LogRequest(DateTime     ServerTimestamp,
+                                 HTTPRequest  Request)
         {
 
             var RequestLogLocal = RequestLog;
@@ -402,7 +402,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region LogAccess(ServerTimestamp, Request, Response)
+        #region (internal) LogAccess(ServerTimestamp, Request, Response)
 
         /// <summary>
         /// Log an successful request processing.
@@ -410,9 +410,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
         /// <param name="Request">The incoming request.</param>
         /// <param name="Response">The outgoing response.</param>
-        public void LogAccess(DateTime      ServerTimestamp,
-                              HTTPRequest   Request,
-                              HTTPResponse  Response)
+        internal void LogAccess(DateTime      ServerTimestamp,
+                                HTTPRequest   Request,
+                                HTTPResponse  Response)
         {
 
             var AccessLogLocal = AccessLog;
@@ -424,21 +424,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region LogError(ServerTimestamp, Request, Response, Error = null, LastException = null)
+        #region (internal) LogError(ServerTimestamp, Request, Response, Error = null, LastException = null)
 
         /// <summary>
         /// Log an error during request processing.
         /// </summary>
         /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
         /// <param name="Request">The incoming request.</param>
-        /// <param name="HTTPResponse">The outgoing response.</param>
+        /// <param name="Response">The outgoing response.</param>
         /// <param name="Error">The occured error.</param>
         /// <param name="LastException">The last occured exception.</param>
-        public void LogError(DateTime      ServerTimestamp,
-                             HTTPRequest   Request,
-                             HTTPResponse  Response,
-                             String        Error          = null,
-                             Exception     LastException  = null)
+        internal void LogError(DateTime      ServerTimestamp,
+                               HTTPRequest   Request,
+                               HTTPResponse  Response,
+                               String        Error          = null,
+                               Exception     LastException  = null)
         {
 
             var ErrorLogLocal = ErrorLog;
