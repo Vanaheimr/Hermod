@@ -201,7 +201,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The name of the HTTP method.
         /// </summary>
         public String  MethodName   { get; private set; }
-        
+
         /// <summary>
         /// IsSafe
         /// </summary>
@@ -212,7 +212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// requests, as it is the same as for a single request.
         /// </summary>
         public Boolean IsIdempotent { get; private set; }
-        
+
         /// <summary>
         /// The description of this HTTP method.
         /// </summary>
@@ -221,8 +221,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
         #region Constructor(s)
-
-        #region HTTPMethod(MethodName, IsSafe = false, IsIdempotent = false, Description = null)
 
         /// <summary>
         /// Creates a new HTTP method based on the given parameters.
@@ -233,13 +231,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Description">The description of this HTTP method.</param>
         public HTTPMethod(String MethodName, Boolean IsSafe = false, Boolean IsIdempotent = false, String Description = null)
         {
+
             this.MethodName    = MethodName;
             this.IsSafe        = IsSafe;
             this.IsIdempotent  = IsIdempotent;
             this.Description   = Description;
-        }
 
-        #endregion
+        }
 
         #endregion
 
