@@ -24,6 +24,7 @@ using System.Linq;
 using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Threading;
 
 #endregion
 
@@ -37,6 +38,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     {
 
         #region Properties
+
+        #region Non-http header fields
 
         #region HTTPRequest
 
@@ -52,8 +55,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region CancellationToken
 
-        #region Non-http header fields
+        /// <summary>
+        /// The cancellation token.
+        /// </summary>
+        public CancellationToken CancellationToken { get; set; }
+
+        #endregion
+
+        #region Timestamp
+
+        private readonly DateTime _Timestamp;
+
+        /// <summary>
+        /// The timestamp of the HTTP request generation.
+        /// </summary>
+        public DateTime Timestamp
+        {
+            get
+            {
+                return _Timestamp;
+            }
+        }
+
+        #endregion
 
         #region HTTPHeader
 
@@ -351,10 +377,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPRequest">The HTTP request for this response.</param>
         public HTTPResponseBuilder(HTTPRequest HTTPRequest = null)
         {
-            this._HTTPRequest     = HTTPRequest;
-            this.HTTPStatusCode   = HTTPStatusCode.ImATeapot;
-            this.ProtocolName     = "HTTP";
-            this.ProtocolVersion  = new HTTPVersion(1, 1);
+
+            this._HTTPRequest       = HTTPRequest;
+            this.CancellationToken  = HTTPRequest != null ? HTTPRequest.CancellationToken : new CancellationTokenSource().Token;
+            this._Timestamp         = DateTime.Now;
+            this.HTTPStatusCode     = HTTPStatusCode.ImATeapot;
+            this.ProtocolName       = "HTTP";
+            this.ProtocolVersion    = new HTTPVersion(1, 1);
+
         }
 
         #endregion
@@ -386,7 +416,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Declare an implicit conversion of a HTTPResponseBuilder
         /// to a HTTPResponse object.
         /// </summary>
-        /// <param name="HTTPRequestBuilder">A HTTPResponseBuilder.</param>
+        /// <param name="HTTPResponseBuilder">A HTTP response builder.</param>
         public static implicit operator HTTPResponse(HTTPResponseBuilder HTTPResponseBuilder)
         {
             return HTTPResponseBuilder.AsImmutable();
@@ -672,13 +702,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             PrepareImmutability();
 
             if (Content != null)
-                return new HTTPResponse(_HTTPRequest, HTTPHeader, Content);
+                return new HTTPResponse(_HTTPRequest, Timestamp, HTTPHeader, Content);
 
             else if (ContentStream != null)
-                return new HTTPResponse(_HTTPRequest, HTTPHeader, ContentStream);
+                return new HTTPResponse(_HTTPRequest, Timestamp, HTTPHeader, ContentStream);
 
             else
-                return new HTTPResponse(_HTTPRequest, HTTPHeader);
+                return new HTTPResponse(_HTTPRequest, Timestamp, HTTPHeader);
 
         }
 

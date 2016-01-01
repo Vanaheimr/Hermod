@@ -23,6 +23,7 @@ using System.Linq;
 using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Threading;
 
 #endregion
 
@@ -127,6 +128,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Properties
 
+        #region Non-http header fields
+
         #region HTTPRequest
 
         private readonly HTTPRequest _HTTPRequest;
@@ -141,6 +144,62 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region CancellationToken
+
+        /// <summary>
+        /// The cancellation token.
+        /// </summary>
+        public CancellationToken CancellationToken { get; set; }
+
+        #endregion
+
+        #region Timestamp
+
+        private readonly DateTime _Timestamp;
+
+        /// <summary>
+        /// The timestamp of the HTTP request generation.
+        /// </summary>
+        public DateTime Timestamp
+        {
+            get
+            {
+                return _Timestamp;
+            }
+        }
+
+        #endregion
+
+
+        #region Exception
+
+        private readonly Exception _Exception;
+
+        public Exception Exception
+        {
+            get
+            {
+                return _Exception;
+            }
+        }
+
+        #endregion
+
+        #region HasException
+
+        public Boolean HasException
+        {
+            get
+            {
+                return _Exception != null;
+            }
+        }
+
+        #endregion
+
+        #endregion
+
+        #region Response header fields
 
         #region Age
 
@@ -298,31 +357,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-
-        #region Exception
-
-        private readonly Exception _Exception;
-
-        public Exception Exception
-        {
-            get
-            {
-                return _Exception;
-            }
-        }
-
-        #endregion
-
-        #region HasException
-
-        public Boolean HasException
-        {
-            get
-            {
-                return _Exception != null;
-            }
-        }
-
         #endregion
 
         #endregion
@@ -336,13 +370,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region HTTPResponse(HTTPRequest, HTTPHeaderAsText)
+        #region HTTPResponse(HTTPRequest, Timestamp, HTTPHeaderAsText)
 
         public HTTPResponse(HTTPRequest  HTTPRequest,
+                            DateTime     Timestamp,
                             String       HTTPHeaderAsText)
         {
 
-            this._HTTPRequest = HTTPRequest;
+            this._HTTPRequest  = HTTPRequest;
+            this._Timestamp    = Timestamp;
 
             if (ParseResponseHeader(HTTPHeaderAsText))
                 base.ContentStream = new MemoryStream();
@@ -351,14 +387,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region HTTPResponse(HTTPRequest, HTTPHeader, Content)
+        #region HTTPResponse(HTTPRequest, Timestamp, HTTPHeader, Content)
 
         public HTTPResponse(HTTPRequest  HTTPRequest,
+                            DateTime     Timestamp,
                             String       HTTPHeader,
                             Byte[]       Content)
         {
 
-            this._HTTPRequest = HTTPRequest;
+            this._HTTPRequest  = HTTPRequest;
+            this._Timestamp    = Timestamp;
 
             if (ParseResponseHeader(HTTPHeader))
                 base.Content = Content;
@@ -367,14 +405,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region HTTPResponse(HTTPRequest, HTTPHeader, ContentStream)
+        #region HTTPResponse(HTTPRequest, Timestamp, HTTPHeader, ContentStream)
 
         public HTTPResponse(HTTPRequest  HTTPRequest,
+                            DateTime     Timestamp,
                             String       HTTPHeader,
                             Stream       ContentStream)
         {
 
-            this._HTTPRequest = HTTPRequest;
+            this._HTTPRequest  = HTTPRequest;
+            this._Timestamp    = Timestamp;
 
             if (ParseResponseHeader(HTTPHeader))
                 base.ContentStream  = ContentStream;

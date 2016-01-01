@@ -43,6 +43,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Non-HTTP header fields
 
+        #region CancellationToken
+
+        /// <summary>
+        /// The cancellation token.
+        /// </summary>
+        public CancellationToken CancellationToken { get; set; }
+
+        #endregion
+
+        #region Timestamp
+
+        private readonly DateTime _Timestamp;
+
+        /// <summary>
+        /// The timestamp of the HTTP request generation.
+        /// </summary>
+        public DateTime Timestamp
+        {
+            get
+            {
+                return _Timestamp;
+            }
+        }
+
+        #endregion
+
         #region RemoteSocket
 
         /// <summary>
@@ -630,6 +656,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         private HTTPRequest(String HTTPHeader, Byte[] Content = null)
         {
 
+            this._Timestamp   = DateTime.Now;
             this.QueryString  = new QueryString();
             this.Content      = Content;
 

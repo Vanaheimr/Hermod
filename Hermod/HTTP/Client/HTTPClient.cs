@@ -586,7 +586,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (HTTPHeaderBytes.Length == 0)
                         throw new ApplicationException(DateTime.Now + " Could not find the end of the HTTP protocol header!");
 
-                    _HTTPResponse = new HTTPResponse(HTTPRequest, HTTPHeaderBytes.ToUTF8String());
+                    _HTTPResponse = new HTTPResponse(HTTPRequest, DateTime.Now, HTTPHeaderBytes.ToUTF8String());
 
                     #endregion
 

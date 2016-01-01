@@ -21,6 +21,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
@@ -276,12 +277,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                     #region Try to parse the HTTP header
 
-                                    HTTPRequest RequestHeader = null;
+                                    HTTPRequest HttpRequest = null;
 
                                     if (!HTTPRequest.TryParse(TCPConnection.RemoteSocket,
                                                               HTTPHeaderString,
                                                               TCPConnection.NetworkStream,
-                                                              out RequestHeader))
+                                                              out HttpRequest))
                                     {
 
                                         NotifyErrors(TCPConnection,
@@ -300,7 +301,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     var RequestLogLocal = RequestLog;
                                     if (RequestLogLocal != null)
                                     {
-                                        RequestLogLocal(this, RequestTimestamp, RequestHeader);
+                                        RequestLogLocal(this, RequestTimestamp, HttpRequest);
                                     }
 
                                     #endregion
@@ -313,10 +314,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     if (OnNotificationLocal != null)
                                     {
 
+                                        var CTS = new CancellationTokenSource();
+
+                                        HttpRequest.CancellationToken = CTS.Token;
+
                                         // ToDo: How to read request body by application code?!
                                         _HTTPResponse = OnNotification("TCPConnectionId",
                                                                        RequestTimestamp,
-                                                                       RequestHeader);
+                                                                       HttpRequest);
 
                                         TCPConnection.WriteToResponseStream(_HTTPResponse.RawHTTPHeader.ToUTF8Bytes());
 
@@ -343,7 +348,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                         var AccessLogLocal = AccessLog;
                                         if (AccessLogLocal != null)
-                                            AccessLogLocal(this, RequestTimestamp, RequestHeader, _HTTPResponse);
+                                            AccessLogLocal(this, RequestTimestamp, HttpRequest, _HTTPResponse);
 
                                     }
 
@@ -358,7 +363,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                         var ErrorLogLocal = ErrorLog;
                                         if (ErrorLogLocal != null)
-                                            ErrorLogLocal(this, RequestTimestamp, RequestHeader, _HTTPResponse);
+                                            ErrorLogLocal(this, RequestTimestamp, HttpRequest, _HTTPResponse);
 
                                     }
 
