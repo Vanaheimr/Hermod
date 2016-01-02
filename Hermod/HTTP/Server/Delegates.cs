@@ -18,6 +18,7 @@
 #region Usings
 
 using System;
+using System.Threading.Tasks;
 
 #endregion
 
@@ -70,10 +71,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="HTTPProcessor">The sending HTTP processor.</param>
     /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
     /// <param name="Request">The incoming request.</param>
-    /// <param name="HTTPResponse">The outgoing response.</param>
+    /// <param name="Response">The outgoing response.</param>
     /// <param name="Error">The occured error.</param>
     /// <param name="LastException">The last occured exception.</param>
-    internal delegate void InternalErrorLogHandler (HTTPProcessor HTTPProcessor, DateTime ServerTimestamp, HTTPRequest Request, HTTPResponse Response, String Error = null, Exception LastException = null);
+    internal delegate void InternalErrorLogHandler (HTTPProcessor  HTTPProcessor,
+                                                    DateTime       ServerTimestamp,
+                                                    HTTPRequest    Request,
+                                                    HTTPResponse   Response,
+                                                    String         Error          = null,
+                                                    Exception      LastException  = null);
 
     /// <summary>
     /// The delegate for the HTTP error log.
@@ -81,21 +87,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="HTTPServer">The sending HTTP server.</param>
     /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
     /// <param name="Request">The incoming request.</param>
-    /// <param name="HTTPResponse">The outgoing response.</param>
+    /// <param name="Response">The outgoing response.</param>
     /// <param name="Error">The occured error.</param>
     /// <param name="LastException">The last occured exception.</param>
-    public delegate void ErrorLogHandler(HTTPServer HTTPServer, DateTime ServerTimestamp, HTTPRequest Request, HTTPResponse Response, String Error = null, Exception LastException = null);
+    public delegate void ErrorLogHandler(HTTPServer    HTTPServer,
+                                         DateTime      ServerTimestamp,
+                                         HTTPRequest   Request,
+                                         HTTPResponse  Response,
+                                         String        Error          = null,
+                                         Exception     LastException  = null);
 
 
     /// <summary>
     /// A HTTP delegate.
     /// </summary>
     /// <param name="Request">The HTTP request.</param>
-    /// <returns>A HTTP response.</returns>
+    /// <returns>A HTTP response task.</returns>
     public delegate HTTPResponse HTTPDelegate(HTTPRequest Request);
 
 
-
+    /// <summary>
+    /// A HTTP delegate for HTTP authentication.
+    /// </summary>
+    /// <param name="Request">The HTTP request.</param>
     public delegate Boolean HTTPAuthentication(HTTPRequest Request);
 
 }
