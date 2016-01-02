@@ -68,7 +68,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Request.Content == null || Request.Content.Length == 0)
                 return new HTTPResult<String>(Request, HTTPStatusCode.BadRequest);
 
-            var RequestBodyString = Request.Content.ToUTF8String();
+            var RequestBodyString = Request.Content.ToUTF8String().Trim();
 
             if (RequestBodyString.IsNullOrEmpty())
                 return new HTTPResult<String>(Request, HTTPStatusCode.BadRequest);
