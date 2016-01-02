@@ -765,6 +765,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean TryReadHTTPBody()
         {
 
+            if (Content != null)
+                return true;
+
             var Buffer  = new Byte[(Int32) ContentLength.Value];
             Thread.Sleep(500);
             var Read    = _HTTPBodyStream.Read(Buffer, 0, (Int32) ContentLength.Value);
