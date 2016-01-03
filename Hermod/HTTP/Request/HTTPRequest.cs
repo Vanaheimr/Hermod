@@ -45,10 +45,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region CancellationToken
 
+        private readonly CancellationToken _CancellationToken;
+
         /// <summary>
         /// The cancellation token.
         /// </summary>
-        public CancellationToken CancellationToken { get; set; }
+        public CancellationToken CancellationToken
+        {
+            get
+            {
+                return _CancellationToken;
+            }
+        }
 
         #endregion
 
@@ -71,12 +79,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region RemoteSocket
 
+        private readonly IPSocket _RemoteSocket;
+
         /// <summary>
-        /// The remote IP socket.
+        /// The remote TCP/IP socket.
         /// </summary>
-        public IPSocket RemoteSocket { get; private set; }
+        public IPSocket RemoteSocket
+        {
+            get
+            {
+                return _RemoteSocket;
+            }
+        }
 
         #endregion
+
+        #region LocalSocket
+
+        private readonly IPSocket _LocalSocket;
+
+        /// <summary>
+        /// The local TCP/IP socket.
+        /// </summary>
+        public IPSocket LocalSocket
+        {
+            get
+            {
+                return _LocalSocket;
+            }
+        }
+
+        #endregion
+
 
         #region EntireRequestHeader
 
@@ -622,22 +656,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region HTTPRequest(RemoteSocket, HTTPHeader, HTTPBodyStream)
+        #region HTTPRequest(RemoteSocket, LocalSocket, HTTPHeader, HTTPBodyStream, CancellationToken)
 
         /// <summary>
         /// Create a new http request header based on the given string representation.
         /// </summary>
-        /// <param name="RemoteSocket">The remote IP socket</param>
+        /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
+        /// <param name="LocalSocket">The local TCP/IP socket.</param>
         /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
-        private HTTPRequest(IPSocket       RemoteSocket,
-                            String         HTTPHeader,
-                            Stream         HTTPBodyStream)
+        /// <param name="HTTPBodyStream">The networks stream of the HTTP request.</param>
+        /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
+        private HTTPRequest(IPSocket           RemoteSocket,
+                            IPSocket           LocalSocket,
+                            String             HTTPHeader,
+                            Stream             HTTPBodyStream,
+                            CancellationToken  CancellationToken)
 
-            : this(HTTPHeader)
+            : this(HTTPHeader, null, CancellationToken)
 
         {
 
-            this.RemoteSocket     = RemoteSocket;
+            this._RemoteSocket    = RemoteSocket;
+            this._LocalSocket     = LocalSocket;
             this._HTTPBodyStream  = HTTPBodyStream;
 
             if (!HeaderFields.ContainsKey("Host"))
@@ -647,14 +687,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region HTTPRequest(HTTPHeader, Content = null)
+        #region HTTPRequest(HTTPHeader, Content, CancellationToken)
 
         /// <summary>
         /// Create a new http request header based on the given string representation.
         /// </summary>
         /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
-        private HTTPRequest(String HTTPHeader, Byte[] Content = null)
+        private HTTPRequest(String             HTTPHeader,
+                            Byte[]             Content,
+                            CancellationToken  CancellationToken)
         {
+
+            this._CancellationToken  = CancellationToken;
 
             this._Timestamp   = DateTime.Now;
             this.QueryString  = new QueryString();
@@ -727,34 +771,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        public static Boolean TryParse(String           HTTPRequestString,
-                                       out HTTPRequest  HTTPRequest)
+        public static Boolean TryParse(String             HTTPRequestString,
+                                       CancellationToken  CancellationToken,
+                                       out HTTPRequest    HTTPRequest)
         {
 
-            HTTPRequest = new HTTPRequest(HTTPRequestString);
+            HTTPRequest = new HTTPRequest(HTTPRequestString, null, CancellationToken);
 
             return true;
 
         }
 
-        public static Boolean TryParse(String           HTTPHeader,
-                                       Byte[]           HTTPBody,
-                                       out HTTPRequest  HTTPRequest)
+        public static Boolean TryParse(String             HTTPHeader,
+                                       Byte[]             HTTPBody,
+                                       CancellationToken  CancellationToken,
+                                       out HTTPRequest    HTTPRequest)
         {
 
-            HTTPRequest = new HTTPRequest(HTTPHeader, HTTPBody);
+            HTTPRequest = new HTTPRequest(HTTPHeader, HTTPBody, CancellationToken);
 
             return true;
 
         }
 
-        public static Boolean TryParse(IPSocket         RemoteSocket,
-                                       String           HTTPHeader,
-                                       Stream           HTTPBodyStream,
-                                       out HTTPRequest  HTTPRequest)
+        public static Boolean TryParse(IPSocket           RemoteSocket,
+                                       IPSocket           LocalSocket,
+                                       String             HTTPHeader,
+                                       Stream             HTTPBodyStream,
+                                       CancellationToken  CancellationToken,
+                                       out HTTPRequest    HTTPRequest)
         {
 
-            HTTPRequest = new HTTPRequest(RemoteSocket, HTTPHeader, HTTPBodyStream);
+            HTTPRequest = new HTTPRequest(RemoteSocket, LocalSocket, HTTPHeader, HTTPBodyStream, CancellationToken);
 
             return true;
 

@@ -138,12 +138,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected Boolean TryParseHeader(String HTTPHeader)
         {
 
-            this.RawHTTPHeader   = HTTPHeader;
+            this.RawHTTPHeader  = HTTPHeader.Trim();
 
             try
             {
 
-                var Lines = HTTPHeader.Split(_LineSeparator, StringSplitOptions.RemoveEmptyEntries);
+                var Lines = HTTPHeader.Trim().Split(_LineSeparator, StringSplitOptions.RemoveEmptyEntries);
 
                 #region Verify first line...
 

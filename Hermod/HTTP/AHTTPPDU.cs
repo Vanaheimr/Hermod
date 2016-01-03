@@ -57,8 +57,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     return (from   _KeyValuePair in HeaderFields
                             where  _KeyValuePair.Key   != null
                             where  _KeyValuePair.Value != null
-                            select _KeyValuePair.Key + ": " + _KeyValuePair.Value).
-                            Aggregate((a, b) => a + Environment.NewLine + b);
+                            select _KeyValuePair.Key.Trim() + ": " + _KeyValuePair.Value.ToString().Trim()).
+                            Aggregate((a, b) => a + Environment.NewLine + b).
+                            Trim();
 
                 return null;
 
@@ -82,24 +83,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The HTTP protocol version.
         /// </summary>
         public HTTPVersion ProtocolVersion { get; protected set; }
-
-        #endregion
-
-        #region Content
-
-        /// <summary>
-        /// The HTTP body/content as an array of bytes.
-        /// </summary>
-        public Byte[] Content { get; protected set; }
-
-        #endregion
-
-        #region ContentStream
-
-        /// <summary>
-        /// The HTTP body/content as a stream.
-        /// </summary>
-        public Stream ContentStream { get; protected set; }
 
         #endregion
 

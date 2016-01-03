@@ -345,34 +345,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// An event fired whenever the TCP servers instance was started.
         /// </summary>
-        public event StartedEventHandler                        OnStarted;
+        public event StartedEventHandler                            OnStarted;
 
         /// <summary>
         /// An event fired whenever a new TCP connection was opened.
         /// If this event closes the TCP connection the OnNotification event will never be fired!
         /// Therefore you can use this event for filtering connection initiation requests.
         /// </summary>
-        public event NewConnectionHandler                       OnNewConnection;
+        public event NewConnectionHandler                           OnNewConnection;
 
         /// <summary>
         /// An event fired whenever a new TCP connection was opened.
         /// </summary>
-        public event NotificationEventHandler<TCPConnection>    OnNotification;
+        public event NotificationEventHandler<TCPConnection>        OnNotification;
 
         /// <summary>
         /// An event fired whenever an exception occured.
         /// </summary>
-        public event ExceptionOccuredEventHandler               OnExceptionOccured;
+        public event ExceptionOccuredEventHandler                   OnExceptionOccured;
 
         /// <summary>
         /// An event fired whenever a new TCP connection was closed.
         /// </summary>
-        public event ConnectionClosedHandler                    OnConnectionClosed;
+        public event ConnectionClosedHandler                        OnConnectionClosed;
 
         /// <summary>
         /// An event fired whenever the TCP servers instance was stopped.
         /// </summary>
-        public event CompletedEventHandler                      OnCompleted;
+        public event CompletedEventHandler                          OnCompleted;
 
         #endregion
 
@@ -596,9 +596,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                                 if (!NewTCPConnection.Value.IsClosed)
                                 {
+
                                     var OnNotificationLocal = OnNotification;
                                     if (OnNotificationLocal != null)
                                         OnNotificationLocal(NewTCPConnection.Value);
+
                                 }
 
                                 #endregion

@@ -278,10 +278,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     #region Try to parse the HTTP header
 
                                     HTTPRequest HttpRequest = null;
+                                    var CTS = new CancellationTokenSource();
 
                                     if (!HTTPRequest.TryParse(TCPConnection.RemoteSocket,
-                                                              HTTPHeaderString,
+                                                              TCPConnection.LocalSocket,
+                                                              HTTPHeaderString.Trim(),
                                                               TCPConnection.NetworkStream,
+                                                              CTS.Token,
                                                               out HttpRequest))
                                     {
 
@@ -313,10 +316,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     var OnNotificationLocal = OnNotification;
                                     if (OnNotificationLocal != null)
                                     {
-
-                                        var CTS = new CancellationTokenSource();
-
-                                        HttpRequest.CancellationToken = CTS.Token;
 
                                         // ToDo: How to read request body by application code?!
                                         _HTTPResponse = OnNotification("TCPConnectionId",

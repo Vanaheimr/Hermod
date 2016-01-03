@@ -26,6 +26,7 @@ using System.ComponentModel;
 using System.Threading.Tasks;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Threading;
 
 #endregion
 
@@ -1464,9 +1465,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             HTTPRequest _HTTPRequest = null;
 
             if (Content != null)
-                HTTPRequest.TryParse(EntireRequestHeader, Content, out _HTTPRequest);
+                HTTPRequest.TryParse(EntireRequestHeader, Content, new CancellationTokenSource().Token, out _HTTPRequest);
             else
-                HTTPRequest.TryParse(EntireRequestHeader, out _HTTPRequest);
+                HTTPRequest.TryParse(EntireRequestHeader, new CancellationTokenSource().Token, out _HTTPRequest);
 
             _HTTPRequest.FakeURIPrefix = this.FakeURIPrefix;
 
