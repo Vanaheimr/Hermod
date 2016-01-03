@@ -73,6 +73,9 @@
     <Compile Include="HTTP\General\HTTPStatusCode.cs" />
     <Compile Include="HTTP\General\HTTPVersion.cs" />
     <Compile Include="HTTP\HTTPHeaderField.cs" />
+    <Compile Include="HTTP\Logging\HTTPDelegates.cs" />
+    <Compile Include="HTTP\Logging\HTTPLogger.cs" />
+    <Compile Include="HTTP\Logging\LogTargets.cs" />
     <Compile Include="HTTP\Request\HTTPRequest.cs" />
     <Compile Include="HTTP\Request\HTTPRequestBuilder.cs" />
     <Compile Include="HTTP\Response\HTTPResponse.cs" />
