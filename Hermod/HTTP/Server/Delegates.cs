@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2015, Achim 'ahzf' Friedland <achim@graphdefined.org>
+ * Copyright (c) 2010-2016, Achim 'ahzf' Friedland <achim@graphdefined.org>
  * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -49,20 +49,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// The delegate for the HTTP request log.
     /// </summary>
+    /// <param name="Timestamp">The timestamp of the incoming request.</param>
     /// <param name="HTTPServer">The sending HTTP server.</param>
-    /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
     /// <param name="Request">The incoming request.</param>
-    public delegate void RequestLogHandler(HTTPServer HTTPServer, DateTime ServerTimestamp, HTTPRequest Request);
+    public delegate void RequestLogHandler(DateTime     Timestamp,
+                                           HTTPServer   HTTPServer,
+                                           HTTPRequest  Request);
 
 
     /// <summary>
     /// The delegate for the HTTP access log.
     /// </summary>
+    /// <param name="Timestamp">The timestamp of the incoming request.</param>
     /// <param name="HTTPServer">The sending HTTP server.</param>
-    /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
     /// <param name="Request">The incoming request.</param>
     /// <param name="Response">The outgoing response.</param>
-    public delegate void AccessLogHandler (HTTPServer HTTPServer, DateTime ServerTimestamp, HTTPRequest Request, HTTPResponse Response);
+    public delegate void AccessLogHandler(DateTime      Timestamp,
+                                          HTTPServer    HTTPServer,
+                                          HTTPRequest   Request,
+                                          HTTPResponse  Response);
+
+
+    /// <summary>
+    /// The delegate for the HTTP error log.
+    /// </summary>
+    /// <param name="Timestamp">The timestamp of the incoming request.</param>
+    /// <param name="HTTPServer">The sending HTTP server.</param>
+    /// <param name="Request">The incoming request.</param>
+    /// <param name="Response">The outgoing response.</param>
+    /// <param name="Error">The occured error.</param>
+    /// <param name="LastException">The last occured exception.</param>
+    public delegate void ErrorLogHandler(DateTime      Timestamp,
+                                         HTTPServer    HTTPServer,
+                                         HTTPRequest   Request,
+                                         HTTPResponse  Response,
+                                         String        Error          = null,
+                                         Exception     LastException  = null);
+
+
+
+
+
+
+
+
+
 
 
     /// <summary>
@@ -81,21 +112,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                     String         Error          = null,
                                                     Exception      LastException  = null);
 
-    /// <summary>
-    /// The delegate for the HTTP error log.
-    /// </summary>
-    /// <param name="HTTPServer">The sending HTTP server.</param>
-    /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
-    /// <param name="Request">The incoming request.</param>
-    /// <param name="Response">The outgoing response.</param>
-    /// <param name="Error">The occured error.</param>
-    /// <param name="LastException">The last occured exception.</param>
-    public delegate void ErrorLogHandler(HTTPServer    HTTPServer,
-                                         DateTime      ServerTimestamp,
-                                         HTTPRequest   Request,
-                                         HTTPResponse  Response,
-                                         String        Error          = null,
-                                         Exception     LastException  = null);
 
 
     /// <summary>

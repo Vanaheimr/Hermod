@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2015, Achim 'ahzf' Friedland <achim@graphdefined.org>
+ * Copyright (c) 2010-2016, Achim 'ahzf' Friedland <achim@graphdefined.org>
  * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,6 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -48,7 +47,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Data
 
-            private readonly Dictionary<LogTargets, OnHTTPRequestDelegate> _Delegates;
+            private readonly Dictionary<LogTargets, RequestLogHandler>  _SubscriptionDelegates;
+            private readonly HashSet<LogTargets>                        _SubscriptionStatus;
 
             #endregion
 
@@ -73,12 +73,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region SubscribeToEventDelegate
 
-            private readonly Action<OnHTTPRequestDelegate> _SubscribeToEventDelegate;
+            private readonly Action<RequestLogHandler> _SubscribeToEventDelegate;
 
             /// <summary>
             /// A delegate called whenever the event is subscriped to.
             /// </summary>
-            public Action<OnHTTPRequestDelegate> SubscribeToEventDelegate
+            public Action<RequestLogHandler> SubscribeToEventDelegate
             {
                 get
                 {
@@ -90,33 +90,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region UnsubscribeFromEventDelegate
 
-            private readonly Action<OnHTTPRequestDelegate> _UnsubscribeFromEventDelegate;
+            private readonly Action<RequestLogHandler> _UnsubscribeFromEventDelegate;
 
             /// <summary>
             /// A delegate called whenever the subscription of the event is stopped.
             /// </summary>
-            public Action<OnHTTPRequestDelegate> UnsubscribeFromEventDelegate
+            public Action<RequestLogHandler> UnsubscribeFromEventDelegate
             {
                 get
                 {
                     return _UnsubscribeFromEventDelegate;
-                }
-            }
-
-            #endregion
-
-            #region IsSubscribed
-
-            private Boolean _IsSubscribed;
-
-            /// <summary>
-            /// The status of the event to be logged.
-            /// </summary>
-            public Boolean IsSubscribed
-            {
-                get
-                {
-                    return _IsSubscribed;
                 }
             }
 
@@ -132,9 +115,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <param name="LogEventName">The name of the event.</param>
             /// <param name="SubscribeToEventDelegate">A delegate for subscribing to the linked event.</param>
             /// <param name="UnsubscribeFromEventDelegate">A delegate for subscribing from the linked event.</param>
-            public HTTPRequestLogger(String                         LogEventName,
-                                     Action<OnHTTPRequestDelegate>  SubscribeToEventDelegate,
-                                     Action<OnHTTPRequestDelegate>  UnsubscribeFromEventDelegate)
+            public HTTPRequestLogger(String                     LogEventName,
+                                     Action<RequestLogHandler>  SubscribeToEventDelegate,
+                                     Action<RequestLogHandler>  UnsubscribeFromEventDelegate)
             {
 
                 #region Initial checks
@@ -153,8 +136,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 this._LogEventName                  = LogEventName;
                 this._SubscribeToEventDelegate      = SubscribeToEventDelegate;
                 this._UnsubscribeFromEventDelegate  = UnsubscribeFromEventDelegate;
-                this._IsSubscribed                  = false;
-                this._Delegates                     = new Dictionary<LogTargets, OnHTTPRequestDelegate>();
+                this._SubscriptionDelegates         = new Dictionary<LogTargets, RequestLogHandler>();
+                this._SubscriptionStatus            = new HashSet<LogTargets>();
 
             }
 
@@ -169,7 +152,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <param name="LogTarget">A log target.</param>
             /// <param name="HTTPRequestDelegate">A delegate to call.</param>
             /// <returns>A HTTP request logger.</returns>
-            public HTTPRequestLogger RegisterLogTarget(LogTargets                    LogTarget,
+            public HTTPRequestLogger RegisterLogTarget(LogTargets                   LogTarget,
                                                        Action<String, HTTPRequest>  HTTPRequestDelegate)
             {
 
@@ -180,10 +163,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #endregion
 
-                if (_Delegates.ContainsKey(LogTarget))
+                if (_SubscriptionDelegates.ContainsKey(LogTarget))
                     throw new Exception("Duplicate log target!");
 
-                _Delegates.Add(LogTarget, (Timestamp, HTTPAPI, Request) => HTTPRequestDelegate(LogEventName, Request));
+                _SubscriptionDelegates.Add(LogTarget, (Timestamp, HTTPAPI, Request) => HTTPRequestDelegate(LogEventName, Request));
 
                 return this;
 
@@ -201,20 +184,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             public Boolean Subscribe(LogTargets LogTarget)
             {
 
-                if (_IsSubscribed)
+                if (IsSubscribed(LogTarget))
                     return true;
 
-                OnHTTPRequestDelegate _OnHTTPRequestDelegate = null;
+                RequestLogHandler _RequestLogHandler = null;
 
-                if (_Delegates.TryGetValue(LogTarget, out _OnHTTPRequestDelegate))
+                if (_SubscriptionDelegates.TryGetValue(LogTarget, out _RequestLogHandler))
                 {
-                    _SubscribeToEventDelegate(_OnHTTPRequestDelegate);
-                    _IsSubscribed = true;
+                    _SubscribeToEventDelegate(_RequestLogHandler);
+                    _SubscriptionStatus.Add(LogTarget);
                     return true;
                 }
 
                 return false;
 
+            }
+
+            #endregion
+
+            #region IsSubscribed(LogTarget)
+
+            /// <summary>
+            /// Return the subscription status of the given log target.
+            /// </summary>
+            /// <param name="LogTarget">A log target.</param>
+            public Boolean IsSubscribed(LogTargets LogTarget)
+            {
+                return _SubscriptionStatus.Contains(LogTarget);
             }
 
             #endregion
@@ -229,15 +225,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             public Boolean Unsubscribe(LogTargets LogTarget)
             {
 
-                if (!_IsSubscribed)
+                if (!IsSubscribed(LogTarget))
                     return true;
 
-                OnHTTPRequestDelegate _OnHTTPRequestDelegate = null;
+                RequestLogHandler _RequestLogHandler = null;
 
-                if (_Delegates.TryGetValue(LogTarget, out _OnHTTPRequestDelegate))
+                if (_SubscriptionDelegates.TryGetValue(LogTarget, out _RequestLogHandler))
                 {
-                    _UnsubscribeFromEventDelegate(_OnHTTPRequestDelegate);
-                    _IsSubscribed = false;
+                    _UnsubscribeFromEventDelegate(_RequestLogHandler);
+                    _SubscriptionStatus.Remove(LogTarget);
                     return true;
                 }
 
@@ -262,7 +258,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Data
 
-            private readonly Dictionary<LogTargets, OnHTTPResponseDelegate> _Delegates;
+            private readonly Dictionary<LogTargets, AccessLogHandler>  _SubscriptionDelegates;
+            private readonly HashSet<LogTargets>                       _SubscriptionStatus;
 
             #endregion
 
@@ -287,12 +284,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region SubscribeToEventDelegate
 
-            private readonly Action<OnHTTPResponseDelegate> _SubscribeToEventDelegate;
+            private readonly Action<AccessLogHandler> _SubscribeToEventDelegate;
 
             /// <summary>
             /// A delegate called whenever the event is subscriped to.
             /// </summary>
-            public Action<OnHTTPResponseDelegate> SubscribeToEventDelegate
+            public Action<AccessLogHandler> SubscribeToEventDelegate
             {
                 get
                 {
@@ -304,33 +301,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region UnsubscribeFromEventDelegate
 
-            private readonly Action<OnHTTPResponseDelegate> _UnsubscribeFromEventDelegate;
+            private readonly Action<AccessLogHandler> _UnsubscribeFromEventDelegate;
 
             /// <summary>
             /// A delegate called whenever the subscription of the event is stopped.
             /// </summary>
-            public Action<OnHTTPResponseDelegate> UnsubscribeFromEventDelegate
+            public Action<AccessLogHandler> UnsubscribeFromEventDelegate
             {
                 get
                 {
                     return _UnsubscribeFromEventDelegate;
-                }
-            }
-
-            #endregion
-
-            #region IsSubscribed
-
-            private Boolean _IsSubscribed;
-
-            /// <summary>
-            /// The status of the event to be logged.
-            /// </summary>
-            public Boolean IsSubscribed
-            {
-                get
-                {
-                    return _IsSubscribed;
                 }
             }
 
@@ -346,9 +326,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <param name="LogEventName">The name of the event.</param>
             /// <param name="SubscribeToEventDelegate">A delegate for subscribing to the linked event.</param>
             /// <param name="UnsubscribeFromEventDelegate">A delegate for subscribing from the linked event.</param>
-            public HTTPResponseLogger(String                          LogEventName,
-                                      Action<OnHTTPResponseDelegate>  SubscribeToEventDelegate,
-                                      Action<OnHTTPResponseDelegate>  UnsubscribeFromEventDelegate)
+            public HTTPResponseLogger(String                    LogEventName,
+                                      Action<AccessLogHandler>  SubscribeToEventDelegate,
+                                      Action<AccessLogHandler>  UnsubscribeFromEventDelegate)
             {
 
                 #region Initial checks
@@ -367,8 +347,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 this._LogEventName                  = LogEventName;
                 this._SubscribeToEventDelegate      = SubscribeToEventDelegate;
                 this._UnsubscribeFromEventDelegate  = UnsubscribeFromEventDelegate;
-                this._IsSubscribed                  = false;
-                this._Delegates                     = new Dictionary<LogTargets, OnHTTPResponseDelegate>();
+                this._SubscriptionDelegates         = new Dictionary<LogTargets, AccessLogHandler>();
+                this._SubscriptionStatus            = new HashSet<LogTargets>();
 
             }
 
@@ -383,7 +363,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <param name="LogTarget">A log target.</param>
             /// <param name="HTTPResponseDelegate">A delegate to call.</param>
             /// <returns>A HTTP response logger.</returns>
-            public HTTPResponseLogger RegisterLogTarget(LogTargets                                  LogTarget,
+            public HTTPResponseLogger RegisterLogTarget(LogTargets                                 LogTarget,
                                                         Action<String, HTTPRequest, HTTPResponse>  HTTPResponseDelegate)
             {
 
@@ -394,10 +374,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #endregion
 
-                if (_Delegates.ContainsKey(LogTarget))
+                if (_SubscriptionDelegates.ContainsKey(LogTarget))
                     throw new Exception("Duplicate log target!");
 
-                _Delegates.Add(LogTarget, (Timestamp, HTTPAPI, Request, Response) => HTTPResponseDelegate(LogEventName, Request, Response));
+                _SubscriptionDelegates.Add(LogTarget, (Timestamp, HTTPAPI, Request, Response) => HTTPResponseDelegate(LogEventName, Request, Response));
 
                 return this;
 
@@ -415,20 +395,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             public Boolean Subscribe(LogTargets LogTarget)
             {
 
-                if (_IsSubscribed)
+                if (IsSubscribed(LogTarget))
                     return true;
 
-                OnHTTPResponseDelegate _OnHTTPResponseDelegate = null;
+                AccessLogHandler _AccessLogHandler = null;
 
-                if (_Delegates.TryGetValue(LogTarget, out _OnHTTPResponseDelegate))
+                if (_SubscriptionDelegates.TryGetValue(LogTarget, out _AccessLogHandler))
                 {
-                    _SubscribeToEventDelegate(_OnHTTPResponseDelegate);
-                    _IsSubscribed = true;
+                    _SubscribeToEventDelegate(_AccessLogHandler);
+                    _SubscriptionStatus.Add(LogTarget);
                     return true;
                 }
 
                 return false;
 
+            }
+
+            #endregion
+
+            #region IsSubscribed(LogTarget)
+
+            /// <summary>
+            /// Return the subscription status of the given log target.
+            /// </summary>
+            /// <param name="LogTarget">A log target.</param>
+            public Boolean IsSubscribed(LogTargets LogTarget)
+            {
+                return _SubscriptionStatus.Contains(LogTarget);
             }
 
             #endregion
@@ -443,15 +436,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             public Boolean Unsubscribe(LogTargets LogTarget)
             {
 
-                if (!_IsSubscribed)
+                if (!IsSubscribed(LogTarget))
                     return true;
 
-                OnHTTPResponseDelegate _OnHTTPResponseDelegate = null;
+                AccessLogHandler _AccessLogHandler = null;
 
-                if (_Delegates.TryGetValue(LogTarget, out _OnHTTPResponseDelegate))
+                if (_SubscriptionDelegates.TryGetValue(LogTarget, out _AccessLogHandler))
                 {
-                    _UnsubscribeFromEventDelegate(_OnHTTPResponseDelegate);
-                    _IsSubscribed = false;
+                    _UnsubscribeFromEventDelegate(_AccessLogHandler);
+                    _SubscriptionStatus.Remove(LogTarget);
                     return true;
                 }
 
@@ -525,6 +518,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region LogFileCreator
+
+        private static Func<String, String> _LogFileCreator = LogFileName => LogFileName + "_" + DateTime.Now.Year + "-" + DateTime.Now.Month.ToString("D2") + ".log";
+
+        /// <summary>
+        /// A delegate for the default ToDisc logger returning a
+        /// valid logfile name based on the given log event name.
+        /// </summary>
+        public static Func<String, String> LogFileCreator
+        {
+
+            get
+            {
+                return _LogFileCreator;
+            }
+
+            set
+            {
+                if (value != null)
+                    _LogFileCreator = value;
+            }
+
+        }
+
+        #endregion
+
         #region (static) Default_LogHTTPRequest_toDisc(LogEventName, Request)
 
         /// <summary>
@@ -536,12 +555,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          HTTPRequest  Request)
         {
 
-            using (var logfile = File.AppendText(LogEventName + ".log"))
+            using (var logfile = File.AppendText(LogFileCreator(LogEventName)))
             {
-                logfile.WriteLine("-----");
                 logfile.WriteLine(Request.RemoteSocket.ToString() + " -> " + Request.LocalSocket);
-                logfile.WriteLine(">>>" + Environment.NewLine + Request.Timestamp);
+                logfile.WriteLine(">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------");
+                logfile.WriteLine(Request.Timestamp.ToIso8601());
                 logfile.WriteLine(Request.EntirePDU);
+                logfile.WriteLine("--------------------------------------------------------------------------------");
             }
 
         }
@@ -561,14 +581,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                           HTTPResponse  Response)
         {
 
-            using (var logfile = File.AppendText(LogEventName + ".log"))
+            using (var logfile = File.AppendText(LogFileCreator(LogEventName)))
             {
-                logfile.WriteLine("-----");
                 logfile.WriteLine(Request.RemoteSocket.ToString() + " -> " + Request.LocalSocket);
-                logfile.WriteLine(">>>" + Environment.NewLine + Request.Timestamp);
+                logfile.WriteLine(">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------");
+                logfile.WriteLine(Request.Timestamp.ToIso8601());
                 logfile.WriteLine(Request.EntirePDU);
-                logfile.WriteLine("<<<" + Environment.NewLine + Response.Timestamp);
+                logfile.WriteLine("<<<<<<--Response----<<<<<<------<<<<<<------<<<<<<------<<<<<<------<<<<<<------");
+                logfile.WriteLine(Response.Timestamp.ToIso8601());
                 logfile.WriteLine(Response.EntirePDU);
+                logfile.WriteLine("--------------------------------------------------------------------------------");
             }
 
         }
@@ -629,10 +651,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogHTTPResponse_toConsole">A delegate to log HTTP requests/responses to console.</param>
         /// <param name="LogHTTPResponse_toDisc">A delegate to log HTTP requests/responses to disc.</param>
         public HTTPLogger(HTTPServer                                 HTTPAPI,
-                      Action<String, HTTPRequest>                LogHTTPRequest_toConsole,
-                      Action<String, HTTPRequest>                LogHTTPRequest_toDisc,
-                      Action<String, HTTPRequest, HTTPResponse>  LogHTTPResponse_toConsole,
-                      Action<String, HTTPRequest, HTTPResponse>  LogHTTPResponse_toDisc)
+                          Action<String, HTTPRequest>                LogHTTPRequest_toConsole,
+                          Action<String, HTTPRequest>                LogHTTPRequest_toDisc,
+                          Action<String, HTTPRequest, HTTPResponse>  LogHTTPResponse_toConsole,
+                          Action<String, HTTPRequest, HTTPResponse>  LogHTTPResponse_toDisc)
         {
 
             #region Initial checks
@@ -683,10 +705,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="SubscribeToEventDelegate">A delegate for subscribing to the linked event.</param>
         /// <param name="UnsubscribeFromEventDelegate">A delegate for subscribing from the linked event.</param>
         /// <param name="GroupTags">An array of log event groups the given log event name is part of.</param>
-        protected HTTPRequestLogger RegisterEvent(String                         LogEventName,
-                                                  Action<OnHTTPRequestDelegate>  SubscribeToEventDelegate,
-                                                  Action<OnHTTPRequestDelegate>  UnsubscribeFromEventDelegate,
-                                                  params String[]                GroupTags)
+        protected HTTPRequestLogger RegisterEvent(String                     LogEventName,
+                                                  Action<RequestLogHandler>  SubscribeToEventDelegate,
+                                                  Action<RequestLogHandler>  UnsubscribeFromEventDelegate,
+                                                  params String[]            GroupTags)
         {
 
             #region Initial checks
@@ -747,10 +769,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="SubscribeToEventDelegate">A delegate for subscribing to the linked event.</param>
         /// <param name="UnsubscribeFromEventDelegate">A delegate for subscribing from the linked event.</param>
         /// <param name="GroupTags">An array of log event groups the given log event name is part of.</param>
-        protected HTTPResponseLogger RegisterEvent(String                          LogEventName,
-                                                   Action<OnHTTPResponseDelegate>  SubscribeToEventDelegate,
-                                                   Action<OnHTTPResponseDelegate>  UnsubscribeFromEventDelegate,
-                                                   params String[]                 GroupTags)
+        protected HTTPResponseLogger RegisterEvent(String                    LogEventName,
+                                                   Action<AccessLogHandler>  SubscribeToEventDelegate,
+                                                   Action<AccessLogHandler>  UnsubscribeFromEventDelegate,
+                                                   params String[]           GroupTags)
         {
 
             #region Initial checks
@@ -834,17 +856,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       LogTargets  LogTarget)
         {
 
-
             HTTPRequestLogger  _HTTPRequestLogger   = null;
             HTTPResponseLogger _HTTPResponseLogger  = null;
+            Boolean            _Found               = false;
 
             if (_HTTPRequestLoggers.TryGetValue(LogEventName, out _HTTPRequestLogger))
-                return _HTTPRequestLogger.Subscribe(LogTarget);
+                _Found |= _HTTPRequestLogger.Subscribe(LogTarget);
 
-            else if (_HTTPResponseLoggers.TryGetValue(LogEventName, out _HTTPResponseLogger))
-                return _HTTPResponseLogger.Subscribe(LogTarget);
+            if (_HTTPResponseLoggers.TryGetValue(LogEventName, out _HTTPResponseLogger))
+                _Found |= _HTTPResponseLogger.Subscribe(LogTarget);
 
-            return false;
+            return _Found;
 
         }
 
@@ -870,7 +892,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            All   (result  => result == true);
 
             else
-                return InternalDebug(LogEventOrGroupName, LogTarget);
+                return InternalUndebug(LogEventOrGroupName, LogTarget);
 
         }
 
@@ -882,17 +904,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         LogTargets  LogTarget)
         {
 
-
             HTTPRequestLogger  _HTTPRequestLogger   = null;
             HTTPResponseLogger _HTTPResponseLogger  = null;
+            Boolean            _Found               = false;
 
             if (_HTTPRequestLoggers.TryGetValue(LogEventName, out _HTTPRequestLogger))
-                return _HTTPRequestLogger.Subscribe(LogTarget);
+                _Found |= _HTTPRequestLogger.Unsubscribe(LogTarget);
 
-            else if (_HTTPResponseLoggers.TryGetValue(LogEventName, out _HTTPResponseLogger))
-                return _HTTPResponseLogger.Subscribe(LogTarget);
+            if (_HTTPResponseLoggers.TryGetValue(LogEventName, out _HTTPResponseLogger))
+                _Found |= _HTTPResponseLogger.Unsubscribe(LogTarget);
 
-            return false;
+            return _Found;
 
         }
 

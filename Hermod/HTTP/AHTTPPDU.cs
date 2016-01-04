@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2015, Achim 'ahzf' Friedland <achim@graphdefined.org>
+ * Copyright (c) 2010-2016, Achim 'ahzf' Friedland <achim@graphdefined.org>
  * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -83,6 +83,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The HTTP protocol version.
         /// </summary>
         public HTTPVersion ProtocolVersion { get; protected set; }
+
+        #endregion
+
+        #region EntirePDU
+
+        /// <summary>
+        /// The entire HTTP protocol data unit.
+        /// </summary>
+        public String EntirePDU
+        {
+            get
+            {
+
+                if (Content != null && Content.Length > 0)
+                    return RawHTTPHeader.Trim() + Environment.NewLine + Environment.NewLine +
+                           Encoding.UTF8.GetString(Content, 0, Math.Min(Content.Length, (Int32)ContentLength.Value)).Trim();
+
+                return RawHTTPHeader;
+
+            }
+        }
 
         #endregion
 
@@ -564,7 +585,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-
         #region (protected) RemoveHeaderField(FieldName)
 
         /// <summary>
@@ -578,21 +598,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
-
-
-        public String EntirePDU
-        {
-            get
-            {
-
-                if (Content != null && Content.Length > 0)
-                    return RawHTTPHeader + Environment.NewLine + Environment.NewLine +
-                           Encoding.UTF8.GetString(Content, 0, Math.Min(Content.Length, (Int32) ContentLength.Value));
-
-                return RawHTTPHeader;
-
-            }
-        }
 
 
         #region GetEnumerator()

@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2015, Achim 'ahzf' Friedland <achim@graphdefined.org>
+ * Copyright (c) 2010-2016, Achim 'ahzf' Friedland <achim@graphdefined.org>
  * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -157,7 +157,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 DNSCacheEntry CacheEntry = null;
 
-                Debug.WriteLine("[" + DateTime.Now + "] Adding '" + Domainname + "' to the DNS cache!");
+                //Debug.WriteLine("[" + DateTime.Now + "] Adding '" + Domainname + "' to the DNS cache!");
 
                 if (!_DNSCache.TryGetValue(Domainname, out CacheEntry))
                     _DNSCache.Add(Domainname, new DNSCacheEntry(
@@ -236,7 +236,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     ExpiredEntries.ForEach(entry => _DNSCache.Remove(entry.Key));
 
 #if DEBUG
-                    ExpiredEntries.ForEach(entry => Debug.WriteLine("[" + Now + "] Removed '" + entry.Key + "' from the DNS cache!"));
+                //    ExpiredEntries.ForEach(entry => Debug.WriteLine("[" + Now + "] Removed '" + entry.Key + "' from the DNS cache!"));
 #endif
 
                 }

@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2015, Achim 'ahzf' Friedland <achim@graphdefined.org>
+ * Copyright (c) 2010-2016, Achim 'ahzf' Friedland <achim@graphdefined.org>
  * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -382,59 +382,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         // HTTP Logging...
 
-        #region (internal) LogRequest(ServerTimestamp, Request)
+        #region (internal) LogRequest(Timestamp, Request)
 
         /// <summary>
         /// Log an incoming request.
         /// </summary>
-        /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
+        /// <param name="Timestamp">The timestamp of the incoming request.</param>
         /// <param name="Request">The incoming request.</param>
-        internal void LogRequest(DateTime     ServerTimestamp,
+        internal void LogRequest(DateTime     Timestamp,
                                  HTTPRequest  Request)
         {
 
             var RequestLogLocal = RequestLog;
-
             if (RequestLogLocal != null)
-                RequestLogLocal(this, ServerTimestamp, Request);
+                RequestLogLocal(Timestamp, this, Request);
 
         }
 
         #endregion
 
-        #region (internal) LogAccess(ServerTimestamp, Request, Response)
+        #region (internal) LogAccess(Timestamp, Request, Response)
 
         /// <summary>
         /// Log an successful request processing.
         /// </summary>
-        /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
+        /// <param name="Timestamp">The timestamp of the incoming request.</param>
         /// <param name="Request">The incoming request.</param>
         /// <param name="Response">The outgoing response.</param>
-        internal void LogAccess(DateTime      ServerTimestamp,
+        internal void LogAccess(DateTime      Timestamp,
                                 HTTPRequest   Request,
                                 HTTPResponse  Response)
         {
 
             var AccessLogLocal = AccessLog;
-
             if (AccessLogLocal != null)
-                AccessLogLocal(this, ServerTimestamp, Request, Response);
+                AccessLogLocal(Timestamp, this, Request, Response);
 
         }
 
         #endregion
 
-        #region (internal) LogError(ServerTimestamp, Request, Response, Error = null, LastException = null)
+        #region (internal) LogError(Timestamp, Request, Response, Error = null, LastException = null)
 
         /// <summary>
         /// Log an error during request processing.
         /// </summary>
-        /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
+        /// <param name="Timestamp">The timestamp of the incoming request.</param>
         /// <param name="Request">The incoming request.</param>
         /// <param name="Response">The outgoing response.</param>
         /// <param name="Error">The occured error.</param>
         /// <param name="LastException">The last occured exception.</param>
-        internal void LogError(DateTime      ServerTimestamp,
+        internal void LogError(DateTime      Timestamp,
                                HTTPRequest   Request,
                                HTTPResponse  Response,
                                String        Error          = null,
@@ -442,9 +440,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             var ErrorLogLocal = ErrorLog;
-
             if (ErrorLogLocal != null)
-                ErrorLogLocal(this, ServerTimestamp, Request, Response, Error, LastException);
+                ErrorLogLocal(Timestamp, this, Request, Response, Error, LastException);
 
         }
 

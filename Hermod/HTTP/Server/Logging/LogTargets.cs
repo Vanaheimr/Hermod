@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2015, Achim 'ahzf' Friedland <achim@graphdefined.org>
+ * Copyright (c) 2010-2016, Achim 'ahzf' Friedland <achim@graphdefined.org>
  * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,6 +28,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Log to console
         /// </summary>
         Console,
+
+        /// <summary>
+        /// HTTP Server Side Events
+        /// </summary>
+        HTTPSSE,
 
         /// <summary>
         /// Log to disc
