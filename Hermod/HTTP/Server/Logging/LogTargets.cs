@@ -37,7 +37,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Log to disc
         /// </summary>
-        Disc
+        Disc,
+
+        /// <summary>
+        /// Log via network.
+        /// </summary>
+        Network
 
     }
 
