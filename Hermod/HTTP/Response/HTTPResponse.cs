@@ -79,8 +79,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public HTTPResponse()
         {
-            this.HttpResponse  = new HTTPResponse() { HTTPStatusCode = HTTPStatusCode.OK };
+            this.HttpResponse  = HTTPResponseBuilder.OK();
             this.Content       = default(T);
+            this.IsFault       = false;
+            this.Exception     = null;
+        }
+
+        public HTTPResponse(T Content)
+        {
+            this.HttpResponse  = HTTPResponseBuilder.OK();
+            this.Content       = Content;
             this.IsFault       = false;
             this.Exception     = null;
         }
@@ -134,6 +142,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         private readonly HTTPRequest _HTTPRequest;
 
+        /// <summary>
+        /// The HTTP request for this HTTP response.
+        /// </summary>
         public HTTPRequest  HTTPRequest
         {
             get
@@ -153,49 +164,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Timestamp
+        #endregion
 
-        private readonly DateTime _Timestamp;
+        #region HTTPStatusCode
+
+        private readonly HTTPStatusCode _HTTPStatusCode;
 
         /// <summary>
-        /// The timestamp of the HTTP request generation.
+        /// The HTTP status code.
         /// </summary>
-        public DateTime Timestamp
+        public HTTPStatusCode HTTPStatusCode
         {
             get
             {
-                return _Timestamp;
+                return _HTTPStatusCode;
             }
         }
-
-        #endregion
-
-
-        #region Exception
-
-        private readonly Exception _Exception;
-
-        public Exception Exception
-        {
-            get
-            {
-                return _Exception;
-            }
-        }
-
-        #endregion
-
-        #region HasException
-
-        public Boolean HasException
-        {
-            get
-            {
-                return _Exception != null;
-            }
-        }
-
-        #endregion
 
         #endregion
 
@@ -363,176 +347,85 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region HTTPResponse()
-
+        // remove me!
         public HTTPResponse()
         { }
 
-        #endregion
+        #region HTTPResponse(HTTPResponseHeader, HTTPRequest)
 
-        #region HTTPResponse(HTTPRequest, Timestamp, HTTPHeaderAsText)
+        /// <summary>
+        /// Parse the given HTTP response header.
+        /// </summary>
+        /// <param name="HTTPResponseHeader">A string representation of a HTTP response header.</param>
+        /// <param name="HTTPRequest">The HTTP request for this HTTP response.</param>
+        public HTTPResponse(String       HTTPResponseHeader,
+                            HTTPRequest  HTTPRequest)
 
-        public HTTPResponse(HTTPRequest  HTTPRequest,
-                            DateTime     Timestamp,
-                            String       HTTPHeaderAsText)
+            : base(HTTPResponseHeader)
+
         {
 
-            this._HTTPRequest  = HTTPRequest;
-            this._Timestamp    = Timestamp;
+            this._HTTPRequest    = HTTPRequest;
+            base.HTTPBodyStream  = new MemoryStream();
 
-            if (ParseResponseHeader(HTTPHeaderAsText))
-                base.ContentStream = new MemoryStream();
+            #region Parse HTTP status code
+
+            var _StatusCodeLine = FirstPDULine.Split(' ');
+
+            if (_StatusCodeLine.Length < 3)
+                throw new Exception("Bad request");
+
+            this._HTTPStatusCode = HTTPStatusCode.ParseString(_StatusCodeLine[1]);
+
+            #endregion
 
         }
 
         #endregion
 
-        #region HTTPResponse(HTTPRequest, Timestamp, HTTPHeader, Content)
+        #region HTTPResponse(HTTPResponseHeader, HTTPResponseBody, HTTPRequest)
 
-        public HTTPResponse(HTTPRequest  HTTPRequest,
-                            DateTime     Timestamp,
-                            String       HTTPHeader,
-                            Byte[]       Content)
+        /// <summary>
+        /// Parse the given HTTP response header.
+        /// </summary>
+        /// <param name="HTTPResponseHeader">A string representation of a HTTP response header.</param>
+        /// <param name="HTTPResponseBody">The response body as array of bytes.</param>
+        /// <param name="HTTPRequest">The HTTP request for this HTTP response.</param>
+        public HTTPResponse(String       HTTPResponseHeader,
+                            Byte[]       HTTPResponseBody,
+                            HTTPRequest  HTTPRequest)
+
+            : this(HTTPResponseHeader, HTTPRequest)
+
         {
 
-            this._HTTPRequest  = HTTPRequest;
-            this._Timestamp    = Timestamp;
-
-            if (ParseResponseHeader(HTTPHeader))
-                base.Content = Content;
+            this.HTTPBody      = HTTPResponseBody;
 
         }
 
         #endregion
 
-        #region HTTPResponse(HTTPRequest, Timestamp, HTTPHeader, ContentStream)
+        #region HTTPResponse(HTTPResponseHeader, HTTPResponseBodyStream, HTTPRequest)
 
-        public HTTPResponse(HTTPRequest  HTTPRequest,
-                            DateTime     Timestamp,
-                            String       HTTPHeader,
-                            Stream       ContentStream)
+        /// <summary>
+        /// Parse the given HTTP response header.
+        /// </summary>
+        /// <param name="HTTPResponseHeader">A string representation of a HTTP response header.</param>
+        /// <param name="HTTPResponseBodyStream">The response body as stream of bytes.</param>
+        /// <param name="HTTPRequest">The HTTP request for this HTTP response.</param>
+        public HTTPResponse(String       HTTPResponseHeader,
+                            Stream       HTTPResponseBodyStream,
+                            HTTPRequest  HTTPRequest)
+
+            : this(HTTPResponseHeader, HTTPRequest)
+
         {
 
-            this._HTTPRequest  = HTTPRequest;
-            this._Timestamp    = Timestamp;
-
-            if (ParseResponseHeader(HTTPHeader))
-                base.ContentStream  = ContentStream;
+            base.HTTPBodyStream  = HTTPBodyStream;
 
         }
 
         #endregion
-
-        #region HTTPResponse(Exception)
-
-        public HTTPResponse(Exception Exception)
-        {
-
-            base.HTTPStatusCode  = HTTPStatusCode;
-            this._Exception      = Exception;
-
-        }
-
-        #endregion
-
-        #region HTTPResponse(HTTPStatusCode, Content = null)
-
-        public HTTPResponse(HTTPStatusCode  HTTPStatusCode,
-                            String          Content = null)
-        {
-
-            base.HTTPStatusCode  = HTTPStatusCode;
-            base.Content         = Content.ToUTF8Bytes();
-
-        }
-
-        #endregion
-
-        #endregion
-
-
-        #region ParseResponseHeader(HTTPHeader)
-
-        protected Boolean ParseResponseHeader(String HTTPHeader)
-        {
-
-            //this.HTTPStatusCode = HTTPStatusCode.BadRequest;
-
-            RawHTTPHeader = HTTPHeader;
-
-            var _HTTPHeaderLines = HTTPHeader.Split(_LineSeparator, StringSplitOptions.RemoveEmptyEntries);
-            if (_HTTPHeaderLines.Length == 0)
-            {
-                HTTPStatusCode = HTTPStatusCode.BadRequest;
-                return false;
-            }
-
-            FirstPDULine = _HTTPHeaderLines.FirstOrDefault();
-            var SplittedFirstLine = FirstPDULine.Split(' ');
-
-            if (SplittedFirstLine.Length < 3)
-            {
-                HTTPStatusCode = HTTPStatusCode.BadRequest;
-                return false;
-            }
-
-            HTTPStatusCode = HTTPStatusCode.ParseString(SplittedFirstLine[1]);
-
-            //if (HTTPStatusCode != HTTPStatusCode.BadRequest)
-            //{
-
-                String[] _KeyValuePairs = null;
-
-                foreach (var _Line in _HTTPHeaderLines.Skip(1))
-                {
-
-                    _KeyValuePairs = _Line.Split(_ColonSeparator, 2, StringSplitOptions.RemoveEmptyEntries);
-
-                    if (_KeyValuePairs.Length == 2)
-                        HeaderFields.Add(_KeyValuePairs[0].Trim(), _KeyValuePairs[1].Trim());
-                    else
-                    {
-                        HTTPStatusCode = HTTPStatusCode.BadRequest;
-                        return false;
-                    }
-
-                }
-
-            //}
-
-            //this.HTTPStatusCode = HTTPStatusCode.OK;
-            return true;
-
-        }
-
-        #endregion
-
-        #region NewContentStream()
-
-        public MemoryStream NewContentStream()
-        {
-
-            var _MemoryStream = new MemoryStream();
-
-            base.ContentStream = _MemoryStream;
-
-            return _MemoryStream;
-
-        }
-
-        #endregion
-
-        #region ContentStreamToArray(DataStream = null)
-
-        public void ContentStreamToArray(Stream DataStream = null)
-        {
-
-            if (DataStream == null)
-                Content = ((MemoryStream) ContentStream).ToArray();
-            else
-                Content = ((MemoryStream) DataStream).ToArray();
-
-        }
 
         #endregion
 

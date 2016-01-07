@@ -711,7 +711,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPRequestBuilder(HTTPRequest OtherHTTPRequest)
         {
 
-            this.HTTPStatusCode   = OtherHTTPRequest.HTTPStatusCode;
+         //   this.HTTPStatusCode   = OtherHTTPRequest.HTTPStatusCode;
             this.HTTPMethod       = OtherHTTPRequest.HTTPMethod;
             this.URI              = OtherHTTPRequest.URI;
             this._QueryString     = OtherHTTPRequest.QueryString;
@@ -719,10 +719,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.ProtocolName     = OtherHTTPRequest.ProtocolName;
             this.ProtocolVersion  = OtherHTTPRequest.ProtocolVersion;
 
-            this.Content          = OtherHTTPRequest.Content;
-            this.ContentStream    = OtherHTTPRequest.ContentStream;
+            this.Content          = OtherHTTPRequest.HTTPBody;
+            this.ContentStream    = OtherHTTPRequest.HTTPBodyStream;
 
-            foreach (var kvp in OtherHTTPRequest.HeaderFields)
+            foreach (var kvp in OtherHTTPRequest)
                 Set(kvp.Key, kvp.Value);
 
         }
@@ -1462,12 +1462,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             PrepareImmutability();
 
-            HTTPRequest _HTTPRequest = null;
-
-            if (Content != null)
-                HTTPRequest.TryParse(EntireRequestHeader, Content, new CancellationTokenSource().Token, out _HTTPRequest);
-            else
-                HTTPRequest.TryParse(EntireRequestHeader, new CancellationTokenSource().Token, out _HTTPRequest);
+            var _HTTPRequest = new HTTPRequest(EntireRequestHeader, Content);
 
             _HTTPRequest.FakeURIPrefix = this.FakeURIPrefix;
 

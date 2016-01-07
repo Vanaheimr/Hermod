@@ -60,7 +60,6 @@
     <Compile Include="Helpers\ExtentionMethods\NetworkingHelpers.cs" />
     <Compile Include="Helpers\ExtentionMethods\IPAddressHelper.cs" />
     <Compile Include="Helpers\Datastructures\ILocalSocket.cs" />
-    <Compile Include="HTTP\AHTTPBasePDU.cs" />
     <Compile Include="HTTP\AHTTPPDU.cs" />
     <Compile Include="HTTP\AHTTPPDUBuilder.cs" />
     <Compile Include="HTTP\Client\ClientResult.cs" />

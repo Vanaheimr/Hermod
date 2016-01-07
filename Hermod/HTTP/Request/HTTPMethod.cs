@@ -435,47 +435,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region TryParseEnum(myCode, out myHTTPMethod)
+        #region TryParseEnum(HTTPMethodEnum, out HTTPMethod)
 
         /// <summary>
         /// Tries to find the appropriate HTTPMethod for the given HTTPMethods.
         /// </summary>
-        /// <param name="myCode">A HTTPMethod code</param>
-        /// <param name="myHTTPMethod">The parsed HTTPMethod</param>
+        /// <param name="HTTPMethodEnum">A HTTP method.</param>
+        /// <param name="HTTPMethod">The parsed HTTP method.</param>
         /// <returns>true or false</returns>
-        public static Boolean TryParseEnum(HTTPMethods myHTTPMethodsEnum, out HTTPMethod myHTTPMethod)
+        public static Boolean TryParseEnum(HTTPMethods HTTPMethodEnum, out HTTPMethod HTTPMethod)
         {
 
-            myHTTPMethod = (from   _FieldInfo in typeof(HTTPMethod).GetFields()
-                            let    __HTTPMethod = _FieldInfo.GetValue(null) as HTTPMethod
-                            where  __HTTPMethod != null
-                            where  __HTTPMethod.MethodName == myHTTPMethodsEnum.ToString()
-                            select __HTTPMethod).FirstOrDefault();
+            HTTPMethod = (from   _FieldInfo in typeof(HTTPMethod).GetFields()
+                          let    __HTTPMethod = _FieldInfo.GetValue(null) as HTTPMethod
+                          where  __HTTPMethod != null
+                          where  __HTTPMethod.MethodName == HTTPMethodEnum.ToString()
+                          select __HTTPMethod).FirstOrDefault();
 
-            return (myHTTPMethod != null) ? true : false;
+            return (HTTPMethod != null) ? true : false;
 
         }
 
         #endregion
 
-        #region TryParseString(myMethodname, out myHTTPMethod)
+        #region TryParseString(MethodName, out HTTPMethod)
 
         /// <summary>
         /// Tries to find the appropriate HTTPMethod for the given string.
         /// </summary>
-        /// <param name="myMethodname">A HTTPMethod code</param>
-        /// <param name="myHTTPStatusCode">The parsed HTTPMethod</param>
+        /// <param name="MethodName">A HTTP method name.</param>
+        /// <param name="HTTPMethod">The parsed HTTP method.</param>
         /// <returns>true or false</returns>
-        public static Boolean TryParseString(String myMethodname, out HTTPMethod myHTTPMethod)
+        public static Boolean TryParseString(String MethodName, out HTTPMethod HTTPMethod)
         {
 
-            myHTTPMethod = (from   _FieldInfo in typeof(HTTPMethod).GetFields()
-                            let    __HTTPMethod = _FieldInfo.GetValue(null) as HTTPMethod
-                            where  __HTTPMethod != null
-                            where  __HTTPMethod.MethodName == myMethodname
-                            select __HTTPMethod).FirstOrDefault();
+            HTTPMethod = (from   _FieldInfo in typeof(HTTPMethod).GetFields()
+                          let    __HTTPMethod = _FieldInfo.GetValue(null) as HTTPMethod
+                          where  __HTTPMethod != null
+                          where  __HTTPMethod.MethodName == MethodName
+                          select __HTTPMethod).FirstOrDefault();
 
-            return (myHTTPMethod != null) ? true : false;
+            return (HTTPMethod != null) ? true : false;
 
         }
 

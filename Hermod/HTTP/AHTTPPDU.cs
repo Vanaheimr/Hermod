@@ -21,6 +21,8 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Collections;
 using System.Collections.Generic;
 
 #endregion
@@ -36,25 +38,101 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     ///    for any kind of metadata
     ///  - A body hosting the transmitted content
     /// </summary>
-    public abstract class AHTTPPDU : AHTTPBasePDU, IEnumerable<String>
+    public abstract class AHTTPPDU : IEnumerable<KeyValuePair<String, Object>>
     {
 
-        #region Properties
+        #region Data
+
+        /// <summary>
+        /// The collection of all HTTP headers.
+        /// </summary>
+        protected readonly Dictionary<String,          Object>  _HeaderFields;
+        protected readonly Dictionary<HTTPHeaderField, Object>  _HeaderFields2;
+
+        protected readonly static String[] _LineSeparator   = new String[] { Environment.NewLine };
+        protected readonly static Char[]   _ColonSeparator  = new Char[]   { ':' };
+        protected readonly static Char[]   _SlashSeparator  = new Char[]   { '/' };
+        protected readonly static Char[]   _SpaceSeparator  = new Char[]   { ' ' };
+        protected readonly static Char[]   _URLSeparator    = new Char[]   { '?', '!' };
+        protected readonly static Char[]   _HashSeparator   = new Char[]   { '#' };
+
+        #endregion
 
         #region Non-HTTP header fields
 
-        #region ConstructedHTTPHeader
+        #region Timestamp
+
+        private readonly DateTime _Timestamp;
+
+        /// <summary>
+        /// The timestamp of the HTTP request generation.
+        /// </summary>
+        public DateTime Timestamp
+        {
+            get
+            {
+                return _Timestamp;
+            }
+        }
+
+        #endregion
+
+        #region RawHTTPHeader
+
+        private readonly String _RawHTTPHeader;
+
+        /// <summary>
+        /// The RAW, unparsed and unverified HTTP header.
+        /// </summary>
+        public String RawHTTPHeader
+        {
+            get
+            {
+                return _RawHTTPHeader;
+            }
+        }
+
+        #endregion
+
+        #region RawPDU
+
+        /// <summary>
+        /// The raw unparsed HTTP protocol data unit.
+        /// </summary>
+        public String RawPDU { get; set; }
+
+        #endregion
+
+        #region FirstPDULine
+
+        private readonly String _FirstPDULine;
+
+        /// <summary>
+        /// The first line of a HTTP request or response.
+        /// </summary>
+        public String FirstPDULine
+        {
+            get
+            {
+                return _FirstPDULine;
+            }
+        }
+
+        #endregion
+
+
+        #region (protected) ConstructedHTTPHeader
 
         /// <summary>
         /// Return a string representation of this HTTPHeader.
         /// </summary>
-        public String ConstructedHTTPHeader
+        protected String ConstructedHTTPHeader
         {
             get
             {
 
-                if (HeaderFields.Count > 0)
-                    return (from   _KeyValuePair in HeaderFields
+                if (_HeaderFields.Count > 0)
+                    return (from   _KeyValuePair in _HeaderFields
                             where  _KeyValuePair.Key   != null
                             where  _KeyValuePair.Value != null
                             select _KeyValuePair.Key.Trim() + ": " + _KeyValuePair.Value.ToString().Trim()).
@@ -68,23 +146,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ProtocolName
-
-        /// <summary>
-        /// The HTTP protocol name field.
-        /// </summary>
-        public String  ProtocolName    { get; protected set; }
-
-        #endregion
-
-        #region ProtocolVersion
-
-        /// <summary>
-        /// The HTTP protocol version.
-        /// </summary>
-        public HTTPVersion ProtocolVersion { get; protected set; }
-
-        #endregion
 
         #region EntirePDU
 
@@ -96,9 +157,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             get
             {
 
-                if (Content != null && Content.Length > 0)
+                if (HTTPBody != null && HTTPBody.Length > 0)
                     return RawHTTPHeader.Trim() + Environment.NewLine + Environment.NewLine +
-                           Encoding.UTF8.GetString(Content, 0, Math.Min(Content.Length, (Int32)ContentLength.Value)).Trim();
+                           Encoding.UTF8.GetString(HTTPBody, 0, Math.Min(HTTPBody.Length, (Int32)ContentLength.Value)).Trim();
 
                 return RawHTTPHeader;
 
@@ -166,7 +227,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             get
             {
 
-                if (!HeaderFields.ContainsKey(HTTPHeaderField.ContentLength.Name))
+                if (!_HeaderFields.ContainsKey(HTTPHeaderField.ContentLength.Name))
                     return new Nullable<UInt64>(0);
 
                 return GetHeaderField<UInt64>(HTTPHeaderField.ContentLength);
@@ -267,17 +328,119 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region HTTPBody
+
+        private Byte[] _HTTPBody;
+
+        /// <summary>
+        /// The HTTP body/content as an array of bytes.
+        /// </summary>
+        public Byte[] HTTPBody
+        {
+
+            get
+            {
+                return _HTTPBody;
+            }
+
+            protected set
+            {
+                _HTTPBody = value;
+            }
+
+        }
+
         #endregion
+
+        #region HTTPBodyStream
+
+        private Stream _HTTPBodyStream;
+
+        /// <summary>
+        /// The HTTP body as a stream of bytes.
+        /// </summary>
+        public Stream HTTPBodyStream
+        {
+
+            get
+            {
+                return _HTTPBodyStream;
+            }
+
+            protected set
+            {
+                _HTTPBodyStream = value;
+            }
+
+        }
+
+        #endregion
+
 
         #region Constructor(s)
 
-        #region AHTTPHeader()
+        #region AHTTPPDU()
 
         /// <summary>
         /// Creates a new HTTP header.
         /// </summary>
         public AHTTPPDU()
-        { }
+        {
+
+            this._Timestamp      = DateTime.Now;
+            this._HeaderFields   = new Dictionary<String,          Object>();
+            this._HeaderFields2  = new Dictionary<HTTPHeaderField, Object>();
+
+        }
+
+        #endregion
+
+        #region AHTTPPDU(HTTPHeader)
+
+        /// <summary>
+        /// Creates a new HTTP header.
+        /// </summary>
+        /// <param name="HTTPHeader">The string representation of a HTTP header.</param>
+        public AHTTPPDU(String HTTPHeader)
+
+            : this()
+
+        {
+
+            this._Timestamp      = DateTime.Now;
+            this._RawHTTPHeader  = HTTPHeader.Trim();
+
+            #region Process first line...
+
+            var AllLines = HTTPHeader.Trim().Split(_LineSeparator, StringSplitOptions.RemoveEmptyEntries);
+
+            _FirstPDULine = AllLines.FirstOrDefault();
+            if (_FirstPDULine == null)
+                throw new Exception("Bad request");
+
+            #endregion
+
+            #region ...process all other header lines
+
+            String[] KeyValuePair = null;
+
+            foreach (var Line in AllLines.Skip(1))
+            {
+
+                KeyValuePair = Line.Split(_ColonSeparator, 2, StringSplitOptions.RemoveEmptyEntries);
+
+                // Not valid for every HTTP header... but at least for most...
+                if (KeyValuePair.Length == 1)
+                    _HeaderFields.Add(KeyValuePair[0].Trim(), String.Empty);
+
+                else // KeyValuePair.Length == 2
+                    _HeaderFields.Add(KeyValuePair[0].Trim(), KeyValuePair[1].Trim());
+
+            }
+
+            #endregion
+
+        }
 
         #endregion
 
@@ -294,7 +457,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <returns>True if the requested header exists; false otherwise.</returns>
         protected Boolean TryGetHeaderField(String FieldName, out Object Value)
         {
-            return HeaderFields.TryGetValue(FieldName, out Value);
+            return _HeaderFields.TryGetValue(FieldName, out Value);
         }
 
         #endregion
@@ -304,12 +467,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return a http header field.
         /// </summary>
-        /// <param name="FieldName">The key of the requested header field.</param>
+        /// <param name="HeaderField">The key of the requested header field.</param>
         /// <param name="Value">The value of the requested header field.</param>
         /// <returns>True if the requested header exists; false otherwise.</returns>
         protected Boolean TryGetHeaderField(HTTPHeaderField HeaderField, out Object Value)
         {
-            return HeaderFields.TryGetValue(HeaderField.Name, out Value);
+            return _HeaderFields.TryGetValue(HeaderField.Name, out Value);
         }
 
         #endregion
@@ -328,7 +491,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             Object _Object;
 
-            if (HeaderFields.TryGetValue(Key, out _Object))
+            if (_HeaderFields.TryGetValue(Key, out _Object))
             {
 
                 if (_Object is T)
@@ -417,7 +580,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             Object Value;
-            if (HeaderFields.TryGetValue(FieldName, out Value))
+            if (_HeaderFields.TryGetValue(FieldName, out Value))
                 return Value.ToString();
 
             return String.Empty;
@@ -437,7 +600,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             Object Value;
-            if (HeaderFields.TryGetValue(FieldName, out Value))
+            if (_HeaderFields.TryGetValue(FieldName, out Value))
                 if (Value is T)
                     return (T) Value;
 
@@ -457,7 +620,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             Object Value;
-            if (HeaderFields.TryGetValue(HeaderField.Name, out Value))
+            if (_HeaderFields.TryGetValue(HeaderField.Name, out Value))
                 return Value.ToString();
 
             return String.Empty;
@@ -477,7 +640,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             Object Value;
-            if (HeaderFields.TryGetValue(HeaderField.Name, out Value))
+            if (_HeaderFields.TryGetValue(HeaderField.Name, out Value))
                 if (Value is String)
                 {
                     if (HeaderField.Type == typeof(String))
@@ -508,7 +671,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             Object Value;
-            if (HeaderFields.TryGetValue(FieldName, out Value))
+            if (_HeaderFields.TryGetValue(FieldName, out Value))
             {
 
                 if (Value is Int64?)
@@ -537,7 +700,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             Object Value;
-            if (HeaderFields.TryGetValue(FieldName, out Value))
+            if (_HeaderFields.TryGetValue(FieldName, out Value))
             {
 
                 if (Value is UInt64?)
@@ -566,7 +729,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             Object Value;
-            if (HeaderFields.TryGetValue(HeaderField.Name, out Value))
+            if (_HeaderFields.TryGetValue(HeaderField.Name, out Value))
             {
 
                 if (Value is UInt64?)
@@ -593,29 +756,158 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="FieldName">The name of the header field.</param>
         protected void RemoveHeaderField(String FieldName)
         {
-            if (HeaderFields.ContainsKey(FieldName))
-                HeaderFields.Remove(FieldName);
+            if (_HeaderFields.ContainsKey(FieldName))
+                _HeaderFields.Remove(FieldName);
         }
 
         #endregion
 
 
-        #region GetEnumerator()
+        #region (protected) SetHeaderField(FieldName, Value)
 
         /// <summary>
-        /// Return an enumeration of all header lines.
+        /// Set a HTTP header field.
+        /// A field value of NULL will remove the field from the header.
         /// </summary>
-        public IEnumerator<String> GetEnumerator()
+        /// <param name="FieldName">The name of the header field.</param>
+        /// <param name="Value">The value. NULL will remove the field from the header.</param>
+        protected void SetHeaderField(String FieldName, Object Value)
         {
-            return (from HeaderField in HeaderFields select HeaderField.Key + ": " + HeaderField.Value.ToString()).GetEnumerator();
+
+            if (Value != null)
+            {
+
+                if (_HeaderFields.ContainsKey(FieldName))
+                    _HeaderFields[FieldName] = Value;
+                else
+                    _HeaderFields.Add(FieldName, Value);
+
+            }
+
+            else
+                if (_HeaderFields.ContainsKey(FieldName))
+                    _HeaderFields.Remove(FieldName);
+
+        }
+
+        #endregion
+
+        #region (protected) SetHeaderField(HeaderField, Value)
+
+        /// <summary>
+        /// Set a HTTP header field.
+        /// A field value of NULL will remove the field from the header.
+        /// </summary>
+        /// <param name="HeaderField">The HTTP header field.</param>
+        /// <param name="Value">The value. NULL will remove the field from the header.</param>
+        protected void SetHeaderField(HTTPHeaderField HeaderField, Object Value)
+        {
+
+            if (Value != null)
+            {
+
+                if (_HeaderFields.ContainsKey(HeaderField.Name))
+                    _HeaderFields[HeaderField.Name] = Value;
+                else
+                    _HeaderFields.Add(HeaderField.Name, Value);
+
+            }
+
+            else
+                if (_HeaderFields.ContainsKey(HeaderField.Name))
+                    _HeaderFields.Remove(HeaderField.Name);
+
+
+            // New collection...
+            if (Value != null)
+            {
+
+                if (_HeaderFields2.ContainsKey(HeaderField))
+                    _HeaderFields2[HeaderField] = Value;
+                else
+                    _HeaderFields2.Add(HeaderField, Value);
+
+            }
+
+            else
+                if (_HeaderFields2.ContainsKey(HeaderField))
+                _HeaderFields2.Remove(HeaderField);
+
+        }
+
+        #endregion
+
+
+        #region IEnumerable<KeyValuePair<String, Object>> Members
+
+        /// <summary>
+        /// Return a HTTP header enumerator.
+        /// </summary>
+        public IEnumerator<KeyValuePair<String, Object>> GetEnumerator()
+        {
+            return _HeaderFields.GetEnumerator();
         }
 
         /// <summary>
-        /// Return an enumeration of all header lines.
+        /// Return a HTTP header enumerator.
         /// </summary>
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+        IEnumerator IEnumerable.GetEnumerator()
         {
-            return (from HeaderField in HeaderFields select HeaderField.Key + ": " + HeaderField.Value.ToString()).GetEnumerator();
+            return _HeaderFields.GetEnumerator();
+        }
+
+        #endregion
+
+
+
+
+        //ToDo: Fix me for slow clients!
+        public Boolean TryReadHTTPBody()
+        {
+
+            if (HTTPBody != null)
+                return true;
+
+            var Buffer = new Byte[(Int32)ContentLength.Value];
+            Thread.Sleep(500);
+            var Read = _HTTPBodyStream.Read(Buffer, 0, (Int32)ContentLength.Value);
+
+            if (Read == (Int32)ContentLength.Value)
+            {
+                _HTTPBody = Buffer;
+                return true;
+            }
+
+            return false;
+
+        }
+
+
+        #region NewContentStream()
+
+        public MemoryStream NewContentStream()
+        {
+
+            var _MemoryStream = new MemoryStream();
+
+            _HTTPBodyStream = _MemoryStream;
+
+            return _MemoryStream;
+
+        }
+
+        #endregion
+
+        #region ContentStreamToArray(DataStream = null)
+
+        public void ContentStreamToArray(Stream DataStream = null)
+        {
+
+            if (DataStream == null)
+                _HTTPBody = ((MemoryStream) HTTPBodyStream).ToArray();
+            else
+                _HTTPBody = ((MemoryStream) DataStream).ToArray();
+
         }
 
         #endregion

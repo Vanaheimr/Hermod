@@ -676,6 +676,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+
+        #region (static) OK(Configurator = null)
+
+        /// <summary>
+        /// Create a new 200-OK HTTP response and apply the given delegate.
+        /// </summary>
+        /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+        public static HTTPResponseBuilder OK(Action<HTTPResponseBuilder> Configurator = null)
+        {
+
+            var response = new HTTPResponseBuilder();
+            
+            // HTTPStatusCode.OK);
+
+            if (Configurator != null)
+                Configurator(response);
+
+            return response;
+
+        }
+
+        /// <summary>
+        /// Create a new 200-OK HTTP response and apply the given delegate.
+        /// </summary>
+        /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+        public static HTTPResponseBuilder OK(Func<HTTPResponseBuilder, HTTPResponseBuilder> Configurator)
+        {
+
+            var response = new HTTPResponseBuilder();// (HTTPStatusCode.OK);
+
+            if (Configurator != null)
+                return Configurator(response);
+
+            return response;
+
+        }
+
+        #endregion
+
+
         #region PrepareImmutability()
 
         /// <summary>
@@ -702,13 +742,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             PrepareImmutability();
 
             if (Content != null)
-                return new HTTPResponse(_HTTPRequest, Timestamp, HTTPHeader, Content);
+                return new HTTPResponse(HTTPHeader, Content, _HTTPRequest);
 
             else if (ContentStream != null)
-                return new HTTPResponse(_HTTPRequest, Timestamp, HTTPHeader, ContentStream);
+                return new HTTPResponse(HTTPHeader, ContentStream, _HTTPRequest);
 
             else
-                return new HTTPResponse(_HTTPRequest, Timestamp, HTTPHeader);
+                return new HTTPResponse(HTTPHeader, _HTTPRequest);
 
         }
 

@@ -280,20 +280,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     HTTPRequest HttpRequest = null;
                                     var CTS = new CancellationTokenSource();
 
-                                    if (!HTTPRequest.TryParse(TCPConnection.RemoteSocket,
-                                                              TCPConnection.LocalSocket,
-                                                              HTTPHeaderString.Trim(),
-                                                              TCPConnection.NetworkStream,
-                                                              CTS.Token,
-                                                              out HttpRequest))
+                                    try
+                                    {
+
+                                        HttpRequest = new HTTPRequest(CTS.Token,
+                                                                      TCPConnection.RemoteSocket,
+                                                                      TCPConnection.LocalSocket,
+                                                                      HTTPHeaderString.Trim(),
+                                                                      TCPConnection.NetworkStream);
+
+                                    }
+                                    catch (Exception e)
                                     {
 
                                         NotifyErrors(TCPConnection,
                                                      RequestTimestamp,
                                                      HTTPStatusCode.BadRequest,
-                                                     Error: "Invalid HTTP header!");
-
-                                        return;
+                                                     LastException:  e,
+                                                     Error:          "Invalid HTTP header!");
 
                                     }
 
@@ -324,13 +328,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                         TCPConnection.WriteToResponseStream(_HTTPResponse.RawHTTPHeader.ToUTF8Bytes());
 
-                                        if (_HTTPResponse.Content != null)
-                                            TCPConnection.WriteToResponseStream(_HTTPResponse.Content);
+                                        if (_HTTPResponse.HTTPBody != null)
+                                            TCPConnection.WriteToResponseStream(_HTTPResponse.HTTPBody);
 
-                                        else if (_HTTPResponse.ContentStream != null)
+                                        else if (_HTTPResponse.HTTPBodyStream != null)
                                         {
-                                            TCPConnection.WriteToResponseStream(_HTTPResponse.ContentStream);
-                                            _HTTPResponse.ContentStream.Dispose();
+                                            TCPConnection.WriteToResponseStream(_HTTPResponse.HTTPBodyStream);
+                                            _HTTPResponse.HTTPBodyStream.Dispose();
                                         }
 
                                         if (_HTTPResponse.Connection.ToLower().Contains("close"))

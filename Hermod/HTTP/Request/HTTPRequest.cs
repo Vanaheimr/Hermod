@@ -18,15 +18,12 @@
 #region Usings
 
 using System;
+using System.IO;
 using System.Web;
 using System.Linq;
-using System.Collections.Generic;
-using System.Text;
+using System.Threading;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using System.Net.Sockets;
-using System.Threading;
-using System.IO;
 
 #endregion
 
@@ -38,8 +35,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// </summary>
     public class HTTPRequest : AHTTPPDU
     {
-
-        #region Properties
 
         #region Non-HTTP header fields
 
@@ -55,23 +50,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             get
             {
                 return _CancellationToken;
-            }
-        }
-
-        #endregion
-
-        #region Timestamp
-
-        private readonly DateTime _Timestamp;
-
-        /// <summary>
-        /// The timestamp of the HTTP request generation.
-        /// </summary>
-        public DateTime Timestamp
-        {
-            get
-            {
-                return _Timestamp;
             }
         }
 
@@ -111,36 +89,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-
-        #region EntireRequestHeader
-
-        public String EntireRequestHeader
-        {
-            get
-            {
-                return HTTPRequestLine + Environment.NewLine + ConstructedHTTPHeader;
-            }
-        }
-
         #endregion
 
-        #region HTTPRequestLine
-
-        public String HTTPRequestLine
-        {
-            get
-            {
-                return HTTPMethod.ToString() + " " + this.FakeURIPrefix + this.URI + QueryString + " " + ProtocolName + "/" + ProtocolVersion;
-            }
-        }
-
-        #endregion
-
-        public HTTPContentType BestMatchingAcceptType { get; set; }
+        #region First PDU line
 
         #region HTTPMethod
 
-        private HTTPMethod _x_HTTPMethod;
+        private readonly HTTPMethod _HTTPMethod;
 
         /// <summary>
         /// The HTTP method.
@@ -149,10 +104,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
             get
             {
-                return _x_HTTPMethod;
-            }
-            protected set {
-                _x_HTTPMethod = value;
+                return _HTTPMethod;
             }
         }
 
@@ -160,33 +112,171 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region FakeURIPrefix
 
-        public String FakeURIPrefix { get; set; }
+        private String _FakeURIPrefix;
+
+        /// <summary>
+        /// Add this prefix to the URI before sending the request.
+        /// </summary>
+        public String FakeURIPrefix
+        {
+
+            get
+            {
+                return _FakeURIPrefix;
+            }
+
+            internal set
+            {
+                _FakeURIPrefix = value;
+            }
+
+        }
 
         #endregion
 
         #region URI
 
+        private readonly String _URI;
+
         /// <summary>
         /// The minimal URI (this means e.g. without the query string).
         /// </summary>
-        public String URI { get; protected set; }
+        public String URI
+        {
+            get
+            {
+                return _URI;
+            }
+        }
+
+        #endregion
+
+        #region ParsedURIParameters
+
+        private String[] _ParsedURIParameters;
+
+        /// <summary>
+        /// The parsed URI parameters of the best matching URI template.
+        /// Set by the HTTP server.
+        /// </summary>
+        public String[] ParsedURIParameters
+        {
+
+            get
+            {
+                return _ParsedURIParameters;
+            }
+
+            internal set
+            {
+                if (value != null)
+                    _ParsedURIParameters = value;
+            }
+
+        }
 
         #endregion
 
         #region QueryString
 
+        private readonly QueryString _QueryString;
+
         /// <summary>
         /// The HTTP query string.
         /// </summary>
-        public QueryString QueryString { get; protected set; }
+        public QueryString QueryString
+        {
+            get
+            {
+                return _QueryString;
+            }
+        }
 
         #endregion
 
-        public String[] ParsedURIParameters { get; set; }
+        #region BestMatchingAcceptType
+
+        private HTTPContentType _BestMatchingAcceptType;
+
+        /// <summary>
+        /// The best matching accept type.
+        /// Set by the HTTP server.
+        /// </summary>
+        public HTTPContentType BestMatchingAcceptType
+        {
+
+            get
+            {
+                return _BestMatchingAcceptType;
+            }
+
+            internal set
+            {
+                if (value != null)
+                    _BestMatchingAcceptType = value;
+            }
+
+        }
 
         #endregion
 
-        #region Request header fields
+        #region ProtocolName
+
+        private readonly String _ProtocolName;
+
+        /// <summary>
+        /// The HTTP protocol name field.
+        /// </summary>
+        public String ProtocolName
+        {
+            get
+            {
+                return _ProtocolName;
+            }
+        }
+
+        #endregion
+
+        #region ProtocolVersion
+
+        private readonly HTTPVersion _ProtocolVersion;
+
+        /// <summary>
+        /// The HTTP protocol version.
+        /// </summary>
+        public HTTPVersion ProtocolVersion
+        {
+            get
+            {
+                return _ProtocolVersion;
+            }
+        }
+
+        #endregion
+
+
+        #region EntireRequestHeader
+
+        /// <summary>
+        /// Construct the entire HTTP header.
+        /// </summary>
+        public String EntireRequestHeader
+        {
+            get
+            {
+
+                return HTTPMethod.ToString() + " " + this.FakeURIPrefix + this.URI + QueryString + " " + ProtocolName + "/" + ProtocolVersion +
+                       Environment.NewLine +
+                       ConstructedHTTPHeader;
+
+            }
+        }
+
+        #endregion
+
+        #endregion
+
+        #region Standard request header fields
 
         #region Accept
 
@@ -638,74 +728,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region HTTP Body
-
-        private readonly Stream _HTTPBodyStream;
-
-        public Stream HTTPBodyStream
-        {
-            get
-            {
-                return _HTTPBodyStream;
-            }
-        }
-
-        #endregion
-
-        #endregion
 
         #region Constructor(s)
 
-        #region HTTPRequest(RemoteSocket, LocalSocket, HTTPHeader, HTTPBodyStream, CancellationToken)
+        #region HTTPRequest(CancellationToken, RemoteSocket, LocalSocket, HTTPHeader, HTTPBodyStream)
 
         /// <summary>
-        /// Create a new http request header based on the given string representation.
+        /// Create a new http request based on the given string representation of a HTTP header and a HTTP body stream.
         /// </summary>
+        /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
         /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
         /// <param name="LocalSocket">The local TCP/IP socket.</param>
         /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
-        /// <param name="HTTPBodyStream">The networks stream of the HTTP request.</param>
-        /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
-        private HTTPRequest(IPSocket           RemoteSocket,
-                            IPSocket           LocalSocket,
-                            String             HTTPHeader,
-                            Stream             HTTPBodyStream,
-                            CancellationToken  CancellationToken)
+        /// <param name="HTTPBodyStream">The network stream of the HTTP request.</param>
+        public HTTPRequest(CancellationToken  CancellationToken,
+                           IPSocket           RemoteSocket,
+                           IPSocket           LocalSocket,
+                           String             HTTPHeader,
+                           Stream             HTTPBodyStream)
 
-            : this(HTTPHeader, null, CancellationToken)
+            : this(HTTPHeader)
 
         {
 
-            this._RemoteSocket    = RemoteSocket;
-            this._LocalSocket     = LocalSocket;
-            this._HTTPBodyStream  = HTTPBodyStream;
+            this._CancellationToken  = CancellationToken;
+            this._RemoteSocket       = RemoteSocket;
+            this._LocalSocket        = LocalSocket;
 
-            if (!HeaderFields.ContainsKey("Host"))
-                HeaderFields.Add("Host", "*");
+            if (!_HeaderFields.ContainsKey("Host"))
+                _HeaderFields.Add("Host", "*");
 
         }
 
         #endregion
 
-        #region HTTPRequest(HTTPHeader, Content, CancellationToken)
+        #region HTTPRequest(HTTPHeader)
 
         /// <summary>
         /// Create a new http request header based on the given string representation.
         /// </summary>
-        /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
-        private HTTPRequest(String             HTTPHeader,
-                            Byte[]             Content,
-                            CancellationToken  CancellationToken)
+        /// <param name="HTTPHeader">The string representation of a HTTP header.</param>
+        public HTTPRequest(String  HTTPHeader)
+
+            : base(HTTPHeader)
+
         {
-
-            this._CancellationToken  = CancellationToken;
-
-            this._Timestamp   = DateTime.Now;
-            this.QueryString  = new QueryString();
-            this.Content      = Content;
-
-            if (!TryParseHeader(HTTPHeader))
-                return;
 
             #region Parse HTTPMethod (first line of the http request)
 
@@ -713,122 +780,133 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             // e.g: PROPFIND /file/file Name HTTP/1.1
             if (_HTTPMethodHeader.Length != 3)
-            {
-                this.HTTPStatusCode = HTTPStatusCode.BadRequest;
-                return;
-            }
+                throw new Exception("Bad request");
 
             // Parse HTTP method
             // Propably not usefull to define here, as we can not send a response having an "Allow-header" here!
-            HTTPMethod _HTTPMethod;
-            this.HTTPMethod = (HTTPMethod.TryParseString(_HTTPMethodHeader[0], out _HTTPMethod)) ? _HTTPMethod : new HTTPMethod(_HTTPMethodHeader[0]);
+            this._HTTPMethod = (HTTPMethod.TryParseString(_HTTPMethodHeader[0], out _HTTPMethod))
+                                   ? _HTTPMethod
+                                   : new HTTPMethod(_HTTPMethodHeader[0]);
 
             #endregion
 
             #region Parse URL and QueryString (first line of the http request)
 
-            var RawUrl     = _HTTPMethodHeader[1];
-            var _ParsedURL = RawUrl.Split(_URLSeparator, 2, StringSplitOptions.None);
-            URI            = HttpUtility.UrlDecode(_ParsedURL[0]);
+            var RawUrl      = _HTTPMethodHeader[1];
+            var _ParsedURL  = RawUrl.Split(_URLSeparator, 2, StringSplitOptions.None);
+            this._URI       = HttpUtility.UrlDecode(_ParsedURL[0]);
 
-            if (URI == "" || URI == null)
-                URI = "/";
+            if (_URI == "" || _URI == null)
+                _URI = "/";
 
             // Parse QueryString after '?'
             if (RawUrl.IndexOf('?') > -1 && _ParsedURL[1].IsNeitherNullNorEmpty())
-                this.QueryString = new QueryString(_ParsedURL[1]);
+                this._QueryString = new QueryString(_ParsedURL[1]);
+            else
+                this._QueryString = new QueryString();
 
             #endregion
 
             #region Parse protocol name and -version (first line of the http request)
 
             var _ProtocolArray  = _HTTPMethodHeader[2].Split(_SlashSeparator, 2, StringSplitOptions.RemoveEmptyEntries);
-            ProtocolName        = _ProtocolArray[0].ToUpper();
+            this._ProtocolName  = _ProtocolArray[0].ToUpper();
 
             if (ProtocolName.ToUpper() != "HTTP")
-            {
-                this.HTTPStatusCode = HTTPStatusCode.InternalServerError;
-                return;
-            }
+                throw new Exception("Bad request");
 
             HTTPVersion _HTTPVersion = null;
+
             if (HTTPVersion.TryParseVersionString(_ProtocolArray[1], out _HTTPVersion))
-                ProtocolVersion = _HTTPVersion;
+                this._ProtocolVersion  = _HTTPVersion;
+
             if (ProtocolVersion != HTTPVersion.HTTP_1_0 && ProtocolVersion != HTTPVersion.HTTP_1_1)
-            {
-                this.HTTPStatusCode = HTTPStatusCode.HTTPVersionNotSupported;
-                return;
-            }
+                throw new Exception("HTTP version not supported");
 
             #endregion
 
-            this.HTTPStatusCode = HTTPStatusCode.OK;
+
+            #region Check Host header
+
+            // rfc 2616 - Section 19.6.1.1
+            // A client that sends an HTTP/1.1 request MUST send a Host header.
+
+            // rfc 2616 - Section 14.23
+            // All Internet-based HTTP/1.1 servers MUST respond with a 400 (Bad Request)
+            // status code to any HTTP/1.1 request message which lacks a Host header field.
+
+            // rfc 2616 - Section 5.2 The Resource Identified by a Request
+            // 1. If Request-URI is an absoluteURI, the host is part of the Request-URI.
+            //    Any Host header field value in the request MUST be ignored.
+            // 2. If the Request-URI is not an absoluteURI, and the request includes a
+            //    Host header field, the host is determined by the Host header field value.
+            // 3. If the host as determined by rule 1 or 2 is not a valid host on the server,
+            //    the response MUST be a 400 (Bad Request) error message. (Not valid for proxies?!)
+            if (!_HeaderFields.ContainsKey(HTTPHeaderField.Host.Name))
+                throw new Exception("The HTTP PDU does not have a HOST header!");
+
+            // rfc 2616 - 3.2.2
+            // If the port is empty or not given, port 80 is assumed.
+            var    HostHeader  = _HeaderFields[HTTPHeaderField.Host.Name].ToString().
+                                     Split(_ColonSeparator, StringSplitOptions.RemoveEmptyEntries).
+                                     Select(v => v.Trim()).
+                                     ToArray();
+
+            UInt16 HostPort    = 80;
+
+            if (HostHeader.Length == 1)
+                _HeaderFields[HTTPHeaderField.Host.Name] = _HeaderFields[HTTPHeaderField.Host.Name].ToString();// + ":80"; ":80" will cause side effects!
+
+            else if ((HostHeader.Length == 2 && !UInt16.TryParse(HostHeader[1], out HostPort)) || HostHeader.Length > 2)
+                throw new Exception("Bad request");
+
+            #endregion
+
+        }
+
+        #endregion
+
+        #region HTTPRequest(HTTPHeader, HTTPBody)
+
+        /// <summary>
+        /// Create a new http request header based on the given string representation.
+        /// </summary>
+        /// <param name="HTTPHeader">The string representation of a HTTP header.</param>
+        /// <param name="HTTPBody">The HTTP body as array of bytes.</param>
+        public HTTPRequest(String  HTTPHeader,
+                           Byte[]  HTTPBody)
+
+            : this(HTTPHeader)
+
+        {
+
+            base.HTTPBody  = HTTPBody;
+
+        }
+
+        #endregion
+
+        #region HTTPRequest(HTTPHeader, HTTPBodyStream)
+
+        /// <summary>
+        /// Create a new http request header based on the given string representation.
+        /// </summary>
+        /// <param name="HTTPHeader">The string representation of a HTTP header.</param>
+        /// <param name="HTTPBodyStream">The HTTP body as stream of bytes.</param>
+        public HTTPRequest(String  HTTPHeader,
+                           Stream  HTTPBodyStream)
+
+            : this(HTTPHeader)
+
+        {
+
+            base.HTTPBodyStream = HTTPBodyStream;
 
         }
 
         #endregion
 
         #endregion
-
-
-        public static Boolean TryParse(String             HTTPRequestString,
-                                       CancellationToken  CancellationToken,
-                                       out HTTPRequest    HTTPRequest)
-        {
-
-            HTTPRequest = new HTTPRequest(HTTPRequestString, null, CancellationToken);
-
-            return true;
-
-        }
-
-        public static Boolean TryParse(String             HTTPHeader,
-                                       Byte[]             HTTPBody,
-                                       CancellationToken  CancellationToken,
-                                       out HTTPRequest    HTTPRequest)
-        {
-
-            HTTPRequest = new HTTPRequest(HTTPHeader, HTTPBody, CancellationToken);
-
-            return true;
-
-        }
-
-        public static Boolean TryParse(IPSocket           RemoteSocket,
-                                       IPSocket           LocalSocket,
-                                       String             HTTPHeader,
-                                       Stream             HTTPBodyStream,
-                                       CancellationToken  CancellationToken,
-                                       out HTTPRequest    HTTPRequest)
-        {
-
-            HTTPRequest = new HTTPRequest(RemoteSocket, LocalSocket, HTTPHeader, HTTPBodyStream, CancellationToken);
-
-            return true;
-
-        }
-
-
-        //ToDo: Fix me for slow clients!
-        public Boolean TryReadHTTPBody()
-        {
-
-            if (Content != null)
-                return true;
-
-            var Buffer  = new Byte[(Int32) ContentLength.Value];
-            Thread.Sleep(500);
-            var Read    = _HTTPBodyStream.Read(Buffer, 0, (Int32) ContentLength.Value);
-
-            if (Read == (Int32) ContentLength.Value)
-            {
-                Content = Buffer;
-                return true;
-            }
-
-            return false;
-
-        }
 
 
         #region (override) ToString()

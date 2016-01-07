@@ -65,10 +65,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Request.TryReadHTTPBody() == false)
                 return new HTTPResult<String>(Request, HTTPStatusCode.BadRequest);
 
-            if (Request.Content == null || Request.Content.Length == 0)
+            if (Request.HTTPBody == null || Request.HTTPBody.Length == 0)
                 return new HTTPResult<String>(Request, HTTPStatusCode.BadRequest);
 
-            var RequestBodyString = Request.Content.ToUTF8String().Trim();
+            var RequestBodyString = Request.HTTPBody.ToUTF8String().Trim();
 
             if (RequestBodyString.IsNullOrEmpty())
                 return new HTTPResult<String>(Request, HTTPStatusCode.BadRequest);

@@ -18,7 +18,8 @@
 #region Usings
 
 using System;
-using org.GraphDefined.Vanaheimr.Hermod;
+
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -72,15 +73,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <returns>True if the value could be parsed; False otherwise.</returns>
         public static Boolean NullableUInt64(String String, out Object Object)
         {
-            
+
             UInt64 Value;
-            
+
             if (UInt64.TryParse(String, out Value))
             {
                 Object = Value;
                 return true;
             }
-            
+
             Object = null;
             return false;
 
@@ -109,38 +110,70 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Name
 
+        private readonly String _Name;
+
         /// <summary>
         /// The name of this HTTP request field
         /// </summary>
-        public String Name { get; private set; }
+        public String Name
+        {
+            get
+            {
+                return _Name;
+            }
+        }
 
         #endregion
 
         #region Type
 
+        private readonly Type _Type;
+
         /// <summary>
         /// The C# type of this HTTP header field.
         /// </summary>
-        public Type Type { get; private set; }
+        public Type Type
+        {
+            get
+            {
+                return _Type;
+            }
+        }
 
         #endregion
 
         #region HeaderFieldType
 
+        private readonly HeaderFieldType _HeaderFieldType;
+
         /// <summary>
         /// The type of a HTTP header field.
         /// </summary>
-        public HeaderFieldType HeaderFieldType { get; private set; }
+        public HeaderFieldType HeaderFieldType
+        {
+            get
+            {
+                return _HeaderFieldType;
+            }
+        }
 
         #endregion
 
         #region RequestPathSemantic
 
+        private readonly RequestPathSemantic _RequestPathSemantic;
+
         /// <summary>
         /// Wether a header field has and end-to-end or
         /// an hop-to-hop semantic.
         /// </summary>
-        public RequestPathSemantic RequestPathSemantic { get; private set; }
+        public RequestPathSemantic RequestPathSemantic
+        {
+            get
+            {
+                return _RequestPathSemantic;
+            }
+        }
 
         #endregion
 
@@ -151,10 +184,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public delegate Boolean StringParserDelegate(String arg1, out Object arg2);
 
+        private readonly StringParserDelegate _StringParser;
+
         /// <summary>
         /// A delegate to parse the value of the header field from a string.
         /// </summary>
-        public StringParserDelegate StringParser { get; private set; }
+        public StringParserDelegate StringParser
+        {
+            get
+            {
+                return _StringParser;
+            }
+        }
 
         #endregion
 
@@ -165,18 +206,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public delegate String ValueSerializerDelegate(Object arg1);
 
+        private readonly ValueSerializerDelegate _ValueSerializer;
+
         /// <summary>
         /// A delegate to serialize the value of the header field to a string.
         /// </summary>
-        public ValueSerializerDelegate ValueSerializer { get; private set; }
+        public ValueSerializerDelegate ValueSerializer
+        {
+            get
+            {
+                return _ValueSerializer;
+            }
+        }
 
         #endregion
 
         #endregion
 
         #region Constructor(s)
-
-        #region HTTPHeaderField(Name, Type, HeaderFieldType, RequestPathSemantic, StringParser = null, ValueSerializer = null)
 
         /// <summary>
         /// Creates a new HTTP header field.
@@ -187,45 +234,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RequestPathSemantic">Wether a header field has and end-to-end or an hop-to-hop semantic.</param>
         /// <param name="StringParser">Parse this HTTPHeaderField from a string.</param>
         /// <param name="ValueSerializer">A delegate to serialize the value of the header field to a string.</param>
-        public HTTPHeaderField(String                  Name,
-                               Type                    Type,
-                               HeaderFieldType         HeaderFieldType,
-                               RequestPathSemantic     RequestPathSemantic,
-                               StringParserDelegate    StringParser    = null,
-                               ValueSerializerDelegate ValueSerializer = null)
+        public HTTPHeaderField(String                   Name,
+                               Type                     Type,
+                               HeaderFieldType          HeaderFieldType,
+                               RequestPathSemantic      RequestPathSemantic,
+                               StringParserDelegate     StringParser    = null,
+                               ValueSerializerDelegate  ValueSerializer = null)
 
         {
 
             #region Initial checks
 
-            if (Name == null && Name == "")
-                throw new ArgumentNullException("The given name of the header field must not be null or its length zero!");
+            if (Name.IsNullOrEmpty())
+                throw new ArgumentNullException("Name",  "The given name of the header field must not be null or its length zero!");
 
             if (Type == null)
-                throw new ArgumentNullException("The given type of the header field value must not be null or its length zero!");
+                throw new ArgumentNullException("Type",  "The given type of the header field value must not be null or its length zero!");
 
             #endregion
 
-            this.Name                = Name;
-            this.Type                = Type;
-            this.HeaderFieldType     = HeaderFieldType;
-            this.RequestPathSemantic = RequestPathSemantic;
-            this.StringParser        = StringParser;
-            this.ValueSerializer     = ValueSerializer;
-
-            #region Set default StringParser and ValueSerializer
-
-            if (this.StringParser == null)
-                StringParser = (String s, out Object o) => { o = s; return true; };
-
-            if (this.ValueSerializer == null)
-                ValueSerializer = (o) => o.ToString();
-
-            #endregion
+            this._Name                 = Name;
+            this._Type                 = Type;
+            this._HeaderFieldType      = HeaderFieldType;
+            this._RequestPathSemantic  = RequestPathSemantic;
+            this._StringParser         = StringParser    != null ? StringParser    : (String s, out Object o) => { o = s; return true; };
+            this._ValueSerializer      = ValueSerializer != null ? ValueSerializer : ValueSerializer = (o) => o.ToString();
 
         }
-
-        #endregion
 
         #endregion
 

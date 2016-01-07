@@ -208,8 +208,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
                             if (HttpResponseTask.Result                == null              ||
                                 HttpResponseTask.Result.HTTPStatusCode != HTTPStatusCode.OK ||
-                                HttpResponseTask.Result.Content        == null              ||
-                                HttpResponseTask.Result.Content.Length == 0)
+                                HttpResponseTask.Result.HTTPBody        == null              ||
+                                HttpResponseTask.Result.HTTPBody.Length == 0)
                             {
 
                                 var OnHTTPErrorLocal = OnHTTPError;
@@ -225,7 +225,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                             try
                             {
 
-                                var SOAPXML = XDocument.Parse(HttpResponseTask.Result.Content.ToUTF8String()).
+                                var SOAPXML = XDocument.Parse(HttpResponseTask.Result.HTTPBody.ToUTF8String()).
                                                         Root.
                                                         Element(NS.SOAPEnvelope + "Body").
                                                         Descendants().

@@ -380,9 +380,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPResponse _HTTPResponse = null;
 
-                try
-                {
-
                     #region Data
 
                     var HTTPHeaderBytes  = new Byte[0];
@@ -483,12 +480,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Environment.NewLine).
                                      ToUTF8Bytes());
 
-                    var RequestBodyLength = HTTPRequest.Content == null
+                    var RequestBodyLength = HTTPRequest.HTTPBody == null
                                                 ? (Int32) HTTPRequest.ContentLength
-                                                : Math.Min((Int32) HTTPRequest.ContentLength, HTTPRequest.Content.Length);
+                                                : Math.Min((Int32) HTTPRequest.ContentLength, HTTPRequest.HTTPBody.Length);
 
                     if (RequestBodyLength > 0)
-                        HTTPStream.Write(HTTPRequest.Content, 0, RequestBodyLength);
+                        HTTPStream.Write(HTTPRequest.HTTPBody, 0, RequestBodyLength);
 
                     var _MemoryStream  = new MemoryStream();
                     var _Buffer        = new Byte[10485760]; // 10 MBytes, a smaller value leads to read errors!
@@ -586,7 +583,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (HTTPHeaderBytes.Length == 0)
                         throw new ApplicationException(DateTime.Now + " Could not find the end of the HTTP protocol header!");
 
-                    _HTTPResponse = new HTTPResponse(HTTPRequest, DateTime.Now, HTTPHeaderBytes.ToUTF8String());
+                    _HTTPResponse = new HTTPResponse(HTTPHeaderBytes.ToUTF8String(), HTTPRequest);
 
                     #endregion
 
@@ -600,7 +597,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         _MemoryStream.Seek(HTTPHeaderBytes.Length + 4, SeekOrigin.Begin);
                         var _Read = _MemoryStream.Read(_Buffer, 0, _Buffer.Length);
                         var _StillToRead = (Int32) _HTTPResponse.ContentLength.Value - _Read;
-                        _HTTPResponse.ContentStream.Write(_Buffer, 0, _Read);
+                        _HTTPResponse.HTTPBodyStream.Write(_Buffer, 0, _Read);
                         var _CurrentBufferSize = 0;
 
                         do
@@ -610,7 +607,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             {
                                 _CurrentBufferSize = Math.Min(_Buffer.Length, (Int32) _StillToRead);
                                 _Read = HTTPStream.Read(_Buffer, 0, _CurrentBufferSize);
-                                _HTTPResponse.ContentStream.Write(_Buffer, 0, _Read);
+                                _HTTPResponse.HTTPBodyStream.Write(_Buffer, 0, _Read);
                                 _StillToRead -= _Read;
                             }
 
@@ -638,7 +635,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                             _MemoryStream.Seek(HTTPHeaderBytes.Length + 4, SeekOrigin.Begin);
                             _HTTPResponse.NewContentStream();
-                            _HTTPResponse.ContentStream.Write(_Buffer, 0, _MemoryStream.Read(_Buffer, 0, _Buffer.Length));
+                            _HTTPResponse.HTTPBodyStream.Write(_Buffer, 0, _MemoryStream.Read(_Buffer, 0, _Buffer.Length));
 
                             var Retries = 0;
 
@@ -647,7 +644,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                 while (TCPStream.DataAvailable)
                                 {
-                                    _HTTPResponse.ContentStream.Write(_Buffer, 0, HTTPStream.Read(_Buffer, 0, _Buffer.Length));
+                                    _HTTPResponse.HTTPBodyStream.Write(_Buffer, 0, HTTPStream.Read(_Buffer, 0, _Buffer.Length));
                                     Retries = 0;
                                 }
 
@@ -661,7 +658,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                 //Debug.WriteLine(DateTime.Now + " Chunked encoding detected");
 
-                                var TEContent        = ((MemoryStream) _HTTPResponse.ContentStream).ToArray();
+                                var TEContent        = ((MemoryStream) _HTTPResponse.HTTPBodyStream).ToArray();
                                 var TEString         = TEContent.ToUTF8String();
                                 var ReadBlockLength  = true;
                                 var TEMemStram       = new MemoryStream();
@@ -763,12 +760,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #endregion
 
-                }
-                catch (Exception e)
-                {
-                    Debug.WriteLine("[" + DateTime.Now + "] HTTPClient exception: " + e.Message);
-                    _HTTPResponse = new HTTPResponse(e);
-                }
 
                 return _HTTPResponse;
 
