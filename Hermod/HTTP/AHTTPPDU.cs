@@ -77,6 +77,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region CancellationToken
+
+        private readonly CancellationToken _CancellationToken;
+
+        /// <summary>
+        /// The cancellation token.
+        /// </summary>
+        public CancellationToken CancellationToken
+        {
+            get
+            {
+                return _CancellationToken;
+            }
+        }
+
+        #endregion
+
+        #region RemoteSocket
+
+        private readonly IPSocket _RemoteSocket;
+
+        /// <summary>
+        /// The remote TCP/IP socket.
+        /// </summary>
+        public IPSocket RemoteSocket
+        {
+            get
+            {
+                return _RemoteSocket;
+            }
+        }
+
+        #endregion
+
+        #region LocalSocket
+
+        protected readonly IPSocket _LocalSocket;
+
+        /// <summary>
+        /// The local TCP/IP socket.
+        /// </summary>
+        public IPSocket LocalSocket
+        {
+            get
+            {
+                return _LocalSocket;
+            }
+        }
+
+        #endregion
+
+
         #region RawHTTPHeader
 
         private readonly String _RawHTTPHeader;
@@ -337,17 +389,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public Byte[] HTTPBody
         {
-
             get
             {
                 return _HTTPBody;
             }
-
-            protected set
-            {
-                _HTTPBody = value;
-            }
-
         }
 
         #endregion
@@ -361,17 +406,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public Stream HTTPBodyStream
         {
-
             get
             {
                 return _HTTPBodyStream;
             }
-
-            protected set
-            {
-                _HTTPBodyStream = value;
-            }
-
         }
 
         #endregion
@@ -400,15 +438,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Creates a new HTTP header.
         /// </summary>
-        /// <param name="HTTPHeader">The string representation of a HTTP header.</param>
-        public AHTTPPDU(String HTTPHeader)
+        /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
+        /// <param name="LocalSocket">The local TCP/IP socket.</param>
+        /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
+        /// <param name="HTTPBody">The HTTP body as an array of bytes.</param>
+        /// <param name="HTTPBodyStream">The HTTP body as an stream of bytes.</param>
+        /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
+        public AHTTPPDU(IPSocket            RemoteSocket,
+                        IPSocket            LocalSocket,
+                        String              HTTPHeader,
+                        Byte[]              HTTPBody           = null,
+                        Stream              HTTPBodyStream     = null,
+                        CancellationToken?  CancellationToken  = null)
 
             : this()
 
         {
 
-            this._Timestamp      = DateTime.Now;
-            this._RawHTTPHeader  = HTTPHeader.Trim();
+            this._Timestamp          = DateTime.Now;
+            this._RemoteSocket       = RemoteSocket;
+            this._LocalSocket        = LocalSocket;
+            this._RawHTTPHeader      = HTTPHeader.Trim();
+            this._HTTPBody           = HTTPBody;
+            this._HTTPBodyStream     = HTTPBodyStream;
+            this._CancellationToken  = CancellationToken.HasValue ? CancellationToken.Value : new CancellationTokenSource().Token;
 
             #region Process first line...
 

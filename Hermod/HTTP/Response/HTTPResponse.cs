@@ -134,8 +134,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public class HTTPResponse : AHTTPPDU
     {
 
-        #region Properties
-
         #region Non-http header fields
 
         #region HTTPRequest
@@ -166,6 +164,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region First PDU line
+
         #region HTTPStatusCode
 
         private readonly HTTPStatusCode _HTTPStatusCode;
@@ -183,7 +183,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Response header fields
+        #endregion
+
+        #region Standard response header fields
 
         #region Age
 
@@ -343,13 +345,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Non-standard response header fields
+
         #endregion
+
 
         #region Constructor(s)
 
         // remove me!
         public HTTPResponse()
         { }
+
+        #region (private) HTTPResponse(...)
+
+        /// <summary>
+        /// Parse the given HTTP response header.
+        /// </summary>
+        /// <param name="HTTPRequest">The HTTP request for this HTTP response.</param>
+        /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
+        /// <param name="LocalSocket">The local TCP/IP socket.</param>
+        /// <param name="HTTPHeader">A valid string representation of a http response header.</param>
+        /// <param name="HTTPBody">The HTTP body as an array of bytes.</param>
+        /// <param name="HTTPBodyStream">The HTTP body as an stream of bytes.</param>
+        /// <param name="CancellationToken">A token to cancel the HTTP response processing.</param>
+        private HTTPResponse(HTTPRequest         HTTPRequest,
+                             IPSocket            RemoteSocket,
+                             IPSocket            LocalSocket,
+                             String              HTTPHeader,
+                             Byte[]              HTTPBody           = null,
+                             Stream              HTTPBodyStream     = null,
+                             CancellationToken?  CancellationToken  = null)
+
+            : base(RemoteSocket, LocalSocket, HTTPHeader, HTTPBody, HTTPBodyStream, CancellationToken)
+
+        {
+
+            this._HTTPRequest  = HTTPRequest;
+
+            #region Parse HTTP status code
+
+            var _StatusCodeLine = FirstPDULine.Split(' ');
+
+            if (_StatusCodeLine.Length < 3)
+                throw new Exception("Bad request");
+
+            this._HTTPStatusCode = HTTPStatusCode.ParseString(_StatusCodeLine[1]);
+
+            #endregion
+
+        }
+
+        #endregion
 
         #region HTTPResponse(HTTPResponseHeader, HTTPRequest)
 
@@ -361,12 +407,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPResponse(String       HTTPResponseHeader,
                             HTTPRequest  HTTPRequest)
 
-            : base(HTTPResponseHeader)
+            : this(HTTPRequest, null, null, HTTPResponseHeader, null, new MemoryStream())
 
         {
 
-            this._HTTPRequest    = HTTPRequest;
-            base.HTTPBodyStream  = new MemoryStream();
+            this._HTTPRequest  = HTTPRequest;
 
             #region Parse HTTP status code
 
@@ -389,19 +434,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Parse the given HTTP response header.
         /// </summary>
         /// <param name="HTTPResponseHeader">A string representation of a HTTP response header.</param>
-        /// <param name="HTTPResponseBody">The response body as array of bytes.</param>
+        /// <param name="HTTPResponseBody">The HTTP body as an array of bytes.</param>
         /// <param name="HTTPRequest">The HTTP request for this HTTP response.</param>
         public HTTPResponse(String       HTTPResponseHeader,
                             Byte[]       HTTPResponseBody,
                             HTTPRequest  HTTPRequest)
 
-            : this(HTTPResponseHeader, HTTPRequest)
+            : this(HTTPRequest, null, null, HTTPResponseHeader, HTTPResponseBody)
 
-        {
-
-            this.HTTPBody      = HTTPResponseBody;
-
-        }
+        { }
 
         #endregion
 
@@ -411,19 +452,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Parse the given HTTP response header.
         /// </summary>
         /// <param name="HTTPResponseHeader">A string representation of a HTTP response header.</param>
-        /// <param name="HTTPResponseBodyStream">The response body as stream of bytes.</param>
+        /// <param name="HTTPResponseBodyStream">The HTTP body as an stream of bytes.</param>
         /// <param name="HTTPRequest">The HTTP request for this HTTP response.</param>
         public HTTPResponse(String       HTTPResponseHeader,
                             Stream       HTTPResponseBodyStream,
                             HTTPRequest  HTTPRequest)
 
-            : this(HTTPResponseHeader, HTTPRequest)
+            : this(HTTPRequest, null, null, HTTPResponseHeader, null, HTTPResponseBodyStream)
 
-        {
-
-            base.HTTPBodyStream  = HTTPBodyStream;
-
-        }
+        { }
 
         #endregion
 

@@ -36,61 +36,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public class HTTPRequest : AHTTPPDU
     {
 
-        #region Non-HTTP header fields
-
-        #region CancellationToken
-
-        private readonly CancellationToken _CancellationToken;
-
-        /// <summary>
-        /// The cancellation token.
-        /// </summary>
-        public CancellationToken CancellationToken
-        {
-            get
-            {
-                return _CancellationToken;
-            }
-        }
-
-        #endregion
-
-        #region RemoteSocket
-
-        private readonly IPSocket _RemoteSocket;
-
-        /// <summary>
-        /// The remote TCP/IP socket.
-        /// </summary>
-        public IPSocket RemoteSocket
-        {
-            get
-            {
-                return _RemoteSocket;
-            }
-        }
-
-        #endregion
-
-        #region LocalSocket
-
-        private readonly IPSocket _LocalSocket;
-
-        /// <summary>
-        /// The local TCP/IP socket.
-        /// </summary>
-        public IPSocket LocalSocket
-        {
-            get
-            {
-                return _LocalSocket;
-            }
-        }
-
-        #endregion
-
-        #endregion
-
         #region First PDU line
 
         #region HTTPMethod
@@ -728,49 +673,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-
         #region Constructor(s)
 
-        #region HTTPRequest(CancellationToken, RemoteSocket, LocalSocket, HTTPHeader, HTTPBodyStream)
-
-        /// <summary>
-        /// Create a new http request based on the given string representation of a HTTP header and a HTTP body stream.
-        /// </summary>
-        /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
-        /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
-        /// <param name="LocalSocket">The local TCP/IP socket.</param>
-        /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
-        /// <param name="HTTPBodyStream">The network stream of the HTTP request.</param>
-        public HTTPRequest(CancellationToken  CancellationToken,
-                           IPSocket           RemoteSocket,
-                           IPSocket           LocalSocket,
-                           String             HTTPHeader,
-                           Stream             HTTPBodyStream)
-
-            : this(HTTPHeader)
-
-        {
-
-            this._CancellationToken  = CancellationToken;
-            this._RemoteSocket       = RemoteSocket;
-            this._LocalSocket        = LocalSocket;
-
-            if (!_HeaderFields.ContainsKey("Host"))
-                _HeaderFields.Add("Host", "*");
-
-        }
-
-        #endregion
-
-        #region HTTPRequest(HTTPHeader)
+        #region (private) HTTPRequest(...)
 
         /// <summary>
         /// Create a new http request header based on the given string representation.
         /// </summary>
-        /// <param name="HTTPHeader">The string representation of a HTTP header.</param>
-        public HTTPRequest(String  HTTPHeader)
+        /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
+        /// <param name="LocalSocket">The local TCP/IP socket.</param>
+        /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
+        /// <param name="HTTPBody">The HTTP body as an array of bytes.</param>
+        /// <param name="HTTPBodyStream">The HTTP body as an stream of bytes.</param>
+        /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
+        private HTTPRequest(IPSocket            RemoteSocket,
+                            IPSocket            LocalSocket,
+                            String              HTTPHeader,
+                            Byte[]              HTTPBody           = null,
+                            Stream              HTTPBodyStream     = null,
+                            CancellationToken?  CancellationToken  = null)
 
-            : base(HTTPHeader)
+            : base(RemoteSocket, LocalSocket, HTTPHeader, HTTPBody, HTTPBodyStream, CancellationToken)
 
         {
 
@@ -866,23 +789,61 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region HTTPRequest(CancellationToken, RemoteSocket, LocalSocket, HTTPHeader, HTTPBodyStream)
+
+        /// <summary>
+        /// Create a new http request based on the given string representation of a HTTP header and a HTTP body stream.
+        /// </summary>
+        /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
+        /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
+        /// <param name="LocalSocket">The local TCP/IP socket.</param>
+        /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
+        /// <param name="HTTPBodyStream">The HTTP body as an stream of bytes.</param>
+        public HTTPRequest(CancellationToken  CancellationToken,
+                           IPSocket           RemoteSocket,
+                           IPSocket           LocalSocket,
+                           String             HTTPHeader,
+                           Stream             HTTPBodyStream)
+
+            : this(RemoteSocket, LocalSocket, HTTPHeader, null, HTTPBodyStream, CancellationToken)
+
+        {
+
+            // HTTP/1.0 might come without any host header
+            if (!_HeaderFields.ContainsKey("Host"))
+                _HeaderFields.Add("Host", "*");
+
+        }
+
+        #endregion
+
+        #region HTTPRequest(HTTPHeader)
+
+        /// <summary>
+        /// Create a new http request header based on the given string representation.
+        /// </summary>
+        /// <param name="HTTPHeader">The string representation of a HTTP header.</param>
+        public HTTPRequest(String HTTPHeader)
+
+            : this(null, null, HTTPHeader)
+
+        { }
+
+        #endregion
+
         #region HTTPRequest(HTTPHeader, HTTPBody)
 
         /// <summary>
         /// Create a new http request header based on the given string representation.
         /// </summary>
         /// <param name="HTTPHeader">The string representation of a HTTP header.</param>
-        /// <param name="HTTPBody">The HTTP body as array of bytes.</param>
+        /// <param name="HTTPBody">The HTTP body as an array of bytes.</param>
         public HTTPRequest(String  HTTPHeader,
                            Byte[]  HTTPBody)
 
-            : this(HTTPHeader)
+            : this(null, null, HTTPHeader, HTTPBody)
 
-        {
-
-            base.HTTPBody  = HTTPBody;
-
-        }
+        { }
 
         #endregion
 
@@ -892,17 +853,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Create a new http request header based on the given string representation.
         /// </summary>
         /// <param name="HTTPHeader">The string representation of a HTTP header.</param>
-        /// <param name="HTTPBodyStream">The HTTP body as stream of bytes.</param>
+        /// <param name="HTTPBodyStream">The HTTP body as an stream of bytes.</param>
         public HTTPRequest(String  HTTPHeader,
                            Stream  HTTPBodyStream)
 
-            : this(HTTPHeader)
-
-        {
-
-            base.HTTPBodyStream = HTTPBodyStream;
-
-        }
+            : this(null, null, HTTPHeader, null, HTTPBodyStream)
+        { }
 
         #endregion
 
