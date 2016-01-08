@@ -578,7 +578,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #endregion
 
-                    #region Copy HTTP header data
+                    #region Copy HTTP header data and create HTTP response
 
                     if (HTTPHeaderBytes.Length == 0)
                         throw new ApplicationException(DateTime.Now + " Could not find the end of the HTTP protocol header!");

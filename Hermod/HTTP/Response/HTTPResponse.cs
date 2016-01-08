@@ -45,8 +45,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public  readonly T              Content;
 
-        public  readonly Exception      Exception;
-
+        public  readonly Exception      _Exception;
 
         private readonly Boolean        IsFault;
 
@@ -57,7 +56,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
             get
             {
-                return Exception != null && !IsFault;
+                return _Exception != null && !IsFault;
             }
         }
 
@@ -74,53 +73,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.HttpResponse  = HttpResponse;
             this.Content       = Content;
             this.IsFault       = IsFault;
-            this.Exception     = null;
+            this._Exception     = null;
         }
 
-        public HTTPResponse()
-        {
-            this.HttpResponse  = HTTPResponseBuilder.OK();
-            this.Content       = default(T);
-            this.IsFault       = false;
-            this.Exception     = null;
-        }
-
-        public HTTPResponse(T Content)
+        private HTTPResponse(T Content)
         {
             this.HttpResponse  = HTTPResponseBuilder.OK();
             this.Content       = Content;
             this.IsFault       = false;
-            this.Exception     = null;
+            this._Exception     = null;
         }
 
-        public HTTPResponse(Exception e)
+        private HTTPResponse(Exception e)
         {
             this.HttpResponse  = null;
             this.Content       = default(T);
             this.IsFault       = true;
-            this.Exception     = e;
-        }
-
-        public HTTPResponse(HTTPResponse  HttpResponse,
-                            Exception     e)
-        {
-            this.HttpResponse  = HttpResponse;
-            this.Content       = default(T);
-            this.IsFault       = true;
-            this.Exception     = e;
-        }
-
-        public HTTPResponse(HTTPResponse  HttpResponse,
-                            T             Content,
-                            Exception     e)
-        {
-            this.HttpResponse  = HttpResponse;
-            this.Content       = Content;
-            this.IsFault       = true;
-            this.Exception     = e;
+            this._Exception     = e;
         }
 
         #endregion
+
+
+        public static HTTPResponse<T> OK(T Content)
+        {
+            return new HTTPResponse<T>(Content);
+        }
+
+        public static HTTPResponse<T> Exception(Exception e)
+        {
+            return new HTTPResponse<T>(e);
+        }
 
     }
 
@@ -133,8 +116,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// </summary>
     public class HTTPResponse : AHTTPPDU
     {
-
-        #region Non-http header fields
 
         #region HTTPRequest
 
@@ -150,17 +131,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return _HTTPRequest;
             }
         }
-
-        #endregion
-
-        #region CancellationToken
-
-        /// <summary>
-        /// The cancellation token.
-        /// </summary>
-        public CancellationToken CancellationToken { get; set; }
-
-        #endregion
 
         #endregion
 
@@ -353,7 +323,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Constructor(s)
 
         // remove me!
-        public HTTPResponse()
+        internal HTTPResponse()
         { }
 
         #region (private) HTTPResponse(...)
