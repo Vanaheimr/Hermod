@@ -481,8 +481,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                          Boolean       AutoStart        = true)
         {
 
-            var SendMailTask = new Task<MailSentStatus>(() =>
-            {
+            var SendMailTask = new Task<MailSentStatus>(() => {
+
+                lock (this) {
 
                 switch (Connect())
                 {
@@ -877,7 +878,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     default:
                         return MailSentStatus.failed;
 
-                }
+                }}
 
             });
 
