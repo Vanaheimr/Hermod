@@ -199,6 +199,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
+        public IEnumerable<String> GetStrings(String Parameter)
+        {
+
+            List<String> Value = null;
+
+            if (_Dictionary.TryGetValue(Parameter, out Value))
+                if (Value != null && Value.Count > 0)
+                    return Value.SelectMany(item => item.Split(new Char[] { ',' }, StringSplitOptions.RemoveEmptyEntries));
+
+            return new List<String>();
+
+        }
+
         public Int32? GetInt32(String Parameter)
         {
 
