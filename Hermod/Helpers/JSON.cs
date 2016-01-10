@@ -30,26 +30,43 @@ using System.Text;
 namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
+    /// <summary>
+    /// Extention methods for JSON objects.
+    /// </summary>
     public static class JSONObject
     {
 
-        #region Create(params Properties)
-
-        public static JObject Create(params JProperty[] Properties)
+        /// <summary>
+        /// Create a JSON object using the given JSON properties, but filter null values.
+        /// </summary>
+        /// <param name="JProperties">JSON properties.</param>
+        public static JObject Create(params JProperty[] JProperties)
         {
-
-            var FilteredData = Properties.Where(p => p != null).ToArray();
-
-            return (FilteredData.Length > 0)
-                       ? new JObject(FilteredData)
-                       : new JObject();
-
+            return new JObject(JProperties.Where(jproperty => jproperty != null));
         }
-
-        #endregion
 
     }
 
+    /// <summary>
+    /// Extention methods for JSON arrays.
+    /// </summary>
+    public static class JSONArray
+    {
+
+        /// <summary>
+        /// Create a JSON array using the given JSON objects, but filter null values.
+        /// </summary>
+        /// <param name="JObjects">JSON objects.</param>
+        public static JArray Create(params JObject[] JObjects)
+        {
+            return new JArray(JObjects.Where(jobject => jobject != null));
+        }
+
+    }
+
+    /// <summary>
+    /// Extention methods for JSON representations of common classes.
+    /// </summary>
     public static class JSON
     {
 
@@ -96,33 +113,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region ToJSON(this I18N)
+        #region ToJSON(this I18NString)
 
         /// <summary>
         /// Create a JSON representation of the given internationalized string.
         /// </summary>
-        /// <param name="I18N">An internationalized string.</param>
-        public static JObject ToJSON(this I18NString I18N)
+        /// <param name="I18NString">An internationalized string.</param>
+        public static JObject ToJSON(this I18NString I18NString)
         {
-            return new JObject(I18N.SafeSelect(i18n => new JProperty(i18n.Language.ToString(), i18n.Text)));
+
+            if (I18NString == null || !I18NString.Any())
+                return null;
+
+            return new JObject(I18NString.SafeSelect(i18n => new JProperty(i18n.Language.ToString(), i18n.Text)));
+
         }
 
         #endregion
 
-        #region ToJSON(this I18N, JPropertyKey)
+        #region ToJSON(this I18NString, JPropertyKey)
 
         /// <summary>
         /// Create a JSON representation of the given internationalized string.
         /// </summary>
-        /// <param name="I18N">An internationalized string.</param>
+        /// <param name="I18NString">An internationalized string.</param>
         /// <param name="JPropertyKey">The name of the JSON property key.</param>
-        public static JProperty ToJSON(this I18NString I18N, String JPropertyKey)
+        public static JProperty ToJSON(this I18NString I18NString, String JPropertyKey)
         {
 
-            if (I18N.Any())
-                return new JProperty(JPropertyKey, I18N.ToJSON());
-            else
+            if (I18NString == null || !I18NString.Any())
                 return null;
+
+            return new JProperty(JPropertyKey, I18NString.ToJSON());
 
         }
 
