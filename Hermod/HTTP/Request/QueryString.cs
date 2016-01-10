@@ -199,14 +199,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
-        public IEnumerable<String> GetStrings(String Parameter)
+        public IEnumerable<String> GetStrings(String Parameter, Boolean ToLowerCase = false)
         {
 
-            List<String> Value = null;
+            List<String>         Value   = null;
+            Func<String, String> ToLower = null;
+
+            if (ToLowerCase)
+                ToLower = s => s.ToLower();
+            else
+                ToLower = s => s;
 
             if (_Dictionary.TryGetValue(Parameter, out Value))
                 if (Value != null && Value.Count > 0)
-                    return Value.SelectMany(item => item.Split(new Char[] { ',' }, StringSplitOptions.RemoveEmptyEntries));
+                    return Value.SelectMany(item => item.Split(new Char[] { ',' }, StringSplitOptions.RemoveEmptyEntries).
+                                                         Select(s => ToLower(s)));
 
             return new List<String>();
 
