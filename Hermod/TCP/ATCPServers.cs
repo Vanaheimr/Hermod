@@ -55,7 +55,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         private readonly DNSClient _DNSClient;
 
         /// <summary>
-        /// The DNS server to use.
+        /// The DNS defines which DNS servers to use.
         /// </summary>
         public DNSClient DNSClient
         {

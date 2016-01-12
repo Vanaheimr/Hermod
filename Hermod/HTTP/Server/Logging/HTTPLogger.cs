@@ -631,10 +631,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPLogger(HTTPServer HTTPAPI)
 
             : this(HTTPAPI,
+
                    Default_LogHTTPRequest_toConsole,
                    Default_LogHTTPRequest_toDisc,
+                   null,
+                   null,
+
                    Default_LogHTTPResponse_toConsole,
-                   Default_LogHTTPResponse_toDisc)
+                   Default_LogHTTPResponse_toDisc,
+                   null,
+                   null)
 
         { }
 
@@ -646,15 +652,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Create a new HTTP API logger using the given logging delegates.
         /// </summary>
         /// <param name="HTTPAPI">A HTTP API.</param>
+        /// 
         /// <param name="LogHTTPRequest_toConsole">A delegate to log incoming HTTP requests to console.</param>
         /// <param name="LogHTTPRequest_toDisc">A delegate to log incoming HTTP requests to disc.</param>
+        /// <param name="LogHTTPRequest_toNetwork">A delegate to log incoming HTTP requests to a network target.</param>
+        /// <param name="LogHTTPRequest_toHTTPSSE">A delegate to log incoming HTTP requests to a HTTP server sent events source.</param>
+        /// 
         /// <param name="LogHTTPResponse_toConsole">A delegate to log HTTP requests/responses to console.</param>
         /// <param name="LogHTTPResponse_toDisc">A delegate to log HTTP requests/responses to disc.</param>
+        /// <param name="LogHTTPResponse_toNetwork">A delegate to log HTTP requests/responses to a network target.</param>
+        /// <param name="LogHTTPResponse_toHTTPSSE">A delegate to log HTTP requests/responses to a HTTP server sent events source.</param>
         public HTTPLogger(HTTPServer                                 HTTPAPI,
+
                           Action<String, HTTPRequest>                LogHTTPRequest_toConsole,
                           Action<String, HTTPRequest>                LogHTTPRequest_toDisc,
+                          Action<String, HTTPRequest>                LogHTTPRequest_toNetwork,
+                          Action<String, HTTPRequest>                LogHTTPRequest_toHTTPSSE,
+
                           Action<String, HTTPRequest, HTTPResponse>  LogHTTPResponse_toConsole,
-                          Action<String, HTTPRequest, HTTPResponse>  LogHTTPResponse_toDisc)
+                          Action<String, HTTPRequest, HTTPResponse>  LogHTTPResponse_toDisc,
+                          Action<String, HTTPRequest, HTTPResponse>  LogHTTPResponse_toNetwork,
+                          Action<String, HTTPRequest, HTTPResponse>  LogHTTPResponse_toHTTPSSE)
+
         {
 
             #region Initial checks
@@ -675,16 +694,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Set default delegates
 
-            if (LogHTTPRequest_toConsole == null)
+            if (LogHTTPRequest_toConsole  == null)
                 LogHTTPRequest_toConsole   = Default_LogHTTPRequest_toConsole;
 
-            if (LogHTTPRequest_toDisc == null)
+            if (LogHTTPRequest_toDisc     == null)
+                LogHTTPRequest_toDisc      = Default_LogHTTPRequest_toDisc;
+
+            if (LogHTTPRequest_toDisc     == null)
                 LogHTTPRequest_toDisc      = Default_LogHTTPRequest_toDisc;
 
             if (LogHTTPResponse_toConsole == null)
                 LogHTTPResponse_toConsole  = Default_LogHTTPResponse_toConsole;
 
-            if (LogHTTPResponse_toDisc == null)
+            if (LogHTTPResponse_toDisc    == null)
                 LogHTTPResponse_toDisc     = Default_LogHTTPResponse_toDisc;
 
             #endregion
