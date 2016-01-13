@@ -455,7 +455,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     var _Client_LastEventId = 0UL;
                     var _EventSource        = GetEventSource(EventIdentification);
 
-                    if (HTTPRequest.TryGet<UInt64>("Last-Event-Id", out _Client_LastEventId))
+                    if (HTTPRequest.TryGet<UInt64>("Last-Event-ID", out _Client_LastEventId))
                         _LastEventId = _Client_LastEventId;
 
                     var _HTTPEvents      = (from   _HTTPEvent
