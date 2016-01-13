@@ -426,7 +426,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             this._Timestamp      = DateTime.Now;
-            this._HeaderFields   = new Dictionary<String,          Object>();
+            this._HeaderFields   = new Dictionary<String,          Object>(StringComparer.OrdinalIgnoreCase);
             this._HeaderFields2  = new Dictionary<HTTPHeaderField, Object>();
 
         }
