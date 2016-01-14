@@ -72,6 +72,7 @@
     <Compile Include="HTTP\General\HTTPStatusCode.cs" />
     <Compile Include="HTTP\General\HTTPVersion.cs" />
     <Compile Include="HTTP\HTTPHeaderField.cs" />
+    <Compile Include="HTTP\JSON\JSON_IO_ExtentionMethods.cs" />
     <Compile Include="HTTP\Server\Logging\HTTPLoggerExtentions.cs" />
     <Compile Include="HTTP\Server\Logging\HTTPLogger.cs" />
     <Compile Include="HTTP\Server\Logging\LogTargets.cs" />
