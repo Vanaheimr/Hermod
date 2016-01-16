@@ -448,14 +448,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Define HTTP Delegate
 
-                HTTPDelegate _HTTPDelegate = HTTPRequest =>
+                HTTPDelegate _HTTPDelegate = Request =>
                 {
 
                     var _LastEventId        = 0UL;
                     var _Client_LastEventId = 0UL;
                     var _EventSource        = GetEventSource(EventIdentification);
 
-                    if (HTTPRequest.TryGet<UInt64>("Last-Event-ID", out _Client_LastEventId))
+                    if (Request.TryGet<UInt64>("Last-Event-ID", out _Client_LastEventId))
                         _LastEventId = _Client_LastEventId;
 
                     var _HTTPEvents      = (from   _HTTPEvent
@@ -473,7 +473,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     else
                         _ResourceContent += Environment.NewLine + "retry: " + ((UInt32) _EventSource.RetryIntervall.TotalMilliseconds) + Environment.NewLine + Environment.NewLine;
 
-                    return new HTTPResponseBuilder() {
+                    return new HTTPResponseBuilder(Request) {
                         HTTPStatusCode  = HTTPStatusCode.OK,
                         ContentType     = HTTPContentType.EVENTSTREAM,
                         CacheControl    = "no-cache",

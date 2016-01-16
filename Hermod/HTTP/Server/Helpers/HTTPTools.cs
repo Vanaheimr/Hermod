@@ -25,16 +25,21 @@ using System;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
+    /// <summary>
+    /// HTTP tools.
+    /// </summary>
     public static class HTTPTools
     {
 
-        #region MovedPermanently(Location)
+        #region MovedPermanently(HTTPRequest, Location)
 
         /// <summary>
         /// Return a HTTP response redirecting to the given location permanently.
         /// </summary>
+        /// <param name="HTTPRequest">The HTTP request.</param>
         /// <param name="Location">The location of the redirect.</param>
-        public static HTTPResponse MovedPermanently(String Location)
+        public static HTTPResponse MovedPermanently(HTTPRequest  HTTPRequest,
+                                                    String       Location)
         {
 
             #region Initial checks
@@ -44,8 +49,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            return new HTTPResponseBuilder()
-            {
+            return new HTTPResponseBuilder(HTTPRequest) {
                 HTTPStatusCode = HTTPStatusCode.MovedPermanently,
                 CacheControl   = "no-cache",
                 Location       = Location,
@@ -56,13 +60,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region MovedTemporarily(Location)
+        #region MovedTemporarily(HTTPRequest, Location)
 
         /// <summary>
         /// Return a HTTP response redirecting to the given location temporarily.
         /// </summary>
+        /// <param name="HTTPRequest">The HTTP request.</param>
         /// <param name="Location">The location of the redirect.</param>
-        public static HTTPResponse MovedTemporarily(String Location)
+        public static HTTPResponse MovedTemporarily(HTTPRequest  HTTPRequest,
+                                                    String       Location)
         {
 
             #region Initial checks
@@ -72,8 +78,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            return new HTTPResponseBuilder()
-            {
+            return new HTTPResponseBuilder(HTTPRequest) {
                 HTTPStatusCode = HTTPStatusCode.TemporaryRedirect,
                 CacheControl   = "no-cache",
                 Location       = Location,

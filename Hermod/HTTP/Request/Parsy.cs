@@ -88,10 +88,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public static class Parsy
     {
 
-        public static HTTPResponse CreateBadRequest(String Context, String ParameterName)
+        public static HTTPResponse CreateBadRequest(HTTPRequest HTTPRequest, String Context, String ParameterName)
         {
 
-            return new HTTPResponseBuilder() {
+            return new HTTPResponseBuilder(HTTPRequest) {
                 HTTPStatusCode  = HTTPStatusCode.BadRequest,
                 ContentType     = HTTPContentType.JSON_UTF8,
                 Content         = new JObject(new JProperty("@context",    Context),
@@ -100,10 +100,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
-        public static HTTPResponse CreateBadRequest(String Context, String ParameterName, String Value)
+        public static HTTPResponse CreateBadRequest(HTTPRequest HTTPRequest, String Context, String ParameterName, String Value)
         {
 
-            return new HTTPResponseBuilder() {
+            return new HTTPResponseBuilder(HTTPRequest) {
                 HTTPStatusCode  = HTTPStatusCode.BadRequest,
                 ContentType     = HTTPContentType.JSON_UTF8,
                 Content         = new JObject(new JProperty("@context",    Context),
@@ -113,10 +113,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
-        public static HTTPResponse CreateNotFound(String Context, String ParameterName, String Value)
+        public static HTTPResponse CreateNotFound(HTTPRequest HTTPRequest, String Context, String ParameterName, String Value)
         {
 
-            return new HTTPResponseBuilder() {
+            return new HTTPResponseBuilder(HTTPRequest) {
                 HTTPStatusCode  = HTTPStatusCode.NotFound,
                 ContentType     = HTTPContentType.JSON_UTF8,
                 Content         = new JObject(new JProperty("@context",    Context),
@@ -126,7 +126,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
-        public static Boolean ParseHTTP(this JObject JSONRequest, String ParameterName, out Double Value, out HTTPResponse HTTPResp, String Context = null, Double DefaultValue = 0)
+        public static Boolean ParseHTTP(this JObject JSONRequest, String ParameterName, HTTPRequest HTTPRequest, out Double Value, out HTTPResponse HTTPResp, String Context = null, Double DefaultValue = 0)
         {
 
             JToken JSONToken;
@@ -137,7 +137,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Log.Timestamp("Bad request: Missing \"" + ParameterName + "\" JSON property!");
 
                 Value     = DefaultValue;
-                HTTPResp  = CreateBadRequest(Context, ParameterName);
+                HTTPResp  = CreateBadRequest(HTTPRequest, Context, ParameterName);
 
                 return false;
 
@@ -149,7 +149,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Log.Timestamp("Bad request: Invalid \"" + ParameterName + "\" property value!");
 
                 Value     = DefaultValue;
-                HTTPResp  = CreateBadRequest(Context, ParameterName, JSONToken.Value<String>());
+                HTTPResp  = CreateBadRequest(HTTPRequest, Context, ParameterName, JSONToken.Value<String>());
 
                 return false;
 
@@ -160,7 +160,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
-        public static Boolean ParseHTTP(this JObject JSONRequest, String ParameterName, out DateTime Value, out HTTPResponse HTTPResp, String Context = null, DateTime DefaultValue = default(DateTime))
+        public static Boolean ParseHTTP(this JObject JSONRequest, String ParameterName, HTTPRequest HTTPRequest, out DateTime Value, out HTTPResponse HTTPResp, String Context = null, DateTime DefaultValue = default(DateTime))
         {
 
             JToken JSONToken;
@@ -171,7 +171,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Log.Timestamp("Bad request: Missing \"" + ParameterName + "\" JSON property!");
 
                 Value     = DefaultValue;
-                HTTPResp  = CreateBadRequest(Context, ParameterName);
+                HTTPResp  = CreateBadRequest(HTTPRequest, Context, ParameterName);
 
                 return false;
 
@@ -187,7 +187,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Log.Timestamp("Bad request: Invalid \"" + ParameterName + "\" property value!");
 
                 Value     = DefaultValue;
-                HTTPResp  = CreateBadRequest(Context, ParameterName, JSONToken.Value<String>());
+                HTTPResp  = CreateBadRequest(HTTPRequest, Context, ParameterName, JSONToken.Value<String>());
 
                 return false;
 
@@ -198,7 +198,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
-        public static Boolean ParseHTTP(this JObject JSONRequest, String ParameterName, out String Value, out HTTPResponse HTTPResp, String Context = null, String DefaultValue = null)
+        public static Boolean ParseHTTP(this JObject JSONRequest, String ParameterName, HTTPRequest HTTPRequest, out String Value, out HTTPResponse HTTPResp, String Context = null, String DefaultValue = null)
         {
 
             JToken JSONToken;
@@ -209,7 +209,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Log.Timestamp("Bad request: Missing \"" + ParameterName + "\" JSON property!");
 
                 Value     = DefaultValue;
-                HTTPResp  = CreateBadRequest(Context, ParameterName);
+                HTTPResp  = CreateBadRequest(HTTPRequest, Context, ParameterName);
 
                 return false;
 
@@ -222,7 +222,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Log.Timestamp("Bad request: Invalid \"" + ParameterName + "\" property value!");
 
                 Value     = DefaultValue;
-                HTTPResp  = CreateBadRequest(Context, ParameterName, JSONToken.Value<String>());
+                HTTPResp  = CreateBadRequest(HTTPRequest, Context, ParameterName, JSONToken.Value<String>());
 
                 return false;
 

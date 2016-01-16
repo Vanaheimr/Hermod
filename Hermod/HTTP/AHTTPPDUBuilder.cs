@@ -79,7 +79,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region HTTPStatusCode
 
-        private HTTPStatusCode _HTTPStatusCode;
+        /// <summary>
+        /// The HTTP status code.
+        /// </summary>
+        protected HTTPStatusCode _HTTPStatusCode;
 
         /// <summary>
         /// The HTTP status code.

@@ -97,7 +97,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (HTTPRequest.ContentLength == 0 && AllowEmptyHTTPBody)
             {
 
-                HTTPResponse = new HTTPResponseBuilder() {
+                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
                     HTTPStatusCode = HTTPStatusCode.OK,
                 };
 
@@ -127,7 +127,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             catch (Exception e)
             {
 
-                HTTPResponse  = new HTTPResponseBuilder() {
+                HTTPResponse  = new HTTPResponseBuilder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     ContentType     = HTTPContentType.JSON_UTF8,
                     Content         = CreateJObject(JSONLDContext.IsNotNullOrEmpty()
@@ -167,7 +167,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (HTTPRequest.ContentLength == 0 && AllowEmptyHTTPBody)
             {
 
-                HTTPResponse = new HTTPResponseBuilder() {
+                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
                     HTTPStatusCode = HTTPStatusCode.OK,
                 };
 
@@ -197,7 +197,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             catch (Exception e)
             {
 
-                HTTPResponse  = new HTTPResponseBuilder() {
+                HTTPResponse  = new HTTPResponseBuilder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     ContentType     = HTTPContentType.JSON_UTF8,
                     Content         = CreateJObject(JSONLDContext.IsNotNullOrEmpty()

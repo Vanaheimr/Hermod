@@ -27,6 +27,9 @@ using org.GraphDefined.Vanaheimr.Illias;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
+    /// <summary>
+    /// HTTP errors.
+    /// </summary>
     public static class HTTPErrors
     {
 
@@ -171,8 +174,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            var x = new HTTPResponseBuilder()
-            {
+            var x = new HTTPResponseBuilder(HTTPRequest) {
                 HTTPStatusCode = StatusCode,
                 CacheControl   = "no-cache",
                 Connection     = "close",

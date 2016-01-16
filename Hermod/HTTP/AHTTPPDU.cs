@@ -148,10 +148,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region RawPDU
 
+        private readonly String _RawPDU;
+
         /// <summary>
         /// The raw unparsed HTTP protocol data unit.
         /// </summary>
-        public String RawPDU { get; set; }
+        public String RawPDU
+        {
+            get
+            {
+                return _RawPDU;
+            }
+        }
 
         #endregion
 
@@ -492,6 +500,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
             #endregion
+
+        }
+
+        #endregion
+
+        #region AHTTPPDU(HTTPPDU)
+
+        /// <summary>
+        /// Creates a new HTTP header.
+        /// </summary>
+        /// <param name="HTTPPDU">Another HTTP PDU.</param>
+        public AHTTPPDU(AHTTPPDU  HTTPPDU)
+
+            : this()
+
+        {
+
+            this._Timestamp          = HTTPPDU.Timestamp;
+            this._RemoteSocket       = HTTPPDU.RemoteSocket;
+            this._LocalSocket        = HTTPPDU.LocalSocket;
+            this._RawHTTPHeader      = HTTPPDU.RawHTTPHeader;
+            this._RawPDU             = HTTPPDU.RawPDU;
+            this._HTTPBody           = HTTPPDU.HTTPBody;
+            this._HTTPBodyStream     = HTTPPDU.HTTPBodyStream;
+            this._CancellationToken  = HTTPPDU.CancellationToken;
+
+            this._FirstPDULine       = HTTPPDU.FirstPDULine;
+
+            foreach (var field in HTTPPDU._HeaderFields)
+                this._HeaderFields.Add(field.Key, field.Value);
+
+            foreach (var field in HTTPPDU._HeaderFields2)
+                this._HeaderFields2.Add(field.Key, field.Value);
 
         }
 

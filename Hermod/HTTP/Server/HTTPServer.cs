@@ -304,7 +304,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 Debug.WriteLine("HTTPServer => InternalServerError" + Environment.NewLine + ErrorMessage.ToString());
 
-                return new HTTPResponseBuilder() {
+                return new HTTPResponseBuilder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.InternalServerError,
                     ContentType     = HTTPContentType.JSON_UTF8,
                     Content         = ErrorMessage.ToUTF8Bytes(),
@@ -341,7 +341,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 Debug.WriteLine("HTTPServer => InternalServerError" + Environment.NewLine + ErrorMessage.ToString());
 
-                return new HTTPResponseBuilder() {
+                return new HTTPResponseBuilder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.InternalServerError,
                     ContentType     = HTTPContentType.JSON_UTF8,
                     Content         = ErrorMessage.ToUTF8Bytes(),
@@ -363,7 +363,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             Debug.WriteLine("URIMappingResponse AND OnNotificationResponse in ProcessBoomerang() had been null!");
 
-            return new HTTPResponseBuilder() {
+            return new HTTPResponseBuilder(HTTPRequest) {
                 HTTPStatusCode  = HTTPStatusCode.InternalServerError,
                 ContentType     = HTTPContentType.JSON_UTF8,
                 Content         = new JObject(

@@ -30,25 +30,88 @@ using System.Threading;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
-    #region HTTPResponse<T>
+    public static class XXXX
+    {
+
+        public static HTTPResponse<TResult> Parse<TResult>(this HTTPResponse      Response,
+                                                           Func<Byte[], TResult>  ContentParser)
+        {
+            return new HTTPResponse<TResult>(Response, ContentParser(Response.HTTPBody));
+        }
+
+        public static HTTPResponse<TResult> Parse<TResult>(this HTTPResponse      Response,
+                                                           Func<Stream, TResult>  ContentParser)
+        {
+            return new HTTPResponse<TResult>(Response, ContentParser(Response.HTTPBodyStream));
+        }
+
+
+        public static HTTPResponse<TResult> Parse<TResult, TInput>(this HTTPResponse<TInput>  Response,
+                                                                   Func<TInput, TResult>      ContentParser)
+        {
+            return new HTTPResponse<TResult>(Response, ContentParser(Response.Content));
+        }
+
+        public static HTTPResponse<TResult> Parse<TResult, TInput>(this HTTPResponse<TInput>                   Response,
+                                                                   Func<TInput, OnExceptionDelegate, TResult>  ContentParser,
+                                                                   OnExceptionDelegate                         OnException = null)
+        {
+            return new HTTPResponse<TResult>(Response, ContentParser(Response.Content, OnException));
+        }
+
+    }
+
+
+    #region HTTPResponse<TContent>
 
     /// <summary>
     /// A helper class to transport HTTP data and its metadata.
     /// </summary>
-    /// <typeparam name="T">The type of the transported data.</typeparam>
-    public class HTTPResponse<T>
+    /// <typeparam name="TContent">The type of the parsed data.</typeparam>
+    public class HTTPResponse<TContent> : HTTPResponse
     {
+
+        #region Data
+
+        private readonly Boolean _IsFault;
+
+        #endregion
 
         #region Properties
 
-        public  readonly HTTPResponse   HttpResponse;
+        #region Content
 
-        public  readonly T              Content;
+        private readonly TContent _Content;
 
-        public  readonly Exception      _Exception;
+        /// <summary>
+        /// The parsed content.
+        /// </summary>
+        public TContent Content
+        {
+            get
+            {
+                return _Content;
+            }
+        }
 
-        private readonly Boolean        IsFault;
+        #endregion
 
+        #region Exception
+
+        private readonly Exception _Exception;
+
+        /// <summary>
+        /// An exception during parsing.
+        /// </summary>
+        public Exception Exception
+        {
+            get
+            {
+                return _Exception;
+            }
+        }
+
+        #endregion
 
         #region HasErrors
 
@@ -56,7 +119,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
             get
             {
-                return _Exception != null && !IsFault;
+                return _Exception != null && !_IsFault;
             }
         }
 
@@ -66,43 +129,90 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        public HTTPResponse(HTTPResponse  HttpResponse,
-                            T             Content,
-                            Boolean       IsFault = false)
-        {
-            this.HttpResponse  = HttpResponse;
-            this.Content       = Content;
-            this.IsFault       = IsFault;
-            this._Exception     = null;
-        }
+        #region HTTPResponse(Response, Content, IsFault = false, Exception = null)
 
-        private HTTPResponse(T Content)
-        {
-            this.HttpResponse  = HTTPResponseBuilder.OK();
-            this.Content       = Content;
-            this.IsFault       = false;
-            this._Exception     = null;
-        }
+        public HTTPResponse(HTTPResponse  Response,
+                            TContent      Content,
+                            Boolean       IsFault    = false,
+                            Exception     Exception  = null)
 
-        private HTTPResponse(Exception e)
+            : base(Response)
+
         {
-            this.HttpResponse  = null;
-            this.Content       = default(T);
-            this.IsFault       = true;
-            this._Exception     = e;
+
+            this._Content      = Content;
+            this._IsFault      = IsFault;
+            this._Exception    = Exception;
+
         }
 
         #endregion
 
+        #region HTTPResponse(Response, IsFault)
 
-        public static HTTPResponse<T> OK(T Content)
+        public HTTPResponse(HTTPResponse  Response,
+                            Boolean       IsFault)
+
+            : this(Response,
+                   default(TContent),
+                   IsFault)
+
+        { }
+
+        #endregion
+
+        #region HTTPResponse(Response, Exception)
+
+        public HTTPResponse(HTTPResponse  Response,
+                            Exception     Exception)
+
+            : this(Response,
+                   default(TContent),
+                   true,
+                   Exception)
+
+        { }
+
+        #endregion
+
+
+        #region HTTPResponse(Request, Content)
+
+        private HTTPResponse(HTTPRequest  Request,
+                             TContent     Content)
+
+            : this(HTTPResponseBuilder.OK(Request), Content, false)
+
+        { }
+
+        #endregion
+
+        #region HTTPResponse(Request, Exception)
+
+        public HTTPResponse(HTTPRequest  Request,
+                            Exception    Exception)
+
+            : this(new HTTPResponseBuilder(Request) { HTTPStatusCode = HTTPStatusCode.BadRequest },
+                   default(TContent),
+                   true,
+                   Exception)
+
+        { }
+
+        #endregion
+
+        #endregion
+
+
+        public static HTTPResponse<TContent> OK(HTTPRequest  HTTPRequest,
+                                                TContent     Content)
         {
-            return new HTTPResponse<T>(Content);
+            return new HTTPResponse<TContent>(HTTPRequest, Content);
         }
 
-        public static HTTPResponse<T> Exception(Exception e)
+        public static HTTPResponse<TContent> OK(TContent Content)
         {
-            return new HTTPResponse<T>(e);
+            return new HTTPResponse<TContent>(null, Content);
         }
 
     }
@@ -322,9 +432,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        // remove me!
-        internal HTTPResponse()
-        { }
+        #region HTTPResponse(Response)
+
+        /// <summary>
+        /// Create a new HTTP response based on the given HTTP response.
+        /// </summary>
+        /// <param name="Response">A HTTP response.</param>
+        public HTTPResponse(HTTPResponse Response)
+
+            : base(Response)
+
+        {
+
+            this._HTTPRequest     = Response.HTTPRequest;
+            this._HTTPStatusCode  = Response.HTTPStatusCode;
+
+        }
+
+        #endregion
 
         #region (private) HTTPResponse(...)
 

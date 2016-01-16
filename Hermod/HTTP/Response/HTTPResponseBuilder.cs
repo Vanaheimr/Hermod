@@ -375,15 +375,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Create a new HTTP response.
         /// </summary>
         /// <param name="HTTPRequest">The HTTP request for this response.</param>
-        public HTTPResponseBuilder(HTTPRequest HTTPRequest = null)
+        /// <param name="HTTPStatusCode">A HTTP status code</param>
+        public HTTPResponseBuilder(HTTPRequest     HTTPRequest,
+                                   HTTPStatusCode  HTTPStatusCode = null)
         {
 
             this._HTTPRequest       = HTTPRequest;
-            this.CancellationToken  = HTTPRequest != null ? HTTPRequest.CancellationToken : new CancellationTokenSource().Token;
+            this._HTTPStatusCode    = HTTPStatusCode;
             this._Timestamp         = DateTime.Now;
-            this.HTTPStatusCode     = HTTPStatusCode.ImATeapot;
             this.ProtocolName       = "HTTP";
             this.ProtocolVersion    = new HTTPVersion(1, 1);
+            this.CancellationToken  = HTTPRequest != null ? HTTPRequest.CancellationToken : new CancellationTokenSource().Token;
 
         }
 
@@ -677,18 +679,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
-        #region (static) OK(Configurator = null)
+        #region (static) OK(HTTPRequest, Configurator = null)
 
         /// <summary>
         /// Create a new 200-OK HTTP response and apply the given delegate.
         /// </summary>
         /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-        public static HTTPResponseBuilder OK(Action<HTTPResponseBuilder> Configurator = null)
+        public static HTTPResponseBuilder OK(HTTPRequest                  HTTPRequest,
+                                             Action<HTTPResponseBuilder>  Configurator = null)
         {
 
-            var response = new HTTPResponseBuilder();
-            
-            // HTTPStatusCode.OK);
+            var response = new HTTPResponseBuilder(HTTPRequest).
+                               SetHTTPStatusCode(HTTPStatusCode.OK);
 
             if (Configurator != null)
                 Configurator(response);
@@ -701,10 +703,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Create a new 200-OK HTTP response and apply the given delegate.
         /// </summary>
         /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-        public static HTTPResponseBuilder OK(Func<HTTPResponseBuilder, HTTPResponseBuilder> Configurator)
+        public static HTTPResponseBuilder OK(HTTPRequest                                     HTTPRequest,
+                                             Func<HTTPResponseBuilder, HTTPResponseBuilder>  Configurator)
         {
 
-            var response = new HTTPResponseBuilder();// (HTTPStatusCode.OK);
+            var response = new HTTPResponseBuilder(HTTPRequest);// (HTTPStatusCode.OK);
 
             if (Configurator != null)
                 return Configurator(response);

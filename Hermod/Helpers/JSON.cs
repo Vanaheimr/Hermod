@@ -19,11 +19,12 @@
 
 using System;
 using System.Linq;
+using System.Text;
+using System.Collections.Generic;
 
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using System.Text;
 
 #endregion
 
@@ -36,6 +37,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     public static class JSONObject
     {
 
+        #region Create(params JProperties)
+
         /// <summary>
         /// Create a JSON object using the given JSON properties, but filter null values.
         /// </summary>
@@ -45,6 +48,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             return new JObject(JProperties.Where(jproperty => jproperty != null));
         }
 
+        #endregion
+
+        #region Create(JProperties)
+
+        /// <summary>
+        /// Create a JSON object using the given JSON properties, but filter null values.
+        /// </summary>
+        /// <param name="JProperties">JSON properties.</param>
+        public static JObject Create(IEnumerable<JProperty> JProperties)
+        {
+            return new JObject(JProperties.Where(jproperty => jproperty != null));
+        }
+
+        #endregion
+
     }
 
     /// <summary>
@@ -52,6 +70,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// </summary>
     public static class JSONArray
     {
+
+        #region Create(params JObjects)
 
         /// <summary>
         /// Create a JSON array using the given JSON objects, but filter null values.
@@ -61,6 +81,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         {
             return new JArray(JObjects.Where(jobject => jobject != null));
         }
+
+        #endregion
+
+        #region Create(JObjects)
+
+        /// <summary>
+        /// Create a JSON array using the given JSON objects, but filter null values.
+        /// </summary>
+        /// <param name="JObjects">JSON objects.</param>
+        public static JArray Create(IEnumerable<JObject> JObjects)
+        {
+            return new JArray(JObjects.Where(jobject => jobject != null));
+        }
+
+        #endregion
 
     }
 

@@ -119,7 +119,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region NotifyErrors(...)
 
-        private void NotifyErrors(TCPConnection   TCPConnection,
+        private void NotifyErrors(HTTPRequest     HTTPRequest,
+                                  TCPConnection   TCPConnection,
                                   DateTime        Timestamp,
                                   HTTPStatusCode  HTTPStatusCode,
                                   HTTPRequest     Request          = null,
@@ -149,7 +150,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (LastException != null)
                 Content += LastException.Message + Environment.NewLine;
 
-            var _HTTPResponse = new HTTPResponseBuilder() {
+            var _HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
                                     HTTPStatusCode  = HTTPStatusCode,
                                     Date            = Timestamp,
                                     Content         = Content.ToUTF8Bytes()
@@ -266,7 +267,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     catch (Exception)
                                     {
 
-                                        NotifyErrors(TCPConnection,
+                                        NotifyErrors(null,
+                                                     TCPConnection,
                                                      RequestTimestamp,
                                                      HTTPStatusCode.BadRequest,
                                                      Error: "Protocol Error: Invalid UTF8 encoding!");
@@ -293,7 +295,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     catch (Exception e)
                                     {
 
-                                        NotifyErrors(TCPConnection,
+                                        NotifyErrors(null,
+                                                     TCPConnection,
                                                      RequestTimestamp,
                                                      HTTPStatusCode.BadRequest,
                                                      LastException:  e,
