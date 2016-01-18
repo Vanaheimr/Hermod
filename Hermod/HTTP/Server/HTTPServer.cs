@@ -32,11 +32,178 @@ using org.GraphDefined.Vanaheimr.Styx.Arrows;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using System.Collections.Concurrent;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
+
+    public class HTTPServer<T, U> : HTTPServer
+        where T : IEnumerable<U>
+    {
+
+        #region Data
+
+        public readonly ConcurrentDictionary<HTTPHostname, T> _Multitenancy;
+
+        #endregion
+
+        #region Constructor(s)
+
+        /// <summary>
+        /// Initialize the HTTP server using the given parameters.
+        /// </summary>
+        /// <param name="TCPPort">An IP port to listen on.</param>
+        /// <param name="DefaultServerName">The default HTTP servername, used whenever no HTTP Host-header had been given.</param>
+        /// <param name="X509Certificate">Use this X509 certificate for TLS.</param>
+        /// <param name="CallingAssemblies">A list of calling assemblies to include e.g. into embedded ressources lookups.</param>
+        /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
+        /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
+        /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
+        /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information.</param>
+        /// <param name="ConnectionThreadsNameBuilder">An optional delegate to set the name of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsPriorityBuilder">An optional delegate to set the priority of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsAreBackground">Whether the TCP connection threads are background threads or not (default: yes).</param>
+        /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
+        /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
+        /// <param name="DNSClient">The DNS client to use.</param>
+        /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
+        public HTTPServer(IPPort                            TCPPort                           = null,
+                          String                            DefaultServerName                 = __DefaultServerName,
+                          X509Certificate2                  X509Certificate                   = null,
+                          IEnumerable<Assembly>             CallingAssemblies                 = null,
+                          String                            ServerThreadName                  = null,
+                          ThreadPriority                    ServerThreadPriority              = ThreadPriority.AboveNormal,
+                          Boolean                           ServerThreadIsBackground          = true,
+                          ConnectionIdBuilder               ConnectionIdBuilder               = null,
+                          ConnectionThreadsNameBuilder      ConnectionThreadsNameBuilder      = null,
+                          ConnectionThreadsPriorityBuilder  ConnectionThreadsPriorityBuilder  = null,
+                          Boolean                           ConnectionThreadsAreBackground    = true,
+                          TimeSpan?                         ConnectionTimeout                 = null,
+                          UInt32                            MaxClientConnections              = TCPServer.__DefaultMaxClientConnections,
+                          DNSClient                         DNSClient                         = null,
+                          Boolean                           Autostart                         = false)
+
+            : base(TCPPort,
+                   DefaultServerName,
+                   X509Certificate,
+                   CallingAssemblies,
+                   ServerThreadName,
+                   ServerThreadPriority,
+                   ServerThreadIsBackground,
+                   ConnectionIdBuilder,
+                   ConnectionThreadsNameBuilder,
+                   ConnectionThreadsPriorityBuilder,
+                   ConnectionThreadsAreBackground,
+                   ConnectionTimeout,
+                   MaxClientConnections,
+                   DNSClient,
+                   Autostart)
+
+        {
+
+            this._Multitenancy = new ConcurrentDictionary<HTTPHostname, T>();
+
+        }
+
+        #endregion
+
+
+
+        #region GetAllRoamingNetworks(Hostname)
+
+        /// <summary>
+        /// Return all roaming networks available for the given hostname.
+        /// </summary>
+        /// <param name="Hostname">The HTTP hostname.</param>
+        public IEnumerable<U> GetAllRoamingNetworks(HTTPHostname  Hostname)
+        {
+
+            T RoamingNetworks = default(T);
+
+            var Set = new HashSet<U>();
+
+            if (_Multitenancy.TryGetValue(Hostname, out RoamingNetworks))
+                foreach (var RoamingNetwork in RoamingNetworks)
+                    Set.Add(RoamingNetwork);
+
+            if (_Multitenancy.TryGetValue(Hostname.AnyHost, out RoamingNetworks))
+                foreach (var RoamingNetwork in RoamingNetworks)
+                    Set.Add(RoamingNetwork);
+
+            if (_Multitenancy.TryGetValue(Hostname.AnyPort, out RoamingNetworks))
+                foreach (var RoamingNetwork in RoamingNetworks)
+                    Set.Add(RoamingNetwork);
+
+            if (_Multitenancy.TryGetValue(Vanaheimr.Hermod.HTTP.HTTPHostname.Any, out RoamingNetworks))
+                foreach (var RoamingNetwork in RoamingNetworks)
+                    Set.Add(RoamingNetwork);
+
+            return Set;//.OrderBy(rn => rn.Id);
+
+        }
+
+        #endregion
+
+        #region GetRoamingNetwork(Hostname, RoamingNetworkId)
+
+        ///// <summary>
+        ///// Return all roaming networks available for the given hostname.
+        ///// </summary>
+        ///// <param name="Hostname">The HTTP hostname.</param>
+        ///// <param name="RoamingNetworkId">The unique identification of the new roaming network.</param>
+        //public U GetRoamingNetwork(HTTPHostname       Hostname,
+        //                                        RoamingNetwork_Id  RoamingNetworkId)
+        //{
+
+        //    return GetAllRoamingNetworks(Hostname).
+        //               Where(roamingnetwork => roamingnetwork.Id == RoamingNetworkId).
+        //               FirstOrDefault();
+
+        //}
+
+        #endregion
+
+        #region TryGetRoamingNetworks(Hostname, RoamingNetworkId, out RoamingNetwork)
+
+        /// <summary>
+        ///Try to return all roaming networks available for the given hostname.
+        /// </summary>
+        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <param name="RoamingNetworkId">The unique identification of the new roaming network.</param>
+        /// <param name="RoamingNetwork">A roaming network.</param>
+        public Boolean TryGetRoamingNetworks(HTTPHostname        Hostname,
+//                                            RoamingNetwork_Id   RoamingNetworkId,
+                                            out T  RoamingNetworks)
+        {
+
+            return _Multitenancy.TryGetValue(Hostname, out RoamingNetworks);
+
+        }
+
+        #endregion
+
+        #region TryAddRoamingNetworks(Hostname, RoamingNetworks)
+
+        /// <summary>
+        ///Try to return all roaming networks available for the given hostname.
+        /// </summary>
+        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <param name="RoamingNetwork">A roaming network.</param>
+        public Boolean TryAddRoamingNetworks(HTTPHostname  Hostname,
+                                             T             RoamingNetworks)
+        {
+
+            return _Multitenancy.TryAdd(Hostname, RoamingNetworks);
+
+        }
+
+        #endregion
+
+
+    }
+
 
     /// <summary>
     /// A HTTP/1.1 server.
