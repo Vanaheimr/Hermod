@@ -62,7 +62,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Request.ContentLength == 0)
                 return new HTTPResult<String>(Request, HTTPStatusCode.BadRequest);
 
-            if (Request.TryReadHTTPBody() == false)
+            if (Request.TryReadHTTPBodyStream() == false)
                 return new HTTPResult<String>(Request, HTTPStatusCode.BadRequest);
 
             if (Request.HTTPBody == null || Request.HTTPBody.Length == 0)

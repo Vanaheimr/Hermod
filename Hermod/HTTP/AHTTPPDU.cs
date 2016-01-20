@@ -217,6 +217,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             get
             {
 
+                TryReadHTTPBodyStream();
+
                 if (HTTPBody != null && HTTPBody.Length > 0)
                     return RawHTTPHeader.Trim() + Environment.NewLine + Environment.NewLine +
                            Encoding.UTF8.GetString(HTTPBody, 0, Math.Min(HTTPBody.Length, (Int32)ContentLength.Value)).Trim();
@@ -956,17 +958,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
         //ToDo: Fix me for slow clients!
-        public Boolean TryReadHTTPBody()
+        public Boolean TryReadHTTPBodyStream()
         {
 
             if (HTTPBody != null)
                 return true;
 
-            var Buffer = new Byte[(Int32)ContentLength.Value];
-            Thread.Sleep(500);
-            var Read = _HTTPBodyStream.Read(Buffer, 0, (Int32)ContentLength.Value);
+            var Buffer = new Byte[(Int32) ContentLength.Value];
+            Thread.Sleep(100);
+            var Read = _HTTPBodyStream.Read(Buffer, 0, (Int32) ContentLength.Value);
 
-            if (Read == (Int32)ContentLength.Value)
+            if (Read == (Int32) ContentLength.Value)
             {
                 _HTTPBody = Buffer;
                 return true;
