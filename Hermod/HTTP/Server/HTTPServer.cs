@@ -21,8 +21,8 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Reflection;
-using System.Diagnostics;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Security.Cryptography.X509Certificates;
 
 using Newtonsoft.Json.Linq;
@@ -32,7 +32,6 @@ using org.GraphDefined.Vanaheimr.Styx.Arrows;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
-using System.Collections.Concurrent;
 
 #endregion
 
@@ -70,7 +69,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
         public HTTPServer(IPPort                            TCPPort                           = null,
-                          String                            DefaultServerName                 = __DefaultServerName,
+                          String                            DefaultServerName                 = DefaultHTTPServerName,
                           X509Certificate2                  X509Certificate                   = null,
                           IEnumerable<Assembly>             CallingAssemblies                 = null,
                           String                            ServerThreadName                  = null,
@@ -108,7 +107,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
-
 
 
         #region GetAllRoamingNetworks(Hostname)
@@ -201,7 +199,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-
     }
 
 
@@ -214,7 +211,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        internal const    String             __DefaultServerName  = "Vanaheimr Hermod HTTP Service v0.9";
+        /// <summary>
+        /// The default HTTP server name.
+        /// </summary>
+        public  const          String             DefaultHTTPServerName  = "GraphDefined Hermod HTTP Service v0.9";
+
+        /// <summary>
+        /// The default HTTP server TCP port.
+        /// </summary>
+        public static readonly IPPort             DefaultHTTPServerPort  = new IPPort(80);
+
         private readonly  URIMapping         _URIMapping;
 
         private readonly  HTTPProcessor      _HTTPProcessor;
@@ -262,22 +268,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Events
 
-        public event BoomerangSenderHandler<String, DateTime, HTTPRequest, HTTPResponse>    OnNotification;
+        public event BoomerangSenderHandler<String, DateTime, HTTPRequest, HTTPResponse>  OnNotification;
 
         /// <summary>
         /// An event called whenever a request came in.
         /// </summary>
-        public event RequestLogHandler                                                      RequestLog;
+        public event RequestLogHandler                                                    RequestLog;
 
         /// <summary>
         /// An event called whenever a request could successfully be processed.
         /// </summary>
-        public event AccessLogHandler                                                       AccessLog;
+        public event AccessLogHandler                                                     AccessLog;
 
         /// <summary>
         /// An event called whenever a request resulted in an error.
         /// </summary>
-        public event ErrorLogHandler                                                        ErrorLog;
+        public event ErrorLogHandler                                                      ErrorLog;
 
         #endregion
 
@@ -302,7 +308,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
         public HTTPServer(IPPort                            TCPPort                           = null,
-                          String                            DefaultServerName                 = __DefaultServerName,
+                          String                            DefaultServerName                 = DefaultHTTPServerName,
                           X509Certificate2                  X509Certificate                   = null,
                           IEnumerable<Assembly>             CallingAssemblies                 = null,
                           String                            ServerThreadName                  = null,
@@ -344,6 +350,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (TCPPort != null)
                 this.AttachTCPPort(TCPPort);
+            else
+                this.AttachTCPPort(DefaultHTTPServerPort);
 
             if (Autostart)
                 Start();
@@ -449,10 +457,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               HTTPRequest  HTTPRequest)
         {
 
-            HTTPResponse URIMappingResponse      = null;
-            HTTPResponse OnNotificationResponse  = null;
-
             #region 1) Invoke delegate based on URIMapping
+
+            HTTPResponse URIMappingResponse = null;
 
             try
             {
@@ -464,17 +471,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 while (e.InnerException != null)
                     e = e.InnerException;
 
-                var ErrorMessage = new JObject(new JProperty("description",  e.Message),
-                                               new JProperty("stacktrace",   e.StackTrace),
-                                               new JProperty("source",       e.TargetSite.Module.Name),
-                                               new JProperty("type",         e.TargetSite.ReflectedType.Name));
-
-                Debug.WriteLine("HTTPServer => InternalServerError" + Environment.NewLine + ErrorMessage.ToString());
-
                 return new HTTPResponseBuilder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.InternalServerError,
                     ContentType     = HTTPContentType.JSON_UTF8,
-                    Content         = ErrorMessage.ToUTF8Bytes(),
+                    Content         = JSONObject.Create(
+                                          new JProperty("description",  e.Message),
+                                          new JProperty("stacktrace",   e.StackTrace),
+                                          new JProperty("source",       e.TargetSite.Module.Name),
+                                          new JProperty("type",         e.TargetSite.ReflectedType.Name)
+                                      ).ToUTF8Bytes(),
                     Server          = _DefaultServerName,
                     Connection      = "close"
                 };
@@ -484,6 +489,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #endregion
 
             #region 2) Call OnNotification delegate, but in most cases just ignore the result!
+
+            HTTPResponse OnNotificationResponse = null;
 
             try
             {
@@ -501,17 +508,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 while (e.InnerException != null)
                     e = e.InnerException;
 
-                var ErrorMessage = new JObject(new JProperty("description",  e.Message),
-                                               new JProperty("stacktrace",   e.StackTrace),
-                                               new JProperty("source",       e.TargetSite.Module.Name),
-                                               new JProperty("type",         e.TargetSite.ReflectedType.Name));
-
-                Debug.WriteLine("HTTPServer => InternalServerError" + Environment.NewLine + ErrorMessage.ToString());
-
                 return new HTTPResponseBuilder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.InternalServerError,
                     ContentType     = HTTPContentType.JSON_UTF8,
-                    Content         = ErrorMessage.ToUTF8Bytes(),
+                    Content         = JSONObject.Create(
+                                          new JProperty("description",  e.Message),
+                                          new JProperty("stacktrace",   e.StackTrace),
+                                          new JProperty("source",       e.TargetSite.Module.Name),
+                                          new JProperty("type",         e.TargetSite.ReflectedType.Name)
+                                      ).ToUTF8Bytes(),
                     Server          = _DefaultServerName,
                     Connection      = "close"
                 };
@@ -522,18 +527,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Return result or fail!
 
-            if (URIMappingResponse != null)
+            if (URIMappingResponse     != null)
                 return URIMappingResponse;
 
             if (OnNotificationResponse != null)
                 return OnNotificationResponse;
 
-            Debug.WriteLine("URIMappingResponse AND OnNotificationResponse in ProcessBoomerang() had been null!");
-
             return new HTTPResponseBuilder(HTTPRequest) {
                 HTTPStatusCode  = HTTPStatusCode.InternalServerError,
                 ContentType     = HTTPContentType.JSON_UTF8,
-                Content         = new JObject(
+                Content         = JSONObject.Create(
                                       new JProperty("description", "URIMappingResponse AND OnNotificationResponse in ProcessBoomerang() had been null!")
                                   ).ToUTF8Bytes(),
                 Server          = _DefaultServerName,
@@ -914,10 +917,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region GetHandler(HTTPRequest)
+        #region InvokeHandler(HTTPRequest)
 
         /// <summary>
-        /// Return the best matching method handler for the given parameters.
+        /// Call the best matching method handler for the given HTTP request.
         /// </summary>
         public HTTPResponse InvokeHandler(HTTPRequest HTTPRequest)
         {
@@ -972,16 +975,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Add a method call back for the given URI template and
         /// add a HTTP Sever Sent Events source.
         /// </summary>
-        /// <param name="MethodInfo">The method to call.</param>
-        /// <param name="Host">The HTTP host.</param>
-        /// <param name="URITemplate">The URI template.</param>
-        /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="EventIdentification">The unique identification of the event source.</param>
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
         /// <param name="RetryIntervall">The retry intervall.</param>
-        /// <param name="IsSharedEventSource">Whether this event source will be shared.</param>
+        /// 
+        /// <param name="Hostname">The HTTP host.</param>
+        /// <param name="URITemplate">The URI template.</param>
+        /// <param name="HTTPMethod">The HTTP method.</param>
+        /// <param name="HTTPContentType">The HTTP content type.</param>
+        /// 
         /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
         /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
+        /// 
+        /// <param name="DefaultErrorHandler">The default error handler.</param>
         public HTTPEventSource AddEventSource(String              EventIdentification,
                                               UInt32              MaxNumberOfCachedEvents     = 500,
                                               TimeSpan?           RetryIntervall              = null,
@@ -1006,6 +1013,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               Hostname,
                                               URITemplate,
                                               HTTPMethod,
+                                              HTTPContentType,
 
                                               HostAuthentication,
                                               URIAuthentication,

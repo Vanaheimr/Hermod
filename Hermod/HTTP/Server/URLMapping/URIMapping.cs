@@ -412,11 +412,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="EventIdentification">The unique identification of the event source.</param>
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
         /// <param name="RetryIntervall">The retry intervall.</param>
+        /// 
         /// <param name="Hostname">The HTTP host.</param>
         /// <param name="URITemplate">The URI template.</param>
         /// <param name="HTTPMethod">The HTTP method.</param>
+        /// <param name="HTTPContentType">The HTTP content type.</param>
+        /// 
         /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
         /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
+        /// 
+        /// <param name="DefaultErrorHandler">The default error handler.</param>
         internal HTTPEventSource AddEventSource(String              EventIdentification,
                                                 UInt32              MaxNumberOfCachedEvents     = 500,
                                                 TimeSpan?           RetryIntervall              = null,
@@ -424,6 +430,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                 HTTPHostname        Hostname                    = null,
                                                 String              URITemplate                 = "/",
                                                 HTTPMethod          HTTPMethod                  = null,
+                                                HTTPContentType     HTTPContentType             = null,
 
                                                 HTTPAuthentication  HostAuthentication          = null,
                                                 HTTPAuthentication  URIAuthentication           = null,

@@ -106,7 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// decode the transmitted data as HTTP requests.
         /// </summary>
         /// <param name="DefaultServername">The default HTTP servername, used whenever no HTTP Host-header had been given.</param>
-        public HTTPProcessor(String DefaultServername = HTTPServer.__DefaultServerName)
+        public HTTPProcessor(String DefaultServername = HTTPServer.DefaultHTTPServerName)
         {
 
             this._DefaultServerName  = DefaultServername;
