@@ -55,6 +55,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Non-HTTP header fields
 
+        #region EventTrackingId
+
+        private EventTracking_Id _EventTrackingId;
+
+        /// <summary>
+        /// A unique identification for tracking related events.
+        /// </summary>
+        public EventTracking_Id EventTrackingId
+        {
+
+            get
+            {
+                return _EventTrackingId;
+            }
+
+            set
+            {
+                _EventTrackingId = value;
+            }
+
+        }
+
+        #endregion
+
         #region ConstructedHTTPHeader
 
         /// <summary>

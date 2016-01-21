@@ -25,6 +25,8 @@ using System.Threading;
 using System.Collections;
 using System.Collections.Generic;
 
+using org.GraphDefined.Vanaheimr.Illias;
+
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
@@ -73,6 +75,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
                 return _Timestamp;
             }
+        }
+
+        #endregion
+
+        #region EventTrackingId
+
+        private EventTracking_Id _EventTrackingId;
+
+        /// <summary>
+        /// A unique identification for tracking related events.
+        /// </summary>
+        public EventTracking_Id EventTrackingId
+        {
+
+            get
+            {
+                return _EventTrackingId;
+            }
+
+            set
+            {
+                _EventTrackingId = value;
+            }
+
         }
 
         #endregion
@@ -466,6 +492,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             this._Timestamp          = DateTime.Now;
+            this._EventTrackingId    = EventTracking_Id.New;
             this._RemoteSocket       = RemoteSocket;
             this._LocalSocket        = LocalSocket;
             this._RawHTTPHeader      = HTTPHeader.Trim();
@@ -520,6 +547,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             this._Timestamp          = HTTPPDU.Timestamp;
+            this._EventTrackingId    = HTTPPDU.EventTrackingId;
             this._RemoteSocket       = HTTPPDU.RemoteSocket;
             this._LocalSocket        = HTTPPDU.LocalSocket;
             this._RawHTTPHeader      = HTTPPDU.RawHTTPHeader;
