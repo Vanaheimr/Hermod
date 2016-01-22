@@ -442,6 +442,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             AllDNSServerRequests.
                 ForEach(DNSServerTask => DNSServerTask.ContinueWith(x => {
+
                                                            try
                                                            {
                                                                if (x.Result != null)
@@ -449,8 +450,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                            }
                                                            catch (Exception e)
                                                            {
+
+                                                               while (e.InnerException != null)
+                                                                   e = e.InnerException;
+
                                                                Debug.WriteLine("[" + DateTime.Now + "] DNS exception " + e.Message);
+
                                                            }
+
                                                        }));
 
             #endregion
@@ -475,13 +482,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (TypeIdField == null)
                 throw new ArgumentException("Constant field 'TypeId' of type '" + typeof(T).Name + "' was not found!");
 
-            return Query(DomainName,
-                         new UInt16[1] { (UInt16) TypeIdField.GetValue(typeof(T)) }).
+            var QueryTask = await Query(DomainName,
+                                        new UInt16[1] { (UInt16) TypeIdField.GetValue(typeof(T)) });
 
-                       ContinueWith(QueryTask => QueryTask.Result.
-                                                     Answers.
-                                                     Where(v => v.GetType() == typeof(T)).
-                                                     Cast<T>()).Result;
+            return QueryTask.Answers.
+                             Where(v => v.GetType() == typeof(T)).
+                             Cast<T>();
 
         }
 
