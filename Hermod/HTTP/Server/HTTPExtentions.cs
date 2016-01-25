@@ -35,21 +35,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public static class HTTPExtentions
     {
 
-        #region CreateJObject(params Properties)
-
-        public static JObject CreateJObject(params JProperty[] Properties)
-        {
-
-            var FilteredData = Properties.Where(p => p != null).ToArray();
-
-            return (FilteredData.Length > 0)
-                       ? new JObject(FilteredData)
-                       : new JObject();
-
-        }
-
-        #endregion
-
         #region (protected) GetRequestBodyAsUTF8String(this Request, HTTPContentType)
 
         public static HTTPResult<String> GetRequestBodyAsUTF8String(this HTTPRequest  Request,
@@ -130,12 +115,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 HTTPResponse  = new HTTPResponseBuilder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     ContentType     = HTTPContentType.JSON_UTF8,
-                    Content         = CreateJObject(JSONLDContext.IsNotNullOrEmpty()
-                                                        ? new JProperty("context",  JSONLDContext)
-                                                        : null,
-                                                    new JProperty("description",  "Invalid JSON request body!"),
-                                                    new JProperty("hint",         e.Message)).
-                                                    ToUTF8Bytes()
+                    Content         = JSONObject.Create(
+                                          JSONLDContext.IsNotNullOrEmpty()
+                                              ? new JProperty("context",  JSONLDContext)
+                                              : null,
+                                          new JProperty("description",  "Invalid JSON request body!"),
+                                          new JProperty("hint",         e.Message)
+                                      ).ToUTF8Bytes()
                 };
 
                 return false;
@@ -200,12 +186,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 HTTPResponse  = new HTTPResponseBuilder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     ContentType     = HTTPContentType.JSON_UTF8,
-                    Content         = CreateJObject(JSONLDContext.IsNotNullOrEmpty()
-                                                        ? new JProperty("context",  JSONLDContext)
-                                                        : null,
-                                                    new JProperty("description",  "Invalid JSON request body!"),
-                                                    new JProperty("hint",         e.Message)).
-                                                    ToUTF8Bytes()
+                    Content         = JSONObject.Create(
+                                          JSONLDContext.IsNotNullOrEmpty()
+                                              ? new JProperty("context",  JSONLDContext)
+                                              : null,
+                                          new JProperty("description",  "Invalid JSON request body!"),
+                                          new JProperty("hint",         e.Message)
+                                      ).ToUTF8Bytes()
                 };
 
                 return false;
