@@ -874,7 +874,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <returns>A string representation of this object.</returns>
         public override String ToString()
         {
-            return EntireRequestHeader;
+            return EntirePDU;
         }
 
         #endregion

@@ -570,7 +570,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <returns>A string representation of this object.</returns>
         public override String ToString()
         {
-            return HTTPStatusCode != null ? HTTPStatusCode.ToString() : "";
+            return EntirePDU;
         }
 
         #endregion
