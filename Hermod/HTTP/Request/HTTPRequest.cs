@@ -36,6 +36,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public class HTTPRequest : AHTTPPDU
     {
 
+        #region HTTPServer
+
+        private readonly HTTPServer _HTTPServer;
+
+        /// <summary>
+        /// The HTTP server of this request.
+        /// </summary>
+        public HTTPServer HTTPServer
+        {
+            get
+            {
+                return _HTTPServer;
+            }
+        }
+
+        #endregion
+
         #region First PDU line
 
         #region HTTPMethod
@@ -683,12 +700,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
         /// <param name="LocalSocket">The local TCP/IP socket.</param>
+        /// <param name="HTTPServer">The HTTP server of the request.</param>
         /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
         /// <param name="HTTPBody">The HTTP body as an array of bytes.</param>
         /// <param name="HTTPBodyStream">The HTTP body as an stream of bytes.</param>
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
         private HTTPRequest(IPSocket            RemoteSocket,
                             IPSocket            LocalSocket,
+                            HTTPServer          HTTPServer,
                             String              HTTPHeader,
                             Byte[]              HTTPBody           = null,
                             Stream              HTTPBodyStream     = null,
@@ -697,6 +716,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             : base(RemoteSocket, LocalSocket, HTTPHeader, HTTPBody, HTTPBodyStream, CancellationToken)
 
         {
+
+            this._HTTPServer = HTTPServer;
 
             #region Parse HTTPMethod (first line of the http request)
 
@@ -790,23 +811,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region HTTPRequest(CancellationToken, RemoteSocket, LocalSocket, HTTPHeader, HTTPBodyStream)
+        #region HTTPRequest(HTTPServer, CancellationToken, RemoteSocket, LocalSocket, HTTPHeader, HTTPBodyStream)
 
         /// <summary>
         /// Create a new http request based on the given string representation of a HTTP header and a HTTP body stream.
         /// </summary>
+        /// <param name="HTTPServer">The HTTP server of the request.</param>
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
         /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
         /// <param name="LocalSocket">The local TCP/IP socket.</param>
         /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
         /// <param name="HTTPBodyStream">The HTTP body as an stream of bytes.</param>
-        public HTTPRequest(CancellationToken  CancellationToken,
+        public HTTPRequest(HTTPServer         HTTPServer,
+                           CancellationToken  CancellationToken,
                            IPSocket           RemoteSocket,
                            IPSocket           LocalSocket,
                            String             HTTPHeader,
                            Stream             HTTPBodyStream)
 
-            : this(RemoteSocket, LocalSocket, HTTPHeader, null, HTTPBodyStream, CancellationToken)
+            : this(RemoteSocket, LocalSocket, HTTPServer, HTTPHeader, null, HTTPBodyStream, CancellationToken)
 
         {
 
@@ -826,7 +849,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPHeader">The string representation of a HTTP header.</param>
         public HTTPRequest(String HTTPHeader)
 
-            : this(null, null, HTTPHeader)
+            : this(null, null, null, HTTPHeader)
 
         { }
 
@@ -842,7 +865,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPRequest(String  HTTPHeader,
                            Byte[]  HTTPBody)
 
-            : this(null, null, HTTPHeader, HTTPBody)
+            : this(null, null, null, HTTPHeader, HTTPBody)
 
         { }
 
@@ -858,7 +881,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPRequest(String  HTTPHeader,
                            Stream  HTTPBodyStream)
 
-            : this(null, null, HTTPHeader, null, HTTPBodyStream)
+            : this(null, null, null, HTTPHeader, null, HTTPBodyStream)
         { }
 
         #endregion

@@ -166,6 +166,10 @@
     <Compile Include="SMTP\SMTPServer\SMTPConnection.cs" />
     <Compile Include="SMTP\SMTPServer\SMTPServer.cs" />
     <Compile Include="SMTP\SMTPStatusCode.cs" />
+    <Compile Include="SOAP\SOAPDispatch.cs" />
+    <Compile Include="SOAP\SOAPDelegates.cs" />
+    <Compile Include="SOAP\SOAPDispatcher.cs" />
+    <Compile Include="SOAP\SOAPServer.cs" />
     <Compile Include="TCP\ConnectionClosedBy.cs" />
     <Compile Include="TCP\ATCPServers.cs" />
     <Compile Include="TCP\TCPClientResponse.cs" />

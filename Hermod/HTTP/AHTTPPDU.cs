@@ -992,6 +992,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (HTTPBody != null)
                 return true;
 
+            if (ContentLength.Value == 0)
+            {
+                _HTTPBody = new Byte[0];
+                return true;
+            }
+
             var Buffer = new Byte[(Int32) ContentLength.Value];
             Thread.Sleep(100);
             var Read = _HTTPBodyStream.Read(Buffer, 0, (Int32) ContentLength.Value);

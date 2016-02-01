@@ -202,7 +202,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     _HTTPContentTypes[HTTPContentType] = _ContentTypeNode;
                 }
 
-                if (_ContentTypeNode.AllowReplacement == URIReplacement.Ignore)
+                else if (_ContentTypeNode.AllowReplacement == URIReplacement.Ignore)
                 {
                 }
 

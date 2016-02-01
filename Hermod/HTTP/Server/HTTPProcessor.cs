@@ -51,19 +51,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Properties
 
-        #region DefaultServerName
+        #region HTTPServer
 
-        private readonly String _DefaultServerName;
+        private readonly HTTPServer _HTTPServer;
 
         /// <summary>
-        /// The default HTTP servername, used whenever
-        /// no HTTP Host-header had been given.
+        /// The HTTP server.
         /// </summary>
-        public String DefaultServerName
+        public HTTPServer HTTPServer
         {
             get
             {
-                return _DefaultServerName;
+                return _HTTPServer;
             }
         }
 
@@ -105,12 +104,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// This processor will accept incoming HTTP TCP connections and
         /// decode the transmitted data as HTTP requests.
         /// </summary>
-        /// <param name="DefaultServername">The default HTTP servername, used whenever no HTTP Host-header had been given.</param>
-        public HTTPProcessor(String DefaultServername = HTTPServer.DefaultHTTPServerName)
+        /// <param name="HTTPServer">The HTTP server using this processor.</param>
+        public HTTPProcessor(HTTPServer HTTPServer)
         {
-
-            this._DefaultServerName  = DefaultServername;
-
+            this._HTTPServer  = HTTPServer;
         }
 
         #endregion
@@ -285,7 +282,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     try
                                     {
 
-                                        HttpRequest = new HTTPRequest(CTS.Token,
+                                        HttpRequest = new HTTPRequest(_HTTPServer,
+                                                                      CTS.Token,
                                                                       TCPConnection.RemoteSocket,
                                                                       TCPConnection.LocalSocket,
                                                                       HTTPHeaderString.Trim(),

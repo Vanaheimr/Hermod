@@ -342,7 +342,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this._DefaultServerName         = DefaultServerName;
             this._URIMapping                = new URIMapping();
 
-            _HTTPProcessor                  = new HTTPProcessor(DefaultServerName);
+            _HTTPProcessor                  = new HTTPProcessor(this);
             _HTTPProcessor.OnNotification  += ProcessBoomerang;
             _HTTPProcessor.RequestLog      += (HTTPProcessor, ServerTimestamp, Request)                                 => LogRequest(ServerTimestamp, Request);
             _HTTPProcessor.AccessLog       += (HTTPProcessor, ServerTimestamp, Request, Response)                       => LogAccess (ServerTimestamp, Request, Response);
@@ -916,6 +916,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+
+        #region GetHandler(HTTPRequest)
+
+        /// <summary>
+        /// Call the best matching method handler for the given HTTP request.
+        /// </summary>
+        public HTTPDelegate GetHandler(HTTPHostname                              Host,
+                                       String                                    URI,
+                                       HTTPMethod                                HTTPMethod                   = null,
+                                       Func<HTTPContentType[], HTTPContentType>  HTTPContentTypeSelector      = null,
+                                       Action<IEnumerable<String>>               ParsedURIParametersDelegate  = null)
+        {
+
+            return _URIMapping.GetHandler(Host,
+                                          URI,
+                                          HTTPMethod,
+                                          HTTPContentTypeSelector,
+                                          ParsedURIParametersDelegate);
+
+        }
+
+        #endregion
 
         #region InvokeHandler(HTTPRequest)
 
