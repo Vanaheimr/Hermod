@@ -588,7 +588,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 logfile.WriteLine(Request.Timestamp.ToIso8601());
                 logfile.WriteLine(Request.EntirePDU);
                 logfile.WriteLine("<<<<<<--Response----<<<<<<------<<<<<<------<<<<<<------<<<<<<------<<<<<<------");
-                logfile.WriteLine(Response.Timestamp.ToIso8601());
+                logfile.WriteLine(Response.Timestamp.ToIso8601() + " -> " + (Request.Timestamp - Response.Timestamp).TotalMilliseconds + "ms runtime");
                 logfile.WriteLine(Response.EntirePDU);
                 logfile.WriteLine("--------------------------------------------------------------------------------");
             }

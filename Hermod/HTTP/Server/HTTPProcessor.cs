@@ -25,7 +25,6 @@ using System.Threading;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Services;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
@@ -355,7 +354,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                         var AccessLogLocal = AccessLog;
                                         if (AccessLogLocal != null)
-                                            AccessLogLocal(this, RequestTimestamp, HttpRequest, _HTTPResponse);
+                                            AccessLogLocal(this,
+                                                           RequestTimestamp,
+                                                           HttpRequest,
+                                                           _HTTPResponse);
 
                                     }
 
