@@ -20,69 +20,79 @@
 using System;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using System.Net.Security;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
+    /// <summary>
+    /// A HTTPS client.
+    /// </summary>
     public class HTTPSClient : HTTPClient
     {
 
-        #region HTTPSClient(RemoteIPAddress, RemotePort = null, DNSClient  = null)
+        #region HTTPSClient(RemoteIPAddress, RemoteCertificateValidator, RemotePort = null, DNSClient  = null)
 
         /// <summary>
         /// Create a new HTTPClient using the given optional parameters.
         /// </summary>
         /// <param name="RemoteIPAddress">The remote IP address to connect to.</param>
+        /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="RemotePort">An optional remote IP port to connect to [default: 443].</param>
         /// <param name="DNSClient">An optional DNS client.</param>
-        public HTTPSClient(IIPAddress  RemoteIPAddress,
-                           IPPort      RemotePort = null,
-                           DNSClient   DNSClient  = null)
+        public HTTPSClient(IIPAddress                           RemoteIPAddress,
+                           RemoteCertificateValidationCallback  RemoteCertificateValidator,
+                           IPPort                               RemotePort  = null,
+                           DNSClient                            DNSClient   = null)
 
             : base(RemoteIPAddress,
                    RemotePort != null ? RemotePort : IPPort.Parse(443),
-                   true,
+                   RemoteCertificateValidator,
                    DNSClient)
 
         { }
 
         #endregion
 
-        #region HTTPSClient(Socket, DNSClient  = null)
+        #region HTTPSClient(Socket, RemoteCertificateValidator, DNSClient  = null)
 
         /// <summary>
         /// Create a new HTTPClient using the given optional parameters.
         /// </summary>
         /// <param name="RemoteSocket">The remote IP socket to connect to.</param>
+        /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
-        public HTTPSClient(IPSocket   RemoteSocket,
-                           DNSClient  DNSClient  = null)
+        public HTTPSClient(IPSocket                             RemoteSocket,
+                           RemoteCertificateValidationCallback  RemoteCertificateValidator,
+                           DNSClient                            DNSClient  = null)
 
             : base(RemoteSocket,
-                   true,
+                   RemoteCertificateValidator,
                    DNSClient)
 
         { }
 
         #endregion
 
-        #region HTTPSClient(RemoteHost, RemotePort = null, DNSClient  = null)
+        #region HTTPSClient(RemoteHost, RemoteCertificateValidator, RemotePort = null, DNSClient  = null)
 
         /// <summary>
         /// Create a new HTTPClient using the given optional parameters.
         /// </summary>
         /// <param name="RemoteHost">The remote hostname to connect to.</param>
+        /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="RemotePort">An optional remote IP port to connect to [default: 443].</param>
         /// <param name="DNSClient">An optional DNS client.</param>
-        public HTTPSClient(String     RemoteHost,
-                           IPPort     RemotePort = null,
-                           DNSClient  DNSClient  = null)
+        public HTTPSClient(String                               RemoteHost,
+                           RemoteCertificateValidationCallback  RemoteCertificateValidator,
+                           IPPort                               RemotePort  = null,
+                           DNSClient                            DNSClient   = null)
 
             : base(RemoteHost,
                    RemotePort != null ? RemotePort : IPPort.Parse(443),
-                   true,
+                   RemoteCertificateValidator,
                    DNSClient)
 
         { }

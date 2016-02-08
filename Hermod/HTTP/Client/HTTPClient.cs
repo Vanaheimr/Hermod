@@ -162,25 +162,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        public X509Certificate ClientCert { get; set; }
+        public X509Certificate  ClientCert { get; set; }
 
         public X509Certificate2 ServerCert { get; set; }
 
-        public RemoteCertificateValidationCallback RemoteCertificateValidator { get; set; }
+        #region RemoteCertificateValidator
+
+        private readonly RemoteCertificateValidationCallback _RemoteCertificateValidator;
+
+        public RemoteCertificateValidationCallback RemoteCertificateValidator
+        {
+            get
+            {
+                return _RemoteCertificateValidator;
+            }
+        }
+
+        #endregion
 
         public LocalCertificateSelectionCallback ClientCertificateSelector { get; set; }
 
         #region UseTLS
 
-        private readonly Boolean _UseTLS;
+        //private readonly Boolean _UseTLS;
 
-        public Boolean UseTLS
-        {
-            get
-            {
-                return _UseTLS;
-            }
-        }
+        //public Boolean UseTLS
+        //{
+        //    get
+        //    {
+        //        return _UseTLS;
+        //    }
+        //}
 
         #endregion
 
@@ -193,76 +205,77 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region HTTPClient(RemoteIPAddress, RemotePort, UseTLS = false, DNSClient  = null)
+        #region HTTPClient(RemoteIPAddress, RemotePort, RemoteCertificateValidator = null, DNSClient  = null)
 
         /// <summary>
         /// Create a new HTTPClient using the given optional parameters.
         /// </summary>
         /// <param name="RemoteIPAddress">The remote IP address to connect to.</param>
         /// <param name="RemotePort">The remote IP port to connect to.</param>
-        /// <param name="UseTLS">Use transport layer security [default: false].</param>
+        /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
-        public HTTPClient(IIPAddress  RemoteIPAddress,
-                          IPPort      RemotePort,
-                          Boolean     UseTLS     = false,
-                          DNSClient   DNSClient  = null)
+        public HTTPClient(IIPAddress                           RemoteIPAddress,
+                          IPPort                               RemotePort,
+                          RemoteCertificateValidationCallback  RemoteCertificateValidator  = null,
+                          DNSClient                            DNSClient                   = null)
         {
 
-            this.RemoteIPAddress  = RemoteIPAddress;
-            this.RemotePort       = RemotePort;
-            this._UseTLS          = UseTLS;
-            this._DNSClient       = DNSClient == null
-                                       ? new DNSClient()
-                                       : DNSClient;
+            this.RemoteIPAddress              = RemoteIPAddress;
+            this.Hostname                     = RemoteIPAddress.ToString();
+            this.RemotePort                   = RemotePort;
+            this._RemoteCertificateValidator  = RemoteCertificateValidator;
+            this._DNSClient                   = DNSClient == null
+                                                   ? new DNSClient()
+                                                   : DNSClient;
 
         }
 
         #endregion
 
-        #region HTTPClient(Socket, UseTLS = false, DNSClient  = null)
+        #region HTTPClient(Socket, RemoteCertificateValidator = null, DNSClient  = null)
 
         /// <summary>
         /// Create a new HTTPClient using the given optional parameters.
         /// </summary>
         /// <param name="RemoteSocket">The remote IP socket to connect to.</param>
-        /// <param name="UseTLS">Use transport layer security [default: false].</param>
+        /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
-        public HTTPClient(IPSocket   RemoteSocket,
-                          Boolean    UseTLS     = false,
-                          DNSClient  DNSClient  = null)
+        public HTTPClient(IPSocket                             RemoteSocket,
+                          RemoteCertificateValidationCallback  RemoteCertificateValidator  = null,
+                          DNSClient                            DNSClient                   = null)
 
-            : this(RemoteSocket.IPAddress, RemoteSocket.Port, UseTLS, DNSClient)
+            : this(RemoteSocket.IPAddress, RemoteSocket.Port, RemoteCertificateValidator, DNSClient)
 
         { }
 
         #endregion
 
-        #region HTTPClient(RemoteHost, RemotePort = null, UseTLS = false, DNSClient  = null)
+        #region HTTPClient(RemoteHost, RemotePort = null, RemoteCertificateValidator = null, DNSClient  = null)
 
         /// <summary>
         /// Create a new HTTPClient using the given optional parameters.
         /// </summary>
         /// <param name="RemoteHost">The remote hostname to connect to.</param>
         /// <param name="RemotePort">The remote IP port to connect to.</param>
-        /// <param name="UseTLS">Use transport layer security [default: false].</param>
+        /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
-        public HTTPClient(String     RemoteHost,
-                          IPPort     RemotePort = null,
-                          Boolean    UseTLS     = false,
-                          DNSClient  DNSClient  = null)
+        public HTTPClient(String                               RemoteHost,
+                          IPPort                               RemotePort                  = null,
+                          RemoteCertificateValidationCallback  RemoteCertificateValidator  = null,
+                          DNSClient                            DNSClient                   = null)
         {
 
-            this.Hostname    = RemoteHost;
+            this.Hostname                     = RemoteHost;
 
-            this.RemotePort  = RemotePort != null
-                                  ? RemotePort
-                                  : IPPort.Parse(80);
+            this.RemotePort                   = RemotePort != null
+                                                   ? RemotePort
+                                                   : IPPort.Parse(80);
 
-            this._UseTLS     = UseTLS;
+            this._RemoteCertificateValidator  = RemoteCertificateValidator;
 
-            this._DNSClient  = DNSClient != null
-                                  ? DNSClient
-                                  : new DNSClient();
+            this._DNSClient                   = DNSClient != null
+                                                   ? DNSClient
+                                                   : new DNSClient();
 
         }
 
@@ -447,7 +460,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     TCPStream  = TCPClient.GetStream();
                     TCPStream.ReadTimeout = (Int32) Timeout.Value.TotalMilliseconds;
 
-                    TLSStream  = UseTLS
+                    TLSStream  = RemoteCertificateValidator != null
                                      ? new SslStream(TCPStream,
                                                      false,
                                                      RemoteCertificateValidator)
@@ -460,7 +473,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     HTTPStream = null;
 
-                    if (UseTLS)
+                    if (RemoteCertificateValidator != null)
                     {
                         HTTPStream = TLSStream;
                         TLSStream.AuthenticateAsClient(Hostname);//, new X509CertificateCollection(new X509Certificate[] { ClientCert }), SslProtocols.Default, false);

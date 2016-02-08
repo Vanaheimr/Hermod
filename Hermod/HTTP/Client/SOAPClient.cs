@@ -26,6 +26,7 @@ using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using System.Threading;
+using System.Net.Security;
 
 #endregion
 
@@ -122,17 +123,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="HTTPVirtualHost">The HTTP virtual host to use.</param>
         /// <param name="URIPrefix">The URI-prefix of the SOAP service.</param>
         /// <param name="UserAgent">The HTTP user agent to use.</param>
-        /// <param name="UseTLS">Use transport layer security [default: false].</param>
+        /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
-        public SOAPClient(String     SOAPHost,
-                          IPPort     SOAPPort,
-                          String     HTTPVirtualHost,
-                          String     URIPrefix,
-                          String     UserAgent  = "GraphDefined SOAP-Client",
-                          Boolean    UseTLS     = false,
-                          DNSClient  DNSClient  = null)
+        public SOAPClient(String                               SOAPHost,
+                          IPPort                               SOAPPort,
+                          String                               HTTPVirtualHost,
+                          String                               URIPrefix,
+                          String                               UserAgent                   = "GraphDefined SOAP-Client",
+                          RemoteCertificateValidationCallback  RemoteCertificateValidator  = null,
+                          DNSClient                            DNSClient                   = null)
 
-            : base(SOAPHost, SOAPPort, UseTLS, DNSClient)
+            : base(SOAPHost, SOAPPort, RemoteCertificateValidator, DNSClient)
 
         {
 
