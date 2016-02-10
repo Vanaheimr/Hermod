@@ -325,6 +325,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Authorization
 
+        /// <summary>
+        /// The HTTP basic authentication.
+        /// </summary>
         public HTTPBasicAuthentication Authorization
         {
             get
@@ -339,9 +342,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (_AuthString == null)
                     return null;
 
-                _Authorization = new HTTPBasicAuthentication(_AuthString);
-
-                SetHeaderField("Authorization", _Authorization);
+                if (HTTPBasicAuthentication.TryParse(_AuthString, out _Authorization))
+                    SetHeaderField("Authorization", _Authorization);
 
                 return _Authorization;
 

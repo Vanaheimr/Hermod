@@ -26,62 +26,71 @@ using org.GraphDefined.Vanaheimr.Illias;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
+    /// <summary>
+    /// A HTTP basic authentication.
+    /// </summary>
     public class HTTPBasicAuthentication
     {
 
         #region Properties
 
-        public String                   Username            { get; private set; }
-        public String                   Password            { get; private set; }
-        public HTTPAuthenticationTypes  HTTPCredentialType  { get; private set; }
+        #region Username
 
-        #endregion
-
-        #region Constructor(s)
-
-        #region HTTPBasicAuthentication(HTTPHeaderCredential)
+        private readonly String _Username;
 
         /// <summary>
-        /// Create the credentials based on a base64 encoded string which comes from a HTTP header Authentication:
+        /// The username.
         /// </summary>
-        /// <param name="HTTPHeaderCredential"></param>
-        public HTTPBasicAuthentication(String HTTPHeaderCredential)
+        public String Username
         {
-
-            #region Initial checks
-
-            if (HTTPHeaderCredential.IsNullOrEmpty())
-                throw new ArgumentNullException("HTTPHeaderCredential", "The given credential string must not be null or empty!");
-
-            #endregion
-
-            var splitted = HTTPHeaderCredential.Split(new[] { ' ' });
-
-            if (splitted.IsNullOrEmpty())
-                throw new ArgumentException("invalid credentials " + HTTPHeaderCredential);
-
-            if (splitted[0].ToLower() == "basic")
+            get
             {
-
-                HTTPCredentialType = HTTPAuthenticationTypes.Basic;
-                var usernamePassword = splitted[1].FromBase64().Split(new[] { ':' });
-
-                if (usernamePassword.IsNullOrEmpty())
-                    throw new ArgumentException("invalid username/password " + splitted[1].FromBase64());
-
-                Username = usernamePassword[0];
-                Password = usernamePassword[1];
-
+                return _Username;
             }
-
-            else
-                throw new ArgumentException("invalid credentialType " + splitted[0]);
 
         }
 
         #endregion
 
-        #region HTTPBasicAuthentication(Username, Password)
+        #region Password
+
+        private readonly String _Password;
+
+        /// <summary>
+        /// The password.
+        /// </summary>
+        public String Password
+        {
+            get
+            {
+                return _Password;
+            }
+
+        }
+
+        #endregion
+
+        #region HTTPCredentialType
+
+        private readonly HTTPAuthenticationTypes _HTTPCredentialType;
+
+        /// <summary>
+        /// The type of the HTTP authentication.
+        /// </summary>
+        public HTTPAuthenticationTypes HTTPCredentialType
+        {
+            get
+            {
+                return _HTTPCredentialType;
+            }
+
+        }
+
+        #endregion
+
+        #endregion
+
+        #region Constructor(s)
 
         /// <summary>
         /// Create the credentials based on a base64 encoded string which comes from a HTTP header Authentication:
@@ -95,19 +104,59 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region Initial checks
 
             if (Username.IsNullOrEmpty())
-                throw new ArgumentNullException("Username", "The given username must not be null or empty!");
+                throw new ArgumentNullException(nameof(Username), "The given username must not be null or empty!");
 
             if (Password.IsNullOrEmpty())
-                throw new ArgumentNullException("Password", "The given password must not be null or empty!");
+                throw new ArgumentNullException(nameof(Password), "The given password must not be null or empty!");
 
             #endregion
 
-            this.Username  = Username;
-            this.Password  = Password;
+            this._HTTPCredentialType  = HTTPAuthenticationTypes.Basic;
+            this._Username            = Username;
+            this._Password            = Password;
 
         }
 
         #endregion
+
+
+        #region (static) TryParse(Text, out BasicAuthentication)
+
+        /// <summary>
+        /// Try to parse the given text.
+        /// </summary>
+        /// <param name="Text">A text representation of a HTTP basic authentication header.</param>
+        /// <param name="BasicAuthentication">The parsed HTTP basic authentication header.</param>
+        /// <returns>true, when the parsing was successful, else false.</returns>
+        public static Boolean TryParse(String Text, out HTTPBasicAuthentication BasicAuthentication)
+        {
+
+            BasicAuthentication = null;
+
+            if (Text.IsNullOrEmpty())
+                return false;
+
+            var splitted = Text.Split(new[] { ' ' });
+
+            if (splitted.IsNullOrEmpty())
+                return false;
+
+            if (splitted[0].ToLower() == "basic")
+            {
+
+                var usernamePassword = splitted[1].FromBase64().Split(new[] { ':' });
+
+                if (usernamePassword.IsNullOrEmpty())
+                    return false;
+
+                BasicAuthentication = new HTTPBasicAuthentication(usernamePassword[0], usernamePassword[1]);
+                return true;
+
+            }
+
+            return false;
+
+        }
 
         #endregion
 
