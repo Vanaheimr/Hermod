@@ -33,18 +33,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region RFC 2616 - HTTP/1.1
 
-        #region DELETE(this HTTPClient, URI = "/")
+        #region DELETE(this HTTPClient, URI = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP DELETE request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
         /// <param name="URI">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequestBuilder DELETE(this HTTPClient  HTTPClient,
-                                                String           URI)
+        public static HTTPRequestBuilder DELETE(this HTTPClient             HTTPClient,
+                                                String                      URI,
+                                                Action<HTTPRequestBuilder>  BuilderAction = null)
         {
-            return HTTPClient.CreateRequest(HTTPMethod.DELETE, URI);
+            return HTTPClient.CreateRequest(HTTPMethod.DELETE, URI, BuilderAction);
         }
 
         #endregion
