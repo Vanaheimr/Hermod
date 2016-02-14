@@ -32,12 +32,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public delegate Boolean PFunc<TResult>(String Input, out TResult arg);
 
     /// <summary>
-    /// WWCP HTTP API - JSON I/O.
+    /// HTTP API - JSON I/O.
     /// </summary>
     public static class JSON_IO_ExtentionMethods
     {
 
-        #region ParseMandatory<T>(this JSONObject, PropertyName, PropertyDescription, DefaultServerName, Parser, out Value, HTTPRequest, out HTTPResponse)
+        #region ParseMandatory<T>    (this JSONObject, PropertyName, PropertyDescription, DefaultServerName, Parser, out Value, HTTPRequest, out HTTPResponse)
 
         public static Boolean ParseMandatory<T>(this JObject      JSONObject,
                                                 String            PropertyName,
@@ -92,7 +92,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ParseMandatory<TEnum>(this JSONObject, PropertyName, PropertyDescription, DefaultServerName, out Value, HTTPRequest, out HTTPResponse)
+        #region ParseMandatory<TEnum>(this JSONObject, PropertyName, PropertyDescription, DefaultServerName,         out Value, HTTPRequest, out HTTPResponse)
 
         public static Boolean ParseMandatory<TEnum>(this JObject      JSONObject,
                                                     String            PropertyName,
@@ -150,7 +150,115 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ParseOptional<T>(this JSONObject, PropertyName, PropertyDescription, DefaultServerName, Parser, out Value, HTTPRequest, out HTTPResponse)
+        #region ParseMandatory(this JSONObject, PropertyName, PropertyDescription, DefaultServerName, out Text,      HTTPRequest, out HTTPResponse)
+
+        public static Boolean ParseMandatory(this JObject      JSONObject,
+                                             String            PropertyName,
+                                             String            PropertyDescription,
+                                             String            DefaultServerName,
+                                             out String        Text,
+                                             HTTPRequest       HTTPRequest,
+                                             out HTTPResponse  HTTPResponse)
+
+        {
+
+            JToken JSONToken = null;
+
+            if (!JSONObject.TryGetValue(PropertyName, out JSONToken))
+            {
+
+                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                    Server          = DefaultServerName,
+                    Date            = DateTime.Now,
+                    ContentType     = HTTPContentType.JSON_UTF8,
+                    Content         = new JObject(new JProperty("description", "Missing JSON property '" + PropertyName + "'!")).ToString().ToUTF8Bytes()
+                };
+
+                Text = String.Empty;
+
+                return false;
+
+            }
+
+            Text          = JSONToken.Value<String>();
+            HTTPResponse  = null;
+
+            return true;
+
+        }
+
+        #endregion
+
+        #region ParseMandatory(this JSONObject, PropertyName, PropertyDescription, DefaultServerName, out Timestamp, HTTPRequest, out HTTPResponse)
+
+        public static Boolean ParseMandatory(this JObject      JSONObject,
+                                             String            PropertyName,
+                                             String            PropertyDescription,
+                                             String            DefaultServerName,
+                                             out DateTime      Timestamp,
+                                             HTTPRequest       HTTPRequest,
+                                             out HTTPResponse  HTTPResponse)
+
+        {
+
+            JToken   JSONToken = null;
+            Timestamp = DateTime.MinValue;
+
+            if (JSONObject.TryGetValue(PropertyName, out JSONToken))
+            {
+
+                try
+                {
+
+                    Timestamp = JSONToken.Value<DateTime>();
+
+                }
+                catch (Exception)
+                {
+
+                    HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                        HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                        Server          = DefaultServerName,
+                        Date            = DateTime.Now,
+                        ContentType     = HTTPContentType.JSON_UTF8,
+                        Content         = new JObject(
+                                              new JProperty("description", "Invalid timestamp '" + JSONToken.Value<String>() + "'!")
+                                          ).ToUTF8Bytes()
+                    };
+
+                    return false;
+
+                }
+
+                HTTPResponse = null;
+                return true;
+
+            }
+
+            else
+            {
+
+                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                    Server          = DefaultServerName,
+                    Date            = DateTime.Now,
+                    ContentType     = HTTPContentType.JSON_UTF8,
+                    Content         = new JObject(
+                                          new JProperty("description", "Invalid timestamp '" + JSONToken.Value<String>() + "'!")
+                                      ).ToUTF8Bytes()
+                };
+
+                return false;
+
+            }
+
+        }
+
+        #endregion
+
+
+        #region ParseOptional<T>    (this JSONObject, PropertyName, PropertyDescription, DefaultServerName, Parser, out Value, HTTPRequest, out HTTPResponse)
 
         public static Boolean ParseOptional<T>(this JObject      JSONObject,
                                                String            PropertyName,
@@ -195,7 +303,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ParseOptional<TEnum>(this JSONObject, PropertyName, PropertyDescription, DefaultServerName, Parser, out Value, HTTPRequest, out HTTPResponse)
+        #region ParseOptional<TEnum>(this JSONObject, PropertyName, PropertyDescription, DefaultServerName,         out Value, HTTPRequest, out HTTPResponse)
 
         public static Boolean ParseOptional<TEnum>(this JObject      JSONObject,
                                                    String            PropertyName,
@@ -229,6 +337,83 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     };
 
                     Value = default(TEnum);
+                    return false;
+
+                }
+
+            }
+
+            HTTPResponse  = null;
+            return true;
+
+        }
+
+        #endregion
+
+        #region ParseOptional(this JSONObject, PropertyName, PropertyDescription, DefaultServerName, out Text,      HTTPRequest, out HTTPResponse)
+
+        public static Boolean ParseOptional(this JObject      JSONObject,
+                                            String            PropertyName,
+                                            String            PropertyDescription,
+                                            String            DefaultServerName,
+                                            out String        Text,
+                                            HTTPRequest       HTTPRequest,
+                                            out HTTPResponse  HTTPResponse)
+
+        {
+
+            JToken JSONToken = null;
+            Text = String.Empty;
+
+            if (JSONObject.TryGetValue(PropertyName, out JSONToken))
+            {
+                Text = JSONToken.Value<String>();
+            }
+
+            HTTPResponse  = null;
+            return true;
+
+        }
+
+        #endregion
+
+        #region ParseOptional(this JSONObject, PropertyName, PropertyDescription, DefaultServerName, out Timestamp, HTTPRequest, out HTTPResponse)
+
+        public static Boolean ParseOptional(this JObject      JSONObject,
+                                            String            PropertyName,
+                                            String            PropertyDescription,
+                                            String            DefaultServerName,
+                                            out DateTime?     Timestamp,
+                                            HTTPRequest       HTTPRequest,
+                                            out HTTPResponse  HTTPResponse)
+
+        {
+
+            JToken   JSONToken = null;
+            Timestamp = new DateTime?();
+
+            if (JSONObject.TryGetValue(PropertyName, out JSONToken))
+            {
+
+                try
+                {
+
+                    Timestamp = JSONToken.Value<DateTime>();
+
+                }
+                catch (Exception)
+                {
+
+                    HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                        HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                        Server          = DefaultServerName,
+                        Date            = DateTime.Now,
+                        ContentType     = HTTPContentType.JSON_UTF8,
+                        Content         = new JObject(
+                                              new JProperty("description", "Invalid timestamp '" + JSONToken.Value<String>() + "'!")
+                                          ).ToUTF8Bytes()
+                    };
+
                     return false;
 
                 }

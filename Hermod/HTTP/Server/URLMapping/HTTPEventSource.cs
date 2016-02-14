@@ -21,6 +21,7 @@
 using System;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 
 using Newtonsoft.Json.Linq;
@@ -136,7 +137,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Submit a new event.
         /// </summary>
         /// <param name="Data">The attached event data.</param>
-        public void SubmitEvent(params String[] Data)
+        public async Task SubmitEvent(params String[] Data)
         {
             QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter), Data));
         }
@@ -150,16 +151,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the event.</param>
         /// <param name="Data">The attached event data.</param>
-        public void SubmitTimestampedEvent(DateTime Timestamp, params String[] Data)
+        public async Task SubmitTimestampedEvent(DateTime Timestamp, params String[] Data)
         {
 
-            SubmitSubEvent(new JObject(
-                               new JProperty("Timestamp", Timestamp),
-                               new JProperty("Message", Data.Aggregate((a, b) => a + " " + b))
-                           ).
-                           ToString().
-                           Replace(Environment.NewLine, " ")
-                          );
+            await SubmitSubEvent(new JObject(
+                                     new JProperty("Timestamp", Timestamp),
+                                     new JProperty("Message", Data.Aggregate((a, b) => a + " " + b))
+                                 ).
+                                 ToString().
+                                 Replace(Environment.NewLine, " ")
+                                );
 
         }
 
@@ -173,7 +174,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="SubEvent">A subevent identification.</param>
         /// <param name="Data">The attached event data.</param>
-        public void SubmitSubEvent(String SubEvent, params String[] Data)
+        public async Task SubmitSubEvent(String SubEvent, params String[] Data)
         {
             if (SubEvent.IsNullOrEmpty())
                 QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter), Data));
@@ -190,12 +191,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="SubEvent">A subevent identification.</param>
         /// <param name="Data">The attached event data.</param>
-        public void SubmitSubEventWithTimestamp(String SubEvent, params String[] Data)
+        public async Task SubmitSubEventWithTimestamp(String SubEvent, params String[] Data)
         {
             if (SubEvent.IsNullOrEmpty())
-                SubmitTimestampedEvent(DateTime.Now, Data);
+                await SubmitTimestampedEvent(DateTime.Now, Data);
             else
-                SubmitTimestampedSubEvent(SubEvent, DateTime.Now, Data);
+                await SubmitTimestampedSubEvent(SubEvent, DateTime.Now, Data);
         }
 
         #endregion
@@ -208,27 +209,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="SubEvent">A subevent identification.</param>
         /// <param name="Timestamp">The timestamp of the event.</param>
         /// <param name="Data">The attached event data.</param>
-        public void SubmitTimestampedSubEvent(String SubEvent, DateTime Timestamp, params String[] Data)
+        public async Task SubmitTimestampedSubEvent(String SubEvent, DateTime Timestamp, params String[] Data)
         {
 
             if (SubEvent.IsNullOrEmpty())
-                SubmitEvent(new JObject(
-                                new JProperty("Timestamp", Timestamp),
-                                new JProperty("Message",   Data.Aggregate((a, b) => a + " " + b))
-                            ).
-                            ToString().
-                            Replace(Environment.NewLine, " ")
-                           );
+                await SubmitEvent(new JObject(
+                                      new JProperty("Timestamp", Timestamp),
+                                      new JProperty("Message",   Data.Aggregate((a, b) => a + " " + b))
+                                  ).
+                                  ToString().
+                                  Replace(Environment.NewLine, " ")
+                                 );
 
             else
-                SubmitSubEvent(SubEvent,
-                               new JObject(
-                                   new JProperty("Timestamp", Timestamp),
-                                   new JProperty("Message",   Data.Aggregate((a, b) => a + " " + b))
-                               ).
-                               ToString().
-                               Replace(Environment.NewLine, " ")
-                              );
+                await SubmitSubEvent(SubEvent,
+                                     new JObject(
+                                         new JProperty("Timestamp", Timestamp),
+                                         new JProperty("Message",   Data.Aggregate((a, b) => a + " " + b))
+                                     ).
+                                     ToString().
+                                     Replace(Environment.NewLine, " ")
+                                    );
 
         }
 
