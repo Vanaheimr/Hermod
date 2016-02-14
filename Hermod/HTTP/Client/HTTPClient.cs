@@ -74,28 +74,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Hostname
 
+        private readonly String _Hostname;
+
         /// <summary>
         /// The Hostname to which the HTTPClient connects.
         /// </summary>
-        public String Hostname { get; private set; }
+        public String Hostname
+        {
+            get
+            {
+                return _Hostname;
+            }
+        }
 
         #endregion
 
         #region RemoteIPAddress
 
+        private readonly IIPAddress _RemoteIPAddress;
+
         /// <summary>
         /// The IP Address to connect to.
         /// </summary>
-        public IIPAddress RemoteIPAddress { get; set; }
+        public IIPAddress RemoteIPAddress
+        {
+            get
+            {
+                return _RemoteIPAddress;
+            }
+        }
 
         #endregion
 
         #region RemotePort
 
+        private readonly IPPort _RemotePort;
+
         /// <summary>
         /// The IP port to connect to.
         /// </summary>
-        public IPPort RemotePort { get; set; }
+        public IPPort RemotePort
+        {
+            get
+            {
+                return _RemotePort;
+            }
+        }
 
         #endregion
 
@@ -109,19 +133,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             get
             {
-                return new IPSocket(RemoteIPAddress, RemotePort);
+                return new IPSocket(_RemoteIPAddress, _RemotePort);
             }
 
-            set
-            {
+            //set
+            //{
 
-                if (value == null)
-                    throw new ArgumentNullException("The remote socket must not be null!");
+            //    if (value == null)
+            //        throw new ArgumentNullException("The remote socket must not be null!");
 
-                this.RemoteIPAddress = value.IPAddress;
-                this.RemotePort      = value.Port;
+            //    this._RemoteIPAddress  = value.IPAddress;
+            //    this.RemotePort        = value.Port;
 
-            }
+            //}
 
         }
 
@@ -170,6 +194,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         private readonly RemoteCertificateValidationCallback _RemoteCertificateValidator;
 
+        /// <summary>
+        /// A delegate to verify the remote TLS certificate.
+        /// </summary>
         public RemoteCertificateValidationCallback RemoteCertificateValidator
         {
             get
@@ -181,20 +208,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
         public LocalCertificateSelectionCallback ClientCertificateSelector { get; set; }
-
-        #region UseTLS
-
-        //private readonly Boolean _UseTLS;
-
-        //public Boolean UseTLS
-        //{
-        //    get
-        //    {
-        //        return _UseTLS;
-        //    }
-        //}
-
-        #endregion
 
         #endregion
 
@@ -220,9 +233,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           DNSClient                            DNSClient                   = null)
         {
 
-            this.RemoteIPAddress              = RemoteIPAddress;
-            this.Hostname                     = RemoteIPAddress.ToString();
-            this.RemotePort                   = RemotePort;
+            this._RemoteIPAddress             = RemoteIPAddress;
+            this._Hostname                    = RemoteIPAddress.ToString();
+            this._RemotePort                  = RemotePort;
             this._RemoteCertificateValidator  = RemoteCertificateValidator;
             this._DNSClient                   = DNSClient == null
                                                    ? new DNSClient()
@@ -265,9 +278,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           DNSClient                            DNSClient                   = null)
         {
 
-            this.Hostname                     = RemoteHost;
-
-            this.RemotePort                   = RemotePort != null
+            this._Hostname                    = RemoteHost;
+            this._RemotePort                  = RemotePort != null
                                                    ? RemotePort
                                                    : IPPort.Parse(80);
 
@@ -387,16 +399,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var task = Task<HTTPResponse>.Factory.StartNew(() => {
 
-                //DebugX.Log("[" + DateTime.Now.ToIso8601() + "] HTTPClient started...");
+                try
+                {
 
-                Thread.CurrentThread.Priority = ThreadPriority.BelowNormal;
 
-                HTTPResponse _HTTPResponse = null;
+                    //DebugX.Log("[" + DateTime.Now.ToIso8601() + "] HTTPClient started...");
+
+                    Thread.CurrentThread.Priority = ThreadPriority.BelowNormal;
+
+                    HTTPResponse _HTTPResponse = null;
 
                     #region Data
 
-                    var HTTPHeaderBytes  = new Byte[0];
-                    var sw               = new Stopwatch();
+                    var HTTPHeaderBytes = new Byte[0];
+                    var sw = new Stopwatch();
 
                     if (!Timeout.HasValue)
                         Timeout = TimeSpan.FromSeconds(60);
@@ -408,20 +424,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (TCPClient == null)
                     {
 
-                        #region DNS lookup...
+                        IIPAddress _ResolvedRemoteIPAddress = null;
 
-                        if (RemoteIPAddress == null)
+                        if (_RemoteIPAddress == null)
                         {
 
-                            try
+                            var RegExpr = new Regex(@"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b");
+
+                            if (RegExpr.IsMatch(Hostname))
+                                _ResolvedRemoteIPAddress = IPv4Address.Parse(Hostname);
+
+                            #region DNS lookup...
+
+                            if (_RemoteIPAddress == null)
                             {
 
-                                var RegExpr = new Regex(@"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b");
-
-                                if (RegExpr.IsMatch(Hostname))
-                                    this.RemoteIPAddress = IPv4Address.Parse(Hostname);
-
-                                else
+                                try
                                 {
 
                                     var IPv4AddressTask = _DNSClient.
@@ -432,24 +450,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                     IPv4AddressTask.Wait();
 
-                                    this.RemoteIPAddress = IPv4AddressTask.Result;
+                                    _ResolvedRemoteIPAddress = IPv4AddressTask.Result;
 
+                                }
+                                catch (Exception e)
+                                {
+                                    Debug.WriteLine("[" + DateTime.Now + "] " + e.Message);
                                 }
 
                             }
-                            catch (Exception e)
-                            {
-                                Debug.WriteLine("[" + DateTime.Now + "] " + e.Message);
-                            }
+
+                            #endregion
 
                         }
 
-                        #endregion
+                        else
+                            _ResolvedRemoteIPAddress = _RemoteIPAddress;
 
                         sw.Start();
 
-                        TCPClient = new TcpClient(RemoteIPAddress.ToString(), this.RemotePort.ToInt32());
-                        TCPClient.ReceiveTimeout = (Int32) Timeout.Value.TotalMilliseconds;
+                        var axx = new System.Net.IPEndPoint(new System.Net.IPAddress(_ResolvedRemoteIPAddress.GetBytes()), _RemotePort.ToInt32());
+
+                        TCPClient = new TcpClient();
+                        TCPClient.Connect(axx);
+                        TCPClient.ReceiveTimeout = (Int32)Timeout.Value.TotalMilliseconds;
 
                     }
 
@@ -457,19 +481,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #region Create (Crypto-)Stream
 
-                    TCPStream  = TCPClient.GetStream();
-                    TCPStream.ReadTimeout = (Int32) Timeout.Value.TotalMilliseconds;
+                    TCPStream = TCPClient.GetStream();
+                    TCPStream.ReadTimeout = (Int32)Timeout.Value.TotalMilliseconds;
 
-                    TLSStream  = RemoteCertificateValidator != null
+                    TLSStream = RemoteCertificateValidator != null
                                      ? new SslStream(TCPStream,
                                                      false,
                                                      RemoteCertificateValidator)
-                                                 //    ClientCertificateSelector,
-                                                     //EncryptionPolicy.RequireEncryption)
+                                     //    ClientCertificateSelector,
+                                     //EncryptionPolicy.RequireEncryption)
                                      : null;
 
                     if (TLSStream != null)
-                        TLSStream.ReadTimeout = (Int32) Timeout.Value.TotalMilliseconds;
+                        TLSStream.ReadTimeout = (Int32)Timeout.Value.TotalMilliseconds;
 
                     HTTPStream = null;
 
@@ -482,7 +506,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     else
                         HTTPStream = TCPStream;
 
-                    HTTPStream.ReadTimeout = (Int32) Timeout.Value.TotalMilliseconds;
+                    HTTPStream.ReadTimeout = (Int32)Timeout.Value.TotalMilliseconds;
 
                     #endregion
 
@@ -494,14 +518,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                      ToUTF8Bytes());
 
                     var RequestBodyLength = HTTPRequest.HTTPBody == null
-                                                ? (Int32) HTTPRequest.ContentLength
-                                                : Math.Min((Int32) HTTPRequest.ContentLength, HTTPRequest.HTTPBody.Length);
+                                                ? (Int32)HTTPRequest.ContentLength
+                                                : Math.Min((Int32)HTTPRequest.ContentLength, HTTPRequest.HTTPBody.Length);
 
                     if (RequestBodyLength > 0)
                         HTTPStream.Write(HTTPRequest.HTTPBody, 0, RequestBodyLength);
 
-                    var _MemoryStream  = new MemoryStream();
-                    var _Buffer        = new Byte[10485760]; // 10 MBytes, a smaller value leads to read errors!
+                    var _MemoryStream = new MemoryStream();
+                    var _Buffer = new Byte[10485760]; // 10 MBytes, a smaller value leads to read errors!
 
                     #endregion
 
@@ -543,7 +567,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             if (CurrentDataLength > -1)
                             {
                                 _MemoryStream.Write(_Buffer, 0, CurrentDataLength);
-                //                Debug.WriteLine("[" + DateTime.Now + "] Read " + CurrentDataLength + " bytes from HTTP connection (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") (" + sw.ElapsedMilliseconds + "ms)!");
+                                //            Debug.WriteLine("[" + DateTime.Now + "] Read " + CurrentDataLength + " bytes from HTTP connection (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") (" + sw.ElapsedMilliseconds + "ms)!");
                             }
 
                         }
@@ -560,7 +584,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             for (var pos = 3; pos < MemoryCopy.Length; pos++)
                             {
 
-                                if (MemoryCopy[pos    ] == 0x0a &&
+                                if (MemoryCopy[pos] == 0x0a &&
                                     MemoryCopy[pos - 1] == 0x0d &&
                                     MemoryCopy[pos - 2] == 0x0a &&
                                     MemoryCopy[pos - 3] == 0x0d)
@@ -609,7 +633,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         _MemoryStream.Seek(HTTPHeaderBytes.Length + 4, SeekOrigin.Begin);
                         var _Read = _MemoryStream.Read(_Buffer, 0, _Buffer.Length);
-                        var _StillToRead = (Int32) _HTTPResponse.ContentLength.Value - _Read;
+                        var _StillToRead = (Int32)_HTTPResponse.ContentLength.Value - _Read;
                         _HTTPResponse.HTTPBodyStream.Write(_Buffer, 0, _Read);
                         var _CurrentBufferSize = 0;
 
@@ -618,7 +642,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                             while (TCPStream.DataAvailable && _StillToRead > 0)
                             {
-                                _CurrentBufferSize = Math.Min(_Buffer.Length, (Int32) _StillToRead);
+                                _CurrentBufferSize = Math.Min(_Buffer.Length, (Int32)_StillToRead);
                                 _Read = HTTPStream.Read(_Buffer, 0, _CurrentBufferSize);
                                 _HTTPResponse.HTTPBodyStream.Write(_Buffer, 0, _Read);
                                 _StillToRead -= _Read;
@@ -671,11 +695,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                 //Debug.WriteLine(DateTime.Now + " Chunked encoding detected");
 
-                                var TEContent        = ((MemoryStream) _HTTPResponse.HTTPBodyStream).ToArray();
-                                var TEString         = TEContent.ToUTF8String();
-                                var ReadBlockLength  = true;
-                                var TEMemStram       = new MemoryStream();
-                                var LastPos          = 0;
+                                var TEContent = ((MemoryStream)_HTTPResponse.HTTPBodyStream).ToArray();
+                                var TEString = TEContent.ToUTF8String();
+                                var ReadBlockLength = true;
+                                var TEMemStram = new MemoryStream();
+                                var LastPos = 0;
 
                                 var i = 0;
                                 do
@@ -774,7 +798,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     #endregion
 
 
-                return _HTTPResponse;
+                    return _HTTPResponse;
+
+                }
+                catch (Exception e)
+                {
+                    return null;
+                }
 
             }, TaskCreationOptions.AttachedToParent);
 
