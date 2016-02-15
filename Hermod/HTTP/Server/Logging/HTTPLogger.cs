@@ -547,8 +547,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             Console.ForegroundColor = ConsoleColor.Gray;
             Console.Write(String.Concat(" from ", Request.RemoteSocket, " => "));
 
-            if (Response.HTTPStatusCode == HTTPStatusCode.OK)
+            if (Response.HTTPStatusCode == HTTPStatusCode.OK ||
+                Response.HTTPStatusCode == HTTPStatusCode.Created)
                 Console.ForegroundColor = ConsoleColor.Green;
+
+            else if (Response.HTTPStatusCode == HTTPStatusCode.NoContent)
+                Console.ForegroundColor = ConsoleColor.Yellow;
+
             else
                 Console.ForegroundColor = ConsoleColor.Red;
 
