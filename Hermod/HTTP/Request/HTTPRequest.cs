@@ -733,7 +733,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // Propably not usefull to define here, as we can not send a response having an "Allow-header" here!
             this._HTTPMethod = (HTTPMethod.TryParseString(_HTTPMethodHeader[0], out _HTTPMethod))
                                    ? _HTTPMethod
-                                   : new HTTPMethod(_HTTPMethodHeader[0]);
+                                   : HTTPMethod.Create(_HTTPMethodHeader[0]);
 
             #endregion
 

@@ -229,13 +229,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="IsSafe"></param>
         /// <param name="IsIdempotent">This HTTP methods has no side-effects for N > 0 identical requests, as it is the same as for a single request.</param>
         /// <param name="Description">The description of this HTTP method.</param>
-        public HTTPMethod(String MethodName, Boolean IsSafe = false, Boolean IsIdempotent = false, String Description = null)
+        private HTTPMethod(String  MethodName,
+                           Boolean IsSafe        = false,
+                           Boolean IsIdempotent  = false,
+                           String  Description   = null)
         {
 
             this.MethodName    = MethodName;
             this.IsSafe        = IsSafe;
             this.IsIdempotent  = IsIdempotent;
             this.Description   = Description;
+
+        }
+
+        #endregion
+
+
+        #region (static) Create(MethodName, IsSafe = false, IsIdempotent = false, Description = null)
+
+        /// <summary>
+        /// Creates a new HTTP method based on the given parameters.
+        /// </summary>
+        /// <param name="MethodName">The name of the HTTP method.</param>
+        /// <param name="IsSafe"></param>
+        /// <param name="IsIdempotent">This HTTP methods has no side-effects for N > 0 identical requests, as it is the same as for a single request.</param>
+        /// <param name="Description">The description of this HTTP method.</param>
+        public static HTTPMethod Create(String  MethodName,
+                                        Boolean IsSafe        = false,
+                                        Boolean IsIdempotent  = false,
+                                        String  Description   = null)
+        {
+
+            return new HTTPMethod(MethodName,
+                                  IsSafe,
+                                  IsIdempotent,
+                                  Description);
 
         }
 

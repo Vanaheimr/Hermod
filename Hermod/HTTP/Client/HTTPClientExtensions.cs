@@ -69,6 +69,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region ADD(this HTTPClient, URI = "/", BuilderAction = null)
+
+        /// <summary>
+        /// Create a new HTTP ADD request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="URI">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <returns>A HTTP request object.</returns>
+        public static HTTPRequestBuilder ADD(this HTTPClient             HTTPClient,
+                                             String                      URI,
+                                             Action<HTTPRequestBuilder>  BuilderAction = null)
+        {
+            return HTTPClient.CreateRequest(HTTPMethod.ADD, URI, BuilderAction);
+        }
+
+        #endregion
+
         #region CREATE(this HTTPClient, URI = "/")
 
         /// <summary>

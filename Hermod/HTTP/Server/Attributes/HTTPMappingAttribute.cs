@@ -96,7 +96,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.HTTPMethod = HTTPMethod.ParseString(HTTPMethodString);
 
             if (this.HTTPMethod == null)
-                this.HTTPMethod = new HTTPMethod(HTTPMethodString);
+                this.HTTPMethod = HTTPMethod.Create(HTTPMethodString);
 
             this.UriTemplate = UriTemplate;
 
