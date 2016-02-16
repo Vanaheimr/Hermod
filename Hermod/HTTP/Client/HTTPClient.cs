@@ -567,7 +567,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             if (CurrentDataLength > -1)
                             {
                                 _MemoryStream.Write(_Buffer, 0, CurrentDataLength);
-                                Debug.WriteLine("[" + DateTime.Now + "] Read " + CurrentDataLength + " bytes from HTTP connection (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") (" + sw.ElapsedMilliseconds + "ms)!");
+        //                        Debug.WriteLine("[" + DateTime.Now + "] Read " + CurrentDataLength + " bytes from HTTP connection (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") (" + sw.ElapsedMilliseconds + "ms)!");
                             }
 
                         }
