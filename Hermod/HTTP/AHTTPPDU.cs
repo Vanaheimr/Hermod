@@ -222,7 +222,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             where  _KeyValuePair.Key   != null
                             where  _KeyValuePair.Value != null
                             select _KeyValuePair.Key.Trim() + ": " + _KeyValuePair.Value.ToString().Trim()).
-                            Aggregate((a, b) => a + Environment.NewLine + b).
+                            Aggregate((a, b) => a + "\r\n" + b).
                             Trim();
 
                 return null;
@@ -246,8 +246,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 TryReadHTTPBodyStream();
 
                 if (HTTPBody != null && HTTPBody.Length > 0)
-                    return RawHTTPHeader.Trim() + Environment.NewLine + Environment.NewLine +
-                           Encoding.UTF8.GetString(HTTPBody, 0, Math.Min(HTTPBody.Length, (Int32)ContentLength.Value)).Trim();
+                    return RawHTTPHeader.Trim() + "\r\n\r\n" +
+                           Encoding.UTF8.GetString(HTTPBody, 0, Math.Min(HTTPBody.Length, (Int32) ContentLength.Value));
 
                 return RawHTTPHeader;
 

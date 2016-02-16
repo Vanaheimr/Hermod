@@ -326,9 +326,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                        RequestTimestamp,
                                                                        HttpRequest);
 
-                                        TCPConnection.WriteToResponseStream((_HTTPResponse.RawHTTPHeader +
-                                                                             Environment.NewLine +
-                                                                             Environment.NewLine).
+                                        TCPConnection.WriteToResponseStream((_HTTPResponse.RawHTTPHeader.Trim() +
+                                                                            "\r\n\r\n").
                                                                             ToUTF8Bytes());
 
                                         if (_HTTPResponse.HTTPBody != null)

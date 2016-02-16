@@ -546,7 +546,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     }
 
-                    //Debug.WriteLine("[" + DateTime.Now + "] HTTPClient (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") got first response after " + sw.ElapsedMilliseconds + "ms!");
+                    Debug.WriteLine("[" + DateTime.Now + "] HTTPClient (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") got first response after " + sw.ElapsedMilliseconds + "ms!");
 
                     #endregion
 
@@ -567,7 +567,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             if (CurrentDataLength > -1)
                             {
                                 _MemoryStream.Write(_Buffer, 0, CurrentDataLength);
-                                //            Debug.WriteLine("[" + DateTime.Now + "] Read " + CurrentDataLength + " bytes from HTTP connection (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") (" + sw.ElapsedMilliseconds + "ms)!");
+                                Debug.WriteLine("[" + DateTime.Now + "] Read " + CurrentDataLength + " bytes from HTTP connection (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") (" + sw.ElapsedMilliseconds + "ms)!");
                             }
 
                         }
@@ -584,7 +584,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             for (var pos = 3; pos < MemoryCopy.Length; pos++)
                             {
 
-                                if (MemoryCopy[pos] == 0x0a &&
+                                if (MemoryCopy[pos    ] == 0x0a &&
                                     MemoryCopy[pos - 1] == 0x0d &&
                                     MemoryCopy[pos - 2] == 0x0a &&
                                     MemoryCopy[pos - 3] == 0x0d)
