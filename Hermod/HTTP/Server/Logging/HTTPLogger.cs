@@ -501,6 +501,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Default logging delegates
 
+        #region LogFileCreator
+
+        private static Func<String, String, String> _LogFileCreator;
+
+        /// <summary>
+        /// A delegate for the default ToDisc logger returning a
+        /// valid logfile name based on the given log event name.
+        /// </summary>
+        public static Func<String, String, String> LogFileCreator
+        {
+            get
+            {
+                return _LogFileCreator;
+            }
+        }
+
+        #endregion
+
         #region (static) Default_LogHTTPRequest_toConsole(Context, LogEventName, Request)
 
         /// <summary>
@@ -516,6 +534,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             Console.ForegroundColor = ConsoleColor.Gray;
             Console.Write("[" + Request.Timestamp + "] ");
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.Write(Context + "/");
             Console.ForegroundColor = ConsoleColor.Yellow;
             Console.Write(LogEventName);
             Console.ForegroundColor = ConsoleColor.Gray;
@@ -542,6 +562,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             Console.ForegroundColor = ConsoleColor.Gray;
             Console.Write("[" + Request.Timestamp + "] ");
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.Write(Context + "/");
             Console.ForegroundColor = ConsoleColor.Yellow;
             Console.Write(LogEventName);
             Console.ForegroundColor = ConsoleColor.Gray;
@@ -561,33 +583,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             Console.ForegroundColor = ConsoleColor.Gray;
             Console.WriteLine(String.Concat(" in ", Math.Round((Response.Timestamp - Request.Timestamp).TotalMilliseconds), "ms"));
-
-        }
-
-        #endregion
-
-
-        #region LogFileCreator
-
-        private static Func<String, String, String> _LogFileCreator = (Context, LogFileName) => (Context != null ? Context : "") + LogFileName + "_" + DateTime.Now.Year + "-" + DateTime.Now.Month.ToString("D2") + ".log";
-
-        /// <summary>
-        /// A delegate for the default ToDisc logger returning a
-        /// valid logfile name based on the given log event name.
-        /// </summary>
-        public static Func<String, String, String> LogFileCreator
-        {
-
-            get
-            {
-                return _LogFileCreator;
-            }
-
-            set
-            {
-                if (value != null)
-                    _LogFileCreator = value;
-            }
 
         }
 
@@ -686,7 +681,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region Logger(s)
+        #region HTTPLogger()
 
         /// <summary>
         /// Create a new HTTP API logger using the default logging delegates.
@@ -696,7 +691,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Logger(HTTPAPI, Context = "")
+        #region HTTPLogger(HTTPAPI, Context = "")
 
         /// <summary>
         /// Create a new HTTP API logger using the default logging delegates.
@@ -708,22 +703,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             : this(HTTPAPI,
                    Context,
-
                    Default_LogHTTPRequest_toConsole,
-                   Default_LogHTTPRequest_toDisc,
-                   null,
-                   null,
-
                    Default_LogHTTPResponse_toConsole,
-                   Default_LogHTTPResponse_toDisc,
-                   null,
-                   null)
+                   Default_LogHTTPRequest_toDisc,
+                   Default_LogHTTPResponse_toDisc)
 
         { }
 
         #endregion
 
-        #region Logger(HTTPAPI, Context, ... Logging delegates ...)
+        #region HTTPLogger(HTTPAPI, Context, ... Logging delegates ...)
 
         /// <summary>
         /// Create a new HTTP API logger using the given logging delegates.
@@ -732,26 +721,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Context">A context of this API.</param>
         /// 
         /// <param name="LogHTTPRequest_toConsole">A delegate to log incoming HTTP requests to console.</param>
-        /// <param name="LogHTTPRequest_toDisc">A delegate to log incoming HTTP requests to disc.</param>
-        /// <param name="LogHTTPRequest_toNetwork">A delegate to log incoming HTTP requests to a network target.</param>
-        /// <param name="LogHTTPRequest_toHTTPSSE">A delegate to log incoming HTTP requests to a HTTP server sent events source.</param>
-        /// 
         /// <param name="LogHTTPResponse_toConsole">A delegate to log HTTP requests/responses to console.</param>
+        /// <param name="LogHTTPRequest_toDisc">A delegate to log incoming HTTP requests to disc.</param>
         /// <param name="LogHTTPResponse_toDisc">A delegate to log HTTP requests/responses to disc.</param>
+        /// 
+        /// <param name="LogHTTPRequest_toNetwork">A delegate to log incoming HTTP requests to a network target.</param>
         /// <param name="LogHTTPResponse_toNetwork">A delegate to log HTTP requests/responses to a network target.</param>
+        /// <param name="LogHTTPRequest_toHTTPSSE">A delegate to log incoming HTTP requests to a HTTP server sent events source.</param>
         /// <param name="LogHTTPResponse_toHTTPSSE">A delegate to log HTTP requests/responses to a HTTP server sent events source.</param>
+        /// 
+        /// <param name="LogFileCreator">A delegate to create a log file from the given context and log file name.</param>
         public HTTPLogger(HTTPServer                                         HTTPAPI,
                           String                                             Context,
 
                           Action<String, String, HTTPRequest>                LogHTTPRequest_toConsole,
-                          Action<String, String, HTTPRequest>                LogHTTPRequest_toDisc,
-                          Action<String, String, HTTPRequest>                LogHTTPRequest_toNetwork,
-                          Action<String, String, HTTPRequest>                LogHTTPRequest_toHTTPSSE,
-
                           Action<String, String, HTTPRequest, HTTPResponse>  LogHTTPResponse_toConsole,
+                          Action<String, String, HTTPRequest>                LogHTTPRequest_toDisc,
                           Action<String, String, HTTPRequest, HTTPResponse>  LogHTTPResponse_toDisc,
-                          Action<String, String, HTTPRequest, HTTPResponse>  LogHTTPResponse_toNetwork,
-                          Action<String, String, HTTPRequest, HTTPResponse>  LogHTTPResponse_toHTTPSSE)
+
+                          Action<String, String, HTTPRequest>                LogHTTPRequest_toNetwork   = null,
+                          Action<String, String, HTTPRequest, HTTPResponse>  LogHTTPResponse_toNetwork  = null,
+                          Action<String, String, HTTPRequest>                LogHTTPRequest_toHTTPSSE   = null,
+                          Action<String, String, HTTPRequest, HTTPResponse>  LogHTTPResponse_toHTTPSSE  = null,
+
+                          Func<String, String, String>                       LogFileCreator             = null)
 
         {
 
@@ -788,6 +781,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (LogHTTPResponse_toDisc    == null)
                 LogHTTPResponse_toDisc     = Default_LogHTTPResponse_toDisc;
+
+            _LogFileCreator = LogFileCreator != null
+                                 ? LogFileCreator
+                                 : (context, logfilename) => String.Concat((context != null ? context + "_" : ""),
+                                                                           logfilename, "_",
+                                                                           DateTime.Now.Year, "-",
+                                                                           DateTime.Now.Month.ToString("D2"),
+                                                                           ".log");
 
             #endregion
 
