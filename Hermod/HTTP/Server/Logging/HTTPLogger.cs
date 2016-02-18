@@ -601,13 +601,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          HTTPRequest  Request)
         {
 
-            using (var logfile = File.AppendText(LogFileCreator(Context, LogEventName)))
+            lock (Context)
             {
-                logfile.WriteLine(Request.RemoteSocket.ToString() + " -> " + Request.LocalSocket);
-                logfile.WriteLine(">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------");
-                logfile.WriteLine(Request.Timestamp.ToIso8601());
-                logfile.WriteLine(Request.EntirePDU);
-                logfile.WriteLine("--------------------------------------------------------------------------------");
+                using (var logfile = File.AppendText(LogFileCreator(Context, LogEventName)))
+                {
+                    logfile.WriteLine(Request.RemoteSocket.ToString() + " -> " + Request.LocalSocket);
+                    logfile.WriteLine(">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------");
+                    logfile.WriteLine(Request.Timestamp.ToIso8601());
+                    logfile.WriteLine(Request.EntirePDU);
+                    logfile.WriteLine("--------------------------------------------------------------------------------");
+                }
             }
 
         }
@@ -629,16 +632,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                           HTTPResponse  Response)
         {
 
-            using (var logfile = File.AppendText(LogFileCreator(Context, LogEventName)))
+            lock (Context)
             {
-                logfile.WriteLine(Request.RemoteSocket.ToString() + " -> " + Request.LocalSocket);
-                logfile.WriteLine(">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------");
-                logfile.WriteLine(Request.Timestamp.ToIso8601());
-                logfile.WriteLine(Request.EntirePDU);
-                logfile.WriteLine("<<<<<<--Response----<<<<<<------<<<<<<------<<<<<<------<<<<<<------<<<<<<------");
-                logfile.WriteLine(Response.Timestamp.ToIso8601() + " -> " + (Request.Timestamp - Response.Timestamp).TotalMilliseconds + "ms runtime");
-                logfile.WriteLine(Response.EntirePDU);
-                logfile.WriteLine("--------------------------------------------------------------------------------");
+                using (var logfile = File.AppendText(LogFileCreator(Context, LogEventName)))
+                {
+                    logfile.WriteLine(Request.RemoteSocket.ToString() + " -> " + Request.LocalSocket);
+                    logfile.WriteLine(">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------");
+                    logfile.WriteLine(Request.Timestamp.ToIso8601());
+                    logfile.WriteLine(Request.EntirePDU);
+                    logfile.WriteLine("<<<<<<--Response----<<<<<<------<<<<<<------<<<<<<------<<<<<<------<<<<<<------");
+                    logfile.WriteLine(Response.Timestamp.ToIso8601() + " -> " + (Request.Timestamp - Response.Timestamp).TotalMilliseconds + "ms runtime");
+                    logfile.WriteLine(Response.EntirePDU);
+                    logfile.WriteLine("--------------------------------------------------------------------------------");
+                }
             }
 
         }
