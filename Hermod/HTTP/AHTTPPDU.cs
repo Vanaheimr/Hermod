@@ -51,7 +51,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected readonly Dictionary<String,          Object>  _HeaderFields;
         protected readonly Dictionary<HTTPHeaderField, Object>  _HeaderFields2;
 
-        protected readonly static String[] _LineSeparator   = new String[] { Environment.NewLine };
+        protected readonly static String[] _LineSeparator   = new String[] { "\n", "\r\n" };
         protected readonly static Char[]   _ColonSeparator  = new Char[]   { ':' };
         protected readonly static Char[]   _SlashSeparator  = new Char[]   { '/' };
         protected readonly static Char[]   _SpaceSeparator  = new Char[]   { ' ' };
