@@ -429,7 +429,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         {
 
             SendCommand(Command);
-            Debug.WriteLine(">> " + Command);
+            //Debug.WriteLine(">> " + Command);
 
             return ReadSMTPResponse();
 
@@ -443,7 +443,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         {
 
             SendCommand(Command);
-            Debug.WriteLine(">> " + Command);
+            //Debug.WriteLine(">> " + Command);
 
             return ReadSMTPResponses();
 
@@ -802,7 +802,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                 }
 
-                                Debug.WriteLine(_RcptToResponse);
+                                //Debug.WriteLine(_RcptToResponse);
 
                             });
 
