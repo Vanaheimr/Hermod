@@ -176,10 +176,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Data">The attached event data.</param>
         public async Task SubmitSubEvent(String SubEvent, params String[] Data)
         {
+
             if (SubEvent.IsNullOrEmpty())
                 QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter), Data));
+
             else
                 QueueOfEvents.Push(new HTTPEvent(SubEvent, (UInt64) Interlocked.Increment(ref IdCounter), Data));
+
         }
 
         #endregion
