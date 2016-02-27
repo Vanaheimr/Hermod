@@ -306,7 +306,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     #region Call RequestLog delegate
 
                                     var RequestLogLocal = RequestLog;
-                                    if (RequestLogLocal != null)
+                                    if (RequestLogLocal != null &&
+                                        HttpRequest     != null)
                                     {
                                         RequestLogLocal(this, RequestTimestamp, HttpRequest);
                                     }
@@ -318,7 +319,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     HTTPResponse _HTTPResponse = null;
 
                                     var OnNotificationLocal = OnNotification;
-                                    if (OnNotificationLocal != null)
+                                    if (OnNotificationLocal != null &&
+                                        HttpRequest         != null)
                                     {
 
                                         // ToDo: How to read request body by application code?!
@@ -348,7 +350,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                     #region Call AccessLog delegate
 
-                                    if (_HTTPResponse != null)
+                                    if ( HttpRequest  != null &&
+                                        _HTTPResponse != null)
                                     {
 
                                         var AccessLogLocal = AccessLog;
@@ -364,7 +367,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                     #region if HTTP Status Code == 4xx | 5xx => Call ErrorLog delegate
 
-                                    if (_HTTPResponse != null &&
+                                    if ( HttpRequest  != null &&
+                                        _HTTPResponse != null &&
                                         _HTTPResponse.HTTPStatusCode.Code >  400 &&
                                         _HTTPResponse.HTTPStatusCode.Code <= 599)
                                     {
