@@ -484,7 +484,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ParseOptional(this JSON, PropertyName, PropertyDescription, DefaultServerName, out Text,      HTTPRequest, out HTTPResponse)
+        #region ParseOptional(this JSON, PropertyName,  PropertyDescription, DefaultServerName, out Text,      HTTPRequest, out HTTPResponse)
 
         public static Boolean ParseOptional(this JObject      JSON,
                                             String            PropertyName,
@@ -511,7 +511,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ParseOptional(this JSON, PropertyName, PropertyDescription, DefaultServerName, out Timestamp, HTTPRequest, out HTTPResponse)
+        #region ParseOptional(this JSON, PropertyNames, PropertyDescription, DefaultServerName, out Text,      HTTPRequest, out HTTPResponse)
+
+        public static Boolean ParseOptional(this JObject         JSON,
+                                            IEnumerable<String>  PropertyNames,
+                                            String               PropertyDescription,
+                                            String               DefaultServerName,
+                                            out String           Text,
+                                            HTTPRequest          HTTPRequest,
+                                            out HTTPResponse     HTTPResponse)
+
+        {
+
+            JToken JSONToken = null;
+
+            // Attention: JSONToken is a side-effect!
+            var FirstMatchingPropertyName = PropertyNames.
+                                                Where(propertyname => JSON.TryGetValue(propertyname, out JSONToken)).
+                                                FirstOrDefault();
+
+            if (FirstMatchingPropertyName != null)
+            {
+                Text = JSONToken.Value<String>();
+            }
+
+            Text          = null;
+            HTTPResponse  = null;
+            return true;
+
+        }
+
+        #endregion
+
+        #region ParseOptional(this JSON, PropertyName,  PropertyDescription, DefaultServerName, out Timestamp, HTTPRequest, out HTTPResponse)
 
         public static Boolean ParseOptional(this JObject      JSON,
                                             String            PropertyName,
@@ -527,6 +559,61 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             Timestamp = new DateTime?();
 
             if (JSON.TryGetValue(PropertyName, out JSONToken))
+            {
+
+                try
+                {
+
+                    Timestamp = JSONToken.Value<DateTime>();
+
+                }
+                catch (Exception)
+                {
+
+                    HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                        HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                        Server          = DefaultServerName,
+                        Date            = DateTime.Now,
+                        ContentType     = HTTPContentType.JSON_UTF8,
+                        Content         = JSONObject.Create(
+                                              new JProperty("description",  "Invalid timestamp '" + JSONToken.Value<String>() + "'!")
+                                          ).ToUTF8Bytes()
+                    };
+
+                    return false;
+
+                }
+
+            }
+
+            HTTPResponse  = null;
+            return true;
+
+        }
+
+        #endregion
+
+        #region ParseOptional(this JSON, PropertyNames, PropertyDescription, DefaultServerName, out Timestamp, HTTPRequest, out HTTPResponse)
+
+        public static Boolean ParseOptional(this JObject         JSON,
+                                            IEnumerable<String>  PropertyNames,
+                                            String               PropertyDescription,
+                                            String               DefaultServerName,
+                                            out DateTime?        Timestamp,
+                                            HTTPRequest          HTTPRequest,
+                                            out HTTPResponse     HTTPResponse)
+
+        {
+
+            JToken JSONToken = null;
+            Timestamp = DateTime.MinValue;
+
+            // Attention: JSONToken is a side-effect!
+            var FirstMatchingPropertyName = PropertyNames.
+                                                Where(propertyname => JSON.TryGetValue(propertyname, out JSONToken)).
+                                                FirstOrDefault();
+
+            if (FirstMatchingPropertyName != null)
             {
 
                 try
