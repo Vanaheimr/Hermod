@@ -803,7 +803,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
                 catch (Exception e)
                 {
+
+                    while (e.InnerException != null)
+                        e = e.InnerException;
+
+                    Console.WriteLine("HTTP client exception: " + e.Message);
+
                     return null;
+
                 }
 
             }, TaskCreationOptions.AttachedToParent);
