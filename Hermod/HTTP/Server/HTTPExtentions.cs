@@ -26,6 +26,8 @@ using Newtonsoft.Json.Linq;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Illias.ConsoleLog;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
+using System.Collections.Generic;
+using System.Globalization;
 
 #endregion
 
@@ -68,7 +70,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region TryParseJObjectRequestBody(this Request, out JSON, out HTTPResponse, AllowEmptyHTTPBody = false, JSONLDContext = null)
 
         public static Boolean TryParseJObjectRequestBody(this HTTPRequest  HTTPRequest,
-                                                         out JObject       JSON,
+                                                         out JSONWrapper   JSON,
                                                          out HTTPResponse  HTTPResponse,
                                                          Boolean           AllowEmptyHTTPBody = false,
                                                          String            JSONLDContext      = null)
@@ -107,7 +109,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             try
             {
-                JSON = JObject.Parse(RequestBodyString.Data);
+
+                JSON = new JSONWrapper(RequestBodyString.Data);
+
             }
             catch (Exception e)
             {
@@ -208,6 +212,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+
+
         #region ParseXMLRequestBody()
 
         public static HTTPResult<XDocument> ParseXMLRequestBody(this HTTPRequest Request)
@@ -234,6 +240,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
+
+
+
+        public static HTTPResponse CreateBadRequest(HTTPRequest HTTPRequest, String Context, String ParameterName)
+        {
+
+            return new HTTPResponseBuilder(HTTPRequest) {
+                HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                ContentType     = HTTPContentType.JSON_UTF8,
+                Content         = new JObject(new JProperty("@context",    Context),
+                                              new JProperty("description", "Missing \"" + ParameterName + "\" JSON property!")).ToString().ToUTF8Bytes()
+            };
+
+        }
+
+        public static HTTPResponse CreateBadRequest(HTTPRequest HTTPRequest, String Context, String ParameterName, String Value)
+        {
+
+            return new HTTPResponseBuilder(HTTPRequest) {
+                HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                ContentType     = HTTPContentType.JSON_UTF8,
+                Content         = new JObject(new JProperty("@context",    Context),
+                                              new JProperty("value",       Value),
+                                              new JProperty("description", "Invalid \"" + ParameterName + "\" property value!")).ToString().ToUTF8Bytes()
+            };
+
+        }
+
+        public static HTTPResponse CreateNotFound(HTTPRequest HTTPRequest, String Context, String ParameterName, String Value)
+        {
+
+            return new HTTPResponseBuilder(HTTPRequest) {
+                HTTPStatusCode  = HTTPStatusCode.NotFound,
+                ContentType     = HTTPContentType.JSON_UTF8,
+                Content         = new JObject(new JProperty("@context",    Context),
+                                              new JProperty("value",       Value),
+                                              new JProperty("description", "Unknown \"" + ParameterName + "\" property value!")).ToString().ToUTF8Bytes()
+            };
+
+        }
 
     }
 

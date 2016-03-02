@@ -75,6 +75,7 @@
     <Compile Include="HTTP\HTTPHeaderField.cs" />
     <Compile Include="HTTP\JSON\JSON_IO_ExtentionMethods.cs" />
     <Compile Include="HTTP\Request\Extentions.cs" />
+    <Compile Include="HTTP\Server\JSONWrapper.cs" />
     <Compile Include="HTTP\Server\Logging\HTTPLoggerExtentions.cs" />
     <Compile Include="HTTP\Server\Logging\HTTPLogger.cs" />
     <Compile Include="HTTP\Server\Logging\LogTargets.cs" />
