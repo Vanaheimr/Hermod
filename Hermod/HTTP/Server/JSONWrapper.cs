@@ -106,8 +106,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 if (JSON != null)
                     JSONWrapper = new JSONWrapper(JSON);
+                else
+                    JSONWrapper = null;
 
-                JSONWrapper = null;
                 return true;
 
             }
