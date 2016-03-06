@@ -34,11 +34,44 @@ using System.Globalization;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
+    /// <summary>
+    /// A JSON object (wrapper).
+    /// </summary>
     public class JSONWrapper
     {
 
+        #region Data
+
         private readonly IDictionary<String, Object> Internal;
 
+        #endregion
+
+        #region Properties
+
+        #region HasProperties
+
+        /// <summary>
+        /// The JSOB Object has 
+        /// </summary>
+        public Boolean HasProperties
+        {
+            get
+            {
+                return Internal.Any();
+            }
+        }
+
+        #endregion
+
+        #endregion
+
+        #region Constructor(s)
+
+        #region JSONWrapper()
+
+        /// <summary>
+        /// Create an empty JSON object.
+        /// </summary>
         public JSONWrapper()
         {
 
@@ -46,6 +79,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
+        #endregion
+
+        #region JSONWrapper(Text)
+
+        /// <summary>
+        /// Parse the given text as JSON object.
+        /// </summary>
+        /// <param name="Text">A text.</param>
         public JSONWrapper(String Text)
         {
 
@@ -55,6 +96,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
+        #endregion
+
+        #region JSONWrapper(JSON)
+
+        /// <summary>
+        /// Create the JSON based on the given JObject.
+        /// </summary>
+        /// <param name="JSON">A JSON object.</param>
         public JSONWrapper(JObject JSON)
         {
 
@@ -63,6 +112,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            StringComparer.CurrentCultureIgnoreCase);
 
         }
+
+        #endregion
+
+        #endregion
 
 
         public Object this[String Key]
@@ -77,6 +130,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             return Internal.TryGetValue(Key, out Object);
+
+        }
+
+        public Boolean ContainsKey(String Key)
+        {
+
+            return Internal.ContainsKey(Key);
+
+        }
+
+        public String GetString(String Key)
+        {
+
+            Object Value = null;
+
+            if (TryGetValue(Key, out Value))
+            {
+
+                var ReturnValue = Value as String;
+
+                if (ReturnValue != null)
+                    return ReturnValue;
+
+                return Value.ToString();
+
+            }
+
+            return String.Empty;
+
+        }
+
+
+        public JSONWrapper SetProperty(String Key, Object Value)
+        {
+
+            if (!Internal.ContainsKey(Key))
+                Internal.Add(Key, Value);
+
+            else
+                Internal[Key] = Value;
+
+            return this;
 
         }
 
