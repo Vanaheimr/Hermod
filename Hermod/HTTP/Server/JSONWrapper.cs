@@ -20,14 +20,14 @@
 using System;
 using System.Linq;
 using System.Xml.Linq;
+using System.Globalization;
+using System.Collections.Generic;
 
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Illias.ConsoleLog;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
-using System.Collections.Generic;
-using System.Globalization;
 
 #endregion
 
@@ -130,6 +130,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             return Internal.TryGetValue(Key, out Object);
+
+        }
+
+        public Boolean TryGetString(String Key, out String Text)
+        {
+
+            Object Value = null;
+
+            if (TryGetValue(Key, out Value))
+            {
+
+                Text = Value as String;
+
+                if (Text != null)
+                    return true;
+
+            }
+
+            Text = null;
+            return false;
 
         }
 
