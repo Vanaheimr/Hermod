@@ -20,13 +20,13 @@
 using System;
 using System.Linq;
 using System.Xml.Linq;
+using System.Threading;
+using System.Net.Security;
 using System.Threading.Tasks;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using System.Threading;
-using System.Net.Security;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 

@@ -142,13 +142,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #region Initial checks
 
                 if (LogEventName.IsNullOrEmpty())
-                    throw new ArgumentNullException("LogEventName",                 "The given log event name must not be null or empty!");
+                    throw new ArgumentNullException(nameof(LogEventName),                 "The given log event name must not be null or empty!");
 
                 if (SubscribeToEventDelegate == null)
-                    throw new ArgumentNullException("SubscribeToEventDelegate",     "The given delegate for subscribing to the linked HTTP API event must not be null!");
+                    throw new ArgumentNullException(nameof(SubscribeToEventDelegate),     "The given delegate for subscribing to the linked HTTP API event must not be null!");
 
                 if (UnsubscribeFromEventDelegate == null)
-                    throw new ArgumentNullException("UnsubscribeFromEventDelegate", "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
+                    throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate), "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
 
                 #endregion
 
@@ -179,7 +179,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #region Initial checks
 
                 if (HTTPRequestDelegate == null)
-                    throw new ArgumentNullException("HTTPRequestDelegate",  "The given delegate must not be null!");
+                    throw new ArgumentNullException(nameof(HTTPRequestDelegate),  "The given delegate must not be null!");
 
                 #endregion
 
@@ -373,13 +373,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #region Initial checks
 
                 if (LogEventName.IsNullOrEmpty())
-                    throw new ArgumentNullException("LogEventName",                 "The given log event name must not be null or empty!");
+                    throw new ArgumentNullException(nameof(LogEventName),                 "The given log event name must not be null or empty!");
 
                 if (SubscribeToEventDelegate == null)
-                    throw new ArgumentNullException("SubscribeToEventDelegate",     "The given delegate for subscribing to the linked  HTTP API event must not be null!");
+                    throw new ArgumentNullException(nameof(SubscribeToEventDelegate),     "The given delegate for subscribing to the linked  HTTP API event must not be null!");
 
                 if (UnsubscribeFromEventDelegate == null)
-                    throw new ArgumentNullException("UnsubscribeFromEventDelegate", "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
+                    throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate), "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
 
                 #endregion
 
@@ -410,7 +410,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #region Initial checks
 
                 if (HTTPResponseDelegate == null)
-                    throw new ArgumentNullException("HTTPResponseDelegate", "The given delegate must not be null!");
+                    throw new ArgumentNullException(nameof(HTTPResponseDelegate), "The given delegate must not be null!");
 
                 #endregion
 
@@ -657,7 +657,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Data
 
         private readonly HTTPServer                                        _HTTPAPI;
-
         private readonly ConcurrentDictionary<String, HTTPRequestLogger>   _HTTPRequestLoggers;
         private readonly ConcurrentDictionary<String, HTTPResponseLogger>  _HTTPResponseLoggers;
         private readonly ConcurrentDictionary<String, HashSet<String>>     _GroupTags;
@@ -736,6 +735,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogHTTPRequest_toHTTPSSE">A delegate to log incoming HTTP requests to a HTTP server sent events source.</param>
         /// <param name="LogHTTPResponse_toHTTPSSE">A delegate to log HTTP requests/responses to a HTTP server sent events source.</param>
         /// 
+        /// <param name="LogHTTPError_toConsole">A delegate to log HTTP errors to console.</param>
+        /// <param name="LogHTTPError_toDisc">A delegate to log HTTP errors to disc.</param>
+        /// <param name="LogHTTPError_toNetwork">A delegate to log HTTP errors to a network target.</param>
+        /// <param name="LogHTTPError_toHTTPSSE">A delegate to log HTTP errors to a HTTP server sent events source.</param>
+        /// 
         /// <param name="LogFileCreator">A delegate to create a log file from the given context and log file name.</param>
         public HTTPLogger(HTTPServer                                         HTTPAPI,
                           String                                             Context,
@@ -749,6 +753,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           Action<String, String, HTTPRequest, HTTPResponse>  LogHTTPResponse_toNetwork  = null,
                           Action<String, String, HTTPRequest>                LogHTTPRequest_toHTTPSSE   = null,
                           Action<String, String, HTTPRequest, HTTPResponse>  LogHTTPResponse_toHTTPSSE  = null,
+
+                          Action<String, String, HTTPRequest, HTTPResponse>  LogHTTPError_toConsole     = null,
+                          Action<String, String, HTTPRequest, HTTPResponse>  LogHTTPError_toDisc        = null,
+                          Action<String, String, HTTPRequest, HTTPResponse>  LogHTTPError_toNetwork     = null,
+                          Action<String, String, HTTPRequest, HTTPResponse>  LogHTTPError_toHTTPSSE     = null,
 
                           Func<String, String, String>                       LogFileCreator             = null)
 
@@ -798,6 +807,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
+
+            //ToDo: Evaluate Logging targets!
+
+            HTTPAPI.ErrorLog += (Timestamp,
+                                 HTTPServer,
+                                 HTTPRequest,
+                                 HTTPResponse,
+                                 Error,
+                                 LastException)
+
+                => {
+
+                        DebugX.Log(Timestamp + " - " +
+                                   HTTPRequest.RemoteSocket.IPAddress + ":" +
+                                   HTTPRequest.RemoteSocket.Port + " " +
+                                   HTTPRequest.HTTPMethod + " " +
+                                   HTTPRequest.URI + " " +
+                                   HTTPRequest.ProtocolVersion + " => " +
+                                   HTTPResponse.HTTPStatusCode + " - " +
+                                   Error);
+
+                   };
+
         }
 
         #endregion
@@ -823,13 +855,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region Initial checks
 
             if (LogEventName.IsNullOrEmpty())
-                throw new ArgumentNullException("LogEventName",                 "The given log event name must not be null or empty!");
+                throw new ArgumentNullException(nameof(LogEventName),                 "The given log event name must not be null or empty!");
 
             if (SubscribeToEventDelegate == null)
-                throw new ArgumentNullException("SubscribeToEventDelegate",     "The given delegate for subscribing to the linked HTTP API event must not be null!");
+                throw new ArgumentNullException(nameof(SubscribeToEventDelegate),     "The given delegate for subscribing to the linked HTTP API event must not be null!");
 
             if (UnsubscribeFromEventDelegate == null)
-                throw new ArgumentNullException("UnsubscribeFromEventDelegate", "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
+                throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate), "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
 
             #endregion
 
@@ -887,13 +919,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region Initial checks
 
             if (LogEventName.IsNullOrEmpty())
-                throw new ArgumentNullException("LogEventName",                 "The given log event name must not be null or empty!");
+                throw new ArgumentNullException(nameof(LogEventName),                 "The given log event name must not be null or empty!");
 
             if (SubscribeToEventDelegate == null)
-                throw new ArgumentNullException("SubscribeToEventDelegate",     "The given delegate for subscribing to the linked HTTP API event must not be null!");
+                throw new ArgumentNullException(nameof(SubscribeToEventDelegate),     "The given delegate for subscribing to the linked HTTP API event must not be null!");
 
             if (UnsubscribeFromEventDelegate == null)
-                throw new ArgumentNullException("UnsubscribeFromEventDelegate", "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
+                throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate), "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
 
             #endregion
 
