@@ -188,7 +188,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <summary>
         /// An event called whenever a request resulted in an error.
         /// </summary>
-        public event ErrorLogHandler                                     ErrorLog;
+        public event SMTPErrorLogHandler                                     ErrorLog;
 
         #endregion
 

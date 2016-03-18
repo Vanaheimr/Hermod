@@ -26,64 +26,64 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
     /// <summary>
-    /// The delegate for the HTTP request log.
+    /// The delegate for the SMTP request log.
     /// </summary>
-    /// <param name="HTTPProcessor">The sending HTTP processor.</param>
+    /// <param name="SMTPProcessor">The sending SMTP processor.</param>
     /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
-    /// <param name="Request">The incoming request.</param>
+    /// <param name="EMail">The incoming e-mail.</param>
     internal delegate void InternalRequestLogHandler(SMTPConnection SMTPProcessor, DateTime ServerTimestamp, EMail EMail);
 
     /// <summary>
-    /// The delegate for the HTTP request log.
+    /// The delegate for the SMTP request log.
     /// </summary>
-    /// <param name="HTTPProcessor">The sending HTTP processor.</param>
+    /// <param name="SMTPProcessor">The sending SMTP processor.</param>
     /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
-    /// <param name="Request">The incoming request.</param>
+    /// <param name="EMail">The incoming e-mail.</param>
     /// <param name="Response">The outgoing response.</param>
-    internal delegate void InternalAccessLogHandler(SMTPConnection SMTPProcessor, DateTime ServerTimestamp, EMail Request, SMTPExtendedResponse Response);
+    internal delegate void InternalAccessLogHandler(SMTPConnection SMTPProcessor, DateTime ServerTimestamp, EMail EMail, SMTPExtendedResponse Response);
 
 
 
 
     /// <summary>
-    /// The delegate for the HTTP access log.
+    /// The delegate for the SMTP access log.
     /// </summary>
-    /// <param name="HTTPServer">The sending HTTP server.</param>
+    /// <param name="SMTPServer">The sending SMTP server.</param>
     /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
-    /// <param name="Request">The incoming request.</param>
+    /// <param name="EMail">The incoming e-mail.</param>
     /// <param name="Response">The outgoing response.</param>
-    public delegate void AccessLogHandler(SMTPServer SMTPServer, DateTime ServerTimestamp, EMail Request, SMTPExtendedResponse Response);
+    public delegate void SMTPAccessLogHandler(SMTPServer SMTPServer, DateTime ServerTimestamp, EMail EMail, SMTPExtendedResponse Response);
 
 
     /// <summary>
-    /// The delegate for the HTTP error log.
+    /// The delegate for the SMTP error log.
     /// </summary>
-    /// <param name="HTTPProcessor">The sending HTTP processor.</param>
+    /// <param name="SMTPProcessor">The sending SMTP processor.</param>
     /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
-    /// <param name="Request">The incoming request.</param>
-    /// <param name="HTTPResponse">The outgoing response.</param>
+    /// <param name="EMail">The incoming e-mail.</param>
+    /// <param name="SMTPResponse">The outgoing response.</param>
     /// <param name="Error">The occured error.</param>
     /// <param name="LastException">The last occured exception.</param>
     internal delegate void InternalErrorLogHandler (SMTPConnection SMTPProcessor, DateTime ServerTimestamp, String SMTPCommand, EMail EMail, SMTPExtendedResponse Response, String Error = null, Exception LastException = null);
 
     /// <summary>
-    /// The delegate for the HTTP error log.
+    /// The delegate for the SMTP error log.
     /// </summary>
-    /// <param name="HTTPServer">The sending HTTP server.</param>
+    /// <param name="SMTPServer">The sending SMTP server.</param>
     /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
-    /// <param name="Request">The incoming request.</param>
-    /// <param name="HTTPResponse">The outgoing response.</param>
+    /// <param name="EMail">The incoming e-mail.</param>
+    /// <param name="SMTPResponse">The outgoing response.</param>
     /// <param name="Error">The occured error.</param>
     /// <param name="LastException">The last occured exception.</param>
-    public delegate void ErrorLogHandler(SMTPServer SMTPServer, DateTime ServerTimestamp, String SMTPCommand, EMail EMail, SMTPExtendedResponse Response, String Error = null, Exception LastException = null);
+    public delegate void SMTPErrorLogHandler(SMTPServer SMTPServer, DateTime ServerTimestamp, String SMTPCommand, EMail EMail, SMTPExtendedResponse Response, String Error = null, Exception LastException = null);
 
 
     /// <summary>
-    /// A HTTP delegate.
+    /// A SMTP delegate.
     /// </summary>
-    /// <param name="Request">The HTTP request.</param>
-    /// <returns>A HTTP response.</returns>
-    public delegate SMTPExtendedResponse HTTPDelegate(EMail EMail);
+    /// <param name="EMail">The incoming e-mail.</param>
+    /// <returns>A SMTP response.</returns>
+    public delegate SMTPExtendedResponse SMTPDelegate(EMail EMail);
 
 
 }

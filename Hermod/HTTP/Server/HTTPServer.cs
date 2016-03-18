@@ -292,7 +292,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Initialize the HTTP server using the given parameters.
         /// </summary>
-        /// <param name="TCPPort">An IP port to listen on.</param>
+        /// <param name="TCPPort">A TCP port to listen on.</param>
         /// <param name="DefaultServerName">The default HTTP servername, used whenever no HTTP Host-header had been given.</param>
         /// <param name="X509Certificate">Use this X509 certificate for TLS.</param>
         /// <param name="CallingAssemblies">A list of calling assemblies to include e.g. into embedded ressources lookups.</param>
