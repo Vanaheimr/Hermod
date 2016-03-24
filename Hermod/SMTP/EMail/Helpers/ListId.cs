@@ -37,6 +37,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         /// <summary>
         /// A regular expression to validate a List-Id e-mail header field.
+        /// Mailinglist &lt;list@example.org&gt;
         /// </summary>
         public static readonly Regex ListIdRegularExpression = new Regex("^([^<]+)<([^>]+)>$");
 
