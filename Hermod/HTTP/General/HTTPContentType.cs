@@ -224,6 +224,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPContentType GRAPHML_UTF8         = new HTTPContentType("application/graphml+xml",                "graphml");
         public static readonly HTTPContentType SWF                  = new HTTPContentType("application/x-shockwave-flash",          "swf");
         public static readonly HTTPContentType PDF                  = new HTTPContentType("application/pdf",                        "pdf");
+        public static readonly HTTPContentType CSV                  = new HTTPContentType("application/csv",                        "csv");
 
         public static readonly HTTPContentType GIF                  = new HTTPContentType("image/gif",                              "gif");
         public static readonly HTTPContentType ICO                  = new HTTPContentType("image/ico",                              "ico");
