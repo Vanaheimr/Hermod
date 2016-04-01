@@ -266,23 +266,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            if (!Parser(JSONToken.ToString(), out Value))
+            if (JSONToken != null)
             {
+                if (!Parser(JSONToken.ToString(), out Value))
+                {
 
-                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
-                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = DefaultServerName,
-                    Date            = DateTime.Now,
-                    ContentType     = HTTPContentType.JSON_UTF8,
-                    Content         = JSONObject.Create(
-                                          new JProperty("description", "Unknown " + PropertyDescription + "!")
-                                      ).ToUTF8Bytes()
-                };
+                    HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                        HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                        Server          = DefaultServerName,
+                        Date            = DateTime.Now,
+                        ContentType     = HTTPContentType.JSON_UTF8,
+                        Content         = JSONObject.Create(
+                                              new JProperty("description", "Unknown " + PropertyDescription + "!")
+                                          ).ToUTF8Bytes()
+                    };
 
-                Value = default(T);
+                    Value = default(T);
 
-                return false;
+                    return false;
 
+                }
             }
 
             HTTPResponse  = null;
@@ -326,23 +329,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            if (!Enum.TryParse<TEnum>(JSONToken.ToString(), true, out Value))
+            if (JSONToken != null)
             {
+                if (!Enum.TryParse<TEnum>(JSONToken.ToString(), true, out Value))
+                {
 
-                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
-                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = DefaultServerName,
-                    Date            = DateTime.Now,
-                    ContentType     = HTTPContentType.JSON_UTF8,
-                    Content         = JSONObject.Create(
-                                          new JProperty("description",  "Unknown " + PropertyDescription + "!")
-                                      ).ToUTF8Bytes()
-                };
+                    HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                        HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                        Server          = DefaultServerName,
+                        Date            = DateTime.Now,
+                        ContentType     = HTTPContentType.JSON_UTF8,
+                        Content         = JSONObject.Create(
+                                              new JProperty("description",  "Unknown " + PropertyDescription + "!")
+                                          ).ToUTF8Bytes()
+                    };
 
-                Value = default(TEnum);
+                    Value = default(TEnum);
 
-                return false;
+                    return false;
 
+                }
             }
 
             HTTPResponse  = null;
@@ -366,23 +372,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             Object JSONToken = null;
 
-            if (!TryGetValue(PropertyName, out JSONToken))
+            if (JSONToken != null)
             {
+                if (!TryGetValue(PropertyName, out JSONToken))
+                {
 
-                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
-                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = DefaultServerName,
-                    Date            = DateTime.Now,
-                    ContentType     = HTTPContentType.JSON_UTF8,
-                    Content         = JSONObject.Create(
-                                          new JProperty("description",  "Missing JSON property '" + PropertyName + "'!")
-                                      ).ToUTF8Bytes()
-                };
+                    HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                        HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                        Server          = DefaultServerName,
+                        Date            = DateTime.Now,
+                        ContentType     = HTTPContentType.JSON_UTF8,
+                        Content         = JSONObject.Create(
+                                              new JProperty("description",  "Missing JSON property '" + PropertyName + "'!")
+                                          ).ToUTF8Bytes()
+                    };
 
-                Text = String.Empty;
+                    Text = String.Empty;
 
-                return false;
+                    return false;
 
+                }
             }
 
             Text          = JSONToken.ToString();
@@ -431,7 +440,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            Text          = JSONToken.ToString();
+            if (JSONToken != null)
+                Text = JSONToken.ToString();
+
+            else
+                Text = String.Empty;
+
             HTTPResponse  = null;
 
             return true;
@@ -457,26 +471,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (TryGetValue(PropertyName, out JSONToken))
             {
 
-                try
+                if (JSONToken != null)
                 {
 
-                    Timestamp = (DateTime) JSONToken;
+                    try
+                    {
 
-                }
-                catch (Exception)
-                {
+                        Timestamp = (DateTime) JSONToken;
 
-                    HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
-                        HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                        Server          = DefaultServerName,
-                        Date            = DateTime.Now,
-                        ContentType     = HTTPContentType.JSON_UTF8,
-                        Content         = JSONObject.Create(
-                                              new JProperty("description", "Invalid timestamp '" + JSONToken.ToString() + "'!")
-                                          ).ToUTF8Bytes()
-                    };
+                    }
+                    catch (Exception)
+                    {
 
-                    return false;
+                        HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                            HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                            Server          = DefaultServerName,
+                            Date            = DateTime.Now,
+                            ContentType     = HTTPContentType.JSON_UTF8,
+                            Content         = JSONObject.Create(
+                                                  new JProperty("description", "Invalid timestamp '" + JSONToken.ToString() + "'!")
+                                              ).ToUTF8Bytes()
+                        };
+
+                        return false;
+
+                    }
 
                 }
 
@@ -528,26 +547,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (FirstMatchingPropertyName != null)
             {
 
-                try
+                if (JSONToken != null)
                 {
 
-                    Timestamp = (DateTime) JSONToken;
+                    try
+                    {
 
-                }
-                catch (Exception)
-                {
+                        Timestamp = (DateTime) JSONToken;
 
-                    HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
-                        HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                        Server          = DefaultServerName,
-                        Date            = DateTime.Now,
-                        ContentType     = HTTPContentType.JSON_UTF8,
-                        Content         = JSONObject.Create(
-                                              new JProperty("description", "Invalid timestamp '" + JSONToken.ToString() + "'!")
-                                          ).ToUTF8Bytes()
-                    };
+                    }
+                    catch (Exception)
+                    {
 
-                    return false;
+                        HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                            HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                            Server          = DefaultServerName,
+                            Date            = DateTime.Now,
+                            ContentType     = HTTPContentType.JSON_UTF8,
+                            Content         = JSONObject.Create(
+                                                  new JProperty("description", "Invalid timestamp '" + JSONToken.ToString() + "'!")
+                                              ).ToUTF8Bytes()
+                        };
+
+                        return false;
+
+                    }
 
                 }
 
@@ -595,23 +619,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (TryGetValue(PropertyName, out JSONToken))
             {
 
-                var JSONValue = JSONToken.ToString();
-
-                if (JSONValue != null && !Parser(JSONValue, out Value))
+                if (JSONToken != null)
                 {
 
-                    HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
-                        HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                        Server          = DefaultServerName,
-                        Date            = DateTime.Now,
-                        ContentType     = HTTPContentType.JSON_UTF8,
-                        Content         = JSONObject.Create(
-                                              new JProperty("description",  "Unknown " + PropertyDescription + "!")
-                                          ).ToUTF8Bytes()
-                    };
+                    var JSONValue = JSONToken.ToString();
 
-                    Value = default(T);
-                    return false;
+                    if (JSONValue != null && !Parser(JSONValue, out Value))
+                    {
+
+                        HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                            HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                            Server          = DefaultServerName,
+                            Date            = DateTime.Now,
+                            ContentType     = HTTPContentType.JSON_UTF8,
+                            Content         = JSONObject.Create(
+                                                  new JProperty("description",  "Unknown " + PropertyDescription + "!")
+                                              ).ToUTF8Bytes()
+                        };
+
+                        Value = default(T);
+                        return false;
+
+                    }
 
                 }
 
@@ -643,23 +672,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (TryGetValue(PropertyName, out JSONToken))
             {
 
-                var JSONValue = JSONToken.ToString();
-
-                if (JSONValue != null && !Enum.TryParse<TEnum>(JSONValue, true, out Value))
+                if (JSONToken != null)
                 {
 
-                    HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
-                        HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                        Server          = DefaultServerName,
-                        Date            = DateTime.Now,
-                        ContentType     = HTTPContentType.JSON_UTF8,
-                        Content         = JSONObject.Create(
-                                              new JProperty("description", "Unknown " + PropertyDescription + "!")
-                                          ).ToUTF8Bytes()
-                    };
+                    var JSONValue = JSONToken.ToString();
 
-                    Value = default(TEnum);
-                    return false;
+                    if (JSONValue != null && !Enum.TryParse<TEnum>(JSONValue, true, out Value))
+                    {
+
+                        HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                            HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                            Server          = DefaultServerName,
+                            Date            = DateTime.Now,
+                            ContentType     = HTTPContentType.JSON_UTF8,
+                            Content         = JSONObject.Create(
+                                                  new JProperty("description", "Unknown " + PropertyDescription + "!")
+                                              ).ToUTF8Bytes()
+                        };
+
+                        Value = default(TEnum);
+                        return false;
+
+                    }
 
                 }
 
@@ -688,7 +722,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (TryGetValue(PropertyName, out JSONToken))
             {
-                Text = JSONToken.ToString();
+                if (JSONToken != null)
+                {
+                    Text = JSONToken.ToString();
+                }
             }
 
             HTTPResponse  = null;
@@ -718,7 +755,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (FirstMatchingPropertyName != null)
             {
-                Text = JSONToken.ToString();
+                if (JSONToken != null)
+                {
+                    Text = JSONToken.ToString();
+                }
             }
 
             Text          = null;
@@ -745,30 +785,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (TryGetValue(PropertyName, out JSONToken))
             {
-
-                try
+                if (JSONToken != null)
                 {
 
-                    Timestamp = (DateTime) JSONToken;
+                    try
+                    {
+
+                        Timestamp = (DateTime) JSONToken;
+
+                    }
+                    catch (Exception)
+                    {
+
+                        HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                            HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                            Server          = DefaultServerName,
+                            Date            = DateTime.Now,
+                            ContentType     = HTTPContentType.JSON_UTF8,
+                            Content         = JSONObject.Create(
+                                                  new JProperty("description",  "Invalid timestamp '" + JSONToken.ToString() + "'!")
+                                              ).ToUTF8Bytes()
+                        };
+
+                        return false;
+
+                    }
 
                 }
-                catch (Exception)
-                {
-
-                    HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
-                        HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                        Server          = DefaultServerName,
-                        Date            = DateTime.Now,
-                        ContentType     = HTTPContentType.JSON_UTF8,
-                        Content         = JSONObject.Create(
-                                              new JProperty("description",  "Invalid timestamp '" + JSONToken.ToString() + "'!")
-                                          ).ToUTF8Bytes()
-                    };
-
-                    return false;
-
-                }
-
             }
 
             HTTPResponse  = null;
@@ -800,29 +843,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (FirstMatchingPropertyName != null)
             {
 
-                try
+                if (JSONToken != null)
                 {
 
-                    Timestamp = (DateTime) JSONToken;
+                    try
+                    {
+
+                        Timestamp = (DateTime) JSONToken;
+
+                    }
+                    catch (Exception)
+                    {
+
+                        HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                            HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                            Server          = DefaultServerName,
+                            Date            = DateTime.Now,
+                            ContentType     = HTTPContentType.JSON_UTF8,
+                            Content         = JSONObject.Create(
+                                                  new JProperty("description",  "Invalid timestamp '" + JSONToken.ToString() + "'!")
+                                              ).ToUTF8Bytes()
+                        };
+
+                        return false;
+
+                    }
 
                 }
-                catch (Exception)
-                {
-
-                    HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
-                        HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                        Server          = DefaultServerName,
-                        Date            = DateTime.Now,
-                        ContentType     = HTTPContentType.JSON_UTF8,
-                        Content         = JSONObject.Create(
-                                              new JProperty("description",  "Invalid timestamp '" + JSONToken.ToString() + "'!")
-                                          ).ToUTF8Bytes()
-                    };
-
-                    return false;
-
-                }
-
             }
 
             HTTPResponse  = null;
@@ -849,16 +896,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            if (!Double.TryParse(JSONToken.ToString(), NumberStyles.Any, CultureInfo.CreateSpecificCulture("en-US"), out Value))
+            if (JSONToken != null)
             {
+                if (!Double.TryParse(JSONToken.ToString(), NumberStyles.Any, CultureInfo.CreateSpecificCulture("en-US"), out Value))
+                {
 
-                Log.Timestamp("Bad request: Invalid \"" + ParameterName + "\" property value!");
+                    Log.Timestamp("Bad request: Invalid \"" + ParameterName + "\" property value!");
 
-                Value     = DefaultValue;
-                HTTPResp  = HTTPExtentions.CreateBadRequest(HTTPRequest, Context, ParameterName, JSONToken.ToString());
+                    Value = DefaultValue;
+                    HTTPResp = HTTPExtentions.CreateBadRequest(HTTPRequest, Context, ParameterName, JSONToken.ToString());
 
+                    return false;
+
+                }
+            }
+
+            else
+            {
+                Value    = 0;
+                HTTPResp = null;
                 return false;
-
             }
 
             HTTPResp = null;
@@ -881,20 +938,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            try
+            if (JSONToken != null)
             {
-                Value = (DateTime)JSONToken;
+                try
+                {
+                    Value = (DateTime)JSONToken;
+                }
+                catch (Exception)
+                {
+
+                    Log.Timestamp("Bad request: Invalid \"" + ParameterName + "\" property value!");
+
+                    Value = DefaultValue;
+                    HTTPResp = HTTPExtentions.CreateBadRequest(HTTPRequest, Context, ParameterName, JSONToken.ToString());
+
+                    return false;
+
+                }
             }
-            catch (Exception)
+
+            else
             {
-
-                Log.Timestamp("Bad request: Invalid \"" + ParameterName + "\" property value!");
-
-                Value     = DefaultValue;
-                HTTPResp  = HTTPExtentions.CreateBadRequest(HTTPRequest, Context, ParameterName, JSONToken.ToString());
-
+                Value = DateTime.Now;
+                HTTPResp = null;
                 return false;
-
             }
 
             HTTPResp = null;
@@ -917,15 +984,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            Value = JSONToken.ToString();
-            if (Value.IsNullOrEmpty())
+            if (JSONToken != null)
             {
 
-                Value     = DefaultValue;
-                HTTPResp  = HTTPExtentions.CreateBadRequest(HTTPRequest, Context, ParameterName, JSONToken.ToString());
+                Value = JSONToken.ToString();
 
+                if (Value.IsNullOrEmpty())
+                {
+
+                    Value = DefaultValue;
+                    HTTPResp = HTTPExtentions.CreateBadRequest(HTTPRequest, Context, ParameterName, JSONToken.ToString());
+
+                    return false;
+
+                }
+
+            }
+
+            else
+            {
+                Value = DefaultValue;
+                HTTPResp = null;
                 return false;
-
             }
 
             HTTPResp = null;
