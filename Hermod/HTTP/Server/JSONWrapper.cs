@@ -288,6 +288,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
             }
 
+            Value = default(T);
             HTTPResponse  = null;
             return true;
 
@@ -351,8 +352,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
             }
 
+            Value = default(TEnum);
             HTTPResponse  = null;
-
             return true;
 
         }
