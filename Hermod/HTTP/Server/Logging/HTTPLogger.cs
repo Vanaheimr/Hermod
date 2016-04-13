@@ -815,9 +815,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                  HTTPRequest,
                                  HTTPResponse,
                                  Error,
-                                 LastException)
-
-                => {
+                                 LastException) => {
 
                         DebugX.Log(Timestamp + " - " +
                                    HTTPRequest.RemoteSocket.IPAddress + ":" +
