@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2016, Achim 'ahzf' Friedland <achim@graphdefined.org>
+ * Copyright (c) 2010-2016, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,7 +39,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             Response.
                 Where(line => line.IsNotNullOrEmpty()).
-                ForEachCounted((i, response) => {
+                ForEachCounted((response, i) => {
                     TCPConn.WriteLineToResponseStream(((Int32) StatusCode) + (i < n ? "-" : " ") + response);
                     Debug.WriteLine(">> " +           ((Int32) StatusCode) + (i < n ? "-" : " ") + response);
                 });
