@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2016, Achim 'ahzf' Friedland <achim@graph-database.org>
+ * Copyright (c) 2010-2016, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -212,9 +212,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
                             if (HttpResponseTask.Result                == null              ||
                                 HttpResponseTask.Result.HTTPStatusCode != HTTPStatusCode.OK ||
-                                HttpResponseTask.Result.HTTPBody        == null              ||
+                                HttpResponseTask.Result.HTTPBody        == null             ||
                                 HttpResponseTask.Result.HTTPBody.Length == 0)
                             {
+
+                                var Body = HttpResponseTask.Result.HTTPBody.ToUTF8String();
 
                                 var OnHTTPErrorLocal = OnHTTPError;
                                 if (OnHTTPErrorLocal != null)
