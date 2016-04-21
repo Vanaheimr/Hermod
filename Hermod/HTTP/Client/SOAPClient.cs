@@ -166,8 +166,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                               Func<DateTime, Object, HTTPResponse<XElement>, HTTPResponse<T>>  OnSOAPFault,
                                               Func<DateTime, Object, HTTPResponse,           HTTPResponse<T>>  OnHTTPError,
                                               Func<DateTime, Object, Exception,              HTTPResponse<T>>  OnException,
-                                              CancellationToken?                                               CancellationToken  = null,
-                                              TimeSpan?                                                        QueryTimeout       = null)
+                                              Action<HTTPRequestBuilder>                                       HTTPRequestBuilder  = null,
+                                              CancellationToken?                                               CancellationToken   = null,
+                                              TimeSpan?                                                        QueryTimeout        = null)
 
         {
 
@@ -200,6 +201,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             builder.Set("SOAPAction",  @"""" + SOAPAction + @"""");
             builder.UserAgent          = UserAgent;
             builder.FakeURIPrefix      = "https://" + HTTPVirtualHost;
+
+            HTTPRequestBuilder?.Invoke(builder);
 
             return this.Execute(builder,
                                 Timeout:            QueryTimeout != null ? QueryTimeout : TimeSpan.FromSeconds(60),
@@ -278,9 +281,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                             } catch (Exception e)
                             {
 
-                                var OnExceptionLocal = OnException;
-                                if (OnExceptionLocal != null)
-                                    OnExceptionLocal(DateTime.Now, this, e);
+                                OnException?.Invoke(DateTime.Now, this, e);
 
                                 //var OnFaultLocal = OnSOAPFault;
                                 //if (OnFaultLocal != null)
