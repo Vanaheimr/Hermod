@@ -166,47 +166,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                               Func<DateTime, Object, HTTPResponse<XElement>, HTTPResponse<T>>  OnSOAPFault,
                                               Func<DateTime, Object, HTTPResponse,           HTTPResponse<T>>  OnHTTPError,
                                               Func<DateTime, Object, Exception,              HTTPResponse<T>>  OnException,
-                                              Action<HTTPRequestBuilder>                                       HTTPRequestBuilder  = null,
-                                              CancellationToken?                                               CancellationToken   = null,
-                                              TimeSpan?                                                        QueryTimeout        = null)
+                                              Action<HTTPRequestBuilder>                                       HTTPRequestBuilder   = null,
+                                              ClientRequestLogHandler                                          RequestLogDelegate   = null,
+                                              ClientResponseLogHandler                                         ResponseLogDelegate  = null,
+                                              CancellationToken?                                               CancellationToken    = null,
+                                              TimeSpan?                                                        QueryTimeout         = null)
 
         {
 
             #region Initial checks
 
-            if (QueryXML == null)
-                throw new ArgumentException("The 'Query'-string must not be null!");
+            if (QueryXML    == null)
+                throw new ArgumentNullException(nameof(QueryXML),     "The 'Query'-string must not be null!");
 
             if (SOAPAction.IsNullOrEmpty())
-                throw new ArgumentException("The 'SOAPAction'-string must not be null or empty!");
+                throw new ArgumentNullException(nameof(SOAPAction),   "The 'SOAPAction'-string must not be null or empty!");
 
-            if (OnSuccess == null)
-                throw new ArgumentException("The 'OnSuccess'-delegate must not be null!");
+            if (OnSuccess   == null)
+                throw new ArgumentNullException(nameof(OnSuccess),    "The 'OnSuccess'-delegate must not be null!");
 
             if (OnSOAPFault == null)
-                throw new ArgumentException("The 'OnSuccess'-delegate must not be null!");
+                throw new ArgumentNullException(nameof(OnSOAPFault),  "The 'OnSOAPFault'-delegate must not be null!");
 
             if (OnHTTPError == null)
-                throw new ArgumentException("The 'OnHTTPError'-delegate must not be null!");
+                throw new ArgumentNullException(nameof(OnHTTPError),  "The 'OnHTTPError'-delegate must not be null!");
 
             if (OnException == null)
-                throw new ArgumentException("The 'OnException'-delegate must not be null!");
+                throw new ArgumentNullException(nameof(OnException),  "The 'OnException'-delegate must not be null!");
 
             #endregion
 
-            var builder = this.POST(_URIPrefix);
-            builder.Host               = HTTPVirtualHost;
-            builder.Content            = QueryXML.ToUTF8Bytes();
-            builder.ContentType        = HTTPContentType.XMLTEXT_UTF8;
-            builder.Set("SOAPAction",  @"""" + SOAPAction + @"""");
-            builder.UserAgent          = UserAgent;
-            builder.FakeURIPrefix      = "https://" + HTTPVirtualHost;
+            var _RequestBuilder = this.POST(_URIPrefix);
+            _RequestBuilder.Host               = HTTPVirtualHost;
+            _RequestBuilder.Content            = QueryXML.ToUTF8Bytes();
+            _RequestBuilder.ContentType        = HTTPContentType.XMLTEXT_UTF8;
+            _RequestBuilder.Set("SOAPAction",  @"""" + SOAPAction + @"""");
+            _RequestBuilder.UserAgent          = UserAgent;
+            _RequestBuilder.FakeURIPrefix      = "https://" + HTTPVirtualHost;
 
-            HTTPRequestBuilder?.Invoke(builder);
+            HTTPRequestBuilder?.Invoke(_RequestBuilder);
 
-            return this.Execute(builder,
-                                Timeout:            QueryTimeout != null ? QueryTimeout : TimeSpan.FromSeconds(60),
-                                CancellationToken:  CancellationToken.HasValue ? CancellationToken.Value : new CancellationTokenSource().Token).
+            return this.Execute(_RequestBuilder,
+                                RequestLogDelegate,
+                                ResponseLogDelegate,
+                                QueryTimeout != null       ? QueryTimeout            : TimeSpan.FromSeconds(60),
+                                CancellationToken.HasValue ? CancellationToken.Value : new CancellationTokenSource().Token).
 
                         ContinueWith(HttpResponseTask => {
 

@@ -351,51 +351,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region Execute(HTTPRequest, Timeout = null, CancellationToken = null)
+        #region Execute(HTTPRequestDelegate, RequestLogDelegate = null, ResponseLogDelegate = null, Timeout = null, CancellationToken = null)
 
         /// <summary>
         /// Execute the given HTTP request and return its result.
         /// </summary>
-        /// <param name="HTTPRequest">A HTTP request.</param>
+        /// <param name="HTTPRequestDelegate">A delegate for producing a HTTP request for a given HTTP client.</param>
+        /// <param name="RequestLogDelegate">A delegate for logging the HTTP request.</param>
+        /// <param name="ResponseLogDelegate">A delegate for logging the HTTP request/response.</param>
         /// <param name="Timeout">An optional timeout.</param>
-        public async Task<HTTPResponse> Execute(HTTPRequest         HTTPRequest,
-                                                TimeSpan?           Timeout            = null,
-                                                CancellationToken?  CancellationToken  = null)
-        {
-            return await Execute(HTTPRequest, null, Timeout, CancellationToken);
-        }
-
-        #endregion
-
-        #region Execute(HTTPRequestDelegate, Timeout = null, CancellationToken = null)
-
-        /// <summary>
-        /// Execute the given HTTP request and return its result.
-        /// </summary>
-        /// <param name="HTTPRequestDelegate">A HTTP request.</param>
-        /// <param name="Timeout">An optional timeout.</param>
+        /// <param name="CancellationToken">A cancellation token.</param>
         public async Task<HTTPResponse> Execute(Func<HTTPClient, HTTPRequest>  HTTPRequestDelegate,
-                                                TimeSpan?                      Timeout            = null,
-                                                CancellationToken?             CancellationToken  = null)
+                                                ClientRequestLogHandler        RequestLogDelegate   = null,
+                                                ClientResponseLogHandler       ResponseLogDelegate  = null,
+                                                TimeSpan?                      Timeout              = null,
+                                                CancellationToken?             CancellationToken    = null)
         {
-            return await Execute(HTTPRequestDelegate(this), null, Timeout, CancellationToken);
+
+            #region Initial checks
+
+            if (HTTPRequestDelegate == null)
+                throw new ArgumentNullException(nameof(HTTPRequestDelegate), "The given delegate must not be null!");
+
+            #endregion
+
+            return await Execute(HTTPRequestDelegate(this), RequestLogDelegate, ResponseLogDelegate, Timeout, CancellationToken);
+
         }
 
         #endregion
 
-        #region Execute(HTTPRequest, RequestResponseDelegate, Timeout = null, CancellationToken = null)
+        #region Execute(HTTPRequest, RequestLogDelegate = null, ResponseLogDelegate = null, Timeout = null, CancellationToken = null)
 
         /// <summary>
         /// Execute the given HTTP request and return its result.
         /// </summary>
         /// <param name="HTTPRequest">A HTTP request.</param>
-        /// <param name="RequestResponseDelegate">A delegate for processing the HTTP request/response.</param>
+        /// <param name="RequestLogDelegate">A delegate for logging the HTTP request.</param>
+        /// <param name="ResponseLogDelegate">A delegate for logging the HTTP request/response.</param>
         /// <param name="Timeout">An optional timeout.</param>
-        public async Task<HTTPResponse> Execute(HTTPRequest                        HTTPRequest,
-                                                Action<HTTPRequest, HTTPResponse>  RequestResponseDelegate,
-                                                TimeSpan?                          Timeout            = null,
-                                                CancellationToken?                 CancellationToken  = null)
+        /// <param name="CancellationToken">A cancellation token.</param>
+        public async Task<HTTPResponse> Execute(HTTPRequest               HTTPRequest,
+                                                ClientRequestLogHandler   RequestLogDelegate   = null,
+                                                ClientResponseLogHandler  ResponseLogDelegate  = null,
+                                                TimeSpan?                 Timeout              = null,
+                                                CancellationToken?        CancellationToken    = null)
         {
+
+            #region Call the optional HTTP request log delegate
+
+            RequestLogDelegate?.Invoke(DateTime.Now, this, HTTPRequest);
+
+            #endregion
 
             var task = Task<HTTPResponse>.Factory.StartNew(() => {
 
@@ -789,11 +796,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #endregion
 
-                    #region Call the optional HTTPResponse delegate(s)
+                    #region Call the optional HTTP response log delegate
 
-                    var RequestResponseDelegateLocal = RequestResponseDelegate;
-                    if (RequestResponseDelegateLocal != null)
-                        RequestResponseDelegateLocal(HTTPRequest, _HTTPResponse);
+                    ResponseLogDelegate?.Invoke(DateTime.Now, this, HTTPRequest, _HTTPResponse);
 
                     #endregion
 

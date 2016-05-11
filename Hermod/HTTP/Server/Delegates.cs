@@ -90,7 +90,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
+    /// <summary>
+    /// The delegate for logging the HTTP request send by a HTTP client.
+    /// </summary>
+    /// <param name="Timestamp">The timestamp of the outgoing HTTP request.</param>
+    /// <param name="HTTPClient">The HTTP client sending the HTTP request.</param>
+    /// <param name="Request">The outgoing HTTP request.</param>
+    public delegate void ClientRequestLogHandler(DateTime     Timestamp,
+                                                 HTTPClient   HTTPClient,
+                                                 HTTPRequest  Request);
 
+
+    /// <summary>
+    /// The delegate for logging the HTTP response received by a HTTP client.
+    /// </summary>
+    /// <param name="Timestamp">The timestamp of the incoming HTTP response.</param>
+    /// <param name="HTTPClient">The HTTP client receiving the HTTP request.</param>
+    /// <param name="Request">The outgoing HTTP request.</param>
+    /// <param name="Response">The incoming HTTP response.</param>
+    public delegate void ClientResponseLogHandler(DateTime      Timestamp,
+                                                  HTTPClient    HTTPClient,
+                                                  HTTPRequest   Request,
+                                                  HTTPResponse  Response);
 
 
 

@@ -1435,7 +1435,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public Task<HTTPResponse> ExecuteReturnResult()
         {
-            return this._HTTPClient.Execute(AsImmutable());
+            return this._HTTPClient?.Execute(AsImmutable());
         }
 
 
