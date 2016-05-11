@@ -30,13 +30,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public static class HTTPLoggerExtentions
     {
 
-        #region RegisterDefaultConsoleLogTarget(this HTTPRequestLogger)
+        #region RegisterDefaultConsoleLogTarget(this HTTPRequestLogger, HTTPLogger)
 
         /// <summary>
         /// Register the default console logger.
         /// </summary>
         /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
-        public static HTTPLogger.HTTPRequestLogger RegisterDefaultConsoleLogTarget(this HTTPLogger.HTTPRequestLogger  HTTPRequestLogger)
+        public static HTTPLogger.HTTPRequestLogger RegisterDefaultConsoleLogTarget(this HTTPLogger.HTTPRequestLogger  HTTPRequestLogger,
+                                                                                   HTTPLogger                         HTTPLogger)
         {
 
             return HTTPRequestLogger.RegisterLogTarget(LogTargets.Console,
@@ -46,13 +47,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region RegisterDefaultConsoleLogTarget(this HTTPRequestLogger)
+        #region RegisterDefaultConsoleLogTarget(this HTTPRequestLogger, HTTPLogger)
 
         /// <summary>
         /// Register the default console logger.
         /// </summary>
         /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
-        public static HTTPLogger.HTTPResponseLogger RegisterDefaultConsoleLogTarget(this HTTPLogger.HTTPResponseLogger  HTTPResponseLogger)
+        public static HTTPLogger.HTTPResponseLogger RegisterDefaultConsoleLogTarget(this HTTPLogger.HTTPResponseLogger  HTTPResponseLogger,
+                                                                                    HTTPLogger                         HTTPLogger)
         {
 
             return HTTPResponseLogger.RegisterLogTarget(LogTargets.Console,
@@ -63,13 +65,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region RegisterDefaultDiscLogTarget(this HTTPRequestLogger)
+        #region RegisterDefaultDiscLogTarget(this HTTPRequestLogger, HTTPLogger)
 
         /// <summary>
         /// Register the default disc logger.
         /// </summary>
         /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
-        public static HTTPLogger.HTTPRequestLogger RegisterDefaultDiscLogTarget(this HTTPLogger.HTTPRequestLogger  HTTPRequestLogger)
+        public static HTTPLogger.HTTPRequestLogger RegisterDefaultDiscLogTarget(this HTTPLogger.HTTPRequestLogger  HTTPRequestLogger,
+                                                                                HTTPLogger                         HTTPLogger)
         {
 
             return HTTPRequestLogger.RegisterLogTarget(LogTargets.Disc,
@@ -79,13 +82,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region RegisterDefaultDiscLogTarget(this HTTPRequestLogger)
+        #region RegisterDefaultDiscLogTarget(this HTTPRequestLogger, HTTPLogger)
 
         /// <summary>
         /// Register the default disc logger.
         /// </summary>
         /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
-        public static HTTPLogger.HTTPResponseLogger RegisterDefaultDiscLogTarget(this HTTPLogger.HTTPResponseLogger  HTTPResponseLogger)
+        public static HTTPLogger.HTTPResponseLogger RegisterDefaultDiscLogTarget(this HTTPLogger.HTTPResponseLogger  HTTPResponseLogger,
+                                                                                HTTPLogger                           HTTPLogger)
         {
 
             return HTTPResponseLogger.RegisterLogTarget(LogTargets.Disc,

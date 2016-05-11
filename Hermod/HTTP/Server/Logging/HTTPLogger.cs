@@ -503,13 +503,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region LogFileCreator
 
-        private static Func<String, String, String> _LogFileCreator;
+        private readonly Func<String, String, String> _LogFileCreator;
 
         /// <summary>
         /// A delegate for the default ToDisc logger returning a
         /// valid logfile name based on the given log event name.
         /// </summary>
-        public static Func<String, String, String> LogFileCreator
+        public Func<String, String, String> LogFileCreator
         {
             get
             {
@@ -519,7 +519,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) Default_LogHTTPRequest_toConsole(Context, LogEventName, Request)
+        #region Default_LogHTTPRequest_toConsole(Context, LogEventName, Request)
 
         /// <summary>
         /// A default delegate for logging incoming HTTP requests to console.
@@ -527,9 +527,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Context">The context of the log request.</param>
         /// <param name="LogEventName">The name of the log event.</param>
         /// <param name="Request">The HTTP request to log.</param>
-        public static void Default_LogHTTPRequest_toConsole(String       Context,
-                                                            String       LogEventName,
-                                                            HTTPRequest  Request)
+        public void Default_LogHTTPRequest_toConsole(String       Context,
+                                                     String       LogEventName,
+                                                     HTTPRequest  Request)
         {
 
             Console.ForegroundColor = ConsoleColor.Gray;
@@ -545,7 +545,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) Default_LogHTTPResponse_toConsole(Context, LogEventName, Request, Response)
+        #region Default_LogHTTPResponse_toConsole(Context, LogEventName, Request, Response)
 
         /// <summary>
         /// A default delegate for logging HTTP requests/-responses to console.
@@ -554,10 +554,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogEventName">The name of the log event.</param>
         /// <param name="Request">The HTTP request to log.</param>
         /// <param name="Response">The HTTP response to log.</param>
-        public static void Default_LogHTTPResponse_toConsole(String        Context,
-                                                             String        LogEventName,
-                                                             HTTPRequest   Request,
-                                                             HTTPResponse  Response)
+        public void Default_LogHTTPResponse_toConsole(String        Context,
+                                                      String        LogEventName,
+                                                      HTTPRequest   Request,
+                                                      HTTPResponse  Response)
         {
 
             Console.ForegroundColor = ConsoleColor.Gray;
@@ -588,7 +588,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) Default_LogHTTPRequest_toDisc(Context, LogEventName, Request)
+        #region Default_LogHTTPRequest_toDisc(Context, LogEventName, Request)
 
         /// <summary>
         /// A default delegate for logging incoming HTTP requests to disc.
@@ -596,14 +596,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Context">The context of the log request.</param>
         /// <param name="LogEventName">The name of the log event.</param>
         /// <param name="Request">The HTTP request to log.</param>
-        public static void Default_LogHTTPRequest_toDisc(String       Context,
-                                                         String       LogEventName,
-                                                         HTTPRequest  Request)
+        public void Default_LogHTTPRequest_toDisc(String       Context,
+                                                  String       LogEventName,
+                                                  HTTPRequest  Request)
         {
 
             lock (Context)
             {
-                using (var logfile = File.AppendText(LogFileCreator(Context, LogEventName)))
+                using (var logfile = File.AppendText(_LogFileCreator(Context, LogEventName)))
                 {
                     logfile.WriteLine(Request.RemoteSocket.ToString() + " -> " + Request.LocalSocket);
                     logfile.WriteLine(">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------");
@@ -617,7 +617,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) Default_LogHTTPResponse_toDisc(Context, LogEventName, Request, Response)
+        #region Default_LogHTTPResponse_toDisc(Context, LogEventName, Request, Response)
 
         /// <summary>
         /// A default delegate for logging HTTP requests/-responses to disc.
@@ -626,15 +626,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogEventName">The name of the log event.</param>
         /// <param name="Request">The HTTP request to log.</param>
         /// <param name="Response">The HTTP response to log.</param>
-        public static void Default_LogHTTPResponse_toDisc(String        Context,
-                                                          String        LogEventName,
-                                                          HTTPRequest   Request,
-                                                          HTTPResponse  Response)
+        public void Default_LogHTTPResponse_toDisc(String        Context,
+                                                   String        LogEventName,
+                                                   HTTPRequest   Request,
+                                                   HTTPResponse  Response)
         {
 
             lock (Context)
             {
-                using (var logfile = File.AppendText(LogFileCreator(Context, LogEventName)))
+                using (var logfile = File.AppendText(_LogFileCreator(Context, LogEventName)))
                 {
                     logfile.WriteLine(Request.RemoteSocket.ToString() + " -> " + Request.LocalSocket);
                     logfile.WriteLine(">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------");
@@ -708,10 +708,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             : this(HTTPAPI,
                    Context,
-                   Default_LogHTTPRequest_toConsole,
-                   Default_LogHTTPResponse_toConsole,
-                   Default_LogHTTPRequest_toDisc,
-                   Default_LogHTTPResponse_toDisc)
+                   null,
+                   null,
+                   null,
+                   null)
 
         { }
 
