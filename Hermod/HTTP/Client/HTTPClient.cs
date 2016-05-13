@@ -400,7 +400,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Call the optional HTTP request log delegate
 
-            RequestLogDelegate?.Invoke(DateTime.Now, this, HTTPRequest);
+            try
+            {
+
+                RequestLogDelegate?.Invoke(DateTime.Now, this, HTTPRequest);
+
+            }
+            catch (Exception e)
+            {
+                e.Log("HTTPClient." + nameof(RequestLogDelegate));
+            }
 
             #endregion
 
@@ -408,7 +417,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 try
                 {
-
 
                     //DebugX.Log("[" + DateTime.Now.ToIso8601() + "] HTTPClient started...");
 
@@ -798,7 +806,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #region Call the optional HTTP response log delegate
 
-                    ResponseLogDelegate?.Invoke(DateTime.Now, this, HTTPRequest, _HTTPResponse);
+                    try
+                    {
+
+                        ResponseLogDelegate?.Invoke(DateTime.Now, this, HTTPRequest, _HTTPResponse);
+
+                    }
+                    catch (Exception e)
+                    {
+                        e.Log("HTTPClient." + nameof(ResponseLogDelegate));
+                    }
 
                     #endregion
 
