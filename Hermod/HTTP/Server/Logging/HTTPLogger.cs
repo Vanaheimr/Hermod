@@ -20,15 +20,21 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Diagnostics;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
+
+    public delegate Task HTTPRequestLoggerDelegate (String Context, String LogEventName, HTTPRequest HTTPRequest);
+    public delegate Task HTTPResponseLoggerDelegate(String Context, String LogEventName, HTTPRequest HTTPRequest, HTTPResponse HTTPResponse);
+
 
     /// <summary>
     /// A HTTP API logger.
@@ -36,13 +42,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public class HTTPLogger
     {
 
-        #region (class) HTTPRequestLogger
+        #region (class) HTTPServerRequestLogger
 
         /// <summary>
         /// A wrapper class to manage HTTP API event subscriptions
         /// for logging purposes.
         /// </summary>
-        public class HTTPRequestLogger
+        public class HTTPServerRequestLogger
         {
 
             #region Data
@@ -133,10 +139,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <param name="LogEventName">The name of the event.</param>
             /// <param name="SubscribeToEventDelegate">A delegate for subscribing to the linked event.</param>
             /// <param name="UnsubscribeFromEventDelegate">A delegate for subscribing from the linked event.</param>
-            public HTTPRequestLogger(String                     Context,
-                                     String                     LogEventName,
-                                     Action<RequestLogHandler>  SubscribeToEventDelegate,
-                                     Action<RequestLogHandler>  UnsubscribeFromEventDelegate)
+            public HTTPServerRequestLogger(String                     Context,
+                                           String                     LogEventName,
+                                           Action<RequestLogHandler>  SubscribeToEventDelegate,
+                                           Action<RequestLogHandler>  UnsubscribeFromEventDelegate)
             {
 
                 #region Initial checks
@@ -172,8 +178,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <param name="LogTarget">A log target.</param>
             /// <param name="HTTPRequestDelegate">A delegate to call.</param>
             /// <returns>A HTTP request logger.</returns>
-            public HTTPRequestLogger RegisterLogTarget(LogTargets                           LogTarget,
-                                                       Action<String, String, HTTPRequest>  HTTPRequestDelegate)
+            public HTTPServerRequestLogger RegisterLogTarget(LogTargets                 LogTarget,
+                                                       HTTPRequestLoggerDelegate  HTTPRequestDelegate)
             {
 
                 #region Initial checks
@@ -186,7 +192,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (_SubscriptionDelegates.ContainsKey(LogTarget))
                     throw new Exception("Duplicate log target!");
 
-                _SubscriptionDelegates.Add(LogTarget, (Timestamp, HTTPAPI, Request) => HTTPRequestDelegate(_Context, LogEventName, Request));
+                _SubscriptionDelegates.Add(LogTarget,
+                                           async (Timestamp, HTTPAPI, Request) => await HTTPRequestDelegate(_Context, _LogEventName, Request));
 
                 return this;
 
@@ -267,13 +274,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (class) HTTPResponseLogger
+        #region (class) HTTPServerResponseLogger
 
         /// <summary>
         /// A wrapper class to manage HTTP API event subscriptions
         /// for logging purposes.
         /// </summary>
-        public class HTTPResponseLogger
+        public class HTTPServerResponseLogger
         {
 
             #region Data
@@ -364,10 +371,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <param name="LogEventName">The name of the event.</param>
             /// <param name="SubscribeToEventDelegate">A delegate for subscribing to the linked event.</param>
             /// <param name="UnsubscribeFromEventDelegate">A delegate for subscribing from the linked event.</param>
-            public HTTPResponseLogger(String                    Context,
-                                      String                    LogEventName,
-                                      Action<AccessLogHandler>  SubscribeToEventDelegate,
-                                      Action<AccessLogHandler>  UnsubscribeFromEventDelegate)
+            public HTTPServerResponseLogger(String                    Context,
+                                            String                    LogEventName,
+                                            Action<AccessLogHandler>  SubscribeToEventDelegate,
+                                            Action<AccessLogHandler>  UnsubscribeFromEventDelegate)
             {
 
                 #region Initial checks
@@ -403,8 +410,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <param name="LogTarget">A log target.</param>
             /// <param name="HTTPResponseDelegate">A delegate to call.</param>
             /// <returns>A HTTP response logger.</returns>
-            public HTTPResponseLogger RegisterLogTarget(LogTargets                                         LogTarget,
-                                                        Action<String, String, HTTPRequest, HTTPResponse>  HTTPResponseDelegate)
+            public HTTPServerResponseLogger RegisterLogTarget(LogTargets                  LogTarget,
+                                                        HTTPResponseLoggerDelegate  HTTPResponseDelegate)
             {
 
                 #region Initial checks
@@ -417,7 +424,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (_SubscriptionDelegates.ContainsKey(LogTarget))
                     throw new Exception("Duplicate log target!");
 
-                _SubscriptionDelegates.Add(LogTarget, (Timestamp, HTTPAPI, Request, Response) => HTTPResponseDelegate( Context, LogEventName, Request, Response));
+                _SubscriptionDelegates.Add(LogTarget,
+                                           async (Timestamp, HTTPAPI, Request, Response) => await HTTPResponseDelegate(_Context, _LogEventName, Request, Response));
 
                 return this;
 
@@ -634,8 +642,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <param name="LogTarget">A log target.</param>
             /// <param name="HTTPRequestDelegate">A delegate to call.</param>
             /// <returns>A HTTP request logger.</returns>
-            public HTTPClientRequestLogger RegisterLogTarget(LogTargets                           LogTarget,
-                                                             Action<String, String, HTTPRequest>  HTTPRequestDelegate)
+            public HTTPClientRequestLogger RegisterLogTarget(LogTargets                 LogTarget,
+                                                             HTTPRequestLoggerDelegate  HTTPRequestDelegate)
             {
 
                 #region Initial checks
@@ -648,7 +656,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (_SubscriptionDelegates.ContainsKey(LogTarget))
                     throw new Exception("Duplicate log target!");
 
-                _SubscriptionDelegates.Add(LogTarget, (Timestamp, HTTPAPI, Request) => HTTPRequestDelegate(_Context, LogEventName, Request));
+                _SubscriptionDelegates.Add(LogTarget,
+                                           async (Timestamp, HTTPAPI, Request) => await HTTPRequestDelegate(_Context, LogEventName, Request));
 
                 return this;
 
@@ -865,8 +874,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <param name="LogTarget">A log target.</param>
             /// <param name="HTTPResponseDelegate">A delegate to call.</param>
             /// <returns>A HTTP response logger.</returns>
-            public HTTPClientResponseLogger RegisterLogTarget(LogTargets                                         LogTarget,
-                                                              Action<String, String, HTTPRequest, HTTPResponse>  HTTPResponseDelegate)
+            public HTTPClientResponseLogger RegisterLogTarget(LogTargets                  LogTarget,
+                                                              HTTPResponseLoggerDelegate  HTTPResponseDelegate)
             {
 
                 #region Initial checks
@@ -879,7 +888,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (_SubscriptionDelegates.ContainsKey(LogTarget))
                     throw new Exception("Duplicate log target!");
 
-                _SubscriptionDelegates.Add(LogTarget, (Timestamp, HTTPAPI, Request, Response) => HTTPResponseDelegate( Context, LogEventName, Request, Response));
+                _SubscriptionDelegates.Add(LogTarget,
+                                           async (Timestamp, HTTPAPI, Request, Response) => await HTTPResponseDelegate(_Context, _LogEventName, Request, Response));
 
                 return this;
 
@@ -961,7 +971,94 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region Data
+
+        private static readonly Object LockObject = new Object();
+
+        #endregion
+
+
         #region Default logging delegates
+
+        #region Default_LogHTTPRequest_toConsole(Context, LogEventName, Request)
+
+        /// <summary>
+        /// A default delegate for logging incoming HTTP requests to console.
+        /// </summary>
+        /// <param name="Context">The context of the log request.</param>
+        /// <param name="LogEventName">The name of the log event.</param>
+        /// <param name="Request">The HTTP request to log.</param>
+        public async Task Default_LogHTTPRequest_toConsole(String       Context,
+                                                           String       LogEventName,
+                                                           HTTPRequest  Request)
+        {
+
+            lock (LockObject)
+            {
+
+                Console.ForegroundColor = ConsoleColor.Gray;
+                Console.Write("[" + Request.Timestamp + "] ");
+                Console.ForegroundColor = ConsoleColor.DarkGray;
+                Console.Write(Context + "/");
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.Write(LogEventName);
+                Console.ForegroundColor = ConsoleColor.Gray;
+                Console.WriteLine(" from " + Request.RemoteSocket);
+
+            }
+
+        }
+
+        #endregion
+
+        #region Default_LogHTTPResponse_toConsole(Context, LogEventName, Request, Response)
+
+        /// <summary>
+        /// A default delegate for logging HTTP requests/-responses to console.
+        /// </summary>
+        /// <param name="Context">The context of the log request.</param>
+        /// <param name="LogEventName">The name of the log event.</param>
+        /// <param name="Request">The HTTP request to log.</param>
+        /// <param name="Response">The HTTP response to log.</param>
+        public async Task Default_LogHTTPResponse_toConsole(String        Context,
+                                                            String        LogEventName,
+                                                            HTTPRequest   Request,
+                                                            HTTPResponse  Response)
+        {
+
+            lock (LockObject)
+            {
+
+                Console.ForegroundColor = ConsoleColor.Gray;
+                Console.Write("[" + Request.Timestamp + "] ");
+                Console.ForegroundColor = ConsoleColor.DarkGray;
+                Console.Write(Context + "/");
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.Write(LogEventName);
+                Console.ForegroundColor = ConsoleColor.Gray;
+                Console.Write(String.Concat(" from ", Request.RemoteSocket, " => "));
+
+                if (Response.HTTPStatusCode == HTTPStatusCode.OK ||
+                    Response.HTTPStatusCode == HTTPStatusCode.Created)
+                    Console.ForegroundColor = ConsoleColor.Green;
+
+                else if (Response.HTTPStatusCode == HTTPStatusCode.NoContent)
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+
+                else
+                    Console.ForegroundColor = ConsoleColor.Red;
+
+                Console.Write(Response.HTTPStatusCode);
+
+                Console.ForegroundColor = ConsoleColor.Gray;
+                Console.WriteLine(String.Concat(" in ", Math.Round((Response.Timestamp - Request.Timestamp).TotalMilliseconds), "ms"));
+
+            }
+
+        }
+
+        #endregion
+
 
         #region LogFileCreator
 
@@ -981,70 +1078,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Default_LogHTTPRequest_toConsole(Context, LogEventName, Request)
+        #region (private) OpenFileWithRetry(WorkToDo, Timeout = null)
 
-        /// <summary>
-        /// A default delegate for logging incoming HTTP requests to console.
-        /// </summary>
-        /// <param name="Context">The context of the log request.</param>
-        /// <param name="LogEventName">The name of the log event.</param>
-        /// <param name="Request">The HTTP request to log.</param>
-        public void Default_LogHTTPRequest_toConsole(String       Context,
-                                                     String       LogEventName,
-                                                     HTTPRequest  Request)
+        private void OpenFileWithRetry(Action     WorkToDo,
+                                       TimeSpan?  Timeout = null)
         {
 
-            Console.ForegroundColor = ConsoleColor.Gray;
-            Console.Write("[" + Request.Timestamp + "] ");
-            Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.Write(Context + "/");
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.Write(LogEventName);
-            Console.ForegroundColor = ConsoleColor.Gray;
-            Console.WriteLine(" from " + Request.RemoteSocket);
+            if (Timeout == null)
+                Timeout = TimeSpan.FromSeconds(10);
 
-        }
+            var _Stopwatch = Stopwatch.StartNew();
 
-        #endregion
+            while (_Stopwatch.Elapsed < Timeout)
+            {
+                try
+                {
+                    WorkToDo();
+                    return;
+                }
+                catch (IOException e)
+                {
+                    // access error
+                    if (e.HResult != -2147024864)
+                        throw;
+                }
+            }
 
-        #region Default_LogHTTPResponse_toConsole(Context, LogEventName, Request, Response)
-
-        /// <summary>
-        /// A default delegate for logging HTTP requests/-responses to console.
-        /// </summary>
-        /// <param name="Context">The context of the log request.</param>
-        /// <param name="LogEventName">The name of the log event.</param>
-        /// <param name="Request">The HTTP request to log.</param>
-        /// <param name="Response">The HTTP response to log.</param>
-        public void Default_LogHTTPResponse_toConsole(String        Context,
-                                                      String        LogEventName,
-                                                      HTTPRequest   Request,
-                                                      HTTPResponse  Response)
-        {
-
-            Console.ForegroundColor = ConsoleColor.Gray;
-            Console.Write("[" + Request.Timestamp + "] ");
-            Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.Write(Context + "/");
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.Write(LogEventName);
-            Console.ForegroundColor = ConsoleColor.Gray;
-            Console.Write(String.Concat(" from ", Request.RemoteSocket, " => "));
-
-            if (Response.HTTPStatusCode == HTTPStatusCode.OK ||
-                Response.HTTPStatusCode == HTTPStatusCode.Created)
-                Console.ForegroundColor = ConsoleColor.Green;
-
-            else if (Response.HTTPStatusCode == HTTPStatusCode.NoContent)
-                Console.ForegroundColor = ConsoleColor.Yellow;
-
-            else
-                Console.ForegroundColor = ConsoleColor.Red;
-
-            Console.Write(Response.HTTPStatusCode);
-
-            Console.ForegroundColor = ConsoleColor.Gray;
-            Console.WriteLine(String.Concat(" in ", Math.Round((Response.Timestamp - Request.Timestamp).TotalMilliseconds), "ms"));
+            throw new Exception("Failed perform action within allotted time.");
 
         }
 
@@ -1058,13 +1118,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Context">The context of the log request.</param>
         /// <param name="LogEventName">The name of the log event.</param>
         /// <param name="Request">The HTTP request to log.</param>
-        public void Default_LogHTTPRequest_toDisc(String       Context,
-                                                  String       LogEventName,
-                                                  HTTPRequest  Request)
+        public async Task Default_LogHTTPRequest_toDisc(String       Context,
+                                                        String       LogEventName,
+                                                        HTTPRequest  Request)
         {
 
-            lock (Context)
-            {
+            OpenFileWithRetry(() => {
                 using (var logfile = File.AppendText(_LogFileCreator(Context, LogEventName)))
                 {
                     logfile.WriteLine(Request.RemoteSocket.ToString() + " -> " + Request.LocalSocket);
@@ -1073,7 +1132,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     logfile.WriteLine(Request.EntirePDU);
                     logfile.WriteLine("--------------------------------------------------------------------------------");
                 }
-            }
+            });
 
         }
 
@@ -1088,14 +1147,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogEventName">The name of the log event.</param>
         /// <param name="Request">The HTTP request to log.</param>
         /// <param name="Response">The HTTP response to log.</param>
-        public void Default_LogHTTPResponse_toDisc(String        Context,
-                                                   String        LogEventName,
-                                                   HTTPRequest   Request,
-                                                   HTTPResponse  Response)
+        public async Task Default_LogHTTPResponse_toDisc(String        Context,
+                                                         String        LogEventName,
+                                                         HTTPRequest   Request,
+                                                         HTTPResponse  Response)
         {
 
-            lock (Context)
-            {
+            OpenFileWithRetry(() => {
                 using (var logfile = File.AppendText(_LogFileCreator(Context, LogEventName)))
                 {
                     logfile.WriteLine(Request.RemoteSocket.ToString() + " -> " + Request.LocalSocket);
@@ -1107,7 +1165,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     logfile.WriteLine(Response.EntirePDU);
                     logfile.WriteLine("--------------------------------------------------------------------------------");
                 }
-            }
+            });
 
         }
 
@@ -1119,8 +1177,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Data
 
         private readonly HTTPServer                                              _HTTPAPI;
-        private readonly ConcurrentDictionary<String, HTTPRequestLogger>         _HTTPRequestLoggers;
-        private readonly ConcurrentDictionary<String, HTTPResponseLogger>        _HTTPResponseLoggers;
+        private readonly ConcurrentDictionary<String, HTTPServerRequestLogger>         _HTTPRequestLoggers;
+        private readonly ConcurrentDictionary<String, HTTPServerResponseLogger>        _HTTPResponseLoggers;
         private readonly ConcurrentDictionary<String, HTTPClientRequestLogger>   _HTTPClientRequestLoggers;
         private readonly ConcurrentDictionary<String, HTTPClientResponseLogger>  _HTTPClientResponseLoggers;
         private readonly ConcurrentDictionary<String, HashSet<String>>           _GroupTags;
@@ -1205,27 +1263,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogHTTPError_toHTTPSSE">A delegate to log HTTP errors to a HTTP server sent events source.</param>
         /// 
         /// <param name="LogFileCreator">A delegate to create a log file from the given context and log file name.</param>
-        public HTTPLogger(HTTPServer                                         HTTPAPI,
-                          String                                             Context,
+        public HTTPLogger(HTTPServer                    HTTPAPI,
+                          String                        Context,
 
-                          Action<String, String, HTTPRequest>                LogHTTPRequest_toConsole,
-                          Action<String, String, HTTPRequest, HTTPResponse>  LogHTTPResponse_toConsole,
-                          Action<String, String, HTTPRequest>                LogHTTPRequest_toDisc,
-                          Action<String, String, HTTPRequest, HTTPResponse>  LogHTTPResponse_toDisc,
+                          HTTPRequestLoggerDelegate     LogHTTPRequest_toConsole,
+                          HTTPResponseLoggerDelegate    LogHTTPResponse_toConsole,
+                          HTTPRequestLoggerDelegate     LogHTTPRequest_toDisc,
+                          HTTPResponseLoggerDelegate    LogHTTPResponse_toDisc,
 
-                          Action<String, String, HTTPRequest>                LogHTTPRequest_toNetwork   = null,
-                          Action<String, String, HTTPRequest, HTTPResponse>  LogHTTPResponse_toNetwork  = null,
-                          Action<String, String, HTTPRequest>                LogHTTPRequest_toHTTPSSE   = null,
-                          Action<String, String, HTTPRequest, HTTPResponse>  LogHTTPResponse_toHTTPSSE  = null,
+                          HTTPRequestLoggerDelegate     LogHTTPRequest_toNetwork   = null,
+                          HTTPResponseLoggerDelegate    LogHTTPResponse_toNetwork  = null,
+                          HTTPRequestLoggerDelegate     LogHTTPRequest_toHTTPSSE   = null,
+                          HTTPResponseLoggerDelegate    LogHTTPResponse_toHTTPSSE  = null,
 
-                          Action<String, String, HTTPRequest, HTTPResponse>  LogHTTPError_toConsole     = null,
-                          Action<String, String, HTTPRequest, HTTPResponse>  LogHTTPError_toDisc        = null,
-                          Action<String, String, HTTPRequest, HTTPResponse>  LogHTTPError_toNetwork     = null,
-                          Action<String, String, HTTPRequest, HTTPResponse>  LogHTTPError_toHTTPSSE     = null,
+                          HTTPResponseLoggerDelegate    LogHTTPError_toConsole     = null,
+                          HTTPResponseLoggerDelegate    LogHTTPError_toDisc        = null,
+                          HTTPResponseLoggerDelegate    LogHTTPError_toNetwork     = null,
+                          HTTPResponseLoggerDelegate    LogHTTPError_toHTTPSSE     = null,
 
-                          Func<String, String, String>                       LogFileCreator             = null)
+                          Func<String, String, String>  LogFileCreator             = null)
 
             : this(Context,
+
                    LogHTTPRequest_toConsole,
                    LogHTTPResponse_toConsole,
                    LogHTTPRequest_toDisc,
@@ -1302,32 +1361,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogHTTPError_toHTTPSSE">A delegate to log HTTP errors to a HTTP server sent events source.</param>
         /// 
         /// <param name="LogFileCreator">A delegate to create a log file from the given context and log file name.</param>
-        public HTTPLogger(String                                             Context,
+        public HTTPLogger(String                        Context,
 
-                          Action<String, String, HTTPRequest>                LogHTTPRequest_toConsole,
-                          Action<String, String, HTTPRequest, HTTPResponse>  LogHTTPResponse_toConsole,
-                          Action<String, String, HTTPRequest>                LogHTTPRequest_toDisc,
-                          Action<String, String, HTTPRequest, HTTPResponse>  LogHTTPResponse_toDisc,
+                          HTTPRequestLoggerDelegate     LogHTTPRequest_toConsole,
+                          HTTPResponseLoggerDelegate    LogHTTPResponse_toConsole,
+                          HTTPRequestLoggerDelegate     LogHTTPRequest_toDisc,
+                          HTTPResponseLoggerDelegate    LogHTTPResponse_toDisc,
 
-                          Action<String, String, HTTPRequest>                LogHTTPRequest_toNetwork   = null,
-                          Action<String, String, HTTPRequest, HTTPResponse>  LogHTTPResponse_toNetwork  = null,
-                          Action<String, String, HTTPRequest>                LogHTTPRequest_toHTTPSSE   = null,
-                          Action<String, String, HTTPRequest, HTTPResponse>  LogHTTPResponse_toHTTPSSE  = null,
+                          HTTPRequestLoggerDelegate     LogHTTPRequest_toNetwork   = null,
+                          HTTPResponseLoggerDelegate    LogHTTPResponse_toNetwork  = null,
+                          HTTPRequestLoggerDelegate     LogHTTPRequest_toHTTPSSE   = null,
+                          HTTPResponseLoggerDelegate    LogHTTPResponse_toHTTPSSE  = null,
 
-                          Action<String, String, HTTPRequest, HTTPResponse>  LogHTTPError_toConsole     = null,
-                          Action<String, String, HTTPRequest, HTTPResponse>  LogHTTPError_toDisc        = null,
-                          Action<String, String, HTTPRequest, HTTPResponse>  LogHTTPError_toNetwork     = null,
-                          Action<String, String, HTTPRequest, HTTPResponse>  LogHTTPError_toHTTPSSE     = null,
+                          HTTPResponseLoggerDelegate    LogHTTPError_toConsole     = null,
+                          HTTPResponseLoggerDelegate    LogHTTPError_toDisc        = null,
+                          HTTPResponseLoggerDelegate    LogHTTPError_toNetwork     = null,
+                          HTTPResponseLoggerDelegate    LogHTTPError_toHTTPSSE     = null,
 
-                          Func<String, String, String>                       LogFileCreator             = null)
+                          Func<String, String, String>  LogFileCreator             = null)
 
         {
 
             #region Init data structures
 
             this._Context                    = Context != null ? Context : "";
-            this._HTTPRequestLoggers         = new ConcurrentDictionary<String, HTTPRequestLogger>();
-            this._HTTPResponseLoggers        = new ConcurrentDictionary<String, HTTPResponseLogger>();
+            this._HTTPRequestLoggers         = new ConcurrentDictionary<String, HTTPServerRequestLogger>();
+            this._HTTPResponseLoggers        = new ConcurrentDictionary<String, HTTPServerResponseLogger>();
             this._HTTPClientRequestLoggers   = new ConcurrentDictionary<String, HTTPClientRequestLogger>();
             this._HTTPClientResponseLoggers  = new ConcurrentDictionary<String, HTTPClientResponseLogger>();
             this._GroupTags                  = new ConcurrentDictionary<String, HashSet<String>>();
@@ -1379,7 +1438,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="SubscribeToEventDelegate">A delegate for subscribing to the linked event.</param>
         /// <param name="UnsubscribeFromEventDelegate">A delegate for subscribing from the linked event.</param>
         /// <param name="GroupTags">An array of log event groups the given log event name is part of.</param>
-        protected HTTPRequestLogger RegisterEvent(String                     LogEventName,
+        protected HTTPServerRequestLogger RegisterEvent(String                     LogEventName,
                                                   Action<RequestLogHandler>  SubscribeToEventDelegate,
                                                   Action<RequestLogHandler>  UnsubscribeFromEventDelegate,
                                                   params String[]            GroupTags)
@@ -1398,13 +1457,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            HTTPRequestLogger _HTTPRequestLogger = null;
+            HTTPServerRequestLogger _HTTPRequestLogger = null;
 
             if (!_HTTPRequestLoggers. TryGetValue(LogEventName, out _HTTPRequestLogger) &&
                 !_HTTPResponseLoggers.ContainsKey(LogEventName))
             {
 
-                _HTTPRequestLogger = new HTTPRequestLogger(Context, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
+                _HTTPRequestLogger = new HTTPServerRequestLogger(Context, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
                 _HTTPRequestLoggers.TryAdd(LogEventName, _HTTPRequestLogger);
 
                 #region Register group tag mapping
@@ -1443,7 +1502,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="SubscribeToEventDelegate">A delegate for subscribing to the linked event.</param>
         /// <param name="UnsubscribeFromEventDelegate">A delegate for subscribing from the linked event.</param>
         /// <param name="GroupTags">An array of log event groups the given log event name is part of.</param>
-        protected HTTPResponseLogger RegisterEvent(String                    LogEventName,
+        protected HTTPServerResponseLogger RegisterEvent(String                    LogEventName,
                                                    Action<AccessLogHandler>  SubscribeToEventDelegate,
                                                    Action<AccessLogHandler>  UnsubscribeFromEventDelegate,
                                                    params String[]           GroupTags)
@@ -1462,13 +1521,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            HTTPResponseLogger _HTTPResponseLogger = null;
+            HTTPServerResponseLogger _HTTPResponseLogger = null;
 
             if (!_HTTPResponseLoggers.TryGetValue(LogEventName, out _HTTPResponseLogger) &&
                 !_HTTPRequestLoggers. ContainsKey(LogEventName))
             {
 
-                _HTTPResponseLogger = new HTTPResponseLogger(Context, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
+                _HTTPResponseLogger = new HTTPServerResponseLogger(Context, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
                 _HTTPResponseLoggers.TryAdd(LogEventName, _HTTPResponseLogger);
 
                 #region Register group tag mapping
@@ -1660,8 +1719,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       LogTargets  LogTarget)
         {
 
-            HTTPRequestLogger  _HTTPRequestLogger   = null;
-            HTTPResponseLogger _HTTPResponseLogger  = null;
+            HTTPServerRequestLogger  _HTTPRequestLogger   = null;
+            HTTPServerResponseLogger _HTTPResponseLogger  = null;
             Boolean            _Found               = false;
 
             if (_HTTPRequestLoggers.TryGetValue(LogEventName, out _HTTPRequestLogger))
@@ -1708,8 +1767,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         LogTargets  LogTarget)
         {
 
-            HTTPRequestLogger  _HTTPRequestLogger   = null;
-            HTTPResponseLogger _HTTPResponseLogger  = null;
+            HTTPServerRequestLogger  _HTTPRequestLogger   = null;
+            HTTPServerResponseLogger _HTTPResponseLogger  = null;
             Boolean            _Found               = false;
 
             if (_HTTPRequestLoggers.TryGetValue(LogEventName, out _HTTPRequestLogger))

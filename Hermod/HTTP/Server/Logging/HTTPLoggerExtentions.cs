@@ -31,7 +31,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
         /// <param name="HTTPLogger">A HTTP logger.</param>
-        public static HTTPLogger.HTTPRequestLogger RegisterDefaultConsoleLogTarget(this HTTPLogger.HTTPRequestLogger  HTTPRequestLogger,
+        public static HTTPLogger.HTTPServerRequestLogger RegisterDefaultConsoleLogTarget(this HTTPLogger.HTTPServerRequestLogger  HTTPRequestLogger,
                                                                                    HTTPLogger                         HTTPLogger)
         {
 
@@ -67,7 +67,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
         /// <param name="HTTPLogger">A HTTP logger.</param>
-        public static HTTPLogger.HTTPResponseLogger RegisterDefaultConsoleLogTarget(this HTTPLogger.HTTPResponseLogger  HTTPResponseLogger,
+        public static HTTPLogger.HTTPServerResponseLogger RegisterDefaultConsoleLogTarget(this HTTPLogger.HTTPServerResponseLogger  HTTPResponseLogger,
                                                                                     HTTPLogger                          HTTPLogger)
         {
 
@@ -104,7 +104,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
         /// <param name="HTTPLogger">A HTTP logger.</param>
-        public static HTTPLogger.HTTPRequestLogger RegisterDefaultDiscLogTarget(this HTTPLogger.HTTPRequestLogger  HTTPRequestLogger,
+        public static HTTPLogger.HTTPServerRequestLogger RegisterDefaultDiscLogTarget(this HTTPLogger.HTTPServerRequestLogger  HTTPRequestLogger,
                                                                                 HTTPLogger                         HTTPLogger)
         {
 
@@ -140,7 +140,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
         /// <param name="HTTPLogger">A HTTP logger.</param>
-        public static HTTPLogger.HTTPResponseLogger RegisterDefaultDiscLogTarget(this HTTPLogger.HTTPResponseLogger  HTTPResponseLogger,
+        public static HTTPLogger.HTTPServerResponseLogger RegisterDefaultDiscLogTarget(this HTTPLogger.HTTPServerResponseLogger  HTTPResponseLogger,
                                                                                  HTTPLogger                           HTTPLogger)
         {
 
