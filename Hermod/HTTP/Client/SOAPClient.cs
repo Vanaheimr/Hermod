@@ -33,6 +33,8 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 {
 
+    public delegate XElement XMLNamespacesDelegate(XElement XML);
+
     #region SOAP XML Namespace
 
     /// <summary>

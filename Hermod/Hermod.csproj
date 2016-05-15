@@ -167,6 +167,7 @@
     <Compile Include="SMTP\SMTPServer\SMTPConnection.cs" />
     <Compile Include="SMTP\SMTPServer\SMTPServer.cs" />
     <Compile Include="SMTP\SMTPStatusCode.cs" />
+    <Compile Include="SOAP\ASOAPServer.cs" />
     <Compile Include="SOAP\SOAPDispatch.cs" />
     <Compile Include="SOAP\SOAPDelegates.cs" />
     <Compile Include="SOAP\SOAPDispatcher.cs" />
