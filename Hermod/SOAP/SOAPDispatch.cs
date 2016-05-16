@@ -66,18 +66,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         #endregion
 
-        #region Delegate
+        #region BodyDelegate
 
-        private readonly SOAPDelegate _Delegate;
+        private readonly SOAPBodyDelegate _BodyDelegate;
 
         /// <summary>
         /// A HTTP/SOAP delegate to invoke this dispatch.
         /// </summary>
-        public SOAPDelegate Delegate
+        public SOAPBodyDelegate BodyDelegate
         {
             get
             {
-                return _Delegate;
+                return _BodyDelegate;
+            }
+        }
+
+        #endregion
+
+        #region HeaderAndBodyDelegate
+
+        private readonly SOAPHeaderAndBodyDelegate _HeaderAndBodyDelegate;
+
+        /// <summary>
+        /// A HTTP/SOAP delegate to invoke this dispatch.
+        /// </summary>
+        public SOAPHeaderAndBodyDelegate HeaderAndBodyDelegate
+        {
+            get
+            {
+                return _HeaderAndBodyDelegate;
             }
         }
 
@@ -85,26 +102,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         #endregion
 
-        #region SOAPDispatch(Description, Matcher, Delegate)
+        #region Constructor(s)
+
+        #region SOAPDispatch(Description, Matcher, BodyDelegate)
 
         /// <summary>
         /// Create a new SOAP dispatch.
         /// </summary>
         /// <param name="Description">A description for this SOAP dispatch.</param>
         /// <param name="Matcher">A delegate to check if this dispatch applies.</param>
-        /// <param name="Delegate">A HTTP/SOAP delegate to invoke this dispatch.</param>
-        public SOAPDispatch(String        Description,
-                            SOAPMatch     Matcher,
-                            SOAPDelegate  Delegate)
+        /// <param name="BodyDelegate">A HTTP/SOAP delegate to invoke this dispatch.</param>
+        public SOAPDispatch(String            Description,
+                            SOAPMatch         Matcher,
+                            SOAPBodyDelegate  BodyDelegate)
         {
 
-            this._Description  = Description;
-            this._Matcher      = Matcher;
-            this._Delegate     = Delegate;
+            this._Description   = Description;
+            this._Matcher       = Matcher;
+            this._BodyDelegate  = BodyDelegate;
 
         }
 
         #endregion
+
+        #region SOAPDispatch(Description, Matcher, HeaderAndBodyDelegate)
+
+        /// <summary>
+        /// Create a new SOAP dispatch.
+        /// </summary>
+        /// <param name="Description">A description for this SOAP dispatch.</param>
+        /// <param name="Matcher">A delegate to check if this dispatch applies.</param>
+        /// <param name="HeaderAndBodyDelegate">A HTTP/SOAP delegate to invoke this dispatch.</param>
+        public SOAPDispatch(String                     Description,
+                            SOAPMatch                  Matcher,
+                            SOAPHeaderAndBodyDelegate  HeaderAndBodyDelegate)
+        {
+
+            this._Description            = Description;
+            this._Matcher                = Matcher;
+            this._HeaderAndBodyDelegate  = HeaderAndBodyDelegate;
+
+        }
+
+        #endregion
+
+        #endregion
+
 
         #region (override) ToString()
 

@@ -154,7 +154,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         #endregion
 
 
-        #region RegisterSOAPDelegate(URITemplate, Description, SOAPMatch, Delegate)
+        #region RegisterSOAPDelegate(URITemplate, Description, SOAPMatch, SOAPBodyDelegate)
 
         /// <summary>
         /// Register a SOAP delegate.
@@ -162,11 +162,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="URITemplate">The URI template.</param>
         /// <param name="Description">A description of this SOAP delegate.</param>
         /// <param name="SOAPMatch">A delegate to check whether this dispatcher matches the given XML.</param>
-        /// <param name="Delegate">A delegate to process a matching XML.</param>
-        public void RegisterSOAPDelegate(String        URITemplate,
-                                         String        Description,
-                                         SOAPMatch     SOAPMatch,
-                                         SOAPDelegate  Delegate)
+        /// <param name="SOAPBodyDelegate">A delegate to process a matching SOAP request.</param>
+        public void RegisterSOAPDelegate(String            URITemplate,
+                                         String            Description,
+                                         SOAPMatch         SOAPMatch,
+                                         SOAPBodyDelegate  SOAPBodyDelegate)
         {
 
             SOAPDispatcher _SOAPDispatcher = null;
@@ -203,11 +203,67 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             _SOAPDispatcher.RegisterSOAPDelegate(Description,
                                                  SOAPMatch,
-                                                 Delegate);
+                                                 SOAPBodyDelegate);
 
         }
 
         #endregion
+
+        #region RegisterSOAPDelegate(URITemplate, Description, SOAPMatch, SOAPHeaderAndBodyDelegate)
+
+        /// <summary>
+        /// Register a SOAP delegate.
+        /// </summary>
+        /// <param name="URITemplate">The URI template.</param>
+        /// <param name="Description">A description of this SOAP delegate.</param>
+        /// <param name="SOAPMatch">A delegate to check whether this dispatcher matches the given XML.</param>
+        /// <param name="SOAPHeaderAndBodyDelegate">A delegate to process a matching SOAP request.</param>
+        public void RegisterSOAPDelegate(String                     URITemplate,
+                                         String                     Description,
+                                         SOAPMatch                  SOAPMatch,
+                                         SOAPHeaderAndBodyDelegate  SOAPHeaderAndBodyDelegate)
+        {
+
+            SOAPDispatcher _SOAPDispatcher = null;
+
+            // Check if there are other SOAP dispatchers at the given URI template.
+            var _Handler = GetHandler(HTTPHostname.Any,
+                                      URITemplate,
+                                      HTTPMethod.POST,
+                                      ContentTypes => _SOAPContentType);
+
+            if (_Handler == null)
+            {
+
+                _SOAPDispatcher = new SOAPDispatcher(URITemplate);
+                _SOAPDispatchers.Add(URITemplate, _SOAPDispatcher);
+
+                // Register a new SOAP dispatcher
+                AddMethodCallback(HTTPMethod.POST,
+                                  URITemplate,
+                                  _SOAPContentType,
+                                  HTTPDelegate: _SOAPDispatcher.Invoke);
+
+                // Register some information text for people using HTTP GET
+                AddMethodCallback(HTTPMethod.GET,
+                                  URITemplate,
+                                  _SOAPContentType,
+                                  HTTPDelegate: _SOAPDispatcher.EndpointTextInfo);
+
+            }
+
+            else
+                _SOAPDispatcher = _Handler.Target as SOAPDispatcher;
+
+
+            _SOAPDispatcher.RegisterSOAPDelegate(Description,
+                                                 SOAPMatch,
+                                                 SOAPHeaderAndBodyDelegate);
+
+        }
+
+        #endregion
+
 
     }
 

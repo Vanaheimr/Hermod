@@ -30,9 +30,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
     /// A HTTP delegate.
     /// </summary>
     /// <param name="Request">The HTTP request.</param>
-    /// <param name="SOAPXML">The parsed SOAP/XML request.</param>
+    /// <param name="SOAPBody">The parsed SOAP/XML request body.</param>
     /// <returns>A HTTP response task.</returns>
-    public delegate HTTPResponse SOAPDelegate(HTTPRequest Request, XElement SOAPXML);
+    public delegate HTTPResponse SOAPBodyDelegate(HTTPRequest Request, XElement SOAPBody);
+
+    /// <summary>
+    /// A HTTP delegate.
+    /// </summary>
+    /// <param name="Request">The HTTP request.</param>
+    /// <param name="SOAPHeader">The parsed SOAP/XML request header.</param>
+    /// <param name="SOAPBody">The parsed SOAP/XML request body.</param>
+    /// <returns>A HTTP response task.</returns>
+    public delegate HTTPResponse SOAPHeaderAndBodyDelegate(HTTPRequest Request, XElement SOAPHeader, XElement SOAPBody);
 
     /// <summary>
     /// A delegate for checking if a givem XML matches.

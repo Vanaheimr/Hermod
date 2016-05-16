@@ -97,24 +97,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         #endregion
 
 
-        #region RegisterSOAPDelegate(Description, SOAPMatch, Delegate)
+        #region RegisterSOAPDelegate(Description, SOAPMatch, SOAPBodyDelegate)
 
         /// <summary>
         /// Register a SOAP delegate.
         /// </summary>
         /// <param name="Description">A description of this SOAP delegate.</param>
         /// <param name="SOAPMatch">A delegate to check whether this dispatcher matches the given XML.</param>
-        /// <param name="Delegate">A delegate to process a matching XML.</param>
-        public void RegisterSOAPDelegate(String        Description,
-                                         SOAPMatch     SOAPMatch,
-                                         SOAPDelegate  Delegate)
+        /// <param name="SOAPBodyDelegate">A delegate to process a matching SOAP request.</param>
+        public void RegisterSOAPDelegate(String            Description,
+                                         SOAPMatch         SOAPMatch,
+                                         SOAPBodyDelegate  SOAPBodyDelegate)
         {
 
-            _SOAPDispatches.Add(new SOAPDispatch(Description, SOAPMatch, Delegate));
+            _SOAPDispatches.Add(new SOAPDispatch(Description, SOAPMatch, SOAPBodyDelegate));
 
         }
 
         #endregion
+
+        #region RegisterSOAPDelegate(Description, SOAPMatch, SOAPHeaderAndBodyDelegate)
+
+        /// <summary>
+        /// Register a SOAP delegate.
+        /// </summary>
+        /// <param name="Description">A description of this SOAP delegate.</param>
+        /// <param name="SOAPMatch">A delegate to check whether this dispatcher matches the given XML.</param>
+        /// <param name="SOAPHeaderAndBodyDelegate">A delegate to process a matching SOAP request.</param>
+        public void RegisterSOAPDelegate(String                     Description,
+                                         SOAPMatch                  SOAPMatch,
+                                         SOAPHeaderAndBodyDelegate  SOAPHeaderAndBodyDelegate)
+        {
+
+            _SOAPDispatches.Add(new SOAPDispatch(Description, SOAPMatch, SOAPHeaderAndBodyDelegate));
+
+        }
+
+        #endregion
+
 
         #region Invoke(Request)
 
@@ -134,20 +154,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             var SOAPDispatch  = _SOAPDispatches.
                                     Select(dispatch => new {
-                                                           d   = dispatch,
-                                                           XML = dispatch.Matcher(XMLRequest.Data.Root)
+                                                           dispatch    = dispatch,
+                                                           SOAPHeader  = XMLRequest.Data.Root,
+                                                           SOAPBody    = dispatch.Matcher(XMLRequest.Data.Root)
                                                        }).
-                                    Where (match    => match.XML != null).
+                                    Where (match    => match.SOAPBody != null).
                                     FirstOrDefault();
 
             if (SOAPDispatch != null)
-                return SOAPDispatch.d.Delegate(Request, SOAPDispatch.XML);
+            {
+
+                if (SOAPDispatch.dispatch.BodyDelegate != null)
+                    return SOAPDispatch.dispatch.BodyDelegate(Request, SOAPDispatch.SOAPBody);
+
+                else if (SOAPDispatch.dispatch.HeaderAndBodyDelegate != null)
+                    return SOAPDispatch.dispatch.HeaderAndBodyDelegate(Request, SOAPDispatch.SOAPHeader, SOAPDispatch.SOAPBody);
+
+                return new HTTPResponseBuilder(Request) {
+                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                    ContentType     = HTTPContentType.TEXT_UTF8,
+                    Content         = "Invalid SOAP/XML processing!".ToUTF8Bytes(),
+                    Connection      = "close"
+                };
+
+            }
 
             else
                 return new HTTPResponseBuilder(Request) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     ContentType     = HTTPContentType.TEXT_UTF8,
-                    Content         = "Unknown XML!".ToUTF8Bytes(),
+                    Content         = "Unknown SOAP/XML!".ToUTF8Bytes(),
                     Connection      = "close"
                 };
 
