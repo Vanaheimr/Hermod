@@ -179,7 +179,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         #region Constructor(s)
 
-        #region ASOAPServer(HTTPServerName, TCPPort = null, URIPrefix = "", DNSClient = null, AutoStart = false)
+        #region ASOAPServer(HTTPServerName, TCPPort = null, URIPrefix = "", SOAPContentType  = null, DNSClient = null, AutoStart = false)
 
         /// <summary>
         /// Initialize a new HTTP server for the HTTP/SOAP/XML Server API using IPAddress.Any.
@@ -187,16 +187,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="HTTPServerName">An optional identification string for the HTTP server.</param>
         /// <param name="TCPPort">An optional TCP port for the HTTP server.</param>
         /// <param name="URIPrefix">An optional prefix for the HTTP URIs.</param>
+        /// <param name="SOAPContentType">The HTTP content type for SOAP messages.</param>
         /// <param name="DNSClient">An optional DNS client to use.</param>
         /// <param name="AutoStart">Start the server immediately.</param>
-        public ASOAPServer(String    HTTPServerName  = DefaultHTTPServerName,
-                           IPPort    TCPPort         = null,
-                           String    URIPrefix       = "",
-                           DNSClient DNSClient       = null,
-                           Boolean   AutoStart       = false)
+        public ASOAPServer(String          HTTPServerName   = DefaultHTTPServerName,
+                           IPPort          TCPPort          = null,
+                           String          URIPrefix        = "",
+                           HTTPContentType SOAPContentType  = null,
+                           DNSClient       DNSClient        = null,
+                           Boolean         AutoStart        = false)
 
             : this(new SOAPServer(TCPPort != null ? TCPPort : DefaultHTTPServerPort,
                                   DefaultServerName:  HTTPServerName,
+                                  SOAPContentType:    SOAPContentType != null ? SOAPContentType : SOAPServer.DefaultSOAPContentType,
                                   DNSClient:          DNSClient,
                                   Autostart:          AutoStart),
                    URIPrefix)

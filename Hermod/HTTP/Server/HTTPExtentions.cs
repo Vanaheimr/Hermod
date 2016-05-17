@@ -214,12 +214,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
-        #region ParseXMLRequestBody()
+        #region ParseXMLRequestBody(this Request, ContentType = null)
 
-        public static HTTPResult<XDocument> ParseXMLRequestBody(this HTTPRequest Request)
+        public static HTTPResult<XDocument> ParseXMLRequestBody(this HTTPRequest  Request,
+                                                                HTTPContentType   ContentType = null)
         {
 
-            var RequestBodyString = Request.GetRequestBodyAsUTF8String(HTTPContentType.XMLTEXT_UTF8);
+            var RequestBodyString = Request.GetRequestBodyAsUTF8String(ContentType != null ? ContentType : HTTPContentType.XMLTEXT_UTF8);
             if (RequestBodyString.HasErrors)
                 return new HTTPResult<XDocument>(RequestBodyString.Error);
 

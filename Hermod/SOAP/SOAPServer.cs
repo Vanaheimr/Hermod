@@ -45,7 +45,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The default HTTP content type used for all SOAP requests/responses.
         /// </summary>
-        public static readonly HTTPContentType DefaultSOAPContentType = HTTPContentType.XMLTEXT_UTF8;
+        public static readonly HTTPContentType DefaultSOAPContentType = HTTPContentType.SOAPXML_UTF8;
 
         #endregion
 
@@ -202,6 +202,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
 
             _SOAPDispatcher.RegisterSOAPDelegate(Description,
+                                                 _SOAPContentType,
                                                  SOAPMatch,
                                                  SOAPBodyDelegate);
 
@@ -257,6 +258,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
 
             _SOAPDispatcher.RegisterSOAPDelegate(Description,
+                                                 _SOAPContentType,
                                                  SOAPMatch,
                                                  SOAPHeaderAndBodyDelegate);
 

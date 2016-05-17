@@ -220,6 +220,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPContentType JSON_UTF8            = new HTTPContentType("application/json",                       "json");
         public static readonly HTTPContentType JSONLD_UTF8          = new HTTPContentType("application/ld+json",                    "json-ld");
         public static readonly HTTPContentType XML_UTF8             = new HTTPContentType("application/xml",                        "xml");
+        public static readonly HTTPContentType SOAPXML_UTF8         = new HTTPContentType("application/soap+xml",                   "soap");
+
         public static readonly HTTPContentType GEXF_UTF8            = new HTTPContentType("application/gexf+xml",                   "gexf");
         public static readonly HTTPContentType GRAPHML_UTF8         = new HTTPContentType("application/graphml+xml",                "graphml");
         public static readonly HTTPContentType SWF                  = new HTTPContentType("application/x-shockwave-flash",          "swf");

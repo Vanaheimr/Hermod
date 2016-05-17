@@ -97,15 +97,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         #endregion
 
 
-        #region RegisterSOAPDelegate(Description, SOAPMatch, SOAPBodyDelegate)
+        #region RegisterSOAPDelegate(Description, SOAPContentType, SOAPMatch, SOAPBodyDelegate)
 
         /// <summary>
         /// Register a SOAP delegate.
         /// </summary>
         /// <param name="Description">A description of this SOAP delegate.</param>
+        /// <param name="SOAPContentType">The HTTP content type the SOAP/XML request will be send.</param>
         /// <param name="SOAPMatch">A delegate to check whether this dispatcher matches the given XML.</param>
         /// <param name="SOAPBodyDelegate">A delegate to process a matching SOAP request.</param>
         public void RegisterSOAPDelegate(String            Description,
+                                         HTTPContentType   SOAPContentType,
                                          SOAPMatch         SOAPMatch,
                                          SOAPBodyDelegate  SOAPBodyDelegate)
         {
@@ -116,15 +118,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         #endregion
 
-        #region RegisterSOAPDelegate(Description, SOAPMatch, SOAPHeaderAndBodyDelegate)
+        #region RegisterSOAPDelegate(Description, SOAPContentType, SOAPMatch, SOAPHeaderAndBodyDelegate)
 
         /// <summary>
         /// Register a SOAP delegate.
         /// </summary>
         /// <param name="Description">A description of this SOAP delegate.</param>
+        /// <param name="SOAPContentType">The HTTP content type the SOAP/XML request will be send.</param>
         /// <param name="SOAPMatch">A delegate to check whether this dispatcher matches the given XML.</param>
         /// <param name="SOAPHeaderAndBodyDelegate">A delegate to process a matching SOAP request.</param>
         public void RegisterSOAPDelegate(String                     Description,
+                                         HTTPContentType            SOAPContentType,
                                          SOAPMatch                  SOAPMatch,
                                          SOAPHeaderAndBodyDelegate  SOAPHeaderAndBodyDelegate)
         {
@@ -148,14 +152,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             if (Request.HTTPMethod == HTTPMethod.GET)
                 return EndpointTextInfo(Request);
 
-            var XMLRequest = Request.ParseXMLRequestBody();
+            var XMLRequest = Request.ParseXMLRequestBody(HTTPContentType.SOAPXML_UTF8);
             if (XMLRequest.HasErrors)
                 return XMLRequest.Error;
 
             var SOAPDispatch  = _SOAPDispatches.
                                     Select(dispatch => new {
                                                            dispatch    = dispatch,
-                                                           SOAPHeader  = XMLRequest.Data.Root,
+                                                           SOAPHeader  = XMLRequest.Data.Root.Descendants(NS.SOAPEnvelope_v1_2 + "Header").FirstOrDefault(),
                                                            SOAPBody    = dispatch.Matcher(XMLRequest.Data.Root)
                                                        }).
                                     Where (match    => match.SOAPBody != null).

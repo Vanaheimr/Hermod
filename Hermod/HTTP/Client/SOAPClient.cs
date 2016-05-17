@@ -44,9 +44,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
     {
 
         /// <summary>
-        /// The namespace for the XML SOAP Envelope.
+        /// The namespace for the XML SOAP v1.1 envelope.
         /// </summary>
-        public static readonly XNamespace SOAPEnvelope = "http://schemas.xmlsoap.org/soap/envelope/";
+        public static readonly XNamespace SOAPEnvelope_v1_1  = "http://schemas.xmlsoap.org/soap/envelope/";
+
+        /// <summary>
+        /// The namespace for the XML SOAP v1.2 envelope.
+        /// </summary>
+        public static readonly XNamespace SOAPEnvelope_v1_2  = "http://www.w3.org/2003/05/soap-envelope";
+
+        /// <summary>
+        /// SOAP Adressing extentions.
+        /// </summary>
+        public static readonly XNamespace SOAPAdressing      = "http://www.w3.org/2005/08/addressing";
 
     }
 
@@ -239,7 +249,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
                                 var SOAPXML = XDocument.Parse(HttpResponseTask.Result.HTTPBody.ToUTF8String()).
                                                         Root.
-                                                        Element(NS.SOAPEnvelope + "Body").
+                                                        Element(NS.SOAPEnvelope_v1_1 + "Body").
                                                         Descendants().
                                                         FirstOrDefault();
 
