@@ -286,6 +286,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     return false;
 
                 }
+
+                HTTPResponse = null;
+                return true;
+
             }
 
             Value = default(T);
