@@ -54,6 +54,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         #endregion
 
+        #region SOAPContentType
+
+        private readonly HTTPContentType _SOAPContentType;
+
+        /// <summary>
+        /// The HTTP content type the SOAP/XML request will be send.
+        /// </summary>
+        public HTTPContentType SOAPContentType
+        {
+            get
+            {
+                return _SOAPContentType;
+            }
+        }
+
+        #endregion
+
         #region SOAPDispatches
 
         private readonly List<SOAPDispatch> _SOAPDispatches;
@@ -79,7 +96,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// Create a new SOAP dispatcher.
         /// </summary>
         /// <param name="URITemplate">The URI template of the SOAP dispatcher.</param>
-        public SOAPDispatcher(String URITemplate)
+        /// <param name="SOAPContentType">The HTTP content type the SOAP/XML request will be send.</param>
+        public SOAPDispatcher(String           URITemplate,
+                              HTTPContentType  SOAPContentType)
         {
 
             #region Initial checks
@@ -89,25 +108,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             #endregion
 
-            this._URITemplate     = URITemplate;
-            this._SOAPDispatches  = new List<SOAPDispatch>();
+            this._URITemplate      = URITemplate;
+            this._SOAPContentType  = SOAPContentType;
+            this._SOAPDispatches   = new List<SOAPDispatch>();
 
         }
 
         #endregion
 
 
-        #region RegisterSOAPDelegate(Description, SOAPContentType, SOAPMatch, SOAPBodyDelegate)
+        #region RegisterSOAPDelegate(Description, SOAPMatch, SOAPBodyDelegate)
 
         /// <summary>
         /// Register a SOAP delegate.
         /// </summary>
         /// <param name="Description">A description of this SOAP delegate.</param>
-        /// <param name="SOAPContentType">The HTTP content type the SOAP/XML request will be send.</param>
         /// <param name="SOAPMatch">A delegate to check whether this dispatcher matches the given XML.</param>
         /// <param name="SOAPBodyDelegate">A delegate to process a matching SOAP request.</param>
         public void RegisterSOAPDelegate(String            Description,
-                                         HTTPContentType   SOAPContentType,
                                          SOAPMatch         SOAPMatch,
                                          SOAPBodyDelegate  SOAPBodyDelegate)
         {
@@ -118,17 +136,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         #endregion
 
-        #region RegisterSOAPDelegate(Description, SOAPContentType, SOAPMatch, SOAPHeaderAndBodyDelegate)
+        #region RegisterSOAPDelegate(Description, SOAPMatch, SOAPHeaderAndBodyDelegate)
 
         /// <summary>
         /// Register a SOAP delegate.
         /// </summary>
         /// <param name="Description">A description of this SOAP delegate.</param>
-        /// <param name="SOAPContentType">The HTTP content type the SOAP/XML request will be send.</param>
         /// <param name="SOAPMatch">A delegate to check whether this dispatcher matches the given XML.</param>
         /// <param name="SOAPHeaderAndBodyDelegate">A delegate to process a matching SOAP request.</param>
         public void RegisterSOAPDelegate(String                     Description,
-                                         HTTPContentType            SOAPContentType,
                                          SOAPMatch                  SOAPMatch,
                                          SOAPHeaderAndBodyDelegate  SOAPHeaderAndBodyDelegate)
         {
@@ -152,7 +168,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             if (Request.HTTPMethod == HTTPMethod.GET)
                 return EndpointTextInfo(Request);
 
-            var XMLRequest = Request.ParseXMLRequestBody(HTTPContentType.SOAPXML_UTF8);
+            var XMLRequest = Request.ParseXMLRequestBody(_SOAPContentType);
             if (XMLRequest.HasErrors)
                 return XMLRequest.Error;
 

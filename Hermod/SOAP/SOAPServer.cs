@@ -180,7 +180,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             if (_Handler == null)
             {
 
-                _SOAPDispatcher = new SOAPDispatcher(URITemplate);
+                _SOAPDispatcher = new SOAPDispatcher(URITemplate, _SOAPContentType);
                 _SOAPDispatchers.Add(URITemplate, _SOAPDispatcher);
 
                 // Register a new SOAP dispatcher
@@ -202,7 +202,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
 
             _SOAPDispatcher.RegisterSOAPDelegate(Description,
-                                                 _SOAPContentType,
                                                  SOAPMatch,
                                                  SOAPBodyDelegate);
 
@@ -236,7 +235,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             if (_Handler == null)
             {
 
-                _SOAPDispatcher = new SOAPDispatcher(URITemplate);
+                _SOAPDispatcher = new SOAPDispatcher(URITemplate, _SOAPContentType);
                 _SOAPDispatchers.Add(URITemplate, _SOAPDispatcher);
 
                 // Register a new SOAP dispatcher
@@ -258,7 +257,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
 
             _SOAPDispatcher.RegisterSOAPDelegate(Description,
-                                                 _SOAPContentType,
                                                  SOAPMatch,
                                                  SOAPHeaderAndBodyDelegate);
 
