@@ -1719,15 +1719,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       LogTargets  LogTarget)
         {
 
-            HTTPServerRequestLogger  _HTTPRequestLogger   = null;
-            HTTPServerResponseLogger _HTTPResponseLogger  = null;
-            Boolean            _Found               = false;
+            HTTPClientRequestLogger  _HTTPClientRequestLogger   = null;
+            HTTPClientResponseLogger _HTTPClientResponseLogger  = null;
+            HTTPServerRequestLogger  _HTTPServerRequestLogger   = null;
+            HTTPServerResponseLogger _HTTPServerResponseLogger  = null;
+            Boolean                  _Found                     = false;
 
-            if (_HTTPRequestLoggers.TryGetValue(LogEventName, out _HTTPRequestLogger))
-                _Found |= _HTTPRequestLogger.Subscribe(LogTarget);
+            // HTTP Client
+            if (_HTTPClientRequestLoggers.TryGetValue(LogEventName, out _HTTPClientRequestLogger))
+                _Found |= _HTTPClientRequestLogger. Subscribe(LogTarget);
 
-            if (_HTTPResponseLoggers.TryGetValue(LogEventName, out _HTTPResponseLogger))
-                _Found |= _HTTPResponseLogger.Subscribe(LogTarget);
+            if (_HTTPClientResponseLoggers.TryGetValue(LogEventName, out _HTTPClientResponseLogger))
+                _Found |= _HTTPClientResponseLogger.Subscribe(LogTarget);
+
+            // HTTP Server
+            if (_HTTPRequestLoggers.TryGetValue(LogEventName, out _HTTPServerRequestLogger))
+                _Found |= _HTTPServerRequestLogger. Subscribe(LogTarget);
+
+            if (_HTTPResponseLoggers.TryGetValue(LogEventName, out _HTTPServerResponseLogger))
+                _Found |= _HTTPServerResponseLogger.Subscribe(LogTarget);
 
             return _Found;
 
