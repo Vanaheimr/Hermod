@@ -533,8 +533,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                      ToUTF8Bytes());
 
                     var RequestBodyLength = HTTP_Request.HTTPBody == null
-                                                ? (Int32)HTTP_Request.ContentLength
-                                                : Math.Min((Int32)HTTP_Request.ContentLength, HTTP_Request.HTTPBody.Length);
+                                                ? HTTP_Request.ContentLength.HasValue ? (Int32) HTTP_Request.ContentLength.Value : 0
+                                                : HTTP_Request.ContentLength.HasValue ? Math.Min((Int32) HTTP_Request.ContentLength.Value, HTTP_Request.HTTPBody.Length) : HTTP_Request.HTTPBody.Length;
 
                     if (RequestBodyLength > 0)
                         HTTPStream.Write(HTTP_Request.HTTPBody, 0, RequestBodyLength);

@@ -247,7 +247,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 if (HTTPBody != null && HTTPBody.Length > 0)
                     return RawHTTPHeader.Trim() + "\r\n\r\n" +
-                           Encoding.UTF8.GetString(HTTPBody, 0, Math.Min(HTTPBody.Length, (Int32) ContentLength.Value));
+                           Encoding.UTF8.GetString(HTTPBody,
+                                                   0,
+                                                   ContentLength.HasValue
+                                                       ? Math.Min(HTTPBody.Length, (Int32) ContentLength.Value)
+                                                       : HTTPBody.Length);
 
                 return RawHTTPHeader;
 
@@ -316,7 +320,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
 
                 if (!_HeaderFields.ContainsKey(HTTPHeaderField.ContentLength.Name))
-                    return new Nullable<UInt64>(0);
+                    return new Nullable<UInt64>();
 
                 return GetHeaderField<UInt64>(HTTPHeaderField.ContentLength);
 
