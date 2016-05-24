@@ -1002,8 +1002,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Console.Write(Context + "/");
                 Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.Write(LogEventName);
-                Console.ForegroundColor = ConsoleColor.Gray;
-                Console.WriteLine(" from " + Request.RemoteSocket);
+
+                if (Request.RemoteSocket != null)
+                {
+                    Console.ForegroundColor = ConsoleColor.Gray;
+                    Console.WriteLine(" from " + Request.RemoteSocket);
+                }
 
             }
 
@@ -1036,7 +1040,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.Write(LogEventName);
                 Console.ForegroundColor = ConsoleColor.Gray;
-                Console.Write(String.Concat(" from ", Request.RemoteSocket, " => "));
+                Console.Write(String.Concat(" from ", (Request.RemoteSocket != null ? Request.RemoteSocket.ToString() : "<local>"), " => "));
 
                 if (Response.HTTPStatusCode == HTTPStatusCode.OK ||
                     Response.HTTPStatusCode == HTTPStatusCode.Created)
@@ -1126,11 +1130,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             OpenFileWithRetry(() => {
                 using (var logfile = File.AppendText(_LogFileCreator(Context, LogEventName)))
                 {
-                    logfile.WriteLine(Request.RemoteSocket.ToString() + " -> " + Request.LocalSocket);
+
+                    if (Request.RemoteSocket != null && Request.LocalSocket != null)
+                        logfile.WriteLine(Request.RemoteSocket.ToString() + " -> " + Request.LocalSocket);
+
                     logfile.WriteLine(">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------");
                     logfile.WriteLine(Request.Timestamp.ToIso8601());
                     logfile.WriteLine(Request.EntirePDU);
                     logfile.WriteLine("--------------------------------------------------------------------------------");
+
                 }
             });
 
@@ -1156,7 +1164,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             OpenFileWithRetry(() => {
                 using (var logfile = File.AppendText(_LogFileCreator(Context, LogEventName)))
                 {
-                    logfile.WriteLine(Request.RemoteSocket.ToString() + " -> " + Request.LocalSocket);
+
+                    if (Request.RemoteSocket != null && Request.LocalSocket != null)
+                        logfile.WriteLine(Request.RemoteSocket.ToString() + " -> " + Request.LocalSocket);
+
                     logfile.WriteLine(">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------");
                     logfile.WriteLine(Request.Timestamp.ToIso8601());
                     logfile.WriteLine(Request.EntirePDU);
@@ -1164,6 +1175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     logfile.WriteLine(Response.Timestamp.ToIso8601() + " -> " + (Request.Timestamp - Response.Timestamp).TotalMilliseconds + "ms runtime");
                     logfile.WriteLine(Response.EntirePDU);
                     logfile.WriteLine("--------------------------------------------------------------------------------");
+
                 }
             });
 

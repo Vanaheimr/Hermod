@@ -386,12 +386,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Execute the given HTTP request and return its result.
         /// </summary>
-        /// <param name="HTTPRequest">A HTTP request.</param>
+        /// <param name="HTTP_Request">A HTTP request.</param>
         /// <param name="RequestLogDelegate">A delegate for logging the HTTP request.</param>
         /// <param name="ResponseLogDelegate">A delegate for logging the HTTP request/response.</param>
         /// <param name="Timeout">An optional timeout.</param>
         /// <param name="CancellationToken">A cancellation token.</param>
-        public async Task<HTTPResponse> Execute(HTTPRequest               HTTPRequest,
+        public async Task<HTTPResponse> Execute(HTTPRequest               HTTP_Request,
                                                 ClientRequestLogHandler   RequestLogDelegate   = null,
                                                 ClientResponseLogHandler  ResponseLogDelegate  = null,
                                                 TimeSpan?                 Timeout              = null,
@@ -403,7 +403,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             try
             {
 
-                RequestLogDelegate?.Invoke(DateTime.Now, this, HTTPRequest);
+                RequestLogDelegate?.Invoke(DateTime.Now, this, HTTP_Request);
 
             }
             catch (Exception e)
@@ -527,17 +527,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #region Send Request
 
-                    HTTPStream.Write(String.Concat(HTTPRequest.EntireRequestHeader,
+                    HTTPStream.Write(String.Concat(HTTP_Request.EntireRequestHeader,
                                                    Environment.NewLine,
                                                    Environment.NewLine).
                                      ToUTF8Bytes());
 
-                    var RequestBodyLength = HTTPRequest.HTTPBody == null
-                                                ? (Int32)HTTPRequest.ContentLength
-                                                : Math.Min((Int32)HTTPRequest.ContentLength, HTTPRequest.HTTPBody.Length);
+                    var RequestBodyLength = HTTP_Request.HTTPBody == null
+                                                ? (Int32)HTTP_Request.ContentLength
+                                                : Math.Min((Int32)HTTP_Request.ContentLength, HTTP_Request.HTTPBody.Length);
 
                     if (RequestBodyLength > 0)
-                        HTTPStream.Write(HTTPRequest.HTTPBody, 0, RequestBodyLength);
+                        HTTPStream.Write(HTTP_Request.HTTPBody, 0, RequestBodyLength);
 
                     var _MemoryStream = new MemoryStream();
                     var _Buffer = new Byte[10485760]; // 10 MBytes, a smaller value leads to read errors!
@@ -635,7 +635,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (HTTPHeaderBytes.Length == 0)
                         throw new ApplicationException(DateTime.Now + " Could not find the end of the HTTP protocol header!");
 
-                    _HTTPResponse = new HTTPResponse(HTTPHeaderBytes.ToUTF8String(), HTTPRequest);
+                    _HTTPResponse = new HTTPResponse(HTTPHeaderBytes.ToUTF8String(), HTTP_Request);
 
                     #endregion
 
@@ -809,7 +809,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     try
                     {
 
-                        ResponseLogDelegate?.Invoke(DateTime.Now, this, HTTPRequest, _HTTPResponse);
+                        ResponseLogDelegate?.Invoke(DateTime.Now, this, HTTP_Request, _HTTPResponse);
 
                     }
                     catch (Exception e)
