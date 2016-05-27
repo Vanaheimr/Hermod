@@ -586,31 +586,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                                 // If this event closes the TCP connection the OnNotification event will never be fired!
                                 // Therefore you can use this event for filtering connection initiation requests.
-                                var OnNewConnectionLocal = OnNewConnection;
-                                if (OnNewConnectionLocal != null)
-                                    OnNewConnectionLocal(NewTCPConnection.Value.TCPServer,
-                                                         NewTCPConnection.Value.ServerTimestamp,
-                                                         NewTCPConnection.Value.RemoteSocket,
-                                                         NewTCPConnection.Value.ConnectionId,
-                                                         NewTCPConnection.Value);
+                                OnNewConnection?.Invoke(NewTCPConnection.Value.TCPServer,
+                                                        NewTCPConnection.Value.ServerTimestamp,
+                                                        NewTCPConnection.Value.RemoteSocket,
+                                                        NewTCPConnection.Value.ConnectionId,
+                                                        NewTCPConnection.Value);
 
                                 if (!NewTCPConnection.Value.IsClosed)
-                                {
-
-                                    var OnNotificationLocal = OnNotification;
-                                    if (OnNotificationLocal != null)
-                                        OnNotificationLocal(NewTCPConnection.Value);
-
-                                }
+                                    OnNotification?.Invoke(NewTCPConnection.Value);
 
                                 #endregion
 
                             }
                             catch (Exception Exception)
                             {
-                                var OnExceptionLocal = OnExceptionOccured;
-                                if (OnExceptionLocal != null)
-                                    OnExceptionLocal(this, DateTime.Now, Exception);
+                                OnExceptionOccured?.Invoke(this, DateTime.Now, Exception);
                             }
 
                         }, new Tuple<TCPServer, TcpClient>(this, NewTCPClient));
