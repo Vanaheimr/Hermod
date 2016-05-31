@@ -232,13 +232,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                 HttpResponseTask.Result.HTTPBody.Length == 0)
                             {
 
-                                var Body = HttpResponseTask.Result.HTTPBody.ToUTF8String();
-
                                 var OnHTTPErrorLocal = OnHTTPError;
                                 if (OnHTTPErrorLocal != null)
-                                    return OnHTTPErrorLocal(DateTime.Now, this, HttpResponseTask.Result);
+                                    return OnHTTPErrorLocal(DateTime.Now, this, HttpResponseTask?.Result);
 
-                                return new HTTPResponse<XElement>(HttpResponseTask.Result,
+                                return new HTTPResponse<XElement>(HttpResponseTask?.Result,
                                                                   new XElement("HTTPError"),
                                                                   IsFault: true) as HTTPResponse<T>;
 
