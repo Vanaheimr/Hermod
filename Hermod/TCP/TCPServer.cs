@@ -790,7 +790,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             try
             {
 
-                // Start the TCPListener
+                Debug.WriteLine("[" + DateTime.Now + "] Starting TCP listener on port " + _Port);
+
                 _TCPListener.Start((Int32) _MaxClientConnections);
 
             }

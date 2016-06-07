@@ -214,16 +214,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The default HTTP server name.
         /// </summary>
-        public  const          String             DefaultHTTPServerName  = "GraphDefined Hermod HTTP Service v0.9";
+        public  const           String             DefaultHTTPServerName  = "GraphDefined Hermod HTTP Service v0.9";
 
         /// <summary>
         /// The default HTTP server TCP port.
         /// </summary>
-        public static readonly IPPort             DefaultHTTPServerPort  = new IPPort(80);
+        public static readonly  IPPort             DefaultHTTPServerPort  = new IPPort(80);
 
-        private readonly  URIMapping         _URIMapping;
+        private readonly        URIMapping         _URIMapping;
 
-        private readonly  HTTPProcessor      _HTTPProcessor;
+        private readonly        HTTPProcessor      _HTTPProcessor;
 
         #endregion
 
