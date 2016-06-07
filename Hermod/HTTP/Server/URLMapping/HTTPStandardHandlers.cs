@@ -46,7 +46,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      HTTPMethod       HTTPMethod = null)
         {
 
-            HTTPServer.AddMethodCallback(HTTPMethod:    HTTPMethod != null ? HTTPMethod : HTTPMethod.GET,
+            HTTPServer.AddMethodCallback(HTTPMethod:    HTTPMethod ?? HTTPMethod.GET,
                                          URITemplate:   URITemplate,
                                          HTTPDelegate:  Request => {
 
@@ -534,7 +534,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                  var FileStream = File.OpenRead(ResourceFilename);
                                                  if (FileStream != null)
-                                                     return new HTTPResponseBuilder(Request) {
+                                                 {
+
+                                                     return new HTTPResponseBuilder(Request)
+                                                     {
                                                          HTTPStatusCode  = HTTPStatusCode.OK,
                                                          Server          = HTTPServer.DefaultServerName,
                                                          Date            = DateTime.Now,
@@ -544,9 +547,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          Connection      = "close",
                                                      };
 
+                                                 }
+
                                              }
 
-                                             return new HTTPResponseBuilder(Request) {
+                                             return new HTTPResponseBuilder(Request)
+                                             {
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
                                                  Server          = HTTPServer.DefaultServerName,
                                                  Date            = DateTime.Now,
