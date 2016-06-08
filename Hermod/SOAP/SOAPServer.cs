@@ -154,16 +154,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         #endregion
 
 
-        #region RegisterSOAPDelegate(URITemplate, Description, SOAPMatch, SOAPBodyDelegate)
+        #region RegisterSOAPDelegate(Hostname, URITemplate, Description, SOAPMatch, SOAPBodyDelegate)
 
         /// <summary>
         /// Register a SOAP delegate.
         /// </summary>
+        /// <param name="Hostname">The HTTP Hostname.</param>
         /// <param name="URITemplate">The URI template.</param>
         /// <param name="Description">A description of this SOAP delegate.</param>
         /// <param name="SOAPMatch">A delegate to check whether this dispatcher matches the given XML.</param>
         /// <param name="SOAPBodyDelegate">A delegate to process a matching SOAP request.</param>
-        public void RegisterSOAPDelegate(String            URITemplate,
+        public void RegisterSOAPDelegate(HTTPHostname      Hostname,
+                                         String            URITemplate,
                                          String            Description,
                                          SOAPMatch         SOAPMatch,
                                          SOAPBodyDelegate  SOAPBodyDelegate)
@@ -184,13 +186,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                 _SOAPDispatchers.Add(URITemplate, _SOAPDispatcher);
 
                 // Register a new SOAP dispatcher
-                AddMethodCallback(HTTPMethod.POST,
+                AddMethodCallback(Hostname,
+                                  HTTPMethod.POST,
                                   URITemplate,
                                   _SOAPContentType,
                                   HTTPDelegate: _SOAPDispatcher.Invoke);
 
                 // Register some information text for people using HTTP GET
-                AddMethodCallback(HTTPMethod.GET,
+                AddMethodCallback(Hostname,
+                                  HTTPMethod.GET,
                                   URITemplate,
                                   _SOAPContentType,
                                   HTTPDelegate: _SOAPDispatcher.EndpointTextInfo);
@@ -209,16 +213,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         #endregion
 
-        #region RegisterSOAPDelegate(URITemplate, Description, SOAPMatch, SOAPHeaderAndBodyDelegate)
+        #region RegisterSOAPDelegate(Hostname, URITemplate, Description, SOAPMatch, SOAPHeaderAndBodyDelegate)
 
         /// <summary>
         /// Register a SOAP delegate.
         /// </summary>
+        /// <param name="Hostname">The HTTP hostname.</param>
         /// <param name="URITemplate">The URI template.</param>
         /// <param name="Description">A description of this SOAP delegate.</param>
         /// <param name="SOAPMatch">A delegate to check whether this dispatcher matches the given XML.</param>
         /// <param name="SOAPHeaderAndBodyDelegate">A delegate to process a matching SOAP request.</param>
-        public void RegisterSOAPDelegate(String                     URITemplate,
+        public void RegisterSOAPDelegate(HTTPHostname               Hostname,
+                                         String                     URITemplate,
                                          String                     Description,
                                          SOAPMatch                  SOAPMatch,
                                          SOAPHeaderAndBodyDelegate  SOAPHeaderAndBodyDelegate)
@@ -239,13 +245,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                 _SOAPDispatchers.Add(URITemplate, _SOAPDispatcher);
 
                 // Register a new SOAP dispatcher
-                AddMethodCallback(HTTPMethod.POST,
+                AddMethodCallback(Hostname,
+                                  HTTPMethod.POST,
                                   URITemplate,
                                   _SOAPContentType,
                                   HTTPDelegate: _SOAPDispatcher.Invoke);
 
                 // Register some information text for people using HTTP GET
-                AddMethodCallback(HTTPMethod.GET,
+                AddMethodCallback(Hostname,
+                                  HTTPMethod.GET,
                                   URITemplate,
                                   _SOAPContentType,
                                   HTTPDelegate: _SOAPDispatcher.EndpointTextInfo);

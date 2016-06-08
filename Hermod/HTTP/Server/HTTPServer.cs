@@ -621,214 +621,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Method Callbacks
 
-        #region AddMethodCallback(Hostname, HTTPMethod, URITemplate, HTTPContentType, HTTPDelegate, AllowReplacement = false)
+        #region Redirect(Hostname, HTTPMethod, URITemplate, HTTPContentType, URITarget)
 
         /// <summary>
-        /// Add a method callback for the given URI template.
+        /// Add a URI based method redirect for the given URI template.
         /// </summary>
         /// <param name="Hostname">The HTTP hostname.</param>
         /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="URITemplate">The URI template.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
-        /// <param name="HTTPDelegate">The method to call.</param>
-        public void AddMethodCallback(HTTPHostname     Hostname,
-                                      HTTPMethod       HTTPMethod,
-                                      String           URITemplate,
-                                      HTTPContentType  HTTPContentType,
-                                      HTTPDelegate     HTTPDelegate,
-                                      URIReplacement   AllowReplacement = URIReplacement.Fail)
+        /// <param name="URITarget">The target URI of the redirect.</param>
+        public void Redirect(HTTPHostname     Hostname,
+                             HTTPMethod       HTTPMethod,
+                             String           URITemplate,
+                             HTTPContentType  HTTPContentType,
+                             String           URITarget)
 
         {
 
-            #region Initial checks
-
-            if (Hostname == null)
-                Hostname = HTTPHostname.Any;
-
-            if (HTTPMethod == null)
-                throw new ArgumentNullException("HTTPMethod",       "The given parameter must not be null!");
-
-            if (URITemplate.IsNullOrEmpty())
-                throw new ArgumentNullException("URITemplate",      "The given parameter must not be null or empty!");
-
-            if (HTTPContentType == null)
-                throw new ArgumentNullException("HTTPContentType",  "The given parameter must not be null!");
-
-            if (HTTPDelegate == null)
-                throw new ArgumentNullException("HTTPDelegate",     "The given parameter must not be null!");
-
-            #endregion
-
-            _URIMapping.AddHandler(HTTPDelegate,
+            _URIMapping.AddHandler(req => _URIMapping.InvokeHandler(new HTTPRequestBuilder(req).SetURI(URITarget)),
                                    Hostname,
-                                   URITemplate,
-                                   HTTPMethod,
-                                   HTTPContentType,
+                                   (URITemplate.IsNotNullOrEmpty()) ? URITemplate     : "/",
+                                   (HTTPMethod      != null)        ? HTTPMethod      : HTTPMethod.GET,
+                                   (HTTPContentType != null)        ? HTTPContentType : HTTPContentType.HTML_UTF8,
                                    null,
                                    null,
                                    null,
-                                   null,
-                                   null,
-                                   AllowReplacement);
+                                   null);
 
         }
 
         #endregion
-
-        #region AddMethodCallback(HTTPMethod, URITemplate, HTTPContentType, HTTPDelegate, AllowReplacement = false)
-
-        /// <summary>
-        /// Add a method callback for the given URI template.
-        /// </summary>
-        /// <param name="HTTPMethod">The HTTP method.</param>
-        /// <param name="URITemplate">The URI template.</param>
-        /// <param name="HTTPContentType">The HTTP content type.</param>
-        /// <param name="HTTPDelegate">The method to call.</param>
-        public void AddMethodCallback(HTTPMethod       HTTPMethod,
-                                      String           URITemplate,
-                                      HTTPContentType  HTTPContentType,
-                                      HTTPDelegate     HTTPDelegate,
-                                      URIReplacement   AllowReplacement = URIReplacement.Fail)
-
-        {
-
-            #region Initial checks
-
-            if (HTTPMethod == null)
-                throw new ArgumentNullException("HTTPMethod", "The given parameter must not be null!");
-
-            if (URITemplate.IsNullOrEmpty())
-                throw new ArgumentNullException("URITemplate", "The given parameter must not be null or empty!");
-
-            if (HTTPContentType == null)
-                throw new ArgumentNullException("HTTPContentType", "The given parameter must not be null!");
-
-            if (HTTPDelegate == null)
-                throw new ArgumentNullException("HTTPDelegate", "The given parameter must not be null!");
-
-            #endregion
-
-            _URIMapping.AddHandler(HTTPDelegate,
-                                   HTTPHostname.Any,
-                                   URITemplate,
-                                   HTTPMethod,
-                                   HTTPContentType,
-                                   null,
-                                   null,
-                                   null,
-                                   null,
-                                   null,
-                                   AllowReplacement);
-
-        }
-
-        #endregion
-
-        #region AddMethodCallback(Hostname, HTTPMethod, URITemplates, HTTPContentType, HTTPDelegate, AllowReplacement = false)
-
-        /// <summary>
-        /// Add a method callback for the given URI template.
-        /// </summary>
-        /// <param name="Hostname">The HTTP hostname.</param>
-        /// <param name="HTTPMethod">The HTTP method.</param>
-        /// <param name="URITemplates">The URI templates.</param>
-        /// <param name="HTTPContentType">The HTTP content type.</param>
-        /// <param name="HTTPDelegate">The method to call.</param>
-        public void AddMethodCallback(HTTPHostname         Hostname,
-                                      HTTPMethod           HTTPMethod,
-                                      IEnumerable<String>  URITemplates,
-                                      HTTPContentType      HTTPContentType,
-                                      HTTPDelegate         HTTPDelegate,
-                                      URIReplacement       AllowReplacement = URIReplacement.Fail)
-
-        {
-
-            #region Initial checks
-
-            if (Hostname == null)
-                Hostname = HTTPHostname.Any;
-
-            if (HTTPMethod == null)
-                throw new ArgumentNullException("HTTPMethod",       "The given parameter must not be null!");
-
-            if (URITemplates == null || !URITemplates.Any())
-                throw new ArgumentNullException("URITemplates",     "The given parameter must not be null or empty!");
-
-            if (HTTPContentType == null)
-                throw new ArgumentNullException("HTTPContentType",  "The given parameter must not be null!");
-
-            if (HTTPDelegate == null)
-                throw new ArgumentNullException("HTTPDelegate",     "The given parameter must not be null!");
-
-            #endregion
-
-            URITemplates.ForEach(URITemplate =>
-                _URIMapping.AddHandler(HTTPDelegate,
-                                       Hostname,
-                                       URITemplate,
-                                       HTTPMethod,
-                                       HTTPContentType,
-                                       null,
-                                       null,
-                                       null,
-                                       null,
-                                       null,
-                                       AllowReplacement));
-
-        }
-
-        #endregion
-
-        #region AddMethodCallback(HTTPMethod, URITemplates, HTTPContentType, HTTPDelegate, AllowReplacement = false)
-
-        /// <summary>
-        /// Add a method callback for the given URI template.
-        /// </summary>
-        /// <param name="HTTPMethod">The HTTP method.</param>
-        /// <param name="URITemplates">The URI templates.</param>
-        /// <param name="HTTPContentType">The HTTP content type.</param>
-        /// <param name="HTTPDelegate">The method to call.</param>
-        public void AddMethodCallback(HTTPMethod           HTTPMethod,
-                                      IEnumerable<String>  URITemplates,
-                                      HTTPContentType      HTTPContentType,
-                                      HTTPDelegate         HTTPDelegate,
-                                      URIReplacement       AllowReplacement = URIReplacement.Fail)
-
-        {
-
-            #region Initial checks
-
-            if (HTTPMethod == null)
-                throw new ArgumentNullException("HTTPMethod",       "The given parameter must not be null!");
-
-            if (URITemplates == null || !URITemplates.Any())
-                throw new ArgumentNullException("URITemplates",     "The given parameter must not be null or empty!");
-
-            if (HTTPContentType == null)
-                throw new ArgumentNullException("HTTPContentType",  "The given parameter must not be null!");
-
-            if (HTTPDelegate == null)
-                throw new ArgumentNullException("HTTPDelegate",     "The given parameter must not be null!");
-
-            #endregion
-
-            URITemplates.ForEach(URITemplate =>
-                _URIMapping.AddHandler(HTTPDelegate,
-                                       HTTPHostname.Any,
-                                       URITemplate,
-                                       HTTPMethod,
-                                       HTTPContentType,
-                                       null,
-                                       null,
-                                       null,
-                                       null,
-                                       null,
-                                       AllowReplacement));
-
-        }
-
-        #endregion
-
 
         #region Redirect(HTTPMethod, URITemplate, HTTPContentType, URITarget)
 
@@ -860,23 +683,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region AddMethodCallback(HTTPMethod, URITemplate, Hostname = HTTPHostname.Any, HTTPContentType = null, HostAuthentication = false, URIAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false, HTTPDelegate = null)
+
+        #region AddMethodCallback(Hostname, HTTPMethod, URITemplate, HTTPContentType = null, HostAuthentication = false, URIAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false, HTTPDelegate = null)
 
         /// <summary>
         /// Add a method callback for the given URI template.
         /// </summary>
+        /// <param name="Hostname">The HTTP hostname.</param>
         /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="URITemplate">The URI template.</param>
-        /// <param name="Hostname">The HTTP hostname.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
         /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
         /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
-        public void AddMethodCallback(HTTPMethod          HTTPMethod,
+        public void AddMethodCallback(HTTPHostname        Hostname,
+                                      HTTPMethod          HTTPMethod,
                                       String              URITemplate,
-                                      HTTPHostname        Hostname                    = null,
                                       HTTPContentType     HTTPContentType             = null,
                                       HTTPAuthentication  HostAuthentication          = null,
                                       HTTPAuthentication  URIAuthentication           = null,
@@ -889,21 +713,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Initial checks
 
+            if (Hostname == null)
+                throw new ArgumentNullException(nameof(Hostname),      "The given HTTP hostname must not be null!");
+
             if (HTTPMethod == null)
-                throw new ArgumentNullException("HTTPMethod", "The given parameter must not be null!");
+                throw new ArgumentNullException(nameof(HTTPMethod),    "The given HTTP method must not be null!");
 
             if (URITemplate.IsNullOrEmpty())
-                throw new ArgumentNullException("URITemplate", "The given parameter must not be null or empty!");
+                throw new ArgumentNullException(nameof(URITemplate),   "The given URI template must not be null or empty!");
 
             if (HTTPDelegate == null)
-                throw new ArgumentNullException("HTTPDelegate", "The given parameter must not be null!");
+                throw new ArgumentNullException(nameof(HTTPDelegate),  "The given HTTP delegate must not be null!");
 
             #endregion
 
             _URIMapping.AddHandler(HTTPDelegate,
                                    Hostname,
                                    URITemplate,
-                                   (HTTPMethod != null) ? HTTPMethod : HTTPMethod.GET,
+                                   HTTPMethod ?? HTTPMethod.GET,
                                    HTTPContentType,
                                    HostAuthentication,
                                    URIAuthentication,
@@ -911,6 +738,66 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    ContentTypeAuthentication,
                                    null,
                                    AllowReplacement);
+
+        }
+
+        #endregion
+
+        #region AddMethodCallback(Hostname, HTTPMethod, URITemplates, HTTPContentType, HTTPDelegate, AllowReplacement = false)
+
+        /// <summary>
+        /// Add a method callback for the given URI template.
+        /// </summary>
+        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <param name="HTTPMethod">The HTTP method.</param>
+        /// <param name="URITemplates">The URI templates.</param>
+        /// <param name="HTTPContentType">The HTTP content type.</param>
+        /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
+        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
+        /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
+        /// <param name="HTTPDelegate">The method to call.</param>
+        public void AddMethodCallback(HTTPHostname         Hostname,
+                                      HTTPMethod           HTTPMethod,
+                                      IEnumerable<String>  URITemplates,
+                                      HTTPContentType      HTTPContentType             = null,
+                                      HTTPAuthentication   HostAuthentication          = null,
+                                      HTTPAuthentication   URIAuthentication           = null,
+                                      HTTPAuthentication   HTTPMethodAuthentication    = null,
+                                      HTTPAuthentication   ContentTypeAuthentication   = null,
+                                      HTTPDelegate         HTTPDelegate                = null,
+                                      URIReplacement       AllowReplacement            = URIReplacement.Fail)
+
+        {
+
+            #region Initial checks
+
+            if (HTTPMethod == null)
+                throw new ArgumentNullException(nameof(HTTPMethod),       "The given HTTP method must not be null!");
+
+            if (URITemplates == null || !URITemplates.Any())
+                throw new ArgumentNullException(nameof(URITemplates),     "The given URI template must not be null or empty!");
+
+            if (HTTPContentType == null)
+                throw new ArgumentNullException(nameof(HTTPContentType),  "The given HTTP content type must not be null!");
+
+            if (HTTPDelegate == null)
+                throw new ArgumentNullException(nameof(HTTPDelegate),     "The given HTTP delegate must not be null!");
+
+            #endregion
+
+            URITemplates.ForEach(URITemplate =>
+                _URIMapping.AddHandler(HTTPDelegate,
+                                       Hostname,
+                                       URITemplate,
+                                       HTTPMethod ?? HTTPMethod.GET,
+                                       HTTPContentType,
+                                       HostAuthentication,
+                                       URIAuthentication,
+                                       HTTPMethodAuthentication,
+                                       ContentTypeAuthentication,
+                                       null,
+                                       AllowReplacement));
 
         }
 
