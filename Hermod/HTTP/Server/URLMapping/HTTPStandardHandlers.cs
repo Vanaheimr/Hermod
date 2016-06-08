@@ -290,42 +290,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region RegisterResourcesFolder(this HTTPServer, URITemplate, ResourcePath, ResourceAssembly = null, DefaultFilename = "index.html", HTTPRealm = null, HTTPLogin = null, HTTPPassword = null)
-
-        /// <summary>
-        /// Returns internal resources embedded within the given assembly.
-        /// </summary>
-        /// <param name="HTTPServer">A HTTP server.</param>
-        /// <param name="URITemplate">An URI template.</param>
-        /// <param name="ResourcePath">The path to the file within the assembly.</param>
-        /// <param name="ResourceAssembly">Optionally the assembly where the resources are located (default: the calling assembly).</param>
-        /// <param name="DefaultFilename">The default file to load.</param>
-        /// <param name="HTTPRealm">An optional realm for HTTP basic authentication.</param>
-        /// <param name="HTTPLogin">An optional login for HTTP basic authentication.</param>
-        /// <param name="HTTPPassword">An optional password for HTTP basic authentication.</param>
-        public static void RegisterResourcesFolder(this HTTPServer  HTTPServer,
-                                                   String           URITemplate,
-                                                   String           ResourcePath,
-                                                   Assembly         ResourceAssembly  = null,
-                                                   String           DefaultFilename   = "index.html",
-                                                   String           HTTPRealm         = null,
-                                                   String           HTTPLogin         = null,
-                                                   String           HTTPPassword      = null)
-        {
-
-            HTTPServer.RegisterResourcesFolder(HTTPHostname.Any,
-                                               URITemplate,
-                                               ResourcePath,
-                                               ResourceAssembly,
-                                               DefaultFilename,
-                                               HTTPRealm,
-                                               HTTPLogin,
-                                               HTTPPassword);
-
-        }
-
-        #endregion
-
         #region RegisterResourcesFolder(this HTTPServer, Hostname, URITemplate, ResourcePath, ResourceAssembly = null, DefaultFilename = "index.html", HTTPRealm = null, HTTPLogin = null, HTTPPassword = null)
 
         /// <summary>

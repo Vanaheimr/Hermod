@@ -219,27 +219,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (internal) InvokeHandler(HTTPRequest)
+        #region (internal) InvokeHandler(Request)
 
         /// <summary>
         /// Invoke the best matching method handler for the given parameters.
         /// </summary>
-        /// <param name="HTTPRequest">A HTTP request.</param>
-        internal HTTPResponse InvokeHandler(HTTPRequest HTTPRequest)
+        /// <param name="Request">A HTTP request.</param>
+        internal HTTPResponse InvokeHandler(HTTPRequest Request)
         {
 
-            var Handler = GetHandler(HTTPRequest.Host == null        ? HTTPHostname.Any : HTTPRequest.Host,
-                                     HTTPRequest.URI.IsNullOrEmpty() ? "/"              : HTTPRequest.URI,
-                                     HTTPRequest.HTTPMethod,
-                                     AvailableContentTypes => HTTPRequest.Accept.BestMatchingContentType(AvailableContentTypes),
-                                     ParsedURIParameters   => HTTPRequest.ParsedURIParameters = ParsedURIParameters.ToArray());
+            var Handler = GetHandler(Request.Host == null        ? HTTPHostname.Any : Request.Host,
+                                     Request.URI.IsNullOrEmpty() ? "/"              : Request.URI,
+                                     Request.HTTPMethod,
+                                     AvailableContentTypes => Request.Accept.BestMatchingContentType(AvailableContentTypes),
+                                     ParsedURIParameters   => Request.ParsedURIParameters = ParsedURIParameters.ToArray());
 
             if (Handler != null)
-                return Handler(HTTPRequest);
+                return Handler(Request);
 
-            return new HTTPResponseBuilder(HTTPRequest) {
+            return new HTTPResponseBuilder(Request) {
                 HTTPStatusCode  = HTTPStatusCode.NotFound,
-                Server          = HTTPRequest.Host.ToString(),
+                Server          = Request.Host.ToString(),
                 Date            = DateTime.Now,
                 ContentType     = HTTPContentType.TEXT_UTF8,
                 Content         = "Error 404 - Not Found!".ToUTF8Bytes(),
