@@ -381,7 +381,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPServer AttachTCPPorts(params IPPort[] Ports)
         {
 
-            base.AttachTCPPorts(_TCPServer => _TCPServer.SendTo(_HTTPProcessor), Ports);
+            AttachTCPPorts(_TCPServer => _TCPServer.SendTo(_HTTPProcessor), Ports);
 
             return this;
 
@@ -407,7 +407,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPServer AttachTCPSockets(params IPSocket[] Sockets)
         {
 
-            base.AttachTCPSockets(_TCPServer => _TCPServer.SendTo(_HTTPProcessor), Sockets);
+            AttachTCPSockets(_TCPServer => _TCPServer.SendTo(_HTTPProcessor), Sockets);
 
             return this;
 
@@ -434,12 +434,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPServer DetachTCPPorts(params IPPort[] Ports)
         {
 
-            base.DetachTCPPorts(_TCPServer => {
-                                    _TCPServer.OnNotification      -= _HTTPProcessor.ProcessArrow;
-                                    _TCPServer.OnExceptionOccured  -= _HTTPProcessor.ProcessExceptionOccured;
-                                    _TCPServer.OnCompleted         -= _HTTPProcessor.ProcessCompleted;
-                                },
-                                Ports);
+            DetachTCPPorts(_TCPServer => {
+                               _TCPServer.OnNotification      -= _HTTPProcessor.ProcessArrow;
+                               _TCPServer.OnExceptionOccured  -= _HTTPProcessor.ProcessExceptionOccured;
+                               _TCPServer.OnCompleted         -= _HTTPProcessor.ProcessCompleted;
+                           },
+                           Ports);
 
             return this;
 
@@ -642,8 +642,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             _URIMapping.AddHandler(req => _URIMapping.InvokeHandler(new HTTPRequestBuilder(req).SetURI(URITarget)),
                                    Hostname,
                                    (URITemplate.IsNotNullOrEmpty()) ? URITemplate     : "/",
-                                   (HTTPMethod      != null)        ? HTTPMethod      : HTTPMethod.GET,
-                                   (HTTPContentType != null)        ? HTTPContentType : HTTPContentType.HTML_UTF8,
+                                   HTTPMethod      ?? HTTPMethod.GET,
+                                   HTTPContentType ?? HTTPContentType.HTML_UTF8,
                                    null,
                                    null,
                                    null,
@@ -672,8 +672,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             _URIMapping.AddHandler(req => _URIMapping.InvokeHandler(new HTTPRequestBuilder(req).SetURI(URITarget)),
                                    HTTPHostname.Any,
                                    (URITemplate.IsNotNullOrEmpty()) ? URITemplate     : "/",
-                                   (HTTPMethod      != null)        ? HTTPMethod      : HTTPMethod.GET,
-                                   (HTTPContentType != null)        ? HTTPContentType : HTTPContentType.HTML_UTF8,
+                                   HTTPMethod      ?? HTTPMethod.GET,
+                                   HTTPContentType ?? HTTPContentType.HTML_UTF8,
                                    null,
                                    null,
                                    null,
