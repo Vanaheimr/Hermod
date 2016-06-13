@@ -695,7 +695,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region (private) HTTPRequest(...)
+        #region (private) HTTPRequest(RemoteSocket, LocalSocket, HTTPServer, HTTPHeader, HTTPBody = null, HTTPBodyStream = null, CancellationToken = null, EventTrackingId = null)
 
         /// <summary>
         /// Create a new http request header based on the given string representation.
@@ -707,15 +707,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPBody">The HTTP body as an array of bytes.</param>
         /// <param name="HTTPBodyStream">The HTTP body as an stream of bytes.</param>
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         private HTTPRequest(IPSocket            RemoteSocket,
                             IPSocket            LocalSocket,
                             HTTPServer          HTTPServer,
                             String              HTTPHeader,
                             Byte[]              HTTPBody           = null,
                             Stream              HTTPBodyStream     = null,
-                            CancellationToken?  CancellationToken  = null)
+                            CancellationToken?  CancellationToken  = null,
+                            EventTracking_Id    EventTrackingId    = null)
 
-            : base(RemoteSocket, LocalSocket, HTTPHeader, HTTPBody, HTTPBodyStream, CancellationToken)
+            : base(RemoteSocket, LocalSocket, HTTPHeader, HTTPBody, HTTPBodyStream, CancellationToken, EventTrackingId)
 
         {
 
@@ -813,25 +815,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region HTTPRequest(HTTPServer, CancellationToken, RemoteSocket, LocalSocket, HTTPHeader, HTTPBodyStream)
+        #region HTTPRequest(HTTPServer, CancellationToken, EventTrackingId, RemoteSocket, LocalSocket, HTTPHeader, HTTPBodyStream)
 
         /// <summary>
         /// Create a new http request based on the given string representation of a HTTP header and a HTTP body stream.
         /// </summary>
         /// <param name="HTTPServer">The HTTP server of the request.</param>
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
         /// <param name="LocalSocket">The local TCP/IP socket.</param>
         /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
         /// <param name="HTTPBodyStream">The HTTP body as an stream of bytes.</param>
         public HTTPRequest(HTTPServer         HTTPServer,
                            CancellationToken  CancellationToken,
+                           EventTracking_Id   EventTrackingId,
                            IPSocket           RemoteSocket,
                            IPSocket           LocalSocket,
                            String             HTTPHeader,
                            Stream             HTTPBodyStream)
 
-            : this(RemoteSocket, LocalSocket, HTTPServer, HTTPHeader, null, HTTPBodyStream, CancellationToken)
+            : this(RemoteSocket, LocalSocket, HTTPServer, HTTPHeader, null, HTTPBodyStream, CancellationToken, EventTrackingId)
 
         {
 

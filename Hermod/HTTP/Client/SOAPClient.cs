@@ -182,6 +182,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                               ClientRequestLogHandler                                          RequestLogDelegate   = null,
                                               ClientResponseLogHandler                                         ResponseLogDelegate  = null,
                                               CancellationToken?                                               CancellationToken    = null,
+                                              EventTracking_Id                                                 EventTrackingId      = null,
                                               TimeSpan?                                                        QueryTimeout         = null)
 
         {

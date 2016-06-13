@@ -64,76 +64,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Timestamp
 
-        private readonly DateTime _Timestamp;
-
         /// <summary>
         /// The timestamp of the HTTP request generation.
         /// </summary>
-        public DateTime Timestamp
-        {
-            get
-            {
-                return _Timestamp;
-            }
-        }
-
-        #endregion
-
-        #region EventTrackingId
-
-        private EventTracking_Id _EventTrackingId;
-
-        /// <summary>
-        /// A unique identification for tracking related events.
-        /// </summary>
-        public EventTracking_Id EventTrackingId
-        {
-
-            get
-            {
-                return _EventTrackingId;
-            }
-
-            set
-            {
-                _EventTrackingId = value;
-            }
-
-        }
+        public DateTime Timestamp { get; }
 
         #endregion
 
         #region CancellationToken
 
-        private readonly CancellationToken _CancellationToken;
-
         /// <summary>
         /// The cancellation token.
         /// </summary>
-        public CancellationToken CancellationToken
-        {
-            get
-            {
-                return _CancellationToken;
-            }
-        }
+        public CancellationToken CancellationToken { get; }
+
+        #endregion
+
+        #region EventTrackingId
+
+        /// <summary>
+        /// An unique event tracking identification for correlating this request with other events.
+        /// </summary>
+        public EventTracking_Id EventTrackingId { get; }
 
         #endregion
 
         #region RemoteSocket
 
-        private readonly IPSocket _RemoteSocket;
-
         /// <summary>
         /// The remote TCP/IP socket.
         /// </summary>
-        public IPSocket RemoteSocket
-        {
-            get
-            {
-                return _RemoteSocket;
-            }
-        }
+        public IPSocket RemoteSocket { get; }
 
         #endregion
 
@@ -157,52 +118,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region RawHTTPHeader
 
-        private readonly String _RawHTTPHeader;
-
         /// <summary>
         /// The RAW, unparsed and unverified HTTP header.
         /// </summary>
-        public String RawHTTPHeader
-        {
-            get
-            {
-                return _RawHTTPHeader;
-            }
-        }
+        public String RawHTTPHeader { get; }
 
         #endregion
 
         #region RawPDU
 
-        private readonly String _RawPDU;
-
         /// <summary>
         /// The raw unparsed HTTP protocol data unit.
         /// </summary>
-        public String RawPDU
-        {
-            get
-            {
-                return _RawPDU;
-            }
-        }
+        public String RawPDU { get; }
 
         #endregion
 
         #region FirstPDULine
 
-        private readonly String _FirstPDULine;
-
         /// <summary>
         /// The first line of a HTTP request or response.
         /// </summary>
-        public String FirstPDULine
-        {
-            get
-            {
-                return _FirstPDULine;
-            }
-        }
+        public String FirstPDULine { get; }
 
         #endregion
 
@@ -231,7 +168,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
-
 
         #region EntirePDU
 
@@ -465,7 +401,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public AHTTPPDU()
         {
 
-            this._Timestamp      = DateTime.Now;
+            this.Timestamp      = DateTime.Now;
             this._HeaderFields   = new Dictionary<String,          Object>(StringComparer.OrdinalIgnoreCase);
             this._HeaderFields2  = new Dictionary<HTTPHeaderField, Object>();
 
@@ -473,7 +409,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region AHTTPPDU(HTTPHeader)
+        #region AHTTPPDU(RemoteSocket, LocalSocket, HTTPHeader, HTTPBody = null, HTTPBodyStream = null, CancellationToken = null, EventTrackingId = null)
 
         /// <summary>
         /// Creates a new HTTP header.
@@ -484,32 +420,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPBody">The HTTP body as an array of bytes.</param>
         /// <param name="HTTPBodyStream">The HTTP body as an stream of bytes.</param>
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         public AHTTPPDU(IPSocket            RemoteSocket,
                         IPSocket            LocalSocket,
                         String              HTTPHeader,
                         Byte[]              HTTPBody           = null,
                         Stream              HTTPBodyStream     = null,
-                        CancellationToken?  CancellationToken  = null)
+                        CancellationToken?  CancellationToken  = null,
+                        EventTracking_Id    EventTrackingId    = null)
 
             : this()
 
         {
 
-            this._Timestamp          = DateTime.Now;
-            this._EventTrackingId    = EventTracking_Id.New;
-            this._RemoteSocket       = RemoteSocket;
-            this._LocalSocket        = LocalSocket;
-            this._RawHTTPHeader      = HTTPHeader.Trim();
-            this._HTTPBody           = HTTPBody;
-            this._HTTPBodyStream     = HTTPBodyStream;
-            this._CancellationToken  = CancellationToken.HasValue ? CancellationToken.Value : new CancellationTokenSource().Token;
+            this.Timestamp          = DateTime.Now;
+            this.RemoteSocket       = RemoteSocket;
+            this._LocalSocket       = LocalSocket;
+            this.RawHTTPHeader      = HTTPHeader.Trim();
+            this._HTTPBody          = HTTPBody;
+            this._HTTPBodyStream    = HTTPBodyStream;
+            this.CancellationToken  = CancellationToken.HasValue ? CancellationToken.Value : new CancellationTokenSource().Token;
+            this.EventTrackingId    = EventTrackingId;
 
             #region Process first line...
 
             var AllLines = HTTPHeader.Trim().Split(_LineSeparator, StringSplitOptions.RemoveEmptyEntries);
 
-            _FirstPDULine = AllLines.FirstOrDefault();
-            if (_FirstPDULine == null)
+            FirstPDULine = AllLines.FirstOrDefault();
+            if (FirstPDULine == null)
                 throw new Exception("Bad request");
 
             #endregion
@@ -550,17 +488,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this._Timestamp          = HTTPPDU.Timestamp;
-            this._EventTrackingId    = HTTPPDU.EventTrackingId;
-            this._RemoteSocket       = HTTPPDU.RemoteSocket;
-            this._LocalSocket        = HTTPPDU.LocalSocket;
-            this._RawHTTPHeader      = HTTPPDU.RawHTTPHeader;
-            this._RawPDU             = HTTPPDU.RawPDU;
-            this._HTTPBody           = HTTPPDU.HTTPBody;
-            this._HTTPBodyStream     = HTTPPDU.HTTPBodyStream;
-            this._CancellationToken  = HTTPPDU.CancellationToken;
+            this.Timestamp          = HTTPPDU.Timestamp;
+            this.RemoteSocket       = HTTPPDU.RemoteSocket;
+            this._LocalSocket       = HTTPPDU.LocalSocket;
+            this.RawHTTPHeader      = HTTPPDU.RawHTTPHeader;
+            this.RawPDU             = HTTPPDU.RawPDU;
+            this._HTTPBody          = HTTPPDU.HTTPBody;
+            this._HTTPBodyStream    = HTTPPDU.HTTPBodyStream;
+            this.CancellationToken  = HTTPPDU.CancellationToken;
+            this.EventTrackingId    = HTTPPDU.EventTrackingId;
 
-            this._FirstPDULine       = HTTPPDU.FirstPDULine;
+            this.FirstPDULine       = HTTPPDU.FirstPDULine;
 
             foreach (var field in HTTPPDU._HeaderFields)
                 this._HeaderFields.Add(field.Key, field.Value);

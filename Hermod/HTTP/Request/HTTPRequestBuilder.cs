@@ -48,24 +48,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region EntireRequestHeader
 
         public String EntireRequestHeader
-        {
-            get
-            {
-                return HTTPRequestLine + Environment.NewLine + ConstructedHTTPHeader;
-            }
-        }
+            => HTTPRequestLine + Environment.NewLine + ConstructedHTTPHeader;
 
         #endregion
 
         #region HTTPRequestLine
 
         public String HTTPRequestLine
-        {
-            get
-            {
-                return HTTPMethod.ToString() + " " + this._URI + " " + ProtocolName + "/" + ProtocolVersion;
-            }
-        }
+            => HTTPMethod.ToString() + " " + this._URI + " " + ProtocolName + "/" + ProtocolVersion;
 
         #endregion
 

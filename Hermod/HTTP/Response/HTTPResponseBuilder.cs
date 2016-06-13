@@ -756,9 +756,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             else
                 response = new HTTPResponse(HTTPHeader, _HTTPRequest);
 
-
-            response.EventTrackingId = EventTrackingId;
-
             return response;
 
         }

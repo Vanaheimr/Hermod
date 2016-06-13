@@ -463,15 +463,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPBody">The HTTP body as an array of bytes.</param>
         /// <param name="HTTPBodyStream">The HTTP body as an stream of bytes.</param>
         /// <param name="CancellationToken">A token to cancel the HTTP response processing.</param>
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         private HTTPResponse(HTTPRequest         HTTPRequest,
                              IPSocket            RemoteSocket,
                              IPSocket            LocalSocket,
                              String              HTTPHeader,
                              Byte[]              HTTPBody           = null,
                              Stream              HTTPBodyStream     = null,
-                             CancellationToken?  CancellationToken  = null)
+                             CancellationToken?  CancellationToken  = null,
+                             EventTracking_Id    EventTrackingId    = null)
 
-            : base(RemoteSocket, LocalSocket, HTTPHeader, HTTPBody, HTTPBodyStream, CancellationToken)
+            : base(RemoteSocket, LocalSocket, HTTPHeader, HTTPBody, HTTPBodyStream, CancellationToken, EventTrackingId)
 
         {
 
@@ -499,10 +501,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPResponseHeader">A string representation of a HTTP response header.</param>
         /// <param name="HTTPRequest">The HTTP request for this HTTP response.</param>
-        public HTTPResponse(String       HTTPResponseHeader,
-                            HTTPRequest  HTTPRequest)
+        public HTTPResponse(String            HTTPResponseHeader,
+                            HTTPRequest       HTTPRequest)
 
-            : this(HTTPRequest, null, null, HTTPResponseHeader, null, new MemoryStream())
+            : this(HTTPRequest, null, null, HTTPResponseHeader, null, new MemoryStream(), EventTrackingId: HTTPRequest.EventTrackingId)
 
         {
 
@@ -531,11 +533,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPResponseHeader">A string representation of a HTTP response header.</param>
         /// <param name="HTTPResponseBody">The HTTP body as an array of bytes.</param>
         /// <param name="HTTPRequest">The HTTP request for this HTTP response.</param>
-        public HTTPResponse(String       HTTPResponseHeader,
-                            Byte[]       HTTPResponseBody,
-                            HTTPRequest  HTTPRequest)
+        public HTTPResponse(String            HTTPResponseHeader,
+                            Byte[]            HTTPResponseBody,
+                            HTTPRequest       HTTPRequest)
 
-            : this(HTTPRequest, null, null, HTTPResponseHeader, HTTPResponseBody)
+            : this(HTTPRequest, null, null, HTTPResponseHeader, HTTPResponseBody, EventTrackingId: HTTPRequest.EventTrackingId)
 
         { }
 
@@ -549,11 +551,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPResponseHeader">A string representation of a HTTP response header.</param>
         /// <param name="HTTPResponseBodyStream">The HTTP body as an stream of bytes.</param>
         /// <param name="HTTPRequest">The HTTP request for this HTTP response.</param>
-        public HTTPResponse(String       HTTPResponseHeader,
-                            Stream       HTTPResponseBodyStream,
-                            HTTPRequest  HTTPRequest)
+        public HTTPResponse(String            HTTPResponseHeader,
+                            Stream            HTTPResponseBodyStream,
+                            HTTPRequest       HTTPRequest)
 
-            : this(HTTPRequest, null, null, HTTPResponseHeader, null, HTTPResponseBodyStream)
+            : this(HTTPRequest, null, null, HTTPResponseHeader, null, HTTPResponseBodyStream, EventTrackingId: HTTPRequest.EventTrackingId)
 
         { }
 

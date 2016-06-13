@@ -283,6 +283,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                         HttpRequest = new HTTPRequest(_HTTPServer,
                                                                       CTS.Token,
+                                                                      null,
                                                                       TCPConnection.RemoteSocket,
                                                                       TCPConnection.LocalSocket,
                                                                       HTTPHeaderString.Trim(),
