@@ -38,66 +38,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region HTTPMethod
 
-        private readonly HTTPMethod _HTTPMethod;
-
         /// <summary>
         /// The http method for this service.
         /// </summary>
-        public HTTPMethod HTTPMethod
-        {
-            get
-            {
-                return _HTTPMethod;
-            }
-        }
+        public HTTPMethod HTTPMethod { get; }
 
         #endregion
 
         #region RequestHandler
 
-        private readonly HTTPDelegate _RequestHandler;
-
-        public HTTPDelegate RequestHandler
-        {
-            get
-            {
-                return _RequestHandler;
-            }
-        }
+        public HTTPDelegate RequestHandler { get; }
 
         #endregion
 
         #region HTTPMethodAuthentication
 
-        private readonly HTTPAuthentication _HTTPMethodAuthentication;
-
         /// <summary>
         /// This and all subordinated nodes demand an explicit HTTP method authentication.
         /// </summary>
-        public HTTPAuthentication HTTPMethodAuthentication
-        {
-            get
-            {
-                return _HTTPMethodAuthentication;
-            }
-        }
+        public HTTPAuthentication HTTPMethodAuthentication { get; }
 
         #endregion
 
         #region DefaultErrorHandler
 
-        private readonly HTTPDelegate _DefaultErrorHandler;
-
         /// <summary>
         /// A general error handling method.
         /// </summary>
-        public HTTPDelegate DefaultErrorHandler
-        {
-            get
-            {
-                return _DefaultErrorHandler;
-            }
-        }
+        public HTTPDelegate DefaultErrorHandler { get; }
 
         #endregion
 
@@ -156,10 +124,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (HTTPMethod == null)
                 throw new ArgumentException("HTTPMethod == null!");
 
-            this._HTTPMethod                = HTTPMethod;
-            this._HTTPMethodAuthentication  = HTTPMethodAuthentication;
-            this._RequestHandler            = RequestHandler;
-            this._DefaultErrorHandler       = DefaultErrorHandler;
+            this.HTTPMethod                = HTTPMethod;
+            this.HTTPMethodAuthentication  = HTTPMethodAuthentication;
+            this.RequestHandler            = RequestHandler;
+            this.DefaultErrorHandler       = DefaultErrorHandler;
 
             this._ErrorHandlers             = new Dictionary<HTTPStatusCode,  HTTPDelegate>();
             this._HTTPContentTypes          = new Dictionary<HTTPContentType, ContentTypeNode>();

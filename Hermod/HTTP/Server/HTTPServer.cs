@@ -163,17 +163,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region TryGetRoamingNetworks(Hostname, RoamingNetworkId, out RoamingNetwork)
+        #region TryGetRoamingNetworks(Hostname, out RoamingNetwork)
 
         /// <summary>
         ///Try to return all roaming networks available for the given hostname.
         /// </summary>
         /// <param name="Hostname">The HTTP hostname.</param>
-        /// <param name="RoamingNetworkId">The unique identification of the new roaming network.</param>
-        /// <param name="RoamingNetwork">A roaming network.</param>
-        public Boolean TryGetRoamingNetworks(HTTPHostname        Hostname,
-//                                            RoamingNetwork_Id   RoamingNetworkId,
-                                            out T  RoamingNetworks)
+        /// <param name="RoamingNetworks">A roaming network.</param>
+        public Boolean TryGetRoamingNetworks(HTTPHostname  Hostname,
+                                             out T         RoamingNetworks)
         {
 
             return _Multitenancy.TryGetValue(Hostname, out RoamingNetworks);
@@ -188,7 +186,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         ///Try to return all roaming networks available for the given hostname.
         /// </summary>
         /// <param name="Hostname">The HTTP hostname.</param>
-        /// <param name="RoamingNetwork">A roaming network.</param>
+        /// <param name="RoamingNetworks">A roaming network.</param>
         public Boolean TryAddRoamingNetworks(HTTPHostname  Hostname,
                                              T             RoamingNetworks)
         {

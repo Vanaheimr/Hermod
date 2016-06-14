@@ -136,7 +136,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Text.IsNullOrEmpty())
                 return false;
 
-            var splitted = Text.Split(new[] { ' ' });
+            var splitted = Text.Split(new Char[] { ' ' });
 
             if (splitted.IsNullOrEmpty())
                 return false;
@@ -144,7 +144,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (splitted[0].ToLower() == "basic")
             {
 
-                var usernamePassword = splitted[1].FromBase64().Split(new[] { ':' });
+                var usernamePassword = splitted[1].FromBase64().Split(new Char[] { ':' });
 
                 if (usernamePassword.IsNullOrEmpty())
                     return false;

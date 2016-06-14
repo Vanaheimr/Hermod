@@ -110,70 +110,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Name
 
-        private readonly String _Name;
-
         /// <summary>
         /// The name of this HTTP request field
         /// </summary>
-        public String Name
-        {
-            get
-            {
-                return _Name;
-            }
-        }
+        public String Name { get; }
 
         #endregion
 
         #region Type
 
-        private readonly Type _Type;
-
         /// <summary>
         /// The C# type of this HTTP header field.
         /// </summary>
-        public Type Type
-        {
-            get
-            {
-                return _Type;
-            }
-        }
+        public Type Type { get; }
 
         #endregion
 
         #region HeaderFieldType
 
-        private readonly HeaderFieldType _HeaderFieldType;
-
         /// <summary>
         /// The type of a HTTP header field.
         /// </summary>
-        public HeaderFieldType HeaderFieldType
-        {
-            get
-            {
-                return _HeaderFieldType;
-            }
-        }
+        public HeaderFieldType HeaderFieldType { get; }
 
         #endregion
 
         #region RequestPathSemantic
 
-        private readonly RequestPathSemantic _RequestPathSemantic;
-
         /// <summary>
         /// Wether a header field has and end-to-end or
         /// an hop-to-hop semantic.
         /// </summary>
-        public RequestPathSemantic RequestPathSemantic
-        {
-            get
-            {
-                return _RequestPathSemantic;
-            }
-        }
+        public RequestPathSemantic RequestPathSemantic { get; }
 
         #endregion
 
@@ -184,18 +152,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public delegate Boolean StringParserDelegate(String arg1, out Object arg2);
 
-        private readonly StringParserDelegate _StringParser;
-
         /// <summary>
         /// A delegate to parse the value of the header field from a string.
         /// </summary>
-        public StringParserDelegate StringParser
-        {
-            get
-            {
-                return _StringParser;
-            }
-        }
+        public StringParserDelegate StringParser { get; }
 
         #endregion
 
@@ -206,18 +166,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public delegate String ValueSerializerDelegate(Object arg1);
 
-        private readonly ValueSerializerDelegate _ValueSerializer;
-
         /// <summary>
         /// A delegate to serialize the value of the header field to a string.
         /// </summary>
-        public ValueSerializerDelegate ValueSerializer
-        {
-            get
-            {
-                return _ValueSerializer;
-            }
-        }
+        public ValueSerializerDelegate ValueSerializer { get; }
 
         #endregion
 
@@ -253,12 +205,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            this._Name                 = Name;
-            this._Type                 = Type;
-            this._HeaderFieldType      = HeaderFieldType;
-            this._RequestPathSemantic  = RequestPathSemantic;
-            this._StringParser         = StringParser    != null ? StringParser    : (String s, out Object o) => { o = s; return true; };
-            this._ValueSerializer      = ValueSerializer != null ? ValueSerializer : ValueSerializer = (o) => o.ToString();
+            this.Name                 = Name;
+            this.Type                 = Type;
+            this.HeaderFieldType      = HeaderFieldType;
+            this.RequestPathSemantic  = RequestPathSemantic;
+            this.StringParser         = StringParser    ?? ((String s, out Object o) => { o = s; return true; });
+            this.ValueSerializer      = ValueSerializer ?? ((o)                      => o == null ? "" : o.ToString());
 
         }
 
@@ -282,7 +234,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                   typeof(String),
                                                                                   HeaderFieldType.General,
                                                                                   RequestPathSemantic.HopToHop);
-        
+
         #endregion
 
         #region Connection
@@ -302,7 +254,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                 typeof(String),
                                                                                 HeaderFieldType.General,
                                                                                 RequestPathSemantic.EndToEnd);
-        
+
         #endregion
 
         #region ContentEncoding
@@ -377,7 +329,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                      typeof(String),
                                                                                      HeaderFieldType.General,
                                                                                      RequestPathSemantic.EndToEnd);
-        
+
         #endregion
 
         #region ContentMD5
@@ -1193,10 +1145,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary> 
         /// <example>From: webmaster@w3.org</example> 
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/> 
-        public static readonly HTTPHeaderField From  = new HTTPHeaderField("From", 
-                                                                           typeof(String), 
-                                                                           HeaderFieldType.Request, 
-                                                                           RequestPathSemantic.EndToEnd); 
+        public static readonly HTTPHeaderField From  = new HTTPHeaderField("From",
+                                                                           typeof(String),
+                                                                           HeaderFieldType.Request,
+                                                                           RequestPathSemantic.EndToEnd);
 
 
         #endregion 

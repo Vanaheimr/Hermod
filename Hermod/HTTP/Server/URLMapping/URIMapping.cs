@@ -228,7 +228,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         internal HTTPResponse InvokeHandler(HTTPRequest Request)
         {
 
-            var Handler = GetHandler(Request.Host == null        ? HTTPHostname.Any : Request.Host,
+            var Handler = GetHandler(Request.Host ?? HTTPHostname.Any,
                                      Request.URI.IsNullOrEmpty() ? "/"              : Request.URI,
                                      Request.HTTPMethod,
                                      AvailableContentTypes => Request.Accept.BestMatchingContentType(AvailableContentTypes),
@@ -262,10 +262,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          Action<IEnumerable<String>>               ParsedURIParametersDelegate  = null)
         {
 
-            Host                     = Host                    == null ? HTTPHostname.Any               : Host;
-            URI                      = URI. IsNullOrEmpty()            ? "/"                            : URI;
-            HTTPMethod               = HTTPMethod              == null ? HTTPMethod.GET                 : HTTPMethod;
-            HTTPContentTypeSelector  = HTTPContentTypeSelector == null ? v => HTTPContentType.HTML_UTF8 : HTTPContentTypeSelector;
+            Host                     = Host                    ?? HTTPHostname.Any;
+            URI                      = URI.IsNullOrEmpty() ? "/" : URI;
+            HTTPMethod               = HTTPMethod              ?? HTTPMethod.GET;
+            HTTPContentTypeSelector  = HTTPContentTypeSelector ?? (v => HTTPContentType.HTML_UTF8);
 
             lock (Lock)
             {
@@ -496,7 +496,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 AddHandler(_HTTPDelegate,
                            Hostname,
                            URITemplate,
-                           (HTTPMethod == null) ? HTTPMethod.GET : HTTPMethod,
+                           HTTPMethod ?? HTTPMethod.GET,
                            HTTPContentType.EVENTSTREAM,
 
                            HostAuthentication,
@@ -593,7 +593,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return the best matching error handler for the given parameters.
         /// </summary>
         internal Tuple<MethodInfo, IEnumerable<Object>> GetErrorHandler(String           Host,
-                                                                        String           URL, 
+                                                                        String           URL,
                                                                         HTTPMethod       HTTPMethod       = null,
                                                                         HTTPContentType  HTTPContentType  = null,
                                                                         HTTPStatusCode   HTTPStatusCode   = null)
