@@ -19,6 +19,7 @@
 
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -162,7 +163,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// Invoke this SOAP endpoint and choose a matching dispatcher.
         /// </summary>
         /// <param name="Request">A HTTP request.</param>
-        public HTTPResponse Invoke(HTTPRequest Request)
+        public async Task<HTTPResponse> Invoke(HTTPRequest Request)
         {
 
             if (Request.HTTPMethod == HTTPMethod.GET)
@@ -172,23 +173,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             if (XMLRequest.HasErrors)
                 return XMLRequest.Error;
 
-            var SOAPDispatch  = _SOAPDispatches.
+            var SOAPDispatch = _SOAPDispatches.
                                     Select(dispatch => new {
-                                                           dispatch    = dispatch,
-                                                           SOAPHeader  = XMLRequest.Data.Root.Descendants(NS.SOAPEnvelope_v1_2 + "Header").FirstOrDefault(),
-                                                           SOAPBody    = dispatch.Matcher(XMLRequest.Data.Root)
-                                                       }).
-                                    Where (match    => match.SOAPBody != null).
-                                    FirstOrDefault();
+                                        dispatch    = dispatch,
+                                        SOAPHeader  = XMLRequest.Data.Root.Descendants(NS.SOAPEnvelope_v1_2 + "Header").FirstOrDefault(),
+                                        SOAPBody    = dispatch.Matcher(XMLRequest.Data.Root)
+                                    }).
+                                    FirstOrDefault(match => match.SOAPBody != null);
 
             if (SOAPDispatch != null)
             {
 
-                if (SOAPDispatch.dispatch.BodyDelegate != null)
-                    return SOAPDispatch.dispatch.BodyDelegate(Request, SOAPDispatch.SOAPBody);
+                if (SOAPDispatch.dispatch.BodyDelegate          != null)
+                    return await SOAPDispatch.dispatch.BodyDelegate(Request,
+                                                                    SOAPDispatch.SOAPBody);
 
-                else if (SOAPDispatch.dispatch.HeaderAndBodyDelegate != null)
-                    return SOAPDispatch.dispatch.HeaderAndBodyDelegate(Request, SOAPDispatch.SOAPHeader, SOAPDispatch.SOAPBody);
+                if (SOAPDispatch.dispatch.HeaderAndBodyDelegate != null)
+                    return await SOAPDispatch.dispatch.HeaderAndBodyDelegate(Request,
+                                                                             SOAPDispatch.SOAPHeader,
+                                                                             SOAPDispatch.SOAPBody);
 
                 return new HTTPResponseBuilder(Request) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
@@ -199,13 +202,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             }
 
-            else
-                return new HTTPResponseBuilder(Request) {
-                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    ContentType     = HTTPContentType.TEXT_UTF8,
-                    Content         = "Unknown SOAP/XML!".ToUTF8Bytes(),
-                    Connection      = "close"
-                };
+            return new HTTPResponseBuilder(Request) {
+                HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                ContentType     = HTTPContentType.TEXT_UTF8,
+                Content         = "Unknown SOAP/XML!".ToUTF8Bytes(),
+                Connection      = "close"
+            };
 
         }
 
