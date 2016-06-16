@@ -140,7 +140,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// </summary>
     /// <param name="Request">The HTTP request.</param>
     /// <returns>A HTTP response task.</returns>
-    public delegate HTTPResponse HTTPDelegate(HTTPRequest Request);
+    public delegate Task<HTTPResponse> HTTPDelegate(HTTPRequest Request);
 
 
     /// <summary>

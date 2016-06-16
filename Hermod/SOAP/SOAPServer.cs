@@ -190,7 +190,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                   HTTPMethod.POST,
                                   URITemplate,
                                   _SOAPContentType,
-                                  HTTPDelegate: req => _SOAPDispatcher.Invoke(req).Result);
+                                  HTTPDelegate: _SOAPDispatcher.Invoke);
 
                 // Register some information text for people using HTTP GET
                 AddMethodCallback(Hostname,
@@ -249,7 +249,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                   HTTPMethod.POST,
                                   URITemplate,
                                   _SOAPContentType,
-                                  HTTPDelegate: req => _SOAPDispatcher.Invoke(req).Result);
+                                  HTTPDelegate: _SOAPDispatcher.Invoke);
 
                 // Register some information text for people using HTTP GET
                 AddMethodCallback(Hostname,

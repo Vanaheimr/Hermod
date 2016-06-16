@@ -20,6 +20,7 @@
 using System;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -225,7 +226,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Invoke the best matching method handler for the given parameters.
         /// </summary>
         /// <param name="Request">A HTTP request.</param>
-        internal HTTPResponse InvokeHandler(HTTPRequest Request)
+        internal async Task<HTTPResponse> InvokeHandler(HTTPRequest Request)
         {
 
             var Handler = GetHandler(Request.Host ?? HTTPHostname.Any,
@@ -235,7 +236,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                      ParsedURIParameters   => Request.ParsedURIParameters = ParsedURIParameters.ToArray());
 
             if (Handler != null)
-                return Handler(Request);
+                return await Handler(Request);
 
             return new HTTPResponseBuilder(Request) {
                 HTTPStatusCode  = HTTPStatusCode.NotFound,
@@ -455,7 +456,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Define HTTP Delegate
 
-                HTTPDelegate _HTTPDelegate = Request =>
+                HTTPDelegate _HTTPDelegate = async (Request) =>
                 {
 
                     var _LastEventId        = 0UL;

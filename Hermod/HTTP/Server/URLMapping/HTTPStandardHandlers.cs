@@ -22,6 +22,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -50,7 +51,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             HTTPServer.AddMethodCallback(Hostname,
                                          HTTPMethod:    HTTPMethod ?? HTTPMethod.GET,
                                          URITemplate:   URITemplate,
-                                         HTTPDelegate:  Request => {
+                                         HTTPDelegate:  async Request => {
 
                                              return new HTTPResponseBuilder(Request) {
 
@@ -92,7 +93,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             HTTPServer.AddMethodCallback(Hostname,
                                          HTTPMethod.GET,
                                          URITemplate,
-                                         HTTPDelegate: Request => HTTPTools.MovedTemporarily(Request, URITarget));
+                                         HTTPDelegate: async Request => HTTPTools.MovedTemporarily(Request, URITarget));
 
         }
 
@@ -112,7 +113,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             HTTPServer.AddMethodCallback(Hostname,
                                          HTTPMethod.GET,
                                          URITemplate,
-                                         HTTPDelegate: Request => {
+                                         HTTPDelegate: async Request => {
 
                                              var _LastEventId        = 0UL;
                                              var _Client_LastEventId = 0UL;
@@ -202,7 +203,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          HTTPMethod.GET,
                                          URITemplate,
                                          HTTPContentType: ResponseContentType,
-                                         HTTPDelegate: Request => {
+                                         HTTPDelegate: async Request => {
 
                                              var FileStream = ResourceAssembly.GetManifestResourceStream(ResourceFilename);
 
@@ -319,7 +320,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 ResourceAssembly = Assembly.GetCallingAssembly();
 
 
-            HTTPDelegate GetEmbeddedResources = Request => {
+            HTTPDelegate GetEmbeddedResources = async Request => {
 
                 #region Check HTTP Basic Authentication
 
@@ -540,7 +541,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          HTTPMethod.GET,
                                          URITemplate,
                                          HTTPContentType: ResponseContentType,
-                                         HTTPDelegate: Request => {
+                                         HTTPDelegate: async Request => {
 
                                              var ResourceFilename = ResourceFilenameBuilder(Request.ParsedURIParameters);
 
@@ -607,7 +608,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          HTTPMethod.GET,
                                          URITemplate + (URITemplate.EndsWith("/", StringComparison.InvariantCulture) ? "{ResourceName}" : "/{ResourceName}"),
                                          HTTPContentType: HTTPContentType.PNG,
-                                         HTTPDelegate: Request => {
+                                         HTTPDelegate: async Request => {
 
                                              HTTPContentType ResponseContentType = null;
 
@@ -768,7 +769,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          HTTPMethod.GET,
                                          URITemplate + (URITemplate.EndsWith("/", StringComparison.InvariantCulture) ? "{ResourceName}" : "/{ResourceName}"),
                                          HTTPContentType.PNG,
-                                         HTTPDelegate: Request => {
+                                         HTTPDelegate: async Request => {
 
                                              HTTPContentType ResponseContentType = null;
 
