@@ -21,6 +21,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Reflection;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Security.Cryptography.X509Certificates;
@@ -450,9 +451,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ProcessBoomerang(ConnectionId, Timestamp, HTTPRequest)
 
-        private HTTPResponse ProcessBoomerang(String       ConnectionId,
-                                              DateTime     Timestamp,
-                                              HTTPRequest  HTTPRequest)
+        private async Task<HTTPResponse> ProcessBoomerang(String       ConnectionId,
+                                                          DateTime     Timestamp,
+                                                          HTTPRequest  HTTPRequest)
         {
 
             #region 1) Invoke delegate based on URIMapping
@@ -461,7 +462,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             try
             {
-                URIMappingResponse = InvokeHandler(HTTPRequest);
+                URIMappingResponse = await InvokeHandler(HTTPRequest);
             }
             catch (Exception e)
             {
@@ -829,10 +830,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Call the best matching method handler for the given HTTP request.
         /// </summary>
-        public HTTPResponse InvokeHandler(HTTPRequest HTTPRequest)
+        public async Task<HTTPResponse> InvokeHandler(HTTPRequest HTTPRequest)
         {
 
-            return _URIMapping.InvokeHandler(HTTPRequest);
+            return await _URIMapping.InvokeHandler(HTTPRequest);
 
         }
 

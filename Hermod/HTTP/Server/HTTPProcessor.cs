@@ -22,6 +22,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
@@ -39,7 +40,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// decode the transmitted data as HTTP requests.
     /// </summary>
     public class HTTPProcessor : IArrowReceiver<TCPConnection>,
-                                 IBoomerangSender<String, DateTime, HTTPRequest, HTTPResponse>
+                                 IBoomerangSender<String, DateTime, HTTPRequest, Task<HTTPResponse>>
     {
 
         #region Data
@@ -88,7 +89,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         internal event InternalErrorLogHandler                                              ErrorLog;
 
-        public   event BoomerangSenderHandler<String, DateTime, HTTPRequest, HTTPResponse>  OnNotification;
+        public   event BoomerangSenderHandler<String, DateTime, HTTPRequest, Task<HTTPResponse>>  OnNotification;
 
         public   event CompletedEventHandler                                                OnCompleted;
 
@@ -327,7 +328,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         // ToDo: How to read request body by application code?!
                                         _HTTPResponse = OnNotification("TCPConnectionId",
                                                                        RequestTimestamp,
-                                                                       HttpRequest);
+                                                                       HttpRequest).Result;
 
                                         TCPConnection.WriteToResponseStream((_HTTPResponse.RawHTTPHeader.Trim() +
                                                                             "\r\n\r\n").

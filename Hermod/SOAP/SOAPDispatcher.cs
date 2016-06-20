@@ -19,6 +19,7 @@
 
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -35,58 +36,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
     public class SOAPDispatcher
     {
 
+        #region Data
+
+        private readonly List<SOAPDispatch> _SOAPDispatches;
+
+        #endregion
+
         #region Properties
-
-        #region URITemplate
-
-        private readonly String _URITemplate;
 
         /// <summary>
         /// The URI template of this SOAP endpoint.
         /// </summary>
-        public String URITemplate
-        {
-            get
-            {
-                return _URITemplate;
-            }
-        }
-
-        #endregion
-
-        #region SOAPContentType
-
-        private readonly HTTPContentType _SOAPContentType;
+        public String                     URITemplate       { get; }
 
         /// <summary>
         /// The HTTP content type the SOAP/XML request will be send.
         /// </summary>
-        public HTTPContentType SOAPContentType
-        {
-            get
-            {
-                return _SOAPContentType;
-            }
-        }
-
-        #endregion
-
-        #region SOAPDispatches
-
-        private readonly List<SOAPDispatch> _SOAPDispatches;
+        public HTTPContentType            SOAPContentType   { get; }
 
         /// <summary>
         /// All registeres SOAP dispatches.
         /// </summary>
-        public IEnumerable<SOAPDispatch> SOAPDispatches
-        {
-            get
-            {
-                return _SOAPDispatches;
-            }
-        }
-
-        #endregion
+        public IEnumerable<SOAPDispatch>  SOAPDispatches
+            => _SOAPDispatches;
 
         #endregion
 
@@ -108,9 +80,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             #endregion
 
-            this._URITemplate      = URITemplate;
-            this._SOAPContentType  = SOAPContentType;
-            this._SOAPDispatches   = new List<SOAPDispatch>();
+            this.URITemplate      = URITemplate;
+            this.SOAPContentType  = SOAPContentType;
+            this._SOAPDispatches  = new List<SOAPDispatch>();
 
         }
 
@@ -162,33 +134,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// Invoke this SOAP endpoint and choose a matching dispatcher.
         /// </summary>
         /// <param name="Request">A HTTP request.</param>
-        public HTTPResponse Invoke(HTTPRequest Request)
+        public async Task<HTTPResponse> Invoke(HTTPRequest Request)
         {
 
             if (Request.HTTPMethod == HTTPMethod.GET)
-                return EndpointTextInfo(Request);
+                return await EndpointTextInfo(Request);
 
-            var XMLRequest = Request.ParseXMLRequestBody(_SOAPContentType);
+            var XMLRequest = Request.ParseXMLRequestBody(SOAPContentType);
             if (XMLRequest.HasErrors)
                 return XMLRequest.Error;
 
-            var SOAPDispatch  = _SOAPDispatches.
+            var SOAPDispatch = _SOAPDispatches.
                                     Select(dispatch => new {
-                                                           dispatch    = dispatch,
-                                                           SOAPHeader  = XMLRequest.Data.Root.Descendants(NS.SOAPEnvelope_v1_2 + "Header").FirstOrDefault(),
-                                                           SOAPBody    = dispatch.Matcher(XMLRequest.Data.Root)
-                                                       }).
-                                    Where (match    => match.SOAPBody != null).
-                                    FirstOrDefault();
+                                        dispatch    = dispatch,
+                                        SOAPHeader  = XMLRequest.Data.Root.Descendants(NS.SOAPEnvelope_v1_2 + "Header").FirstOrDefault(),
+                                        SOAPBody    = dispatch.Matcher(XMLRequest.Data.Root)
+                                    }).
+                                    FirstOrDefault(match => match.SOAPBody != null);
 
             if (SOAPDispatch != null)
             {
 
-                if (SOAPDispatch.dispatch.BodyDelegate != null)
-                    return SOAPDispatch.dispatch.BodyDelegate(Request, SOAPDispatch.SOAPBody);
+                if (SOAPDispatch.dispatch.BodyDelegate          != null)
+                    return await SOAPDispatch.dispatch.BodyDelegate(Request,
+                                                                    SOAPDispatch.SOAPBody);
 
-                else if (SOAPDispatch.dispatch.HeaderAndBodyDelegate != null)
-                    return SOAPDispatch.dispatch.HeaderAndBodyDelegate(Request, SOAPDispatch.SOAPHeader, SOAPDispatch.SOAPBody);
+                if (SOAPDispatch.dispatch.HeaderAndBodyDelegate != null)
+                    return await SOAPDispatch.dispatch.HeaderAndBodyDelegate(Request,
+                                                                             SOAPDispatch.SOAPHeader,
+                                                                             SOAPDispatch.SOAPBody);
 
                 return new HTTPResponseBuilder(Request) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
@@ -199,13 +173,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             }
 
-            else
-                return new HTTPResponseBuilder(Request) {
-                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    ContentType     = HTTPContentType.TEXT_UTF8,
-                    Content         = "Unknown SOAP/XML!".ToUTF8Bytes(),
-                    Connection      = "close"
-                };
+            return new HTTPResponseBuilder(Request) {
+                HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                ContentType     = HTTPContentType.TEXT_UTF8,
+                Content         = "Unknown SOAP/XML!".ToUTF8Bytes(),
+                Connection      = "close"
+            };
 
         }
 
@@ -217,10 +190,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// Return a short information text about this endpoint.
         /// </summary>
         /// <param name="Request">A HTTP request.</param>
-        public HTTPResponse EndpointTextInfo(HTTPRequest Request)
+        public Task<HTTPResponse> EndpointTextInfo(HTTPRequest Request)
         {
 
-            return new HTTPResponseBuilder(Request) {
+            return Task.FromResult(new HTTPResponseBuilder(Request) {
 
                 HTTPStatusCode  = HTTPStatusCode.OK,
                 ContentType     = HTTPContentType.TEXT_UTF8,
@@ -233,7 +206,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                   ).ToUTF8Bytes(),
                 Connection      = "close"
 
-            };
+            }.AsImmutable());
 
         }
 

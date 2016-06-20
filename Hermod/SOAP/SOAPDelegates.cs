@@ -18,6 +18,7 @@
 #region Usings
 
 using System.Xml.Linq;
+using System.Threading.Tasks;
 
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
@@ -32,7 +33,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
     /// <param name="Request">The HTTP request.</param>
     /// <param name="SOAPBody">The parsed SOAP/XML request body.</param>
     /// <returns>A HTTP response task.</returns>
-    public delegate HTTPResponse SOAPBodyDelegate(HTTPRequest Request, XElement SOAPBody);
+    public delegate Task<HTTPResponse> SOAPBodyDelegate(HTTPRequest  Request,
+                                                        XElement     SOAPBody);
 
     /// <summary>
     /// A HTTP delegate.
@@ -41,13 +43,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
     /// <param name="SOAPHeader">The parsed SOAP/XML request header.</param>
     /// <param name="SOAPBody">The parsed SOAP/XML request body.</param>
     /// <returns>A HTTP response task.</returns>
-    public delegate HTTPResponse SOAPHeaderAndBodyDelegate(HTTPRequest Request, XElement SOAPHeader, XElement SOAPBody);
+    public delegate Task<HTTPResponse> SOAPHeaderAndBodyDelegate(HTTPRequest  Request,
+                                                                 XElement     SOAPHeader,
+                                                                 XElement     SOAPBody);
 
     /// <summary>
     /// A delegate for checking if a givem XML matches.
     /// </summary>
     /// <param name="SOAPXML">A XML.</param>
     /// <returns>The matching XML (sub-)element.</returns>
-    public delegate XElement SOAPMatch(XElement SOAPXML);
+    public delegate XElement SOAPMatch(XElement  SOAPXML);
 
 }
