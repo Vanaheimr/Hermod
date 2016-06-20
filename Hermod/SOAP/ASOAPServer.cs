@@ -54,56 +54,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         #region Properties
 
-        #region SOAPServer
-
-        private readonly SOAPServer _SOAPServer;
-
         /// <summary>
         /// The HTTP/SOAP server.
         /// </summary>
-        public SOAPServer SOAPServer
-        {
-            get
-            {
-                return _SOAPServer;
-            }
-        }
-
-        #endregion
-
-        #region URIPrefix
-
-        private readonly String _URIPrefix;
+        public SOAPServer  SOAPServer   { get; }
 
         /// <summary>
         /// The common URI prefix for this HTTP/SOAP service.
         /// </summary>
-        public String URIPrefix
-        {
-            get
-            {
-                return _URIPrefix;
-            }
-        }
-
-        #endregion
-
-        #region DNSClient
-
-        private readonly DNSClient _DNSClient;
+        public String      URIPrefix    { get; }
 
         /// <summary>
         /// The DNS client used by this server.
         /// </summary>
-        public DNSClient DNSClient
-        {
-            get
-            {
-                return _DNSClient;
-            }
-        }
-
-        #endregion
+        public DNSClient   DNSClient    { get; }
 
         #endregion
 
@@ -119,12 +83,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             add
             {
-                _SOAPServer.RequestLog += value;
+                SOAPServer.RequestLog += value;
             }
 
             remove
             {
-                _SOAPServer.RequestLog -= value;
+                SOAPServer.RequestLog -= value;
             }
 
         }
@@ -141,12 +105,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             add
             {
-                _SOAPServer.AccessLog += value;
+                SOAPServer.AccessLog += value;
             }
 
             remove
             {
-                _SOAPServer.AccessLog -= value;
+                SOAPServer.AccessLog -= value;
             }
 
         }
@@ -163,12 +127,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             add
             {
-                _SOAPServer.ErrorLog += value;
+                SOAPServer.ErrorLog += value;
             }
 
             remove
             {
-                _SOAPServer.ErrorLog -= value;
+                SOAPServer.ErrorLog -= value;
             }
 
         }
@@ -237,9 +201,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             #endregion
 
-            this._SOAPServer  = SOAPServer;
-            this._URIPrefix   = URIPrefix;
-            this._DNSClient   = SOAPServer.DNSClient;
+            this.SOAPServer  = SOAPServer;
+            this.URIPrefix   = URIPrefix;
+            this.DNSClient   = SOAPServer.DNSClient;
 
             RegisterURITemplates();
 
@@ -261,7 +225,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         public virtual void Start()
         {
-            _SOAPServer.Start();
+            SOAPServer.Start();
         }
 
         #endregion
@@ -270,7 +234,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         public virtual void Shutdown(String Message = null, Boolean Wait = true)
         {
-            _SOAPServer.Shutdown(Message, Wait);
+            SOAPServer.Shutdown(Message, Wait);
         }
 
         #endregion
