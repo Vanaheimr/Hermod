@@ -1127,20 +1127,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                         HTTPRequest  Request)
         {
 
-            OpenFileWithRetry(() => {
-                using (var logfile = File.AppendText(_LogFileCreator(Context, LogEventName)))
-                {
+            try
+            {
 
-                    if (Request.RemoteSocket != null && Request.LocalSocket != null)
-                        logfile.WriteLine(Request.RemoteSocket.ToString() + " -> " + Request.LocalSocket);
+                OpenFileWithRetry(() => {
+                    using (var logfile = File.AppendText(_LogFileCreator(Context, LogEventName)))
+                    {
 
-                    logfile.WriteLine(">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------");
-                    logfile.WriteLine(Request.Timestamp.ToIso8601());
-                    logfile.WriteLine(Request.EntirePDU);
-                    logfile.WriteLine("--------------------------------------------------------------------------------");
+                        if (Request.RemoteSocket != null && Request.LocalSocket != null)
+                            logfile.WriteLine(Request.RemoteSocket.ToString() + " -> " + Request.LocalSocket);
 
-                }
-            });
+                        logfile.WriteLine(">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------");
+                        logfile.WriteLine(Request.Timestamp.ToIso8601());
+                        logfile.WriteLine(Request.EntirePDU);
+                        logfile.WriteLine("--------------------------------------------------------------------------------");
+
+                    }
+                });
+
+            }
+            catch (Exception e)
+            {
+                DebugX.Log("Could not log to disc: " + e.Message);
+            }
 
         }
 
@@ -1161,23 +1170,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          HTTPResponse  Response)
         {
 
-            OpenFileWithRetry(() => {
-                using (var logfile = File.AppendText(_LogFileCreator(Context, LogEventName)))
-                {
+            try
+            {
 
-                    if (Request.RemoteSocket != null && Request.LocalSocket != null)
-                        logfile.WriteLine(Request.RemoteSocket.ToString() + " -> " + Request.LocalSocket);
+                OpenFileWithRetry(() => {
+                    using (var logfile = File.AppendText(_LogFileCreator(Context, LogEventName)))
+                    {
 
-                    logfile.WriteLine(">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------");
-                    logfile.WriteLine(Request.Timestamp.ToIso8601());
-                    logfile.WriteLine(Request.EntirePDU);
-                    logfile.WriteLine("<<<<<<--Response----<<<<<<------<<<<<<------<<<<<<------<<<<<<------<<<<<<------");
-                    logfile.WriteLine(Response.Timestamp.ToIso8601() + " -> " + (Request.Timestamp - Response.Timestamp).TotalMilliseconds + "ms runtime");
-                    logfile.WriteLine(Response.EntirePDU);
-                    logfile.WriteLine("--------------------------------------------------------------------------------");
+                        if (Request.RemoteSocket != null && Request.LocalSocket != null)
+                            logfile.WriteLine(Request.RemoteSocket.ToString() + " -> " + Request.LocalSocket);
 
-                }
-            });
+                        logfile.WriteLine(">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------");
+                        logfile.WriteLine(Request.Timestamp.ToIso8601());
+                        logfile.WriteLine(Request.EntirePDU);
+                        logfile.WriteLine("<<<<<<--Response----<<<<<<------<<<<<<------<<<<<<------<<<<<<------<<<<<<------");
+                        logfile.WriteLine(Response.Timestamp.ToIso8601() + " -> " + (Request.Timestamp - Response.Timestamp).TotalMilliseconds + "ms runtime");
+                        logfile.WriteLine(Response.EntirePDU);
+                        logfile.WriteLine("--------------------------------------------------------------------------------");
+
+                    }
+                });
+
+            }
+            catch (Exception e)
+            {
+                DebugX.Log("Could not log to disc: " + e.Message);
+            }
 
         }
 
