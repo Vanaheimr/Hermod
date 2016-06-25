@@ -636,6 +636,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             return new HTTPResponse(HTTPResponseHeader,
+                                    HTTPResponseBodyStream,
                                     HTTPRequest);
 
         }

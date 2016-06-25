@@ -727,8 +727,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Declare an explicit conversion from a HTTPRequestBuilder to an HTTPRequestHeader
         /// </summary>
-        /// <param name="HTTPRequestBuilder"></param>
-        /// <returns></returns>
+        /// <param name="Builder">An HTTP request builder.</param>
         public static implicit operator HTTPRequest(HTTPRequestBuilder Builder)
         {
             return Builder.AsImmutable();
