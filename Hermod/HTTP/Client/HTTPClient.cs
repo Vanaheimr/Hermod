@@ -30,6 +30,7 @@ using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using Newtonsoft.Json.Linq;
 
 #endregion
 
@@ -381,17 +382,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Execute(HTTPRequest, RequestLogDelegate = null, ResponseLogDelegate = null, Timeout = null, CancellationToken = null)
+        #region Execute(Request, RequestLogDelegate = null, ResponseLogDelegate = null, Timeout = null, CancellationToken = null)
 
         /// <summary>
         /// Execute the given HTTP request and return its result.
         /// </summary>
-        /// <param name="HTTP_Request">A HTTP request.</param>
+        /// <param name="Request">A HTTP request.</param>
         /// <param name="RequestLogDelegate">A delegate for logging the HTTP request.</param>
         /// <param name="ResponseLogDelegate">A delegate for logging the HTTP request/response.</param>
         /// <param name="Timeout">An optional timeout.</param>
         /// <param name="CancellationToken">A cancellation token.</param>
-        public async Task<HTTPResponse> Execute(HTTPRequest               HTTP_Request,
+        public async Task<HTTPResponse> Execute(HTTPRequest               Request,
                                                 ClientRequestLogHandler   RequestLogDelegate   = null,
                                                 ClientResponseLogHandler  ResponseLogDelegate  = null,
                                                 TimeSpan?                 Timeout              = null,
@@ -403,26 +404,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             try
             {
 
-                RequestLogDelegate?.Invoke(DateTime.Now, this, HTTP_Request);
+                RequestLogDelegate?.Invoke(DateTime.Now, this, Request);
 
             }
             catch (Exception e)
             {
-                e.Log("HTTPClient." + nameof(RequestLogDelegate));
+                e.Log(nameof(HTTPClient) + "." + nameof(RequestLogDelegate));
             }
 
             #endregion
 
             var task = Task<HTTPResponse>.Factory.StartNew(() => {
 
+                HTTPResponse Response = null;
+
                 try
                 {
 
-                    //DebugX.Log("[" + DateTime.Now.ToIso8601() + "] HTTPClient started...");
+                    if (Request.URI.Contains("eRoaming"))
+                        throw new Exception("Catch me if you can!");
 
                     Thread.CurrentThread.Priority = ThreadPriority.BelowNormal;
-
-                    HTTPResponse _HTTPResponse = null;
 
                     #region Data
 
@@ -527,17 +529,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #region Send Request
 
-                    HTTPStream.Write(String.Concat(HTTP_Request.EntireRequestHeader,
+                    HTTPStream.Write(String.Concat(Request.EntireRequestHeader,
                                                    Environment.NewLine,
                                                    Environment.NewLine).
                                      ToUTF8Bytes());
 
-                    var RequestBodyLength = HTTP_Request.HTTPBody == null
-                                                ? HTTP_Request.ContentLength.HasValue ? (Int32) HTTP_Request.ContentLength.Value : 0
-                                                : HTTP_Request.ContentLength.HasValue ? Math.Min((Int32) HTTP_Request.ContentLength.Value, HTTP_Request.HTTPBody.Length) : HTTP_Request.HTTPBody.Length;
+                    var RequestBodyLength = Request.HTTPBody == null
+                                                ? Request.ContentLength.HasValue ? (Int32) Request.ContentLength.Value : 0
+                                                : Request.ContentLength.HasValue ? Math.Min((Int32) Request.ContentLength.Value, Request.HTTPBody.Length) : Request.HTTPBody.Length;
 
                     if (RequestBodyLength > 0)
-                        HTTPStream.Write(HTTP_Request.HTTPBody, 0, RequestBodyLength);
+                        HTTPStream.Write(Request.HTTPBody, 0, RequestBodyLength);
 
                     var _MemoryStream = new MemoryStream();
                     var _Buffer = new Byte[10485760]; // 10 MBytes, a smaller value leads to read errors!
@@ -635,7 +637,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (HTTPHeaderBytes.Length == 0)
                         throw new ApplicationException(DateTime.Now + " Could not find the end of the HTTP protocol header!");
 
-                    _HTTPResponse = new HTTPResponse(HTTPHeaderBytes.ToUTF8String(), HTTP_Request);
+                    Response = HTTPResponse.Parse(HTTPHeaderBytes.ToUTF8String(),
+                                                       Request);
 
                     #endregion
 
@@ -643,13 +646,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     // Copy only the number of bytes given within
                     // the HTTP header element 'Content-Length'!
-                    if (_HTTPResponse.ContentLength.HasValue && _HTTPResponse.ContentLength.Value > 0)
+                    if (Response.ContentLength.HasValue && Response.ContentLength.Value > 0)
                     {
 
                         _MemoryStream.Seek(HTTPHeaderBytes.Length + 4, SeekOrigin.Begin);
                         var _Read = _MemoryStream.Read(_Buffer, 0, _Buffer.Length);
-                        var _StillToRead = (Int32)_HTTPResponse.ContentLength.Value - _Read;
-                        _HTTPResponse.HTTPBodyStream.Write(_Buffer, 0, _Read);
+                        var _StillToRead = (Int32)Response.ContentLength.Value - _Read;
+                        Response.HTTPBodyStream.Write(_Buffer, 0, _Read);
                         var _CurrentBufferSize = 0;
 
                         do
@@ -659,7 +662,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             {
                                 _CurrentBufferSize = Math.Min(_Buffer.Length, (Int32)_StillToRead);
                                 _Read = HTTPStream.Read(_Buffer, 0, _CurrentBufferSize);
-                                _HTTPResponse.HTTPBodyStream.Write(_Buffer, 0, _Read);
+                                Response.HTTPBodyStream.Write(_Buffer, 0, _Read);
                                 _StillToRead -= _Read;
                             }
 
@@ -671,7 +674,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         }
                         while (sw.ElapsedMilliseconds < HTTPStream.ReadTimeout);
 
-                        _HTTPResponse.ContentStreamToArray();
+                        Response.ContentStreamToArray();
 
                     }
 
@@ -686,8 +689,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         {
 
                             _MemoryStream.Seek(HTTPHeaderBytes.Length + 4, SeekOrigin.Begin);
-                            _HTTPResponse.NewContentStream();
-                            _HTTPResponse.HTTPBodyStream.Write(_Buffer, 0, _MemoryStream.Read(_Buffer, 0, _Buffer.Length));
+                            Response.NewContentStream();
+                            Response.HTTPBodyStream.Write(_Buffer, 0, _MemoryStream.Read(_Buffer, 0, _Buffer.Length));
 
                             var Retries = 0;
 
@@ -696,7 +699,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                 while (TCPStream.DataAvailable)
                                 {
-                                    _HTTPResponse.HTTPBodyStream.Write(_Buffer, 0, HTTPStream.Read(_Buffer, 0, _Buffer.Length));
+                                    Response.HTTPBodyStream.Write(_Buffer, 0, HTTPStream.Read(_Buffer, 0, _Buffer.Length));
                                     Retries = 0;
                                 }
 
@@ -705,12 +708,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                             }
 
-                            if (_HTTPResponse.TransferEncoding == "chunked")
+                            if (Response.TransferEncoding == "chunked")
                             {
 
                                 //Debug.WriteLine(DateTime.Now + " Chunked encoding detected");
 
-                                var TEContent = ((MemoryStream)_HTTPResponse.HTTPBodyStream).ToArray();
+                                var TEContent = ((MemoryStream)Response.HTTPBodyStream).ToArray();
                                 var TEString = TEContent.ToUTF8String();
                                 var ReadBlockLength = true;
                                 var TEMemStram = new MemoryStream();
@@ -774,12 +777,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                 } while (i < TEContent.Length);
 
-                                _HTTPResponse.ContentStreamToArray(TEMemStram);
+                                Response.ContentStreamToArray(TEMemStram);
 
                             }
 
                             else
-                                _HTTPResponse.ContentStreamToArray();
+                                Response.ContentStreamToArray();
 
                         }
 
@@ -794,46 +797,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #region Close connection if requested!
 
-                    if (_HTTPResponse.Connection == null ||
-                        _HTTPResponse.Connection == "close")
+                    if (Response.Connection == null ||
+                        Response.Connection == "close")
                     {
                         TCPClient.Close();
-                        HTTPStream = null;
-                        TCPClient = null;
+                        HTTPStream  = null;
+                        TCPClient   = null;
                     }
 
                     #endregion
-
-                    #region Call the optional HTTP response log delegate
-
-                    try
-                    {
-
-                        ResponseLogDelegate?.Invoke(DateTime.Now, this, HTTP_Request, _HTTPResponse);
-
-                    }
-                    catch (Exception e)
-                    {
-                        e.Log("HTTPClient." + nameof(ResponseLogDelegate));
-                    }
-
-                    #endregion
-
-
-                    return _HTTPResponse;
 
                 }
                 catch (Exception e)
                 {
 
+                    #region Create a HTTP response for the exception...
+
                     while (e.InnerException != null)
                         e = e.InnerException;
 
-                    Console.WriteLine("HTTP client exception: " + e.Message);
+                    Response = new HTTPResponseBuilder(Request,
+                                                       HTTPStatusCode.BadRequest)
+                    {
 
-                    return null;
+                        ContentType  = HTTPContentType.JSON_UTF8,
+                        Content      = JSONObject.Create(new JProperty("Message",     e.Message),
+                                                         new JProperty("StackTrace",  e.StackTrace)).
+                                                  ToUTF8Bytes()
+
+                    };
+
+                    #endregion
 
                 }
+
+                #region Call the optional HTTP response log delegate
+
+                try
+                {
+
+                    ResponseLogDelegate?.Invoke(DateTime.Now, this, Request, Response);
+
+                }
+                catch (Exception e2)
+                {
+                    e2.Log(nameof(HTTPClient) + "." + nameof(ResponseLogDelegate));
+                }
+
+                #endregion
+
+
+                return Response;
+
 
             }, TaskCreationOptions.AttachedToParent);
 

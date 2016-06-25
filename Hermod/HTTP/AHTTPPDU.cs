@@ -488,23 +488,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this.Timestamp          = HTTPPDU.Timestamp;
-            this.RemoteSocket       = HTTPPDU.RemoteSocket;
-            this._LocalSocket       = HTTPPDU.LocalSocket;
-            this.RawHTTPHeader      = HTTPPDU.RawHTTPHeader;
-            this.RawPDU             = HTTPPDU.RawPDU;
-            this._HTTPBody          = HTTPPDU.HTTPBody;
-            this._HTTPBodyStream    = HTTPPDU.HTTPBodyStream;
-            this.CancellationToken  = HTTPPDU.CancellationToken;
-            this.EventTrackingId    = HTTPPDU.EventTrackingId;
+            this.Timestamp          = HTTPPDU?.Timestamp         ?? DateTime.Now;
+            this.RemoteSocket       = HTTPPDU?.RemoteSocket;
+            this._LocalSocket       = HTTPPDU?.LocalSocket;
+            this.RawHTTPHeader      = HTTPPDU?.RawHTTPHeader;
+            this.RawPDU             = HTTPPDU?.RawPDU;
+            this._HTTPBody          = HTTPPDU?.HTTPBody;
+            this._HTTPBodyStream    = HTTPPDU?.HTTPBodyStream;
+            this.CancellationToken  = HTTPPDU?.CancellationToken ?? new CancellationTokenSource().Token;
+            this.EventTrackingId    = HTTPPDU?.EventTrackingId;
 
-            this.FirstPDULine       = HTTPPDU.FirstPDULine;
+            this.FirstPDULine       = HTTPPDU?.FirstPDULine;
 
-            foreach (var field in HTTPPDU._HeaderFields)
-                this._HeaderFields.Add(field.Key, field.Value);
+            if (HTTPPDU._HeaderFields != null)
+                foreach (var field in HTTPPDU._HeaderFields)
+                    this._HeaderFields.Add(field.Key, field.Value);
 
-            foreach (var field in HTTPPDU._HeaderFields2)
-                this._HeaderFields2.Add(field.Key, field.Value);
+            if (HTTPPDU._HeaderFields2 != null)
+                foreach (var field in HTTPPDU._HeaderFields2)
+                    this._HeaderFields2.Add(field.Key, field.Value);
 
         }
 

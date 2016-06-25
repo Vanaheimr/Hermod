@@ -172,18 +172,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="OnException">The delegate to call whenever an exception occured.</param>
         /// <param name="QueryTimeout">An optional timeout of the HTTP client [default 60 sec.]</param>
         /// <returns>The data structured after it had been processed by the OnSuccess delegate, or a fault.</returns>
-        public Task<HTTPResponse<T>> Query<T>(XElement                                                         QueryXML,
-                                              String                                                           SOAPAction,
-                                              Func<HTTPResponse<XElement>,                   HTTPResponse<T>>  OnSuccess,
-                                              Func<DateTime, Object, HTTPResponse<XElement>, HTTPResponse<T>>  OnSOAPFault,
-                                              Func<DateTime, Object, HTTPResponse,           HTTPResponse<T>>  OnHTTPError,
-                                              Func<DateTime, Object, Exception,              HTTPResponse<T>>  OnException,
-                                              Action<HTTPRequestBuilder>                                       HTTPRequestBuilder   = null,
-                                              ClientRequestLogHandler                                          RequestLogDelegate   = null,
-                                              ClientResponseLogHandler                                         ResponseLogDelegate  = null,
-                                              CancellationToken?                                               CancellationToken    = null,
-                                              EventTracking_Id                                                 EventTrackingId      = null,
-                                              TimeSpan?                                                        QueryTimeout         = null)
+        public Task<HTTPResponse<T>>
+
+            Query<T>(XElement                                                         QueryXML,
+                     String                                                           SOAPAction,
+                     Func<HTTPResponse<XElement>,                   HTTPResponse<T>>  OnSuccess,
+                     Func<DateTime, Object, HTTPResponse<XElement>, HTTPResponse<T>>  OnSOAPFault,
+                     Func<DateTime, Object, HTTPResponse,           HTTPResponse<T>>  OnHTTPError,
+                     Func<DateTime, Object, Exception,              HTTPResponse<T>>  OnException,
+                     Action<HTTPRequestBuilder>                                       HTTPRequestBuilder   = null,
+                     ClientRequestLogHandler                                          RequestLogDelegate   = null,
+                     ClientResponseLogHandler                                         ResponseLogDelegate  = null,
+                     CancellationToken?                                               CancellationToken    = null,
+                     EventTracking_Id                                                 EventTrackingId      = null,
+                     TimeSpan?                                                        QueryTimeout         = null)
 
         {
 
@@ -258,20 +260,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                 //   <detail>
                                 //     <Validation>
                                 //       <Errors>
-                                //         <Error column="65" errorXpath="/eMI3:Envelope/eMI3:Body/EVSEStatus:eRoamingPullEvseStatusById/EVSEStatus:EvseId" line="3">Value '+45*045*010*0A96296' is not facet-valid with respect to pattern '([A-Za-z]{2}\*?[A-Za-z0-9]{3}\*?E[A-Za-z0-9\*]{1,30})|(\+?[0-9]{1,3}\*[0-9]{3,6}\*[0-9\*]{1,32})' for type 'EvseIDType'.</Error>
-                                //         <Error column="65" errorXpath="/eMI3:Envelope/eMI3:Body/EVSEStatus:eRoamingPullEvseStatusById/EVSEStatus:EvseId" line="3">The value '+45*045*010*0A96296' of element 'EVSEStatus:EvseId' is not valid.</Error>
+                                //         <Error column="65" errorXpath="/OICP:Envelope/OICP:Body/EVSEStatus:eRoamingPullEvseStatusById/EVSEStatus:EvseId" line="3">Value '+45*045*010*0A96296' is not facet-valid with respect to pattern '([A-Za-z]{2}\*?[A-Za-z0-9]{3}\*?E[A-Za-z0-9\*]{1,30})|(\+?[0-9]{1,3}\*[0-9]{3,6}\*[0-9\*]{1,32})' for type 'EvseIDType'.</Error>
+                                //         <Error column="65" errorXpath="/OICP:Envelope/OICP:Body/EVSEStatus:eRoamingPullEvseStatusById/EVSEStatus:EvseId" line="3">The value '+45*045*010*0A96296' of element 'EVSEStatus:EvseId' is not valid.</Error>
                                 //       </Errors>
                                 //       <OriginalDocument>
-                                //         <eMI3:Envelope xmlns:eMI3="http://schemas.xmlsoap.org/soap/envelope/" xmlns:Authorization="http://www.hubject.com/b2b/services/authorization/v1.2" xmlns:CommonTypes="http://www.hubject.com/b2b/services/commontypes/v1.2" xmlns:EVSEData="http://www.hubject.com/b2b/services/evsedata/v1.2" xmlns:EVSESearch="http://www.hubject.com/b2b/services/evsesearch/v1.2" xmlns:EVSEStatus="http://www.hubject.com/b2b/services/evsestatus/v1.2" xmlns:MobileAuthorization="http://www.hubject.com/b2b/services/mobileauthorization/v1.2">
-                                //           <eMI3:Header />
-                                //           <eMI3:Body>
-                                //             <EVSEStatus:eRoamingPullEvseStatusById>
-                                //               <EVSEStatus:ProviderID>DE-8BD</EVSEStatus:ProviderID>
-                                //               <EVSEStatus:EvseId>+45*045*010*0A96296</EVSEStatus:EvseId>
-                                //               <EVSEStatus:EvseId>+46*899*02423*01</EVSEStatus:EvseId>
-                                //             </EVSEStatus:eRoamingPullEvseStatusById>
-                                //           </eMI3:Body>
-                                //         </eMI3:Envelope>
+                                //         ...
                                 //       </OriginalDocument>
                                 //     </Validation>
                                 //   </detail>

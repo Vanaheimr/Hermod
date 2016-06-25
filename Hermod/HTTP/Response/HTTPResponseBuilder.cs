@@ -385,8 +385,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this._Timestamp         = DateTime.Now;
             this.ProtocolName       = "HTTP";
             this.ProtocolVersion    = new HTTPVersion(1, 1);
-            this.CancellationToken  = HTTPRequest != null ? HTTPRequest.CancellationToken : new CancellationTokenSource().Token;
-            base.EventTrackingId    = HTTPRequest.EventTrackingId;
+            this.CancellationToken  = HTTPRequest?.CancellationToken ?? new CancellationTokenSource().Token;
+            base.EventTrackingId    = HTTPRequest?.EventTrackingId   ?? EventTracking_Id.New;
 
         }
 
@@ -693,8 +693,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var response = new HTTPResponseBuilder(HTTPRequest).
                                SetHTTPStatusCode(HTTPStatusCode.OK);
 
-            if (Configurator != null)
-                Configurator(response);
+            Configurator?.Invoke(response);
 
             return response;
 
@@ -748,13 +747,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             HTTPResponse response = null;
 
             if (Content != null)
-                response = new HTTPResponse(HTTPHeader, Content, _HTTPRequest);
+                response = HTTPResponse.Parse(HTTPHeader, Content, _HTTPRequest);
 
             else if (ContentStream != null)
-                response = new HTTPResponse(HTTPHeader, ContentStream, _HTTPRequest);
+                response = HTTPResponse.Parse(HTTPHeader, ContentStream, _HTTPRequest);
 
             else
-                response = new HTTPResponse(HTTPHeader, _HTTPRequest);
+                response = HTTPResponse.Parse(HTTPHeader, _HTTPRequest);
 
             return response;
 

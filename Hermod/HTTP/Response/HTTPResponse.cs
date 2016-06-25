@@ -45,20 +45,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             return new HTTPResponse<TResult>(Response, ContentParser(Response.HTTPBodyStream));
         }
 
-
-        public static HTTPResponse<TResult> Parse<TResult, TInput>(this HTTPResponse<TInput>  Response,
-                                                                   Func<TInput, TResult>      ContentParser)
-        {
-            return new HTTPResponse<TResult>(Response, ContentParser(Response.Content));
-        }
-
-        public static HTTPResponse<TResult> Parse<TResult, TInput>(this HTTPResponse<TInput>                   Response,
-                                                                   Func<TInput, OnExceptionDelegate, TResult>  ContentParser,
-                                                                   OnExceptionDelegate                         OnException = null)
-        {
-            return new HTTPResponse<TResult>(Response, ContentParser(Response.Content, OnException));
-        }
-
     }
 
 
@@ -79,51 +65,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Properties
 
-        #region Content
-
-        private readonly TContent _Content;
-
         /// <summary>
         /// The parsed content.
         /// </summary>
-        public TContent Content
-        {
-            get
-            {
-                return _Content;
-            }
-        }
-
-        #endregion
-
-        #region Exception
-
-        private readonly Exception _Exception;
+        public TContent   Content    { get; }
 
         /// <summary>
         /// An exception during parsing.
         /// </summary>
-        public Exception Exception
-        {
-            get
-            {
-                return _Exception;
-            }
-        }
+        public Exception  Exception  { get; }
 
-        #endregion
-
-        #region HasErrors
-
+        /// <summary>
+        /// An error during parsing.
+        /// </summary>
         public Boolean HasErrors
-        {
-            get
-            {
-                return _Exception != null && !_IsFault;
-            }
-        }
-
-        #endregion
+            => Exception != null && !_IsFault;
 
         #endregion
 
@@ -140,9 +96,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this._Content      = Content;
-            this._IsFault      = IsFault;
-            this._Exception    = Exception;
+            this.Content    = Content;
+            this._IsFault   = IsFault;
+            this.Exception  = Exception;
 
         }
 
@@ -176,6 +132,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region (private) HTTPResponse(Content, Exception)
+
+        private HTTPResponse(TContent   Content,
+                             Exception  Exception)
+
+            : base(null)
+
+        {
+
+            this.Content    = Content;
+            this._IsFault   = true;
+            this.Exception  = Exception;
+
+        }
+
+        #endregion
+
+
         #region HTTPResponse(Request, Content)
 
         private HTTPResponse(HTTPRequest  Request,
@@ -204,6 +178,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region ConvertContent<TResult>(ContentConverter)
+
+        /// <summary>
+        /// Convert the content of the HTTP response body via the given
+        /// content converter delegate.
+        /// </summary>
+        /// <typeparam name="TResult">The type of the converted HTTP response body content.</typeparam>
+        /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
+        public HTTPResponse<TResult> ConvertContent<TResult>(Func<TContent, TResult> ContentConverter)
+        {
+
+            if (ContentConverter == null)
+                throw new ArgumentNullException(nameof(ContentConverter),  "The given content converter delegate must not be null!");
+
+            return new HTTPResponse<TResult>(this, ContentConverter(this.Content));
+
+        }
+
+        #endregion
+
+        #region ConvertContent<TResult>(ContentConverter, OnException = null)
+
+        /// <summary>
+        /// Convert the content of the HTTP response body via the given
+        /// content converter delegate.
+        /// </summary>
+        /// <typeparam name="TResult">The type of the converted HTTP response body content.</typeparam>
+        /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
+        /// <param name="OnException">A delegate to call whenever an exception during the conversion occures.</param>
+        public HTTPResponse<TResult> ConvertContent<TResult>(Func<TContent, OnExceptionDelegate, TResult>  ContentConverter,
+                                                             OnExceptionDelegate                           OnException = null)
+        {
+
+            if (ContentConverter == null)
+                throw new ArgumentNullException(nameof(ContentConverter), "The given content converter delegate must not be null!");
+
+            return new HTTPResponse<TResult>(this, ContentConverter(this.Content, OnException));
+
+        }
+
+        #endregion
+
+
         public static HTTPResponse<TContent> OK(HTTPRequest  HTTPRequest,
                                                 TContent     Content)
         {
@@ -213,6 +230,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPResponse<TContent> OK(TContent Content)
         {
             return new HTTPResponse<TContent>(null, Content);
+        }
+
+        public static HTTPResponse<TContent> ExceptionThrown(TContent   Content,
+                                                             Exception  Exception)
+        {
+            return new HTTPResponse<TContent>(Content, Exception);
         }
 
     }
@@ -432,20 +455,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region HTTPResponse(Response)
+        #region (internal) HTTPResponse(Response)
 
         /// <summary>
         /// Create a new HTTP response based on the given HTTP response.
+        /// (e.g. upgrade a HTTPResponse to a HTTPResponse&lt;TContent&gt;)
         /// </summary>
         /// <param name="Response">A HTTP response.</param>
-        public HTTPResponse(HTTPResponse Response)
+        internal HTTPResponse(HTTPResponse Response)
 
             : base(Response)
 
         {
 
-            this._HTTPRequest     = Response.HTTPRequest;
-            this._HTTPStatusCode  = Response.HTTPStatusCode;
+            this._HTTPRequest     = Response?.HTTPRequest;
+            this._HTTPStatusCode  = Response?.HTTPStatusCode;
 
         }
 
@@ -494,15 +518,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region HTTPResponse(HTTPResponseHeader, HTTPRequest)
+
+        // Parse the HTTP response from its text-representation...
+
+        #region (private) HTTPResponse(HTTPResponseHeader, HTTPRequest)
 
         /// <summary>
         /// Parse the given HTTP response header.
         /// </summary>
         /// <param name="HTTPResponseHeader">A string representation of a HTTP response header.</param>
         /// <param name="HTTPRequest">The HTTP request for this HTTP response.</param>
-        public HTTPResponse(String            HTTPResponseHeader,
-                            HTTPRequest       HTTPRequest)
+        private HTTPResponse(String            HTTPResponseHeader,
+                             HTTPRequest       HTTPRequest)
 
             : this(HTTPRequest, null, null, HTTPResponseHeader, null, new MemoryStream(), EventTrackingId: HTTPRequest.EventTrackingId)
 
@@ -525,7 +552,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region HTTPResponse(HTTPResponseHeader, HTTPResponseBody, HTTPRequest)
+        #region (private) HTTPResponse(HTTPResponseHeader, HTTPResponseBody, HTTPRequest)
 
         /// <summary>
         /// Parse the given HTTP response header.
@@ -533,9 +560,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPResponseHeader">A string representation of a HTTP response header.</param>
         /// <param name="HTTPResponseBody">The HTTP body as an array of bytes.</param>
         /// <param name="HTTPRequest">The HTTP request for this HTTP response.</param>
-        public HTTPResponse(String            HTTPResponseHeader,
-                            Byte[]            HTTPResponseBody,
-                            HTTPRequest       HTTPRequest)
+        private HTTPResponse(String            HTTPResponseHeader,
+                             Byte[]            HTTPResponseBody,
+                             HTTPRequest       HTTPRequest)
 
             : this(HTTPRequest, null, null, HTTPResponseHeader, HTTPResponseBody, EventTrackingId: HTTPRequest.EventTrackingId)
 
@@ -543,7 +570,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region HTTPResponse(HTTPResponseHeader, HTTPResponseBodyStream, HTTPRequest)
+        #region (private) HTTPResponse(HTTPResponseHeader, HTTPResponseBodyStream, HTTPRequest)
 
         /// <summary>
         /// Parse the given HTTP response header.
@@ -551,9 +578,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPResponseHeader">A string representation of a HTTP response header.</param>
         /// <param name="HTTPResponseBodyStream">The HTTP body as an stream of bytes.</param>
         /// <param name="HTTPRequest">The HTTP request for this HTTP response.</param>
-        public HTTPResponse(String            HTTPResponseHeader,
-                            Stream            HTTPResponseBodyStream,
-                            HTTPRequest       HTTPRequest)
+        private HTTPResponse(String            HTTPResponseHeader,
+                             Stream            HTTPResponseBodyStream,
+                             HTTPRequest       HTTPRequest)
 
             : this(HTTPRequest, null, null, HTTPResponseHeader, null, HTTPResponseBodyStream, EventTrackingId: HTTPRequest.EventTrackingId)
 
@@ -562,6 +589,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
         #endregion
+
+
+        /// <summary>
+        /// Parse the HTTP response from its text-representation.
+        /// </summary>
+        /// <param name="HTTPResponseHeader"></param>
+        /// <param name="HTTPRequest"></param>
+        public static HTTPResponse Parse(String       HTTPResponseHeader,
+                                         HTTPRequest  HTTPRequest)
+        {
+
+            return new HTTPResponse(HTTPResponseHeader,
+                                    HTTPRequest);
+
+        }
+
+        /// <summary>
+        /// Parse the HTTP response from its text-representation and
+        /// attach the given HTTP body.
+        /// </summary>
+        /// <param name="HTTPResponseHeader"></param>
+        /// <param name="HTTPResponseBody"></param>
+        /// <param name="HTTPRequest"></param>
+        public static HTTPResponse Parse(String       HTTPResponseHeader,
+                                         Byte[]       HTTPResponseBody,
+                                         HTTPRequest  HTTPRequest)
+        {
+
+            return new HTTPResponse(HTTPResponseHeader,
+                                    HTTPRequest);
+
+        }
+
+        /// <summary>
+        /// Parse the HTTP response from its text-representation and
+        /// attach the given HTTP body.
+        /// </summary>
+        /// <param name="HTTPResponseHeader"></param>
+        /// <param name="HTTPResponseBodyStream"></param>
+        /// <param name="HTTPRequest"></param>
+        /// <returns></returns>
+        public static HTTPResponse Parse(String       HTTPResponseHeader,
+                                         Stream       HTTPResponseBodyStream,
+                                         HTTPRequest  HTTPRequest)
+        {
+
+            return new HTTPResponse(HTTPResponseHeader,
+                                    HTTPRequest);
+
+        }
 
 
         #region (override) ToString()
