@@ -521,21 +521,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         // Parse the HTTP response from its text-representation...
 
-        #region (private) HTTPResponse(HTTPResponseHeader, HTTPRequest)
+        #region (private) HTTPResponse(ResponseHeader, Request)
 
         /// <summary>
-        /// Parse the given HTTP response header.
+        /// Create a new HTTP response.
         /// </summary>
-        /// <param name="HTTPResponseHeader">A string representation of a HTTP response header.</param>
-        /// <param name="HTTPRequest">The HTTP request for this HTTP response.</param>
-        private HTTPResponse(String            HTTPResponseHeader,
-                             HTTPRequest       HTTPRequest)
+        /// <param name="ResponseHeader">The HTTP header of the response.</param>
+        /// <param name="Request">The HTTP request leading to this response.</param>
+        private HTTPResponse(String       ResponseHeader,
+                             HTTPRequest  Request)
 
-            : this(HTTPRequest, null, null, HTTPResponseHeader, null, new MemoryStream(), EventTrackingId: HTTPRequest.EventTrackingId)
+            : this(Request,
+                   null,
+                   null,
+                   ResponseHeader,
+                   null,
+                   new MemoryStream(),
+                   Request?.CancellationToken,
+                   Request?.EventTrackingId)
 
         {
 
-            this._HTTPRequest  = HTTPRequest;
+            this._HTTPRequest  = Request;
 
             #region Parse HTTP status code
 
@@ -552,50 +559,63 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (private) HTTPResponse(HTTPResponseHeader, HTTPResponseBody, HTTPRequest)
+        #region (private) HTTPResponse(ResponseHeader, ResponseBody, Request)
 
         /// <summary>
-        /// Parse the given HTTP response header.
+        /// Create a new HTTP response.
         /// </summary>
-        /// <param name="HTTPResponseHeader">A string representation of a HTTP response header.</param>
-        /// <param name="HTTPResponseBody">The HTTP body as an array of bytes.</param>
-        /// <param name="HTTPRequest">The HTTP request for this HTTP response.</param>
-        private HTTPResponse(String            HTTPResponseHeader,
-                             Byte[]            HTTPResponseBody,
-                             HTTPRequest       HTTPRequest)
+        /// <param name="ResponseHeader">The HTTP header of the response.</param>
+        /// <param name="ResponseBody">The HTTP body of the response.</param>
+        /// <param name="Request">The HTTP request leading to this response.</param>
+        private HTTPResponse(String       ResponseHeader,
+                             Byte[]       ResponseBody,
+                             HTTPRequest  Request)
 
-            : this(HTTPRequest, null, null, HTTPResponseHeader, HTTPResponseBody, EventTrackingId: HTTPRequest.EventTrackingId)
+            : this(Request,
+                   null,
+                   null,
+                   ResponseHeader,
+                   ResponseBody,
+                   null,
+                   Request?.CancellationToken,
+                   Request?.EventTrackingId)
+
+        { }
+
+
+        /// <summary>
+        /// Create a new HTTP response.
+        /// </summary>
+        /// <param name="ResponseHeader">The HTTP header of the response.</param>
+        /// <param name="ResponseBody">The HTTP body of the response.</param>
+        /// <param name="Request">The HTTP request leading to this response.</param>
+        private HTTPResponse(String       ResponseHeader,
+                             Stream       ResponseBody,
+                             HTTPRequest  Request)
+
+            : this(Request,
+                   null,
+                   null,
+                   ResponseHeader,
+                   null,
+                   ResponseBody,
+                   Request?.CancellationToken,
+                   Request?.EventTrackingId)
 
         { }
 
         #endregion
 
-        #region (private) HTTPResponse(HTTPResponseHeader, HTTPResponseBodyStream, HTTPRequest)
-
-        /// <summary>
-        /// Parse the given HTTP response header.
-        /// </summary>
-        /// <param name="HTTPResponseHeader">A string representation of a HTTP response header.</param>
-        /// <param name="HTTPResponseBodyStream">The HTTP body as an stream of bytes.</param>
-        /// <param name="HTTPRequest">The HTTP request for this HTTP response.</param>
-        private HTTPResponse(String            HTTPResponseHeader,
-                             Stream            HTTPResponseBodyStream,
-                             HTTPRequest       HTTPRequest)
-
-            : this(HTTPRequest, null, null, HTTPResponseHeader, null, HTTPResponseBodyStream, EventTrackingId: HTTPRequest.EventTrackingId)
-
-        { }
-
         #endregion
 
-        #endregion
 
+        #region (static) Parse(HTTPResponseHeader, HTTPRequest)
 
         /// <summary>
         /// Parse the HTTP response from its text-representation.
         /// </summary>
-        /// <param name="HTTPResponseHeader"></param>
-        /// <param name="HTTPRequest"></param>
+        /// <param name="HTTPResponseHeader">The HTTP header of the response.</param>
+        /// <param name="HTTPRequest">The HTTP request leading to this response.</param>
         public static HTTPResponse Parse(String       HTTPResponseHeader,
                                          HTTPRequest  HTTPRequest)
         {
@@ -605,19 +625,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
+        #endregion
+
+        #region (static) Parse(HTTPResponseHeader, HTTPResponseBody, HTTPRequest)
+
         /// <summary>
         /// Parse the HTTP response from its text-representation and
         /// attach the given HTTP body.
         /// </summary>
-        /// <param name="HTTPResponseHeader"></param>
-        /// <param name="HTTPResponseBody"></param>
-        /// <param name="HTTPRequest"></param>
+        /// <param name="HTTPResponseHeader">The HTTP header of the response.</param>
+        /// <param name="HTTPResponseBody">The HTTP body of the response.</param>
+        /// <param name="HTTPRequest">The HTTP request leading to this response.</param>
         public static HTTPResponse Parse(String       HTTPResponseHeader,
                                          Byte[]       HTTPResponseBody,
                                          HTTPRequest  HTTPRequest)
         {
 
             return new HTTPResponse(HTTPResponseHeader,
+                                    HTTPResponseBody,
                                     HTTPRequest);
 
         }
@@ -626,20 +651,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Parse the HTTP response from its text-representation and
         /// attach the given HTTP body.
         /// </summary>
-        /// <param name="HTTPResponseHeader"></param>
-        /// <param name="HTTPResponseBodyStream"></param>
-        /// <param name="HTTPRequest"></param>
-        /// <returns></returns>
+        /// <param name="HTTPResponseHeader">The HTTP header of the response.</param>
+        /// <param name="HTTPResponseBody">The HTTP body of the response.</param>
+        /// <param name="HTTPRequest">The HTTP request leading to this response.</param>
         public static HTTPResponse Parse(String       HTTPResponseHeader,
-                                         Stream       HTTPResponseBodyStream,
+                                         Stream       HTTPResponseBody,
                                          HTTPRequest  HTTPRequest)
         {
 
             return new HTTPResponse(HTTPResponseHeader,
-                                    HTTPResponseBodyStream,
+                                    HTTPResponseBody,
                                     HTTPRequest);
 
         }
+
+        #endregion
 
 
         #region (override) ToString()

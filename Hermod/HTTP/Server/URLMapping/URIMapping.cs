@@ -456,8 +456,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Define HTTP Delegate
 
-                HTTPDelegate _HTTPDelegate = async (Request) =>
-                {
+                HTTPDelegate _HTTPDelegate = Request => {
 
                     var _LastEventId        = 0UL;
                     var _Client_LastEventId = 0UL;
@@ -481,14 +480,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     else
                         _ResourceContent += Environment.NewLine + "retry: " + ((UInt32) _EventSource.RetryIntervall.TotalMilliseconds) + Environment.NewLine + Environment.NewLine;
 
-                    return new HTTPResponseBuilder(Request) {
-                        HTTPStatusCode  = HTTPStatusCode.OK,
-                        ContentType     = HTTPContentType.EVENTSTREAM,
-                        CacheControl    = "no-cache",
-                        Connection      = "keep-alive",
-                        KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2*_EventSource.RetryIntervall.TotalSeconds)),
-                        Content         = _ResourceContent.ToUTF8Bytes()
-                    };
+
+                    return Task.FromResult<HTTPResponse>(
+                        new HTTPResponseBuilder(Request) {
+                            HTTPStatusCode  = HTTPStatusCode.OK,
+                            ContentType     = HTTPContentType.EVENTSTREAM,
+                            CacheControl    = "no-cache",
+                            Connection      = "keep-alive",
+                            KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2*_EventSource.RetryIntervall.TotalSeconds)),
+                            Content         = _ResourceContent.ToUTF8Bytes()
+                        });
 
                 };
 
