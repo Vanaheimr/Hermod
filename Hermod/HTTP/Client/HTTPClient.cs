@@ -421,8 +421,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    if (Request.URI.Contains("eRoaming"))
-                        throw new Exception("Catch me if you can!");
+                //    if (Request.URI.Contains("eRoaming"))
+                //        throw new Exception("Catch me if you can!");
 
                     Thread.CurrentThread.Priority = ThreadPriority.BelowNormal;
 
