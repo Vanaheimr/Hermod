@@ -69,146 +69,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         private SslStream       TLSStream;
         private Stream          HTTPStream;
 
+        public const String DefaultUserAgent = "Vanaheimr Hermod HTTP Client v0.1";
+
         #endregion
 
         #region Properties
 
-        #region Hostname
-
-        private readonly String _Hostname;
-
         /// <summary>
         /// The Hostname to which the HTTPClient connects.
         /// </summary>
-        public String Hostname
-        {
-            get
-            {
-                return _Hostname;
-            }
-        }
-
-        #endregion
-
-        #region RemoteIPAddress
-
-        private readonly IIPAddress _RemoteIPAddress;
+        public String           Hostname            { get; }
 
         /// <summary>
         /// The IP Address to connect to.
         /// </summary>
-        public IIPAddress RemoteIPAddress
-        {
-            get
-            {
-                return _RemoteIPAddress;
-            }
-        }
-
-        #endregion
-
-        #region RemotePort
-
-        private readonly IPPort _RemotePort;
+        public IIPAddress       RemoteIPAddress     { get; }
 
         /// <summary>
         /// The IP port to connect to.
         /// </summary>
-        public IPPort RemotePort
-        {
-            get
-            {
-                return _RemotePort;
-            }
-        }
-
-        #endregion
-
-        #region RemoteSocket
+        public IPPort           RemotePort          { get; }
 
         /// <summary>
         /// The IP socket to connect to.
         /// </summary>
-        public IPSocket RemoteSocket
-        {
-
-            get
-            {
-                return new IPSocket(_RemoteIPAddress, _RemotePort);
-            }
-
-            //set
-            //{
-
-            //    if (value == null)
-            //        throw new ArgumentNullException("The remote socket must not be null!");
-
-            //    this._RemoteIPAddress  = value.IPAddress;
-            //    this.RemotePort        = value.Port;
-
-            //}
-
-        }
-
-        #endregion
-
-
-        #region UserAgent
-
-        private const String _UserAgent = "Hermod HTTP Client v0.1";
+        public IPSocket         RemoteSocket
+            => new IPSocket(RemoteIPAddress, RemotePort);
 
         /// <summary>
         /// The default server name.
         /// </summary>
-        public virtual String UserAgent
-        {
-            get
-            {
-                return _UserAgent;
-            }
-        }
-
-        #endregion
-
-        #region DNSClient
-
-        private readonly DNSClient _DNSClient;
+        public String           UserAgent           { get; }
 
         /// <summary>
         /// The default server name.
         /// </summary>
-        public DNSClient DNSClient
-        {
-            get
-            {
-                return _DNSClient;
-            }
-        }
+        public DNSClient        DNSClient           { get; }
 
-        #endregion
-
-        public X509Certificate  ClientCert { get; set; }
-
-        public X509Certificate2 ServerCert { get; set; }
-
-        #region RemoteCertificateValidator
-
-        private readonly RemoteCertificateValidationCallback _RemoteCertificateValidator;
+        //      public X509Certificate2 ServerCert { get; set; }
 
         /// <summary>
         /// A delegate to verify the remote TLS certificate.
         /// </summary>
-        public RemoteCertificateValidationCallback RemoteCertificateValidator
-        {
-            get
-            {
-                return _RemoteCertificateValidator;
-            }
-        }
+        public RemoteCertificateValidationCallback RemoteCertificateValidator { get; }
 
-        #endregion
+        public X509Certificate ClientCert { get; }
 
-        public LocalCertificateSelectionCallback ClientCertificateSelector { get; set; }
+        //    public LocalCertificateSelectionCallback ClientCertificateSelector { get; set; }
 
         #endregion
 
@@ -219,7 +126,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region HTTPClient(RemoteIPAddress, RemotePort, RemoteCertificateValidator = null, DNSClient  = null)
+        #region HTTPClient(RemoteIPAddress, RemotePort, RemoteCertificateValidator = null, ClientCert = null, DNSClient = null)
 
         /// <summary>
         /// Create a new HTTPClient using the given optional parameters.
@@ -227,18 +134,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RemoteIPAddress">The remote IP address to connect to.</param>
         /// <param name="RemotePort">The remote IP port to connect to.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
+        /// <param name="ClientCert">The TLS client certificate to use.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public HTTPClient(IIPAddress                           RemoteIPAddress,
                           IPPort                               RemotePort,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator  = null,
+                          X509Certificate                      ClientCert                  = null,
                           DNSClient                            DNSClient                   = null)
         {
 
-            this._RemoteIPAddress             = RemoteIPAddress;
-            this._Hostname                    = RemoteIPAddress.ToString();
-            this._RemotePort                  = RemotePort;
-            this._RemoteCertificateValidator  = RemoteCertificateValidator;
-            this._DNSClient                   = DNSClient == null
+            this.RemoteIPAddress             = RemoteIPAddress;
+            this.Hostname                    = RemoteIPAddress.ToString();
+            this.RemotePort                  = RemotePort;
+            this.RemoteCertificateValidator  = RemoteCertificateValidator;
+            this.ClientCert                  = ClientCert;
+            this.DNSClient                   = DNSClient == null
                                                    ? new DNSClient()
                                                    : DNSClient;
 
@@ -246,47 +156,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region HTTPClient(Socket, RemoteCertificateValidator = null, DNSClient  = null)
+        #region HTTPClient(Socket, RemoteCertificateValidator = null, ClientCert = null, DNSClient = null)
 
         /// <summary>
         /// Create a new HTTPClient using the given optional parameters.
         /// </summary>
         /// <param name="RemoteSocket">The remote IP socket to connect to.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
+        /// <param name="ClientCert">The TLS client certificate to use.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public HTTPClient(IPSocket                             RemoteSocket,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator  = null,
+                          X509Certificate                      ClientCert                  = null,
                           DNSClient                            DNSClient                   = null)
 
-            : this(RemoteSocket.IPAddress, RemoteSocket.Port, RemoteCertificateValidator, DNSClient)
+            : this(RemoteSocket.IPAddress,
+                   RemoteSocket.Port,
+                   RemoteCertificateValidator,
+                   ClientCert,
+                   DNSClient)
 
         { }
 
         #endregion
 
-        #region HTTPClient(RemoteHost, RemotePort = null, RemoteCertificateValidator = null, DNSClient  = null)
+        #region HTTPClient(RemoteHost, RemotePort = null, RemoteCertificateValidator = null, ClientCert = null, DNSClient = null)
 
         /// <summary>
         /// Create a new HTTPClient using the given optional parameters.
         /// </summary>
         /// <param name="RemoteHost">The remote hostname to connect to.</param>
         /// <param name="RemotePort">The remote IP port to connect to.</param>
+        /// <param name="ClientCert">The TLS client certificate to use.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public HTTPClient(String                               RemoteHost,
                           IPPort                               RemotePort                  = null,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator  = null,
+                          X509Certificate                      ClientCert                  = null,
                           DNSClient                            DNSClient                   = null)
         {
 
-            this._Hostname                    = RemoteHost;
-            this._RemotePort                  = RemotePort != null
+            this.Hostname                    = RemoteHost;
+            this.RemotePort                  = RemotePort != null
                                                    ? RemotePort
                                                    : IPPort.Parse(80);
 
-            this._RemoteCertificateValidator  = RemoteCertificateValidator;
+            this.RemoteCertificateValidator  = RemoteCertificateValidator;
 
-            this._DNSClient                   = DNSClient != null
+            this.ClientCert                  = ClientCert;
+
+            this.DNSClient                   = DNSClient != null
                                                    ? DNSClient
                                                    : new DNSClient();
 
@@ -443,7 +363,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         IIPAddress _ResolvedRemoteIPAddress = null;
 
-                        if (_RemoteIPAddress == null)
+                        if (RemoteIPAddress == null)
                         {
 
                             var RegExpr = new Regex(@"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b");
@@ -453,13 +373,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                             #region DNS lookup...
 
-                            if (_RemoteIPAddress == null)
+                            if (RemoteIPAddress == null)
                             {
 
                                 try
                                 {
 
-                                    var IPv4AddressTask = _DNSClient.
+                                    var IPv4AddressTask = DNSClient.
                                                               Query<A>(Hostname).
                                                                   ContinueWith(QueryTask => QueryTask.Result.
                                                                                                 Select(ARecord => ARecord.IPv4Address).
@@ -482,11 +402,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         }
 
                         else
-                            _ResolvedRemoteIPAddress = _RemoteIPAddress;
+                            _ResolvedRemoteIPAddress = RemoteIPAddress;
 
                         sw.Start();
 
-                        var axx = new System.Net.IPEndPoint(new System.Net.IPAddress(_ResolvedRemoteIPAddress.GetBytes()), _RemotePort.ToInt32());
+                        var axx = new System.Net.IPEndPoint(new System.Net.IPAddress(_ResolvedRemoteIPAddress.GetBytes()), RemotePort.ToInt32());
 
                         TCPClient = new TcpClient();
                         TCPClient.Connect(axx);

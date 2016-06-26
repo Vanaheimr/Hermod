@@ -18,9 +18,10 @@
 #region Usings
 
 using System;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using System.Net.Security;
 
 #endregion
 
@@ -33,66 +34,75 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public class HTTPSClient : HTTPClient
     {
 
-        #region HTTPSClient(RemoteIPAddress, RemoteCertificateValidator, RemotePort = null, DNSClient  = null)
+        #region HTTPSClient(RemoteIPAddress, RemoteCertificateValidator, ClientCert = null, RemotePort = null, DNSClient  = null)
 
         /// <summary>
         /// Create a new HTTPClient using the given optional parameters.
         /// </summary>
         /// <param name="RemoteIPAddress">The remote IP address to connect to.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
+        /// <param name="ClientCert">The TLS client certificate to use.</param>
         /// <param name="RemotePort">An optional remote IP port to connect to [default: 443].</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public HTTPSClient(IIPAddress                           RemoteIPAddress,
                            RemoteCertificateValidationCallback  RemoteCertificateValidator,
+                           X509Certificate                      ClientCert  = null,
                            IPPort                               RemotePort  = null,
                            DNSClient                            DNSClient   = null)
 
             : base(RemoteIPAddress,
                    RemotePort != null ? RemotePort : IPPort.Parse(443),
                    RemoteCertificateValidator,
+                   ClientCert,
                    DNSClient)
 
         { }
 
         #endregion
 
-        #region HTTPSClient(Socket, RemoteCertificateValidator, DNSClient  = null)
+        #region HTTPSClient(Socket, RemoteCertificateValidator, ClientCert = null, DNSClient  = null)
 
         /// <summary>
         /// Create a new HTTPClient using the given optional parameters.
         /// </summary>
         /// <param name="RemoteSocket">The remote IP socket to connect to.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
+        /// <param name="ClientCert">The TLS client certificate to use.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public HTTPSClient(IPSocket                             RemoteSocket,
                            RemoteCertificateValidationCallback  RemoteCertificateValidator,
-                           DNSClient                            DNSClient  = null)
+                           X509Certificate                      ClientCert  = null,
+                           DNSClient                            DNSClient   = null)
 
             : base(RemoteSocket,
                    RemoteCertificateValidator,
+                   ClientCert,
                    DNSClient)
 
         { }
 
         #endregion
 
-        #region HTTPSClient(RemoteHost, RemoteCertificateValidator, RemotePort = null, DNSClient  = null)
+        #region HTTPSClient(RemoteHost, RemoteCertificateValidator, ClientCert = null, RemotePort = null, DNSClient  = null)
 
         /// <summary>
         /// Create a new HTTPClient using the given optional parameters.
         /// </summary>
         /// <param name="RemoteHost">The remote hostname to connect to.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
+        /// <param name="ClientCert">The TLS client certificate to use.</param>
         /// <param name="RemotePort">An optional remote IP port to connect to [default: 443].</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public HTTPSClient(String                               RemoteHost,
                            RemoteCertificateValidationCallback  RemoteCertificateValidator,
+                           X509Certificate                      ClientCert  = null,
                            IPPort                               RemotePort  = null,
                            DNSClient                            DNSClient   = null)
 
             : base(RemoteHost,
                    RemotePort != null ? RemotePort : IPPort.Parse(443),
                    RemoteCertificateValidator,
+                   ClientCert,
                    DNSClient)
 
         { }

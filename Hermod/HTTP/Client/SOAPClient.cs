@@ -27,6 +27,7 @@ using System.Threading.Tasks;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using System.Security.Cryptography.X509Certificates;
 
 #endregion
 
@@ -134,18 +135,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="SOAPPort">The TCP port of the remote SOAP service.</param>
         /// <param name="HTTPVirtualHost">The HTTP virtual host to use.</param>
         /// <param name="URIPrefix">The URI-prefix of the SOAP service.</param>
-        /// <param name="UserAgent">The HTTP user agent to use.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
+        /// <param name="ClientCert">The TLS client certificate to use.</param>
+        /// <param name="UserAgent">The HTTP user agent to use.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public SOAPClient(String                               SOAPHost,
                           IPPort                               SOAPPort,
                           String                               HTTPVirtualHost,
                           String                               URIPrefix,
-                          String                               UserAgent                   = "GraphDefined SOAP-Client",
                           RemoteCertificateValidationCallback  RemoteCertificateValidator  = null,
+                          X509Certificate                      ClientCert                  = null,
+                          String                               UserAgent                   = "GraphDefined SOAP-Client",
                           DNSClient                            DNSClient                   = null)
 
-            : base(SOAPHost, SOAPPort, RemoteCertificateValidator, DNSClient)
+            : base(SOAPHost,
+                   SOAPPort,
+                   RemoteCertificateValidator,
+                   ClientCert,
+                   DNSClient)
 
         {
 

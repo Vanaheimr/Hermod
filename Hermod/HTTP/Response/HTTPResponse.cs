@@ -668,6 +668,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region (static) BadRequest
+
+        public static HTTPResponse BadRequest
+            => new HTTPResponse(new HTTPResponseBuilder(null, HTTPStatusCode.BadRequest));
+
+        #endregion
+
+
         #region (override) ToString()
 
         /// <summary>
