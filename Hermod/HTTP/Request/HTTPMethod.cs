@@ -322,6 +322,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPMethod PATCH         = new HTTPMethod("PATCH");
 
         /// <summary>
+        /// Announce the given resource.
+        /// </summary>
+        public static readonly HTTPMethod ANNOUNCE      = new HTTPMethod("ANNOUNCE", IsIdempotent: true, IsSafe: true);
+
+        /// <summary>
         /// Traverse the given resource.
         /// </summary>
         public static readonly HTTPMethod TRAVERSE      = new HTTPMethod("TRAVERSE");

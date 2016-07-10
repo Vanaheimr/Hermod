@@ -185,8 +185,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (!_Lookup.ContainsKey(MediaType))
                 _Lookup.Add(MediaType, this);
-            else
-                throw new ArgumentException("");
 
             if (_FileExtentions != null && _FileExtentions.Any())
             {

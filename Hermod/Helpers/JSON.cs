@@ -158,7 +158,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         {
 
             if (I18NString == null || !I18NString.Any())
-                return null;
+                return new JObject();
 
             return new JObject(I18NString.SafeSelect(i18n => new JProperty(i18n.Language.ToString(), i18n.Text)));
 
