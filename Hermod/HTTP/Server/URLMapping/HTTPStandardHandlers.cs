@@ -194,6 +194,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     case "swf":  ResponseContentType = HTTPContentType.SWF;             break;
                     case "js":   ResponseContentType = HTTPContentType.JAVASCRIPT_UTF8; break;
                     case "txt":  ResponseContentType = HTTPContentType.TEXT_UTF8;       break;
+                    case "xml":  ResponseContentType = HTTPContentType.XML_UTF8;        break;
                     default:     ResponseContentType = HTTPContentType.OCTETSTREAM;     break;
                 }
 
@@ -375,6 +376,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         case "swf" : ResponseContentType = HTTPContentType.SWF;             break;
                         case "js"  : ResponseContentType = HTTPContentType.JAVASCRIPT_UTF8; break;
                         case "txt" : ResponseContentType = HTTPContentType.TEXT_UTF8;       break;
+                        case "xml":  ResponseContentType = HTTPContentType.XML_UTF8;        break;
                         default:     ResponseContentType = HTTPContentType.OCTETSTREAM;     break;
                     }
 
