@@ -236,9 +236,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
                         ContinueWith(HttpResponseTask => {
 
-                            if (HttpResponseTask.Result                == null              ||
-                                HttpResponseTask.Result.HTTPStatusCode != HTTPStatusCode.OK ||
-                                HttpResponseTask.Result.HTTPBody        == null             ||
+                            if (HttpResponseTask.Result                 == null              ||
+                                HttpResponseTask.Result.HTTPStatusCode  != HTTPStatusCode.OK ||
+                                HttpResponseTask.Result.HTTPBody        == null              ||
                                 HttpResponseTask.Result.HTTPBody.Length == 0)
                             {
 
