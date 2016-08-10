@@ -40,7 +40,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     ///    for any kind of metadata
     ///  - A body hosting the transmitted content
     /// </summary>
-    public abstract class AHTTPPDU : IEnumerable<KeyValuePair<String, Object>>
+    public abstract class AHTTPPDU : IEnumerable<KeyValuePair<String, Object>>,
+                                     IDisposable
     {
 
         #region Data
@@ -986,6 +987,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
+
+
+        public void Dispose()
+        { }
 
     }
 

@@ -540,6 +540,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+
+        private UInt64 _XExpectedTotalNumberOfItems;
+
+        public UInt64 XExpectedTotalNumberOfItems
+        {
+
+            get
+            {
+                return _XExpectedTotalNumberOfItems;
+            }
+
+            set
+            {
+                SetProperty(ref _XExpectedTotalNumberOfItems, value, "X-ExpectedTotalNumberOfItems");
+            }
+
+        }
+
         #endregion
 
         #region Events
@@ -594,9 +612,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Field = NewValue;
 
                 // Take a copy of the handler for concurrency issues!
-                var Handler = PropertyChanged;
-                if (Handler != null)
-                    Handler(this, new PropertyChangedEventArgs(PropertyName));
+                PropertyChanged?.Invoke(this,
+                                        new PropertyChangedEventArgs(PropertyName));
 
             }
 

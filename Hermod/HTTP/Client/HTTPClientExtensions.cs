@@ -63,9 +63,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPRequestBuilder GET(this HTTPClient             HTTPClient,
                                              String                      URI,
                                              Action<HTTPRequestBuilder>  BuilderAction = null)
-        {
-            return HTTPClient.CreateRequest(HTTPMethod.GET, URI, BuilderAction);
-        }
+
+            => HTTPClient.CreateRequest(HTTPMethod.GET, URI, BuilderAction);
+
+        #endregion
+
+        #region COUNT(this HTTPClient, URI = "/", BuilderAction = null)
+
+        /// <summary>
+        /// Create a new HTTP COUNT request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="URI">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <returns>A HTTP request object.</returns>
+        public static HTTPRequestBuilder COUNT(this HTTPClient             HTTPClient,
+                                               String                      URI,
+                                               Action<HTTPRequestBuilder>  BuilderAction = null)
+
+            => HTTPClient.CreateRequest(HTTPMethod.COUNT, URI, BuilderAction);
 
         #endregion
 

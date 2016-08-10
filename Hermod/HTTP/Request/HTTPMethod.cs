@@ -317,6 +317,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Additional methods
 
         /// <summary>
+        /// Similar like GET, checks wether a resource exists, but only returns 'true' or 'false'.
+        /// </summary>
+        public static readonly HTTPMethod EXISTS        = new HTTPMethod("EXISTS",   IsIdempotent: true, IsSafe: true);
+
+        /// <summary>
+        /// Counts the number of elements in a resource collection.
+        /// </summary>
+        public static readonly HTTPMethod COUNT         = new HTTPMethod("COUNT",    IsIdempotent: true, IsSafe: true);
+
+        /// <summary>
+        /// Similar like GET, but with an additional filter methods within the http body.
+        /// </summary>
+        public static readonly HTTPMethod FILTER        = new HTTPMethod("FILTER",   IsIdempotent: true, IsSafe: true);
+
+        /// <summary>
+        /// Returns dynamic status information on a single resource or an entire resource collection.
+        /// </summary>
+        public static readonly HTTPMethod STATUS        = new HTTPMethod("STATUS",   IsIdempotent: true, IsSafe: true);
+
+
+        /// <summary>
+        /// Creates a new resource. Within a resource collection the unique
+        /// identification of the new resource will be chosen by the server.
+        /// </summary>
+        public static readonly HTTPMethod CREATE        = new HTTPMethod("CREATE");
+
+        /// <summary>
+        /// Adds a new resource to a resource collection. It will fail when
+        /// a unique identification of the resource is missing or already
+        /// exists on the server.
+        /// </summary>
+        public static readonly HTTPMethod ADD           = new HTTPMethod("ADD");
+
+
+
+
+
+
+        /// <summary>
         /// Patch the given resource.
         /// </summary>
         public static readonly HTTPMethod PATCH         = new HTTPMethod("PATCH");
@@ -332,34 +371,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPMethod TRAVERSE      = new HTTPMethod("TRAVERSE");
 
         /// <summary>
-        /// Similar like GET, but with an additional filter methods within the http body.
-        /// </summary>
-        public static readonly HTTPMethod FILTER        = new HTTPMethod("FILTER", IsIdempotent: true, IsSafe: true);
-
-        /// <summary>
         /// Query a resource.
         /// </summary>
         public static readonly HTTPMethod QUERY         = new HTTPMethod("QUERY");
 
         /// <summary>
-        /// Counts the number of elements which would be returned by a FILTER.
-        /// </summary>
-        public static readonly HTTPMethod COUNT         = new HTTPMethod("COUNT",  IsIdempotent: true, IsSafe: true);
-            
-        /// <summary>
-        /// Creates a new resource (a replacement for PUT and POST)
-        /// </summary>
-        public static readonly HTTPMethod CREATE        = new HTTPMethod("CREATE");
-
-        /// <summary>
         /// Composes a new resource (e.g. send a html form to compose a new resource)
         /// </summary>
         public static readonly HTTPMethod COMPOSE       = new HTTPMethod("COMPOSE");
-
-        /// <summary>
-        /// Add a new resource to a collection of resources (a replacement for PUT and POST)
-        /// </summary>
-        public static readonly HTTPMethod ADD           = new HTTPMethod("ADD");
 
         /// <summary>
         /// SET the value of a resource (a replacement for PUT and POST)
@@ -385,11 +404,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Edits a resource, e.g. return a HTML page for editing.
         /// </summary>
         public static readonly HTTPMethod EDIT          = new HTTPMethod("EDIT");
-
-        /// <summary>
-        /// Checks wether a resource exists.
-        /// </summary>
-        public static readonly HTTPMethod EXISTS        = new HTTPMethod("EXISTS");
 
         /// <summary>
         /// Monitors a resource or collection resource for modifications using an eventstream.
