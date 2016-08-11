@@ -18,16 +18,12 @@
 #region Usings
 
 using System;
-using System.Linq;
 using System.Xml.Linq;
 
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Illias.ConsoleLog;
-using org.GraphDefined.Vanaheimr.Styx.Arrows;
-using System.Collections.Generic;
-using System.Globalization;
 
 #endregion
 
@@ -281,6 +277,83 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             };
 
         }
+
+
+
+
+
+        public static Boolean TryParseI18NString(HTTPRequest HTTPRequest, JObject DescriptionJSON, out I18NString I18N, out HTTPResponse Response)
+        {
+
+            if (DescriptionJSON == null)
+            {
+
+                I18N     = null;
+
+                Response = new HTTPResponseBuilder(HTTPRequest) {
+                               HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                               ContentType     = HTTPContentType.JSON_UTF8,
+                               Content         = new JObject(new JProperty("description", "Invalid roaming network description!")).ToUTF8Bytes()
+                           }.AsImmutable();
+
+                return false;
+
+            }
+
+            Languages  Language;
+            JValue     Text;
+            I18N      = I18NString.Empty;
+
+            foreach (var Description in DescriptionJSON)
+            {
+
+                if (!Enum.TryParse(Description.Key, out Language))
+                {
+
+                    I18N = null;
+
+                    Response = new HTTPResponseBuilder(HTTPRequest) {
+                                   HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                   ContentType     = HTTPContentType.JSON_UTF8,
+                                   Content         = new JObject(new JProperty("description", "Unknown or invalid language definition '" + Description.Key + "'!")).ToUTF8Bytes()
+                               }.AsImmutable();
+
+                    return false;
+
+                }
+
+                Text = Description.Value as JValue;
+
+                if (Text == null)
+                {
+
+                    I18N = null;
+
+                    Response = new HTTPResponseBuilder(HTTPRequest) {
+                                   HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                   ContentType     = HTTPContentType.JSON_UTF8,
+                                   Content         = new JObject(new JProperty("description", "Invalid description text!")).ToUTF8Bytes()
+                               }.AsImmutable();
+
+                    return false;
+
+                }
+
+                I18N.Add(Language, Text.Value<String>());
+
+            }
+
+            Response = null;
+
+            return true;
+
+        }
+
+
+
+        public static Byte[] CreateError(String Text)
+            => (@"{ ""description"": """ + Text + @""" }").ToUTF8Bytes();
+
 
     }
 

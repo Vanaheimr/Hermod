@@ -135,11 +135,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 foreach (var RoamingNetwork in RoamingNetworks)
                     Set.Add(RoamingNetwork);
 
-            if (_Multitenancy.TryGetValue(Vanaheimr.Hermod.HTTP.HTTPHostname.Any, out RoamingNetworks))
+            if (_Multitenancy.TryGetValue(HTTPHostname.Any, out RoamingNetworks))
                 foreach (var RoamingNetwork in RoamingNetworks)
                     Set.Add(RoamingNetwork);
 
-            return Set;//.OrderBy(rn => rn.Id);
+            return Set;
 
         }
 
@@ -197,6 +197,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
+
+        #region RemoveRoamingNetworks(Hostname, RoamingNetworks)
+
+        /// <summary>
+        ///Try to return all roaming networks available for the given hostname.
+        /// </summary>
+        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <param name="RoamingNetworks">A roaming network.</param>
+        public T RemoveRoamingNetworks(HTTPHostname  Hostname,
+                                       T             RoamingNetworks)
+        {
+
+            T _RoamingNetworks;
+
+            if (_Multitenancy.TryRemove(Hostname, out _RoamingNetworks))
+                return _RoamingNetworks;
+
+            return default(T);
+
+        }
+
+        #endregion
+
 
     }
 
