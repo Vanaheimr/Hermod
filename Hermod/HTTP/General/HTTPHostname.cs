@@ -36,99 +36,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Properties
 
-        #region Name
-
-        private readonly String _Name;
-
         /// <summary>
         /// The hostname.
         /// </summary>
-        public String Name
-        {
-            get
-            {
-                return _Name;
-            }
-        }
-
-        #endregion
-
-        #region Port
-
-        private readonly UInt16? _Port;
+        public String Name { get; }
 
         /// <summary>
         /// The TCP/IP port.
         /// </summary>
-        public UInt16? Port
-        {
-            get
-            {
-                return _Port;
-            }
-        }
-
-        #endregion
-
-        #region Any
-
-        /// <summary>
-        /// The HTTP 'ANY' host or "*".
-        /// </summary>
-        public static HTTPHostname Any
-        {
-            get
-            {
-                return new HTTPHostname("*", null);
-            }
-        }
-
-        #endregion
-
-        #region AnyHost
-
-        /// <summary>
-        /// Return an new HTTP hostname having a hostname wildcard, e.g. "*:443".
-        /// </summary>
-        public HTTPHostname AnyHost
-        {
-            get
-            {
-                return new HTTPHostname("*", _Port);
-            }
-        }
-
-        #endregion
-
-        #region AnyPort
-
-        /// <summary>
-        /// Return an new HTTP hostname having a port wildcard, e.g. "localhost:*".
-        /// </summary>
-        public HTTPHostname AnyPort
-        {
-            get
-            {
-                return new HTTPHostname(_Name, null);
-            }
-        }
-
-        #endregion
-
-        #region Length
+        public UInt16? Port { get; }
 
         /// <summary>
         /// Returns the length of the identificator.
         /// </summary>
         public UInt64 Length
-        {
-            get
-            {
-                return (UInt64) ToString().Length;
-            }
-        }
+            => (UInt64) ToString().Length;
 
-        #endregion
+
+
+        /// <summary>
+        /// The HTTP 'ANY' host or "*".
+        /// </summary>
+        public static HTTPHostname Any
+            => new HTTPHostname("*", null);
+
+
+        /// <summary>
+        /// Return an new HTTP hostname having a hostname wildcard, e.g. "*:443".
+        /// </summary>
+        public HTTPHostname AnyHost
+            => new HTTPHostname("*", Port);
+
+
+        /// <summary>
+        /// Return an new HTTP hostname having a port wildcard, e.g. "localhost:*".
+        /// </summary>
+        public HTTPHostname AnyPort
+            => new HTTPHostname(Name, null);
+
+
+        /// <summary>
+        /// The HTTP 'localhost' host.
+        /// </summary>
+        public static HTTPHostname Localhost
+            => new HTTPHostname("localhost", null);
 
         #endregion
 
@@ -144,8 +95,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Name == null)
                 Name = "*";
 
-            _Name  = (Name.Trim().IsNullOrEmpty() ? "*" : Name.Trim());
-            _Port  = Port;
+            this.Name  = (Name.Trim().IsNullOrEmpty() ? "*" : Name.Trim());
+            this.Port  = Port;
 
         }
 
@@ -453,7 +404,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
             unchecked
             {
-                return _Name.GetHashCode() * 17 ^ (_Port != null ? _Port.Value : 0);
+                return Name.GetHashCode() * 17 ^ (Port != null ? Port.Value : 0);
             }
         }
 
@@ -466,7 +417,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public override String ToString()
         {
-            return _Name + ":" + (_Port.HasValue ? _Port.Value.ToString() : "*");
+            return Name + ":" + (Port.HasValue ? Port.Value.ToString() : "*");
         }
 
         #endregion
