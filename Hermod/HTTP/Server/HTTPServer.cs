@@ -110,34 +110,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region GetAllRoamingNetworks(Hostname)
+        #region GetAllTenants(Hostname)
 
         /// <summary>
-        /// Return all roaming networks available for the given hostname.
+        /// Return all tenants available for the given hostname.
         /// </summary>
         /// <param name="Hostname">The HTTP hostname.</param>
-        public IEnumerable<U> GetAllRoamingNetworks(HTTPHostname  Hostname)
+        public IEnumerable<U> GetAllTenants(HTTPHostname  Hostname)
         {
 
-            T RoamingNetworks = default(T);
+            T Tenants = default(T);
 
             var Set = new HashSet<U>();
 
-            if (_Multitenancy.TryGetValue(Hostname, out RoamingNetworks))
-                foreach (var RoamingNetwork in RoamingNetworks)
-                    Set.Add(RoamingNetwork);
+            if (_Multitenancy.TryGetValue(Hostname, out Tenants))
+                foreach (var Tenant in Tenants)
+                    Set.Add(Tenant);
 
-            if (_Multitenancy.TryGetValue(Hostname.AnyHost, out RoamingNetworks))
-                foreach (var RoamingNetwork in RoamingNetworks)
-                    Set.Add(RoamingNetwork);
+            if (_Multitenancy.TryGetValue(Hostname.AnyHost, out Tenants))
+                foreach (var Tenant in Tenants)
+                    Set.Add(Tenant);
 
-            if (_Multitenancy.TryGetValue(Hostname.AnyPort, out RoamingNetworks))
-                foreach (var RoamingNetwork in RoamingNetworks)
-                    Set.Add(RoamingNetwork);
+            if (_Multitenancy.TryGetValue(Hostname.AnyPort, out Tenants))
+                foreach (var Tenant in Tenants)
+                    Set.Add(Tenant);
 
-            if (_Multitenancy.TryGetValue(HTTPHostname.Any, out RoamingNetworks))
-                foreach (var RoamingNetwork in RoamingNetworks)
-                    Set.Add(RoamingNetwork);
+            if (_Multitenancy.TryGetValue(HTTPHostname.Any, out Tenants))
+                foreach (var Tenant in Tenants)
+                    Set.Add(Tenant);
 
             return Set;
 
@@ -145,74 +145,68 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region GetRoamingNetwork(Hostname, RoamingNetworkId)
+        #region GetTenant(Hostname, TenantId)
 
         ///// <summary>
-        ///// Return all roaming networks available for the given hostname.
+        ///// Return all tenants available for the given hostname.
         ///// </summary>
         ///// <param name="Hostname">The HTTP hostname.</param>
-        ///// <param name="RoamingNetworkId">The unique identification of the new roaming network.</param>
-        //public U GetRoamingNetwork(HTTPHostname       Hostname,
-        //                                        RoamingNetwork_Id  RoamingNetworkId)
+        ///// <param name="TenantId">The unique identification of the new tenant.</param>
+        //public U GetTenant(HTTPHostname       Hostname,
+        //                                        Tenant_Id  TenantId)
         //{
 
-        //    return GetAllRoamingNetworks(Hostname).
-        //               Where(roamingnetwork => roamingnetwork.Id == RoamingNetworkId).
+        //    return GetAllTenants(Hostname).
+        //               Where(roamingnetwork => roamingnetwork.Id == TenantId).
         //               FirstOrDefault();
 
         //}
 
         #endregion
 
-        #region TryGetRoamingNetworks(Hostname, out RoamingNetwork)
+        #region TryGetTenants(Hostname, out Tenant)
 
         /// <summary>
-        ///Try to return all roaming networks available for the given hostname.
+        ///Try to return all tenants available for the given hostname.
         /// </summary>
         /// <param name="Hostname">The HTTP hostname.</param>
-        /// <param name="RoamingNetworks">A roaming network.</param>
-        public Boolean TryGetRoamingNetworks(HTTPHostname  Hostname,
-                                             out T         RoamingNetworks)
-        {
+        /// <param name="Tenants">A tenant.</param>
+        public Boolean TryGetTenants(HTTPHostname  Hostname,
+                                             out T         Tenants)
 
-            return _Multitenancy.TryGetValue(Hostname, out RoamingNetworks);
-
-        }
+            => _Multitenancy.TryGetValue(Hostname, out Tenants);
 
         #endregion
 
-        #region TryAddRoamingNetworks(Hostname, RoamingNetworks)
+        #region TryAddTenants(Hostname, Tenants)
 
         /// <summary>
-        ///Try to return all roaming networks available for the given hostname.
+        ///Try to return all tenants available for the given hostname.
         /// </summary>
         /// <param name="Hostname">The HTTP hostname.</param>
-        /// <param name="RoamingNetworks">A roaming network.</param>
-        public Boolean TryAddRoamingNetworks(HTTPHostname  Hostname,
-                                             T             RoamingNetworks)
-        {
+        /// <param name="Tenants">A tenant.</param>
+        public Boolean TryAddTenants(HTTPHostname  Hostname,
+                                             T             Tenants)
 
-            return _Multitenancy.TryAdd(Hostname, RoamingNetworks);
-
-        }
+            => _Multitenancy.TryAdd(Hostname, Tenants);
 
         #endregion
 
-        #region RemoveRoamingNetworks(Hostname, RoamingNetworks)
+        #region RemoveTenants(Hostname, Tenants)
 
         /// <summary>
-        ///Try to return all roaming networks available for the given hostname.
+        ///Try to return all tenants available for the given hostname.
         /// </summary>
         /// <param name="Hostname">The HTTP hostname.</param>
-        /// <param name="RoamingNetworks">A roaming network.</param>
-        public T RemoveRoamingNetworks(HTTPHostname  Hostname,
-                                       T             RoamingNetworks)
+        /// <param name="Tenants">A tenant.</param>
+        public T RemoveTenants(HTTPHostname  Hostname,
+                                       T             Tenants)
         {
 
-            T _RoamingNetworks;
+            T _Tenants;
 
-            if (_Multitenancy.TryRemove(Hostname, out _RoamingNetworks))
-                return _RoamingNetworks;
+            if (_Multitenancy.TryRemove(Hostname, out _Tenants))
+                return _Tenants;
 
             return default(T);
 
