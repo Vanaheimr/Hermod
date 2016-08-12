@@ -364,6 +364,70 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region ParseMandatory(this JSON, PropertyName,  PropertyDescription, DefaultServerName, out JSON,      HTTPRequest, out HTTPResponse)
+
+        public Boolean ParseMandatory(String            PropertyName,
+                                      String            PropertyDescription,
+                                      String            DefaultServerName,
+                                      out JToken        JSON,
+                                      HTTPRequest       HTTPRequest,
+                                      out HTTPResponse  HTTPResponse)
+
+        {
+
+            Object JSONToken = null;
+
+            if (PropertyName.IsNotNullOrEmpty())
+            {
+                if (!TryGetValue(PropertyName, out JSONToken))
+                {
+
+                    HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                        HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                        Server          = DefaultServerName,
+                        Date            = DateTime.Now,
+                        ContentType     = HTTPContentType.JSON_UTF8,
+                        Content         = JSONObject.Create(
+                                              new JProperty("description",  "Missing JSON property '" + PropertyName + "'!")
+                                          ).ToUTF8Bytes()
+                    };
+
+                    JSON = new JValue(false);
+
+                    return false;
+
+                }
+            }
+
+
+            JSON = null;
+
+            switch (JSONToken.GetType().Name)
+            {
+
+                case "String": JSON = new JValue(JSONToken);
+                    break;
+
+                case "JObject":
+                    JSON = JObject.Parse(JSONToken.ToString());
+                    break;
+
+                case "JArray":
+                    JSON = JArray.Parse(JSONToken.ToString());
+                    break;
+
+            }
+
+
+           // JSON          = JToken.Parse(JSONToken.ToString());
+            HTTPResponse  = null;
+
+            return true;
+
+        }
+
+        #endregion
+
         #region ParseMandatory(this JSON, PropertyName,  PropertyDescription, DefaultServerName, out Text,      HTTPRequest, out HTTPResponse)
 
         public Boolean ParseMandatory(String            PropertyName,
@@ -377,7 +441,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             Object JSONToken = null;
 
-            if (JSONToken != null)
+            if (PropertyName.IsNotNullOrEmpty())
             {
                 if (!TryGetValue(PropertyName, out JSONToken))
                 {

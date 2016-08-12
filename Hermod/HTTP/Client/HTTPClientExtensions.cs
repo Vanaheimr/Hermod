@@ -114,9 +114,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPRequestBuilder ADD(this HTTPClient             HTTPClient,
                                              String                      URI,
                                              Action<HTTPRequestBuilder>  BuilderAction = null)
-        {
-            return HTTPClient.CreateRequest(HTTPMethod.ADD, URI, BuilderAction);
-        }
+
+            => HTTPClient.CreateRequest(HTTPMethod.ADD, URI, BuilderAction);
+
+        #endregion
+
+        #region SET(this HTTPClient, URI = "/", BuilderAction = null)
+
+        /// <summary>
+        /// Create a new HTTP SET request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="URI">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <returns>A HTTP request object.</returns>
+        public static HTTPRequestBuilder SET(this HTTPClient             HTTPClient,
+                                             String                      URI,
+                                             Action<HTTPRequestBuilder>  BuilderAction = null)
+
+            => HTTPClient.CreateRequest(HTTPMethod.SET, URI, BuilderAction);
 
         #endregion
 
