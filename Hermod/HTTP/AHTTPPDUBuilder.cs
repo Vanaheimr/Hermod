@@ -540,23 +540,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region X_ExpectedTotalNumberOfItems
 
-        private UInt64 _XExpectedTotalNumberOfItems;
-
-        public UInt64 XExpectedTotalNumberOfItems
+        public UInt64? X_ExpectedTotalNumberOfItems
         {
 
             get
             {
-                return _XExpectedTotalNumberOfItems;
+                return GetHeaderField_UInt64(HTTPHeaderField.X_ExpectedTotalNumberOfItems);
             }
 
             set
             {
-                SetProperty(ref _XExpectedTotalNumberOfItems, value, "X-ExpectedTotalNumberOfItems");
+                SetHeaderField(HTTPHeaderField.X_ExpectedTotalNumberOfItems, value);
             }
 
         }
+
+        #endregion
 
         #endregion
 

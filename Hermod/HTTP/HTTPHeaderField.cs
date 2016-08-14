@@ -2147,6 +2147,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region X-ExpectedTotalNumberOfItems
+
+        /// <summary>
+        /// The expected total number of items within a resource collection.
+        /// </summary>
+        /// <example>X-ExpectedTotalNumberOfItems: 42</example>
+        public static readonly HTTPHeaderField X_ExpectedTotalNumberOfItems = new HTTPHeaderField("X-ExpectedTotalNumberOfItems",
+                                                                                      typeof(UInt64),
+                                                                                      HeaderFieldType.Response,
+                                                                                      RequestPathSemantic.EndToEnd);
+
+        #endregion
+
         #endregion
 
 

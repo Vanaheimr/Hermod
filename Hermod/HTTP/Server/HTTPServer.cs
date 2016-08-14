@@ -172,7 +172,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Hostname">The HTTP hostname.</param>
         /// <param name="Tenants">A tenant.</param>
         public Boolean TryGetTenants(HTTPHostname  Hostname,
-                                             out T         Tenants)
+                                     out T         Tenants)
 
             => _Multitenancy.TryGetValue(Hostname, out Tenants);
 
@@ -186,7 +186,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Hostname">The HTTP hostname.</param>
         /// <param name="Tenants">A tenant.</param>
         public Boolean TryAddTenants(HTTPHostname  Hostname,
-                                             T             Tenants)
+                                     T             Tenants)
 
             => _Multitenancy.TryAdd(Hostname, Tenants);
 
@@ -200,7 +200,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Hostname">The HTTP hostname.</param>
         /// <param name="Tenants">A tenant.</param>
         public T RemoveTenants(HTTPHostname  Hostname,
-                                       T             Tenants)
+                               T             Tenants)
         {
 
             T _Tenants;
