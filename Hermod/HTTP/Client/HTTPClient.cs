@@ -236,7 +236,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 URI         = URI
             };
 
-            BuilderAction.FailSafeInvoke(Builder);
+            BuilderAction?.Invoke(Builder);
 
             return Builder;
 
