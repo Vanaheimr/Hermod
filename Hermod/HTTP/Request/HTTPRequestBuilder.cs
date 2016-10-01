@@ -729,9 +729,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Builder">An HTTP request builder.</param>
         public static implicit operator HTTPRequest(HTTPRequestBuilder Builder)
-        {
-            return Builder.AsImmutable();
-        }
+
+            => Builder.AsImmutable();
 
         #endregion
 
@@ -1423,9 +1422,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
         public Task<HTTPResponse> ExecuteReturnResult()
-        {
-            return this._HTTPClient?.Execute(AsImmutable());
-        }
+
+            => this._HTTPClient?.Execute(AsImmutable());
 
 
         #region PrepareImmutability()

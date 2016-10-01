@@ -145,7 +145,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                           String                               URIPrefix,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator  = null,
                           X509Certificate                      ClientCert                  = null,
-                          String                               UserAgent                   = "GraphDefined SOAP-Client",
+                          String                               UserAgent                   = "GraphDefined SOAP Client",
                           DNSClient                            DNSClient                   = null)
 
             : base(SOAPHost,
@@ -231,8 +231,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             return this.Execute(_RequestBuilder,
                                 RequestLogDelegate,
                                 ResponseLogDelegate,
-                                QueryTimeout != null       ? QueryTimeout            : TimeSpan.FromSeconds(60),
-                                CancellationToken.HasValue ? CancellationToken.Value : new CancellationTokenSource().Token).
+                                QueryTimeout               ?? TimeSpan.FromSeconds(60),
+                                CancellationToken.HasValue  ? CancellationToken.Value : new CancellationTokenSource().Token).
 
                         ContinueWith(HttpResponseTask => {
 
