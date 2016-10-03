@@ -34,6 +34,234 @@ using org.GraphDefined.Vanaheimr.Styx.Arrows;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
+        public static class JSONExt
+    {
+
+        public static Boolean ParseMandatory(this JObject  JSONIn,
+                                             String        PropertyName,
+                                             out JObject   JSONOut)
+        {
+
+            if (JSONIn == null ||
+                PropertyName.IsNullOrEmpty())
+            {
+                JSONOut = null;
+                return false;
+            }
+
+            JToken _JToken;
+
+            if (JSONIn.TryGetValue(PropertyName, out _JToken) && _JToken is JObject)
+            {
+                JSONOut = _JToken as JObject;
+                return true;
+            }
+
+            JSONOut = null;
+            return false;
+
+        }
+
+        public static Boolean ParseMandatory(this JObject  JSONIn,
+                                             String        PropertyName,
+                                             out String    StringOut)
+        {
+
+            if (JSONIn == null ||
+                PropertyName.IsNullOrEmpty())
+            {
+                StringOut = String.Empty;
+                return false;
+            }
+
+            JToken _JToken;
+
+            if (JSONIn.TryGetValue(PropertyName, out _JToken) && _JToken?.Value<String>() != null)
+            {
+                StringOut = _JToken?.Value<String>();
+                return true;
+            }
+
+            StringOut = null;
+            return false;
+
+        }
+
+
+
+
+
+        public static Boolean ParseMandatory<T>(this JObject     JSONIn,
+                                                String           PropertyName,
+                                                Func<String, T>  Mapper,
+                                                out T            TOut)
+        {
+
+            if (JSONIn == null ||
+                PropertyName.IsNullOrEmpty() ||
+                Mapper == null)
+            {
+                TOut = default(T);
+                return false;
+            }
+
+            JToken _JToken;
+
+            if (JSONIn.TryGetValue(PropertyName, out _JToken) && _JToken?.Value<String>() != null)
+            {
+
+                try
+                {
+                    TOut = Mapper(_JToken?.Value<String>());
+                    return true;
+                }
+#pragma warning disable RCS1075  // Avoid empty catch clause that catches System.Exception.
+#pragma warning disable RECS0022 // A catch clause that catches System.Exception and has an empty body
+                catch (Exception)
+#pragma warning restore RECS0022 // A catch clause that catches System.Exception and has an empty body
+#pragma warning restore RCS1075  // Avoid empty catch clause that catches System.Exception.
+                { }
+
+            }
+
+            TOut = default(T);
+            return false;
+
+        }
+
+        public static Boolean ParseMandatory<T>(this JObject      JSONIn,
+                                                String            PropertyName,
+                                                Func<String, T>   Mapper,
+                                                T                 InvalidResult,
+                                                out T             TOut)
+        {
+
+            if (JSONIn == null ||
+                PropertyName.IsNullOrEmpty() ||
+                Mapper == null)
+            {
+                TOut = default(T);
+                return false;
+            }
+
+            JToken _JToken;
+
+            if (JSONIn.TryGetValue(PropertyName, out _JToken) && _JToken?.Value<String>() != null)
+            {
+
+                try
+                {
+
+                    TOut = Mapper(_JToken?.Value<String>());
+
+                    return !TOut.Equals(InvalidResult);
+
+                }
+#pragma warning disable RCS1075  // Avoid empty catch clause that catches System.Exception.
+#pragma warning disable RECS0022 // A catch clause that catches System.Exception and has an empty body
+                catch (Exception)
+#pragma warning restore RECS0022 // A catch clause that catches System.Exception and has an empty body
+#pragma warning restore RCS1075  // Avoid empty catch clause that catches System.Exception.
+                { }
+
+            }
+
+            TOut = default(T);
+            return false;
+
+        }
+
+
+
+
+
+
+
+        public static Boolean ParseOptional(this JObject  JSONIn,
+                                            String        PropertyName,
+                                            out String    StringOut)
+        {
+
+            if (JSONIn == null ||
+                PropertyName.IsNullOrEmpty())
+            {
+                StringOut = String.Empty;
+                return false;
+            }
+
+            JToken _JToken;
+
+            if (JSONIn.TryGetValue(PropertyName, out _JToken))
+            {
+
+                StringOut = _JToken?.Value<String>();
+
+                if (StringOut != null)
+                    return true;
+
+                return false;
+
+            }
+
+            StringOut = null;
+            return true;
+
+        }
+
+
+        public static Boolean ParseOptional<T>(this JObject     JSONIn,
+                                               String           PropertyName,
+                                               Func<String, T>  Mapper,
+                                               out T            TOut)
+        {
+
+            if (JSONIn == null ||
+                PropertyName.IsNullOrEmpty() ||
+                Mapper == null)
+            {
+                TOut = default(T);
+                return false;
+            }
+
+            JToken _JToken;
+
+            if (JSONIn.TryGetValue(PropertyName, out _JToken))
+            {
+
+                var StringOut = _JToken?.Value<String>();
+
+                if (StringOut != null)
+                {
+
+                    try
+                    {
+                        TOut = Mapper(StringOut);
+                        return true;
+                    }
+#pragma warning disable RCS1075  // Avoid empty catch clause that catches System.Exception.
+#pragma warning disable RECS0022 // A catch clause that catches System.Exception and has an empty body
+                    catch (Exception)
+#pragma warning restore RECS0022 // A catch clause that catches System.Exception and has an empty body
+#pragma warning restore RCS1075  // Avoid empty catch clause that catches System.Exception.
+                    { }
+
+                }
+
+                TOut = default(T);
+                return false;
+
+            }
+
+            TOut = default(T);
+            return true;
+
+        }
+
+    }
+
+
+
+
     /// <summary>
     /// A JSON object (wrapper).
     /// </summary>
@@ -119,19 +347,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
         public Object this[String Key]
-        {
-            get
-            {
-                return Internal[Key];
-            }
-        }
+
+            => Internal[Key];
+
 
         public Boolean TryGetValue(String Key, out Object Object)
-        {
 
-            return Internal.TryGetValue(Key, out Object);
+            => Internal.TryGetValue(Key, out Object);
 
-        }
 
         public Boolean TryGetString(String Key, out String Text)
         {
@@ -153,12 +376,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
+
         public Boolean ContainsKey(String Key)
-        {
 
-            return Internal.ContainsKey(Key);
+            => Internal.ContainsKey(Key);
 
-        }
 
         public String GetString(String Key)
         {
@@ -778,6 +1000,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region ParseOptional(this JSON, PropertyName,  PropertyDescription, DefaultServerName, out Text,      HTTPRequest, out HTTPResponse)
 
         public Boolean ParseOptional(String            PropertyName,
+                                     String            DefaultServerName,
+                                     out JObject       JSON,
+                                     HTTPRequest       HTTPRequest,
+                                     out HTTPResponse  HTTPResponse)
+
+        {
+
+            Object JSONToken = null;
+
+            if (TryGetValue(PropertyName, out JSONToken))
+            {
+
+                JSON = JSONToken as JObject;
+
+                if (JSON == null)
+                {
+
+                    HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                        HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                        Server          = DefaultServerName,
+                        Date            = DateTime.Now,
+                        ContentType     = HTTPContentType.JSON_UTF8,
+                        Content         = JSONObject.Create(
+                                              new JProperty("description", "JSON object expected!")
+                                          ).ToUTF8Bytes()
+                    };
+
+                    return false;
+
+                }
+
+                HTTPResponse = null;
+                return true;
+
+            }
+
+            JSON          = null;
+            HTTPResponse  = null;
+            return true;
+
+        }
+
+        #endregion
+
+        #region ParseOptional(this JSON, PropertyName,  PropertyDescription, DefaultServerName, out Text,      HTTPRequest, out HTTPResponse)
+
+        public Boolean ParseOptional(String            PropertyName,
                                      String            PropertyDescription,
                                      String            DefaultServerName,
                                      out String        Text,
@@ -818,9 +1087,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             Object JSONToken = null;
 
             // Attention: JSONToken is a side-effect!
-            var FirstMatchingPropertyName = PropertyNames.
-                                                Where(propertyname => TryGetValue(propertyname, out JSONToken)).
-                                                FirstOrDefault();
+            var FirstMatchingPropertyName = PropertyNames.FirstOrDefault(propertyname => TryGetValue(propertyname, out JSONToken));
 
             if (FirstMatchingPropertyName != null)
             {
@@ -872,7 +1139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             Date            = DateTime.Now,
                             ContentType     = HTTPContentType.JSON_UTF8,
                             Content         = JSONObject.Create(
-                                                  new JProperty("description",  "Invalid timestamp '" + JSONToken.ToString() + "'!")
+                                                  new JProperty("description",  "Invalid timestamp '" + JSONToken + "'!")
                                               ).ToUTF8Bytes()
                         };
 
@@ -930,7 +1197,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             Date            = DateTime.Now,
                             ContentType     = HTTPContentType.JSON_UTF8,
                             Content         = JSONObject.Create(
-                                                  new JProperty("description",  "Invalid timestamp '" + JSONToken.ToString() + "'!")
+                                                  new JProperty("description",  "Invalid timestamp '" + JSONToken + "'!")
                                               ).ToUTF8Bytes()
                         };
 
@@ -947,6 +1214,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
+
+
 
 
 

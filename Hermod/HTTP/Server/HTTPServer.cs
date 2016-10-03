@@ -39,13 +39,18 @@ using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
+    /// <summary>
+    /// A HTTP/1.1 server.
+    /// </summary>
+    /// <typeparam name="T">The type of a collection of tenants.</typeparam>
+    /// <typeparam name="U">The type of the tenants.</typeparam>
     public class HTTPServer<T, U> : HTTPServer
         where T : IEnumerable<U>
     {
 
         #region Data
 
-        public readonly ConcurrentDictionary<HTTPHostname, T> _Multitenancy;
+        private readonly ConcurrentDictionary<HTTPHostname, T> _Multitenancy;
 
         #endregion
 
@@ -230,55 +235,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The default HTTP server name.
         /// </summary>
-        public  const           String             DefaultHTTPServerName  = "GraphDefined Hermod HTTP Service v0.9";
+        public  const           String           DefaultHTTPServerName  = "GraphDefined Hermod HTTP Service v0.9";
 
         /// <summary>
         /// The default HTTP server TCP port.
         /// </summary>
-        public static readonly  IPPort             DefaultHTTPServerPort  = new IPPort(80);
+        public static readonly  IPPort           DefaultHTTPServerPort  = new IPPort(80);
 
-        private readonly        URIMapping         _URIMapping;
+        private readonly        URIMapping       _URIMapping;
 
-        private readonly        HTTPProcessor      _HTTPProcessor;
+        private readonly        HTTPProcessor    _HTTPProcessor;
 
         #endregion
 
         #region Properties
 
-        #region DefaultServerName
-
-        private readonly String _DefaultServerName;
-
         /// <summary>
         /// The default HTTP servername, used whenever
         /// no HTTP Host-header had been given.
         /// </summary>
-        public String DefaultServerName
-        {
-            get
-            {
-                return _DefaultServerName;
-            }
-        }
-
-        #endregion
-
-        #region HTTPSecurity
-
-        private readonly HTTPSecurity _HTTPSecurity;
+        public String        DefaultServerName    { get; }
 
         /// <summary>
         /// An associated HTTP security object.
         /// </summary>
-        public HTTPSecurity HTTPSecurity
-        {
-            get
-            {
-                return _HTTPSecurity;
-            }
-        }
-
-        #endregion
+        public HTTPSecurity  HTTPSecurity         { get; }
 
         #endregion
 
@@ -355,7 +336,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this._DefaultServerName         = DefaultServerName;
+            this.DefaultServerName         = DefaultServerName;
             this._URIMapping                = new URIMapping();
 
             _HTTPProcessor                  = new HTTPProcessor(this);
@@ -377,7 +358,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        // Manage the underlying TCP sockets...
+        #region Manage the underlying TCP sockets...
 
         #region AttachTCPPort(Port)
 
@@ -463,6 +444,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #endregion
+
 
         // Events
 
@@ -496,7 +479,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           new JProperty("source",       e.TargetSite.Module.Name),
                                           new JProperty("type",         e.TargetSite.ReflectedType.Name)
                                       ).ToUTF8Bytes(),
-                    Server          = _DefaultServerName,
+                    Server          = DefaultServerName,
                     Connection      = "close"
                 };
 
@@ -533,7 +516,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           new JProperty("source",       e.TargetSite.Module.Name),
                                           new JProperty("type",         e.TargetSite.ReflectedType.Name)
                                       ).ToUTF8Bytes(),
-                    Server          = _DefaultServerName,
+                    Server          = DefaultServerName,
                     Connection      = "close"
                 };
 
@@ -555,7 +538,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Content         = JSONObject.Create(
                                       new JProperty("description", "URIMappingResponse AND OnNotificationResponse in ProcessBoomerang() had been null!")
                                   ).ToUTF8Bytes(),
-                Server          = _DefaultServerName,
+                Server          = DefaultServerName,
                 Connection      = "close"
             };
 
@@ -830,15 +813,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        HTTPMethod                                HTTPMethod                   = null,
                                        Func<HTTPContentType[], HTTPContentType>  HTTPContentTypeSelector      = null,
                                        Action<IEnumerable<String>>               ParsedURIParametersDelegate  = null)
-        {
 
-            return _URIMapping.GetHandler(Host,
-                                          URI,
-                                          HTTPMethod,
-                                          HTTPContentTypeSelector,
-                                          ParsedURIParametersDelegate);
-
-        }
+            => _URIMapping.GetHandler(Host,
+                                      URI,
+                                      HTTPMethod,
+                                      HTTPContentTypeSelector,
+                                      ParsedURIParametersDelegate);
 
         #endregion
 
@@ -848,11 +828,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Call the best matching method handler for the given HTTP request.
         /// </summary>
         public async Task<HTTPResponse> InvokeHandler(HTTPRequest HTTPRequest)
-        {
 
-            return await _URIMapping.InvokeHandler(HTTPRequest);
-
-        }
+            => await _URIMapping.InvokeHandler(HTTPRequest);
 
         #endregion
 
