@@ -638,7 +638,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            _URIMapping.AddHandler(req => _URIMapping.InvokeHandler(new HTTPRequestBuilder(req).SetURI(URITarget)),
+            _URIMapping.AddHandler(req => InvokeHandler(new HTTPRequestBuilder(req).SetURI(URITarget)),
                                    Hostname,
                                    (URITemplate.IsNotNullOrEmpty()) ? URITemplate     : "/",
                                    HTTPMethod      ?? HTTPMethod.GET,
@@ -668,7 +668,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            _URIMapping.AddHandler(req => _URIMapping.InvokeHandler(new HTTPRequestBuilder(req).SetURI(URITarget)),
+            _URIMapping.AddHandler(req => InvokeHandler(new HTTPRequestBuilder(req).SetURI(URITarget)),
                                    HTTPHostname.Any,
                                    (URITemplate.IsNotNullOrEmpty()) ? URITemplate     : "/",
                                    HTTPMethod      ?? HTTPMethod.GET,
@@ -827,9 +827,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Call the best matching method handler for the given HTTP request.
         /// </summary>
-        public async Task<HTTPResponse> InvokeHandler(HTTPRequest HTTPRequest)
+        public async Task<HTTPResponse> InvokeHandler(HTTPRequest Request)
+        {
 
-            => await _URIMapping.InvokeHandler(HTTPRequest);
+            var Handler = _URIMapping.GetHandler(Request);
+
+            if (Handler != null)
+                return await Handler(Request);
+
+            return new HTTPResponseBuilder(Request) {
+                HTTPStatusCode  = HTTPStatusCode.NotFound,
+                Server          = Request.Host.ToString(),
+                Date            = DateTime.Now,
+                ContentType     = HTTPContentType.TEXT_UTF8,
+                Content         = "Error 404 - Not Found!".ToUTF8Bytes(),
+                Connection      = "close"
+            };
+
+        }
 
         #endregion
 

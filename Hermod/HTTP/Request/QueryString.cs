@@ -292,6 +292,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
 
+        public T Map<T>(String           Parameter,
+                        Func<String, T>  Mapper,
+                        T                DefaultValue)
+        {
+
+            if (Mapper == null)
+                return DefaultValue;
+
+            List<String> Value = null;
+
+            if (_Dictionary.TryGetValue(Parameter, out Value))
+                return Mapper(Value.LastOrDefault());
+
+            return DefaultValue;
+
+        }
+
+
 
         #region (override) ToString()
 

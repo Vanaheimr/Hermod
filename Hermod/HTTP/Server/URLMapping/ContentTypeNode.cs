@@ -18,8 +18,6 @@
 #region Usings
 
 using System;
-using System.Reflection;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 #endregion
@@ -35,101 +33,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Properties
 
-        #region HTTPContentType
-
-        private readonly HTTPContentType _HTTPContentType;
-
         /// <summary>
         /// The HTTP content type for this service.
         /// </summary>
-        public HTTPContentType HTTPContentType
-        {
-            get
-            {
-                return _HTTPContentType;
-            }
-        }
+        public HTTPContentType                           HTTPContentType                   { get; }
 
-        #endregion
-
-        #region RequestHandler
-
-        private readonly HTTPDelegate _RequestHandler;
-
-        public HTTPDelegate RequestHandler
-        {
-            get
-            {
-                return _RequestHandler;
-            }
-        }
-
-        #endregion
-
-        #region HTTPContentTypeAuthentication
-
-        private readonly HTTPAuthentication _HTTPContentTypeAuthentication;
+        public HTTPDelegate                              RequestHandler                    { get; }
 
         /// <summary>
         /// This and all subordinated nodes demand an explicit HTTP content type authentication.
         /// </summary>
-        public HTTPAuthentication HTTPContentTypeAuthentication
-        {
-            get
-            {
-                return _HTTPContentTypeAuthentication;
-            }
-        }
-
-        #endregion
-
-        #region DefaultErrorHandler
-
-        private readonly HTTPDelegate _DefaultErrorHandler;
+        public HTTPAuthentication                        HTTPContentTypeAuthentication     { get; }
 
         /// <summary>
         /// A general error handling method.
         /// </summary>
-        public HTTPDelegate DefaultErrorHandler
-        {
-            get
-            {
-                return _DefaultErrorHandler;
-            }
-        }
+        public HTTPDelegate                              DefaultErrorHandler               { get; }
 
-        #endregion
+        public URIReplacement                            AllowReplacement                  { get; }
 
-        #region ErrorHandlers
-
-        private readonly Dictionary<HTTPStatusCode, HTTPDelegate> _ErrorHandlers;
 
         /// <summary>
         /// Error handling methods for specific http status codes.
         /// </summary>
-        public Dictionary<HTTPStatusCode, HTTPDelegate> ErrorHandlers
-        {
-            get
-            {
-                return _ErrorHandlers;
-            }
-        }
-
-        #endregion
-
-        #region URIReplacement
-
-        private readonly URIReplacement _AllowReplacement;
-
-        public URIReplacement AllowReplacement
-        {
-            get
-            {
-                return _AllowReplacement;
-            }
-        }
-
-        #endregion
+        public Dictionary<HTTPStatusCode, HTTPDelegate>  ErrorHandlers                     { get; }
 
         #endregion
 
@@ -150,16 +77,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                  URIReplacement      AllowReplacement                = URIReplacement.Fail)
         {
 
+            #region Initial checks
+
             if (HTTPContentType == null)
-                throw new ArgumentException("HTTPContentType == null!");
+                throw new ArgumentNullException(nameof(HTTPContentType),  "The given HTTP content type must not be null!");
 
-            this._HTTPContentType                = HTTPContentType;
-            this._HTTPContentTypeAuthentication  = HTTPContentTypeAuthentication;
-            this._RequestHandler                 = RequestHandler;
-            this._DefaultErrorHandler            = DefaultErrorHandler;
-            this._AllowReplacement               = AllowReplacement;
+            #endregion
 
-            this._ErrorHandlers                  = new Dictionary<HTTPStatusCode, HTTPDelegate>();
+            this.HTTPContentType                = HTTPContentType;
+            this.HTTPContentTypeAuthentication  = HTTPContentTypeAuthentication;
+            this.RequestHandler                 = RequestHandler;
+            this.DefaultErrorHandler            = DefaultErrorHandler;
+            this.AllowReplacement               = AllowReplacement;
+
+            this.ErrorHandlers                  = new Dictionary<HTTPStatusCode, HTTPDelegate>();
 
         }
 

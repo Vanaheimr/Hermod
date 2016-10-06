@@ -220,34 +220,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (internal) InvokeHandler(Request)
+        #region (internal) GetHandler(Request)
 
         /// <summary>
-        /// Invoke the best matching method handler for the given parameters.
+        /// Return the best matching method handler for the given parameters.
         /// </summary>
         /// <param name="Request">A HTTP request.</param>
-        internal async Task<HTTPResponse> InvokeHandler(HTTPRequest Request)
-        {
+        internal HTTPDelegate GetHandler(HTTPRequest Request)
 
-            var Handler = GetHandler(Request.Host ?? HTTPHostname.Any,
-                                     Request.URI.IsNullOrEmpty() ? "/"              : Request.URI,
-                                     Request.HTTPMethod,
-                                     AvailableContentTypes => Request.Accept.BestMatchingContentType(AvailableContentTypes),
-                                     ParsedURIParameters   => Request.ParsedURIParameters = ParsedURIParameters.ToArray());
-
-            if (Handler != null)
-                return await Handler(Request);
-
-            return new HTTPResponseBuilder(Request) {
-                HTTPStatusCode  = HTTPStatusCode.NotFound,
-                Server          = Request.Host.ToString(),
-                Date            = DateTime.Now,
-                ContentType     = HTTPContentType.TEXT_UTF8,
-                Content         = "Error 404 - Not Found!".ToUTF8Bytes(),
-                Connection      = "close"
-            };
-
-        }
+            => GetHandler(Request.Host ?? HTTPHostname.Any,
+                          Request.URI.IsNullOrEmpty() ? "/" : Request.URI,
+                          Request.HTTPMethod,
+                          AvailableContentTypes => Request.Accept.BestMatchingContentType(AvailableContentTypes),
+                          ParsedURIParameters   => Request.ParsedURIParameters = ParsedURIParameters.ToArray());
 
         #endregion
 
@@ -264,7 +249,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             Host                     = Host                    ?? HTTPHostname.Any;
-            URI                      = URI.IsNullOrEmpty() ? "/" : URI;
+            URI                      = URI.IsNullOrEmpty()      ? "/" : URI;
             HTTPMethod               = HTTPMethod              ?? HTTPMethod.GET;
             HTTPContentTypeSelector  = HTTPContentTypeSelector ?? (v => HTTPContentType.HTML_UTF8);
 
@@ -352,8 +337,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (_Match2.URLNode.HTTPMethods.TryGetValue(HTTPMethod, out _HTTPMethodNode))
                     {
 
+                        var BestMatchingContentType = HTTPContentTypeSelector(_HTTPMethodNode.HTTPContentTypes.Keys.ToArray());
+
                         // Get HTTPContentTypeNode
-                        if (!_HTTPMethodNode.HTTPContentTypes.TryGetValue(HTTPContentTypeSelector(_HTTPMethodNode.HTTPContentTypes.Keys.ToArray()), out _HTTPContentTypeNode))
+                        if (!_HTTPMethodNode.HTTPContentTypes.TryGetValue(BestMatchingContentType, out _HTTPContentTypeNode))
                             return _HTTPMethodNode.RequestHandler;
 
                         return _HTTPContentTypeNode.RequestHandler;
