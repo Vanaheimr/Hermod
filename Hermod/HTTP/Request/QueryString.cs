@@ -309,6 +309,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
+        public TEnum ParseEnum<TEnum>(String  Parameter,
+                                      TEnum   DefaultValueT)
+             where TEnum : struct
+        {
+
+            List<String> Values = null;
+            TEnum        ValueT;
+
+            if (_Dictionary.TryGetValue(Parameter, out Values) &&
+                Enum.TryParse<TEnum>(Values.LastOrDefault(), out ValueT))
+                return ValueT;
+
+            return DefaultValueT;
+
+        }
+
 
 
         #region (override) ToString()
