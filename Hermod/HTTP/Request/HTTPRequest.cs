@@ -750,9 +750,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             // Parse QueryString after '?'
             if (RawUrl.IndexOf('?') > -1 && _ParsedURL[1].IsNeitherNullNorEmpty())
-                this._QueryString = new QueryString(_ParsedURL[1]);
+                this._QueryString = QueryString.Parse(_ParsedURL[1]);
             else
-                this._QueryString = new QueryString();
+                this._QueryString = QueryString.Empty;
 
             #endregion
 

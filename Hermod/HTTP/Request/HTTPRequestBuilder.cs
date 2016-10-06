@@ -684,7 +684,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.HTTPStatusCode   = HTTPStatusCode.OK;
             this.HTTPMethod       = HTTPMethod.GET;
             this.URI              = "/";
-            this._QueryString     = new QueryString();
+            this._QueryString     = QueryString.Empty;
             SetHeaderField(HTTPHeaderField.Accept, new AcceptTypes());
             this.ProtocolName     = "HTTP";
             this.ProtocolVersion  = new HTTPVersion(1, 1);

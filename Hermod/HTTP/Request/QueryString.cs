@@ -22,7 +22,8 @@ using System.Web;
 using System.Linq;
 using System.Text;
 using System.Collections.Generic;
-using System.Collections.Specialized;
+
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -30,78 +31,92 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// A chainable query string helper class.
-    /// Example usage :
-    /// string strQuery = QueryString.Current.Add("id", "179").ToString();
-    /// string strQuery = new QueryString().Add("id", "179").ToString();
+    /// A HTTP Query String.
     /// </summary>
     public class QueryString : IEnumerable<KeyValuePair<String, IEnumerable<String>>>
     {
 
         #region Data
 
-        private Dictionary<String, List<String>> _Dictionary;
+        private readonly Dictionary<String, List<String>> _Dictionary;
+
+        private static Char[] AndSign    = { '&' };
+        private static Char[] EqualsSign = { '=' };
 
         #endregion
 
         #region Constructor(s)
 
-        #region QueryString()
-
         /// <summary>
-        /// Create a new HTTP QueryString.
+        /// Create a new query string based on the optional given string repesentation.
         /// </summary>
-        public QueryString()
+        /// <param name="Text">An optional text to parse.</param>
+        private QueryString(String Text = null)
         {
+
             _Dictionary = new Dictionary<String, List<String>>();
+
+            if (Text.IsNotNullOrEmpty())
+            {
+
+                Text = Text.Trim();
+
+                var position = Text.IndexOf("?", StringComparison.Ordinal);
+                if (position >= 0)
+                    Text = Text.Remove(0, position + 1);
+
+                String[] split = null;
+
+                if (Text.IsNotNullOrEmpty())
+                    foreach (var keyValuePair in Text.Split(AndSign, StringSplitOptions.RemoveEmptyEntries))
+                    {
+
+                        split = keyValuePair.Split(EqualsSign, StringSplitOptions.RemoveEmptyEntries);
+
+                        switch (split.Length)
+                        {
+
+                            case 1:
+                                Add(HttpUtility.UrlDecode(split[0]),
+                                                          "");
+                                break;
+
+                            case 2:
+                                Add(HttpUtility.UrlDecode(split[0]),
+                                    HttpUtility.UrlDecode(split[1]));
+                                break;
+
+                        }
+
+                    }
+
+            }
+
         }
 
         #endregion
 
-        #region QueryString(QueryString)
+
+        #region (static) Empty
 
         /// <summary>
-        /// Parse the given string repesentation of a HTTP QueryString.
+        /// Return an empty query string.
         /// </summary>
-        public QueryString(String QueryString)
-            : this()
-        {
+        public static QueryString Empty
 
-            #region Initial checks
-
-            if (String.IsNullOrEmpty(QueryString))
-                throw new ArgumentNullException("The given QueryString must not be null or its length zero!");
-
-            var position = QueryString.IndexOf("?");
-            if (position >= 0)
-            {
-
-                QueryString = QueryString.Remove(0, position + 1);
-
-                if (String.IsNullOrEmpty(QueryString))
-                    throw new ArgumentNullException("The given QueryString must not be null or its length zero!");
-
-            }
-
-            #endregion
-
-            var a = new Char[] { '&' };
-            var b = new Char[] { '=' };
-
-            foreach (var keyValuePair in QueryString.Split(a, StringSplitOptions.RemoveEmptyEntries))
-            {
-
-                var split = keyValuePair.Split(b, StringSplitOptions.RemoveEmptyEntries);
-
-                if (split.Length == 2)
-                    Add(HttpUtility.UrlDecode(split[0]),
-                        HttpUtility.UrlDecode(split[1]));
-
-            }
-
-        }
+            => new QueryString();
 
         #endregion
+
+        #region (static) Parse(String Text)
+
+        /// <summary>
+        ///  Parse the given string repesentation of a HTTP Query String.
+        /// </summary>
+        /// <param name="Text">The text to parse.</param>
+        public static QueryString Parse(String Text)
+
+            => new QueryString(Text);
 
         #endregion
 
@@ -109,20 +124,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Add(Key, Value)
 
         /// <summary>
-        /// Add KeyValuePair to the QueryString.
+        /// Add the given key value pair to the query string.
         /// </summary>
         /// <param name="Key">The key.</param>
-        /// <param name="Value">The value(s) associated with the key.</param>
-        public QueryString Add(String Key, String Value)
+        /// <param name="Value">The value associated with the key.</param>
+        public QueryString Add(String  Key,
+                               String  Value)
         {
 
             #region Initial checks
 
-            if (String.IsNullOrEmpty(Key))
-                throw new ArgumentNullException("The key must not be null or empty!");
+            if (Key.IsNullOrEmpty())
+                throw new ArgumentNullException(nameof(Key),    "The key must not be null or empty!");
 
-            if (String.IsNullOrEmpty(Value))
-                throw new ArgumentNullException("The value must not be null or empty!");
+            if (Value.IsNullOrEmpty())
+                throw new ArgumentNullException(nameof(Value),  "The value must not be null or empty!");
 
             #endregion
 
@@ -139,16 +155,61 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Add(Key, Values)
+
+        /// <summary>
+        /// Add the given key value pairs to the query string.
+        /// </summary>
+        /// <param name="Key">The key.</param>
+        /// <param name="Values">The values associated with the key.</param>
+        public QueryString Add(String               Key,
+                               IEnumerable<String>  Values)
+        {
+
+            #region Initial checks
+
+            if (Key.IsNullOrEmpty())
+                throw new ArgumentNullException(nameof(Key),     "The key must not be null or empty!");
+
+            if (Values == null)
+                throw new ArgumentNullException(nameof(Values),  "The values must not be null!");
+
+            #endregion
+
+            List<String> ValueList = null;
+
+            if (_Dictionary.TryGetValue(Key, out ValueList))
+                ValueList.AddRange(Values);
+            else
+                _Dictionary.Add(Key, new List<String>(Values));
+
+            return this;
+
+        }
+
+        #endregion
+
+
         #region Remove(Key)
 
         /// <summary>
-        /// Remove a KeyValuesPair.
+        /// Remove a key values pair from the query string.
         /// </summary>
         /// <param name="Key">The key.</param>
-        public new QueryString Remove(String Key)
+        public QueryString Remove(String Key)
         {
+
+            #region Initial checks
+
+            if (Key.IsNullOrEmpty())
+                throw new ArgumentNullException(nameof(Key),  "The key must not be null or empty!");
+
+            #endregion
+
             _Dictionary.Remove(Key);
+
             return this;
+
         }
 
         #endregion
@@ -156,12 +217,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Remove(Key, Value)
 
         /// <summary>
-        /// Remove a KeyValuePair.
+        /// Remove the given key value pair from the query string.
         /// </summary>
         /// <param name="Key">The key.</param>
         /// <param name="Value">The value.</param>
-        public QueryString Remove(String Key, String Value)
+        public QueryString Remove(String  Key,
+                                  String  Value)
         {
+
+            #region Initial checks
+
+            if (Key.IsNullOrEmpty())
+                throw new ArgumentNullException(nameof(Key),    "The key must not be null or empty!");
+
+            if (Value == null)
+                throw new ArgumentNullException(nameof(Value),  "The value must not be null!");
+
+            #endregion
 
             List<String> ValueList = null;
 
@@ -174,142 +246,230 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        public String GetString(String Parameter)
+        #region Remove(Key, Values)
+
+        /// <summary>
+        /// Remove the given key value pairs from the query string.
+        /// </summary>
+        /// <param name="Key">The key.</param>
+        /// <param name="Values">The values associated with the key.</param>
+        public QueryString Remove(String               Key,
+                                  IEnumerable<String>  Values)
         {
 
-            List<String> Value = null;
+            List<String> ValueList = null;
 
-            if (_Dictionary.TryGetValue(Parameter, out Value))
-                return Value.LastOrDefault();
+            if (_Dictionary.TryGetValue(Key, out ValueList))
+                foreach (var value in Values)
+                    ValueList.Remove(value);
 
-            return null;
+            return this;
 
         }
 
-        public String GetStringOrDefault(String Parameter, String DefaultValue)
+        #endregion
+
+
+        #region GetString(ParameterName, DefaultValue = null)
+
+        public String GetString(String  ParameterName,
+                                String  DefaultValue = null)
         {
 
-            List<String> Value = null;
+            List<String> Values = null;
 
-            if (_Dictionary.TryGetValue(Parameter, out Value))
-                if (Value != null && Value.Count > 0)
-                    return Value.Last();
+            if (_Dictionary.TryGetValue(ParameterName, out Values) &&
+                Values       != null                               &&
+                Values.Count  > 0)
+
+                return Values.Last();
 
             return DefaultValue;
 
         }
 
-        public IEnumerable<String> GetStrings(String Parameter, Boolean ToLowerCase = false)
+        #endregion
+
+        #region GetStrings(ParameterName, ToLowerCase = false)
+
+        public IEnumerable<String> GetStrings(String   ParameterName,
+                                              Boolean  ToLowerCase = false)
         {
 
-            List<String>         Value   = null;
-            Func<String, String> ToLower = null;
+            List<String>         Value    = null;
+            Func<String, String> ToLower  = ToLowerCase ? ToLower = s => s.ToLower() : ToLower = s => s;
 
-            if (ToLowerCase)
-                ToLower = s => s.ToLower();
-            else
-                ToLower = s => s;
+            if (_Dictionary.TryGetValue(ParameterName, out Value) &&
+                Value       != null                               &&
+                Value.Count  > 0)
 
-            if (_Dictionary.TryGetValue(Parameter, out Value))
-                if (Value != null && Value.Count > 0)
-                    return Value.SelectMany(item => item.Split(new Char[] { ',' }, StringSplitOptions.RemoveEmptyEntries).
-                                                         Select(s => ToLower(s)));
+                return Value.SelectMany(item => item.Split(new Char[] { ',' }, StringSplitOptions.RemoveEmptyEntries).
+                                                     Select(s => ToLower(s)));
 
             return new List<String>();
 
         }
 
-        public Int32? GetInt32(String Parameter)
+        #endregion
+
+        #region CreateStringFilter(ParameterName, FilterDelegate)
+
+        public Func<T, Boolean> CreateStringFilter<T>(String                    ParameterName,
+                                                      Func<T, String, Boolean>  FilterDelegate)
+        {
+
+            List<String> Values = null;
+
+            if (FilterDelegate != null                             &&
+                _Dictionary.TryGetValue(ParameterName, out Values) &&
+                Values         != null                             &&
+                Values.Count    > 0)
+
+                return item => Values.Last().StartsWith("!", StringComparison.Ordinal)
+                                   ? !FilterDelegate(item, Values.Last().Substring(1))
+                                   :  FilterDelegate(item, Values.Last());
+
+            return item => true;
+
+        }
+
+        #endregion
+
+
+        #region GetInt32(ParameterName)
+
+        public Int32? GetInt32(String ParameterName)
         {
 
             List<String>  Values;
-            Int32         Int;
+            Int32         Number;
 
-            if (_Dictionary.TryGetValue(Parameter, out Values))
-                if (Int32.TryParse(Values.LastOrDefault(), out Int))
-                    return Int;
+            if (_Dictionary.TryGetValue(ParameterName, out Values) &&
+                Values       != null                               &&
+                Values.Count  > 0                                  &&
+                Int32.TryParse(Values.LastOrDefault(), out Number))
+
+                return Number;
 
             return null;
 
         }
 
-        public UInt32? GetUInt32(String Parameter)
+        #endregion
+
+        #region GetUInt32(ParameterName)
+
+        public UInt32? GetUInt32(String ParameterName)
         {
 
             List<String>  Values;
-            UInt32        Int;
+            UInt32        Number;
 
-            if (_Dictionary.TryGetValue(Parameter, out Values))
-                if (UInt32.TryParse(Values.LastOrDefault(), out Int))
-                    return Int;
+            if (_Dictionary.TryGetValue(ParameterName, out Values) &&
+                Values       != null                               &&
+                Values.Count  > 0                                  &&
+                UInt32.TryParse(Values.LastOrDefault(), out Number))
+
+                return Number;
 
             return null;
 
         }
 
-        public UInt32 GetUInt32OrDefault(String Parameter,
+        #endregion
+
+        #region GetUInt32OrDefault(ParameterName, DefaultValue = 0)
+
+        public UInt32 GetUInt32OrDefault(String ParameterName,
                                          UInt32 DefaultValue = 0)
         {
 
             List<String> Values;
-            UInt32 Int;
+            UInt32       Number;
 
-            if (_Dictionary.TryGetValue(Parameter, out Values))
-                if (UInt32.TryParse(Values.LastOrDefault(), out Int))
-                    return Int;
+            if (_Dictionary.TryGetValue(ParameterName, out Values) &&
+                Values       != null                               &&
+                Values.Count  > 0                                  &&
+                UInt32.TryParse(Values.Last(), out Number))
+
+                return Number;
 
             return DefaultValue;
 
         }
 
-        public UInt64? GetUInt64(String Parameter)
+        #endregion
+
+        #region GetUInt64(ParameterName)
+
+        public UInt64? GetUInt64(String ParameterName)
         {
 
             List<String> Values;
-            UInt64 Int;
+            UInt64       Number;
 
-            if (_Dictionary.TryGetValue(Parameter, out Values))
-                if (UInt64.TryParse(Values.LastOrDefault(), out Int))
-                    return Int;
+            if (_Dictionary.TryGetValue(ParameterName, out Values) &&
+                Values       != null                               &&
+                Values.Count  > 0                                  &&
+                UInt64.TryParse(Values.Last(), out Number))
+
+                return Number;
 
             return null;
 
         }
 
-        public UInt64 GetUInt64OrDefault(String Parameter,
+        #endregion
+
+        #region GetUInt64OrDefault(ParameterName, DefaultValue = 0)
+
+        public UInt64 GetUInt64OrDefault(String ParameterName,
                                          UInt64 DefaultValue = 0)
         {
 
             List<String> Values;
-            UInt64 Int;
+            UInt64       Number;
 
-            if (_Dictionary.TryGetValue(Parameter, out Values))
-                if (UInt64.TryParse(Values.LastOrDefault(), out Int))
-                    return Int;
+            if (_Dictionary.TryGetValue(ParameterName, out Values) &&
+                Values       != null                               &&
+                Values.Count  > 0                                  &&
+                UInt64.TryParse(Values.Last(), out Number))
+
+                return Number;
 
             return DefaultValue;
 
         }
 
+        #endregion
 
-        public T Map<T>(String           Parameter,
+
+        #region Map(ParameterName, Mapper, DefaultValueT)
+
+        public T Map<T>(String           ParameterName,
                         Func<String, T>  Mapper,
                         T                DefaultValue)
         {
 
-            if (Mapper == null)
-                return DefaultValue;
+            List<String> Values = null;
 
-            List<String> Value = null;
+            if (Mapper       != null                               &&
+                _Dictionary.TryGetValue(ParameterName, out Values) &&
+                Values       != null                               &&
+                Values.Count  > 0)
 
-            if (_Dictionary.TryGetValue(Parameter, out Value))
-                return Mapper(Value.LastOrDefault());
+                return Mapper(Values.LastOrDefault());
 
             return DefaultValue;
 
         }
 
-        public TEnum ParseEnum<TEnum>(String  Parameter,
+        #endregion
+
+
+        #region ParseEnum(ParameterName, DefaultValueT)
+
+        public TEnum ParseEnum<TEnum>(String  ParameterName,
                                       TEnum   DefaultValueT)
              where TEnum : struct
         {
@@ -317,15 +477,115 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             List<String> Values = null;
             TEnum        ValueT;
 
-            if (_Dictionary.TryGetValue(Parameter, out Values) &&
-                Enum.TryParse<TEnum>(Values.LastOrDefault(), out ValueT))
+            if (_Dictionary.TryGetValue(ParameterName, out Values) &&
+                Values       != null                               &&
+                Values.Count  > 0                                  &&
+                Enum.TryParse(Values.Last(), out ValueT))
+
                 return ValueT;
 
             return DefaultValueT;
 
         }
 
+        #endregion
 
+        #region CreateEnumFilter(ParameterName, FilterDelegate)
+
+        public Func<T, Boolean> CreateEnumFilter<T, TEnum>(String                   ParameterName,
+                                                           Func<T, TEnum, Boolean>  FilterDelegate)
+             where TEnum : struct
+        {
+
+            List<String> Values = null;
+            TEnum        ValueT;
+
+            if (FilterDelegate != null                             &&
+                _Dictionary.TryGetValue(ParameterName, out Values) &&
+                Values         != null                             &&
+                Values.Count    > 0)
+            {
+
+                var Value = Values.Last();
+
+                if (Enum.TryParse(Value.StartsWith("!", StringComparison.Ordinal)
+                                      ? Value.Substring(1)
+                                      : Value,
+                                  out ValueT))
+
+                    return item => Value.StartsWith("!", StringComparison.Ordinal)
+                                      ? !FilterDelegate(item, ValueT)
+                                      :  FilterDelegate(item, ValueT);
+
+            }
+
+            return item => true;
+
+        }
+
+        #endregion
+
+
+        #region GetDateTime(ParameterName)
+
+        public DateTime? GetDateTime(String ParameterName)
+        {
+
+            List<String> Values  = null;
+            DateTime     Timestamp;
+
+            if (_Dictionary.TryGetValue(ParameterName, out Values) &&
+                Values       != null                               &&
+                Values.Count >  0                                  &&
+                DateTime.TryParse(Values.Last(), out Timestamp))
+
+                return Timestamp;
+
+            return new DateTime?();
+
+        }
+
+        #endregion
+
+        #region CreateDateTimeFilter(ParameterName, FilterDelegate)
+
+        public Func<T, Boolean> CreateDateTimeFilter<T>(String                      ParameterName,
+                                                        Func<T, DateTime, Boolean>  FilterDelegate)
+        {
+
+            List<String> Value  = null;
+            DateTime     Timestamp;
+
+            if (FilterDelegate != null                             &&
+                _Dictionary.TryGetValue(ParameterName, out Value)  &&
+                Value          != null                             &&
+                Value.Count     > 0                                &&
+                DateTime.TryParse(Value.Last(), out Timestamp))
+
+                return item => FilterDelegate(item, Timestamp);
+
+            return item => true;
+
+        }
+
+        #endregion
+
+
+        #region GetEnumerator()
+
+        public IEnumerator<KeyValuePair<String, IEnumerable<String>>> GetEnumerator()
+
+            => _Dictionary.
+                   Select(v => new KeyValuePair<String, IEnumerable<String>>(v.Key, v.Value)).
+                   GetEnumerator();
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+
+            => _Dictionary.
+                   Select(v => new KeyValuePair<String, IEnumerable<String>>(v.Key, v.Value)).
+                   GetEnumerator();
+
+        #endregion
 
         #region (override) ToString()
 
@@ -354,26 +614,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        public IEnumerator<KeyValuePair<String, IEnumerable<String>>> GetEnumerator()
-        {
-
-            return _Dictionary.
-                       Select(v => new KeyValuePair<String, IEnumerable<String>>(v.Key, v.Value)).
-                       GetEnumerator();
-
-        }
-
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-        {
-
-            return _Dictionary.
-                       Select(v => new KeyValuePair<String, IEnumerable<String>>(v.Key, v.Value)).
-                       GetEnumerator();
-
-        }
-
     }
 
 }
-
-
