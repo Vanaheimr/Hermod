@@ -490,6 +490,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region TryParseEnum(ParameterName)
+
+        public TEnum? TryParseEnum<TEnum>(String  ParameterName)
+             where TEnum : struct
+        {
+
+            List<String> Values = null;
+            TEnum        ValueT;
+
+            if (_Dictionary.TryGetValue(ParameterName, out Values) &&
+                Values       != null                               &&
+                Values.Count  > 0                                  &&
+                Enum.TryParse(Values.Last(), out ValueT))
+
+                return new TEnum?(ValueT);
+
+            return new TEnum?();
+
+        }
+
+        #endregion
+
         #region CreateEnumFilter(ParameterName, FilterDelegate)
 
         public Func<T, Boolean> CreateEnumFilter<T, TEnum>(String                   ParameterName,
