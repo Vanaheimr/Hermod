@@ -46,6 +46,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         public static readonly IPPort    DefaultHTTPServerPort  = new IPPort(443);
 
         /// <summary>
+        /// The default HTTP/SOAP/XML server URI prefix.
+        /// </summary>
+        public const           String    DefaultURIPrefix       = "";
+
+        /// <summary>
         /// The default query timeout.
         /// </summary>
         public static readonly TimeSpan  DefaultQueryTimeout    = TimeSpan.FromMinutes(1);
