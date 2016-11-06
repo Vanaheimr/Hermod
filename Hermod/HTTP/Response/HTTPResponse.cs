@@ -221,22 +221,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        public static HTTPResponse<TContent> OK(HTTPRequest  HTTPRequest,
-                                                TContent     Content)
+        #region ConvertContent<TRequest, TResult>(Request, ContentConverter, OnException = null)
+
+        /// <summary>
+        /// Convert the content of the HTTP response body via the given
+        /// content converter delegate.
+        /// </summary>
+        /// <typeparam name="TRequest">The type of the converted HTTP request body content.</typeparam>
+        /// <typeparam name="TResult">The type of the converted HTTP response body content.</typeparam>
+        /// <param name="Request">The request leading to this response.</param>
+        /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
+        /// <param name="OnException">A delegate to call whenever an exception during the conversion occures.</param>
+        public HTTPResponse<TResult> ConvertContent<TRequest, TResult>(TRequest                                                Request,
+                                                                       Func<TRequest, TContent, OnExceptionDelegate, TResult>  ContentConverter,
+                                                                       OnExceptionDelegate                                     OnException = null)
         {
-            return new HTTPResponse<TContent>(HTTPRequest, Content);
+
+            if (ContentConverter == null)
+                throw new ArgumentNullException(nameof(ContentConverter), "The given content converter delegate must not be null!");
+
+            return new HTTPResponse<TResult>(this, ContentConverter(Request, this.Content, OnException));
+
         }
 
+        #endregion
+
+
+
+        public static HTTPResponse<TContent> OK(HTTPRequest  HTTPRequest,
+                                                TContent     Content)
+
+            => new HTTPResponse<TContent>(HTTPRequest, Content);
+
         public static HTTPResponse<TContent> OK(TContent Content)
-        {
-            return new HTTPResponse<TContent>(null, Content);
-        }
+
+            => new HTTPResponse<TContent>(null, Content);
 
         public static HTTPResponse<TContent> ExceptionThrown(TContent   Content,
                                                              Exception  Exception)
-        {
-            return new HTTPResponse<TContent>(Content, Exception);
-        }
+
+            => new HTTPResponse<TContent>(Content, Exception);
 
     }
 

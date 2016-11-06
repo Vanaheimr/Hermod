@@ -361,19 +361,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (TCPClient == null)
                     {
 
-                        IIPAddress _ResolvedRemoteIPAddress = null;
+                        System.Net.IPEndPoint _FinalIPEndPoint          = null;
+                        IIPAddress            _ResolvedRemoteIPAddress  = null;
 
                         if (RemoteIPAddress == null)
                         {
 
-                            var RegExpr = new Regex(@"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b");
+                            if (Hostname.Trim() == "127.0.0.1")
+                                _ResolvedRemoteIPAddress = IPv4Address.Localhost;
 
-                            if (RegExpr.IsMatch(Hostname))
-                                _ResolvedRemoteIPAddress = IPv4Address.Parse(Hostname);
+                            else
+                            {
+
+                                var RegExpr = new Regex(@"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b");
+
+                                if (RegExpr.IsMatch(Hostname))
+                                    _ResolvedRemoteIPAddress = IPv4Address.Parse(Hostname);
+
+                            }
 
                             #region DNS lookup...
 
-                            if (RemoteIPAddress == null)
+                            if (_ResolvedRemoteIPAddress == null)
                             {
 
                                 try
@@ -404,13 +413,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         else
                             _ResolvedRemoteIPAddress = RemoteIPAddress;
 
+                        _FinalIPEndPoint = new System.Net.IPEndPoint(new System.Net.IPAddress(_ResolvedRemoteIPAddress.GetBytes()), RemotePort.ToInt32());
+
                         sw.Start();
 
-                        var axx = new System.Net.IPEndPoint(new System.Net.IPAddress(_ResolvedRemoteIPAddress.GetBytes()), RemotePort.ToInt32());
-
                         TCPClient = new TcpClient();
-                        TCPClient.Connect(axx);
-                        TCPClient.ReceiveTimeout = (Int32)Timeout.Value.TotalMilliseconds;
+                        TCPClient.Connect(_FinalIPEndPoint);
+                        TCPClient.ReceiveTimeout = (Int32) Timeout.Value.TotalMilliseconds;
 
                     }
 

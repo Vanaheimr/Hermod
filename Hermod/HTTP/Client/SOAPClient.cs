@@ -157,7 +157,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         {
 
             this._HTTPVirtualHost  = HTTPVirtualHost;
-            this._URIPrefix        = URIPrefix;
+            this._URIPrefix        = URIPrefix.IsNotNullOrEmpty() ? URIPrefix : "/";
             this._UserAgent        = UserAgent;
 
         }

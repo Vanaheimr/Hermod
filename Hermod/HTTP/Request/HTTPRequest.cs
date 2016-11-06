@@ -98,18 +98,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region URI
 
-        private readonly String _URI;
-
         /// <summary>
         /// The minimal URI (this means e.g. without the query string).
         /// </summary>
-        public String URI
-        {
-            get
-            {
-                return _URI;
-            }
-        }
+        public String URI { get; }
 
         #endregion
 
@@ -717,7 +709,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             CancellationToken?  CancellationToken  = null,
                             EventTracking_Id    EventTrackingId    = null)
 
-            : base(RemoteSocket, LocalSocket, HTTPHeader, HTTPBody, HTTPBodyStream, CancellationToken, EventTrackingId)
+            : base(RemoteSocket,
+                   LocalSocket,
+                   HTTPHeader,
+                   HTTPBody,
+                   HTTPBodyStream,
+                   CancellationToken,
+                   EventTrackingId)
 
         {
 
@@ -743,10 +741,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var RawUrl      = _HTTPMethodHeader[1];
             var _ParsedURL  = RawUrl.Split(_URLSeparator, 2, StringSplitOptions.None);
-            this._URI       = HttpUtility.UrlDecode(_ParsedURL[0]);
+            this.URI       = HttpUtility.UrlDecode(_ParsedURL[0]);
 
-            if (_URI == "" || _URI == null)
-                _URI = "/";
+            if (URI.StartsWith("http", StringComparison.Ordinal) || URI.StartsWith("https", StringComparison.Ordinal))
+            {
+                URI = URI.Substring(URI.IndexOf("://", StringComparison.Ordinal) + 3);
+                URI = URI.Substring(URI.IndexOf("/",   StringComparison.Ordinal) + 1);
+            }
+
+            if (URI == "" || URI == null)
+                URI = "/";
 
             // Parse QueryString after '?'
             if (RawUrl.IndexOf('?') > -1 && _ParsedURL[1].IsNeitherNullNorEmpty())
@@ -835,7 +839,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            String             HTTPHeader,
                            Stream             HTTPBodyStream)
 
-            : this(RemoteSocket, LocalSocket, HTTPServer, HTTPHeader, null, HTTPBodyStream, CancellationToken, EventTrackingId)
+            : this(RemoteSocket,
+                   LocalSocket,
+                   HTTPServer,
+                   HTTPHeader,
+                   null,
+                   HTTPBodyStream,
+                   CancellationToken,
+                   EventTrackingId)
 
         {
 
@@ -902,9 +913,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <returns>A string representation of this object.</returns>
         public override String ToString()
-        {
-            return EntirePDU;
-        }
+            => EntirePDU;
 
         #endregion
 
