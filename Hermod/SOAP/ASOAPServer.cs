@@ -18,6 +18,7 @@
 #region Usings
 
 using System;
+using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -73,6 +74,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// The DNS client used by this server.
         /// </summary>
         public DNSClient   DNSClient    { get; }
+
+
+        public IEnumerable<IPPort> IPPorts
+            => SOAPServer.IPPorts;
 
         #endregion
 
@@ -166,9 +171,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                            DNSClient       DNSClient        = null,
                            Boolean         AutoStart        = false)
 
-            : this(new SOAPServer(TCPPort != null ? TCPPort : DefaultHTTPServerPort,
-                                  DefaultServerName:  HTTPServerName,
-                                  SOAPContentType:    SOAPContentType != null ? SOAPContentType : SOAPServer.DefaultSOAPContentType,
+            : this(new SOAPServer(TCPPort ?? DefaultHTTPServerPort,
+                                  HTTPServerName,
+                                  SOAPContentType ?? SOAPServer.DefaultSOAPContentType,
                                   DNSClient:          DNSClient,
                                   Autostart:          AutoStart),
                    URIPrefix)

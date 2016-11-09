@@ -647,6 +647,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
+        #region IPPorts
+
+        public IEnumerable<IPPort> IPPorts
+            => _TCPServers.SafeSelect(server => server.Port);
+
+        #endregion
+
         #region GetEnumerator()
 
         IEnumerator IEnumerable.GetEnumerator()
