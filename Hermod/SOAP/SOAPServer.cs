@@ -53,18 +53,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         #region SOAPContentType
 
-        private readonly HTTPContentType _SOAPContentType;
-
         /// <summary>
         /// The SOAP XML HTTP content type.
         /// </summary>
-        public HTTPContentType SOAPContentType
-        {
-            get
-            {
-                return _SOAPContentType;
-            }
-        }
+        public HTTPContentType  SOAPContentType   { get; }
 
         #endregion
 
@@ -76,12 +68,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// All registered SOAP dispatchers.
         /// </summary>
         public ILookup<String, SOAPDispatcher> SOAPDispatchers
-        {
-            get
-            {
-                return _SOAPDispatchers.ToLookup(_ => _.Key, _ => _.Value);
-            }
-        }
+
+            => _SOAPDispatchers.ToLookup(_ => _.Key, _ => _.Value);
 
         #endregion
 
@@ -143,7 +131,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         {
 
-            this._SOAPContentType  = SOAPContentType != null ? SOAPContentType : DefaultSOAPContentType;
+            this.SOAPContentType  = SOAPContentType != null ? SOAPContentType : DefaultSOAPContentType;
             this._SOAPDispatchers  = new Dictionary<String, SOAPDispatcher>();
 
             if (Autostart)
@@ -177,26 +165,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             var _Handler = GetHandler(HTTPHostname.Any,
                                       URITemplate,
                                       HTTPMethod.POST,
-                                      ContentTypes => _SOAPContentType);
+                                      ContentTypes => SOAPContentType);
 
             if (_Handler == null)
             {
 
-                _SOAPDispatcher = new SOAPDispatcher(URITemplate, _SOAPContentType);
+                _SOAPDispatcher = new SOAPDispatcher(URITemplate, SOAPContentType);
                 _SOAPDispatchers.Add(URITemplate, _SOAPDispatcher);
 
                 // Register a new SOAP dispatcher
                 AddMethodCallback(Hostname,
                                   HTTPMethod.POST,
                                   URITemplate,
-                                  _SOAPContentType,
+                                  SOAPContentType,
                                   HTTPDelegate: _SOAPDispatcher.Invoke);
 
                 // Register some information text for people using HTTP GET
                 AddMethodCallback(Hostname,
                                   HTTPMethod.GET,
                                   URITemplate,
-                                  _SOAPContentType,
+                                  SOAPContentType,
                                   HTTPDelegate: _SOAPDispatcher.EndpointTextInfo);
 
             }
@@ -236,26 +224,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             var _Handler = GetHandler(HTTPHostname.Any,
                                       URITemplate,
                                       HTTPMethod.POST,
-                                      ContentTypes => _SOAPContentType);
+                                      ContentTypes => SOAPContentType);
 
             if (_Handler == null)
             {
 
-                _SOAPDispatcher = new SOAPDispatcher(URITemplate, _SOAPContentType);
+                _SOAPDispatcher = new SOAPDispatcher(URITemplate, SOAPContentType);
                 _SOAPDispatchers.Add(URITemplate, _SOAPDispatcher);
 
                 // Register a new SOAP dispatcher
                 AddMethodCallback(Hostname,
                                   HTTPMethod.POST,
                                   URITemplate,
-                                  _SOAPContentType,
+                                  SOAPContentType,
                                   HTTPDelegate: _SOAPDispatcher.Invoke);
 
                 // Register some information text for people using HTTP GET
                 AddMethodCallback(Hostname,
                                   HTTPMethod.GET,
                                   URITemplate,
-                                  _SOAPContentType,
+                                  SOAPContentType,
                                   HTTPDelegate: _SOAPDispatcher.EndpointTextInfo);
 
             }

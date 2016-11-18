@@ -742,14 +742,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region AddMethodCallback(Hostname, HTTPMethod, URITemplates, HTTPContentType, HTTPDelegate, AllowReplacement = false)
+        #region AddMethodCallback(Hostname, HTTPMethod, URITemplates, HTTPContentType = null, ..., HTTPDelegate = null, AllowReplacement = URIReplacement.Fail)
 
         /// <summary>
         /// Add a method callback for the given URI template.
         /// </summary>
         /// <param name="Hostname">The HTTP hostname.</param>
         /// <param name="HTTPMethod">The HTTP method.</param>
-        /// <param name="URITemplates">The URI templates.</param>
+        /// <param name="URITemplates">An enumeration of URI templates.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
         /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
         /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
@@ -797,6 +797,133 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        ContentTypeAuthentication,
                                        null,
                                        AllowReplacement));
+
+        }
+
+        #endregion
+
+        #region AddMethodCallback(Hostname, HTTPMethod, URITemplate, HTTPContentTypes, HostAuthentication = false, URIAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false, HTTPDelegate = null)
+
+        /// <summary>
+        /// Add a method callback for the given URI template.
+        /// </summary>
+        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <param name="HTTPMethod">The HTTP method.</param>
+        /// <param name="URITemplate">The URI template.</param>
+        /// <param name="HTTPContentTypes">An enumeration of HTTP content types.</param>
+        /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
+        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
+        /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
+        /// <param name="HTTPDelegate">The method to call.</param>
+        public void AddMethodCallback(HTTPHostname                  Hostname,
+                                      HTTPMethod                    HTTPMethod,
+                                      String                        URITemplate,
+                                      IEnumerable<HTTPContentType>  HTTPContentTypes,
+                                      HTTPAuthentication            HostAuthentication          = null,
+                                      HTTPAuthentication            URIAuthentication           = null,
+                                      HTTPAuthentication            HTTPMethodAuthentication    = null,
+                                      HTTPAuthentication            ContentTypeAuthentication   = null,
+                                      HTTPDelegate                  HTTPDelegate                = null,
+                                      URIReplacement                AllowReplacement            = URIReplacement.Fail)
+
+        {
+
+            #region Initial checks
+
+            if (Hostname == null)
+                throw new ArgumentNullException(nameof(Hostname),          "The given HTTP hostname must not be null!");
+
+            if (HTTPMethod == null)
+                throw new ArgumentNullException(nameof(HTTPMethod),        "The given HTTP method must not be null!");
+
+            if (URITemplate.IsNullOrEmpty())
+                throw new ArgumentNullException(nameof(URITemplate),       "The given URI template must not be null or empty!");
+
+            if (HTTPContentTypes == null || !HTTPContentTypes.Any())
+                throw new ArgumentNullException(nameof(HTTPContentTypes),  "The given content types must not be null or empty!");
+
+            if (HTTPDelegate == null)
+                throw new ArgumentNullException(nameof(HTTPDelegate),      "The given HTTP delegate must not be null!");
+
+            #endregion
+
+            foreach (var contenttype in HTTPContentTypes)
+                _URIMapping.AddHandler(HTTPDelegate,
+                                       Hostname,
+                                       URITemplate,
+                                       HTTPMethod ?? HTTPMethod.GET,
+                                       contenttype,
+                                       HostAuthentication,
+                                       URIAuthentication,
+                                       HTTPMethodAuthentication,
+                                       ContentTypeAuthentication,
+                                       null,
+                                       AllowReplacement);
+
+        }
+
+        #endregion
+
+        #region AddMethodCallback(Hostname, HTTPMethod, URITemplate, HTTPContentTypes, HostAuthentication = false, URIAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false, HTTPDelegate = null)
+
+        /// <summary>
+        /// Add a method callback for the given URI template.
+        /// </summary>
+        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <param name="HTTPMethod">The HTTP method.</param>
+        /// <param name="URITemplates">An enumeration of URI templates.</param>
+        /// <param name="HTTPContentTypes">An enumeration of HTTP content types.</param>
+        /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
+        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
+        /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
+        /// <param name="HTTPDelegate">The method to call.</param>
+        public void AddMethodCallback(HTTPHostname                  Hostname,
+                                      HTTPMethod                    HTTPMethod,
+                                      IEnumerable<String>           URITemplates,
+                                      IEnumerable<HTTPContentType>  HTTPContentTypes,
+                                      HTTPAuthentication            HostAuthentication          = null,
+                                      HTTPAuthentication            URIAuthentication           = null,
+                                      HTTPAuthentication            HTTPMethodAuthentication    = null,
+                                      HTTPAuthentication            ContentTypeAuthentication   = null,
+                                      HTTPDelegate                  HTTPDelegate                = null,
+                                      URIReplacement                AllowReplacement            = URIReplacement.Fail)
+
+        {
+
+            #region Initial checks
+
+            if (Hostname == null)
+                throw new ArgumentNullException(nameof(Hostname),          "The given HTTP hostname must not be null!");
+
+            if (HTTPMethod == null)
+                throw new ArgumentNullException(nameof(HTTPMethod),        "The given HTTP method must not be null!");
+
+            if (URITemplates     == null || !URITemplates.Any())
+                throw new ArgumentNullException(nameof(URITemplates),      "The given URI template must not be null or empty!");
+
+            if (HTTPContentTypes == null || !HTTPContentTypes.Any())
+                throw new ArgumentNullException(nameof(HTTPContentTypes),  "The given content types must not be null or empty!");
+
+            if (HTTPDelegate == null)
+                throw new ArgumentNullException(nameof(HTTPDelegate),      "The given HTTP delegate must not be null!");
+
+            #endregion
+
+            foreach (var uritemplate in URITemplates)
+                foreach (var contenttype in HTTPContentTypes)
+                    _URIMapping.AddHandler(HTTPDelegate,
+                                           Hostname,
+                                           uritemplate,
+                                           HTTPMethod ?? HTTPMethod.GET,
+                                           contenttype,
+                                           HostAuthentication,
+                                           URIAuthentication,
+                                           HTTPMethodAuthentication,
+                                           ContentTypeAuthentication,
+                                           null,
+                                           AllowReplacement);
 
         }
 

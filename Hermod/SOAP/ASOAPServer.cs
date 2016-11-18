@@ -18,8 +18,11 @@
 #region Usings
 
 using System;
+using System.Linq;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
@@ -39,22 +42,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The default HTTP/SOAP/XML server name.
         /// </summary>
-        public const           String    DefaultHTTPServerName  = "GraphDefined HTTP/SOAP/XML Server API";
+        public const           String           DefaultHTTPServerName   = "GraphDefined HTTP/SOAP/XML Server API";
 
         /// <summary>
         /// The default HTTP/SOAP/XML server TCP port.
         /// </summary>
-        public static readonly IPPort    DefaultHTTPServerPort  = new IPPort(443);
+        public static readonly IPPort           DefaultHTTPServerPort   = new IPPort(443);
 
         /// <summary>
         /// The default HTTP/SOAP/XML server URI prefix.
         /// </summary>
-        public const           String    DefaultURIPrefix       = "";
+        public const           String           DefaultURIPrefix        = "";
+
+        /// <summary>
+        /// The default HTTP/SOAP/XML content type.
+        /// </summary>
+        public static readonly HTTPContentType  DefaultContentType      = SOAPServer.DefaultSOAPContentType;
 
         /// <summary>
         /// The default query timeout.
         /// </summary>
-        public static readonly TimeSpan  DefaultQueryTimeout    = TimeSpan.FromMinutes(1);
+        public static readonly TimeSpan         DefaultQueryTimeout     = TimeSpan.FromMinutes(1);
 
         #endregion
 
@@ -75,7 +83,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// </summary>
         public DNSClient   DNSClient    { get; }
 
-
+        /// <summary>
+        /// All TCP ports this SOAP server listens on.
+        /// </summary>
         public IEnumerable<IPPort> IPPorts
             => SOAPServer.IPPorts;
 
@@ -153,7 +163,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         #region Constructor(s)
 
-        #region ASOAPServer(HTTPServerName, TCPPort = null, URIPrefix = "", SOAPContentType  = null, DNSClient = null, AutoStart = false)
+        #region ASOAPServer(HTTPServerName, TCPPort = default, URIPrefix = default, SOAPContentType = default, DNSClient = null, RegisterHTTPRootService = true, AutoStart = false)
 
         /// <summary>
         /// Initialize a new HTTP server for the HTTP/SOAP/XML Server API using IPAddress.Any.
@@ -163,39 +173,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="URIPrefix">An optional prefix for the HTTP URIs.</param>
         /// <param name="SOAPContentType">The HTTP content type for SOAP messages.</param>
         /// <param name="DNSClient">An optional DNS client to use.</param>
+        /// <param name="RegisterHTTPRootService">Register HTTP root services for sending a notice to clients connecting via HTML or plain text.</param>
         /// <param name="AutoStart">Start the server immediately.</param>
-        public ASOAPServer(String          HTTPServerName   = DefaultHTTPServerName,
-                           IPPort          TCPPort          = null,
-                           String          URIPrefix        = "",
-                           HTTPContentType SOAPContentType  = null,
-                           DNSClient       DNSClient        = null,
-                           Boolean         AutoStart        = false)
+        public ASOAPServer(String          HTTPServerName           = DefaultHTTPServerName,
+                           IPPort          TCPPort                  = null,
+                           String          URIPrefix                = DefaultURIPrefix,
+                           HTTPContentType SOAPContentType          = null,
+                           Boolean         RegisterHTTPRootService  = true,
+                           DNSClient       DNSClient                = null,
+                           Boolean         AutoStart                = false)
 
             : this(new SOAPServer(TCPPort ?? DefaultHTTPServerPort,
                                   HTTPServerName,
-                                  SOAPContentType ?? SOAPServer.DefaultSOAPContentType,
-                                  DNSClient:          DNSClient,
-                                  Autostart:          AutoStart),
+                                  SOAPContentType ?? DefaultContentType,
+                                  DNSClient:  DNSClient,
+                                  Autostart:  false),
                    URIPrefix)
 
         {
 
+            if (RegisterHTTPRootService)
+                RegisterRootService();
+
             if (AutoStart)
+#pragma warning disable RECS0021
                 Start();
+#pragma warning restore RECS0021
 
         }
 
         #endregion
 
-        #region ASOAPServer(SOAPServer, URIPrefix = "")
+        #region ASOAPServer(SOAPServer, URIPrefix = DefaultURIPrefix, RegisterHTTPRootService = false)
 
         /// <summary>
-        /// Use the given HTTP server for the HTTP/SOAP/XML Server API using IPAddress.Any.
+        /// Use the given HTTP server for the HTTP/SOAP/XML Server API.
         /// </summary>
         /// <param name="SOAPServer">A SOAP server.</param>
-        /// <param name="URIPrefix">An optional prefix for the HTTP URIs.</param>
+        /// <param name="URIPrefix">An optional URI prefix for the SOAP URI templates.</param>
         public ASOAPServer(SOAPServer  SOAPServer,
-                           String      URIPrefix  = "")
+                           String      URIPrefix  = DefaultURIPrefix)
         {
 
             #region Initial checks
@@ -204,9 +221,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                 throw new ArgumentNullException(nameof(SOAPServer),  "The given SOAP server must not be null!");
 
             if (URIPrefix == null)
-                URIPrefix = "";
+                URIPrefix = DefaultURIPrefix;
+            else
+                URIPrefix = URIPrefix.Trim();
 
-            if (URIPrefix.Length > 0 && !URIPrefix.StartsWith("/"))
+            if (URIPrefix.Length > 0 && !URIPrefix.StartsWith("/", StringComparison.Ordinal))
                 URIPrefix = "/" + URIPrefix;
 
             #endregion
@@ -215,7 +234,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             this.URIPrefix   = URIPrefix;
             this.DNSClient   = SOAPServer.DNSClient;
 
+#pragma warning disable RECS0021
             RegisterURITemplates();
+#pragma warning restore RECS0021
 
         }
 
@@ -224,8 +245,59 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         #endregion
 
 
+        #region (private) RegisterURITemplates()
+
+        private void RegisterRootService()
+        {
+
+            SOAPServer.AddMethodCallback(HTTPHostname.Any,
+                                         HTTPMethod.GET,
+
+                                         new String[] {
+                                             "/",
+                                             URIPrefix + "/"
+                                         },
+
+                                         new HTTPContentType[] {
+                                             HTTPContentType.TEXT_UTF8,
+                                             HTTPContentType.HTML_UTF8
+                                         },
+
+                                         HTTPDelegate: Request => {
+
+                                             return Task.FromResult(
+                                                 new HTTPResponseBuilder(Request) {
+
+                                                     HTTPStatusCode  = HTTPStatusCode.BadGateway,
+                                                     ContentType     = HTTPContentType.TEXT_UTF8,
+                                                     Content         = ("Welcome at " + DefaultHTTPServerName + Environment.NewLine +
+                                                                        "This is a HTTP/SOAP/XML endpoint!" + Environment.NewLine + Environment.NewLine +
+                                                                        "Defined endpoints: " + Environment.NewLine + Environment.NewLine +
+                                                                        SOAPServer.
+                                                                            SOAPDispatchers.
+                                                                            Select(group => " - " + group.Key + Environment.NewLine +
+                                                                                            "   " + group.SelectMany(dispatcher => dispatcher.SOAPDispatches).
+                                                                                                          Select    (dispatch   => dispatch.  Description).
+                                                                                                          AggregateWith(", ")
+                                                                                  ).AggregateWith(Environment.NewLine + Environment.NewLine)
+                                                                       ).ToUTF8Bytes(),
+                                                     Connection      = "close"
+
+                                                 }.AsImmutable());
+
+                                         },
+
+                                         AllowReplacement: URIReplacement.Allow);
+
+        }
+
+        #endregion
+
         #region (protected abstract) RegisterURITemplates()
 
+        /// <summary>
+        /// Register all URI templates for this SOAP API.
+        /// </summary>
         protected abstract void RegisterURITemplates();
 
         #endregion
@@ -233,6 +305,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         #region Start()
 
+        /// <summary>
+        /// Start the SOAP API.
+        /// </summary>
         public virtual void Start()
         {
             SOAPServer.Start();
@@ -242,12 +317,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         #region Shutdown(Message = null, Wait = true)
 
-        public virtual void Shutdown(String Message = null, Boolean Wait = true)
+        /// <summary>
+        /// Stop the SOAP API.
+        /// </summary>
+        /// <param name="Message">An optional shutdown message.</param>
+        /// <param name="Wait">Wait for a clean shutdown of the API.</param>
+        public virtual void Shutdown(String   Message  = null,
+                                     Boolean  Wait     = true)
         {
             SOAPServer.Shutdown(Message, Wait);
         }
 
         #endregion
+
 
     }
 
