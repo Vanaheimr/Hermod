@@ -944,6 +944,64 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region ParseOptionalN<T?>  (this JSON, PropertyName, PropertyDescription, DefaultServerName, Parser, out Value, HTTPRequest, out HTTPResponse)
+
+        public Boolean ParseOptionalN<T>(String            PropertyName,
+                                         String            PropertyDescription,
+                                         String            DefaultServerName,
+                                         PFunc<T>          Parser,
+                                         out T?            Value,
+                                         HTTPRequest       HTTPRequest,
+                                         out HTTPResponse  HTTPResponse)
+
+            where T : struct
+
+        {
+
+            Object JSONToken = null;
+            Value = new T?();
+
+            if (TryGetValue(PropertyName, out JSONToken))
+            {
+
+                if (JSONToken != null)
+                {
+
+                    var JSONValue = JSONToken.ToString();
+
+                    T _Value = default(T);
+
+                    if (JSONValue != null && !Parser(JSONValue, out _Value))
+                    {
+
+                        HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                            HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                            Server          = DefaultServerName,
+                            Date            = DateTime.Now,
+                            ContentType     = HTTPContentType.JSON_UTF8,
+                            Content         = JSONObject.Create(
+                                                  new JProperty("description",  "Unknown " + PropertyDescription + "!")
+                                              ).ToUTF8Bytes()
+                        };
+
+                        Value = new T?();
+                        return false;
+
+                    }
+
+                    Value = new T?(_Value);
+
+                }
+
+            }
+
+            HTTPResponse  = null;
+            return true;
+
+        }
+
+        #endregion
+
         #region ParseOptional<TEnum>(this JSON, PropertyName, PropertyDescription, DefaultServerName,         out Value, HTTPRequest, out HTTPResponse)
 
         public Boolean ParseOptional<TEnum>(String            PropertyName,
