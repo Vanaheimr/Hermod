@@ -60,9 +60,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         public static readonly HTTPContentType  DefaultContentType      = SOAPServer.DefaultSOAPContentType;
 
         /// <summary>
-        /// The default query timeout.
+        /// The default request timeout.
         /// </summary>
-        public static readonly TimeSpan         DefaultQueryTimeout     = TimeSpan.FromMinutes(1);
+        public static readonly TimeSpan         DefaultRequestTimeout   = TimeSpan.FromMinutes(1);
 
         #endregion
 
@@ -204,7 +204,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         #endregion
 
-        #region ASOAPServer(SOAPServer, URIPrefix = DefaultURIPrefix, RegisterHTTPRootService = false)
+        #region ASOAPServer(SOAPServer, URIPrefix = default, RegisterHTTPRootService = false)
 
         /// <summary>
         /// Use the given HTTP server for the HTTP/SOAP/XML Server API.
