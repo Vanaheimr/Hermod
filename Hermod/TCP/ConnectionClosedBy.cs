@@ -19,7 +19,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
 {
 
     /// <summary>
-    /// Wether the connection was closed by the client or the server.
+    /// Whether the connection was closed by the client or the server.
     /// </summary>
     public enum ConnectionClosedBy
     {

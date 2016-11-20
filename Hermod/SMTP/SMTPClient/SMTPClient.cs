@@ -262,10 +262,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <param name="Login"></param>
         /// <param name="Password"></param>
         /// <param name="LocalDomain"></param>
-        /// <param name="UseIPv4">Wether to use IPv4 as networking protocol.</param>
-        /// <param name="UseIPv6">Wether to use IPv6 as networking protocol.</param>
+        /// <param name="UseIPv4">Whether to use IPv4 as networking protocol.</param>
+        /// <param name="UseIPv6">Whether to use IPv6 as networking protocol.</param>
         /// <param name="PreferIPv6">Prefer IPv6 (instead of IPv4) as networking protocol.</param>
-        /// <param name="UseTLS">Wether Transport Layer Security should be used or not.</param>
+        /// <param name="UseTLS">Whether Transport Layer Security should be used or not.</param>
         /// <param name="ValidateServerCertificate">A callback for validating the remote server certificate.</param>
         /// <param name="ConnectionTimeout">The timeout connecting to the remote service.</param>
         /// <param name="DNSClient">An optional DNS client used to resolve DNS names.</param>

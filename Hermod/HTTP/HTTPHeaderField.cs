@@ -43,7 +43,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     #region (enum)  RequestPathSemantic
 
     /// <summary>
-    /// Wether a header field has and end-to-end or
+    /// Whether a header field has and end-to-end or
     /// an hop-to-hop semantic.
     /// </summary>
     public enum RequestPathSemantic
@@ -138,7 +138,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region RequestPathSemantic
 
         /// <summary>
-        /// Wether a header field has and end-to-end or
+        /// Whether a header field has and end-to-end or
         /// an hop-to-hop semantic.
         /// </summary>
         public RequestPathSemantic RequestPathSemantic { get; }
@@ -183,7 +183,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Name">The name of the HTTP header field.</param>
         /// <param name="Type">The type of the HTTP header field value.</param>
         /// <param name="HeaderFieldType">The type of the header field (general|request|response).</param>
-        /// <param name="RequestPathSemantic">Wether a header field has and end-to-end or an hop-to-hop semantic.</param>
+        /// <param name="RequestPathSemantic">Whether a header field has and end-to-end or an hop-to-hop semantic.</param>
         /// <param name="StringParser">Parse this HTTPHeaderField from a string.</param>
         /// <param name="ValueSerializer">A delegate to serialize the value of the header field to a string.</param>
         public HTTPHeaderField(String                   Name,

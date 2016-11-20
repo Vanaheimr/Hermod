@@ -49,7 +49,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
     /// <param name="Timestamp">The timestamp of the event.</param>
     /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
     /// <param name="ConnectionId">The identification of this connection.</param>
-    /// <param name="ClosedBy">Wether the connection was closed by the client or the server.</param>
+    /// <param name="ClosedBy">Whether the connection was closed by the client or the server.</param>
     public delegate void ConnectionClosedHandler(TCPServer TCPServer, DateTime Timestamp, IPSocket RemoteSocket, String ConnectionId, ConnectionClosedBy ClosedBy);
 
     /// <summary>

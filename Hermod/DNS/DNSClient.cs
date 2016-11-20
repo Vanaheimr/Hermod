@@ -80,7 +80,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region RecursionDesired
 
         /// <summary>
-        /// Wether DNS recursion is desired.
+        /// Whether DNS recursion is desired.
         /// </summary>
         public Boolean  RecursionDesired  { get; set; }
 
