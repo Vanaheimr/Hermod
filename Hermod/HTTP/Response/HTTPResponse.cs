@@ -699,6 +699,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region (static) ServiceUnavailable
+
+        public static HTTPResponse ServiceUnavailable
+            => new HTTPResponse(new HTTPResponseBuilder(null, HTTPStatusCode.ServiceUnavailable));
+
+        #endregion
+
 
         #region (override) ToString()
 
