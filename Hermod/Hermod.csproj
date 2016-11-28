@@ -169,6 +169,9 @@
     <Compile Include="SMTP\SMTPServer\SMTPServer.cs" />
     <Compile Include="SMTP\SMTPStatusCode.cs" />
     <Compile Include="SOAP\ASOAPServer.cs" />
+    <Compile Include="SOAP\fromWWCP\AHTTPClient.cs" />
+    <Compile Include="SOAP\fromWWCP\AJSONClient.cs" />
+    <Compile Include="SOAP\fromWWCP\ASOAPClient.cs" />
     <Compile Include="SOAP\SOAPDispatch.cs" />
     <Compile Include="SOAP\SOAPDelegates.cs" />
     <Compile Include="SOAP\SOAPDispatcher.cs" />
