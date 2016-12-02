@@ -140,9 +140,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Timestamp">A timestamp.</param>
         /// <param name="JPropertyKey">The name of the JSON property key.</param>
         public static JProperty ToJSON(this DateTime Timestamp, String JPropertyKey)
-        {
-            return new JProperty(JPropertyKey, Timestamp.ToIso8601());
-        }
+
+            => new JProperty(JPropertyKey, Timestamp.ToIso8601());
 
         #endregion
 
@@ -183,6 +182,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+        #region ToJSON(this TimestampedT)
+
+        /// <summary>
+        /// Create a JSON representation of the given timestamped value.
+        /// </summary>
+        /// <param name="TimestampedT">A timestamped value.</param>
+        public static JObject ToJSON<T>(this Timestamped<T> TimestampedT)
+
+            => new JObject(
+                   new JProperty("Timestamp", TimestampedT.Timestamp.ToIso8601()),
+                   new JProperty("Status",    TimestampedT.Value.ToString())
+               );
+
+        #endregion
 
 
         #region ValueOrDefault(this ParentJObject, PropertyName, DefaultValue = null)
