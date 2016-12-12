@@ -47,7 +47,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public UInt16? Port { get; }
 
         /// <summary>
-        /// Returns the length of the identificator.
+        /// Returns the length of the identification.
         /// </summary>
         public UInt64 Length
             => (UInt64) ToString().Length;
