@@ -1276,6 +1276,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
+        public Boolean ParseHTTP(String ParameterName, HTTPRequest HTTPRequest, out Single Value, out HTTPResponse HTTPResp, String Context = null, Single DefaultValue = 0)
+        {
+
+            Object JSONToken;
+
+            if (!TryGetValue(ParameterName, out JSONToken))
+            {
+
+                Value     = DefaultValue;
+                HTTPResp  = HTTPExtentions.CreateBadRequest(HTTPRequest, Context, ParameterName);
+
+                return false;
+
+            }
+
+            if (JSONToken != null)
+            {
+                if (!Single.TryParse(JSONToken.ToString(), NumberStyles.Any, CultureInfo.CreateSpecificCulture("en-US"), out Value))
+                {
+
+                    Log.Timestamp("Bad request: Invalid \"" + ParameterName + "\" property value!");
+
+                    Value = DefaultValue;
+                    HTTPResp = HTTPExtentions.CreateBadRequest(HTTPRequest, Context, ParameterName, JSONToken.ToString());
+
+                    return false;
+
+                }
+            }
+
+            else
+            {
+                Value    = 0;
+                HTTPResp = null;
+                return false;
+            }
+
+            HTTPResp = null;
+            return true;
+
+        }
 
         public Boolean ParseHTTP(String ParameterName, HTTPRequest HTTPRequest, out Double Value, out HTTPResponse HTTPResp, String Context = null, Double DefaultValue = 0)
         {
