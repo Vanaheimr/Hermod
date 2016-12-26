@@ -601,10 +601,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                         //        #endregion
 
                             }
-                            catch (Exception Exception)
+                            catch (Exception e)
                             {
-                                OnExceptionOccured?.Invoke(this, DateTime.Now, Exception);
-                                Console.WriteLine(DateTime.Now + " " + Exception.Message);
+
+                                while (e.InnerException != null)
+                                    e = e.InnerException;
+
+                                OnExceptionOccured?.Invoke(this, DateTime.Now, e);
+                                Console.WriteLine(DateTime.Now + " " + e.Message + Environment.NewLine + e.StackTrace);
+
                             }
 
                         //}, new Tuple<TCPServer, TcpClient>(this, NewTCPClient));
