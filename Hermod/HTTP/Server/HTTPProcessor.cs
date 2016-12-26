@@ -46,6 +46,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Data
 
         private const UInt32 ReadTimeout           = 180000U;
+        private readonly Object myLock;
 
         #endregion
 
@@ -108,6 +109,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPProcessor(HTTPServer HTTPServer)
         {
             this._HTTPServer  = HTTPServer;
+            this.myLock       = new Object();
         }
 
         #endregion
@@ -168,6 +170,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public void ProcessArrow(TCPConnection TCPConnection)
         {
+
+            lock (myLock)
+            {
 
             #region Start
 
@@ -465,6 +470,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             { }
 
             #endregion
+
+            }
 
         }
 
