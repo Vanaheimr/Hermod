@@ -265,18 +265,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             //_TCPConnection.Value.ReadTimeout    = ClientTimeout;
             //_TCPConnection.Value.StopRequested  = false;
 
-#if __MonoCS__
-                        // Code for Mono C# compiler
-#else
+//#if __MonoCS__
+//                        // Code for Mono C# compiler
+//#else
 
-            Thread.CurrentThread.Name = (TCPServer.ConnectionThreadsNameBuilder != null)
-                                             ? TCPServer.ConnectionThreadsNameBuilder(this, this._ServerTimestamp, base.LocalSocket, base.RemoteSocket)
-                                             : "TCP connection from " +
-                                                     base.RemoteSocket.IPAddress.ToString() +
-                                                     ":" +
-                                                     base.RemoteSocket.Port.ToString();
+//            Thread.CurrentThread.Name = (TCPServer.ConnectionThreadsNameBuilder != null)
+//                                             ? TCPServer.ConnectionThreadsNameBuilder(this,
+//                                                                                      this._ServerTimestamp,
+//                                                                                      base.LocalSocket,
+//                                                                                      base.RemoteSocket)
+//                                             : "TCP connection from " +
+//                                                     base.RemoteSocket.IPAddress.ToString() +
+//                                                     ":" +
+//                                                     base.RemoteSocket.Port.ToString();
 
-#endif
+//#endif
 
         }
 
