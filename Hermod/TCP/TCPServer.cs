@@ -557,53 +557,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                             break;
 
                         // Processing the pending client connection within its own task
-                        var NewTCPClient = _TCPListener.AcceptTcpClient();
+                        //var NewTCPClient = _TCPListener.AcceptTcpClient();
+                        var NewTCPConnection = _TCPListener.AcceptTcpClientAsync().
+                                                            ContinueWith(a => new TCPConnection(this, a.Result));
+                                                        //    ConfigureAwait(false);
 
                         // Store the new connection
                         //_SocketConnections.AddOrUpdate(_TCPConnection.Value.RemoteSocket,
                         //                               _TCPConnection.Value,
                         //                               (RemoteEndPoint, TCPConnection) => TCPConnection);
 
-                        Task.Factory.StartNew(Tuple => {
+                        //Task.Factory.StartNew(Tuple => {
 
                             try
                             {
 
-                                var _Tuple           = Tuple as Tuple<TCPServer, TcpClient>;
+                        //        var _Tuple           = Tuple as Tuple<TCPServer, TcpClient>;
 
-                                var NewTCPConnection = new ThreadLocal<TCPConnection>(
-                                                           () => new TCPConnection(_Tuple.Item1, _Tuple.Item2)
-                                                       );
+                        //        var NewTCPConnection = new ThreadLocal<TCPConnection>(
+                        //                                   () => new TCPConnection(_Tuple.Item1, _Tuple.Item2)
+                        //                               );
 
-                                #region Copy ExceptionOccured event handlers
+                        //        #region Copy ExceptionOccured event handlers
 
-                                //foreach (var ExceptionOccuredHandler in MyEventStorage)
-                                //    _TCPConnection.Value.OnExceptionOccured += ExceptionOccuredHandler;
+                        //        //foreach (var ExceptionOccuredHandler in MyEventStorage)
+                        //        //    _TCPConnection.Value.OnExceptionOccured += ExceptionOccuredHandler;
 
-                                #endregion
+                        //        #endregion
 
-                                #region OnNewConnection
+                        //        #region OnNewConnection
 
-                                // If this event closes the TCP connection the OnNotification event will never be fired!
-                                // Therefore you can use this event for filtering connection initiation requests.
-                                OnNewConnection?.Invoke(NewTCPConnection.Value.TCPServer,
-                                                        NewTCPConnection.Value.ServerTimestamp,
-                                                        NewTCPConnection.Value.RemoteSocket,
-                                                        NewTCPConnection.Value.ConnectionId,
-                                                        NewTCPConnection.Value);
+                        //        // If this event closes the TCP connection the OnNotification event will never be fired!
+                        //        // Therefore you can use this event for filtering connection initiation requests.
+                                OnNewConnection?.Invoke(NewTCPConnection.Result.TCPServer,
+                                                        NewTCPConnection.Result.ServerTimestamp,
+                                                        NewTCPConnection.Result.RemoteSocket,
+                                                        NewTCPConnection.Result.ConnectionId,
+                                                        NewTCPConnection.Result);
 
-                                if (!NewTCPConnection.Value.IsClosed)
-                                    OnNotification?.Invoke(NewTCPConnection.Value);
+                                if (!NewTCPConnection.Result.IsClosed)
+                                    OnNotification?.Invoke(NewTCPConnection.Result);
 
-                                #endregion
+                        //        #endregion
 
                             }
                             catch (Exception Exception)
                             {
                                 OnExceptionOccured?.Invoke(this, DateTime.Now, Exception);
+                                Console.WriteLine(DateTime.Now + " " + Exception.Message);
                             }
 
-                        }, new Tuple<TCPServer, TcpClient>(this, NewTCPClient));
+                        //}, new Tuple<TCPServer, TcpClient>(this, NewTCPClient));
 
                     }
 
@@ -820,9 +824,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             while (!_IsRunning)
                 Thread.Sleep(10);
 
-            var OnStartedLocal = OnStarted;
-            if (OnStartedLocal != null)
-                OnStartedLocal(this, DateTime.Now);
+            OnStarted?.Invoke(this, DateTime.Now);
 
         }
 

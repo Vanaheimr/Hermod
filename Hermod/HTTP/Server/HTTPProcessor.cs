@@ -171,8 +171,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public void ProcessArrow(TCPConnection TCPConnection)
         {
 
-            lock (myLock)
-            {
+            //lock (myLock)
+            //{
 
             #region Start
 
@@ -471,7 +471,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            }
+            //}
 
         }
 
