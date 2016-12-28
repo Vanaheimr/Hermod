@@ -137,15 +137,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Key.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(Key),    "The key must not be null or empty!");
 
-            if (Value.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(Value),  "The value must not be null or empty!");
-
             #endregion
 
             List<String> ValueList = null;
 
-            if (_Dictionary.TryGetValue(Key, out ValueList))
+            if (_Dictionary.TryGetValue(Key, out ValueList) && Value != null)
                 ValueList.Add(Value);
+
             else
                 _Dictionary.Add(Key, new List<String>() { Value });
 

@@ -361,12 +361,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         _HTTPResponse != null)
                                     {
 
-                                        var AccessLogLocal = AccessLog;
-                                        if (AccessLogLocal != null)
-                                            AccessLogLocal(this,
-                                                           RequestTimestamp,
-                                                           HttpRequest,
-                                                           _HTTPResponse);
+                                        AccessLog?.Invoke(this,
+                                                          RequestTimestamp,
+                                                          HttpRequest,
+                                                          _HTTPResponse);
 
                                     }
 
@@ -380,9 +378,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         _HTTPResponse.HTTPStatusCode.Code <= 599)
                                     {
 
-                                        var ErrorLogLocal = ErrorLog;
-                                        if (ErrorLogLocal != null)
-                                            ErrorLogLocal(this, RequestTimestamp, HttpRequest, _HTTPResponse);
+                                        ErrorLog?.Invoke(this,
+                                                         RequestTimestamp,
+                                                         HttpRequest,
+                                                         _HTTPResponse);
 
                                     }
 
