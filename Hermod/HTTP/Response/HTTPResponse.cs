@@ -30,20 +30,19 @@ using System.Threading;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
-    public static class XXXX
+    public static class HTTPContentHelper
     {
 
-        public static HTTPResponse<TResult> Parse<TResult>(this HTTPResponse      Response,
-                                                           Func<Byte[], TResult>  ContentParser)
-        {
-            return new HTTPResponse<TResult>(Response, ContentParser(Response.HTTPBody));
-        }
+        public static HTTPResponse<TResult> ParseContent<TResult>(this HTTPResponse      Response,
+                                                                  Func<Byte[], TResult>  ContentParser)
 
-        public static HTTPResponse<TResult> Parse<TResult>(this HTTPResponse      Response,
-                                                           Func<Stream, TResult>  ContentParser)
-        {
-            return new HTTPResponse<TResult>(Response, ContentParser(Response.HTTPBodyStream));
-        }
+            => new HTTPResponse<TResult>(Response, ContentParser(Response.HTTPBody));
+
+
+        public static HTTPResponse<TResult> ParseContentStream<TResult>(this HTTPResponse      Response,
+                                                                        Func<Stream, TResult>  ContentParser)
+
+            => new HTTPResponse<TResult>(Response, ContentParser(Response.HTTPBodyStream));
 
     }
 
