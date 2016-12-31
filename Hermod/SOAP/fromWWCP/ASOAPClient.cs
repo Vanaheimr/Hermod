@@ -25,6 +25,7 @@ using System.Security.Cryptography.X509Certificates;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -43,6 +44,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// The default URI prefix.
         /// </summary>
         public String  URIPrefix   { get; }
+
+        public Tuple<String, String> LoginPassword { get; set; }
 
         #endregion
 
