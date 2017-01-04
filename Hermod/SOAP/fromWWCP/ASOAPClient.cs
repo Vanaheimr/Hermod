@@ -43,9 +43,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The default URI prefix.
         /// </summary>
-        public String  URIPrefix   { get; }
+        public String                 URIPrefix          { get; }
 
-        public Tuple<String, String> LoginPassword { get; set; }
+        /// <summary>
+        /// The WebService-Security username/password.
+        /// </summary>
+        public Tuple<String, String>  WSSLoginPassword   { get; }
 
         #endregion
 
@@ -79,6 +82,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="ClientCert">The TLS client certificate to use.</param>
         /// <param name="HTTPVirtualHost">An optional HTTP virtual host name to use.</param>
         /// <param name="URIPrefix">An default URI prefix.</param>
+        /// <param name="WSSLoginPassword">The WebService-Security username/password.</param>
         /// <param name="UserAgent">An optional HTTP user agent to use.</param>
         /// <param name="QueryTimeout">An optional timeout for upstream queries.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
@@ -89,6 +93,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                            X509Certificate                      ClientCert                  = null,
                            String                               HTTPVirtualHost             = null,
                            String                               URIPrefix                   = null,
+                           Tuple<String, String>                WSSLoginPassword            = null,
                            String                               UserAgent                   = DefaultHTTPUserAgent,
                            TimeSpan?                            QueryTimeout                = null,
                            DNSClient                            DNSClient                   = null)
@@ -105,7 +110,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         {
 
-            this.URIPrefix  = URIPrefix.Trim();
+            this.URIPrefix         = URIPrefix.Trim();
+            this.WSSLoginPassword  = WSSLoginPassword;
 
         }
 
