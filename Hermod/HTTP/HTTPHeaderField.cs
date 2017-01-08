@@ -2154,9 +2154,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>X-ExpectedTotalNumberOfItems: 42</example>
         public static readonly HTTPHeaderField X_ExpectedTotalNumberOfItems = new HTTPHeaderField("X-ExpectedTotalNumberOfItems",
-                                                                                      typeof(UInt64),
-                                                                                      HeaderFieldType.Response,
-                                                                                      RequestPathSemantic.EndToEnd);
+                                                                                                  typeof(UInt64),
+                                                                                                  HeaderFieldType.Response,
+                                                                                                  RequestPathSemantic.EndToEnd);
+
+        #endregion
+
+        #region X-Frame-Options
+
+        /// <summary>
+        /// The X-Frame-Options HTTP response header can be used to indicate whether or not a browser
+        /// should be allowed to render a page in a &lt;frame&gt;, &lt;iframe&gt; or &lt;object&gt;.
+        /// Sites can use this to avoid clickjacking attacks, by ensuring that their content is not
+        /// embedded into other sites.
+        /// </summary>
+        /// <example>DENY, SAMEORIGIN, ALLOW-FROM https://example.com</example>
+        public static readonly HTTPHeaderField X_FrameOptions = new HTTPHeaderField("X-Frame-Options",
+                                                                                    typeof(String),
+                                                                                    HeaderFieldType.Response,
+                                                                                    RequestPathSemantic.EndToEnd);
 
         #endregion
 

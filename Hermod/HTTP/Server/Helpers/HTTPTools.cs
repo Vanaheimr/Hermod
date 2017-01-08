@@ -19,6 +19,7 @@
 #region Usings
 
 using System;
+using System.Web;
 
 #endregion
 
@@ -86,6 +87,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             };
 
         }
+
+        #endregion
+
+        #region URLDecode(Input)
+
+        /// <summary>
+        /// Converts a string that has been encoded for transmission in a URL into a decoded string.
+        /// </summary>
+        /// <param name="Input">An URL encoded string.</param>
+        public static String URLDecode(String Input)
+            => HttpUtility.UrlDecode(Input);
 
         #endregion
 

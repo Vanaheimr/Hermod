@@ -559,6 +559,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region X_FrameOptions
+
+        /// <summary>
+        /// The X-Frame-Options HTTP response header can be used to indicate whether or not a browser
+        /// should be allowed to render a page in a &lt;frame&gt;, &lt;iframe&gt; or &lt;object&gt;.
+        /// Sites can use this to avoid clickjacking attacks, by ensuring that their content is not
+        /// embedded into other sites.
+        /// </summary>
+        /// <example>DENY, SAMEORIGIN, ALLOW-FROM https://example.com</example>
+        public String X_FrameOptions
+        {
+
+            get
+            {
+                return GetHeaderField(HTTPHeaderField.X_FrameOptions);
+            }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.X_FrameOptions, value);
+            }
+
+        }
+
+        #endregion
+
         #endregion
 
         #region Events
