@@ -930,16 +930,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region GetHandler(HTTPRequest)
+        #region (protected) GetHandler(HTTPRequest)
 
         /// <summary>
         /// Call the best matching method handler for the given HTTP request.
         /// </summary>
-        public HTTPDelegate GetHandler(HTTPHostname                              Host,
-                                       String                                    URI,
-                                       HTTPMethod                                HTTPMethod                   = null,
-                                       Func<HTTPContentType[], HTTPContentType>  HTTPContentTypeSelector      = null,
-                                       Action<IEnumerable<String>>               ParsedURIParametersDelegate  = null)
+        protected HTTPDelegate GetHandler(HTTPHostname                              Host,
+                                          String                                    URI,
+                                          HTTPMethod                                HTTPMethod                   = null,
+                                          Func<HTTPContentType[], HTTPContentType>  HTTPContentTypeSelector      = null,
+                                          Action<IEnumerable<String>>               ParsedURIParametersDelegate  = null)
 
             => _URIMapping.GetHandler(Host,
                                       URI,
@@ -949,6 +949,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        private List<Func<HTTPServer, HTTPRequest, HTTPResponse>> _HTTPFilters = new List<Func<HTTPServer, HTTPRequest, HTTPResponse>>();
+
+        public void AddFilter(Func<HTTPServer, HTTPRequest, HTTPResponse> Filter)
+        {
+            _HTTPFilters.Add(Filter);
+        }
+
+        public delegate HTTPRequest HTTPRewriteDelegate(HTTPServer Server, HTTPRequest Request);
+
+        private List<HTTPRewriteDelegate> _HTTPRewrites = new List<HTTPRewriteDelegate>();
+
+        public void Rewrite(HTTPRewriteDelegate Rewrite)
+        {
+            _HTTPRewrites.Add(Rewrite);
+        }
+
+
         #region InvokeHandler(HTTPRequest)
 
         /// <summary>
@@ -956,6 +973,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public async Task<HTTPResponse> InvokeHandler(HTTPRequest Request)
         {
+
+            HTTPResponse _HTTPResponse;
+
+            foreach (var _HTTPFilter in _HTTPFilters)
+            {
+
+                _HTTPResponse = _HTTPFilter(this, Request);
+
+                if (_HTTPResponse != null)
+                    return _HTTPResponse;
+
+            }
+
+            foreach (var _HTTPRewrite in _HTTPRewrites)
+            {
+
+                var NewRequest = _HTTPRewrite(this, Request);
+
+                if (NewRequest != null)
+                {
+                    Request = NewRequest;
+                    break;
+                }
+
+            }
 
             var Handler = _URIMapping.GetHandler(Request);
 

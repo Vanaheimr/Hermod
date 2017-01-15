@@ -395,12 +395,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Host
 
         public HTTPHostname Host
-        {
-            get
-            {
-                return HTTPHostname.Parse(GetHeaderField(HTTPHeaderField.Host));
-            }
-        }
+            => HTTPHostname.Parse(GetHeaderField(HTTPHeaderField.Host));
 
         #endregion
 
@@ -527,84 +522,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Range
 
         public String Range
-        {
-            get
-            {
-                return GetHeaderField(HTTPHeaderField.Range);
-            }
-        }
+            => GetHeaderField(HTTPHeaderField.Range);
 
         #endregion
 
         #region Referer
 
         public String Referer
-        {
-            get
-            {
-                return GetHeaderField(HTTPHeaderField.Referer);
-            }
-        }
+            => GetHeaderField(HTTPHeaderField.Referer);
 
         #endregion
 
         #region TE
 
         public String TE
-        {
-            get
-            {
-                return GetHeaderField(HTTPHeaderField.TE);
-            }
-        }
+            => GetHeaderField(HTTPHeaderField.TE);
 
         #endregion
 
         #region Timeout
 
         public UInt64? Timeout
-        {
-            get
-            {
-                return GetHeaderField_UInt64(HTTPHeaderField.Timeout);
-            }
-        }
+            => GetHeaderField_UInt64(HTTPHeaderField.Timeout);
 
         #endregion
 
         #region User-Agent
 
         public String UserAgent
-        {
-            get
-            {
-                return GetHeaderField(HTTPHeaderField.UserAgent);
-            }
-        }
+            => GetHeaderField(HTTPHeaderField.UserAgent);
 
         #endregion
 
         #region Last-Event-Id
 
         public UInt64? LastEventId
-        {
-            get
-            {
-                return GetHeaderField_UInt64(HTTPHeaderField.LastEventId);
-            }
-        }
+            => GetHeaderField_UInt64(HTTPHeaderField.LastEventId);
 
         #endregion
 
         #region Cookie
 
-        public String Cookie
-        {
-            get
-            {
-                return GetHeaderField(HTTPHeaderField.Cookie);
-            }
-        }
+        public HTTPCookie Cookie
+            => HTTPCookie.Parse(GetHeaderField(HTTPHeaderField.Cookie));
 
         #endregion
 

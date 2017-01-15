@@ -662,11 +662,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // Set the Content-Length if it was not set before
             if (ContentLength == null || ContentLength == 0)
             {
+
                 if (Content != null)
                     ContentLength = (UInt64) Content.LongLength;
 
-                else if (ContentStream != null)
+                else if (ContentStream != null &&
+                         ContentStream.CanSeek) // NetworkStreams are not seekable!
                     ContentLength = (UInt64) ContentStream.Length;
+
             }
 
         }
