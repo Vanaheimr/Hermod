@@ -325,7 +325,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     var _Parameters = new List<String>();
                     for (var i = 1; i < _Match2.Match.Groups.Count; i++)
-                        _Parameters.Add(_Match2.Match.Groups[i].Value.RemoveLastSlash());
+                        //_Parameters.Add(_Match2.Match.Groups[i].Value.RemoveLastSlash());
+                        _Parameters.Add(_Match2.Match.Groups[i].Value);
 
                     var ParsedURIParametersDelegateLocal = ParsedURIParametersDelegate;
                     if (ParsedURIParametersDelegateLocal != null)
