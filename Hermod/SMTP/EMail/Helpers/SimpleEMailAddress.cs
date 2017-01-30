@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2016, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2017, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,6 +20,8 @@
 using System;
 using System.Text.RegularExpressions;
 
+using org.GraphDefined.Vanaheimr.Illias;
+
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Mail
@@ -28,68 +30,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
     /// <summary>
     /// A simple e-mail address.
     /// </summary>
-    public class SimpleEMailAddress : IComparable, IComparable<SimpleEMailAddress>, IEquatable<SimpleEMailAddress>
+    public struct SimpleEMailAddress : IId,
+                                       IComparable<SimpleEMailAddress>,
+                                       IEquatable<SimpleEMailAddress>
     {
 
-        #region Public constants
+        #region Data
 
         /// <summary>
         /// A regular expression to validate a simple e-mail address.
         /// </summary>
-        public static readonly Regex EMailRegularExpression = new Regex("^<?([^@]+)@([^@\\>]+)>?$");
+        public static readonly Regex SimpleEMail_RegEx = new Regex("^<?([^@]+)@([^@\\>]+)>?$",
+                                                                   RegexOptions.IgnorePatternWhitespace);
 
         #endregion
 
         #region Properties
 
-        #region User
-
-        private readonly String _User;
-
         /// <summary>
         /// The user of a simple e-mail address.
         /// </summary>
-        public String User
-        {
-            get
-            {
-                return _User;
-            }
-        }
-
-        #endregion
-
-        #region Domain
-
-        private readonly String _Domain;
+        public String  User     { get; }
 
         /// <summary>
         /// The domain of a simple e-mail address.
         /// </summary>
-        public String Domain
-        {
-            get
-            {
-                return _Domain;
-            }
-        }
-
-        #endregion
-
-        #region Value
+        public String  Domain   { get; }
 
         /// <summary>
         /// The string value of a simple e-mail address.
         /// </summary>
-        public String Value
-        {
-            get
-            {
-                return _User + "@" + _Domain;
-            }
-        }
-
-        #endregion
+        public String  Value
+            => User + "@" + Domain;
 
         #endregion
 
@@ -98,73 +70,140 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <summary>
         /// Create a new simple e-mail address.
         /// </summary>
-        /// <param name="EMailAddress">A string representation of a simple e-mail address.</param>
-        private SimpleEMailAddress(String EMailAddress)
+        /// <param name="User">The user part of an email address.</param>
+        /// <param name="Domain">The domain part of an emaul address.</param>
+        private SimpleEMailAddress(String  User,
+                                   String  Domain)
         {
 
-            var RegExpr = EMailRegularExpression.Match(EMailAddress.Trim());
+            #region Initial checks
 
-            if (!RegExpr.Success)
-                throw new ArgumentNullException("Invalid e-mail address!");
+            if (User.IsNullOrEmpty() || User.Trim().IsNullOrEmpty())
+                throw new ArgumentNullException(nameof(User),    "The given user part of an email address must not be null or empty!");
 
-            this._User    = RegExpr.Groups[1].Value;
-            this._Domain  = RegExpr.Groups[2].Value.ToLower();
+            if (Domain.IsNullOrEmpty() || Domain.Trim().IsNullOrEmpty())
+                throw new ArgumentNullException(nameof(Domain),  "The given domain part of an email address must not be null or empty!");
+
+            #endregion
+
+            this.User    = User;
+            this.Domain  = Domain;
 
         }
 
         #endregion
 
 
-        #region (static) Parse(EMailAddress)
+        #region (static) Parse(Text)
 
         /// <summary>
-        /// Parse a simple e-mail address from a string.
+        /// Parse the given string as an e-mail address.
         /// </summary>
-        /// <param name="EMailAddress">A string representation of a simple e-mail address.</param>
-        public static SimpleEMailAddress Parse(String EMailAddress)
+        /// <param name="Text">A text representation of an e-mail address.</param>
+        public static SimpleEMailAddress Parse(String Text)
         {
-            return new SimpleEMailAddress(EMailAddress);
+
+            #region Initial checks
+
+            if (Text.IsNullOrEmpty())
+                throw new ArgumentNullException(nameof(Text), "The given text representation of an email address must not be null or empty!");
+
+            #endregion
+
+            var MatchCollection = SimpleEMail_RegEx.Matches(Text.Trim());
+
+            if (MatchCollection.Count != 1)
+                throw new ArgumentException("Illegal email address '" + Text + "'!",
+                                            nameof(Text));
+
+            return new SimpleEMailAddress(MatchCollection[0].Groups[1].Value,
+                                          MatchCollection[0].Groups[2].Value);
+
         }
 
         #endregion
 
-        #region (static) TryParse(EMailAddress, out EMailAddress)
+        #region (static) TryParse(Text)
 
         /// <summary>
-        /// Try to parse a simple e-mail address from a string.
+        /// Try to parse the given string as an e-mail address.
         /// </summary>
-        /// <param name="EMailAddressString">A string representation of a simple e-mail address.</param>
+        /// <param name="Text">A text representation of an e-mail address.</param>
+        public static SimpleEMailAddress? TryParse(String Text)
+        {
+
+            SimpleEMailAddress _SimpleEMailAddress;
+
+            if (TryParse(Text, out _SimpleEMailAddress))
+                return _SimpleEMailAddress;
+
+            return new SimpleEMailAddress?();
+
+        }
+
+        #endregion
+
+        #region (static) TryParse(Text, out EMailAddress)
+
+        /// <summary>
+        /// Try to parse the given string as an e-mail address.
+        /// </summary>
+        /// <param name="Text">A text representation of an e-mail address.</param>
         /// <param name="EMailAddress">The parsed e-mail address.</param>
-        public static Boolean TryParse(String EMailAddressString, out SimpleEMailAddress EMailAddress)
+        public static Boolean TryParse(String Text, out SimpleEMailAddress EMailAddress)
         {
 
-            if (EMailRegularExpression.Match(EMailAddressString.Trim()).Success)
+            #region Initial checks
+
+            if (Text.IsNullOrEmpty())
             {
-                EMailAddress = new SimpleEMailAddress(EMailAddressString);
-                return true;
+                EMailAddress = default(SimpleEMailAddress);
+                return false;
             }
 
-            EMailAddress = null;
+            #endregion
+
+            try
+            {
+
+                var MatchCollection = SimpleEMail_RegEx.Matches(Text.Trim().ToUpper());
+
+                if (MatchCollection.Count == 1)
+                {
+
+                    EMailAddress = new SimpleEMailAddress(MatchCollection[0].Groups[0].Value,
+                                                          MatchCollection[0].Groups[1].Value);
+
+                    return true;
+
+                }
+
+            }
+#pragma warning disable RCS1075  // Avoid empty catch clause that catches System.Exception.
+#pragma warning disable RECS0022 // A catch clause that catches System.Exception and has an empty body
+            catch (Exception)
+            { }
+#pragma warning restore RECS0022 // A catch clause that catches System.Exception and has an empty body
+#pragma warning restore RCS1075  // Avoid empty catch clause that catches System.Exception.
+
+            EMailAddress = default(SimpleEMailAddress);
             return false;
 
         }
 
         #endregion
 
-        #region (static) IsValid(EMailAddress)
+        #region (static) IsValid(Text)
 
         /// <summary>
-        /// Checks if the given string is a valid simple e-mail address.
+        /// Checks if the given string is a valid e-mail address.
         /// </summary>
-        /// <param name="EMailAddressString">A string representation of a simple e-mail address.</param>
-        public static Boolean IsValid(String EMailAddressString)
-        {
+        /// <param name="Text">A text representation of an e-mail address.</param>
+        public static Boolean IsValid(String Text)
 
-            return EMailRegularExpression.
-                       Match(EMailAddressString.Trim()).
-                       Success;
-
-        }
+            => SimpleEMail_RegEx.
+                   Match(Text.Trim()).
+                   Success;
 
         #endregion
 
@@ -205,9 +244,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="SimpleEMailAddress2">Another SimpleEMailAddress.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (SimpleEMailAddress SimpleEMailAddress1, SimpleEMailAddress SimpleEMailAddress2)
-        {
-            return !(SimpleEMailAddress1 == SimpleEMailAddress2);
-        }
+            => !(SimpleEMailAddress1 == SimpleEMailAddress2);
 
         #endregion
 
@@ -235,9 +272,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="SimpleEMailAddress2">Another SimpleEMailAddress.</param>
         /// <returns>true|false</returns>
         public static Boolean operator <= (SimpleEMailAddress SimpleEMailAddress1, SimpleEMailAddress SimpleEMailAddress2)
-        {
-            return !(SimpleEMailAddress1 > SimpleEMailAddress2);
-        }
+            => !(SimpleEMailAddress1 > SimpleEMailAddress2);
 
         #endregion
 
@@ -265,9 +300,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="SimpleEMailAddress2">Another SimpleEMailAddress.</param>
         /// <returns>true|false</returns>
         public static Boolean operator >= (SimpleEMailAddress SimpleEMailAddress1, SimpleEMailAddress SimpleEMailAddress2)
-        {
-            return !(SimpleEMailAddress1 < SimpleEMailAddress2);
-        }
+            => !(SimpleEMailAddress1 < SimpleEMailAddress2);
 
         #endregion
 
@@ -285,14 +318,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         {
 
             if (Object == null)
-                throw new ArgumentNullException("The given object must not be null!");
+                throw new ArgumentNullException(nameof(Object), "The given object must not be null!");
 
-            // Check if the given object is a SimpleEMailAddress.
-            var _SimpleEMailAddress = Object as SimpleEMailAddress;
-            if ((Object) _SimpleEMailAddress == null)
-                throw new ArgumentException("The given object is not a SimpleEMailAddress!");
+            if (!(Object is SimpleEMailAddress))
+                throw new ArgumentException("The given object is not a SimpleEMailAddress!", nameof(Object));
 
-            return (this.Value).CompareTo(_SimpleEMailAddress.Value);
+            return CompareTo((SimpleEMailAddress) Object);
 
         }
 
@@ -310,7 +341,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             if ((Object) SimpleEMailAddress == null)
                 throw new ArgumentNullException();
 
-            return (this.Value).CompareTo(SimpleEMailAddress.Value);
+            return String.Compare(Value, SimpleEMailAddress.Value, StringComparison.Ordinal);
 
         }
 
@@ -333,12 +364,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             if (Object == null)
                 return false;
 
-            // Check if the given object is a SimpleEMailAddress.
-            var _SimpleEMailAddress = Object as SimpleEMailAddress;
-            if ((Object) _SimpleEMailAddress == null)
+            if (!(Object is SimpleEMailAddress))
                 return false;
 
-            return Equals(_SimpleEMailAddress);
+            return Equals((SimpleEMailAddress) Object);
 
         }
 
@@ -357,7 +386,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             if ((Object) SimpleEMailAddress == null)
                 return false;
 
-            return this.Value.Equals(SimpleEMailAddress.Value);
+            return Value.Equals(SimpleEMailAddress.Value);
 
         }
 
@@ -372,9 +401,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// </summary>
         /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
-        {
-            return Value.GetHashCode();
-        }
+            => Value.GetHashCode();
 
         #endregion
 
@@ -384,9 +411,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// Returns a string representation of this object.
         /// </summary>
         public override String ToString()
-        {
-            return Value;
-        }
+            => Value;
 
         #endregion
 

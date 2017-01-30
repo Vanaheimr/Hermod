@@ -110,7 +110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                     return _ListPost;
                 }
 
-                return null;
+                return default(SimpleEMailAddress);
 
             }
 

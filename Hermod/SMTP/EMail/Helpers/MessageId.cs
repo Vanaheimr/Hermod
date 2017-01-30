@@ -97,7 +97,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         private MessageId(String MessageId)
         {
 
-            var RegExpr = SimpleEMailAddress.EMailRegularExpression.Match(MessageId.Trim());
+            var RegExpr = SimpleEMailAddress.SimpleEMail_RegEx.Match(MessageId.Trim());
 
             if (!RegExpr.Success)
                 throw new ArgumentNullException("Invalid e-mail message identification!");
@@ -143,7 +143,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             if (MessageIdString == null)
                 return false;
 
-            if (SimpleEMailAddress.EMailRegularExpression.Match(MessageIdString.Trim()).Success)
+            if (SimpleEMailAddress.SimpleEMail_RegEx.Match(MessageIdString.Trim()).Success)
             {
                 MessageId = new MessageId(MessageIdString);
                 return true;

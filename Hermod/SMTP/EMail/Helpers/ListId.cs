@@ -144,7 +144,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public static Boolean TryParse(String ListIdString, out ListId ListId)
         {
 
-            if (SimpleEMailAddress.EMailRegularExpression.Match(ListIdString.Trim()).Success)
+            if (SimpleEMailAddress.SimpleEMail_RegEx.Match(ListIdString.Trim()).Success)
             {
                 ListId = new ListId(ListIdString);
                 return true;
