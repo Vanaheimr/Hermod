@@ -50,28 +50,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
 
         #region Properties
 
-        #region ServiceBanner
-
-        public String ServiceBanner { get; set; }
-
-        #endregion
-
-        #region SplitCharacters
-
-        private readonly Char[] _SplitCharacters;
+        public String  ServiceBanner     { get; }
 
         /// <summary>
         /// The characters to split the incoming CSV text lines.
         /// </summary>
-        public Char[] SplitCharacters
-        {
-            get
-            {
-                return _SplitCharacters;
-            }
-        }
-
-        #endregion
+        public Char[]  SplitCharacters   { get; }
 
         #endregion
 
@@ -100,8 +84,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         public TCPCSVProcessor(Char[]  SplitCharacters = null)
         {
 
-            this._SplitCharacters  = (SplitCharacters != null) ? SplitCharacters : new Char[1] { '/' };
-            this.ServiceBanner     = DefaultServiceBanner;
+            this.SplitCharacters  = SplitCharacters ?? new Char[1] { '/' };
+            this.ServiceBanner    = DefaultServiceBanner;
 
         }
 
@@ -227,15 +211,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                                     if (OnNotificationLocal != null)
                                     {
 
-                                        TCPConnection.WriteLineToResponseStream(OnNotification(TCPConnection,
-                                                                                DateTime.Now,
-                                                                                CSVArray));
+                                        TCPConnection.WriteLineToResponseStream(OnNotificationLocal(TCPConnection,
+                                                                                                    DateTime.Now,
+                                                                                                    CSVArray));
 
                                     }
 
                                     #endregion
-
-                                    //Message.WriteToResponseStream(0x00);
 
                                 }
 
@@ -313,10 +295,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
 
             try
             {
-                TCPConnection.Close((ClientClose) ? ConnectionClosedBy.Client : ConnectionClosedBy.Server);
+                TCPConnection.Close(ClientClose ? ConnectionClosedBy.Client : ConnectionClosedBy.Server);
             }
-            catch (Exception e)
+#pragma warning disable RCS1075 // Avoid empty catch clause that catches System.Exception.
+#pragma warning disable RECS0022 // A catch clause that catches System.Exception and has an empty body
+            catch (Exception)
             { }
+#pragma warning restore RECS0022 // A catch clause that catches System.Exception and has an empty body
+#pragma warning restore RCS1075 // Avoid empty catch clause that catches System.Exception.
 
             #endregion
 

@@ -18,6 +18,7 @@
 #region Usings
 
 using System;
+using System.Linq;
 using System.Threading;
 using System.Collections.Generic;
 
@@ -46,6 +47,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// </summary>
         public new const String                  __DefaultServiceBanner  = "Vanaheimr Hermod TCP/CSV Service v0.9";
 
+        /// <summary>
+        /// The default array of delimiters to split the incoming CSV line into individual elements.
+        /// </summary>
+        public static readonly Char[]            DefaultSpitCharacters   = { ',' };
+
         private readonly TCPCSVProcessor         _TCPCSVProcessor;
         private readonly TCPCSVCommandProcessor  _TCPCSVCommandProcessor;
 
@@ -53,22 +59,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
 
         #region Properties
 
-        #region SplitCharacters
-
-        private readonly Char[] _SplitCharacters;
-
         /// <summary>
         /// The characters to split the incoming CSV text lines.
         /// </summary>
-        public Char[] SplitCharacters
-        {
-            get
-            {
-                return _SplitCharacters;
-            }
-        }
-
-        #endregion
+        public Char[] SplitCharacters { get; }
 
         #endregion
 
@@ -90,7 +84,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// </summary>
         /// <param name="Port">The listening port</param>
         /// <param name="ServiceBanner">Service banner.</param>
-        /// <param name="Splitter">An array of delimiters to split the incoming CSV line into individual elements.</param>
+        /// <param name="SplitCharacters">An array of delimiters to split the incoming CSV line into individual elements.</param>
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
@@ -103,7 +97,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="Autostart">Start the TCP server thread immediately (default: no).</param>
         public TCPCSVServer(IPPort                            Port,
                             String                            ServiceBanner                     = __DefaultServiceBanner,
-                            IEnumerable<String>               Splitter                          = null,
+                            IEnumerable<Char>                 SplitCharacters                   = null,
                             String                            ServerThreadName                  = null,
                             ThreadPriority                    ServerThreadPriority              = ThreadPriority.AboveNormal,
                             Boolean                           ServerThreadIsBackground          = true,
@@ -118,7 +112,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
             : this(IPv4Address.Any,
                    Port,
                    ServiceBanner,
-                   Splitter,
+                   SplitCharacters,
                    ServerThreadName,
                    ServerThreadPriority,
                    ServerThreadIsBackground,
@@ -142,7 +136,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="IIPAddress">The listening IP address(es)</param>
         /// <param name="Port">The listening port</param>
         /// <param name="ServiceBanner">Service banner.</param>
-        /// <param name="Splitter">An array of delimiters to split the incoming CSV line into individual elements.</param>
+        /// <param name="SplitCharacters">An enumeration of delimiters to split the incoming CSV line into individual elements.</param>
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
@@ -155,8 +149,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="Autostart">Start the TCP/CSV server thread immediately (default: no).</param>
         public TCPCSVServer(IIPAddress                        IIPAddress,
                             IPPort                            Port,
-                            String                            ServiceBanner                   = __DefaultServiceBanner,
-                            IEnumerable<String>               Splitter                          = null,
+                            String                            ServiceBanner                     = __DefaultServiceBanner,
+                            IEnumerable<Char>                 SplitCharacters                   = null,
                             String                            ServerThreadName                  = null,
                             ThreadPriority                    ServerThreadPriority              = ThreadPriority.AboveNormal,
                             Boolean                           ServerThreadIsBackground          = true,
@@ -185,8 +179,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         {
 
             this.ServiceBanner            = ServiceBanner;
+            this.SplitCharacters          = SplitCharacters != null ? SplitCharacters.ToArray() : DefaultSpitCharacters;
 
-            this._TCPCSVProcessor         = new TCPCSVProcessor(SplitCharacters);
+            this._TCPCSVProcessor         = new TCPCSVProcessor(this.SplitCharacters);
             this.SendTo(_TCPCSVProcessor);
           //  this.OnNewConnection         += (TCPServer, Timestamp, RemoteSocket, ConnectionId, TCPConnection) => SendNewConnection   (Timestamp, RemoteSocket, ConnectionId, TCPConnection);
           //  this.OnConnectionClosed      += (TCPServer, Timestamp, RemoteSocket, ConnectionId, ClosedBy)      => SendConnectionClosed(Timestamp, RemoteSocket, ConnectionId, ClosedBy);
@@ -209,7 +204,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// </summary>
         /// <param name="IPSocket">The IP socket to listen.</param>
         /// <param name="ServiceBanner">Service banner.</param>
-        /// <param name="Splitter">An array of delimiters to split the incoming CSV line into individual elements.</param>
+        /// <param name="SplitCharacters">An enumeration of delimiters to split the incoming CSV line into individual elements.</param>
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
@@ -222,7 +217,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="Autostart">Start the TCP server thread immediately (default: no).</param>
         public TCPCSVServer(IPSocket                          IPSocket,
                             String                            ServiceBanner                     = __DefaultServiceBanner,
-                            IEnumerable<String>               Splitter                          = null,
+                            IEnumerable<Char>                 SplitCharacters                   = null,
                             String                            ServerThreadName                  = null,
                             ThreadPriority                    ServerThreadPriority              = ThreadPriority.AboveNormal,
                             Boolean                           ServerThreadIsBackground          = true,
@@ -237,7 +232,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
             : this(IPSocket.IPAddress,
                    IPSocket.Port,
                    ServiceBanner,
-                   Splitter,
+                   SplitCharacters,
                    ServerThreadName,
                    ServerThreadPriority,
                    ServerThreadIsBackground,
@@ -262,6 +257,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                                                    DateTime  Timestamp,
                                                    String[]  CSVArray)
         {
+
+            var OnNewDataLocal = OnNewData;
+            if (OnNewDataLocal != null)
+                OnNewData(ConnectionId,
+                          Timestamp,
+                          CSVArray);
 
             var OnNotificationLocal = OnNotification;
             if (OnNotificationLocal != null)

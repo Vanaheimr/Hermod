@@ -707,9 +707,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                          TCPConnection  TCPConnection)
         {
 
-            var OnNewConnectionLocal = OnNewConnection;
-            if (OnNewConnectionLocal != null)
-                OnNewConnectionLocal(TCPServer, Timestamp, RemoteSocket, ConnectionId, TCPConnection);
+            OnNewConnection?.Invoke(TCPServer,
+                                    Timestamp,
+                                    RemoteSocket,
+                                    ConnectionId,
+                                    TCPConnection);
 
         }
 

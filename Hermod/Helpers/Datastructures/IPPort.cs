@@ -38,8 +38,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Constructor(s)
 
-        #region IPPort(Port)
-
         /// <summary>
         /// Creates a new IPPort.
         /// </summary>
@@ -47,8 +45,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         {
             this._IPPort = Port;
         }
-
-        #endregion
 
         #endregion
 
