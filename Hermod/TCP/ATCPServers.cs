@@ -726,9 +726,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                             ConnectionClosedBy  ClosedBy)
         {
 
-            var OnConnectionClosedLocal = OnConnectionClosed;
-            if (OnConnectionClosedLocal != null)
-                OnConnectionClosedLocal(TCPServer, ServerTimestamp, RemoteSocket, ConnectionId, ClosedBy);
+            OnConnectionClosed?.Invoke(TCPServer, ServerTimestamp, RemoteSocket, ConnectionId, ClosedBy);
 
         }
 
