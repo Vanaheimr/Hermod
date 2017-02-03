@@ -145,6 +145,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+        #region ToJSON(this TimestampedT)
+
+        /// <summary>
+        /// Create a JSON representation of the given timestamped value.
+        /// </summary>
+        /// <param name="TimestampedT">A timestamped value.</param>
+        public static JObject ToJSON<T>(this Timestamped<T> TimestampedT)
+
+            => new JObject(
+                   new JProperty("Timestamp", TimestampedT.Timestamp.ToIso8601()),
+                   new JProperty("Status",    TimestampedT.Value.    ToString())
+               );
+
+        #endregion
+
+
         #region ToJSON(this I18NString)
 
         /// <summary>
@@ -182,18 +198,138 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region ToJSON(this TimestampedT)
+        #region ParseI18NString(this JToken)
 
-        /// <summary>
-        /// Create a JSON representation of the given timestamped value.
-        /// </summary>
-        /// <param name="TimestampedT">A timestamped value.</param>
-        public static JObject ToJSON<T>(this Timestamped<T> TimestampedT)
+        public static I18NString ParseI18NString(this JToken JToken)
+        {
 
-            => new JObject(
-                   new JProperty("Timestamp", TimestampedT.Timestamp.ToIso8601()),
-                   new JProperty("Status",    TimestampedT.Value.ToString())
-               );
+            var jobject = JToken as JObject;
+
+            if (jobject == null)
+                throw new ArgumentException("The given JSON token is not a JSON object!", nameof(JToken));
+
+            return jobject.ParseI18NString();
+
+        }
+
+        #endregion
+
+        #region ParseI18NString(this JObject)
+
+        public static I18NString ParseI18NString(this JObject JObject)
+        {
+
+            var i18NString = I18NString.Empty;
+
+            foreach (var jproperty in JObject)
+                i18NString.Add((Languages) Enum.Parse(typeof(Languages), jproperty.Key),
+                               jproperty.Value.Value<String>());
+
+            return i18NString;
+
+        }
+
+        #endregion
+
+        #region ParseI18NString(this JObject, PropertyKey)
+
+        public static I18NString ParseI18NString(this JObject JObject, String PropertyKey)
+        {
+
+            if (PropertyKey.IsNullOrEmpty())
+                throw new ArgumentNullException(nameof(PropertyKey), "The given property key must not be null or empty!");
+
+            var i18NString = I18NString.Empty;
+            var jobject    = JObject[PropertyKey] as JObject;
+
+            if (jobject == null)
+                throw new ArgumentException("The value of the given JSON property '" + PropertyKey + "' is not a JSON object!", nameof(JObject));
+
+            foreach (var jproperty in jobject)
+                i18NString.Add((Languages) Enum.Parse(typeof(Languages), jproperty.Key),
+                               jproperty.Value.Value<String>());
+
+            return i18NString;
+
+        }
+
+        #endregion
+
+        #region TryParseI18NString(this JToken,  out I18NString)
+
+        public static Boolean TryParseI18NString(this JToken JToken, out I18NString I18NString)
+        {
+
+            var jobject = JToken as JObject;
+
+            if (jobject == null)
+            {
+                I18NString = null;
+                return false;
+            }
+
+            return jobject.TryParseI18NString(out I18NString);
+
+        }
+
+        #endregion
+
+        #region TryParseI18NString(this JObject, out I18NString)
+
+        public static Boolean TryParseI18NString(this JObject JObject, out I18NString I18NString)
+        {
+
+            I18NString = I18NString.Empty;
+
+            try
+            {
+
+                foreach (var jproperty in JObject)
+                    I18NString.Add((Languages)Enum.Parse(typeof(Languages), jproperty.Key),
+                                   jproperty.Value.Value<String>());
+
+                return true;
+
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+
+        }
+
+        #endregion
+
+        #region TryParseI18NString(this JObject, PropertyKey, out I18NString)
+
+        public static Boolean TryParseI18NString(this JObject JObject, String PropertyKey, out I18NString I18NString)
+        {
+
+            if (PropertyKey.IsNullOrEmpty())
+                throw new ArgumentNullException(nameof(PropertyKey), "The given property key must not be null or empty!");
+
+            I18NString = I18NString.Empty;
+            var jobject = JObject[PropertyKey] as JObject;
+
+            if (jobject == null)
+                throw new ArgumentException("The value of the given JSON property '" + PropertyKey + "' is not a JSON object!", nameof(JObject));
+
+            try
+            {
+
+                foreach (var jproperty in JObject)
+                    I18NString.Add((Languages)Enum.Parse(typeof(Languages), jproperty.Key),
+                                   jproperty.Value.Value<String>());
+
+                return true;
+
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+
+        }
 
         #endregion
 
