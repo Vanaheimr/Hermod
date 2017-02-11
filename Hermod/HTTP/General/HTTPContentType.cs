@@ -231,6 +231,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPContentType PNG                  = new HTTPContentType("image/png",                              "png");
         public static readonly HTTPContentType JPEG                 = new HTTPContentType("image/jpeg",                             "jpg", "jpeg");
         public static readonly HTTPContentType SVG                  = new HTTPContentType("image/svg+xml",                          "svg");
+        public static readonly HTTPContentType WOFF                 = new HTTPContentType("application/font-woff",                  "woff", "woff2");
 
         public static readonly HTTPContentType XWWWFormUrlEncoded   = new HTTPContentType("application/x-www-form-urlencoded");
         public static readonly HTTPContentType OCTETSTREAM          = new HTTPContentType("application/octet-stream");
