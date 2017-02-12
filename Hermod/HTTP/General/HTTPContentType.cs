@@ -214,6 +214,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPContentType CSS_UTF8             = new HTTPContentType("text/css",                               "css");
         public static readonly HTTPContentType JAVASCRIPT_UTF8      = new HTTPContentType("text/javascript",                        "js");
         public static readonly HTTPContentType XMLTEXT_UTF8         = new HTTPContentType("text/xml",                               "xml");
+        public static readonly HTTPContentType MARKDONW_UTF8        = new HTTPContentType("text/markdown",                          "md");
 
         public static readonly HTTPContentType JSON_UTF8            = new HTTPContentType("application/json",                       "json");
         public static readonly HTTPContentType JSONLD_UTF8          = new HTTPContentType("application/ld+json",                    "json-ld");
@@ -225,6 +226,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPContentType SWF                  = new HTTPContentType("application/x-shockwave-flash",          "swf");
         public static readonly HTTPContentType PDF                  = new HTTPContentType("application/pdf",                        "pdf");
         public static readonly HTTPContentType CSV                  = new HTTPContentType("application/csv",                        "csv");
+        public static readonly HTTPContentType SIG                  = new HTTPContentType("application/pgp-signature",              "sig");
 
         public static readonly HTTPContentType GIF                  = new HTTPContentType("image/gif",                              "gif");
         public static readonly HTTPContentType ICO                  = new HTTPContentType("image/ico",                              "ico");
