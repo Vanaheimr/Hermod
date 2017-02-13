@@ -36,17 +36,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
     {
 
+        #region Data
+
+        /// <summary>
+        /// The data stored within the cookie.
+        /// </summary>
+        private Dictionary<String, String> Crumbs;
+
+        #endregion
+
         #region Properties
 
         /// <summary>
         /// The name of the cookie.
         /// </summary>
-        public String                                     Name     { get; }
-
-        /// <summary>
-        /// The stored data within the cookie.
-        /// </summary>
-        public IEnumerable<KeyValuePair<String, String>>  Crumbs   { get; }
+        public String  Name   { get; }
 
         #endregion
 
@@ -55,12 +59,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP cookie.
         /// </summary>
-        private HTTPCookie(String                                     Name,
-                           IEnumerable<KeyValuePair<String, String>>  Crumbs)
+        private HTTPCookie(String Name,
+                           IEnumerable<KeyValuePair<String, String>> Crumbs)
         {
 
             this.Name    = Name;
-            this.Crumbs  = Crumbs;
+            this.Crumbs  = new Dictionary<String, String>();
+
+            if (Crumbs != null)
+                foreach (var crumb in Crumbs)
+                {
+                    if (!this.Crumbs.ContainsKey(crumb.Key))
+                        this.Crumbs.Add(crumb.Key, crumb.Value);
+                }
 
         }
 
@@ -117,6 +128,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             return true;
 
         }
+
+        #endregion
+
+        #region [Crumb]
+
+        /// <summary>
+        /// Return the value of the given crumb.
+        /// </summary>
+        /// <param name="Crumb">The key/name of the crumb.</param>
+        public String this[String Crumb]
+            => Crumbs[Crumb];
+
+        #endregion
+
+        #region TryGet(Crumb, out Value)
+
+        /// <summary>
+        /// Try to return the value of the given crumb.
+        /// </summary>
+        /// <param name="Crumb">The key/name of the crumb.</param>
+        /// <param name="Value">The value of the crumb.</param>
+        public Boolean TryGet(String Crumb, out String Value)
+            => Crumbs.TryGetValue(Crumb, out Value);
 
         #endregion
 
