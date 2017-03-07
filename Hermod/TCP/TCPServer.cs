@@ -714,9 +714,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                                   TCPConnection  TCPConnection)
         {
 
-            var OnNewConnectionLocal = OnNewConnection;
-            if (OnNewConnectionLocal != null)
-                OnNewConnectionLocal(this, ServerTimestamp, RemoteSocket, ConnectionId, TCPConnection);
+            OnNewConnection?.Invoke(this,
+                                    ServerTimestamp,
+                                    RemoteSocket,
+                                    ConnectionId,
+                                    TCPConnection);
 
         }
 
@@ -730,9 +732,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                                      ConnectionClosedBy  ClosedBy)
         {
 
-            var OnConnectionClosedLocal = OnConnectionClosed;
-            if (OnConnectionClosedLocal != null)
-                OnConnectionClosedLocal(this, ServerTimestamp, RemoteSocket, ConnectionId, ClosedBy);
+            OnConnectionClosed?.Invoke(this,
+                                       ServerTimestamp,
+                                       RemoteSocket,
+                                       ConnectionId,
+                                       ClosedBy);
 
         }
 
