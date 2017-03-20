@@ -40,12 +40,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The IPAddress of this IPSocket.
         /// </summary>
-        public IIPAddress IPAddress { get; private set; }
+        public IIPAddress  IPAddress   { get; }
 
         /// <summary>
         /// Returns the port of this IPSocket.
         /// </summary>
-        public IPPort     Port      { get; private set; }
+        public IPPort      Port        { get; }
 
         #endregion
 
@@ -58,10 +58,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         /// <param name="IPAddress">The IPAdress of the socket.</param>
         /// <param name="Port">The port of the socket.</param>
-        public IPSocket(IIPAddress IPAddress, IPPort Port)
+        public IPSocket(IIPAddress  IPAddress,
+                        IPPort      Port)
         {
-            this.IPAddress = IPAddress;
-            this.Port      = Port;
+            this.IPAddress  = IPAddress;
+            this.Port       = Port;
         }
 
         #endregion
@@ -74,8 +75,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IPEndPoint">An IPEndPoint.</param>
         public IPSocket(IPEndPoint IPEndPoint)
         {
-            this.IPAddress = IPAddressHelper.Build(IPEndPoint.Address.GetAddressBytes());
-            this.Port      = new IPPort((UInt16) IPEndPoint.Port);
+            this.IPAddress  = IPAddressHelper.Build(IPEndPoint.Address.GetAddressBytes());
+            this.Port       = new IPPort((UInt16) IPEndPoint.Port);
         }
 
         #endregion
@@ -90,52 +91,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         /// <param name="Port">The IP port.</param>
         public static IPSocket Localhost(IPPort Port)
-        {
-            return new IPSocket(IPv4Address.Localhost, Port);
-        }
+
+            => new IPSocket(IPv4Address.Localhost,
+                            Port);
 
         #endregion
 
 
         #region Operator overloading
 
-        #region Operator == (myIPSocket1, myIPSocket2)
+        #region Operator == (IPSocket1, IPSocket2)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="myIPSocket1">A IPSocket.</param>
-        /// <param name="myIPSocket2">Another IPSocket.</param>
+        /// <param name="IPSocket1">An IP socket.</param>
+        /// <param name="IPSocket2">Another IP socket.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (IPSocket myIPSocket1, IPSocket myIPSocket2)
+        public static Boolean operator == (IPSocket IPSocket1, IPSocket IPSocket2)
         {
 
             // If both are null, or both are same instance, return true.
-            if (Object.ReferenceEquals(myIPSocket1, myIPSocket2))
+            if (Object.ReferenceEquals(IPSocket1, IPSocket2))
                 return true;
 
             // If one is null, but not both, return false.
-            if (((Object) myIPSocket1 == null) || ((Object) myIPSocket2 == null))
+            if (((Object) IPSocket1 == null) || ((Object) IPSocket2 == null))
                 return false;
 
-            return myIPSocket1.Equals(myIPSocket2);
+            return IPSocket1.Equals(IPSocket2);
 
         }
 
         #endregion
 
-        #region Operator != (myIPSocket1, myIPSocket2)
+        #region Operator != (IPSocket1, IPSocket2)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="myIPSocket1">A IPSocket.</param>
-        /// <param name="myIPSocket2">Another IPSocket.</param>
+        /// <param name="IPSocket1">An IP socket.</param>
+        /// <param name="IPSocket2">Another IP socket.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator != (IPSocket myIPSocket1, IPSocket myIPSocket2)
-        {
-            return !(myIPSocket1 == myIPSocket2);
-        }
+        public static Boolean operator != (IPSocket IPSocket1, IPSocket IPSocket2)
+            => !(IPSocket1 == IPSocket2);
 
         #endregion
 
@@ -154,14 +153,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         {
 
             if (Object == null)
-                throw new ArgumentNullException("The given Object must not be null!");
+                throw new ArgumentNullException(nameof(Object), "The given object must not be null!");
 
-            // Check if myObject can be casted to an IPSocket object
-            var myIPSocket = Object as IPSocket;
-            if ((Object) myIPSocket == null)
-                throw new ArgumentException("The given Object is not an IPSocket!");
+            var IPSocket = Object as IPSocket;
+            if ((Object) IPSocket == null)
+                throw new ArgumentException("The given object is not an IP socket!");
 
-            return CompareTo(myIPSocket);
+            return CompareTo(IPSocket);
 
         }
 
@@ -172,24 +170,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="myElementId">An object to compare with.</param>
+        /// <param name="IPSocket">An object to compare with.</param>
         /// <returns>true|false</returns>
         public Int32 CompareTo(IPSocket IPSocket)
         {
 
             if (((Object) IPSocket) == null)
-                throw new ArgumentNullException("The given IPSocket object must not be null!");
+                throw new ArgumentNullException(nameof(IPSocket), "The given IP socket must not be null!");
 
-            var __IPAddress = this.IPAddress.CompareTo(IPSocket.IPAddress);
+            var __IPAddress = IPAddress.CompareTo(IPSocket.IPAddress);
             if (__IPAddress != 0)
                 return __IPAddress;
 
-            return this.Port.CompareTo(IPSocket.Port);
+            return Port.CompareTo(IPSocket.Port);
 
         }
 
         #endregion
-        
+
         #endregion
 
         #region IEquatable Members
@@ -205,14 +203,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         {
 
             if (Object == null)
-                throw new ArgumentNullException("The given Object must not be null!");
+                throw new ArgumentNullException(nameof(Object), "The given object must not be null!");
 
-            // Check if myObject can be cast to IPSocket
-            var myIPSocket = Object as IPSocket;
-            if ((Object) myIPSocket == null)
-                throw new ArgumentException("The given Object is not an IPSocket!");
+            var IPSocket = Object as IPSocket;
+            if ((Object) IPSocket == null)
+                throw new ArgumentException("The given object is not an IP socket!");
 
-            return this.Equals(myIPSocket);
+            return Equals(IPSocket);
 
         }
 
@@ -223,17 +220,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="myElementId">An object to compare with.</param>
+        /// <param name="IPSocket">An object to compare with.</param>
         /// <returns>true|false</returns>
         public Boolean Equals(IPSocket IPSocket)
         {
 
             if (IPSocket == null)
-                throw new ArgumentNullException("Teh given IPSocket must not be null!");
+                throw new ArgumentNullException(nameof(IPSocket), "The given IP socket must not be null!");
 
-            var __IPAddress = this.IPAddress.Equals(IPSocket.IPAddress);
+            var __IPAddress = IPAddress.Equals(IPSocket.IPAddress);
             if (__IPAddress)
-                return this.Port.Equals(IPSocket.Port);
+                return Port.Equals(IPSocket.Port);
 
             return false;
 
@@ -250,9 +247,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
-        {
-            return IPAddress.GetHashCode() ^ Port.GetHashCode();
-        }
+
+            => IPAddress.GetHashCode() ^
+               Port.     GetHashCode();
 
         #endregion
 
@@ -263,9 +260,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         /// <returns>A string representation of this object.</returns>
         public override String ToString()
-        {
-            return IPAddress.ToString() + ":" + Port.ToString();
-        }
+
+            => IPAddress.ToString() + ":" + Port;
 
         #endregion
 
