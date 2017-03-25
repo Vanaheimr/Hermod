@@ -168,13 +168,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ResourceFilename">The path to the file within the assembly.</param>
         /// <param name="ResponseContentType">Set the HTTP MIME content-type of the file. If null try to autodetect the content type based on the filename extention.</param>
         /// <param name="CacheControl">Set the HTTP cache control response header.</param>
-        public static void RegisterResourcesFile(this HTTPServer  HTTPServer,
-                                                 HTTPHostname     Hostname,
-                                                 String           URITemplate,
-                                                 Assembly         ResourceAssembly,
-                                                 String           ResourceFilename,
-                                                 HTTPContentType  ResponseContentType  = null,
-                                                 String           CacheControl         = "no-cache")
+        public static void RegisterResourcesFile(this IHTTPServer  HTTPServer,
+                                                 HTTPHostname      Hostname,
+                                                 String            URITemplate,
+                                                 Assembly          ResourceAssembly,
+                                                 String            ResourceFilename,
+                                                 HTTPContentType   ResponseContentType  = null,
+                                                 String            CacheControl         = "no-cache")
         {
 
             #region Get the appropriate content type based on the suffix of the requested resource
@@ -306,15 +306,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPRealm">An optional realm for HTTP basic authentication.</param>
         /// <param name="HTTPLogin">An optional login for HTTP basic authentication.</param>
         /// <param name="HTTPPassword">An optional password for HTTP basic authentication.</param>
-        public static void RegisterResourcesFolder(this HTTPServer  HTTPServer,
-                                                   HTTPHostname     Hostname,
-                                                   String           URITemplate,
-                                                   String           ResourcePath,
-                                                   Assembly         ResourceAssembly  = null,
-                                                   String           DefaultFilename   = "index.html",
-                                                   String           HTTPRealm         = null,
-                                                   String           HTTPLogin         = null,
-                                                   String           HTTPPassword      = null)
+        public static void RegisterResourcesFolder(this IHTTPServer  HTTPServer,
+                                                   HTTPHostname      Hostname,
+                                                   String            URITemplate,
+                                                   String            ResourcePath,
+                                                   Assembly          ResourceAssembly  = null,
+                                                   String            DefaultFilename   = "index.html",
+                                                   String            HTTPRealm         = null,
+                                                   String            HTTPLogin         = null,
+                                                   String            HTTPPassword      = null)
         {
 
             if (ResourceAssembly == null)
@@ -505,13 +505,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DefaultFile">If an error occures, return this file.</param>
         /// <param name="ResponseContentType">Set the HTTP MIME content-type of the file. If null try to autodetect the content type based on the filename extention.</param>
         /// <param name="CacheControl">Set the HTTP cache control response header.</param>
-        public static void RegisterFilesystemFile(this HTTPServer         HTTPServer,
-                                                  HTTPHostname            Hostname,
-                                                  String                  URITemplate,
-                                                  Func<String[], String>  ResourceFilenameBuilder,
-                                                  String                  DefaultFile          = null,
-                                                  HTTPContentType         ResponseContentType  = null,
-                                                  String                  CacheControl         = "no-cache")
+        public static void RegisterFilesystemFile(this IHTTPServer         HTTPServer,
+                                                  HTTPHostname             Hostname,
+                                                  String                   URITemplate,
+                                                  Func<String[], String>   ResourceFilenameBuilder,
+                                                  String                   DefaultFile          = null,
+                                                  HTTPContentType          ResponseContentType  = null,
+                                                  String                   CacheControl         = "no-cache")
         {
 
             #region Get the appropriate content type based on the suffix returned by the ResourceFilenameBuilder
@@ -599,11 +599,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URITemplate">An URI template.</param>
         /// <param name="ResourcePath">The path to the file within the assembly.</param>
         /// <param name="DefaultFilename">The default file to load.</param>
-        public static void RegisterFilesystemFolder(this HTTPServer         HTTPServer,
-                                                    HTTPHostname            Hostname,
-                                                    String                  URITemplate,
-                                                    Func<String[], String>  ResourcePath,
-                                                    String                  DefaultFilename  = "index.html")
+        public static void RegisterFilesystemFolder(this IHTTPServer         HTTPServer,
+                                                    HTTPHostname             Hostname,
+                                                    String                   URITemplate,
+                                                    Func<String[], String>   ResourcePath,
+                                                    String                   DefaultFilename  = "index.html")
         {
 
             HTTPServer.AddMethodCallback(Hostname,
@@ -686,7 +686,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region RegisterWatchedFilesystemFolder(this HTTPServer, URITemplate, ResourcePath, DefaultFilename = "index.html")
 
-        private static void FileWasChanged(HTTPServer source, String HTTPSSE_EventIdentification, String ChangeType, String FileName)
+        private static void FileWasChanged(IHTTPServer source, String HTTPSSE_EventIdentification, String ChangeType, String FileName)
         {
             source.
                 GetEventSource(HTTPSSE_EventIdentification).
@@ -711,7 +711,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPServer">A HTTP server.</param>
         /// <param name="URITemplate">An URI template.</param>
         /// <param name="DefaultFilename">The default file to load.</param>
-        public static void RegisterWatchedFileSystemFolder(this HTTPServer         HTTPServer,
+        public static void RegisterWatchedFileSystemFolder(this IHTTPServer        HTTPServer,
                                                            String                  URITemplate,
                                                            String                  FileSystemLocation,
                                                            String                  HTTPSSE_EventIdentification,
@@ -735,7 +735,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPServer">A HTTP server.</param>
         /// <param name="URITemplate">An URI template.</param>
         /// <param name="DefaultFilename">The default file to load.</param>
-        public static void RegisterWatchedFileSystemFolder(this HTTPServer         HTTPServer,
+        public static void RegisterWatchedFileSystemFolder(this IHTTPServer        HTTPServer,
                                                            HTTPHostname            Hostname,
                                                            String                  URITemplate,
                                                            String                  FileSystemLocation,

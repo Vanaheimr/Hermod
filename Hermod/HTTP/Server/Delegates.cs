@@ -53,7 +53,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="HTTPServer">The sending HTTP server.</param>
     /// <param name="Request">The incoming request.</param>
     public delegate void RequestLogHandler(DateTime     Timestamp,
-                                           HTTPServer   HTTPServer,
+                                           IHTTPServer  HTTPServer,
                                            HTTPRequest  Request);
 
 
@@ -65,7 +65,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="Request">The incoming request.</param>
     /// <param name="Response">The outgoing response.</param>
     public delegate void AccessLogHandler(DateTime      Timestamp,
-                                          HTTPServer    HTTPServer,
+                                          IHTTPServer   HTTPServer,
                                           HTTPRequest   Request,
                                           HTTPResponse  Response);
 
@@ -80,7 +80,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="Error">The occured error.</param>
     /// <param name="LastException">The last occured exception.</param>
     public delegate void ErrorLogHandler(DateTime      Timestamp,
-                                         HTTPServer    HTTPServer,
+                                         IHTTPServer   HTTPServer,
                                          HTTPRequest   Request,
                                          HTTPResponse  Response,
                                          String        Error          = null,
