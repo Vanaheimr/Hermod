@@ -256,6 +256,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             => new HTTPResponse<TContent>(null, Content);
 
+        public static HTTPResponse<TContent> ClientError(TContent Content)
+
+            => new HTTPResponse<TContent>(null, Content, IsFault: true);
+
         public static HTTPResponse<TContent> ExceptionThrown(TContent   Content,
                                                              Exception  Exception)
 
