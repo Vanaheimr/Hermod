@@ -778,20 +778,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region HTTP Server Sent Events
 
-        #region AddEventSource(EventIdentification)
-
-        /// <summary>
-        /// Add a HTTP Sever Sent Events source.
-        /// </summary>
-        /// <param name="EventIdentification">The unique identification of the event source.</param>
-        public HTTPEventSource AddEventSource(String  EventIdentification)
-        {
-            return _HTTPServer.AddEventSource(EventIdentification, 100, TimeSpan.FromSeconds(5));
-        }
-
-        #endregion
-
-        #region AddEventSource(EventIdentification, MaxNumberOfCachedEvents, RetryIntervall = null)
+        #region AddEventSource(EventIdentification, MaxNumberOfCachedEvents, RetryIntervall = null, LogfileName = null)
 
         /// <summary>
         /// Add a HTTP Sever Sent Events source.
@@ -799,31 +786,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="EventIdentification">The unique identification of the event source.</param>
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
         /// <param name="RetryIntervall">The retry intervall.</param>
-        public HTTPEventSource AddEventSource(String     EventIdentification,
-                                              UInt32     MaxNumberOfCachedEvents,
-                                              TimeSpan?  RetryIntervall  = null)
-        {
+        /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
+        public HTTPEventSource AddEventSource(String                          EventIdentification,
+                                              UInt32                          MaxNumberOfCachedEvents,
+                                              TimeSpan?                       RetryIntervall  = null,
+                                              Func<String, DateTime, String>  LogfileName     = null)
 
-            return _HTTPServer.AddEventSource(EventIdentification,
-                                              MaxNumberOfCachedEvents,
-                                              RetryIntervall);
 
-        }
+            => _HTTPServer.AddEventSource(EventIdentification,
+                                          MaxNumberOfCachedEvents,
+                                          RetryIntervall,
+                                          LogfileName);
 
         #endregion
 
-        #region AddEventSource(MethodInfo, Host, URITemplate, HTTPMethod, EventIdentification, MaxNumberOfCachedEvents = 500, RetryIntervall = null, IsSharedEventSource = false, HostAuthentication = false, URIAuthentication = false)
+        #region AddEventSource(EventIdentification, URITemplate, MaxNumberOfCachedEvents = 500, RetryIntervall = null, EnableLogging = false, LogfileName = null, ...)
 
         /// <summary>
         /// Add a method call back for the given URI template and
         /// add a HTTP Sever Sent Events source.
         /// </summary>
         /// <param name="EventIdentification">The unique identification of the event source.</param>
+        /// <param name="URITemplate">The URI template.</param>
+        /// 
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
         /// <param name="RetryIntervall">The retry intervall.</param>
+        /// <param name="EnableLogging">Enables storing and reloading events </param>
+        /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
         /// 
         /// <param name="Hostname">The HTTP host.</param>
-        /// <param name="URITemplate">The URI template.</param>
         /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
         /// 
@@ -832,39 +823,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// 
         /// <param name="DefaultErrorHandler">The default error handler.</param>
-        public HTTPEventSource AddEventSource(String              EventIdentification,
-                                              UInt32              MaxNumberOfCachedEvents     = 500,
-                                              TimeSpan?           RetryIntervall              = null,
+        public HTTPEventSource AddEventSource(String                          EventIdentification,
+                                              String                          URITemplate,
 
-                                              HTTPHostname        Hostname                    = null,
-                                              String              URITemplate                 = "/",
-                                              HTTPMethod          HTTPMethod                  = null,
-                                              HTTPContentType     HTTPContentType             = null,
+                                              UInt32                          MaxNumberOfCachedEvents    = 500,
+                                              TimeSpan?                       RetryIntervall             = null,
+                                              Boolean                         EnableLogging              = false,
+                                              Func<String, DateTime, String>  LogfileName                = null,
 
-                                              HTTPAuthentication  HostAuthentication          = null,
-                                              HTTPAuthentication  URIAuthentication           = null,
-                                              HTTPAuthentication  HTTPMethodAuthentication    = null,
+                                              HTTPHostname                    Hostname                   = null,
+                                              HTTPMethod                      HTTPMethod                 = null,
+                                              HTTPContentType                 HTTPContentType            = null,
 
-                                              HTTPDelegate        DefaultErrorHandler         = null)
+                                              HTTPAuthentication              HostAuthentication         = null,
+                                              HTTPAuthentication              URIAuthentication          = null,
+                                              HTTPAuthentication              HTTPMethodAuthentication   = null,
 
-        {
+                                              HTTPDelegate                    DefaultErrorHandler        = null)
 
-            return _HTTPServer.AddEventSource(EventIdentification,
-                                              MaxNumberOfCachedEvents,
-                                              RetryIntervall,
 
-                                              Hostname,
-                                              URITemplate,
-                                              HTTPMethod,
-                                              HTTPContentType,
+            => _HTTPServer.AddEventSource(EventIdentification,
+                                          URITemplate,
 
-                                              HostAuthentication,
-                                              URIAuthentication,
-                                              HTTPMethodAuthentication,
+                                          MaxNumberOfCachedEvents,
+                                          RetryIntervall,
+                                          EnableLogging,
+                                          LogfileName,
 
-                                              DefaultErrorHandler);
+                                          Hostname,
+                                          HTTPMethod,
+                                          HTTPContentType,
 
-        }
+                                          HostAuthentication,
+                                          URIAuthentication,
+                                          HTTPMethodAuthentication,
+
+                                          DefaultErrorHandler);
 
         #endregion
 

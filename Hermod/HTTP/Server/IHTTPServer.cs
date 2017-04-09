@@ -39,9 +39,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         event BoomerangSenderHandler<string, DateTime, HTTPRequest, HTTPResponse> OnNotification;
         event RequestLogHandler RequestLog;
 
-        HTTPEventSource AddEventSource(string EventIdentification);
-        HTTPEventSource AddEventSource(string EventIdentification, uint MaxNumberOfCachedEvents = 500, TimeSpan? RetryIntervall = default(TimeSpan?), HTTPHostname Hostname = null, string URITemplate = "/", HTTPMethod HTTPMethod = null, HTTPContentType HTTPContentType = null, HTTPAuthentication HostAuthentication = null, HTTPAuthentication URIAuthentication = null, HTTPAuthentication HTTPMethodAuthentication = null, HTTPDelegate DefaultErrorHandler = null);
-        HTTPEventSource AddEventSource(string EventIdentification, uint MaxNumberOfCachedEvents, TimeSpan? RetryIntervall = default(TimeSpan?));
+        HTTPEventSource AddEventSource(String EventIdentification, uint MaxNumberOfCachedEvents, TimeSpan? RetryIntervall = default(TimeSpan?), Func<String, DateTime, String> LogfileName = null);
+
+        HTTPEventSource AddEventSource(String                          EventIdentification,
+                                       String                          URITemplate,
+
+                                       UInt32                          MaxNumberOfCachedEvents    = 500,
+                                       TimeSpan?                       RetryIntervall             = null,
+                                       Boolean                         EnableLogging              = false,
+                                       Func<String, DateTime, String>  LogfileName                = null,
+
+                                       HTTPHostname                    Hostname                   = null,
+                                       HTTPMethod                      HTTPMethod                 = null,
+                                       HTTPContentType                 HTTPContentType            = null,
+
+                                       HTTPAuthentication              HostAuthentication         = null,
+                                       HTTPAuthentication              URIAuthentication          = null,
+                                       HTTPAuthentication              HTTPMethodAuthentication   = null,
+
+                                       HTTPDelegate                    DefaultErrorHandler        = null);
+
         void AddFilter(Func<HTTPServer, HTTPRequest, HTTPResponse> Filter);
         void AddMethodCallback(HTTPHostname Hostname, HTTPMethod HTTPMethod, IEnumerable<string> URITemplates, HTTPContentType HTTPContentType = null, HTTPAuthentication HostAuthentication = null, HTTPAuthentication URIAuthentication = null, HTTPAuthentication HTTPMethodAuthentication = null, HTTPAuthentication ContentTypeAuthentication = null, HTTPDelegate HTTPDelegate = null, URIReplacement AllowReplacement = URIReplacement.Fail);
         void AddMethodCallback(HTTPHostname Hostname, HTTPMethod HTTPMethod, IEnumerable<string> URITemplates, IEnumerable<HTTPContentType> HTTPContentTypes, HTTPAuthentication HostAuthentication = null, HTTPAuthentication URIAuthentication = null, HTTPAuthentication HTTPMethodAuthentication = null, HTTPAuthentication ContentTypeAuthentication = null, HTTPDelegate HTTPDelegate = null, URIReplacement AllowReplacement = URIReplacement.Fail);
