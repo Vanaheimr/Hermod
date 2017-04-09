@@ -1206,9 +1206,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private readonly HTTPServer                                              _HTTPAPI;
-        private readonly ConcurrentDictionary<String, HTTPServerRequestLogger>         _HTTPRequestLoggers;
-        private readonly ConcurrentDictionary<String, HTTPServerResponseLogger>        _HTTPResponseLoggers;
+        private readonly IHTTPServer                                             _HTTPAPI;
+        private readonly ConcurrentDictionary<String, HTTPServerRequestLogger>   _HTTPRequestLoggers;
+        private readonly ConcurrentDictionary<String, HTTPServerResponseLogger>  _HTTPResponseLoggers;
         private readonly ConcurrentDictionary<String, HTTPClientRequestLogger>   _HTTPClientRequestLoggers;
         private readonly ConcurrentDictionary<String, HTTPClientResponseLogger>  _HTTPClientResponseLoggers;
         private readonly ConcurrentDictionary<String, HashSet<String>>           _GroupTags;
@@ -1217,22 +1217,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Properties
 
-        #region Context
-
-        private readonly String _Context;
-
         /// <summary>
         /// The context of this HTTP logger.
         /// </summary>
-        public String Context
-        {
-            get
-            {
-                return _Context;
-            }
-        }
-
-        #endregion
+        public String  Context   { get; }
 
         #endregion
 
@@ -1255,8 +1243,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPAPI">A HTTP API.</param>
         /// <param name="Context">A context of this API.</param>
-        public HTTPLogger(HTTPServer  HTTPAPI,
-                          String      Context = "")
+        public HTTPLogger(IHTTPServer  HTTPAPI,
+                          String       Context = "")
 
             : this(HTTPAPI,
                    Context,
@@ -1293,7 +1281,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogHTTPError_toHTTPSSE">A delegate to log HTTP errors to a HTTP server sent events source.</param>
         /// 
         /// <param name="LogFileCreator">A delegate to create a log file from the given context and log file name.</param>
-        public HTTPLogger(HTTPServer                    HTTPAPI,
+        public HTTPLogger(IHTTPServer                   HTTPAPI,
                           String                        Context,
 
                           HTTPRequestLoggerDelegate     LogHTTPRequest_toConsole,
@@ -1414,7 +1402,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Init data structures
 
-            this._Context                    = Context != null ? Context : "";
+            this.Context                    = Context != null ? Context : "";
             this._HTTPRequestLoggers         = new ConcurrentDictionary<String, HTTPServerRequestLogger>();
             this._HTTPResponseLoggers        = new ConcurrentDictionary<String, HTTPServerResponseLogger>();
             this._HTTPClientRequestLoggers   = new ConcurrentDictionary<String, HTTPClientRequestLogger>();
