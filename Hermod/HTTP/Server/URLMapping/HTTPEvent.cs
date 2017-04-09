@@ -37,57 +37,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Properties
 
-        #region Subevent
+        /// <summary>
+        /// The identification of the event.
+        /// </summary>
+        public UInt64               Id          { get; }
 
         /// <summary>
-        /// The subevent identification of this HTTP event.
+        /// The subevent identification of the event.
         /// </summary>
-        public String Subevent { get; private set; }
-
-        #endregion
-
-        #region Id
+        public String               Subevent    { get; }
 
         /// <summary>
-        /// The identification of this HTTP event.
+        /// The timestamp of the event.
         /// </summary>
-        public UInt64 Id { get; private set; }
-
-        #endregion
-
-        #region Timestamp
-
-        private readonly DateTime _Timestamp;
+        public DateTime             Timestamp   { get; }
 
         /// <summary>
-        /// The subevent identification of this HTTP event.
+        /// The attached data of the event.
         /// </summary>
-        public DateTime Timestamp
-        {
-            get
-            {
-                return _Timestamp;
-            }
-        }
-
-        #endregion
-
-        #region Data
-
-        private readonly String[] _Data;
-
-        /// <summary>
-        /// The attached data of this HTTP event.
-        /// </summary>
-        public IEnumerable<String> Data
-        {
-            get
-            {
-                return _Data;
-            }
-        }
-
-        #endregion
+        public IEnumerable<String>  Data        { get; }
 
         #endregion
 
@@ -100,13 +68,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Id">The id of the event.</param>
         /// <param name="Data">The attached data of the event.</param>
-        public HTTPEvent(UInt64 Id, params String[] Data)
-        {
-            this.Subevent    = String.Empty;
-            this.Id          = Id;
-            this._Timestamp  = DateTime.Now;
-            this._Data       = Data;
-        }
+        public HTTPEvent(UInt64           Id,
+                         params String[]  Data)
+
+            : this(Id,
+                   DateTime.Now,
+                   String.Empty,
+                   Data)
+
+        { }
 
         #endregion
 
@@ -118,49 +88,60 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Id">The id of the event.</param>
         /// <param name="Timestamp">The timestamp of the event.</param>
         /// <param name="Data">The attached data of the event.</param>
-        public HTTPEvent(UInt64 Id, DateTime Timestamp, params String[] Data)
-        {
-            this.Subevent    = String.Empty;
-            this.Id          = Id;
-            this._Timestamp  = DateTime.Now;
-            this._Data       = Data;
-        }
+        public HTTPEvent(UInt64           Id,
+                         DateTime         Timestamp,
+                         params String[]  Data)
+
+            : this(Id,
+                   Timestamp,
+                   String.Empty,
+                   Data)
+
+        { }
 
         #endregion
 
-        #region HTTPEvent(Subevent, Id, Data)
+        #region HTTPEvent(Id, Subevent, Data)
 
         /// <summary>
         /// Create a new HTTP event based on the given parameters.
         /// </summary>
-        /// <param name="Subevent">The subevent.</param>
         /// <param name="Id">The id of the event.</param>
+        /// <param name="Subevent">The subevent.</param>
         /// <param name="Data">The attached data of the event.</param>
-        public HTTPEvent(String Subevent, UInt64 Id, params String[] Data)
-        {
-            this.Subevent    = Subevent;
-            this.Id          = Id;
-            this._Timestamp  = DateTime.Now;
-            this._Data       = Data;
-        }
+        public HTTPEvent(UInt64           Id,
+                         String           Subevent,
+                         params String[]  Data)
+
+            : this(Id,
+                   DateTime.Now,
+                   Subevent,
+                   Data)
+
+        { }
 
         #endregion
 
-        #region HTTPEvent(Subevent, Id, Timestamp, Data)
+        #region HTTPEvent(Id, Timestamp, Subevent, Data)
 
         /// <summary>
         /// Create a new HTTP event based on the given parameters.
         /// </summary>
-        /// <param name="Subevent">The subevent.</param>
         /// <param name="Id">The id of the event.</param>
         /// <param name="Timestamp">The timestamp of the event.</param>
+        /// <param name="Subevent">The subevent.</param>
         /// <param name="Data">The attached data of the event.</param>
-        public HTTPEvent(String Subevent, UInt64 Id, DateTime Timestamp, params String[] Data)
+        public HTTPEvent(UInt64           Id,
+                         DateTime         Timestamp,
+                         String           Subevent,
+                         params String[]  Data)
         {
-            this.Subevent    = Subevent;
-            this.Id          = Id;
-            this._Timestamp  = DateTime.Now;
-            this._Data       = Data;
+
+            this.Id         = Id;
+            this.Timestamp  = Timestamp;
+            this.Subevent   = Subevent;
+            this.Data       = Data;
+
         }
 
         #endregion
@@ -283,12 +264,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (Subevent == null || Subevent.Trim() == "")
                 return String.Concat("id: ",     Id, Environment.NewLine,
-                                     "data: ",  _Data.Aggregate((a, b) => { return a + Environment.NewLine + "data: " + b; }), Environment.NewLine);
+                                     "data: ",   Data.Aggregate((a, b) => { return a + Environment.NewLine + "data: " + b; }), Environment.NewLine);
 
             else
                 return String.Concat("event: ",  Subevent, Environment.NewLine,
                                      "id: ",     Id,       Environment.NewLine, 
-                                     "data: ",  _Data.Aggregate((a, b) => { return a + Environment.NewLine + "data: " + b; }), Environment.NewLine);
+                                     "data: ",   Data.Aggregate((a, b) => { return a + Environment.NewLine + "data: " + b; }), Environment.NewLine);
 
         }
 

@@ -364,7 +364,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         // HTTP Server Sent Events
 
-        #region (internal) AddEventSource(EventIdentification, MaxNumberOfCachedEvents = 500, RetryIntervall = null)
+        #region (internal) AddEventSource(EventIdentification, MaxNumberOfCachedEvents = 500, RetryIntervall = null, LogfileName = null)
 
         /// <summary>
         /// Add a HTTP Sever Sent Events source.
@@ -372,9 +372,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="EventIdentification">The unique identification of the event source.</param>
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
         /// <param name="RetryIntervall">The retry intervall.</param>
-        internal HTTPEventSource AddEventSource(String     EventIdentification,
-                                                UInt32     MaxNumberOfCachedEvents  = 500,
-                                                TimeSpan?  RetryIntervall           = null)
+        /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
+        internal HTTPEventSource AddEventSource(String                          EventIdentification,
+                                                UInt32                          MaxNumberOfCachedEvents   = 500,
+                                                TimeSpan?                       RetryIntervall            = null,
+                                                Func<String, DateTime, String>  LogfileName               = null)
         {
 
             lock (Lock)
@@ -384,7 +386,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     throw new ArgumentException("Duplicate event identification!");
 
                 return _EventSources.AddAndReturnValue(EventIdentification,
-                                                       new HTTPEventSource(EventIdentification, MaxNumberOfCachedEvents, RetryIntervall));
+                                                       new HTTPEventSource(EventIdentification,
+                                                                           MaxNumberOfCachedEvents,
+                                                                           RetryIntervall,
+                                                                           LogfileName));
 
             }
 
@@ -392,18 +397,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (internal) AddEventSource(EventIdentification, MaxNumberOfCachedEvents = 500, RetryIntervall = null, Hostname = "*", URITemplate = "/", HTTPMethod = null, HostAuthentication = null, URIAuthentication = null)
+        #region (internal) AddEventSource(EventIdentification, URITemplate, MaxNumberOfCachedEvents = 500, RetryIntervall = null, LogfileName = null, ...)
 
         /// <summary>
         /// Add a method call back for the given URI template and
         /// add a HTTP Sever Sent Events source.
         /// </summary>
         /// <param name="EventIdentification">The unique identification of the event source.</param>
+        /// <param name="URITemplate">The URI template.</param>
+        /// 
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
         /// <param name="RetryIntervall">The retry intervall.</param>
+        /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
         /// 
         /// <param name="Hostname">The HTTP host.</param>
-        /// <param name="URITemplate">The URI template.</param>
         /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
         /// 
@@ -412,20 +419,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// 
         /// <param name="DefaultErrorHandler">The default error handler.</param>
-        internal HTTPEventSource AddEventSource(String              EventIdentification,
-                                                UInt32              MaxNumberOfCachedEvents     = 500,
-                                                TimeSpan?           RetryIntervall              = null,
+        internal HTTPEventSource AddEventSource(String                          EventIdentification,
+                                                String                          URITemplate,
 
-                                                HTTPHostname        Hostname                    = null,
-                                                String              URITemplate                 = "/",
-                                                HTTPMethod          HTTPMethod                  = null,
-                                                HTTPContentType     HTTPContentType             = null,
+                                                UInt32                          MaxNumberOfCachedEvents    = 500,
+                                                TimeSpan?                       RetryIntervall             = null,
+                                                Func<String, DateTime, String>  LogfileName                = null,
 
-                                                HTTPAuthentication  HostAuthentication          = null,
-                                                HTTPAuthentication  URIAuthentication           = null,
-                                                HTTPAuthentication  HTTPMethodAuthentication    = null,
+                                                HTTPHostname                    Hostname                   = null,
+                                                HTTPMethod                      HTTPMethod                 = null,
+                                                HTTPContentType                 HTTPContentType            = null,
 
-                                                HTTPDelegate        DefaultErrorHandler         = null)
+                                                HTTPAuthentication              HostAuthentication         = null,
+                                                HTTPAuthentication              URIAuthentication          = null,
+                                                HTTPAuthentication              HTTPMethodAuthentication   = null,
+
+                                                HTTPDelegate                    DefaultErrorHandler        = null)
 
         {
 
@@ -438,7 +447,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 if (!_EventSources.TryGetValue(EventIdentification, out _HTTPEventSource))
                     _HTTPEventSource = _EventSources.AddAndReturnValue(EventIdentification,
-                                                                       new HTTPEventSource(EventIdentification, MaxNumberOfCachedEvents, RetryIntervall));
+                                                                       new HTTPEventSource(EventIdentification,
+                                                                                           MaxNumberOfCachedEvents,
+                                                                                           RetryIntervall,
+                                                                                           LogfileName));
 
                 #endregion
 

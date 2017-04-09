@@ -28,6 +28,7 @@ using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Illias.Collections;
+using System.IO;
 
 #endregion
 
@@ -55,29 +56,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Properties
 
-        #region EventIdentification
-
-        private readonly String _EventIdentification;
-
         /// <summary>
         /// The internal identification of the HTTP event.
         /// </summary>
-        public String EventIdentification
-        {
-            get
-            {
-                return _EventIdentification;
-            }
-        }
-
-        #endregion
-
-        #region MaxNumberOfCachedEvents
+        public String  EventIdentification   { get; }
 
         /// <summary>
         /// Maximum number of cached events.
         /// </summary>
-        public UInt64 MaxNumberOfCachedEvents
+        public UInt64  MaxNumberOfCachedEvents
         {
 
             get
@@ -92,16 +79,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
-        #endregion
-
-        #region RetryIntervall
-
         /// <summary>
         /// The retry intervall of this HTTP event.
         /// </summary>
-        public TimeSpan RetryIntervall { get; set; }
+        public TimeSpan  RetryIntervall   { get; set; }
 
-        #endregion
+        /// <summary>
+        /// The delegate to create a filename for storing and reloading events.
+        /// </summary>
+        public Func<String, DateTime, String>  LogfileName   { get; }
 
         #endregion
 
@@ -113,18 +99,82 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="EventIdentification">The internal identification of the HTTP event.</param>
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
         /// <param name="RetryIntervall">The retry intervall.</param>
-        public HTTPEventSource(String     EventIdentification,
-                               UInt64     MaxNumberOfCachedEvents = 500,
-                               TimeSpan?  RetryIntervall          = null)
+        /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
+        public HTTPEventSource(String                          EventIdentification,
+                               UInt64                          MaxNumberOfCachedEvents   = 500,
+                               TimeSpan?                       RetryIntervall            = null,
+                               Func<String, DateTime, String>  LogfileName               = null)
         {
 
-            EventIdentification.FailIfNullOrEmpty();
+            #region Initial checks
 
+            EventIdentification.FailIfNullOrEmpty("The HTTP Server Sent Event must have a name!");
+
+            #endregion
+
+            this.EventIdentification      = EventIdentification;
             this.QueueOfEvents            = new TSQueue<HTTPEvent>(MaxNumberOfCachedEvents);
-            this._EventIdentification     = EventIdentification;
             this.MaxNumberOfCachedEvents  = MaxNumberOfCachedEvents;
-            this.RetryIntervall           = (RetryIntervall.HasValue) ? RetryIntervall.Value : TimeSpan.FromSeconds(30);
+            this.RetryIntervall           = RetryIntervall.HasValue ? RetryIntervall.Value : TimeSpan.FromSeconds(30);
+            this.LogfileName              = LogfileName;
             this.IdCounter                = 0;
+
+            #region Setup Logfile(s)
+
+            if (LogfileName != null)
+            {
+
+                foreach (var logfilename in Directory.EnumerateFiles(Directory.GetCurrentDirectory(),
+                                                                     this.EventIdentification + "*.log",
+                                                                     SearchOption.TopDirectoryOnly))
+                {
+
+                    File.ReadLines(logfilename).
+                         Take   ((Int64) MaxNumberOfCachedEvents - (Int64) QueueOfEvents.Count).
+                         Select (line => line.Split((Char) 0x1E)).
+                         ForEach(line => {
+
+                             try
+                             {
+
+                                 QueueOfEvents.Push(
+                                     new HTTPEvent(UInt64.Parse(line[0]),
+                                                   DateTime.Parse(line[1]),
+                                                   line[2],
+                                                   line[3].Split((Char) 0x1F)));
+
+                             }
+#pragma warning disable RCS1075 // Avoid empty catch clause that catches System.Exception.
+                             catch (Exception)
+#pragma warning restore RCS1075 // Avoid empty catch clause that catches System.Exception.
+                             { }
+
+                         });
+
+                    if (QueueOfEvents.Count >= MaxNumberOfCachedEvents)
+                        break;
+
+                }
+
+
+                QueueOfEvents.OnAdded += (Sender, Value) => {
+
+                    using (var logfile = File.AppendText(this.LogfileName(this.EventIdentification,
+                                                                          DateTime.Now)))
+                    {
+
+                        logfile.WriteLine(String.Concat(Value.Id,                    (Char) 0x1E,
+                                                        Value.Timestamp.ToIso8601(), (Char) 0x1E,
+                                                        Value.Subevent,              (Char) 0x1E,
+                                                        Value.Data.AggregateWith((Char)0x1F)));
+
+                    }
+
+                };
+
+            }
+
+            #endregion
 
         }
 
@@ -139,7 +189,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Data">The attached event data.</param>
         public async Task SubmitEvent(params String[] Data)
         {
-            QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter), Data));
+
+            QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
+                                             Data));
+
         }
 
         #endregion
@@ -155,8 +208,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             await SubmitSubEvent(new JObject(
-                                     new JProperty("Timestamp", Timestamp),
-                                     new JProperty("Message", Data.Aggregate((a, b) => a + " " + b))
+                                     new JProperty("Timestamp",  Timestamp),
+                                     new JProperty("Message",    Data.Aggregate((a, b) => a + " " + b))
                                  ).
                                  ToString().
                                  Replace(Environment.NewLine, " ")
@@ -177,11 +230,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public async Task SubmitSubEvent(String SubEvent, params String[] Data)
         {
 
+            if (SubEvent.IsNotNullOrEmpty())
+                SubEvent = SubEvent.Trim().Replace(",", "");
+
             if (SubEvent.IsNullOrEmpty())
-                QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter), Data));
+                QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
+                                                 Data));
 
             else
-                QueueOfEvents.Push(new HTTPEvent(SubEvent, (UInt64) Interlocked.Increment(ref IdCounter), Data));
+                QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
+                                                 SubEvent,
+                                                 Data));
 
         }
 
@@ -196,10 +255,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Data">The attached event data.</param>
         public async Task SubmitSubEventWithTimestamp(String SubEvent, params String[] Data)
         {
+
+            if (SubEvent.IsNotNullOrEmpty())
+                SubEvent = SubEvent.Trim().Replace(",", "");
+
             if (SubEvent.IsNullOrEmpty())
-                await SubmitTimestampedEvent(DateTime.Now, Data);
+                await SubmitTimestampedEvent(DateTime.Now,
+                                             Data);
+
             else
-                await SubmitTimestampedSubEvent(SubEvent, DateTime.Now, Data);
+                await SubmitTimestampedSubEvent(SubEvent,
+                                                DateTime.Now,
+                                                Data);
+
         }
 
         #endregion
@@ -215,10 +283,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public async Task SubmitTimestampedSubEvent(String SubEvent, DateTime Timestamp, params String[] Data)
         {
 
+            if (SubEvent.IsNotNullOrEmpty())
+                SubEvent = SubEvent.Trim().Replace(",", "");
+
             if (SubEvent.IsNullOrEmpty())
                 await SubmitEvent(new JObject(
-                                      new JProperty("Timestamp", Timestamp),
-                                      new JProperty("Message",   Data.Aggregate((a, b) => a + " " + b))
+                                      new JProperty("Timestamp",  Timestamp),
+                                      new JProperty("Message",    Data.Aggregate((a, b) => a + " " + b))
                                   ).
                                   ToString().
                                   Replace(Environment.NewLine, " ")
@@ -227,8 +298,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             else
                 await SubmitSubEvent(SubEvent,
                                      new JObject(
-                                         new JProperty("Timestamp", Timestamp),
-                                         new JProperty("Message",   Data.Aggregate((a, b) => a + " " + b))
+                                         new JProperty("Timestamp",  Timestamp),
+                                         new JProperty("Message",    Data.Aggregate((a, b) => a + " " + b))
                                      ).
                                      ToString().
                                      Replace(Environment.NewLine, " ")
