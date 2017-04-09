@@ -19,6 +19,7 @@
 #region Usings
 
 using System;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -28,7 +29,6 @@ using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Illias.Collections;
-using System.IO;
 
 #endregion
 
@@ -124,6 +124,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (LogfileName != null)
             {
 
+                Int64 CurrentCounter;
+
                 foreach (var logfilename in Directory.EnumerateFiles(Directory.GetCurrentDirectory(),
                                                                      this.EventIdentification + "*.log",
                                                                      SearchOption.TopDirectoryOnly))
@@ -137,8 +139,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              try
                              {
 
+                                 CurrentCounter = Int64.Parse(line[0]);
+
+                                 if (IdCounter < CurrentCounter)
+                                     IdCounter = CurrentCounter;
+
                                  QueueOfEvents.Push(
-                                     new HTTPEvent(UInt64.Parse(line[0]),
+                                     new HTTPEvent((UInt64) CurrentCounter,
                                                    DateTime.Parse(line[1]),
                                                    line[2],
                                                    line[3].Split((Char) 0x1F)));
@@ -166,7 +173,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         logfile.WriteLine(String.Concat(Value.Id,                    (Char) 0x1E,
                                                         Value.Timestamp.ToIso8601(), (Char) 0x1E,
                                                         Value.Subevent,              (Char) 0x1E,
-                                                        Value.Data.AggregateWith((Char)0x1F)));
+                                                        Value.Data.AggregateWith((Char) 0x1F)));
 
                     }
 
