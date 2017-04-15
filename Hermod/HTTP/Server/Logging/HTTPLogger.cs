@@ -32,8 +32,9 @@ using System.Diagnostics;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
-    public delegate Task HTTPRequestLoggerDelegate (String Context, String LogEventName, HTTPRequest HTTPRequest);
-    public delegate Task HTTPResponseLoggerDelegate(String Context, String LogEventName, HTTPRequest HTTPRequest, HTTPResponse HTTPResponse);
+    public delegate String LogfileCreatorDelegate    (String Context, String LogfileName);
+    public delegate Task   HTTPRequestLoggerDelegate (String Context, String LogEventName, HTTPRequest HTTPRequest);
+    public delegate Task   HTTPResponseLoggerDelegate(String Context, String LogEventName, HTTPRequest HTTPRequest, HTTPResponse HTTPResponse);
 
 
     /// <summary>
@@ -1064,19 +1065,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region LogFileCreator
+        #region LogfileCreator
 
-        private readonly Func<String, String, String> _LogFileCreator;
+        private readonly LogfileCreatorDelegate _LogfileCreator;
 
         /// <summary>
         /// A delegate for the default ToDisc logger returning a
         /// valid logfile name based on the given log event name.
         /// </summary>
-        public Func<String, String, String> LogFileCreator
+        public LogfileCreatorDelegate LogfileCreator
         {
             get
             {
-                return _LogFileCreator;
+                return _LogfileCreator;
             }
         }
 
@@ -1131,7 +1132,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
 
                 OpenFileWithRetry(() => {
-                    using (var logfile = File.AppendText(_LogFileCreator(Context, LogEventName)))
+                    using (var logfile = File.AppendText(_LogfileCreator(Context, LogEventName)))
                     {
 
                         if (Request.RemoteSocket != null && Request.LocalSocket != null)
@@ -1174,7 +1175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
 
                 OpenFileWithRetry(() => {
-                    using (var logfile = File.AppendText(_LogFileCreator(Context, LogEventName)))
+                    using (var logfile = File.AppendText(_LogfileCreator(Context, LogEventName)))
                     {
 
                         if (Request.RemoteSocket != null && Request.LocalSocket != null)
@@ -1280,26 +1281,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogHTTPError_toNetwork">A delegate to log HTTP errors to a network target.</param>
         /// <param name="LogHTTPError_toHTTPSSE">A delegate to log HTTP errors to a HTTP server sent events source.</param>
         /// 
-        /// <param name="LogFileCreator">A delegate to create a log file from the given context and log file name.</param>
-        public HTTPLogger(IHTTPServer                   HTTPAPI,
-                          String                        Context,
+        /// <param name="LogfileCreator">A delegate to create a log file from the given context and log file name.</param>
+        public HTTPLogger(IHTTPServer                 HTTPAPI,
+                          String                      Context,
 
-                          HTTPRequestLoggerDelegate     LogHTTPRequest_toConsole,
-                          HTTPResponseLoggerDelegate    LogHTTPResponse_toConsole,
-                          HTTPRequestLoggerDelegate     LogHTTPRequest_toDisc,
-                          HTTPResponseLoggerDelegate    LogHTTPResponse_toDisc,
+                          HTTPRequestLoggerDelegate   LogHTTPRequest_toConsole,
+                          HTTPResponseLoggerDelegate  LogHTTPResponse_toConsole,
+                          HTTPRequestLoggerDelegate   LogHTTPRequest_toDisc,
+                          HTTPResponseLoggerDelegate  LogHTTPResponse_toDisc,
 
-                          HTTPRequestLoggerDelegate     LogHTTPRequest_toNetwork   = null,
-                          HTTPResponseLoggerDelegate    LogHTTPResponse_toNetwork  = null,
-                          HTTPRequestLoggerDelegate     LogHTTPRequest_toHTTPSSE   = null,
-                          HTTPResponseLoggerDelegate    LogHTTPResponse_toHTTPSSE  = null,
+                          HTTPRequestLoggerDelegate   LogHTTPRequest_toNetwork    = null,
+                          HTTPResponseLoggerDelegate  LogHTTPResponse_toNetwork   = null,
+                          HTTPRequestLoggerDelegate   LogHTTPRequest_toHTTPSSE    = null,
+                          HTTPResponseLoggerDelegate  LogHTTPResponse_toHTTPSSE   = null,
 
-                          HTTPResponseLoggerDelegate    LogHTTPError_toConsole     = null,
-                          HTTPResponseLoggerDelegate    LogHTTPError_toDisc        = null,
-                          HTTPResponseLoggerDelegate    LogHTTPError_toNetwork     = null,
-                          HTTPResponseLoggerDelegate    LogHTTPError_toHTTPSSE     = null,
+                          HTTPResponseLoggerDelegate  LogHTTPError_toConsole      = null,
+                          HTTPResponseLoggerDelegate  LogHTTPError_toDisc         = null,
+                          HTTPResponseLoggerDelegate  LogHTTPError_toNetwork      = null,
+                          HTTPResponseLoggerDelegate  LogHTTPError_toHTTPSSE      = null,
 
-                          Func<String, String, String>  LogFileCreator             = null)
+                          LogfileCreatorDelegate      LogfileCreator              = null)
 
             : this(Context,
 
@@ -1318,7 +1319,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    LogHTTPError_toNetwork,
                    LogHTTPError_toHTTPSSE,
 
-                   LogFileCreator)
+                   LogfileCreator)
 
         {
 
@@ -1356,7 +1357,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region HTTPLogger(Context, ... Logging delegates ...)
+        #region HTTPLogger(Context,          ... Logging delegates ...)
 
         /// <summary>
         /// Create a new HTTP API logger using the given logging delegates.
@@ -1378,25 +1379,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogHTTPError_toNetwork">A delegate to log HTTP errors to a network target.</param>
         /// <param name="LogHTTPError_toHTTPSSE">A delegate to log HTTP errors to a HTTP server sent events source.</param>
         /// 
-        /// <param name="LogFileCreator">A delegate to create a log file from the given context and log file name.</param>
-        public HTTPLogger(String                        Context,
+        /// <param name="LogfileCreator">A delegate to create a log file from the given context and log file name.</param>
+        public HTTPLogger(String                      Context,
 
-                          HTTPRequestLoggerDelegate     LogHTTPRequest_toConsole,
-                          HTTPResponseLoggerDelegate    LogHTTPResponse_toConsole,
-                          HTTPRequestLoggerDelegate     LogHTTPRequest_toDisc,
-                          HTTPResponseLoggerDelegate    LogHTTPResponse_toDisc,
+                          HTTPRequestLoggerDelegate   LogHTTPRequest_toConsole,
+                          HTTPResponseLoggerDelegate  LogHTTPResponse_toConsole,
+                          HTTPRequestLoggerDelegate   LogHTTPRequest_toDisc,
+                          HTTPResponseLoggerDelegate  LogHTTPResponse_toDisc,
 
-                          HTTPRequestLoggerDelegate     LogHTTPRequest_toNetwork   = null,
-                          HTTPResponseLoggerDelegate    LogHTTPResponse_toNetwork  = null,
-                          HTTPRequestLoggerDelegate     LogHTTPRequest_toHTTPSSE   = null,
-                          HTTPResponseLoggerDelegate    LogHTTPResponse_toHTTPSSE  = null,
+                          HTTPRequestLoggerDelegate   LogHTTPRequest_toNetwork    = null,
+                          HTTPResponseLoggerDelegate  LogHTTPResponse_toNetwork   = null,
+                          HTTPRequestLoggerDelegate   LogHTTPRequest_toHTTPSSE    = null,
+                          HTTPResponseLoggerDelegate  LogHTTPResponse_toHTTPSSE   = null,
 
-                          HTTPResponseLoggerDelegate    LogHTTPError_toConsole     = null,
-                          HTTPResponseLoggerDelegate    LogHTTPError_toDisc        = null,
-                          HTTPResponseLoggerDelegate    LogHTTPError_toNetwork     = null,
-                          HTTPResponseLoggerDelegate    LogHTTPError_toHTTPSSE     = null,
+                          HTTPResponseLoggerDelegate  LogHTTPError_toConsole      = null,
+                          HTTPResponseLoggerDelegate  LogHTTPError_toDisc         = null,
+                          HTTPResponseLoggerDelegate  LogHTTPError_toNetwork      = null,
+                          HTTPResponseLoggerDelegate  LogHTTPError_toHTTPSSE      = null,
 
-                          Func<String, String, String>  LogFileCreator             = null)
+                          LogfileCreatorDelegate      LogfileCreator              = null)
 
         {
 
@@ -1428,8 +1429,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (LogHTTPResponse_toDisc    == null)
                 LogHTTPResponse_toDisc     = Default_LogHTTPResponse_toDisc;
 
-            _LogFileCreator = LogFileCreator != null
-                                 ? LogFileCreator
+            _LogfileCreator = LogfileCreator != null
+                                 ? LogfileCreator
                                  : (context, logfilename) => String.Concat((context != null ? context + "_" : ""),
                                                                            logfilename, "_",
                                                                            DateTime.Now.Year, "-",
