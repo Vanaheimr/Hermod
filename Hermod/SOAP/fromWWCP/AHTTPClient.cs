@@ -43,17 +43,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The default timeout for upstream queries.
         /// </summary>
-        public static readonly TimeSpan  DefaultQueryTimeout   = TimeSpan.FromSeconds(180);
+        public static readonly TimeSpan  DefaultRequestTimeout  = TimeSpan.FromSeconds(180);
 
         /// <summary>
         /// The default HTTP user agent.
         /// </summary>
-        public const           String    DefaultHTTPUserAgent  = "GraphDefined HTTP Client";
+        public const           String    DefaultHTTPUserAgent   = "GraphDefined HTTP Client";
 
         /// <summary>
         /// The default remote TCP port to connect to.
         /// </summary>
-        public static readonly IPPort    DefaultRemotePort     = IPPort.Parse(443);
+        public static readonly IPPort    DefaultRemotePort      = IPPort.Parse(443);
 
         #endregion
 
@@ -78,7 +78,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The timeout for upstream requests.
         /// </summary>
-        public TimeSpan?         RequestTimeout          { get; }
+        public TimeSpan          RequestTimeout          { get; }
 
         /// <summary>
         /// The DNS client defines which DNS servers to use.
@@ -136,7 +136,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="ClientCert">The TLS client certificate to use.</param>
         /// <param name="HTTPVirtualHost">An optional HTTP virtual host name to use.</param>
         /// <param name="UserAgent">An optional HTTP user agent to use.</param>
-        /// <param name="QueryTimeout">An optional timeout for upstream queries.</param>
+        /// <param name="RequestTimeout">An optional timeout for HTTP requests.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public AHTTPClient(String                               ClientId,
                            String                               Hostname,
@@ -145,7 +145,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                            X509Certificate                      ClientCert                  = null,
                            String                               HTTPVirtualHost             = null,
                            String                               UserAgent                   = DefaultHTTPUserAgent,
-                           TimeSpan?                            QueryTimeout                = null,
+                           TimeSpan?                            RequestTimeout              = null,
                            DNSClient                            DNSClient                   = null)
         {
 
@@ -169,9 +169,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             this.UserAgent                   = UserAgent ?? DefaultHTTPUserAgent;
 
-            this.RequestTimeout              = QueryTimeout != null
-                                                  ? QueryTimeout.Value
-                                                  : DefaultQueryTimeout;
+            this.RequestTimeout              = RequestTimeout.HasValue
+                                                  ? RequestTimeout.Value
+                                                  : DefaultRequestTimeout;
 
             this.DNSClient                   = DNSClient == null
                                                   ? new DNSClient()
