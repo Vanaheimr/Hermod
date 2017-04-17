@@ -542,8 +542,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Timeout
 
-        public UInt64? Timeout
-            => GetHeaderField_UInt64(HTTPHeaderField.Timeout);
+        public TimeSpan? Timeout
+        {
+            get
+            {
+
+                var Seconds = GetHeaderField_UInt64(HTTPHeaderField.Timeout);
+
+                if (Seconds.HasValue)
+                    return TimeSpan.FromSeconds(Seconds.Value);
+
+                return new TimeSpan?();
+
+            }
+        }
 
         #endregion
 

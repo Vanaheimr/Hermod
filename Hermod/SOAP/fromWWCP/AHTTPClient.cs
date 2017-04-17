@@ -78,7 +78,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The timeout for upstream requests.
         /// </summary>
-        public TimeSpan          RequestTimeout          { get; }
+        public TimeSpan?         RequestTimeout          { get; }
 
         /// <summary>
         /// The DNS client defines which DNS servers to use.
