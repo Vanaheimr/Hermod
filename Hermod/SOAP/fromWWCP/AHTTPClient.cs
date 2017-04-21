@@ -195,7 +195,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                      HTTPResponse  HttpResponse)
         {
 
-            DebugX.Log("AOICPUpstreamService => HTTP Status Code: " + HttpResponse != null ? HttpResponse.HTTPStatusCode.ToString() : "<null>");
+            DebugX.Log("AHTTPClient => HTTP Status Code: " + HttpResponse != null ? HttpResponse.HTTPStatusCode.ToString() : "<null>");
 
             OnHTTPError?.Invoke(Timestamp, Sender, HttpResponse);
 
@@ -216,7 +216,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                      Exception  Exception)
         {
 
-            DebugX.Log("AOICPUpstreamService => Exception: " + Exception.Message);
+            DebugX.Log("AHTTPClient => Exception: " + Exception.Message);
 
             OnException?.Invoke(Timestamp, Sender, Exception);
 

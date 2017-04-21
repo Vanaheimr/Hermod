@@ -108,7 +108,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                      JObject   JSON)
         {
 
-            DebugX.Log("AOICPUpstreamService => JSON Fault: " + JSON != null ? JSON.ToString() : "<null>");
+            DebugX.Log("AJSONClient => JSON Fault: " + JSON != null ? JSON.ToString() : "<null>");
 
             OnJSONError?.Invoke(Timestamp, Sender, JSON);
 

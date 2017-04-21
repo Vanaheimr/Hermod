@@ -131,7 +131,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                      XElement  SOAPXML)
         {
 
-            DebugX.Log("AOICPUpstreamService => SOAP Fault: " + SOAPXML != null ? SOAPXML.ToString() : "<null>");
+            DebugX.Log("ASOAPClient => SOAP Fault: " + SOAPXML != null ? SOAPXML.ToString() : "<null>");
 
             OnSOAPError?.Invoke(Timestamp, Sender, SOAPXML);
 
