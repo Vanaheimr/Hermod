@@ -52,7 +52,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="Timestamp">The timestamp of the incoming request.</param>
     /// <param name="HTTPServer">The sending HTTP server.</param>
     /// <param name="Request">The incoming request.</param>
-    public delegate void RequestLogHandler(DateTime     Timestamp,
+    public delegate Task RequestLogHandler(DateTime     Timestamp,
                                            IHTTPServer  HTTPServer,
                                            HTTPRequest  Request);
 
@@ -64,7 +64,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="HTTPServer">The sending HTTP server.</param>
     /// <param name="Request">The incoming request.</param>
     /// <param name="Response">The outgoing response.</param>
-    public delegate void AccessLogHandler(DateTime      Timestamp,
+    public delegate Task AccessLogHandler(DateTime      Timestamp,
                                           IHTTPServer   HTTPServer,
                                           HTTPRequest   Request,
                                           HTTPResponse  Response);

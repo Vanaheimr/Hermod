@@ -715,10 +715,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var _ParsedURL  = RawUrl.Split(_URLSeparator, 2, StringSplitOptions.None);
             this.URI       = HttpUtility.UrlDecode(_ParsedURL[0]);
 
-            if (URI.StartsWith("http", StringComparison.Ordinal) || URI.StartsWith("https", StringComparison.Ordinal))
+            //if (URI.StartsWith("http", StringComparison.Ordinal) || URI.StartsWith("https", StringComparison.Ordinal))
+            if (URI.Contains("://"))
             {
                 URI = URI.Substring(URI.IndexOf("://", StringComparison.Ordinal) + 3);
-                URI = URI.Substring(URI.IndexOf("/",   StringComparison.Ordinal) + 1);
+                URI = URI.Substring(URI.IndexOf("/",   StringComparison.Ordinal));
             }
 
             if (URI == "" || URI == null)

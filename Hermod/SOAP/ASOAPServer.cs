@@ -234,10 +234,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             this.URIPrefix   = URIPrefix;
             this.DNSClient   = SOAPServer.DNSClient;
 
-#pragma warning disable RECS0021
-            RegisterURITemplates();
-#pragma warning restore RECS0021
-
         }
 
         #endregion
@@ -245,7 +241,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         #endregion
 
 
-        #region (private) RegisterURITemplates()
+        #region (private) RegisterRootService()
 
         private void RegisterRootService()
         {
@@ -295,10 +291,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         #region (protected abstract) RegisterURITemplates()
 
-        /// <summary>
-        /// Register all URI templates for this SOAP API.
-        /// </summary>
-        protected abstract void RegisterURITemplates();
+        ///// <summary>
+        ///// Register all URI templates for this SOAP API.
+        ///// </summary>
+        //protected abstract void RegisterURITemplates();
 
         #endregion
 
