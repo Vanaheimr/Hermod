@@ -192,6 +192,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             else
                 _SOAPDispatcher = _Handler.Target as SOAPDispatcher;
 
+            if (_SOAPDispatcher == null)
+                throw new Exception("'" + URITemplate + "' does not seem to be a valid SOAP endpoint!");
 
             _SOAPDispatcher.RegisterSOAPDelegate(Description,
                                                  SOAPMatch,

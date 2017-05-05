@@ -196,7 +196,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                 RegisterRootService();
 
             if (AutoStart)
-#pragma warning disable RECS0021
+#pragma warning disable RECS0021 //Virtual member call in constructor
                 Start();
 #pragma warning restore RECS0021
 
@@ -220,13 +220,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             if (SOAPServer == null)
                 throw new ArgumentNullException(nameof(SOAPServer),  "The given SOAP server must not be null!");
 
-            if (URIPrefix == null)
-                URIPrefix = DefaultURIPrefix;
-            else
+            if (URIPrefix != null && URIPrefix.Trim().IsNotNullOrEmpty())
                 URIPrefix = URIPrefix.Trim();
+            else
+                URIPrefix = DefaultURIPrefix;
 
             if (URIPrefix.Length > 0 && !URIPrefix.StartsWith("/", StringComparison.Ordinal))
                 URIPrefix = "/" + URIPrefix;
+
+            while (URIPrefix.EndsWith("/", StringComparison.Ordinal))
+                URIPrefix = URIPrefix.Substring(0, URIPrefix.Length - 1);
 
             #endregion
 
