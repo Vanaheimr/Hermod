@@ -173,8 +173,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="SearchForIPv4DNSServers">If yes, the DNS client will query a list of DNS servers from the IPv4 network configuration.</param>
         /// <param name="SearchForIPv6DNSServers">If yes, the DNS client will query a list of DNS servers from the IPv6 network configuration.</param>
         public DNSClient(IEnumerable<IPSocket>  ManualDNSServers,
-                         Boolean                SearchForIPv4DNSServers = true,
-                         Boolean                SearchForIPv6DNSServers = true)
+                         Boolean                SearchForIPv4DNSServers = false,
+                         Boolean                SearchForIPv6DNSServers = false)
 
         {
 
