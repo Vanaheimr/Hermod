@@ -1298,7 +1298,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Init data structures
 
-            this.Context                    = Context != null ? Context : "";
+            this.Context                     = Context ?? "";
+
             this._HTTPRequestLoggers         = new ConcurrentDictionary<String, HTTPServerRequestLogger>();
             this._HTTPResponseLoggers        = new ConcurrentDictionary<String, HTTPServerResponseLogger>();
             this._HTTPClientRequestLoggers   = new ConcurrentDictionary<String, HTTPClientRequestLogger>();
@@ -1324,13 +1325,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (LogHTTPResponse_toDisc    == null)
                 LogHTTPResponse_toDisc     = Default_LogHTTPResponse_toDisc;
 
-            LogfileCreator = LogfileCreator != null
-                                 ? LogfileCreator
-                                 : (context, logfilename) => String.Concat(context != null ? context + "_" : "",
-                                                                           logfilename, "_",
-                                                                           DateTime.Now.Year, "-",
-                                                                           DateTime.Now.Month.ToString("D2"),
-                                                                           ".log");
+            this.LogfileCreator = LogfileCreator != null
+                                      ? LogfileCreator
+                                      : (context, logfilename) => String.Concat(context != null ? context + "_" : "",
+                                                                                logfilename, "_",
+                                                                                DateTime.Now.Year, "-",
+                                                                                DateTime.Now.Month.ToString("D2"),
+                                                                                ".log");
 
             #endregion
 
