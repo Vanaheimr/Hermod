@@ -285,11 +285,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ResponseLogDelegate">A delegate for logging the HTTP request/response.</param>
         /// <param name="Timeout">An optional timeout.</param>
         /// <param name="CancellationToken">A cancellation token.</param>
-        public async Task<HTTPResponse> Execute(Func<HTTPClient, HTTPRequest>  HTTPRequestDelegate,
-                                                ClientRequestLogHandler        RequestLogDelegate   = null,
-                                                ClientResponseLogHandler       ResponseLogDelegate  = null,
-                                                TimeSpan?                      Timeout              = null,
-                                                CancellationToken?             CancellationToken    = null)
+        public Task<HTTPResponse> Execute(Func<HTTPClient, HTTPRequest>  HTTPRequestDelegate,
+                                          ClientRequestLogHandler        RequestLogDelegate   = null,
+                                          ClientResponseLogHandler       ResponseLogDelegate  = null,
+
+                                          CancellationToken?             CancellationToken    = null,
+                                          EventTracking_Id               EventTrackingId      = null,
+                                          TimeSpan?                      RequestTimeout       = null)
+
         {
 
             #region Initial checks
@@ -299,7 +302,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            return await Execute(HTTPRequestDelegate(this), RequestLogDelegate, ResponseLogDelegate, Timeout, CancellationToken);
+            return Execute(HTTPRequestDelegate(this),
+                           RequestLogDelegate,
+                           ResponseLogDelegate,
+
+                           CancellationToken,
+                           EventTrackingId,
+                           RequestTimeout);
 
         }
 
@@ -313,13 +322,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Request">A HTTP request.</param>
         /// <param name="RequestLogDelegate">A delegate for logging the HTTP request.</param>
         /// <param name="ResponseLogDelegate">A delegate for logging the HTTP request/response.</param>
-        /// <param name="Timeout">An optional timeout.</param>
         /// <param name="CancellationToken">A cancellation token.</param>
+        /// <param name="RequestTimeout">An optional timeout.</param>
         public async Task<HTTPResponse> Execute(HTTPRequest               Request,
                                                 ClientRequestLogHandler   RequestLogDelegate   = null,
                                                 ClientResponseLogHandler  ResponseLogDelegate  = null,
-                                                TimeSpan?                 Timeout              = null,
-                                                CancellationToken?        CancellationToken    = null)
+
+                                                CancellationToken?        CancellationToken    = null,
+                                                EventTracking_Id          EventTrackingId      = null,
+                                                TimeSpan?                 RequestTimeout       = null)
+
         {
 
             #region Call the optional HTTP request log delegate
@@ -351,8 +363,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     var HTTPHeaderBytes = new Byte[0];
                     var sw = new Stopwatch();
 
-                    if (!Timeout.HasValue)
-                        Timeout = TimeSpan.FromSeconds(60);
+                    if (!RequestTimeout.HasValue)
+                        RequestTimeout = TimeSpan.FromSeconds(60);
 
                     #endregion
 
@@ -419,7 +431,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         TCPClient = new TcpClient();
                         TCPClient.Connect(_FinalIPEndPoint);
-                        TCPClient.ReceiveTimeout = (Int32) Timeout.Value.TotalMilliseconds;
+                        TCPClient.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
 
                     }
 
@@ -428,7 +440,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     #region Create (Crypto-)Stream
 
                     TCPStream = TCPClient.GetStream();
-                    TCPStream.ReadTimeout = (Int32)Timeout.Value.TotalMilliseconds;
+                    TCPStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
 
                     TLSStream = RemoteCertificateValidator != null
                                      ? new SslStream(TCPStream,
@@ -439,7 +451,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                      : null;
 
                     if (TLSStream != null)
-                        TLSStream.ReadTimeout = (Int32)Timeout.Value.TotalMilliseconds;
+                        TLSStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
 
                     HTTPStream = null;
 
@@ -452,7 +464,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     else
                         HTTPStream = TCPStream;
 
-                    HTTPStream.ReadTimeout = (Int32)Timeout.Value.TotalMilliseconds;
+                    HTTPStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
 
                     #endregion
 
@@ -482,7 +494,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     while (!TCPStream.DataAvailable)
                     {
 
-                        if (sw.ElapsedMilliseconds >= Timeout.Value.TotalMilliseconds)
+                        if (sw.ElapsedMilliseconds >= RequestTimeout.Value.TotalMilliseconds)
                         {
                             TCPClient.Close();
                             throw new Exception("[" + DateTime.Now + "] Could not read from the TCP stream for " + sw.ElapsedMilliseconds + "ms!");

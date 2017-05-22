@@ -122,6 +122,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
                      Action<HTTPRequestBuilder>                                      HTTPRequestBuilder   = null,
                      ClientRequestLogHandler                                         RequestLogDelegate   = null,
                      ClientResponseLogHandler                                        ResponseLogDelegate  = null,
+
                      CancellationToken?                                              CancellationToken    = null,
                      EventTracking_Id                                                EventTrackingId      = null,
                      TimeSpan?                                                       RequestTimeout       = null)
@@ -159,8 +160,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
             return this.Execute(_RequestBuilder,
                                 RequestLogDelegate,
                                 ResponseLogDelegate,
-                                RequestTimeout             ?? TimeSpan.FromSeconds(60),
-                                CancellationToken.HasValue  ? CancellationToken.Value : new CancellationTokenSource().Token).
+                                CancellationToken.HasValue  ? CancellationToken.Value : new CancellationTokenSource().Token,
+                                EventTrackingId,
+                                RequestTimeout             ?? TimeSpan.FromSeconds(60)).
 
                         ContinueWith(HttpResponseTask => {
 

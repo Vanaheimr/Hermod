@@ -525,73 +525,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Properties
 
-            #region Context
-
-            private readonly String _Context;
-
             /// <summary>
             /// The context of the event to be logged.
             /// </summary>
-            public String Context
-            {
-                get
-                {
-                    return _Context;
-                }
-            }
-
-            #endregion
-
-            #region LogEventName
-
-            private readonly String _LogEventName;
+            public String                           Context                         { get; }
 
             /// <summary>
             /// The name of the event to be logged.
             /// </summary>
-            public String LogEventName
-            {
-                get
-                {
-                    return _LogEventName;
-                }
-            }
-
-            #endregion
-
-            #region SubscribeToEventDelegate
-
-            private readonly Action<ClientRequestLogHandler> _SubscribeToEventDelegate;
+            public String                           LogEventName                    { get; }
 
             /// <summary>
             /// A delegate called whenever the event is subscriped to.
             /// </summary>
-            public Action<ClientRequestLogHandler> SubscribeToEventDelegate
-            {
-                get
-                {
-                    return _SubscribeToEventDelegate;
-                }
-            }
-
-            #endregion
-
-            #region UnsubscribeFromEventDelegate
-
-            private readonly Action<ClientRequestLogHandler> _UnsubscribeFromEventDelegate;
+            public Action<ClientRequestLogHandler>  SubscribeToEventDelegate        { get; }
 
             /// <summary>
             /// A delegate called whenever the subscription of the event is stopped.
             /// </summary>
-            public Action<ClientRequestLogHandler> UnsubscribeFromEventDelegate
-            {
-                get
-                {
-                    return _UnsubscribeFromEventDelegate;
-                }
-            }
-
-            #endregion
+            public Action<ClientRequestLogHandler>  UnsubscribeFromEventDelegate    { get; }
 
             #endregion
 
@@ -623,12 +575,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #endregion
 
-                this._Context                       = Context != null ? Context : "";
-                this._LogEventName                  = LogEventName;
-                this._SubscribeToEventDelegate      = SubscribeToEventDelegate;
-                this._UnsubscribeFromEventDelegate  = UnsubscribeFromEventDelegate;
-                this._SubscriptionDelegates         = new Dictionary<LogTargets, ClientRequestLogHandler>();
-                this._SubscriptionStatus            = new HashSet<LogTargets>();
+                this.Context                       = Context ?? "";
+                this.LogEventName                  = LogEventName;
+                this.SubscribeToEventDelegate      = SubscribeToEventDelegate;
+                this.UnsubscribeFromEventDelegate  = UnsubscribeFromEventDelegate;
+                this._SubscriptionDelegates        = new Dictionary<LogTargets, ClientRequestLogHandler>();
+                this._SubscriptionStatus           = new HashSet<LogTargets>();
 
             }
 
@@ -658,7 +610,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     throw new Exception("Duplicate log target!");
 
                 _SubscriptionDelegates.Add(LogTarget,
-                                           async (Timestamp, HTTPAPI, Request) => await HTTPRequestDelegate(_Context, LogEventName, Request));
+                                           async (Timestamp, HTTPAPI, Request) => await HTTPRequestDelegate(Context, LogEventName, Request));
 
                 return this;
 
@@ -683,7 +635,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 if (_SubscriptionDelegates.TryGetValue(LogTarget, out _ClientRequestLogHandler))
                 {
-                    _SubscribeToEventDelegate(_ClientRequestLogHandler);
+                    SubscribeToEventDelegate(_ClientRequestLogHandler);
                     _SubscriptionStatus.Add(LogTarget);
                     return true;
                 }
@@ -724,7 +676,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 if (_SubscriptionDelegates.TryGetValue(LogTarget, out _ClientRequestLogHandler))
                 {
-                    _UnsubscribeFromEventDelegate(_ClientRequestLogHandler);
+                    UnsubscribeFromEventDelegate(_ClientRequestLogHandler);
                     _SubscriptionStatus.Remove(LogTarget);
                     return true;
                 }
@@ -757,73 +709,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Properties
 
-            #region Context
-
-            private readonly String _Context;
-
             /// <summary>
             /// The context of the event to be logged.
             /// </summary>
-            public String Context
-            {
-                get
-                {
-                    return _Context;
-                }
-            }
-
-            #endregion
-
-            #region LogEventName
-
-            private readonly String _LogEventName;
+            public String                            Context                         { get; }
 
             /// <summary>
             /// The name of the event to be logged.
             /// </summary>
-            public String LogEventName
-            {
-                get
-                {
-                    return _LogEventName;
-                }
-            }
-
-            #endregion
-
-            #region SubscribeToEventDelegate
-
-            private readonly Action<ClientResponseLogHandler> _SubscribeToEventDelegate;
+            public String                            LogEventName                    { get; }
 
             /// <summary>
             /// A delegate called whenever the event is subscriped to.
             /// </summary>
-            public Action<ClientResponseLogHandler> SubscribeToEventDelegate
-            {
-                get
-                {
-                    return _SubscribeToEventDelegate;
-                }
-            }
-
-            #endregion
-
-            #region UnsubscribeFromEventDelegate
-
-            private readonly Action<ClientResponseLogHandler> _UnsubscribeFromEventDelegate;
+            public Action<ClientResponseLogHandler>  SubscribeToEventDelegate        { get; }
 
             /// <summary>
             /// A delegate called whenever the subscription of the event is stopped.
             /// </summary>
-            public Action<ClientResponseLogHandler> UnsubscribeFromEventDelegate
-            {
-                get
-                {
-                    return _UnsubscribeFromEventDelegate;
-                }
-            }
-
-            #endregion
+            public Action<ClientResponseLogHandler>  UnsubscribeFromEventDelegate    { get; }
 
             #endregion
 
@@ -855,12 +759,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #endregion
 
-                this._Context                       = Context != null ? Context : "";
-                this._LogEventName                  = LogEventName;
-                this._SubscribeToEventDelegate      = SubscribeToEventDelegate;
-                this._UnsubscribeFromEventDelegate  = UnsubscribeFromEventDelegate;
-                this._SubscriptionDelegates         = new Dictionary<LogTargets, ClientResponseLogHandler>();
-                this._SubscriptionStatus            = new HashSet<LogTargets>();
+                this.Context                       = Context != null ? Context : "";
+                this.LogEventName                  = LogEventName;
+                this.SubscribeToEventDelegate      = SubscribeToEventDelegate;
+                this.UnsubscribeFromEventDelegate  = UnsubscribeFromEventDelegate;
+                this._SubscriptionDelegates        = new Dictionary<LogTargets, ClientResponseLogHandler>();
+                this._SubscriptionStatus           = new HashSet<LogTargets>();
 
             }
 
@@ -890,7 +794,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     throw new Exception("Duplicate log target!");
 
                 _SubscriptionDelegates.Add(LogTarget,
-                                           async (Timestamp, HTTPAPI, Request, Response) => await HTTPResponseDelegate(_Context, _LogEventName, Request, Response));
+                                           async (Timestamp, HTTPAPI, Request, Response) => await HTTPResponseDelegate(Context, LogEventName, Request, Response));
 
                 return this;
 
@@ -915,7 +819,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 if (_SubscriptionDelegates.TryGetValue(LogTarget, out _ClientResponseLogHandler))
                 {
-                    _SubscribeToEventDelegate(_ClientResponseLogHandler);
+                    SubscribeToEventDelegate(_ClientResponseLogHandler);
                     _SubscriptionStatus.Add(LogTarget);
                     return true;
                 }
@@ -956,7 +860,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 if (_SubscriptionDelegates.TryGetValue(LogTarget, out _ClientResponseLogHandler))
                 {
-                    _UnsubscribeFromEventDelegate(_ClientResponseLogHandler);
+                    UnsubscribeFromEventDelegate(_ClientResponseLogHandler);
                     _SubscriptionStatus.Remove(LogTarget);
                     return true;
                 }
@@ -1064,22 +968,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-
         #region LogfileCreator
-
-        private readonly LogfileCreatorDelegate _LogfileCreator;
 
         /// <summary>
         /// A delegate for the default ToDisc logger returning a
         /// valid logfile name based on the given log event name.
         /// </summary>
-        public LogfileCreatorDelegate LogfileCreator
-        {
-            get
-            {
-                return _LogfileCreator;
-            }
-        }
+        public LogfileCreatorDelegate LogfileCreator { get; }
 
         #endregion
 
@@ -1115,7 +1010,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Default_LogHTTPRequest_toDisc(Context, LogEventName, Request)
+        #region Default_LogHTTPRequest_toDisc (Context, LogEventName, Request)
 
         /// <summary>
         /// A default delegate for logging incoming HTTP requests to disc.
@@ -1132,7 +1027,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
 
                 OpenFileWithRetry(() => {
-                    using (var logfile = File.AppendText(_LogfileCreator(Context, LogEventName)))
+                    using (var logfile = File.AppendText(LogfileCreator(Context, LogEventName)))
                     {
 
                         if (Request.RemoteSocket != null && Request.LocalSocket != null)
@@ -1175,7 +1070,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
 
                 OpenFileWithRetry(() => {
-                    using (var logfile = File.AppendText(_LogfileCreator(Context, LogEventName)))
+                    using (var logfile = File.AppendText(LogfileCreator(Context, LogEventName)))
                     {
 
                         if (Request.RemoteSocket != null && Request.LocalSocket != null)
@@ -1429,9 +1324,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (LogHTTPResponse_toDisc    == null)
                 LogHTTPResponse_toDisc     = Default_LogHTTPResponse_toDisc;
 
-            _LogfileCreator = LogfileCreator != null
+            LogfileCreator = LogfileCreator != null
                                  ? LogfileCreator
-                                 : (context, logfilename) => String.Concat((context != null ? context + "_" : ""),
+                                 : (context, logfilename) => String.Concat(context != null ? context + "_" : "",
                                                                            logfilename, "_",
                                                                            DateTime.Now.Year, "-",
                                                                            DateTime.Now.Month.ToString("D2"),
