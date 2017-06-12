@@ -1229,8 +1229,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       ? LogfileCreator
                                       : (context, logfilename) => String.Concat(context != null ? context + "_" : "",
                                                                                 logfilename, "_",
-                                                                                DateTime.Now.Year, "-",
-                                                                                DateTime.Now.Month.ToString("D2"),
+                                                                                DateTime.Now.ToUniversalTime().Year, "-",
+                                                                                DateTime.Now.ToUniversalTime().Month.ToString("D2"),
                                                                                 ".log");
 
             #endregion
