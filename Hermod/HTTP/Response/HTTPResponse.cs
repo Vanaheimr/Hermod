@@ -265,6 +265,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             => new HTTPResponse<TContent>(Content, Exception);
 
+
+        #region (static) GatewayTimeout
+
+        public static HTTPResponse<TContent> GatewayTimeout(TContent Content)
+            => new HTTPResponse<TContent>(new HTTPResponseBuilder(null, HTTPStatusCode.GatewayTimeout), Content);
+
+        #endregion
+
+
     }
 
     #endregion
@@ -706,6 +715,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public static HTTPResponse ServiceUnavailable
             => new HTTPResponse(new HTTPResponseBuilder(null, HTTPStatusCode.ServiceUnavailable));
+
+        #endregion
+
+        #region (static) GatewayTimeout
+
+        public static HTTPResponse GatewayTimeout
+            => new HTTPResponse(new HTTPResponseBuilder(null, HTTPStatusCode.GatewayTimeout));
 
         #endregion
 
