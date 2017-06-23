@@ -689,11 +689,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         protected void SendTCPSocketAttached(DateTime Timestamp, IPSocket TCPSocket, String Message = null)
         {
-
-            var OnTCPSocketAttachedLocal = OnTCPSocketAttached;
-            if (OnTCPSocketAttachedLocal != null)
-                OnTCPSocketAttachedLocal(this, Timestamp, TCPSocket, Message);
-
+            OnTCPSocketAttached?.Invoke(this, Timestamp, TCPSocket, Message);
         }
 
         #endregion
