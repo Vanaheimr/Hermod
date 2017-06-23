@@ -299,6 +299,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     catch (Exception e)
                                     {
 
+                                        DebugX.Log("HTTPProcessor (Try to parse the HTTP header): " + e.Message);
+
                                         NotifyErrors(null,
                                                      TCPConnection,
                                                      RequestTimestamp,
@@ -442,6 +444,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 else
                 {
 
+                    DebugX.Log("HTTPProcessor: " + ioe.Message);
+
                     //if (OnError != null)
                     //    OnError(this, DateTime.Now, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), ioe, MemoryStream);
 
@@ -451,6 +455,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             catch (Exception e)
             {
+
+                DebugX.Log("HTTPProcessor: " + e.Message);
 
                 //if (OnError != null)
                 //    OnError(this, DateTime.Now, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), e, MemoryStream);
@@ -463,7 +469,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             try
             {
-                TCPConnection.Close((ClientClose) ? ConnectionClosedBy.Client : ConnectionClosedBy.Server);
+                TCPConnection.Close(ClientClose
+                                        ? ConnectionClosedBy.Client
+                                        : ConnectionClosedBy.Server);
             }
             catch (Exception)
             { }
