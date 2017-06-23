@@ -379,7 +379,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         if (RemoteIPAddress == null)
                         {
 
-                            if (Hostname.Trim() == "127.0.0.1")
+                            if (Hostname.Trim() == "127.0.0.1" || Hostname.Trim() == "localhost")
                                 _ResolvedRemoteIPAddress = IPv4Address.Localhost;
 
                             else
