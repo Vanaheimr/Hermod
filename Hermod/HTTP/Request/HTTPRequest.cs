@@ -215,16 +215,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Construct the entire HTTP header.
         /// </summary>
         public String EntireRequestHeader
-        {
-            get
-            {
 
-                return HTTPMethod.ToString() + " " + this.FakeURIPrefix + this.URI + QueryString + " " + ProtocolName + "/" + ProtocolVersion +
-                       Environment.NewLine +
-                       ConstructedHTTPHeader;
+            => String.Concat(HTTPMethod, " ",
+                             FakeURIPrefix, URI, QueryString, " ",
+                             ProtocolName, "/", ProtocolVersion, "\r\n",
 
-            }
-        }
+                             ConstructedHTTPHeader);
 
         #endregion
 

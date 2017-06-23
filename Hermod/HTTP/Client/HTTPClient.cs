@@ -470,10 +470,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #region Send Request
 
-                    HTTPStream.Write(String.Concat(Request.EntireRequestHeader,
-                                                   Environment.NewLine,
-                                                   Environment.NewLine).
-                                     ToUTF8Bytes());
+                    HTTPStream.Write(String.Concat(Request.EntireRequestHeader, "\r\n\r\n").
+                                            ToUTF8Bytes());
 
                     var RequestBodyLength = Request.HTTPBody == null
                                                 ? Request.ContentLength.HasValue ? (Int32) Request.ContentLength.Value : 0
