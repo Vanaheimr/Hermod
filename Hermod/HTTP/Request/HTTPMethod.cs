@@ -220,7 +220,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Constructor(s)
+        #region (private) Constructor(s)
 
         /// <summary>
         /// Creates a new HTTP method based on the given parameters.
