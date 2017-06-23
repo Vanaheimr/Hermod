@@ -481,7 +481,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         HTTPStream.Write(Request.HTTPBody, 0, RequestBodyLength);
 
                     var _InternalHTTPStream  = new MemoryStream();
-                    var _Buffer        = new Byte[10485760]; // 10 MBytes, a smaller value leads to read errors!
+                    var _Buffer              = new Byte[10485760]; // 10 MBytes, a smaller value leads to read errors!
 
                     #endregion
 
