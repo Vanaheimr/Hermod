@@ -115,7 +115,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.EventIdentification      = EventIdentification;
             this.QueueOfEvents            = new TSQueue<HTTPEvent>(MaxNumberOfCachedEvents);
             this.MaxNumberOfCachedEvents  = MaxNumberOfCachedEvents;
-            this.RetryIntervall           = RetryIntervall.HasValue ? RetryIntervall.Value : TimeSpan.FromSeconds(30);
+            this.RetryIntervall           = RetryIntervall ?? TimeSpan.FromSeconds(30);
             this.LogfileName              = LogfileName;
             this.IdCounter                = 0;
 
@@ -126,11 +126,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 Int64 CurrentCounter;
 
+                //ToDo: Reverse the order!
                 foreach (var logfilename in Directory.EnumerateFiles(Directory.GetCurrentDirectory(),
                                                                      this.EventIdentification + "*.log",
                                                                      SearchOption.TopDirectoryOnly))
                 {
 
+                    //ToDo: Read files backwards!
                     File.ReadLines(logfilename).
                          Take   ((Int64) MaxNumberOfCachedEvents - (Int64) QueueOfEvents.Count).
                          Select (line => line.Split((Char) 0x1E)).
