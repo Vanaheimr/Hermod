@@ -147,9 +147,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                              }
 #pragma warning disable RCS1075 // Avoid empty catch clause that catches System.Exception.
-                             catch (Exception)
+                             catch (Exception e)
 #pragma warning restore RCS1075 // Avoid empty catch clause that catches System.Exception.
-                             { }
+                             {
+                                 DebugX.Log("HTTP evnet source lead to an exception: " + e.Message);
+                             }
 
                          });
 

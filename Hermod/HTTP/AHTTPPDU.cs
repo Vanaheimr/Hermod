@@ -402,7 +402,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public AHTTPPDU()
         {
 
-            this.Timestamp      = DateTime.Now;
+            this.Timestamp       = DateTime.UtcNow;
             this._HeaderFields   = new Dictionary<String,          Object>(StringComparer.OrdinalIgnoreCase);
             this._HeaderFields2  = new Dictionary<HTTPHeaderField, Object>();
 
@@ -434,7 +434,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this.Timestamp          = DateTime.Now;
+            this.Timestamp          = DateTime.UtcNow;
             this.RemoteSocket       = RemoteSocket;
             this._LocalSocket       = LocalSocket;
             this.RawHTTPHeader      = HTTPHeader.Trim();
@@ -489,7 +489,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this.Timestamp          = HTTPPDU?.Timestamp         ?? DateTime.Now;
+            this.Timestamp          = HTTPPDU?.Timestamp         ?? DateTime.UtcNow;
             this.RemoteSocket       = HTTPPDU?.RemoteSocket;
             this._LocalSocket       = HTTPPDU?.LocalSocket;
             this.RawHTTPHeader      = HTTPPDU?.RawHTTPHeader;
@@ -503,11 +503,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (HTTPPDU._HeaderFields != null)
                 foreach (var field in HTTPPDU._HeaderFields)
-                    this._HeaderFields.Add(field.Key, field.Value);
+                    _HeaderFields.Add(field.Key, field.Value);
 
             if (HTTPPDU._HeaderFields2 != null)
                 foreach (var field in HTTPPDU._HeaderFields2)
-                    this._HeaderFields2.Add(field.Key, field.Value);
+                    _HeaderFields2.Add(field.Key, field.Value);
 
         }
 
