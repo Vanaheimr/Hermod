@@ -49,9 +49,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private          Int64               IdCounter;
-        private readonly TSQueue<HTTPEvent>  QueueOfEvents;
-        private static   SemaphoreSlim       LogfileLock  = new SemaphoreSlim(1,1);
+        private                 Int64               IdCounter;
+        private        readonly TSQueue<HTTPEvent>  QueueOfEvents;
+        private static readonly SemaphoreSlim       LogfileLock  = new SemaphoreSlim(1,1);
 
         #endregion
 
@@ -171,10 +171,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                               DateTime.Now)))
                         {
 
-                            logfile.WriteLine(String.Concat(Value.Id,                    (Char) 0x1E,
-                                                            Value.Timestamp.ToIso8601(), (Char) 0x1E,
-                                                            Value.Subevent,              (Char) 0x1E,
-                                                            Value.Data.AggregateWith(    (Char) 0x1F)));
+                            await logfile.WriteLineAsync(String.Concat(Value.Id,                    (Char) 0x1E,
+                                                                       Value.Timestamp.ToIso8601(), (Char) 0x1E,
+                                                                       Value.Subevent,              (Char) 0x1E,
+                                                                       Value.Data.AggregateWith(    (Char) 0x1F))).
+                                          ConfigureAwait(false);
 
                         }
 

@@ -26,6 +26,7 @@ using System.Collections.Concurrent;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using System.Diagnostics;
+using System.Threading;
 
 #endregion
 
@@ -778,7 +779,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private static readonly Object LockObject = new Object();
+        private static readonly Object         LockObject                   = new Object();
+        private static          SemaphoreSlim  LogHTTPRequest_toDisc_Lock   = new SemaphoreSlim(1,1);
+        private static          SemaphoreSlim  LogHTTPResponse_toDisc_Lock  = new SemaphoreSlim(1,1);
 
         #endregion
 
@@ -880,8 +883,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (private) OpenFileWithRetry(WorkToDo, Timeout = null)
 
-        private void OpenFileWithRetry(Action     WorkToDo,
-                                       TimeSpan?  Timeout = null)
+        private async Task OpenFileWithRetry(Func<Task>  WorkToDo,
+                                             TimeSpan?   Timeout = null)
         {
 
             if (Timeout == null)
@@ -893,8 +896,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
                 try
                 {
-                    WorkToDo();
+
+                    await WorkToDo().ConfigureAwait(false);
+
                     return;
+
                 }
                 catch (IOException e)
                 {
@@ -923,28 +929,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                         HTTPRequest  Request)
         {
 
+            await LogHTTPRequest_toDisc_Lock.WaitAsync();
+
             try
             {
 
-                OpenFileWithRetry(() => {
-                    using (var logfile = File.AppendText(LogfileCreator(Context, LogEventName)))
-                    {
+                await OpenFileWithRetry(
+                          async () => {
+                              using (var logfile = File.AppendText(LogfileCreator(Context, LogEventName)))
+                              {
 
-                        if (Request.RemoteSocket != null && Request.LocalSocket != null)
-                            logfile.WriteLine(Request.RemoteSocket.ToString() + " -> " + Request.LocalSocket);
+                                  await logfile.WriteLineAsync(
+                                            String.Concat(Request.RemoteSocket != null && Request.LocalSocket != null
+                                                              ? String.Concat(Request.RemoteSocket, " -> ", Request.LocalSocket)
+                                                              : "",
+                                                          ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------", Environment.NewLine,
+                                                          Request.Timestamp.ToIso8601(),                                                      Environment.NewLine,
+                                                          Request.EntirePDU,                                                                  Environment.NewLine,
+                                                          "--------------------------------------------------------------------------------")).
 
-                        logfile.WriteLine(">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------");
-                        logfile.WriteLine(Request.Timestamp.ToIso8601());
-                        logfile.WriteLine(Request.EntirePDU);
-                        logfile.WriteLine("--------------------------------------------------------------------------------");
+                                                ConfigureAwait(false);
 
-                    }
-                });
+                              }
+                          }).
+
+                ConfigureAwait(false);
 
             }
             catch (Exception e)
             {
                 DebugX.Log("Could not log to disc: " + e.Message);
+            }
+            finally
+            {
+                LogHTTPRequest_toDisc_Lock.Release();
             }
 
         }
@@ -966,31 +984,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          HTTPResponse  Response)
         {
 
+            await LogHTTPResponse_toDisc_Lock.WaitAsync();
+
             try
             {
 
-                OpenFileWithRetry(() => {
-                    using (var logfile = File.AppendText(LogfileCreator(Context, LogEventName)))
-                    {
+                await OpenFileWithRetry(
+                          async () => {
+                              using (var logfile = File.AppendText(LogfileCreator(Context, LogEventName)))
+                              {
 
-                        if (Request.RemoteSocket != null && Request.LocalSocket != null)
-                            logfile.WriteLine(Request.RemoteSocket.ToString() + " -> " + Request.LocalSocket);
+                                  await logfile.WriteLineAsync(
+                                            String.Concat(Request.RemoteSocket != null && Request.LocalSocket != null
+                                                              ? String.Concat(Request.RemoteSocket, " -> ", Request.LocalSocket)
+                                                              : "",
+                                                          ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------", Environment.NewLine,
+                                                          Request.Timestamp.ToIso8601(),                                                      Environment.NewLine,
+                                                          Request.EntirePDU,                                                                  Environment.NewLine,
+                                                          "<<<<<<--Response----<<<<<<------<<<<<<------<<<<<<------<<<<<<------<<<<<<------", Environment.NewLine,
+                                                          Response.Timestamp.ToIso8601(),
+                                                              " -> ",
+                                                              (Request.Timestamp - Response.Timestamp).TotalMilliseconds,
+                                                              "ms runtime",                                                                   Environment.NewLine,
+                                                          Response.EntirePDU,                                                                 Environment.NewLine,
+                                                          "--------------------------------------------------------------------------------")).
 
-                        logfile.WriteLine(">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------");
-                        logfile.WriteLine(Request.Timestamp.ToIso8601());
-                        logfile.WriteLine(Request.EntirePDU);
-                        logfile.WriteLine("<<<<<<--Response----<<<<<<------<<<<<<------<<<<<<------<<<<<<------<<<<<<------");
-                        logfile.WriteLine(Response.Timestamp.ToIso8601() + " -> " + (Request.Timestamp - Response.Timestamp).TotalMilliseconds + "ms runtime");
-                        logfile.WriteLine(Response.EntirePDU);
-                        logfile.WriteLine("--------------------------------------------------------------------------------");
+                                                ConfigureAwait(false);
 
-                    }
-                });
+                              }
+                          }).
+
+                ConfigureAwait(false);
 
             }
             catch (Exception e)
             {
                 DebugX.Log("Could not log to disc: " + e.Message);
+            }
+            finally
+            {
+                LogHTTPResponse_toDisc_Lock.Release();
             }
 
         }
