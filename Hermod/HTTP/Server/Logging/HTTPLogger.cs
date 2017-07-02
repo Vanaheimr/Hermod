@@ -942,7 +942,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   await logfile.WriteLineAsync(
                                             String.Concat(Request.RemoteSocket != null && Request.LocalSocket != null
                                                               ? String.Concat(Request.RemoteSocket, " -> ", Request.LocalSocket)
-                                                              : "",
+                                                              : "", Environment.NewLine,
                                                           ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------", Environment.NewLine,
                                                           Request.Timestamp.ToIso8601(),                                                      Environment.NewLine,
                                                           Request.EntirePDU,                                                                  Environment.NewLine,
@@ -997,16 +997,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   await logfile.WriteLineAsync(
                                             String.Concat(Request.RemoteSocket != null && Request.LocalSocket != null
                                                               ? String.Concat(Request.RemoteSocket, " -> ", Request.LocalSocket)
-                                                              : "",
-                                                          ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------", Environment.NewLine,
-                                                          Request.Timestamp.ToIso8601(),                                                      Environment.NewLine,
-                                                          Request.EntirePDU,                                                                  Environment.NewLine,
-                                                          "<<<<<<--Response----<<<<<<------<<<<<<------<<<<<<------<<<<<<------<<<<<<------", Environment.NewLine,
+                                                              : "", Environment.NewLine,
+                                                          ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------",  Environment.NewLine,
+                                                          Request.Timestamp.ToIso8601(),                                                       Environment.NewLine,
+                                                          Request.EntirePDU,                                                                   Environment.NewLine,
+                                                          "<<<<<<--Response----<<<<<<------<<<<<<------<<<<<<------<<<<<<------<<<<<<------",  Environment.NewLine,
                                                           Response.Timestamp.ToIso8601(),
                                                               " -> ",
-                                                              (Request.Timestamp - Response.Timestamp).TotalMilliseconds,
-                                                              "ms runtime",                                                                   Environment.NewLine,
-                                                          Response.EntirePDU,                                                                 Environment.NewLine,
+                                                              (Request.Timestamp - Response.Timestamp).TotalMilliseconds, "ms runtime",        Environment.NewLine,
+                                                          Response.EntirePDU,                                                                  Environment.NewLine,
                                                           "--------------------------------------------------------------------------------")).
 
                                                 ConfigureAwait(false);
