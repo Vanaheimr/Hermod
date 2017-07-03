@@ -119,14 +119,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 Int64 CurrentCounter;
 
-                //ToDo: Reverse the order!
                 foreach (var logfilename in Directory.EnumerateFiles(Directory.GetCurrentDirectory(),
                                                                      this.EventIdentification + "*.log",
-                                                                     SearchOption.TopDirectoryOnly))
+                                                                     SearchOption.TopDirectoryOnly).
+                                                      Reverse())
                 {
 
                     //ToDo: Read files backwards!
-                    File.ReadLines(logfilename).
+                    File.ReadAllLines(logfilename).
+                         Reverse().
                          Take   ((Int64) MaxNumberOfCachedEvents - (Int64) QueueOfEvents.Count).
                          Select (line => line.Split((Char) 0x1E)).
                          ForEach(line => {
