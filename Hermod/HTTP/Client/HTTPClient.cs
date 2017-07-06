@@ -634,7 +634,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     else if (Response.TransferEncoding == "chunked")
                     {
 
-                        Debug.WriteLine(DateTime.Now + "[HTTPClient] Chunked encoding detected");
+                        //DebugX.Log("[HTTPClient] Chunked encoding detected");
 
                         try
                         {
