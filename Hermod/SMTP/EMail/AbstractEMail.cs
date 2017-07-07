@@ -403,12 +403,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                     break;
 
                 case "to":
-                    if (SimpleEMailAddress.IsValid(Value))
-                        this._MailHeaders.Add(new KeyValuePair<String, String>(Key, Value));
-                    break;
-
                 case "cc":
-                    if (SimpleEMailAddress.IsValid(Value))
+                    if (EMailAddressList.Parse(Value) != null)
                         this._MailHeaders.Add(new KeyValuePair<String, String>(Key, Value));
                     break;
 
