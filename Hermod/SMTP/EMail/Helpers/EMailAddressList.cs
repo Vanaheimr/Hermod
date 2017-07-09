@@ -170,14 +170,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
 
         public static EMailAddressList Parse(String EMailAddressListString)
-        {
 
-            return new EMailAddressList(EMailAddressListString.
-                                             Split (new String[] { ",", ";" }, StringSplitOptions.None).
-                                             Select(textaddr  => EMailAddress.Parse(textaddr.Trim())).
-                                             Where (addresses => addresses != null));
-
-        }
+            => new EMailAddressList(EMailAddressListString.
+                                        Split (new String[] { ",", ";" }, StringSplitOptions.None).
+                                        Select(textaddr  => EMailAddress.Parse(textaddr.Trim())).
+                                        Where (addresses => addresses != null));
 
 
 

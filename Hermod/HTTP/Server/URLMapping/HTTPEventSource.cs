@@ -49,8 +49,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private          Int64               IdCounter;
-        private readonly TSQueue<HTTPEvent>  QueueOfEvents;
+        private                 Int64               IdCounter;
+        private        readonly TSQueue<HTTPEvent>  QueueOfEvents;
+        private static readonly SemaphoreSlim       LogfileLock  = new SemaphoreSlim(1,1);
 
         #endregion
 
@@ -66,17 +67,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public UInt64  MaxNumberOfCachedEvents
         {
-
             get
             {
                 return QueueOfEvents.MaxNumberOfElements;
             }
-
-            set
-            {
-                QueueOfEvents.MaxNumberOfElements = value;
-            }
-
         }
 
         /// <summary>
@@ -112,12 +106,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            this.EventIdentification      = EventIdentification;
-            this.QueueOfEvents            = new TSQueue<HTTPEvent>(MaxNumberOfCachedEvents);
-            this.MaxNumberOfCachedEvents  = MaxNumberOfCachedEvents;
-            this.RetryIntervall           = RetryIntervall ?? TimeSpan.FromSeconds(30);
-            this.LogfileName              = LogfileName;
-            this.IdCounter                = 0;
+            this.EventIdentification  = EventIdentification;
+            this.QueueOfEvents        = new TSQueue<HTTPEvent>(MaxNumberOfCachedEvents);
+            this.RetryIntervall       = RetryIntervall ?? TimeSpan.FromSeconds(30);
+            this.LogfileName          = LogfileName;
+            this.IdCounter            = 0;
 
             #region Setup Logfile(s)
 
@@ -126,14 +119,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 Int64 CurrentCounter;
 
-                //ToDo: Reverse the order!
                 foreach (var logfilename in Directory.EnumerateFiles(Directory.GetCurrentDirectory(),
                                                                      this.EventIdentification + "*.log",
-                                                                     SearchOption.TopDirectoryOnly))
+                                                                     SearchOption.TopDirectoryOnly).
+                                                      Reverse())
                 {
 
                     //ToDo: Read files backwards!
-                    File.ReadLines(logfilename).
+                    File.ReadAllLines(logfilename).
+                         Reverse().
                          Take   ((Int64) MaxNumberOfCachedEvents - (Int64) QueueOfEvents.Count).
                          Select (line => line.Split((Char) 0x1E)).
                          ForEach(line => {
@@ -146,17 +140,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                  if (IdCounter < CurrentCounter)
                                      IdCounter = CurrentCounter;
 
-                                 QueueOfEvents.Push(
-                                     new HTTPEvent((UInt64) CurrentCounter,
-                                                   DateTime.Parse(line[1]),
-                                                   line[2],
-                                                   line[3].Split((Char) 0x1F)));
+                                 QueueOfEvents.Push(new HTTPEvent((UInt64) CurrentCounter,
+                                                                  DateTime.Parse(line[1]),
+                                                                  line[2],
+                                                                  line[3].Split((Char) 0x1F))).
+                                               Wait();
 
                              }
 #pragma warning disable RCS1075 // Avoid empty catch clause that catches System.Exception.
-                             catch (Exception)
+                             catch (Exception e)
 #pragma warning restore RCS1075 // Avoid empty catch clause that catches System.Exception.
-                             { }
+                             {
+                                 DebugX.Log("HTTP evnet source lead to an exception: " + e.Message);
+                             }
 
                          });
 
@@ -165,18 +161,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 }
 
+                // Note: Do not attach this event handler before the data
+                //       is reread from the logfiles above!
+                QueueOfEvents.OnAdded += async (Sender, Value) => {
 
-                QueueOfEvents.OnAdded += (Sender, Value) => {
+                    await LogfileLock.WaitAsync();
 
-                    using (var logfile = File.AppendText(this.LogfileName(this.EventIdentification,
-                                                                          DateTime.Now)))
+                    try
                     {
 
-                        logfile.WriteLine(String.Concat(Value.Id,                    (Char) 0x1E,
-                                                        Value.Timestamp.ToIso8601(), (Char) 0x1E,
-                                                        Value.Subevent,              (Char) 0x1E,
-                                                        Value.Data.AggregateWith(    (Char) 0x1F)));
+                        using (var logfile = File.AppendText(this.LogfileName(this.EventIdentification,
+                                                                              DateTime.Now)))
+                        {
 
+                            await logfile.WriteLineAsync(String.Concat(Value.Id,                    (Char) 0x1E,
+                                                                       Value.Timestamp.ToIso8601(), (Char) 0x1E,
+                                                                       Value.Subevent,              (Char) 0x1E,
+                                                                       Value.Data.AggregateWith(    (Char) 0x1F))).
+                                          ConfigureAwait(false);
+
+                        }
+
+                    }
+                    finally
+                    {
+                        LogfileLock.Release();
                     }
 
                 };
@@ -216,13 +225,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public async Task SubmitTimestampedEvent(DateTime Timestamp, params String[] Data)
         {
 
-            await SubmitSubEvent(new JObject(
-                                     new JProperty("Timestamp",  Timestamp),
-                                     new JProperty("Message",    Data.Aggregate((a, b) => a + " " + b))
-                                 ).
-                                 ToString().
-                                 Replace(Environment.NewLine, " ")
-                                );
+            await SubmitEvent(new JObject(
+                                  new JProperty("Timestamp",  Timestamp),
+                                  new JProperty("Message",    Data?.Length > 0
+                                                                  ? Data.Aggregate((a, b) => a.Trim() + " " + b.Trim())
+                                                                  : "")
+                              ).
+                              ToString().
+                              Replace(Environment.NewLine, " ")
+                             ).
+                      ConfigureAwait(false);
 
         }
 
@@ -270,12 +282,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (SubEvent.IsNullOrEmpty())
                 await SubmitTimestampedEvent(DateTime.Now,
-                                             Data);
+                                             Data).
+                          ConfigureAwait(false);
 
             else
                 await SubmitTimestampedSubEvent(SubEvent,
                                                 DateTime.Now,
-                                                Data);
+                                                Data).
+                          ConfigureAwait(false);
 
         }
 
@@ -289,30 +303,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="SubEvent">A subevent identification.</param>
         /// <param name="Timestamp">The timestamp of the event.</param>
         /// <param name="Data">The attached event data.</param>
-        public async Task SubmitTimestampedSubEvent(String SubEvent, DateTime Timestamp, params String[] Data)
+        public async Task SubmitTimestampedSubEvent(String           SubEvent,
+                                                    DateTime         Timestamp,
+                                                    params String[]  Data)
         {
 
             if (SubEvent.IsNotNullOrEmpty())
                 SubEvent = SubEvent.Trim().Replace(",", "");
 
             if (SubEvent.IsNullOrEmpty())
-                await SubmitEvent(new JObject(
-                                      new JProperty("Timestamp",  Timestamp),
-                                      new JProperty("Message",    Data.Aggregate((a, b) => a + " " + b))
-                                  ).
-                                  ToString().
-                                  Replace(Environment.NewLine, " ")
-                                 );
+                await SubmitTimestampedEvent(Timestamp,
+                                             Data).
+                          ConfigureAwait(false);
 
             else
                 await SubmitSubEvent(SubEvent,
                                      new JObject(
                                          new JProperty("Timestamp",  Timestamp),
-                                         new JProperty("Message",    Data.Aggregate((a, b) => a + " " + b))
+                                         new JProperty("Message",    Data?.Length > 0
+                                                                         ? Data.Aggregate((a, b) => a.Trim() + " " + b.Trim())
+                                                                         : "")
                                      ).
                                      ToString().
                                      Replace(Environment.NewLine, " ")
-                                    );
+                                    ).
+                          ConfigureAwait(false);
 
         }
 

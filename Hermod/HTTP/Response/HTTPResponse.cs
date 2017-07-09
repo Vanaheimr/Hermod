@@ -486,6 +486,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Non-standard response header fields
 
+        /// <summary>
+        /// The runtime of the HTTP request/response pair.
+        /// </summary>
+        public TimeSpan? Runtime { get; }
+
         #endregion
 
 
@@ -506,6 +511,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this._HTTPRequest     = Response?.HTTPRequest;
             this._HTTPStatusCode  = Response?.HTTPStatusCode;
+            this.Runtime          = Response.Runtime;
 
         }
 
@@ -524,6 +530,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPBodyStream">The HTTP body as an stream of bytes.</param>
         /// <param name="CancellationToken">A token to cancel the HTTP response processing.</param>
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+        /// <param name="Runtime">The runtime of the HTTP request/response pair.</param>
         private HTTPResponse(HTTPRequest         HTTPRequest,
                              IPSocket            RemoteSocket,
                              IPSocket            LocalSocket,
@@ -531,24 +538,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              Byte[]              HTTPBody           = null,
                              Stream              HTTPBodyStream     = null,
                              CancellationToken?  CancellationToken  = null,
-                             EventTracking_Id    EventTrackingId    = null)
+                             EventTracking_Id    EventTrackingId    = null,
+                             TimeSpan?           Runtime            = null)
 
-            : base(RemoteSocket, LocalSocket, HTTPHeader, HTTPBody, HTTPBodyStream, CancellationToken, EventTrackingId)
+            : base(RemoteSocket,
+                   LocalSocket,
+                   HTTPHeader,
+                   HTTPBody,
+                   HTTPBodyStream,
+                   CancellationToken,
+                   EventTrackingId)
 
         {
 
-            this._HTTPRequest  = HTTPRequest;
+            this._HTTPRequest     = HTTPRequest;
 
-            #region Parse HTTP status code
-
-            var _StatusCodeLine = FirstPDULine.Split(' ');
-
+            var _StatusCodeLine   = FirstPDULine.Split(' ');
             if (_StatusCodeLine.Length < 3)
-                throw new Exception("Bad request");
+                throw new Exception("Invalid HTTP response!");
 
-            this._HTTPStatusCode = HTTPStatusCode.ParseString(_StatusCodeLine[1]);
-
-            #endregion
+            this._HTTPStatusCode  = HTTPStatusCode.ParseString(_StatusCodeLine[1]);
+            this.Runtime          = Runtime ?? DateTime.UtcNow - HTTPRequest.Timestamp;
 
         }
 
@@ -574,22 +584,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    null,
                    new MemoryStream(),
                    Request?.CancellationToken,
-                   Request?.EventTrackingId)
+                   Request?.EventTrackingId,
+                   DateTime.UtcNow - Request.Timestamp)
 
         {
 
-            this._HTTPRequest  = Request;
+            this._HTTPRequest     = Request;
 
-            #region Parse HTTP status code
-
-            var _StatusCodeLine = FirstPDULine.Split(' ');
-
+            var _StatusCodeLine   = FirstPDULine.Split(' ');
             if (_StatusCodeLine.Length < 3)
-                throw new Exception("Bad request");
+                throw new Exception("Invalid HTTP response!");
 
-            this._HTTPStatusCode = HTTPStatusCode.ParseString(_StatusCodeLine[1]);
-
-            #endregion
+            this._HTTPStatusCode  = HTTPStatusCode.ParseString(_StatusCodeLine[1]);
 
         }
 
@@ -614,7 +620,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    ResponseBody,
                    null,
                    Request?.CancellationToken,
-                   Request?.EventTrackingId)
+                   Request?.EventTrackingId,
+                   DateTime.UtcNow - Request.Timestamp)
 
         { }
 
@@ -636,7 +643,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    null,
                    ResponseBody,
                    Request?.CancellationToken,
-                   Request?.EventTrackingId)
+                   Request?.EventTrackingId,
+                   DateTime.UtcNow - Request.Timestamp)
 
         { }
 
@@ -654,12 +662,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPRequest">The HTTP request leading to this response.</param>
         public static HTTPResponse Parse(String       HTTPResponseHeader,
                                          HTTPRequest  HTTPRequest)
-        {
 
-            return new HTTPResponse(HTTPResponseHeader,
-                                    HTTPRequest);
-
-        }
+            => new HTTPResponse(HTTPResponseHeader,
+                                HTTPRequest);
 
         #endregion
 
@@ -675,13 +680,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPResponse Parse(String       HTTPResponseHeader,
                                          Byte[]       HTTPResponseBody,
                                          HTTPRequest  HTTPRequest)
-        {
 
-            return new HTTPResponse(HTTPResponseHeader,
-                                    HTTPResponseBody,
-                                    HTTPRequest);
-
-        }
+            => new HTTPResponse(HTTPResponseHeader,
+                                HTTPResponseBody,
+                                HTTPRequest);
 
         /// <summary>
         /// Parse the HTTP response from its text-representation and
@@ -693,13 +695,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPResponse Parse(String       HTTPResponseHeader,
                                          Stream       HTTPResponseBody,
                                          HTTPRequest  HTTPRequest)
-        {
 
-            return new HTTPResponse(HTTPResponseHeader,
-                                    HTTPResponseBody,
-                                    HTTPRequest);
-
-        }
+            => new HTTPResponse(HTTPResponseHeader,
+                                HTTPResponseBody,
+                                HTTPRequest);
 
         #endregion
 
