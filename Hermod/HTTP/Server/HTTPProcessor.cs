@@ -347,6 +347,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         else if (_HTTPResponse.HTTPBodyStream != null)
                                         {
                                             TCPConnection.WriteToResponseStream(_HTTPResponse.HTTPBodyStream);
+                                            _HTTPResponse.HTTPBodyStream.Close();
                                             _HTTPResponse.HTTPBodyStream.Dispose();
                                         }
 

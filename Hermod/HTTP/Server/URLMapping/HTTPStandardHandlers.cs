@@ -25,6 +25,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using Newtonsoft.Json.Linq;
 
 #endregion
 
@@ -610,73 +611,96 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          HTTPMethod.GET,
                                          URITemplate + (URITemplate.EndsWith("/", StringComparison.InvariantCulture) ? "{ResourceName}" : "/{ResourceName}"),
                                          HTTPContentType: HTTPContentType.PNG,
-                                         HTTPDelegate: async Request => {
+                                         HTTPDelegate: Request => {
 
-                                             HTTPContentType ResponseContentType = null;
-
-                                             var NumberOfTemplateParameters = URITemplate.Count(c => c == '{');
-
-                                             var FilePath = (Request.ParsedURIParameters != null && Request.ParsedURIParameters.Length > NumberOfTemplateParameters)
-                                                                ? Request.ParsedURIParameters.Last().Replace('/', Path.DirectorySeparatorChar)
-                                                                : DefaultFilename.Replace('/', Path.DirectorySeparatorChar);
-
-                                             var FileStream = File.OpenRead(ResourcePath(Request.ParsedURIParameters) + Path.DirectorySeparatorChar + FilePath);
-
-                                             if (FileStream != null)
+                                             try
                                              {
 
-                                                 #region Choose HTTP Content Type based on the file name extention...
+                                                HTTPContentType ResponseContentType = null;
 
-                                                 var FileName = FilePath.Substring(FilePath.LastIndexOf("/") + 1);
+                                                var NumberOfTemplateParameters = URITemplate.Count(c => c == '{');
 
-                                                 // Get the appropriate content type based on the suffix of the requested resource
-                                                 switch (FileName.Remove(0, FileName.LastIndexOf(".") + 1))
-                                                 {
-                                                     case "htm":  ResponseContentType = HTTPContentType.HTML_UTF8;       break;
-                                                     case "html": ResponseContentType = HTTPContentType.HTML_UTF8;       break;
-                                                     case "css":  ResponseContentType = HTTPContentType.CSS_UTF8;        break;
-                                                     case "gif":  ResponseContentType = HTTPContentType.GIF;             break;
-                                                     case "jpg":  ResponseContentType = HTTPContentType.JPEG;            break;
-                                                     case "jpeg": ResponseContentType = HTTPContentType.JPEG;            break;
-                                                     case "svg":  ResponseContentType = HTTPContentType.SVG;             break;
-                                                     case "png":  ResponseContentType = HTTPContentType.PNG;             break;
-                                                     case "ico":  ResponseContentType = HTTPContentType.ICO;             break;
-                                                     case "swf":  ResponseContentType = HTTPContentType.SWF;             break;
-                                                     case "js":   ResponseContentType = HTTPContentType.JAVASCRIPT_UTF8; break;
-                                                     case "txt":  ResponseContentType = HTTPContentType.TEXT_UTF8;       break;
-                                                     default:     ResponseContentType = HTTPContentType.OCTETSTREAM;     break;
-                                                 }
+                                                var FilePath    = (Request.ParsedURIParameters != null && Request.ParsedURIParameters.Length > NumberOfTemplateParameters)
+                                                                      ? Request.ParsedURIParameters.Last().Replace('/', Path.DirectorySeparatorChar)
+                                                                      : DefaultFilename.Replace('/', Path.DirectorySeparatorChar);
 
-                                                 #endregion
+                                                var FileStream  = File.OpenRead(ResourcePath(Request.ParsedURIParameters) +
+                                                                                Path.DirectorySeparatorChar +
+                                                                                FilePath);
 
-                                                 #region Create HTTP Response
+                                                if (FileStream == null)
+                                                    return Task.FromResult(
+                                                        new HTTPResponseBuilder(Request) {
+                                                            HTTPStatusCode  = HTTPStatusCode.NotFound,
+                                                            Server          = HTTPServer.DefaultServerName,
+                                                            Date            = DateTime.Now,
+                                                            CacheControl    = "no-cache",
+                                                            Connection      = "close",
+                                                        }.AsImmutable());
 
-                                                 return new HTTPResponseBuilder(Request) {
-                                                     HTTPStatusCode  = HTTPStatusCode.OK,
-                                                     Server          = HTTPServer.DefaultServerName,
-                                                     Date            = DateTime.Now,
-                                                     ContentType     = ResponseContentType,
-                                                     ContentStream   = FileStream,
-                                                     CacheControl    = "public, max-age=300",
-                                                     //Expires         = "Mon, 25 Jun 2015 21:31:12 GMT",
-                                                     KeepAlive       = new KeepAliveType(TimeSpan.FromMinutes(5), 500),
-                                                     Connection      = "Keep-Alive",
-                                                 };
 
-                                                 #endregion
+                                                #region Choose HTTP Content Type based on the file name extention...
 
-                                             }
+                                                var FileName = FilePath.Substring(FilePath.LastIndexOf("/") + 1);
 
-                                             else
-                                                 return new HTTPResponseBuilder(Request) {
-                                                     HTTPStatusCode = HTTPStatusCode.NotFound,
-                                                     Server          = HTTPServer.DefaultServerName,
-                                                     Date            = DateTime.Now,
-                                                     CacheControl   = "no-cache",
-                                                     Connection     = "close",
-                                                 };
+                                                // Get the appropriate content type based on the suffix of the requested resource
+                                                switch (FileName.Remove(0, FileName.LastIndexOf(".") + 1))
+                                                {
+                                                    case "htm":   ResponseContentType = HTTPContentType.HTML_UTF8;       break;
+                                                    case "html":  ResponseContentType = HTTPContentType.HTML_UTF8;       break;
+                                                    case "shtml": ResponseContentType = HTTPContentType.HTML_UTF8;       break;
+                                                    case "css":   ResponseContentType = HTTPContentType.CSS_UTF8;        break;
+                                                    case "gif":   ResponseContentType = HTTPContentType.GIF;             break;
+                                                    case "jpg":   ResponseContentType = HTTPContentType.JPEG;            break;
+                                                    case "jpeg":  ResponseContentType = HTTPContentType.JPEG;            break;
+                                                    case "svg":   ResponseContentType = HTTPContentType.SVG;             break;
+                                                    case "png":   ResponseContentType = HTTPContentType.PNG;             break;
+                                                    case "ico":   ResponseContentType = HTTPContentType.ICO;             break;
+                                                    case "swf":   ResponseContentType = HTTPContentType.SWF;             break;
+                                                    case "js":    ResponseContentType = HTTPContentType.JAVASCRIPT_UTF8; break;
+                                                    case "txt":   ResponseContentType = HTTPContentType.TEXT_UTF8;       break;
+                                                    default:      ResponseContentType = HTTPContentType.OCTETSTREAM;     break;
+                                                }
 
-                                         }, AllowReplacement: URIReplacement.Fail);
+                                                #endregion
+
+                                                #region Create HTTP Response
+
+                                                return Task.FromResult(
+                                                    new HTTPResponseBuilder(Request) {
+                                                        HTTPStatusCode  = HTTPStatusCode.OK,
+                                                        Server          = HTTPServer.DefaultServerName,
+                                                        Date            = DateTime.Now,
+                                                        ContentType     = ResponseContentType,
+                                                        ContentStream   = FileStream,
+                                                        CacheControl    = "public, max-age=300",
+                                                        //Expires         = "Mon, 25 Jun 2015 21:31:12 GMT",
+                                                        KeepAlive       = new KeepAliveType(TimeSpan.FromMinutes(15),
+                                                                                            500),
+                                                        Connection      = "Keep-Alive",
+                                                    }.AsImmutable());
+
+                                                #endregion
+
+
+                                            }
+                                            catch (Exception e)
+                                            {
+
+                                                return Task.FromResult(
+                                                    new HTTPResponseBuilder(Request) {
+                                                        HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                                        Server          = HTTPServer.DefaultServerName,
+                                                        Date            = DateTime.Now,
+                                                        ContentType     = HTTPContentType.JSON_UTF8,
+                                                        Content         = JSONObject.Create(new JProperty("message", e.Message)).ToUTF8Bytes(),
+                                                        CacheControl    = "no-cache",
+                                                        Connection      = "close",
+                                                    }.AsImmutable());
+
+                                            }
+
+                                        }, AllowReplacement: URIReplacement.Fail);
 
             return;
 
