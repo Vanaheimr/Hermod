@@ -410,11 +410,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region AHTTPPDU(RemoteSocket, LocalSocket, HTTPHeader, HTTPBody = null, HTTPBodyStream = null, CancellationToken = null, EventTrackingId = null)
+        #region AHTTPPDU(Timestamp, RemoteSocket, LocalSocket, HTTPHeader, HTTPBody = null, HTTPBodyStream = null, CancellationToken = null, EventTrackingId = null)
 
         /// <summary>
         /// Creates a new HTTP header.
         /// </summary>
+        /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
         /// <param name="LocalSocket">The local TCP/IP socket.</param>
         /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
@@ -422,7 +423,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPBodyStream">The HTTP body as an stream of bytes.</param>
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
-        public AHTTPPDU(IPSocket            RemoteSocket,
+        public AHTTPPDU(DateTime            Timestamp,
+                        IPSocket            RemoteSocket,
                         IPSocket            LocalSocket,
                         String              HTTPHeader,
                         Byte[]              HTTPBody           = null,
@@ -434,7 +436,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this.Timestamp          = DateTime.UtcNow;
+            this.Timestamp          = Timestamp;
             this.RemoteSocket       = RemoteSocket;
             this._LocalSocket       = LocalSocket;
             this.RawHTTPHeader      = HTTPHeader.Trim();
