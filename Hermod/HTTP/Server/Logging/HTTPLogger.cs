@@ -946,9 +946,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                           ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------", Environment.NewLine,
                                                           Request.Timestamp.ToIso8601(),                                                      Environment.NewLine,
                                                           Request.EntirePDU,                                                                  Environment.NewLine,
-                                                          "--------------------------------------------------------------------------------")).
+                                                          "--------------------------------------------------------------------------------"));
 
-                                                ConfigureAwait(false);
+                                  await logfile.FlushAsync();
 
                               }
                           }).
@@ -1006,9 +1006,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                               " -> ",
                                                               (Request.Timestamp - Response.Timestamp).TotalMilliseconds, "ms runtime",        Environment.NewLine,
                                                           Response.EntirePDU,                                                                  Environment.NewLine,
-                                                          "--------------------------------------------------------------------------------")).
+                                                          "--------------------------------------------------------------------------------"));
 
-                                                ConfigureAwait(false);
+                                  await logfile.FlushAsync();
 
                               }
                           }).
