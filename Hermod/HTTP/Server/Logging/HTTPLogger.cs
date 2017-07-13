@@ -805,7 +805,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
 
                 Console.ForegroundColor = ConsoleColor.Gray;
-                Console.Write("[" + Request.Timestamp + "] ");
+                Console.Write("[" + Request.Timestamp.ToLocalTime() + "] ");
                 Console.ForegroundColor = ConsoleColor.DarkGray;
                 Console.Write(Context + "/");
                 Console.ForegroundColor = ConsoleColor.Yellow;
@@ -842,7 +842,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
 
                 Console.ForegroundColor = ConsoleColor.Gray;
-                Console.Write("[" + Request.Timestamp + "] ");
+                Console.Write("[" + Request.Timestamp.ToLocalTime() + "] ");
                 Console.ForegroundColor = ConsoleColor.DarkGray;
                 Console.Write(Context + "/");
                 Console.ForegroundColor = ConsoleColor.Yellow;

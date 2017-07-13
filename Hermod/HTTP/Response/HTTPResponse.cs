@@ -541,7 +541,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              EventTracking_Id    EventTrackingId    = null,
                              TimeSpan?           Runtime            = null)
 
-            : base(RemoteSocket,
+            : base(DateTime.UtcNow,
+                   RemoteSocket,
                    LocalSocket,
                    HTTPHeader,
                    HTTPBody,

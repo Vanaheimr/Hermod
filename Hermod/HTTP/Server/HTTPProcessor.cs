@@ -254,7 +254,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 if (MemoryStream.Length > 0)
                                 {
 
-                                    var RequestTimestamp = DateTime.Now;
+                                    var RequestTimestamp = DateTime.UtcNow;
 
                                     #region Check UTF8 encoding
 
@@ -287,7 +287,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     try
                                     {
 
-                                        HttpRequest = new HTTPRequest(_HTTPServer,
+                                        HttpRequest = new HTTPRequest(RequestTimestamp,
+                                                                      _HTTPServer,
                                                                       CTS.Token,
                                                                       EventTracking_Id.New,
                                                                       TCPConnection.RemoteSocket,
@@ -347,6 +348,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         else if (_HTTPResponse.HTTPBodyStream != null)
                                         {
                                             TCPConnection.WriteToResponseStream(_HTTPResponse.HTTPBodyStream);
+                                            _HTTPResponse.HTTPBodyStream.Close();
                                             _HTTPResponse.HTTPBodyStream.Dispose();
                                         }
 

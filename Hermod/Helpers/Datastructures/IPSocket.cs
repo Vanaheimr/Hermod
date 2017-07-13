@@ -97,6 +97,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+        #region Parse(Text)
+
+        /// <summary>
+        /// Parse the given text representation of an IP socket.
+        /// </summary>
+        /// <param name="Text">A text representation of an IP socket.</param>
+        public static IPSocket Parse(String Text)
+        {
+
+            var Splitter   = Text.LastIndexOf(":");
+            var IPAddress  = Text.Substring(0, Splitter);
+            var Port       = Text.Substring(Splitter + 1, Text.Length - Splitter - 1);
+
+            return IPAddress.Contains(".")
+
+                       ? new IPSocket(IPv4Address.Parse(IPAddress),
+                                      IPPort.Parse(Port))
+
+                       : new IPSocket(IPv6Address.Parse(IPAddress),
+                                      IPPort.Parse(Port));
+
+        }
+
+        #endregion
+
 
         #region Operator overloading
 
