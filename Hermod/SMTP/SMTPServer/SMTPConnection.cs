@@ -193,8 +193,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             try
             {
 
-                var MailFroms  = new EMailAddressList();
-                var RcptTos    = new EMailAddressList();
+                var MailFroms  = EMailAddressListBuilder.Empty;
+                var RcptTos    = EMailAddressListBuilder.Empty;
 
                 TCPConnection.WriteLineSMTP(SMTPStatusCode.ServiceReady,
                                             _DefaultServerName + " ESMTP Vanaheimr Hermod Mail Transport Service");
@@ -514,7 +514,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     else if (SMTPCommand.ToUpper().StartsWith("DATA"))
                                     {
 
-                                        if (MailFroms.Count == 0 || RcptTos.Count == 0)
+                                        if (MailFroms.Length == 0 || RcptTos.Length == 0)
                                             TCPConnection.WriteLineSMTP(SMTPStatusCode.BadCommandSequence, "Bad command sequence!");
 
                                         else

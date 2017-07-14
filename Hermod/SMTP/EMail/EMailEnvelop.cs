@@ -177,8 +177,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             MailBuilder.EncodeBodyparts();
 
                               // ToDo: Deep cloning!
-            this._MailFrom  = new EMailAddressList(MailBuilder.From);
-            this._RcptTo    = new EMailAddressList(MailBuilder.To);
+            this._MailFrom  = EMailAddressList.Create(MailBuilder.From);
+            this._RcptTo    = EMailAddressList.Create(MailBuilder.To);
             this._Mail      = new EMail(MailBuilder);
 
         }
@@ -194,8 +194,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public EMailEnvelop(EMail EMail)
         {
 
-            this._MailFrom  = new EMailAddressList(EMail.From);
-            this._RcptTo    = new EMailAddressList(EMail.To);
+            this._MailFrom  = EMailAddressList.Create(EMail.From);
+            this._RcptTo    = EMailAddressList.Create(EMail.To);
             this._Mail      = EMail;
 
         }

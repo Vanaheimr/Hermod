@@ -236,7 +236,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             var c = EMailString.IndexOf('>');
 
             if (b >= 0 && c > b)
-                return new EMailAddress(EMailString.Remove(b, c-b+1).Trim(), SimpleEMailAddress.Parse(EMailString.Substring(b+1, c-b-1).Trim()));
+                return new EMailAddress(EMailString.Remove(b, c-b+1).Trim(),
+                                        SimpleEMailAddress.Parse(EMailString.Substring(b+1, c-b-1).Trim()));
 
             return new EMailAddress(SimpleEMailAddress.Parse(EMailString));
 

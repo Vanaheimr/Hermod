@@ -100,12 +100,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #region To
 
-        private EMailAddressList _To;
+        private EMailAddressListBuilder _To;
 
         /// <summary>
         /// The receivers of this e-mail.
         /// </summary>
-        public EMailAddressList To
+        public EMailAddressListBuilder To
         {
 
             get
@@ -120,7 +120,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
                 if (_ToString.Key != null)
                 {
-                    _To = EMailAddressList.Parse(_ToString.Value);
+                    _To = EMailAddressListBuilder.Parse(_ToString.Value);
                     return _To;
                 }
 
@@ -148,12 +148,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #region ReplyTo
 
-        private readonly EMailAddressList _ReplyTo;
+        private readonly EMailAddressListBuilder _ReplyTo;
 
         /// <summary>
         /// The receivers of any reply on this e-mail.
         /// </summary>
-        public EMailAddressList ReplyTo
+        public EMailAddressListBuilder ReplyTo
         {
 
             get
@@ -173,12 +173,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #region Cc
 
-        private readonly EMailAddressList _Cc;
+        private readonly EMailAddressListBuilder _Cc;
 
         /// <summary>
         /// Additional receivers of this e-mail.
         /// </summary>
-        public EMailAddressList Cc
+        public EMailAddressListBuilder Cc
         {
 
             get
@@ -198,12 +198,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #region Bcc
 
-        private readonly EMailAddressList _Bcc;
+        private readonly EMailAddressListBuilder _Bcc;
 
         /// <summary>
         /// Additional but hidden receivers of this e-mail.
         /// </summary>
-        public EMailAddressList Bcc
+        public EMailAddressListBuilder Bcc
         {
 
             get
@@ -443,10 +443,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             : base()
         {
 
-            this._To                    = new EMailAddressList();
-            this._ReplyTo               = new EMailAddressList();
-            this._Cc                    = new EMailAddressList();
-            this._Bcc                   = new EMailAddressList();
+            this._To                    = EMailAddressListBuilder.Empty;
+            this._ReplyTo               = EMailAddressListBuilder.Empty;
+            this._Cc                    = EMailAddressListBuilder.Empty;
+            this._Bcc                   = EMailAddressListBuilder.Empty;
             this._Subject               = "";
             this. Date                  = DateTime.Now;
             this._References            = new List<MessageId>();
