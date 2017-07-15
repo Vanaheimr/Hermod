@@ -906,8 +906,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    if (RequestLogDelegate != null)
-                        await Task.WhenAll(RequestLogDelegate.GetInvocationList().
+                    if (ResponseLogDelegate != null)
+                        await Task.WhenAll(ResponseLogDelegate.GetInvocationList().
                                            Cast<ClientResponseLogHandler>().
                                            Select(e => e(DateTime.UtcNow,
                                                          this,
