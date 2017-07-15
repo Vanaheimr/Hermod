@@ -368,7 +368,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
             get
             {
+
+                if (_HTTPBody == null)
+                    TryReadHTTPBodyStream();
+
                 return _HTTPBody;
+
             }
         }
 
@@ -936,7 +941,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean TryReadHTTPBodyStream()
         {
 
-            if (HTTPBody != null)
+            if (_HTTPBody != null)
                 return true;
 
             if (!ContentLength.HasValue ||

@@ -114,12 +114,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.LogfileName          = LogfileName;
             this.IdCounter            = 0;
 
-            #region Setup Logfile(s)
+            #region Reload old data from logfile(s)...
 
             if (LogfileReloadSearchPattern != null)
             {
 
-                //Int64 CurrentCounter;
+                var HTTPSSEs = new List<String[]>();
 
                 foreach (var logfilename in Directory.EnumerateFiles(Directory.GetCurrentDirectory(),
                                                                      LogfileReloadSearchPattern,
@@ -127,39 +127,62 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       Reverse())
                 {
 
-                    //ToDo: Read files backwards!
                     File.ReadAllLines(logfilename).
-                         Take   ((Int64) MaxNumberOfCachedEvents - (Int64) QueueOfEvents.Count).
+                         Reverse().
+                         Where  (line => line.IsNotNullOrEmpty() &&
+                                        !line.StartsWith("//")   &&
+                                        !line.StartsWith("#")).
+                         Take   ((Int64) MaxNumberOfCachedEvents - HTTPSSEs.Count).
                          Select (line => line.Split((Char) 0x1E)).
                          ForEach(line => {
 
-                             try
-                             {
+                                             if (line.Length == 3           &&
+                                                 line[0].IsNotNullOrEmpty() &&
+                                                 line[2].IsNotNullOrEmpty())
+                                             {
+                                                 HTTPSSEs.Add(line);
+                                             }
 
-                                 //CurrentCounter = Int64.Parse(line[0]);
+                                             else
+                                                 DebugX.Log("Invalid HTTP event source data in file '", logfilename, "'!");
 
-                                 //if (IdCounter < CurrentCounter)
-                                 //    IdCounter = CurrentCounter;
+                                         });
 
-                                 QueueOfEvents.Push(new HTTPEvent(Id:        (UInt64) IdCounter++, //(UInt64) CurrentCounter,
-                                                                  Timestamp: DateTime.Parse(line[0]).ToUniversalTime(),
-                                                                  Subevent:  line[1],
-                                                                  Data:      line[2].Split((Char) 0x1F))).
-                                               Wait();
-
-                             }
-                             catch (Exception e)
-                             {
-                                 DebugX.Log("Reloading HTTP event source data from file '", logfilename, "' led to an exception: ", Environment.NewLine,
-                                            e.Message);
-                             }
-
-                         });
-
-                    if (QueueOfEvents.Count >= MaxNumberOfCachedEvents)
+                    if (HTTPSSEs.ULongCount() >= MaxNumberOfCachedEvents)
                         break;
 
                 }
+
+                HTTPSSEs.Reverse();
+
+                HTTPSSEs.ForEach(line => {
+
+                                     try
+                                     {
+
+                                         QueueOfEvents.Push(new HTTPEvent(Id:         (UInt64) IdCounter++,
+                                                                          Timestamp:  DateTime.Parse(line[0]).ToUniversalTime(),
+                                                                          Subevent:   line[1],
+                                                                          Data:       line[2].Split((Char) 0x1F))).
+                                                       Wait();
+
+                                     }
+                                     catch (Exception e)
+                                     {
+                                         DebugX.Log("Reloading HTTP event source data led to an exception: ", Environment.NewLine,
+                                                    e.Message);
+                                     }
+
+                                 });
+
+            }
+
+            #endregion
+
+            #region Write new data to logfile(s)...
+
+            if (LogfileName != null)
+            {
 
                 // Note: Do not attach this event handler before the data
                 //       is reread from the logfiles above!
