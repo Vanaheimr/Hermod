@@ -93,11 +93,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="EventIdentification">The internal identification of the HTTP event.</param>
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
         /// <param name="RetryIntervall">The retry intervall.</param>
-        /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
+        /// <param name="LogfileName">A delegate to create a filename for storing events.</param>
+        /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
         public HTTPEventSource(String                          EventIdentification,
-                               UInt64                          MaxNumberOfCachedEvents   = 500,
-                               TimeSpan?                       RetryIntervall            = null,
-                               Func<String, DateTime, String>  LogfileName               = null)
+                               UInt64                          MaxNumberOfCachedEvents     = 500,
+                               TimeSpan?                       RetryIntervall              = null,
+                               Func<String, DateTime, String>  LogfileName                 = null,
+                               String                          LogfileReloadSearchPattern  = null)
         {
 
             #region Initial checks
@@ -114,13 +116,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Setup Logfile(s)
 
-            if (LogfileName != null)
+            if (LogfileReloadSearchPattern != null)
             {
 
-                Int64 CurrentCounter;
+                //Int64 CurrentCounter;
 
                 foreach (var logfilename in Directory.EnumerateFiles(Directory.GetCurrentDirectory(),
-                                                                     this.EventIdentification + "*.log",
+                                                                     LogfileReloadSearchPattern,
                                                                      SearchOption.TopDirectoryOnly).
                                                       Reverse())
                 {
@@ -135,23 +137,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              try
                              {
 
-                                 CurrentCounter = Int64.Parse(line[0]);
+                                 //CurrentCounter = Int64.Parse(line[0]);
 
-                                 if (IdCounter < CurrentCounter)
-                                     IdCounter = CurrentCounter;
+                                 //if (IdCounter < CurrentCounter)
+                                 //    IdCounter = CurrentCounter;
 
-                                 QueueOfEvents.Push(new HTTPEvent((UInt64) CurrentCounter,
-                                                                  DateTime.Parse(line[1]),
-                                                                  line[2],
-                                                                  line[3].Split((Char) 0x1F))).
+                                 QueueOfEvents.Push(new HTTPEvent(Id:        (UInt64) IdCounter++, //(UInt64) CurrentCounter,
+                                                                  Timestamp: DateTime.Parse(line[0]).ToUniversalTime(),
+                                                                  Subevent:  line[1],
+                                                                  Data:      line[2].Split((Char) 0x1F))).
                                                Wait();
 
                              }
-#pragma warning disable RCS1075 // Avoid empty catch clause that catches System.Exception.
                              catch (Exception e)
-#pragma warning restore RCS1075 // Avoid empty catch clause that catches System.Exception.
                              {
-                                 DebugX.Log("HTTP evnet source lead to an exception: " + e.Message);
+                                 DebugX.Log("Reloading HTTP event source data from file '", logfilename, "' led to an exception: ", Environment.NewLine,
+                                            e.Message);
                              }
 
                          });
@@ -171,10 +172,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     {
 
                         using (var logfile = File.AppendText(this.LogfileName(this.EventIdentification,
-                                                                              DateTime.Now)))
+                                                                              DateTime.UtcNow)))
                         {
 
-                            await logfile.WriteLineAsync(String.Concat(Value.Id,                    (Char) 0x1E,
+                            await logfile.WriteLineAsync(String.Concat(//Value.Id,                    (Char) 0x1E,
                                                                        Value.Timestamp.ToIso8601(), (Char) 0x1E,
                                                                        Value.Subevent,              (Char) 0x1E,
                                                                        Value.Data.AggregateWith(    (Char) 0x1F))).
@@ -382,6 +383,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
             return QueueOfEvents.GetEnumerator();
         }
+
+        #endregion
+
+        #region ToString()
+
+        /// <summary>
+        /// Return a string represtentation of this object.
+        /// </summary>
+        public override String ToString()
+            => EventIdentification;
 
         #endregion
 

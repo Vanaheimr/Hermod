@@ -898,7 +898,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region Parse(Text, Timestamp = null, RemoteSocket = null, LocalSocket = null, EventTrackingId = null)
+        #region (static) Parse(Text, Timestamp = null, RemoteSocket = null, LocalSocket = null, EventTrackingId = null)
 
         /// <summary>
         /// Parse the given text as a HTTP request.

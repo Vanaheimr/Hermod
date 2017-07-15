@@ -409,6 +409,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
         /// <param name="RetryIntervall">The retry intervall.</param>
         /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
+        /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
         /// 
         /// <param name="Hostname">The HTTP host.</param>
         /// <param name="HTTPMethod">The HTTP method.</param>
@@ -422,19 +423,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         internal HTTPEventSource AddEventSource(String                          EventIdentification,
                                                 String                          URITemplate,
 
-                                                UInt32                          MaxNumberOfCachedEvents    = 500,
-                                                TimeSpan?                       RetryIntervall             = null,
-                                                Func<String, DateTime, String>  LogfileName                = null,
+                                                UInt32                          MaxNumberOfCachedEvents     = 500,
+                                                TimeSpan?                       RetryIntervall              = null,
+                                                Func<String, DateTime, String>  LogfileName                 = null,
+                                                String                          LogfileReloadSearchPattern  = null,
 
-                                                HTTPHostname                    Hostname                   = null,
-                                                HTTPMethod                      HTTPMethod                 = null,
-                                                HTTPContentType                 HTTPContentType            = null,
+                                                HTTPHostname                    Hostname                    = null,
+                                                HTTPMethod                      HTTPMethod                  = null,
+                                                HTTPContentType                 HTTPContentType             = null,
 
-                                                HTTPAuthentication              HostAuthentication         = null,
-                                                HTTPAuthentication              URIAuthentication          = null,
-                                                HTTPAuthentication              HTTPMethodAuthentication   = null,
+                                                HTTPAuthentication              HostAuthentication          = null,
+                                                HTTPAuthentication              URIAuthentication           = null,
+                                                HTTPAuthentication              HTTPMethodAuthentication    = null,
 
-                                                HTTPDelegate                    DefaultErrorHandler        = null)
+                                                HTTPDelegate                    DefaultErrorHandler         = null)
 
         {
 
@@ -450,7 +452,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                        new HTTPEventSource(EventIdentification,
                                                                                            MaxNumberOfCachedEvents,
                                                                                            RetryIntervall,
-                                                                                           LogfileName));
+                                                                                           LogfileName,
+                                                                                           LogfileReloadSearchPattern));
 
                 #endregion
 

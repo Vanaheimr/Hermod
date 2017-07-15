@@ -522,6 +522,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Parse the given HTTP response header.
         /// </summary>
+        /// <param name="Timestamp">The timestamp of the response.</param>
         /// <param name="HTTPRequest">The HTTP request for this HTTP response.</param>
         /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
         /// <param name="LocalSocket">The local TCP/IP socket.</param>
@@ -531,9 +532,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CancellationToken">A token to cancel the HTTP response processing.</param>
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         /// <param name="Runtime">The runtime of the HTTP request/response pair.</param>
-        private HTTPResponse(HTTPRequest         HTTPRequest,
+        private HTTPResponse(DateTime            Timestamp,
                              IPSocket            RemoteSocket,
                              IPSocket            LocalSocket,
+                             HTTPRequest         HTTPRequest,
                              String              HTTPHeader,
                              Byte[]              HTTPBody           = null,
                              Stream              HTTPBodyStream     = null,
@@ -541,7 +543,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              EventTracking_Id    EventTrackingId    = null,
                              TimeSpan?           Runtime            = null)
 
-            : base(DateTime.UtcNow,
+            : base(Timestamp,
                    RemoteSocket,
                    LocalSocket,
                    HTTPHeader,
@@ -578,9 +580,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         private HTTPResponse(String       ResponseHeader,
                              HTTPRequest  Request)
 
-            : this(Request,
+            : this(DateTime.UtcNow,
                    null,
                    null,
+                   Request,
                    ResponseHeader,
                    null,
                    new MemoryStream(),
@@ -614,9 +617,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              Byte[]       ResponseBody,
                              HTTPRequest  Request)
 
-            : this(Request,
+            : this(DateTime.UtcNow,
                    null,
                    null,
+                   Request,
                    ResponseHeader,
                    ResponseBody,
                    null,
@@ -637,9 +641,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              Stream       ResponseBody,
                              HTTPRequest  Request)
 
-            : this(Request,
+            : this(DateTime.UtcNow,
                    null,
                    null,
+                   Request,
                    ResponseHeader,
                    null,
                    ResponseBody,
@@ -702,6 +707,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 HTTPRequest);
 
         #endregion
+
+        #region (static) Parse(Text, Timestamp = null, RemoteSocket = null, LocalSocket = null, EventTrackingId = null)
+
+        /// <summary>
+        /// Parse the given text as a HTTP response.
+        /// </summary>
+        /// <param name="Text">A text representation of a HTTP response.</param>
+        /// <param name="Timestamp">The optional timestamp of the response.</param>
+        /// <param name="RemoteSocket">The optional remote TCP socket of the response.</param>
+        /// <param name="LocalSocket">The optional local TCP socket of the response.</param>
+        /// <param name="EventTrackingId">The optional event tracking identification of the response.</param>
+        /// <param name="Request">The HTTP request for this HTTP response.</param>
+        public static HTTPResponse Parse(IEnumerable<String>  Text,
+                                         DateTime?            Timestamp        = null,
+                                         IPSocket             RemoteSocket     = null,
+                                         IPSocket             LocalSocket      = null,
+                                         EventTracking_Id     EventTrackingId  = null,
+                                         HTTPRequest          Request          = null)
+        {
+
+                Timestamp  = Timestamp ?? DateTime.UtcNow;
+            var Header     = Text.TakeWhile(line => line != "").AggregateWith("\r\n");
+            var Body       = Text.SkipWhile(line => line != "").Skip(1).AggregateWith("\r\n");
+
+            return new HTTPResponse(Timestamp ?? DateTime.UtcNow,
+                                    RemoteSocket,
+                                    LocalSocket,
+                                    Request,
+                                    Header,
+                                    Body.ToUTF8Bytes(),
+                                    EventTrackingId:  EventTrackingId,
+                                    Runtime:          Timestamp - Request.Timestamp);
+
+        }
+
+        #endregion
+
 
 
         #region (static) BadRequest
