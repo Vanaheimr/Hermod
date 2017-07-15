@@ -129,7 +129,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     //ToDo: Read files backwards!
                     File.ReadAllLines(logfilename).
-                         Reverse().
                          Take   ((Int64) MaxNumberOfCachedEvents - (Int64) QueueOfEvents.Count).
                          Select (line => line.Split((Char) 0x1E)).
                          ForEach(line => {
