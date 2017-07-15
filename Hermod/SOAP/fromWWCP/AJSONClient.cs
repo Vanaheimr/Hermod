@@ -68,26 +68,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="ClientCert">The TLS client certificate to use.</param>
         /// <param name="HTTPVirtualHost">An optional HTTP virtual host name to use.</param>
         /// <param name="UserAgent">An optional HTTP user agent to use.</param>
-        /// <param name="QueryTimeout">An optional timeout for upstream queries.</param>
+        /// <param name="RequestTimeout">An optional timeout for upstream queries.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public AJSONClient(String                               ClientId,
                            String                               Hostname,
                            IPPort                               RemotePort,
-                           RemoteCertificateValidationCallback  RemoteCertificateValidator  = null,
-                           X509Certificate                      ClientCert                  = null,
-                           String                               HTTPVirtualHost             = null,
-                           String                               UserAgent                   = DefaultHTTPUserAgent,
-                           TimeSpan?                            QueryTimeout                = null,
-                           DNSClient                            DNSClient                   = null)
+                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
+                           LocalCertificateSelectionCallback    LocalCertificateSelector     = null,
+                           X509Certificate                      ClientCert                   = null,
+                           String                               HTTPVirtualHost              = null,
+                           String                               UserAgent                    = DefaultHTTPUserAgent,
+                           TimeSpan?                            RequestTimeout               = null,
+                           DNSClient                            DNSClient                    = null)
 
             : base(ClientId,
                    Hostname,
                    RemotePort,
                    RemoteCertificateValidator,
+                   LocalCertificateSelector,
                    ClientCert,
                    HTTPVirtualHost,
                    UserAgent,
-                   QueryTimeout,
+                   RequestTimeout,
                    DNSClient)
 
         { }

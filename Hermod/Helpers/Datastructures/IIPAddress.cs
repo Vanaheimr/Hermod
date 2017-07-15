@@ -27,7 +27,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <summary>
     /// A common interface for all kinds of IP Addresses.
     /// </summary>
-    public interface IIPAddress : IComparable, IComparable<IIPAddress>, IEquatable<IIPAddress>
+    public interface IIPAddress : IComparable,
+                                  IComparable<IIPAddress>,
+                                  IEquatable<IIPAddress>
     {
 
         /// <summary>
@@ -40,6 +42,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         Boolean IsMulticast { get; }
 
+        Boolean IsIPv4 { get; }
+
+        Boolean IsIPv6 { get; }
+
 
         /// <summary>
         /// Return a byte array representation of this object.
@@ -51,7 +57,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Return the HashCode of this object.
         /// </summary>
         Int32  GetHashCode();
-        
+
         /// <summary>
         /// Return a string representation of this object.
         /// </summary>

@@ -84,28 +84,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="URIPrefix">An default URI prefix.</param>
         /// <param name="WSSLoginPassword">The WebService-Security username/password.</param>
         /// <param name="UserAgent">An optional HTTP user agent to use.</param>
-        /// <param name="QueryTimeout">An optional timeout for upstream queries.</param>
+        /// <param name="RequestTimeout">An optional timeout for upstream queries.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public ASOAPClient(String                               ClientId,
                            String                               Hostname,
                            IPPort                               RemotePort,
-                           RemoteCertificateValidationCallback  RemoteCertificateValidator  = null,
-                           X509Certificate                      ClientCert                  = null,
-                           String                               HTTPVirtualHost             = null,
-                           String                               URIPrefix                   = null,
-                           Tuple<String, String>                WSSLoginPassword            = null,
-                           String                               UserAgent                   = DefaultHTTPUserAgent,
-                           TimeSpan?                            QueryTimeout                = null,
-                           DNSClient                            DNSClient                   = null)
+                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
+                           LocalCertificateSelectionCallback    LocalCertificateSelector     = null,
+                           X509Certificate                      ClientCert                   = null,
+                           String                               HTTPVirtualHost              = null,
+                           String                               URIPrefix                    = null,
+                           Tuple<String, String>                WSSLoginPassword             = null,
+                           String                               UserAgent                    = DefaultHTTPUserAgent,
+                           TimeSpan?                            RequestTimeout               = null,
+                           DNSClient                            DNSClient                    = null)
 
             : base(ClientId,
                    Hostname,
                    RemotePort,
                    RemoteCertificateValidator,
+                   LocalCertificateSelector,
                    ClientCert,
                    HTTPVirtualHost,
                    UserAgent,
-                   QueryTimeout,
+                   RequestTimeout,
                    DNSClient)
 
         {

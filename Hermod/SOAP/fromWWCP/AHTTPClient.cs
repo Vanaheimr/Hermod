@@ -89,6 +89,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         public RemoteCertificateValidationCallback RemoteCertificateValidator { get; }
 
+        public LocalCertificateSelectionCallback LocalCertificateSelector { get; }
+
         public X509Certificate ClientCert { get; }
 
         //        public LocalCertificateSelectionCallback ClientCertificateSelector { get; set; }
@@ -142,6 +144,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                            String                               Hostname,
                            IPPort                               RemotePort,
                            RemoteCertificateValidationCallback  RemoteCertificateValidator  = null,
+                           LocalCertificateSelectionCallback    LocalCertificateSelector    = null,
                            X509Certificate                      ClientCert                  = null,
                            String                               HTTPVirtualHost             = null,
                            String                               UserAgent                   = DefaultHTTPUserAgent,
@@ -161,6 +164,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             this.RemotePort                  = RemotePort ?? DefaultRemotePort;
 
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
+            this.LocalCertificateSelector    = LocalCertificateSelector;
             this.ClientCert                  = ClientCert;
 
             this.HTTPVirtualHost             = HTTPVirtualHost.IsNotNullOrEmpty()

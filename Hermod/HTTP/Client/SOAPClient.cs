@@ -136,22 +136,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="HTTPVirtualHost">The HTTP virtual host to use.</param>
         /// <param name="URIPrefix">The URI-prefix of the SOAP service.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
+        /// <param name="LocalCertificateSelector">Selects the local certificate used for authentication.</param>
         /// <param name="ClientCert">The TLS client certificate to use.</param>
         /// <param name="UserAgent">The HTTP user agent to use.</param>
+        /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public SOAPClient(String                               SOAPHost,
                           IPPort                               SOAPPort,
                           String                               HTTPVirtualHost,
                           String                               URIPrefix,
-                          RemoteCertificateValidationCallback  RemoteCertificateValidator  = null,
-                          X509Certificate                      ClientCert                  = null,
-                          String                               UserAgent                   = "GraphDefined SOAP Client",
-                          DNSClient                            DNSClient                   = null)
+                          RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
+                          LocalCertificateSelectionCallback    LocalCertificateSelector     = null,
+                          X509Certificate                      ClientCert                   = null,
+                          String                               UserAgent                    = "GraphDefined SOAP Client",
+                          TimeSpan?                            RequestTimeout               = null,
+                          DNSClient                            DNSClient                    = null)
 
             : base(SOAPHost,
                    SOAPPort,
                    RemoteCertificateValidator,
+                   LocalCertificateSelector,
                    ClientCert,
+                   RequestTimeout,
                    DNSClient)
 
         {
@@ -177,7 +183,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="OnSOAPFault">The delegate to call whenever a SOAP fault occured.</param>
         /// <param name="OnHTTPError">The delegate to call whenever a HTTP error occured.</param>
         /// <param name="OnException">The delegate to call whenever an exception occured.</param>
-        /// <param name="QueryTimeout">An optional timeout of the HTTP client [default 60 sec.]</param>
+        /// <param name="RequestTimeout">An optional timeout of the HTTP client [default 60 sec.]</param>
         /// <returns>The data structured after it had been processed by the OnSuccess delegate, or a fault.</returns>
         public Task<HTTPResponse<T>>
 
@@ -193,7 +199,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
                      CancellationToken?                                               CancellationToken    = null,
                      EventTracking_Id                                                 EventTrackingId      = null,
-                     TimeSpan?                                                        QueryTimeout         = null)
+                     TimeSpan?                                                        RequestTimeout         = null)
 
         {
 
@@ -234,7 +240,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                 ResponseLogDelegate,
                                 CancellationToken.HasValue  ? CancellationToken.Value : new CancellationTokenSource().Token,
                                 EventTrackingId,
-                                QueryTimeout               ?? TimeSpan.FromSeconds(60)).
+                                RequestTimeout               ?? TimeSpan.FromSeconds(60)).
 
                         ContinueWith(HttpResponseTask => {
 

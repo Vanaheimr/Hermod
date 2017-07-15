@@ -33,7 +33,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <summary>
     /// An IPv6 address.
     /// </summary>    
-    public class IPv6Address : IIPAddress, IComparable, IComparable<IPv6Address>, IEquatable<IPv6Address>
+    public class IPv6Address : IIPAddress,
+                               IComparable<IPv6Address>,
+                               IEquatable<IPv6Address>
     {
 
         #region Data
@@ -95,6 +97,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+        public Boolean IsIPv4
+            => false;
+
+        public Boolean IsIPv6
+            => true;
+
         #endregion
 
         #region Constructor(s)
@@ -152,6 +160,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
+        #region IPv6Address.Any / ::0
+
+        /// <summary>
+        /// The IPv6.Any / ::0 address.
+        /// </summary>
         public static IPv6Address Any
         {
             get
@@ -159,6 +172,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 return new IPv6Address(new Byte[_Length]);
             }
         }
+
+        #endregion
+
+        #region IPv6Address.Localhost / ::1
+
+        /// <summary>
+        /// The IPv6 localhost / ::1
+        /// </summary>
+        public static IPv6Address Localhost
+        {
+            get
+            {
+
+                var _ByteArray = new Byte[_Length];
+                _ByteArray[_ByteArray.Length - 1] = 1;
+
+                return new IPv6Address(_ByteArray);
+
+            }
+        }
+
+        #endregion
 
 
         #region GetBytes()

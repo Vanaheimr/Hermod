@@ -70,22 +70,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
         /// <param name="HTTPVirtualHost">The HTTP virtual host to use.</param>
         /// <param name="URIPrefix">The URI-prefix of the JSON service.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
+        /// <param name="LocalCertificateSelector">Selects the local certificate used for authentication.</param>
         /// <param name="ClientCert">The TLS client certificate to use.</param>
         /// <param name="UserAgent">The HTTP user agent to use.</param>
+        /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public JSONClient(String                               Hostname,
                           IPPort                               TCPPort,
                           String                               HTTPVirtualHost,
                           String                               URIPrefix,
-                          RemoteCertificateValidationCallback  RemoteCertificateValidator  = null,
-                          X509Certificate                      ClientCert                  = null,
-                          String                               UserAgent                   = "GraphDefined JSON Client",
-                          DNSClient                            DNSClient                   = null)
+                          RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
+                          LocalCertificateSelectionCallback    LocalCertificateSelector     = null,
+                          X509Certificate                      ClientCert                   = null,
+                          String                               UserAgent                    = "GraphDefined JSON Client",
+                          TimeSpan?                            RequestTimeout               = null,
+                          DNSClient                            DNSClient                    = null)
 
             : base(Hostname,
                    TCPPort,
                    RemoteCertificateValidator,
+                   LocalCertificateSelector,
                    ClientCert,
+                   RequestTimeout,
                    DNSClient)
 
         {
@@ -119,13 +125,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
                      Func<DateTime, Object, HTTPResponse<JObject>, HTTPResponse<T>>  OnJSONFault,
                      Func<DateTime, Object, HTTPResponse,          HTTPResponse<T>>  OnHTTPError,
                      Func<DateTime, Object, Exception,             HTTPResponse<T>>  OnException,
-                     Action<HTTPRequestBuilder>                                      HTTPRequestBuilder   = null,
-                     ClientRequestLogHandler                                         RequestLogDelegate   = null,
-                     ClientResponseLogHandler                                        ResponseLogDelegate  = null,
+                     Action<HTTPRequestBuilder>                                      HTTPRequestBuilder    = null,
+                     ClientRequestLogHandler                                         RequestLogDelegate    = null,
+                     ClientResponseLogHandler                                        ResponseLogDelegate   = null,
 
-                     CancellationToken?                                              CancellationToken    = null,
-                     EventTracking_Id                                                EventTrackingId      = null,
-                     TimeSpan?                                                       RequestTimeout       = null)
+                     CancellationToken?                                              CancellationToken     = null,
+                     EventTracking_Id                                                EventTrackingId       = null,
+                     TimeSpan?                                                       RequestTimeout        = null)
 
         {
 

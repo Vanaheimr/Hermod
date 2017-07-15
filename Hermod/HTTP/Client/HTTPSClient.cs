@@ -41,19 +41,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="RemoteIPAddress">The remote IP address to connect to.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
+        /// <param name="LocalCertificateSelector">Selects the local certificate used for authentication.</param>
         /// <param name="ClientCert">The TLS client certificate to use.</param>
         /// <param name="RemotePort">An optional remote IP port to connect to [default: 443].</param>
+        /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public HTTPSClient(IIPAddress                           RemoteIPAddress,
                            RemoteCertificateValidationCallback  RemoteCertificateValidator,
-                           X509Certificate                      ClientCert  = null,
-                           IPPort                               RemotePort  = null,
-                           DNSClient                            DNSClient   = null)
+                           LocalCertificateSelectionCallback    LocalCertificateSelector   = null,
+                           X509Certificate                      ClientCert                 = null,
+                           IPPort                               RemotePort                 = null,
+                           TimeSpan?                            RequestTimeout             = null,
+                           DNSClient                            DNSClient                  = null)
 
             : base(RemoteIPAddress,
                    RemotePort != null ? RemotePort : IPPort.Parse(443),
                    RemoteCertificateValidator,
+                   LocalCertificateSelector,
                    ClientCert,
+                   RequestTimeout,
                    DNSClient)
 
         { }
@@ -67,16 +73,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="RemoteSocket">The remote IP socket to connect to.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
+        /// <param name="LocalCertificateSelector">Selects the local certificate used for authentication.</param>
         /// <param name="ClientCert">The TLS client certificate to use.</param>
+        /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public HTTPSClient(IPSocket                             RemoteSocket,
                            RemoteCertificateValidationCallback  RemoteCertificateValidator,
-                           X509Certificate                      ClientCert  = null,
-                           DNSClient                            DNSClient   = null)
+                           LocalCertificateSelectionCallback    LocalCertificateSelector   = null,
+                           X509Certificate                      ClientCert                 = null,
+                           TimeSpan?                            RequestTimeout             = null,
+                           DNSClient                            DNSClient                  = null)
 
             : base(RemoteSocket,
                    RemoteCertificateValidator,
+                   LocalCertificateSelector,
                    ClientCert,
+                   RequestTimeout,
                    DNSClient)
 
         { }
@@ -90,19 +102,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="RemoteHost">The remote hostname to connect to.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
+        /// <param name="LocalCertificateSelector">Selects the local certificate used for authentication.</param>
         /// <param name="ClientCert">The TLS client certificate to use.</param>
         /// <param name="RemotePort">An optional remote IP port to connect to [default: 443].</param>
+        /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public HTTPSClient(String                               RemoteHost,
                            RemoteCertificateValidationCallback  RemoteCertificateValidator,
-                           X509Certificate                      ClientCert  = null,
-                           IPPort                               RemotePort  = null,
-                           DNSClient                            DNSClient   = null)
+                           LocalCertificateSelectionCallback    LocalCertificateSelector   = null,
+                           X509Certificate                      ClientCert                 = null,
+                           IPPort                               RemotePort                 = null,
+                           TimeSpan?                            RequestTimeout             = null,
+                           DNSClient                            DNSClient                  = null)
 
             : base(RemoteHost,
                    RemotePort != null ? RemotePort : IPPort.Parse(443),
                    RemoteCertificateValidator,
+                   LocalCertificateSelector,
                    ClientCert,
+                   RequestTimeout,
                    DNSClient)
 
         { }

@@ -25,9 +25,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
     /// <summary>
-    /// An IPPort.
-    /// </summary>    
-    public class IPPort : IEquatable<IPPort>, IComparable<IPPort>, IComparable
+    /// An IP port.
+    /// </summary>
+    public class IPPort : IEquatable<IPPort>,
+                          IComparable<IPPort>,
+                          IComparable
     {
 
         #region Data

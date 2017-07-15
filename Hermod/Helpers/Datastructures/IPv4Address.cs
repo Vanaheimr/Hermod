@@ -31,7 +31,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <summary>
     /// An IPv4 address.
     /// </summary>    
-    public class IPv4Address : IIPAddress, IComparable, IComparable<IPv4Address>, IEquatable<IPv4Address>
+    public class IPv4Address : IIPAddress,
+                               IComparable<IPv4Address>,
+                               IEquatable<IPv4Address>
     {
 
         #region Data
@@ -76,6 +78,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         }
 
         #endregion
+
+        public Boolean IsIPv4
+            => true;
+
+        public Boolean IsIPv6
+            => false;
 
         #endregion
 
