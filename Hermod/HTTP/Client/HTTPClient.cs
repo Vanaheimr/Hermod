@@ -64,17 +64,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        //private       TcpClient       TCPClient;
-        private       Socket          __socket;
-        private       NetworkStream   TCPStream;
-        private       SslStream       TLSStream;
-        private       Stream          HTTPStream;
+        private         Socket          TCPSocket;
+        private         NetworkStream   TCPStream;
+        private         SslStream       TLSStream;
+        private         Stream          HTTPStream;
 
-        private static Regex IPv4AddressRegExpr = new Regex(@"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b");
+        private static  Regex           IPv4AddressRegExpr     = new Regex(@"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b");
 
-        public const  String          DefaultUserAgent       = "Vanaheimr Hermod HTTP Client v0.1";
+        /// <summary>
+        /// The default HTTP/TCP Port.
+        /// </summary>
+        public  static  IPPort          DefaultHTTPPort         = IPPort.Parse(80);
 
-        public static TimeSpan        DefaultRequestTimeout  = TimeSpan.FromSeconds(60);
+        /// <summary>
+        /// The default HTTPS user agent.
+        /// </summary>
+        public  const   String          DefaultUserAgent       = "Vanaheimr Hermod HTTP Client v0.1";
+
+        /// <summary>
+        /// The default HTTP user agent.
+        /// </summary>
+        public  static  TimeSpan        DefaultRequestTimeout  = TimeSpan.FromSeconds(60);
 
         #endregion
 
@@ -132,19 +142,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
         public Int32 Available
-            => __socket.Available;
+            => TCPSocket.Available;
 
         public Boolean Connected
-            => __socket.Connected;
+            => TCPSocket.Connected;
 
         public LingerOption LingerState {
             get
             {
-                return __socket.LingerState;
+                return TCPSocket.LingerState;
             }
             set
             {
-                __socket.LingerState = value;
+                TCPSocket.LingerState = value;
             }
         }
 
@@ -152,11 +162,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
             get
             {
-                return __socket.NoDelay;
+                return TCPSocket.NoDelay;
             }
             set
             {
-                __socket.NoDelay = value;
+                TCPSocket.NoDelay = value;
             }
         }
 
@@ -164,11 +174,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
             get
             {
-                return (Byte) __socket.Ttl;
+                return (Byte) TCPSocket.Ttl;
             }
             set
             {
-                __socket.Ttl = value;
+                TCPSocket.Ttl = value;
             }
         }
 
@@ -185,82 +195,87 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region HTTPClient(RemoteIPAddress, RemotePort, RemoteCertificateValidator = null, ClientCert = null, DNSClient = null)
+        #region HTTPClient(RemoteIPAddress, ...)
 
         /// <summary>
-        /// Create a new HTTPClient using the given optional parameters.
+        /// Create a new HTTP client using the given optional parameters.
         /// </summary>
         /// <param name="RemoteIPAddress">The remote IP address to connect to.</param>
         /// <param name="RemotePort">The remote IP port to connect to.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="LocalCertificateSelector">Selects the local certificate used for authentication.</param>
         /// <param name="ClientCert">The TLS client certificate to use.</param>
+        /// <param name="UserAgent">The HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public HTTPClient(IIPAddress                           RemoteIPAddress,
-                          IPPort                               RemotePort,
-                          RemoteCertificateValidationCallback  RemoteCertificateValidator  = null,
-                          LocalCertificateSelectionCallback    LocalCertificateSelector    = null,
-                          X509Certificate                      ClientCert                  = null,
-                          TimeSpan?                            RequestTimeout              = null,
-                          DNSClient                            DNSClient                   = null)
+                          IPPort                               RemotePort                   = null,
+                          RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
+                          LocalCertificateSelectionCallback    LocalCertificateSelector     = null,
+                          X509Certificate                      ClientCert                   = null,
+                          String                               UserAgent                    = DefaultUserAgent,
+                          TimeSpan?                            RequestTimeout               = null,
+                          DNSClient                            DNSClient                    = null)
         {
 
             this.RemoteIPAddress             = RemoteIPAddress;
             this.Hostname                    = RemoteIPAddress.ToString();
-            this.RemotePort                  = RemotePort;
+            this.RemotePort                  = RemotePort     ?? DefaultHTTPPort;
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
             this.LocalCertificateSelector    = LocalCertificateSelector;
             this.ClientCert                  = ClientCert;
+            this.UserAgent                   = UserAgent      ?? DefaultUserAgent;
             this.RequestTimeout              = RequestTimeout ?? DefaultRequestTimeout;
-            this.DNSClient                   = DNSClient == null
-                                                   ? new DNSClient()
-                                                   : DNSClient;
+            this.DNSClient                   = DNSClient      ?? new DNSClient();
 
         }
 
         #endregion
 
-        #region HTTPClient(Socket, RemoteCertificateValidator = null, ClientCert = null, DNSClient = null)
+        #region HTTPClient(Socket, ...)
 
         /// <summary>
-        /// Create a new HTTPClient using the given optional parameters.
+        /// Create a new HTTP client using the given optional parameters.
         /// </summary>
         /// <param name="RemoteSocket">The remote IP socket to connect to.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="LocalCertificateSelector">Selects the local certificate used for authentication.</param>
         /// <param name="ClientCert">The TLS client certificate to use.</param>
+        /// <param name="UserAgent">The HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public HTTPClient(IPSocket                             RemoteSocket,
-                          RemoteCertificateValidationCallback  RemoteCertificateValidator  = null,
-                          LocalCertificateSelectionCallback    LocalCertificateSelector    = null,
-                          X509Certificate                      ClientCert                  = null,
-                          TimeSpan?                            RequestTimeout              = null,
-                          DNSClient                            DNSClient                   = null)
+                          RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
+                          LocalCertificateSelectionCallback    LocalCertificateSelector     = null,
+                          X509Certificate                      ClientCert                   = null,
+                          String                               UserAgent                    = DefaultUserAgent,
+                          TimeSpan?                            RequestTimeout               = null,
+                          DNSClient                            DNSClient                    = null)
 
             : this(RemoteSocket.IPAddress,
                    RemoteSocket.Port,
                    RemoteCertificateValidator,
                    LocalCertificateSelector,
                    ClientCert,
-                   RequestTimeout,
-                   DNSClient)
+                   UserAgent      ?? DefaultUserAgent,
+                   RequestTimeout ?? DefaultRequestTimeout,
+                   DNSClient      ?? new DNSClient())
 
         { }
 
         #endregion
 
-        #region HTTPClient(RemoteHost, RemotePort = null, RemoteCertificateValidator = null, ClientCert = null, DNSClient = null)
+        #region HTTPClient(RemoteHost, ...)
 
         /// <summary>
-        /// Create a new HTTPClient using the given optional parameters.
+        /// Create a new HTTP client using the given optional parameters.
         /// </summary>
         /// <param name="RemoteHost">The remote hostname to connect to.</param>
         /// <param name="RemotePort">The remote IP port to connect to.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="LocalCertificateSelector">Selects the local certificate used for authentication.</param>
         /// <param name="ClientCert">The TLS client certificate to use.</param>
+        /// <param name="UserAgent">The HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public HTTPClient(String                               RemoteHost,
@@ -268,21 +283,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
                           LocalCertificateSelectionCallback    LocalCertificateSelector     = null,
                           X509Certificate                      ClientCert                   = null,
+                          String                               UserAgent                    = DefaultUserAgent,
                           TimeSpan?                            RequestTimeout               = null,
                           DNSClient                            DNSClient                    = null)
         {
 
             this.Hostname                    = RemoteHost;
-            this.RemotePort                  = RemotePort != null
-                                                   ? RemotePort
-                                                   : IPPort.Parse(80);
+            this.RemotePort                  = RemotePort     ?? DefaultHTTPPort;
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
             this.LocalCertificateSelector    = LocalCertificateSelector;
             this.ClientCert                  = ClientCert;
+            this.UserAgent                   = UserAgent      ?? DefaultUserAgent;
             this.RequestTimeout              = RequestTimeout ?? DefaultRequestTimeout;
-            this.DNSClient                   = DNSClient != null
-                                                   ? DNSClient
-                                                   : new DNSClient();
+            this.DNSClient                   = DNSClient      ?? new DNSClient();
 
         }
 
@@ -424,7 +437,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #region Create TCP connection (possibly also do DNS lookups)
 
-                    if (__socket == null)
+                    if (TCPSocket == null)
                     {
 
                         System.Net.IPEndPoint _FinalIPEndPoint = null;
@@ -488,17 +501,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
                         if (RemoteIPAddress.IsIPv4)
-                            __socket = new Socket(AddressFamily.InterNetwork,
+                            TCPSocket = new Socket(AddressFamily.InterNetwork,
                                                   SocketType.   Stream,
                                                   ProtocolType. Tcp);
 
                         else if (RemoteIPAddress.IsIPv6)
-                            __socket = new Socket(AddressFamily.InterNetworkV6,
+                            TCPSocket = new Socket(AddressFamily.InterNetworkV6,
                                                   SocketType.   Stream,
                                                   ProtocolType. Tcp);
 
-                        __socket.Connect(_FinalIPEndPoint);
-                        __socket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+                        TCPSocket.Connect(_FinalIPEndPoint);
+                        TCPSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
 
                     }
 
@@ -506,7 +519,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #region Create (Crypto-)Stream
 
-                    TCPStream = new NetworkStream(__socket, true);
+                    TCPStream = new NetworkStream(TCPSocket, true);
                     TCPStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
 
                     TLSStream = RemoteCertificateValidator != null
@@ -590,7 +603,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             if (CurrentDataLength > 0)
                             {
                                 _InternalHTTPStream.Write(_Buffer, 0, CurrentDataLength);
-                                DebugX.Log("Read " + CurrentDataLength + " bytes from HTTP connection (" + __socket.LocalEndPoint + " -> " + RemoteSocket + ") (" + sw.ElapsedMilliseconds + "ms)!");
+                                DebugX.Log("Read " + CurrentDataLength + " bytes from HTTP connection (" + TCPSocket.LocalEndPoint + " -> " + RemoteSocket + ") (" + sw.ElapsedMilliseconds + "ms)!");
                             }
 
                         }
@@ -856,11 +869,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         Response.Connection == "close")
                     {
 
-                        if (__socket != null)
+                        if (TCPSocket != null)
                         {
-                            __socket.Close();
+                            TCPSocket.Close();
                             //TCPClient.Dispose();
-                            __socket = null;
+                            TCPSocket = null;
                         }
 
                         HTTPStream = null;
@@ -891,11 +904,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #endregion
 
-                    if (__socket != null)
+                    if (TCPSocket != null)
                     {
-                        __socket.Close();
+                        TCPSocket.Close();
                         //TCPClient.Dispose();
-                        __socket = null;
+                        TCPSocket = null;
                     }
 
                 }
@@ -972,9 +985,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             try
             {
-                if (__socket != null)
+                if (TCPSocket != null)
                 {
-                    __socket.Close();
+                    TCPSocket.Close();
                     //TCPClient.Dispose();
                 }
             }

@@ -34,15 +34,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public class HTTPSClient : HTTPClient
     {
 
-        #region HTTPSClient(RemoteIPAddress, RemoteCertificateValidator, ClientCert = null, RemotePort = null, DNSClient  = null)
+        #region Data
 
         /// <summary>
-        /// Create a new HTTPClient using the given optional parameters.
+        /// The default HTTPS/TCP Port.
+        /// </summary>
+        public static  IPPort    DefaultHTTPSPort       = IPPort.Parse(443);
+
+        /// <summary>
+        /// The default HTTPS user agent.
+        /// </summary>
+        public const   String    DefaultUserAgent       = "Vanaheimr Hermod HTTPS Client v0.1";
+
+        /// <summary>
+        /// The default HTTP user agent.
+        /// </summary>
+        public static  TimeSpan  DefaultRequestTimeout  = TimeSpan.FromSeconds(60);
+
+        #endregion
+
+        #region HTTPSClient(RemoteIPAddress, RemoteCertificateValidator, ...)
+
+        /// <summary>
+        /// Create a new HTTPS client using the given optional parameters.
         /// </summary>
         /// <param name="RemoteIPAddress">The remote IP address to connect to.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="LocalCertificateSelector">Selects the local certificate used for authentication.</param>
         /// <param name="ClientCert">The TLS client certificate to use.</param>
+        /// <param name="UserAgent">The HTTP user agent to use.</param>
         /// <param name="RemotePort">An optional remote IP port to connect to [default: 443].</param>
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
@@ -50,37 +70,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            RemoteCertificateValidationCallback  RemoteCertificateValidator,
                            LocalCertificateSelectionCallback    LocalCertificateSelector   = null,
                            X509Certificate                      ClientCert                 = null,
+                           String                               UserAgent                  = DefaultUserAgent,
                            IPPort                               RemotePort                 = null,
                            TimeSpan?                            RequestTimeout             = null,
                            DNSClient                            DNSClient                  = null)
 
             : base(RemoteIPAddress,
-                   RemotePort != null ? RemotePort : IPPort.Parse(443),
+                   RemotePort     ?? DefaultHTTPSPort,
                    RemoteCertificateValidator,
                    LocalCertificateSelector,
                    ClientCert,
-                   RequestTimeout,
+                   UserAgent      ?? DefaultUserAgent,
+                   RequestTimeout ?? DefaultRequestTimeout,
                    DNSClient)
 
         { }
 
         #endregion
 
-        #region HTTPSClient(Socket, RemoteCertificateValidator, ClientCert = null, DNSClient  = null)
+        #region HTTPSClient(Socket,          RemoteCertificateValidator, ...)
 
         /// <summary>
-        /// Create a new HTTPClient using the given optional parameters.
+        /// Create a new HTTPS client using the given optional parameters.
         /// </summary>
         /// <param name="RemoteSocket">The remote IP socket to connect to.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="LocalCertificateSelector">Selects the local certificate used for authentication.</param>
         /// <param name="ClientCert">The TLS client certificate to use.</param>
+        /// <param name="UserAgent">The HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public HTTPSClient(IPSocket                             RemoteSocket,
                            RemoteCertificateValidationCallback  RemoteCertificateValidator,
                            LocalCertificateSelectionCallback    LocalCertificateSelector   = null,
                            X509Certificate                      ClientCert                 = null,
+                           String                               UserAgent                  = DefaultUserAgent,
                            TimeSpan?                            RequestTimeout             = null,
                            DNSClient                            DNSClient                  = null)
 
@@ -88,23 +112,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    RemoteCertificateValidator,
                    LocalCertificateSelector,
                    ClientCert,
-                   RequestTimeout,
+                   UserAgent      ?? DefaultUserAgent,
+                   RequestTimeout ?? DefaultRequestTimeout,
                    DNSClient)
 
         { }
 
         #endregion
 
-        #region HTTPSClient(RemoteHost, RemoteCertificateValidator, ClientCert = null, RemotePort = null, DNSClient  = null)
+        #region HTTPSClient(RemoteHost,      RemoteCertificateValidator, ...)
 
         /// <summary>
-        /// Create a new HTTPClient using the given optional parameters.
+        /// Create a new HTTPS client using the given optional parameters.
         /// </summary>
         /// <param name="RemoteHost">The remote hostname to connect to.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="LocalCertificateSelector">Selects the local certificate used for authentication.</param>
         /// <param name="ClientCert">The TLS client certificate to use.</param>
         /// <param name="RemotePort">An optional remote IP port to connect to [default: 443].</param>
+        /// <param name="UserAgent">The HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public HTTPSClient(String                               RemoteHost,
@@ -112,15 +138,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            LocalCertificateSelectionCallback    LocalCertificateSelector   = null,
                            X509Certificate                      ClientCert                 = null,
                            IPPort                               RemotePort                 = null,
+                           String                               UserAgent                  = DefaultUserAgent,
                            TimeSpan?                            RequestTimeout             = null,
                            DNSClient                            DNSClient                  = null)
 
             : base(RemoteHost,
-                   RemotePort != null ? RemotePort : IPPort.Parse(443),
+                   RemotePort     ?? DefaultHTTPSPort,
                    RemoteCertificateValidator,
                    LocalCertificateSelector,
                    ClientCert,
-                   RequestTimeout,
+                   UserAgent      ?? DefaultUserAgent,
+                   RequestTimeout ?? DefaultRequestTimeout,
                    DNSClient)
 
         { }

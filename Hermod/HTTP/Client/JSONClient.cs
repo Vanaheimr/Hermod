@@ -41,22 +41,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
     public class JSONClient : HTTPClient
     {
 
+        #region Data
+
+        /// <summary>
+        /// The default HTTP/JSON user agent.
+        /// </summary>
+        public new const String DefaultUserAgent  = "GraphDefined HTTP/JSON Client";
+
+        #endregion
+
         #region Properties
 
         /// <summary>
         /// The HTTP virtual host to use.
         /// </summary>
-        public String HTTPVirtualHost { get; }
+        public String  HTTPVirtualHost   { get; }
 
         /// <summary>
-        /// The URI-prefix of the OICP service.
+        /// The URI-prefix of the HTTP/JSON service.
         /// </summary>
-        public String URIPrefix { get; }
-
-        /// <summary>
-        /// The HTTP user agent.
-        /// </summary>
-        public String UserAgent { get; }
+        public String  URIPrefix         { get; }
 
         #endregion
 
@@ -65,10 +69,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
         /// <summary>
         /// Create a new specialized HTTP client for the JavaScript Object Notation (JSON).
         /// </summary>
-        /// <param name="Hostname">The hostname of the remote JSON service.</param>
-        /// <param name="TCPPort">The TCP port of the remote JSON service.</param>
+        /// <param name="Hostname">The hostname of the remote HTTP/JSON service.</param>
+        /// <param name="HTTPPort">The HTTP port of the remote HTTP/JSON service.</param>
         /// <param name="HTTPVirtualHost">The HTTP virtual host to use.</param>
-        /// <param name="URIPrefix">The URI-prefix of the JSON service.</param>
+        /// <param name="URIPrefix">The URI-prefix of the HTTP/JSON service.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="LocalCertificateSelector">Selects the local certificate used for authentication.</param>
         /// <param name="ClientCert">The TLS client certificate to use.</param>
@@ -76,29 +80,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public JSONClient(String                               Hostname,
-                          IPPort                               TCPPort,
+                          IPPort                               HTTPPort,
                           String                               HTTPVirtualHost,
                           String                               URIPrefix,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
                           LocalCertificateSelectionCallback    LocalCertificateSelector     = null,
                           X509Certificate                      ClientCert                   = null,
-                          String                               UserAgent                    = "GraphDefined JSON Client",
+                          String                               UserAgent                    = DefaultUserAgent,
                           TimeSpan?                            RequestTimeout               = null,
                           DNSClient                            DNSClient                    = null)
 
             : base(Hostname,
-                   TCPPort,
+                   HTTPPort       ?? DefaultHTTPPort,
                    RemoteCertificateValidator,
                    LocalCertificateSelector,
                    ClientCert,
-                   RequestTimeout,
+                   UserAgent      ?? DefaultUserAgent,
+                   RequestTimeout ?? DefaultRequestTimeout,
                    DNSClient)
 
         {
 
             this.HTTPVirtualHost  = HTTPVirtualHost;
-            this.URIPrefix        = URIPrefix;
-            this.UserAgent        = UserAgent;
+            this.URIPrefix        = URIPrefix.IsNotNullOrEmpty() ? URIPrefix : "/";
 
         }
 

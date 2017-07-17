@@ -71,58 +71,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
     public class SOAPClient : HTTPClient
     {
 
+        #region Data
+
+        /// <summary>
+        /// The default HTTP/SOAP user agent.
+        /// </summary>
+        public new const String DefaultUserAgent  = "GraphDefined HTTP/SOAP Client";
+
+        #endregion
+
         #region Properties
-
-        #region HTTPVirtualHost
-
-        private readonly String _HTTPVirtualHost;
 
         /// <summary>
         /// The HTTP virtual host to use.
         /// </summary>
-        public String HTTPVirtualHost
-        {
-            get
-            {
-                return _HTTPVirtualHost;
-            }
-        }
-
-        #endregion
-
-        #region URIPrefix
-
-        private readonly String _URIPrefix;
+        public String  HTTPVirtualHost   { get; }
 
         /// <summary>
-        /// The URI-prefix of the OICP service.
+        /// The URI-prefix of the HTTP/SOAP service.
         /// </summary>
-        public String URIPrefix
-        {
-            get
-            {
-                return _URIPrefix;
-            }
-        }
-
-        #endregion
-
-        #region UserAgent
-
-        private readonly String _UserAgent;
-
-        /// <summary>
-        /// The HTTP user agent.
-        /// </summary>
-        public String UserAgent
-        {
-            get
-            {
-                return _UserAgent;
-            }
-        }
-
-        #endregion
+        public String  URIPrefix         { get; }
 
         #endregion
 
@@ -131,40 +99,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// Create a new specialized HTTP client for the Simple Object Access Protocol (SOAP).
         /// </summary>
-        /// <param name="SOAPHost">The hostname of the remote SOAP service.</param>
-        /// <param name="SOAPPort">The TCP port of the remote SOAP service.</param>
+        /// <param name="Hostname">The hostname of the remote HTTP/SOAP service.</param>
+        /// <param name="HTTPPort">The HTTP port of the remote HTTP/SOAP service.</param>
         /// <param name="HTTPVirtualHost">The HTTP virtual host to use.</param>
-        /// <param name="URIPrefix">The URI-prefix of the SOAP service.</param>
+        /// <param name="URIPrefix">The URI-prefix of the HTTP/SOAP service.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="LocalCertificateSelector">Selects the local certificate used for authentication.</param>
         /// <param name="ClientCert">The TLS client certificate to use.</param>
         /// <param name="UserAgent">The HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
-        public SOAPClient(String                               SOAPHost,
-                          IPPort                               SOAPPort,
+        public SOAPClient(String                               Hostname,
+                          IPPort                               HTTPPort,
                           String                               HTTPVirtualHost,
                           String                               URIPrefix,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
                           LocalCertificateSelectionCallback    LocalCertificateSelector     = null,
                           X509Certificate                      ClientCert                   = null,
-                          String                               UserAgent                    = "GraphDefined SOAP Client",
+                          String                               UserAgent                    = DefaultUserAgent,
                           TimeSpan?                            RequestTimeout               = null,
                           DNSClient                            DNSClient                    = null)
 
-            : base(SOAPHost,
-                   SOAPPort,
+            : base(Hostname,
+                   HTTPPort       ?? DefaultHTTPPort,
                    RemoteCertificateValidator,
                    LocalCertificateSelector,
                    ClientCert,
-                   RequestTimeout,
+                   UserAgent      ?? DefaultUserAgent,
+                   RequestTimeout ?? DefaultRequestTimeout,
                    DNSClient)
 
         {
 
-            this._HTTPVirtualHost  = HTTPVirtualHost;
-            this._URIPrefix        = URIPrefix.IsNotNullOrEmpty() ? URIPrefix : "/";
-            this._UserAgent        = UserAgent;
+            this.HTTPVirtualHost  = HTTPVirtualHost;
+            this.URIPrefix        = URIPrefix.IsNotNullOrEmpty() ? URIPrefix : "/";
 
         }
 
@@ -193,13 +161,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                      Func<DateTime, Object, HTTPResponse<XElement>, HTTPResponse<T>>  OnSOAPFault,
                      Func<DateTime, Object, HTTPResponse,           HTTPResponse<T>>  OnHTTPError,
                      Func<DateTime, Object, Exception,              HTTPResponse<T>>  OnException,
-                     Action<HTTPRequestBuilder>                                       HTTPRequestBuilder   = null,
-                     ClientRequestLogHandler                                          RequestLogDelegate   = null,
-                     ClientResponseLogHandler                                         ResponseLogDelegate  = null,
+                     Action<HTTPRequestBuilder>                                       HTTPRequestBuilder    = null,
+                     ClientRequestLogHandler                                          RequestLogDelegate    = null,
+                     ClientResponseLogHandler                                         ResponseLogDelegate   = null,
 
-                     CancellationToken?                                               CancellationToken    = null,
-                     EventTracking_Id                                                 EventTrackingId      = null,
-                     TimeSpan?                                                        RequestTimeout         = null)
+                     CancellationToken?                                               CancellationToken     = null,
+                     EventTracking_Id                                                 EventTrackingId       = null,
+                     TimeSpan?                                                        RequestTimeout        = null)
 
         {
 
@@ -225,7 +193,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             #endregion
 
-            var _RequestBuilder = this.POST(_URIPrefix);
+            var _RequestBuilder = this.POST(URIPrefix);
             _RequestBuilder.Host               = HTTPVirtualHost;
             _RequestBuilder.Content            = QueryXML.ToUTF8Bytes();
             _RequestBuilder.ContentType        = HTTPContentType.XMLTEXT_UTF8;
@@ -323,6 +291,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         }
 
         #endregion
+
 
     }
 
