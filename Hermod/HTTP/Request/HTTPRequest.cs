@@ -908,6 +908,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RemoteSocket">The optional remote TCP socket of the request.</param>
         /// <param name="LocalSocket">The optional local TCp socket of the request.</param>
         /// <param name="EventTrackingId">The optional event tracking identification of the request.</param>
+        public static HTTPRequest Parse(String            Text,
+                                        DateTime?         Timestamp        = null,
+                                        IPSocket          RemoteSocket     = null,
+                                        IPSocket          LocalSocket      = null,
+                                        EventTracking_Id  EventTrackingId  = null)
+        {
+
+            var EndOfHeader  = Text.IndexOf("\r\n\r\n");
+            var Header       = Text.Substring(0, EndOfHeader + 2);
+            var Body         = Text.Substring(EndOfHeader + 4);
+
+            return new HTTPRequest(Timestamp ?? DateTime.UtcNow,
+                                   RemoteSocket,
+                                   LocalSocket,
+                                   null,
+                                   Header,
+                                   Body.ToUTF8Bytes(),
+                                   EventTrackingId: EventTrackingId);
+
+        }
+
+        #endregion
+
+        #region (static) Parse(Text, Timestamp = null, RemoteSocket = null, LocalSocket = null, EventTrackingId = null)
+
+        /// <summary>
+        /// Parse the given text as a HTTP request.
+        /// </summary>
+        /// <param name="Text">A text representation of a HTTP request.</param>
+        /// <param name="Timestamp">The optional timestamp of the request.</param>
+        /// <param name="RemoteSocket">The optional remote TCP socket of the request.</param>
+        /// <param name="LocalSocket">The optional local TCp socket of the request.</param>
+        /// <param name="EventTrackingId">The optional event tracking identification of the request.</param>
         public static HTTPRequest Parse(IEnumerable<String>  Text,
                                         DateTime?            Timestamp        = null,
                                         IPSocket             RemoteSocket     = null,
