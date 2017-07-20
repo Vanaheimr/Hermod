@@ -197,8 +197,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                               DateTime.UtcNow)))
                         {
 
-                            await logfile.WriteLineAsync(String.Concat(//Value.Id,                    (Char) 0x1E,
-                                                                       Value.Timestamp.ToIso8601(), (Char) 0x1E,
+                            await logfile.WriteLineAsync(String.Concat(Value.Timestamp.ToIso8601(), (Char) 0x1E,
                                                                        Value.Subevent,              (Char) 0x1E,
                                                                        Value.Data.AggregateWith(    (Char) 0x1F))).
                                           ConfigureAwait(false);
