@@ -84,7 +84,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region HTTPResponse(Response, Content, IsFault = false, Exception = null)
+        #region HTTPResponse(Response, Content, IsFault = false, NumberOfTransmissionRetries = 0, Exception = null)
 
         public HTTPResponse(HTTPResponse  Response,
                             TContent      Content,
@@ -233,13 +233,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnException">A delegate to call whenever an exception during the conversion occures.</param>
         public HTTPResponse<TResult> ConvertContent<TRequest, TResult>(TRequest                                                Request,
                                                                        Func<TRequest, TContent, OnExceptionDelegate, TResult>  ContentConverter,
-                                                                       OnExceptionDelegate                                     OnException = null)
+                                                                       OnExceptionDelegate                                     OnException  = null)
         {
 
             if (ContentConverter == null)
                 throw new ArgumentNullException(nameof(ContentConverter), "The given content converter delegate must not be null!");
 
-            return new HTTPResponse<TResult>(this, ContentConverter(Request, this.Content, OnException));
+            return new HTTPResponse<TResult>(this,
+                                             ContentConverter(Request,
+                                                              Content,
+                                                              OnException));
 
         }
 
@@ -489,7 +492,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The runtime of the HTTP request/response pair.
         /// </summary>
-        public TimeSpan? Runtime { get; }
+        public TimeSpan? Runtime          { get; }
+
+        /// <summary>
+        /// The number of retransmissions of this request.
+        /// </summary>
+        public Byte      NumberOfRetry    { get; }
 
         #endregion
 
@@ -532,16 +540,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CancellationToken">A token to cancel the HTTP response processing.</param>
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         /// <param name="Runtime">The runtime of the HTTP request/response pair.</param>
+        /// <param name="NumberOfRetry">The number of retransmissions of this request.</param>
         private HTTPResponse(DateTime            Timestamp,
                              IPSocket            RemoteSocket,
                              IPSocket            LocalSocket,
                              HTTPRequest         HTTPRequest,
                              String              HTTPHeader,
-                             Byte[]              HTTPBody           = null,
-                             Stream              HTTPBodyStream     = null,
-                             CancellationToken?  CancellationToken  = null,
-                             EventTracking_Id    EventTrackingId    = null,
-                             TimeSpan?           Runtime            = null)
+                             Byte[]              HTTPBody            = null,
+                             Stream              HTTPBodyStream      = null,
+                             CancellationToken?  CancellationToken   = null,
+                             EventTracking_Id    EventTrackingId     = null,
+                             TimeSpan?           Runtime             = null,
+                             Byte                NumberOfRetry       = 0)
 
             : base(Timestamp,
                    RemoteSocket,
@@ -562,6 +572,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this._HTTPStatusCode  = HTTPStatusCode.ParseString(_StatusCodeLine[1]);
             this.Runtime          = Runtime ?? DateTime.UtcNow - HTTPRequest.Timestamp;
+            this.NumberOfRetry    = NumberOfRetry;
 
         }
 
@@ -577,8 +588,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="ResponseHeader">The HTTP header of the response.</param>
         /// <param name="Request">The HTTP request leading to this response.</param>
+        /// <param name="NumberOfRetry">The number of retransmissions of this request.</param>
         private HTTPResponse(String       ResponseHeader,
-                             HTTPRequest  Request)
+                             HTTPRequest  Request,
+                             Byte         NumberOfRetry = 0)
 
             : this(DateTime.UtcNow,
                    null,
@@ -589,7 +602,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    new MemoryStream(),
                    Request?.CancellationToken,
                    Request?.EventTrackingId,
-                   DateTime.UtcNow - Request.Timestamp)
+                   DateTime.UtcNow - Request.Timestamp,
+                   NumberOfRetry)
 
         {
 
@@ -666,11 +680,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPResponseHeader">The HTTP header of the response.</param>
         /// <param name="HTTPRequest">The HTTP request leading to this response.</param>
+        /// <param name="NumberOfRetry">The number of retransmissions of this request.</param>
         public static HTTPResponse Parse(String       HTTPResponseHeader,
-                                         HTTPRequest  HTTPRequest)
+                                         HTTPRequest  HTTPRequest,
+                                         Byte         NumberOfRetry = 0)
 
             => new HTTPResponse(HTTPResponseHeader,
-                                HTTPRequest);
+                                HTTPRequest,
+                                NumberOfRetry);
 
         #endregion
 

@@ -361,15 +361,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPRequestDelegate">A delegate for producing a HTTP request for a given HTTP client.</param>
         /// <param name="RequestLogDelegate">A delegate for logging the HTTP request.</param>
         /// <param name="ResponseLogDelegate">A delegate for logging the HTTP request/response.</param>
-        /// <param name="RequestTimeout">An optional HTTP request timeout.</param>
+        /// 
         /// <param name="CancellationToken">A cancellation token.</param>
+        /// <param name="EventTrackingId"></param>
+        /// <param name="RequestTimeout">An optional HTTP request timeout.</param>
+        /// <param name="NumberOfRetry">The number of retransmissions of this request.</param>
         public Task<HTTPResponse> Execute(Func<HTTPClient, HTTPRequest>  HTTPRequestDelegate,
-                                          ClientRequestLogHandler        RequestLogDelegate   = null,
-                                          ClientResponseLogHandler       ResponseLogDelegate  = null,
+                                          ClientRequestLogHandler        RequestLogDelegate    = null,
+                                          ClientResponseLogHandler       ResponseLogDelegate   = null,
 
-                                          CancellationToken?             CancellationToken    = null,
-                                          EventTracking_Id               EventTrackingId      = null,
-                                          TimeSpan?                      RequestTimeout       = null)
+                                          CancellationToken?             CancellationToken     = null,
+                                          EventTracking_Id               EventTrackingId       = null,
+                                          TimeSpan?                      RequestTimeout        = null,
+                                          Byte                           NumberOfRetry         = 0)
 
         {
 
@@ -386,7 +390,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                            CancellationToken,
                            EventTrackingId,
-                           RequestTimeout);
+                           RequestTimeout,
+                           NumberOfRetry);
 
         }
 
@@ -399,16 +404,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Request">A HTTP request.</param>
         /// <param name="RequestLogDelegate">A delegate for logging the HTTP request.</param>
-        /// <param name="ResponseLogDelegate">A delegate for logging the HTTP request/response.</param>
+        /// <param name="ResponseLogDelegate">A delegate for logging the HTTP request/response.</param>        /// 
+        /// 
         /// <param name="CancellationToken">A cancellation token.</param>
+        /// <param name="EventTrackingId"></param>
         /// <param name="RequestTimeout">An optional timeout.</param>
+        /// <param name="NumberOfRetry">The number of retransmissions of this request.</param>
         public Task<HTTPResponse> Execute(HTTPRequest               Request,
-                                          ClientRequestLogHandler   RequestLogDelegate   = null,
-                                          ClientResponseLogHandler  ResponseLogDelegate  = null,
+                                          ClientRequestLogHandler   RequestLogDelegate    = null,
+                                          ClientResponseLogHandler  ResponseLogDelegate   = null,
 
-                                          CancellationToken?        CancellationToken    = null,
-                                          EventTracking_Id          EventTrackingId      = null,
-                                          TimeSpan?                 RequestTimeout       = null)
+                                          CancellationToken?        CancellationToken     = null,
+                                          EventTracking_Id          EventTrackingId       = null,
+                                          TimeSpan?                 RequestTimeout        = null,
+                                          Byte                      NumberOfRetry         = 0)
 
         {
 
@@ -676,7 +685,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         throw new ApplicationException("[" + DateTime.UtcNow.ToString() + "] Could not find the end of the HTTP protocol header!");
 
                     Response = HTTPResponse.Parse(HTTPHeaderBytes.ToUTF8String(),
-                                                  Request);
+                                                  Request,
+                                                  NumberOfRetry);
 
                     #endregion
 
