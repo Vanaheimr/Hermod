@@ -85,6 +85,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="WSSLoginPassword">The WebService-Security username/password.</param>
         /// <param name="UserAgent">An optional HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional timeout for upstream queries.</param>
+        /// <param name="MaxNumberOfRetries">The default number of maximum transmission retries.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public ASOAPClient(String                               ClientId,
                            String                               Hostname,
@@ -97,6 +98,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                            Tuple<String, String>                WSSLoginPassword             = null,
                            String                               UserAgent                    = DefaultHTTPUserAgent,
                            TimeSpan?                            RequestTimeout               = null,
+                           Byte?                                MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
                            DNSClient                            DNSClient                    = null)
 
             : base(ClientId,
@@ -108,6 +110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                    HTTPVirtualHost,
                    UserAgent,
                    RequestTimeout,
+                   MaxNumberOfRetries,
                    DNSClient)
 
         {

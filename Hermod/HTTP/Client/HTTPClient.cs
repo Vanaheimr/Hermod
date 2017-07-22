@@ -56,6 +56,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     }
 
 
+    public class TimeoutException : Exception
+    {
+
+        public TimeSpan Timeout { get; }
+
+        public TimeoutException(TimeSpan Timeout)
+
+            : base("Could not read from the TCP stream for " + Timeout.TotalMilliseconds.ToString() + "ms!")
+
+        {
+
+            this.Timeout = Timeout;
+
+            DebugX.Log("Could not read from the TCP stream for " + Timeout.TotalMilliseconds.ToString() + "ms!");
+
+        }
+
+    }
+
+
     /// <summary>
     /// A http client.
     /// </summary>
@@ -441,7 +461,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     {
 
                         System.Net.IPEndPoint _FinalIPEndPoint = null;
-                   //     IIPAddress _ResolvedRemoteIPAddress = null;
+                        //     IIPAddress _ResolvedRemoteIPAddress = null;
 
                         if (RemoteIPAddress == null)
                         {
@@ -502,16 +522,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         if (RemoteIPAddress.IsIPv4)
                             TCPSocket = new Socket(AddressFamily.InterNetwork,
-                                                  SocketType.   Stream,
-                                                  ProtocolType. Tcp);
+                                                  SocketType.Stream,
+                                                  ProtocolType.Tcp);
 
                         else if (RemoteIPAddress.IsIPv6)
                             TCPSocket = new Socket(AddressFamily.InterNetworkV6,
-                                                  SocketType.   Stream,
-                                                  ProtocolType. Tcp);
+                                                  SocketType.Stream,
+                                                  ProtocolType.Tcp);
 
                         TCPSocket.Connect(_FinalIPEndPoint);
-                        TCPSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+                        TCPSocket.ReceiveTimeout = (Int32)RequestTimeout.Value.TotalMilliseconds;
 
                     }
 
@@ -520,7 +540,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     #region Create (Crypto-)Stream
 
                     TCPStream = new NetworkStream(TCPSocket, true);
-                    TCPStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+                    TCPStream.ReadTimeout = (Int32)RequestTimeout.Value.TotalMilliseconds;
 
                     TLSStream = RemoteCertificateValidator != null
 
@@ -533,7 +553,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                      : null;
 
                     if (TLSStream != null)
-                        TLSStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+                        TLSStream.ReadTimeout = (Int32)RequestTimeout.Value.TotalMilliseconds;
 
                     HTTPStream = null;
 
@@ -546,7 +566,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     else
                         HTTPStream = TCPStream;
 
-                    HTTPStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+                    HTTPStream.ReadTimeout = (Int32)RequestTimeout.Value.TotalMilliseconds;
 
                     #endregion
 
@@ -573,10 +593,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     {
 
                         if (sw.ElapsedMilliseconds >= RequestTimeout.Value.TotalMilliseconds)
-                        {
-                            DebugX.Log("Could not read from the TCP stream for " + sw.ElapsedMilliseconds.ToString() + "ms!");
-                            throw new Exception("Could not read from the TCP stream for " + sw.ElapsedMilliseconds.ToString() + "ms!");
-                        }
+                            throw new TimeoutException(sw.Elapsed);
 
                         Thread.Sleep(1);
 
@@ -883,6 +900,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     #endregion
 
                 }
+                catch (TimeoutException e)
+                {
+
+                    #region Create a HTTP response for the exception...
+
+                    Response = new HTTPResponseBuilder(Request,
+                                                       HTTPStatusCode.RequestTimeout)
+                    {
+
+                        ContentType  = HTTPContentType.JSON_UTF8,
+                        Content      = JSONObject.Create(new JProperty("timeout",     (Int32) e.Timeout.TotalMilliseconds),
+                                                         new JProperty("message",     e.Message),
+                                                         new JProperty("stackTrace",  e.StackTrace)).
+                                                  ToUTF8Bytes()
+
+                    };
+
+                    #endregion
+
+                    if (TCPSocket != null)
+                    {
+                        TCPSocket.Close();
+                        //TCPClient.Dispose();
+                        TCPSocket = null;
+                    }
+
+                }
                 catch (Exception e)
                 {
 
@@ -895,9 +939,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        HTTPStatusCode.BadRequest)
                     {
 
-                        ContentType = HTTPContentType.JSON_UTF8,
-                        Content = JSONObject.Create(new JProperty("Message", e.Message),
-                                                         new JProperty("StackTrace", e.StackTrace)).
+                        ContentType  = HTTPContentType.JSON_UTF8,
+                        Content      = JSONObject.Create(new JProperty("message",     e.Message),
+                                                         new JProperty("stackTrace",  e.StackTrace)).
                                                   ToUTF8Bytes()
 
                     };

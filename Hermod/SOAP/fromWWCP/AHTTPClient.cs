@@ -41,19 +41,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         #region Data
 
         /// <summary>
-        /// The default timeout for upstream queries.
+        /// The default remote TCP port to connect to.
         /// </summary>
-        public static readonly TimeSpan  DefaultRequestTimeout  = TimeSpan.FromSeconds(180);
+        public static readonly IPPort    DefaultRemotePort           = IPPort.Parse(443);
 
         /// <summary>
         /// The default HTTP user agent.
         /// </summary>
-        public const           String    DefaultHTTPUserAgent   = "GraphDefined HTTP Client";
+        public const           String    DefaultHTTPUserAgent        = "GraphDefined HTTP Client";
 
         /// <summary>
-        /// The default remote TCP port to connect to.
+        /// The default timeout for upstream queries.
         /// </summary>
-        public static readonly IPPort    DefaultRemotePort      = IPPort.Parse(443);
+        public static readonly TimeSpan  DefaultRequestTimeout       = TimeSpan.FromSeconds(180);
+
+        /// <summary>
+        /// The default number of maximum transmission retries.
+        /// </summary>
+        public const           Byte      DefaultMaxNumberOfRetries   = 3;
 
         #endregion
 
@@ -79,6 +84,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// The timeout for upstream requests.
         /// </summary>
         public TimeSpan?         RequestTimeout          { get; }
+
+        /// <summary>
+        /// The maximum number of retries when communicationg with the remote OICP service.
+        /// </summary>
+        public Byte?             MaxNumberOfRetries      { get; }
 
         /// <summary>
         /// The DNS client defines which DNS servers to use.
@@ -139,6 +149,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="HTTPVirtualHost">An optional HTTP virtual host name to use.</param>
         /// <param name="UserAgent">An optional HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional timeout for HTTP requests.</param>
+        /// <param name="MaxNumberOfRetries">The default number of maximum transmission retries.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public AHTTPClient(String                               ClientId,
                            String                               Hostname,
@@ -149,6 +160,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                            String                               HTTPVirtualHost             = null,
                            String                               UserAgent                   = DefaultHTTPUserAgent,
                            TimeSpan?                            RequestTimeout              = null,
+                           Byte?                                MaxNumberOfRetries          = DefaultMaxNumberOfRetries,
                            DNSClient                            DNSClient                   = null)
         {
 
@@ -161,25 +173,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             this.ClientId                    = ClientId;
             this.Hostname                    = Hostname;
-            this.RemotePort                  = RemotePort ?? DefaultRemotePort;
+            this.RemotePort                  = RemotePort         ?? DefaultRemotePort;
 
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
             this.LocalCertificateSelector    = LocalCertificateSelector;
             this.ClientCert                  = ClientCert;
 
             this.HTTPVirtualHost             = HTTPVirtualHost.IsNotNullOrEmpty()
-                                                    ? HTTPVirtualHost
-                                                    : Hostname;
+                                                   ? HTTPVirtualHost
+                                                   : Hostname;
 
-            this.UserAgent                   = UserAgent ?? DefaultHTTPUserAgent;
-
-            this.RequestTimeout              = RequestTimeout.HasValue
-                                                  ? RequestTimeout.Value
-                                                  : DefaultRequestTimeout;
-
-            this.DNSClient                   = DNSClient == null
-                                                  ? new DNSClient()
-                                                  : DNSClient;
+            this.UserAgent                   = UserAgent          ?? DefaultHTTPUserAgent;
+            this.RequestTimeout              = RequestTimeout     ?? DefaultRequestTimeout;
+            this.MaxNumberOfRetries          = MaxNumberOfRetries ?? DefaultMaxNumberOfRetries;
+            this.DNSClient                   = DNSClient          ?? new DNSClient();
 
         }
 

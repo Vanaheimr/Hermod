@@ -69,6 +69,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="HTTPVirtualHost">An optional HTTP virtual host name to use.</param>
         /// <param name="UserAgent">An optional HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional timeout for upstream queries.</param>
+        /// <param name="MaxNumberOfRetries">The default number of maximum transmission retries.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public AJSONClient(String                               ClientId,
                            String                               Hostname,
@@ -79,6 +80,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                            String                               HTTPVirtualHost              = null,
                            String                               UserAgent                    = DefaultHTTPUserAgent,
                            TimeSpan?                            RequestTimeout               = null,
+                           Byte?                                MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
                            DNSClient                            DNSClient                    = null)
 
             : base(ClientId,
@@ -90,6 +92,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                    HTTPVirtualHost,
                    UserAgent,
                    RequestTimeout,
+                   MaxNumberOfRetries,
                    DNSClient)
 
         { }
