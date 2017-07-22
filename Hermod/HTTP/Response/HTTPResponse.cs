@@ -492,12 +492,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The runtime of the HTTP request/response pair.
         /// </summary>
-        public TimeSpan? Runtime          { get; }
+        public TimeSpan? Runtime            { get; }
 
         /// <summary>
         /// The number of retransmissions of this request.
         /// </summary>
-        public Byte      NumberOfRetry    { get; }
+        public Byte      NumberOfRetries    { get; }
 
         #endregion
 
@@ -540,7 +540,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CancellationToken">A token to cancel the HTTP response processing.</param>
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         /// <param name="Runtime">The runtime of the HTTP request/response pair.</param>
-        /// <param name="NumberOfRetry">The number of retransmissions of this request.</param>
+        /// <param name="NumberOfRetries">The number of retransmissions of this request.</param>
         private HTTPResponse(DateTime            Timestamp,
                              IPSocket            RemoteSocket,
                              IPSocket            LocalSocket,
@@ -551,7 +551,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              CancellationToken?  CancellationToken   = null,
                              EventTracking_Id    EventTrackingId     = null,
                              TimeSpan?           Runtime             = null,
-                             Byte                NumberOfRetry       = 0)
+                             Byte                NumberOfRetries     = 0)
 
             : base(Timestamp,
                    RemoteSocket,
@@ -572,7 +572,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this._HTTPStatusCode  = HTTPStatusCode.ParseString(_StatusCodeLine[1]);
             this.Runtime          = Runtime ?? DateTime.UtcNow - HTTPRequest.Timestamp;
-            this.NumberOfRetry    = NumberOfRetry;
+            this.NumberOfRetries  = NumberOfRetries;
 
         }
 

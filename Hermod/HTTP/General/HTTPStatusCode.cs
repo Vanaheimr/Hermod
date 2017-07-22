@@ -474,7 +474,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public static readonly HTTPStatusCode Forbidden = new HTTPStatusCode(
                                               403,
-                                              "Forbidden", 
+                                              "Forbidden",
                                               "The server understood the request, but is refusing to fulfill it. " +
                                               "Authorization will not help and the request SHOULD NOT be repeated.");
 
