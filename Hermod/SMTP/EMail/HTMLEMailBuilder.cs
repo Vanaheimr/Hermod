@@ -211,6 +211,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #endregion
 
+
+        public static implicit operator EMail(HTMLEMailBuilder HTMLEMailBuilder)
+            => HTMLEMailBuilder.AsImmutable;
+
     }
 
 }
