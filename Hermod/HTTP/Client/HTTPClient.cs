@@ -629,7 +629,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             if (CurrentDataLength > 0)
                             {
                                 _InternalHTTPStream.Write(_Buffer, 0, CurrentDataLength);
-                                DebugX.Log("Read " + CurrentDataLength + " bytes from HTTP connection (" + TCPSocket.LocalEndPoint + " -> " + RemoteSocket + ") (" + sw.ElapsedMilliseconds + "ms)!");
+                                //DebugX.Log("Read " + CurrentDataLength + " bytes from HTTP connection (" + TCPSocket.LocalEndPoint + " -> " + RemoteSocket + ") (" + sw.ElapsedMilliseconds + "ms)!");
                             }
 
                         }
