@@ -34,6 +34,10 @@ using System.Security.Cryptography.X509Certificates;
 namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 {
 
+    public delegate T CustomXMLParserDelegate<T>(XElement XML, T Data);
+
+    public delegate XElement CustomXMLSerializerDelegate<T>(T ResponseBuilder, XElement XML);
+
     public delegate XElement XMLNamespacesDelegate(XElement XML);
 
     #region SOAP XML Namespace

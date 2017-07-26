@@ -410,141 +410,141 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="EventTrackingId"></param>
         /// <param name="RequestTimeout">An optional timeout.</param>
         /// <param name="NumberOfRetry">The number of retransmissions of this request.</param>
-        public Task<HTTPResponse> Execute(HTTPRequest               Request,
-                                          ClientRequestLogHandler   RequestLogDelegate    = null,
-                                          ClientResponseLogHandler  ResponseLogDelegate   = null,
+        public async Task<HTTPResponse>
 
-                                          CancellationToken?        CancellationToken     = null,
-                                          EventTracking_Id          EventTrackingId       = null,
-                                          TimeSpan?                 RequestTimeout        = null,
-                                          Byte                      NumberOfRetry         = 0)
+            Execute(HTTPRequest               Request,
+                    ClientRequestLogHandler   RequestLogDelegate    = null,
+                    ClientResponseLogHandler  ResponseLogDelegate   = null,
+
+                    CancellationToken?        CancellationToken     = null,
+                    EventTracking_Id          EventTrackingId       = null,
+                    TimeSpan?                 RequestTimeout        = null,
+                    Byte                      NumberOfRetry         = 0)
 
         {
 
-            return Task.Run(async () => {
+            #region Call the optional HTTP request log delegate
 
-                #region Call the optional HTTP request log delegate
+            try
+            {
 
-                try
-                {
+                if (RequestLogDelegate != null)
+                    await Task.WhenAll(RequestLogDelegate.GetInvocationList().
+                                       Cast<ClientRequestLogHandler>().
+                                       Select(e => e(DateTime.UtcNow,
+                                                     this,
+                                                     Request))).
+                                       ConfigureAwait(false);
 
-                    if (RequestLogDelegate != null)
-                        await Task.WhenAll(RequestLogDelegate.GetInvocationList().
-                                           Cast<ClientRequestLogHandler>().
-                                           Select(e => e(DateTime.UtcNow,
-                                                         this,
-                                                         Request))).
-                                           ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                e.Log(nameof(HTTPClient) + "." + nameof(RequestLogDelegate));
+            }
 
-                }
-                catch (Exception e)
-                {
-                    e.Log(nameof(HTTPClient) + "." + nameof(RequestLogDelegate));
-                }
+            #endregion
+
+            HTTPResponse Response = null;
+
+            try
+            {
+
+                //Thread.CurrentThread.Priority = ThreadPriority.BelowNormal;
+
+                #region Data
+
+                var HTTPHeaderBytes = new Byte[0];
+                var sw = new Stopwatch();
+
+                if (!RequestTimeout.HasValue)
+                    RequestTimeout = Request.Timeout;
+
+                if (!RequestTimeout.HasValue)
+                    RequestTimeout = TimeSpan.FromSeconds(60);
 
                 #endregion
 
-                HTTPResponse Response = null;
+                #region Create TCP connection (possibly also do DNS lookups)
 
-                try
+                if (TCPSocket == null)
                 {
 
-                    Thread.CurrentThread.Priority = ThreadPriority.BelowNormal;
+                    System.Net.IPEndPoint _FinalIPEndPoint = null;
+                    //     IIPAddress _ResolvedRemoteIPAddress = null;
 
-                    #region Data
-
-                    var HTTPHeaderBytes = new Byte[0];
-                    var sw = new Stopwatch();
-
-                    if (!RequestTimeout.HasValue)
-                        RequestTimeout = Request.Timeout;
-
-                    if (!RequestTimeout.HasValue)
-                        RequestTimeout = TimeSpan.FromSeconds(60);
-
-                    #endregion
-
-                    #region Create TCP connection (possibly also do DNS lookups)
-
-                    if (TCPSocket == null)
+                    if (RemoteIPAddress == null)
                     {
 
-                        System.Net.IPEndPoint _FinalIPEndPoint = null;
-                        //     IIPAddress _ResolvedRemoteIPAddress = null;
+                        if (Hostname.Trim() == "127.0.0.1" || Hostname.Trim() == "localhost")
+                            RemoteIPAddress = IPv4Address.Localhost;
+
+                        else if (Hostname.Trim() == "::1" || Hostname.Trim() == "localhost6")
+                            RemoteIPAddress = IPv6Address.Localhost;
+
+                        // Hostname is an IPv4 address...
+                        else if (IPv4AddressRegExpr.IsMatch(Hostname))
+                            RemoteIPAddress = IPv4Address.Parse(Hostname);
+
+                        #region DNS lookup...
 
                         if (RemoteIPAddress == null)
                         {
 
-                            if (Hostname.Trim() == "127.0.0.1" || Hostname.Trim() == "localhost")
-                                RemoteIPAddress = IPv4Address.Localhost;
-
-                            else if (Hostname.Trim() == "::1" || Hostname.Trim() == "localhost6")
-                                RemoteIPAddress = IPv6Address.Localhost;
-
-                            // Hostname is an IPv4 address...
-                            else if (IPv4AddressRegExpr.IsMatch(Hostname))
-                                RemoteIPAddress = IPv4Address.Parse(Hostname);
-
-                            #region DNS lookup...
-
-                            if (RemoteIPAddress == null)
+                            try
                             {
 
-                                try
-                                {
+                                var IPv4Addresses = await DNSClient.
+                                                              Query<A>(Hostname).
+                                                                  ContinueWith(QueryTask => QueryTask.Result.
+                                                                                                Select(ARecord => ARecord.IPv4Address).
+                                                                                                ToArray());
 
-                                    var IPv4Addresses = await DNSClient.
-                                                                  Query<A>(Hostname).
-                                                                      ContinueWith(QueryTask => QueryTask.Result.
-                                                                                                    Select(ARecord => ARecord.IPv4Address).
-                                                                                                    ToArray());
+                                var IPv6Addresses = await DNSClient.
+                                                              Query<AAAA>(Hostname).
+                                                                  ContinueWith(QueryTask => QueryTask.Result.
+                                                                                                Select(AAAARecord => AAAARecord.IPv6Address).
+                                                                                                ToArray());
 
-                                    var IPv6Addresses = await DNSClient.
-                                                                  Query<AAAA>(Hostname).
-                                                                      ContinueWith(QueryTask => QueryTask.Result.
-                                                                                                    Select(AAAARecord => AAAARecord.IPv6Address).
-                                                                                                    ToArray());
-
-                                    RemoteIPAddress = IPv4Addresses.FirstOrDefault();
-
-                                }
-                                catch (Exception e)
-                                {
-                                    DebugX.Log("HTTP Client DNS lookup failed: " + e.Message);
-                                }
+                                RemoteIPAddress = IPv4Addresses.FirstOrDefault();
 
                             }
-
-                            #endregion
+                            catch (Exception e)
+                            {
+                                DebugX.Log("HTTP Client DNS lookup failed: " + e.Message);
+                            }
 
                         }
 
-                        _FinalIPEndPoint = new System.Net.IPEndPoint(new System.Net.IPAddress(RemoteIPAddress.GetBytes()),
-                                                                     RemotePort.ToInt32());
-
-                        sw.Start();
-
-                        //TCPClient = new TcpClient();
-                        //TCPClient.Connect(_FinalIPEndPoint);
-                        //TCPClient.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
-
-
-                        if (RemoteIPAddress.IsIPv4)
-                            TCPSocket = new Socket(AddressFamily.InterNetwork,
-                                                  SocketType.Stream,
-                                                  ProtocolType.Tcp);
-
-                        else if (RemoteIPAddress.IsIPv6)
-                            TCPSocket = new Socket(AddressFamily.InterNetworkV6,
-                                                  SocketType.Stream,
-                                                  ProtocolType.Tcp);
-
-                        TCPSocket.Connect(_FinalIPEndPoint);
-                        TCPSocket.ReceiveTimeout = (Int32)RequestTimeout.Value.TotalMilliseconds;
+                        #endregion
 
                     }
 
-                    #endregion
+                    _FinalIPEndPoint = new System.Net.IPEndPoint(new System.Net.IPAddress(RemoteIPAddress.GetBytes()),
+                                                                 RemotePort.ToInt32());
+
+                    sw.Start();
+
+                    //TCPClient = new TcpClient();
+                    //TCPClient.Connect(_FinalIPEndPoint);
+                    //TCPClient.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+
+
+                    if (RemoteIPAddress.IsIPv4)
+                        TCPSocket = new Socket(AddressFamily.InterNetwork,
+                                              SocketType.Stream,
+                                              ProtocolType.Tcp);
+
+                    else if (RemoteIPAddress.IsIPv6)
+                        TCPSocket = new Socket(AddressFamily.InterNetworkV6,
+                                              SocketType.Stream,
+                                              ProtocolType.Tcp);
+
+                    TCPSocket.Connect(_FinalIPEndPoint);
+                    TCPSocket.ReceiveTimeout = (Int32)RequestTimeout.Value.TotalMilliseconds;
+
+                }
+
+                #endregion
 
                     #region Create (Crypto-)Stream
 
@@ -910,90 +910,88 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #endregion
 
-                }
-                catch (TimeoutException e)
+            }
+            catch (TimeoutException e)
+            {
+
+                #region Create a HTTP response for the exception...
+
+                Response = new HTTPResponseBuilder(Request,
+                                                   HTTPStatusCode.RequestTimeout)
                 {
 
-                    #region Create a HTTP response for the exception...
+                    ContentType  = HTTPContentType.JSON_UTF8,
+                    Content      = JSONObject.Create(new JProperty("timeout",     (Int32) e.Timeout.TotalMilliseconds),
+                                                     new JProperty("message",     e.Message),
+                                                     new JProperty("stackTrace",  e.StackTrace)).
+                                              ToUTF8Bytes()
 
-                    Response = new HTTPResponseBuilder(Request,
-                                                       HTTPStatusCode.RequestTimeout)
-                    {
-
-                        ContentType  = HTTPContentType.JSON_UTF8,
-                        Content      = JSONObject.Create(new JProperty("timeout",     (Int32) e.Timeout.TotalMilliseconds),
-                                                         new JProperty("message",     e.Message),
-                                                         new JProperty("stackTrace",  e.StackTrace)).
-                                                  ToUTF8Bytes()
-
-                    };
-
-                    #endregion
-
-                    if (TCPSocket != null)
-                    {
-                        TCPSocket.Close();
-                        //TCPClient.Dispose();
-                        TCPSocket = null;
-                    }
-
-                }
-                catch (Exception e)
-                {
-
-                    #region Create a HTTP response for the exception...
-
-                    while (e.InnerException != null)
-                        e = e.InnerException;
-
-                    Response = new HTTPResponseBuilder(Request,
-                                                       HTTPStatusCode.BadRequest)
-                    {
-
-                        ContentType  = HTTPContentType.JSON_UTF8,
-                        Content      = JSONObject.Create(new JProperty("message",     e.Message),
-                                                         new JProperty("stackTrace",  e.StackTrace)).
-                                                  ToUTF8Bytes()
-
-                    };
-
-                    #endregion
-
-                    if (TCPSocket != null)
-                    {
-                        TCPSocket.Close();
-                        //TCPClient.Dispose();
-                        TCPSocket = null;
-                    }
-
-                }
-
-
-                #region Call the optional HTTP response log delegate
-
-                try
-                {
-
-                    if (ResponseLogDelegate != null)
-                        await Task.WhenAll(ResponseLogDelegate.GetInvocationList().
-                                           Cast<ClientResponseLogHandler>().
-                                           Select(e => e(DateTime.UtcNow,
-                                                         this,
-                                                         Request,
-                                                         Response))).
-                                           ConfigureAwait(false);
-
-                }
-                catch (Exception e2)
-                {
-                    e2.Log(nameof(HTTPClient) + "." + nameof(ResponseLogDelegate));
-                }
+                };
 
                 #endregion
 
-                return Response;
+                if (TCPSocket != null)
+                {
+                    TCPSocket.Close();
+                    //TCPClient.Dispose();
+                    TCPSocket = null;
+                }
 
-            });
+            }
+            catch (Exception e)
+            {
+
+                #region Create a HTTP response for the exception...
+
+                while (e.InnerException != null)
+                    e = e.InnerException;
+
+                Response = new HTTPResponseBuilder(Request,
+                                                   HTTPStatusCode.BadRequest)
+                {
+
+                    ContentType  = HTTPContentType.JSON_UTF8,
+                    Content      = JSONObject.Create(new JProperty("message",     e.Message),
+                                                     new JProperty("stackTrace",  e.StackTrace)).
+                                              ToUTF8Bytes()
+
+                };
+
+                #endregion
+
+                if (TCPSocket != null)
+                {
+                    TCPSocket.Close();
+                    //TCPClient.Dispose();
+                    TCPSocket = null;
+                }
+
+            }
+
+
+            #region Call the optional HTTP response log delegate
+
+            try
+            {
+
+                if (ResponseLogDelegate != null)
+                    await Task.WhenAll(ResponseLogDelegate.GetInvocationList().
+                                       Cast<ClientResponseLogHandler>().
+                                       Select(e => e(DateTime.UtcNow,
+                                                     this,
+                                                     Request,
+                                                     Response))).
+                                       ConfigureAwait(false);
+
+            }
+            catch (Exception e2)
+            {
+                e2.Log(nameof(HTTPClient) + "." + nameof(ResponseLogDelegate));
+            }
+
+            #endregion
+
+            return Response;
 
         }
 
