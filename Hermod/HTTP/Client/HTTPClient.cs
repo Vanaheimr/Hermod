@@ -423,8 +423,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            DebugX.LogT("HTTPClient: " + Request.HTTPMethod + " " + Request.URI);
-
             #region Call the optional HTTP request log delegate
 
             try
@@ -548,55 +546,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #endregion
 
-                    #region Create (Crypto-)Stream
+                #region Create (Crypto-)Stream
 
-                    TCPStream = new NetworkStream(TCPSocket, true);
-                    TCPStream.ReadTimeout = (Int32)RequestTimeout.Value.TotalMilliseconds;
+                TCPStream = new NetworkStream(TCPSocket, true);
+                TCPStream.ReadTimeout = (Int32)RequestTimeout.Value.TotalMilliseconds;
 
-                    TLSStream = RemoteCertificateValidator != null
+                TLSStream = RemoteCertificateValidator != null
 
-                                     ? new SslStream(TCPStream,
-                                                     false,
-                                                     RemoteCertificateValidator,
-                                                     LocalCertificateSelector,
-                                                     EncryptionPolicy.RequireEncryption)
+                                 ? new SslStream(TCPStream,
+                                                 false,
+                                                 RemoteCertificateValidator,
+                                                 LocalCertificateSelector,
+                                                 EncryptionPolicy.RequireEncryption)
 
-                                     : null;
+                                 : null;
 
-                    if (TLSStream != null)
-                        TLSStream.ReadTimeout = (Int32)RequestTimeout.Value.TotalMilliseconds;
+                if (TLSStream != null)
+                    TLSStream.ReadTimeout = (Int32)RequestTimeout.Value.TotalMilliseconds;
 
-                    HTTPStream = null;
+                HTTPStream = null;
 
-                    if (RemoteCertificateValidator != null)
-                    {
-                        HTTPStream = TLSStream;
-                        await TLSStream.AuthenticateAsClientAsync(Hostname);//, new X509CertificateCollection(new X509Certificate[] { ClientCert }), SslProtocols.Default, true);
-                    }
+                if (RemoteCertificateValidator != null)
+                {
+                    HTTPStream = TLSStream;
+                    await TLSStream.AuthenticateAsClientAsync(Hostname);//, new X509CertificateCollection(new X509Certificate[] { ClientCert }), SslProtocols.Default, true);
+                }
 
-                    else
-                        HTTPStream = TCPStream;
+                else
+                    HTTPStream = TCPStream;
 
-                    HTTPStream.ReadTimeout = (Int32)RequestTimeout.Value.TotalMilliseconds;
+                HTTPStream.ReadTimeout = (Int32)RequestTimeout.Value.TotalMilliseconds;
 
-                    #endregion
+                #endregion
 
-                    #region Send Request
+                #region Send Request
 
-                    HTTPStream.Write(String.Concat(Request.EntireRequestHeader, "\r\n\r\n").
-                                            ToUTF8Bytes());
+                HTTPStream.Write(String.Concat(Request.EntireRequestHeader, "\r\n\r\n").
+                                        ToUTF8Bytes());
 
-                    var RequestBodyLength = Request.HTTPBody == null
-                                                ? Request.ContentLength.HasValue ? (Int32)Request.ContentLength.Value : 0
-                                                : Request.ContentLength.HasValue ? Math.Min((Int32)Request.ContentLength.Value, Request.HTTPBody.Length) : Request.HTTPBody.Length;
+                var RequestBodyLength = Request.HTTPBody == null
+                                            ? Request.ContentLength.HasValue ? (Int32) Request.ContentLength.Value : 0
+                                            : Request.ContentLength.HasValue ? Math.Min((Int32)Request.ContentLength.Value, Request.HTTPBody.Length) : Request.HTTPBody.Length;
 
-                    if (RequestBodyLength > 0)
-                        HTTPStream.Write(Request.HTTPBody, 0, RequestBodyLength);
+                if (RequestBodyLength > 0)
+                    HTTPStream.Write(Request.HTTPBody, 0, RequestBodyLength);
 
-                    var _InternalHTTPStream = new MemoryStream();
-                    var _Buffer = new Byte[10485760]; // 10 MBytes, a smaller value leads to read errors!
+                DebugX.Log("HTTPClient (" + Request.URI + ") sent request of " + RequestBodyLength + " bytes at " + sw.ElapsedMilliseconds + "ms!");
 
-                    #endregion
+                var _InternalHTTPStream = new MemoryStream();
+                var _Buffer = new Byte[10485760]; // 10 MBytes, a smaller value leads to read errors!
+
+                #endregion
 
                     #region Wait timeout for the server to react!
 
@@ -611,7 +611,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     }
 
-                    //Debug.WriteLine("[" + DateTime.Now + "] HTTPClient (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") got first response after " + sw.ElapsedMilliseconds + "ms!");
+                    DebugX.Log("HTTPClient (" + Request.URI + ") got first response after " + sw.ElapsedMilliseconds + "ms!");
 
                     #endregion
 
