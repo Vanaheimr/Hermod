@@ -220,9 +220,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                              CancellationToken.HasValue ? CancellationToken.Value : new CancellationTokenSource().Token,
                                              EventTrackingId,
                                              RequestTimeout ?? DefaultRequestTimeout,
-                                             NumberOfRetry).
-
-                                     ConfigureAwait(false);
+                                             NumberOfRetry);
 
 
 

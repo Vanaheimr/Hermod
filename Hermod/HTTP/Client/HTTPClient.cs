@@ -598,6 +598,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #region Wait timeout for the server to react!
 
+
                     while (!TCPStream.DataAvailable)
                     {
 
