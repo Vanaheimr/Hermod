@@ -423,6 +423,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
+            DebugX.LogT("HTTPClient: " + Request.HTTPMethod + " " + Request.URI);
+
             #region Call the optional HTTP request log delegate
 
             try
