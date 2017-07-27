@@ -425,6 +425,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Call the optional HTTP request log delegate
 
+            DebugX.LogT("HTTPClient pre-logging (" + Request.URI + ")...");
+
             try
             {
 
@@ -441,6 +443,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
                 e.Log(nameof(HTTPClient) + "." + nameof(RequestLogDelegate));
             }
+
+            DebugX.LogT("HTTPClient post-logging (" + Request.URI + ")...");
 
             #endregion
 

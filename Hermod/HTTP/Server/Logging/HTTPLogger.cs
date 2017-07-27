@@ -804,18 +804,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             lock (LockObject)
             {
 
+                var PreviousColor = Console.ForegroundColor;
+
                 Console.ForegroundColor = ConsoleColor.Gray;
-                Console.Write("[" + Request.Timestamp.ToLocalTime() + "] ");
+                Console.Write("[" + Request.Timestamp.ToLocalTime() + ", Thread " + Thread.CurrentThread.ManagedThreadId.ToString() + "] ");
                 Console.ForegroundColor = ConsoleColor.DarkGray;
                 Console.Write(Context + "/");
                 Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.Write(LogEventName);
 
                 if (Request.RemoteSocket != null)
                 {
+                    Console.Write(LogEventName);
                     Console.ForegroundColor = ConsoleColor.Gray;
                     Console.WriteLine(" from " + Request.RemoteSocket);
                 }
+
+                else
+                    Console.WriteLine(LogEventName);
+
+                Console.ForegroundColor = PreviousColor;
 
             }
 
@@ -841,8 +848,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             lock (LockObject)
             {
 
+                var PreviousColor = Console.ForegroundColor;
+
                 Console.ForegroundColor = ConsoleColor.Gray;
-                Console.Write("[" + Request.Timestamp.ToLocalTime() + "] ");
+                Console.Write("[" + Request.Timestamp.ToLocalTime() + ", Thread " + Thread.CurrentThread.ManagedThreadId.ToString() + "] ");
                 Console.ForegroundColor = ConsoleColor.DarkGray;
                 Console.Write(Context + "/");
                 Console.ForegroundColor = ConsoleColor.Yellow;
@@ -864,6 +873,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 Console.ForegroundColor = ConsoleColor.Gray;
                 Console.WriteLine(String.Concat(" in ", Math.Round((Response.Timestamp - Request.Timestamp).TotalMilliseconds), "ms"));
+
+                Console.ForegroundColor = PreviousColor;
 
             }
 

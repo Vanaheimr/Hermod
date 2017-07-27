@@ -227,8 +227,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                              NumberOfRetry);
 
 
-
-            if (HttpResponse.HTTPStatusCode  == HTTPStatusCode.OK &&
+            if (HttpResponse                 != null              &&
+                HttpResponse.HTTPStatusCode  == HTTPStatusCode.OK &&
                 HttpResponse.HTTPBody        != null              &&
                 HttpResponse.HTTPBody.Length > 0)
             {
@@ -295,6 +295,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             else
             {
+
+                DebugX.LogT("HTTPRepose is null! (" + _RequestBuilder.URI + ")");
 
                 var OnHTTPErrorLocal = OnHTTPError;
                 if (OnHTTPErrorLocal != null)
