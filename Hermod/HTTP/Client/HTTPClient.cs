@@ -591,107 +591,107 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (RequestBodyLength > 0)
                     HTTPStream.Write(Request.HTTPBody, 0, RequestBodyLength);
 
-                DebugX.Log("HTTPClient (" + Request.URI + ") sent request of " + RequestBodyLength + " bytes at " + sw.ElapsedMilliseconds + "ms!");
+                DebugX.LogT("HTTPClient (" + Request.HTTPMethod + Request.URI + ") sent request of " + Request.EntirePDU.Length + " bytes at " + sw.ElapsedMilliseconds + "ms!");
 
-                var _InternalHTTPStream = new MemoryStream();
-                var _Buffer = new Byte[10485760]; // 10 MBytes, a smaller value leads to read errors!
+                var _InternalHTTPStream  = new MemoryStream();
+                var _Buffer              = new Byte[10485760]; // 10 MBytes, a smaller value leads to read errors!
 
                 #endregion
 
-                    #region Wait timeout for the server to react!
+                #region Wait timeout for the server to react!
 
 
-                    while (!TCPStream.DataAvailable)
+                while (!TCPStream.DataAvailable)
+                {
+
+                    if (sw.ElapsedMilliseconds >= RequestTimeout.Value.TotalMilliseconds)
+                        throw new TimeoutException(sw.Elapsed);
+
+                    Thread.Sleep(1);
+
+                }
+
+                DebugX.LogT("HTTPClient (" + Request.HTTPMethod + Request.URI + ") got first response after " + sw.ElapsedMilliseconds + "ms!");
+
+                #endregion
+
+                #region Read at least the entire HTTP header, and maybe some of the HTTP body...
+
+                var CurrentDataLength = 0;
+
+                do
+                {
+
+                    #region When data available, write it to the buffer...
+
+                    while (TCPStream.DataAvailable)
                     {
 
-                        if (sw.ElapsedMilliseconds >= RequestTimeout.Value.TotalMilliseconds)
-                            throw new TimeoutException(sw.Elapsed);
+                        CurrentDataLength = HTTPStream.Read(_Buffer, 0, _Buffer.Length);
 
-                        Thread.Sleep(1);
+                        if (CurrentDataLength > 0)
+                        {
+                            _InternalHTTPStream.Write(_Buffer, 0, CurrentDataLength);
+                            //DebugX.Log("Read " + CurrentDataLength + " bytes from HTTP connection (" + TCPSocket.LocalEndPoint + " -> " + RemoteSocket + ") (" + sw.ElapsedMilliseconds + "ms)!");
+                        }
 
                     }
 
-                    DebugX.Log("HTTPClient (" + Request.URI + ") got first response after " + sw.ElapsedMilliseconds + "ms!");
-
                     #endregion
 
-                    #region Read at least the entire HTTP header, and maybe some of the HTTP body...
+                    #region Check if the entire HTTP header was already read into the buffer
 
-                    var CurrentDataLength = 0;
-
-                    do
+                    if (_InternalHTTPStream.Length > 4)
                     {
 
-                        #region When data available, write it to the buffer...
+                        var _InternalHTTPStreamBytes = _InternalHTTPStream.ToArray();
 
-                        while (TCPStream.DataAvailable)
+                        for (var pos = 3; pos < _InternalHTTPStreamBytes.Length; pos++)
                         {
 
-                            CurrentDataLength = HTTPStream.Read(_Buffer, 0, _Buffer.Length);
-
-                            if (CurrentDataLength > 0)
+                            if (_InternalHTTPStreamBytes[pos] == 0x0a &&
+                                _InternalHTTPStreamBytes[pos - 1] == 0x0d &&
+                                _InternalHTTPStreamBytes[pos - 2] == 0x0a &&
+                                _InternalHTTPStreamBytes[pos - 3] == 0x0d)
                             {
-                                _InternalHTTPStream.Write(_Buffer, 0, CurrentDataLength);
-                                //DebugX.Log("Read " + CurrentDataLength + " bytes from HTTP connection (" + TCPSocket.LocalEndPoint + " -> " + RemoteSocket + ") (" + sw.ElapsedMilliseconds + "ms)!");
+                                Array.Resize(ref HTTPHeaderBytes, pos - 3);
+                                Array.Copy(_InternalHTTPStreamBytes, 0, HTTPHeaderBytes, 0, pos - 3);
+                                break;
                             }
 
                         }
 
-                        #endregion
-
-                        #region Check if the entire HTTP header was already read into the buffer
-
-                        if (_InternalHTTPStream.Length > 4)
-                        {
-
-                            var _InternalHTTPStreamBytes = _InternalHTTPStream.ToArray();
-
-                            for (var pos = 3; pos < _InternalHTTPStreamBytes.Length; pos++)
-                            {
-
-                                if (_InternalHTTPStreamBytes[pos] == 0x0a &&
-                                    _InternalHTTPStreamBytes[pos - 1] == 0x0d &&
-                                    _InternalHTTPStreamBytes[pos - 2] == 0x0a &&
-                                    _InternalHTTPStreamBytes[pos - 3] == 0x0d)
-                                {
-                                    Array.Resize(ref HTTPHeaderBytes, pos - 3);
-                                    Array.Copy(_InternalHTTPStreamBytes, 0, HTTPHeaderBytes, 0, pos - 3);
-                                    break;
-                                }
-
-                            }
-
-                            //if (HTTPHeaderBytes.Length > 0)
-                            //    DebugX.Log("End of (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") HTTP header at " + HTTPHeaderBytes.Length + " bytes (" + sw.ElapsedMilliseconds + "ms)!");
-
-                        }
-
-                        #endregion
-
-                        Thread.Sleep(1);
+                        //if (HTTPHeaderBytes.Length > 0)
+                        //    DebugX.Log("End of (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") HTTP header at " + HTTPHeaderBytes.Length + " bytes (" + sw.ElapsedMilliseconds + "ms)!");
 
                     }
-                    // Note: Delayed parts of the HTTP body may not be read into the buffer
-                    //       => Must be read later!
-                    while (TCPStream.DataAvailable ||
-                           ((sw.ElapsedMilliseconds < HTTPStream.ReadTimeout) && HTTPHeaderBytes.Length == 0));
-
-                    var HTTPBodyStartsAt = HTTPHeaderBytes.Length + 4;
-
-                    //DebugX.Log("Finally read " + _MemoryStream.Length + " bytes of HTTP client (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") data (" + sw.ElapsedMilliseconds + "ms)!");
 
                     #endregion
 
-                    #region Copy HTTP header data and create HTTP response
+                    Thread.Sleep(1);
 
-                    if (HTTPHeaderBytes.Length == 0)
-                        throw new ApplicationException("[" + DateTime.UtcNow.ToString() + "] Could not find the end of the HTTP protocol header!");
+                }
+                // Note: Delayed parts of the HTTP body may not be read into the buffer
+                //       => Must be read later!
+                while (TCPStream.DataAvailable ||
+                       ((sw.ElapsedMilliseconds < HTTPStream.ReadTimeout) && HTTPHeaderBytes.Length == 0));
 
-                    Response = HTTPResponse.Parse(HTTPHeaderBytes.ToUTF8String(),
-                                                  Request,
-                                                  NumberOfRetry);
+                var HTTPBodyStartsAt = HTTPHeaderBytes.Length + 4;
 
-                    #endregion
+                //DebugX.Log("Finally read " + _MemoryStream.Length + " bytes of HTTP client (" + TCPClient.Client.LocalEndPoint.ToString() + " -> " + RemoteSocket.ToString() + ") data (" + sw.ElapsedMilliseconds + "ms)!");
+
+                #endregion
+
+                #region Copy HTTP header data and create HTTP response
+
+                if (HTTPHeaderBytes.Length == 0)
+                    throw new ApplicationException("[" + DateTime.UtcNow.ToString() + "] Could not find the end of the HTTP protocol header!");
+
+                Response = HTTPResponse.Parse(HTTPHeaderBytes.ToUTF8String(),
+                                              Request,
+                                              NumberOfRetry);
+
+                #endregion
 
                     #region A single fixed-lenght HTTP request -> read '$Content-Length' bytes...
 
