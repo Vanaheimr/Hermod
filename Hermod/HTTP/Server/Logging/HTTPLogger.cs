@@ -1047,7 +1047,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             finally
             {
                 if (LockTaken)
-                    LogHTTPRequest_toDisc_Lock.Release();
+                    LogHTTPResponse_toDisc_Lock.Release();
             }
 
         }
