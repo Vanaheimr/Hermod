@@ -940,36 +940,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                         HTTPRequest  Request)
         {
 
-            await LogHTTPRequest_toDisc_Lock.WaitAsync();
+            var LockTaken = await LogHTTPRequest_toDisc_Lock.WaitAsync(5000);
 
             try
             {
 
-                await OpenFileWithRetry(
-                          async () => {
-                              using (var logfile = File.AppendText(LogfileCreator(Context, LogEventName)))
-                              {
+                if (LockTaken)
+                {
 
-                                  await logfile.WriteLineAsync(
-                                            String.Concat(Request.RemoteSocket != null && Request.LocalSocket != null
-                                                              ? String.Concat(Request.RemoteSocket, " -> ", Request.LocalSocket)
-                                                              : "", Environment.NewLine,
-                                                          ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------", Environment.NewLine,
-                                                          Request.Timestamp.ToIso8601(),                                                      Environment.NewLine,
-                                                          Request.EntirePDU,                                                                  Environment.NewLine,
-                                                          "--------------------------------------------------------------------------------"));
+                    try
+                    {
 
-                                  await logfile.FlushAsync();
+                        //await OpenFileWithRetry(
+                        //          async () =>
+                        //          {
+                                      using (var logfile = File.AppendText(LogfileCreator(Context, LogEventName)))
+                                      {
 
-                              }
-                          }).
+                                          await logfile.WriteLineAsync(
+                                                    String.Concat(Request.RemoteSocket != null && Request.LocalSocket != null
+                                                                      ? String.Concat(Request.RemoteSocket, " -> ", Request.LocalSocket)
+                                                                      : "", Environment.NewLine,
+                                                                  ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------", Environment.NewLine,
+                                                                  Request.Timestamp.ToIso8601(), Environment.NewLine,
+                                                                  Request.EntirePDU, Environment.NewLine,
+                                                                  "--------------------------------------------------------------------------------"));
 
-                ConfigureAwait(false);
+                                          await logfile.FlushAsync();
 
-            }
-            catch (Exception e)
-            {
-                DebugX.Log("Could not log to disc: " + e.Message);
+                                      }
+                                  //});
+                    }
+                    catch (Exception e)
+                    {
+                        DebugX.LogT("Could not log to '" + LogfileCreator(Context, LogEventName) + "': " + e.Message);
+                    }
+
+                }
+
+                else
+                    DebugX.LogT("Could not get lock to log to '" + LogfileCreator(Context, LogEventName) + "'!");
+
             }
             finally
             {
@@ -995,13 +1006,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          HTTPResponse  Response)
         {
 
-            await LogHTTPResponse_toDisc_Lock.WaitAsync();
+            var LockTaken = await LogHTTPResponse_toDisc_Lock.WaitAsync(5000);
 
             try
             {
 
-                await OpenFileWithRetry(
-                          async () => {
+                if (LockTaken)
+                {
+
+                    try
+                    {
+
+            //            try
+            //{
+
+            //    await OpenFileWithRetry(
+            //              async () => {
                               using (var logfile = File.AppendText(LogfileCreator(Context, LogEventName)))
                               {
 
@@ -1022,18 +1042,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   await logfile.FlushAsync();
 
                               }
-                          }).
+                            //              }).
 
-                ConfigureAwait(false);
+                            //    ConfigureAwait(false);
 
-            }
-            catch (Exception e)
-            {
-                DebugX.Log("Could not log to disc: " + e.Message);
+                            //}
+                            //catch (Exception e)
+                            //{
+                            //    DebugX.Log("Could not log to disc: " + e.Message);
+                            //}
+                            //finally
+                            //{
+                            //    LogHTTPResponse_toDisc_Lock.Release();
+                            //}
+
+                        }
+                    catch (Exception e)
+                    {
+                        DebugX.LogT("Could not log to '" + LogfileCreator(Context, LogEventName) + "': " + e.Message);
+                    }
+
+                }
+
+                else
+                    DebugX.LogT("Could not get lock to log to '" + LogfileCreator(Context, LogEventName) + "'!");
+
             }
             finally
             {
-                LogHTTPResponse_toDisc_Lock.Release();
+                LogHTTPRequest_toDisc_Lock.Release();
             }
 
         }
