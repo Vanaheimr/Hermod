@@ -27,6 +27,7 @@ using System.Collections.Concurrent;
 using org.GraphDefined.Vanaheimr.Illias;
 using System.Diagnostics;
 using System.Threading;
+using System.Text;
 
 #endregion
 
@@ -783,6 +784,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         private static          SemaphoreSlim  LogHTTPRequest_toDisc_Lock   = new SemaphoreSlim(1,1);
         private static          SemaphoreSlim  LogHTTPResponse_toDisc_Lock  = new SemaphoreSlim(1,1);
 
+        /// <summary>
+        /// The maximum number of retries to write to a logfile.
+        /// </summary>
+        public  static readonly Byte           MaxRetries                   = 5;
+
+        /// <summary>
+        /// Maximum waiting time to enter a lock around a logfile.
+        /// </summary>
+        public  static readonly TimeSpan       MaxWaitingForALock           = TimeSpan.FromSeconds(15);
+
         #endregion
 
 
@@ -940,7 +951,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                         HTTPRequest  Request)
         {
 
-            var LockTaken = await LogHTTPRequest_toDisc_Lock.WaitAsync(10000);
+            //ToDo: Can we have a lock per logfile?
+            var LockTaken = await LogHTTPRequest_toDisc_Lock.WaitAsync(MaxWaitingForALock);
 
             try
             {
@@ -948,28 +960,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (LockTaken)
                 {
 
-                    try
+                    var retry = 0;
+
+                    do
                     {
 
-                        using (var logfile = File.AppendText(LogfileCreator(Context, LogEventName)))
+                        try
                         {
 
-                            logfile.WriteLine(
-                                      String.Concat(Request.RemoteSocket != null && Request.LocalSocket != null
-                                                        ? String.Concat(Request.RemoteSocket, " -> ", Request.LocalSocket)
-                                                        : "", Environment.NewLine,
-                                                    ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------", Environment.NewLine,
-                                                    Request.Timestamp.ToIso8601(), Environment.NewLine,
-                                                    Request.EntirePDU, Environment.NewLine,
-                                                    "--------------------------------------------------------------------------------"));
+                            File.AppendAllText(LogfileCreator(Context, LogEventName),
+                                               String.Concat(Request.RemoteSocket != null && Request.LocalSocket != null
+                                                                 ? String.Concat(Request.RemoteSocket, " -> ", Request.LocalSocket)
+                                                                 : "",                                                                           Environment.NewLine,
+                                                             ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------", Environment.NewLine,
+                                                             Request.Timestamp.ToIso8601(),                                                      Environment.NewLine,
+                                                             Request.EntirePDU,                                                                  Environment.NewLine,
+                                                             "--------------------------------------------------------------------------------"),
+                                               Encoding.UTF8);
 
+                            break;
+
+                        }
+                        catch (IOException e)
+                        {
+
+                            if (e.HResult != -2147024864)
+                            {
+                                DebugX.LogT("File access error while loggin to '" + LogfileCreator(Context, LogEventName) + "' (retry: " + retry++ + "): " + e.Message);
+                                Thread.Sleep(250);
+                            }
+
+                            else
+                            {
+                                DebugX.LogT("Could not log to '" + LogfileCreator(Context, LogEventName) + "': " + e.Message);
+                                break;
+                            }
+
+                        }
+                        catch (Exception e)
+                        {
+                            DebugX.LogT("Could not log to '" + LogfileCreator(Context, LogEventName) + "': " + e.Message);
+                            break;
                         }
 
                     }
-                    catch (Exception e)
-                    {
-                        DebugX.LogT("Could not log to '" + LogfileCreator(Context, LogEventName) + "': " + e.Message);
-                    }
+                    while (retry++ < MaxRetries);
 
                 }
 
@@ -1002,7 +1037,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          HTTPResponse  Response)
         {
 
-            var LockTaken = await LogHTTPResponse_toDisc_Lock.WaitAsync(10000);
+            //ToDo: Can we have a lock per logfile?
+            var LockTaken = await LogHTTPResponse_toDisc_Lock.WaitAsync(MaxWaitingForALock);
 
             try
             {
@@ -1010,33 +1046,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (LockTaken)
                 {
 
-                    try
+                    var retry = 0;
+
+                    do
                     {
 
-                        using (var logfile = File.AppendText(LogfileCreator(Context, LogEventName)))
+                        try
                         {
 
-                            logfile.WriteLine(
-                                      String.Concat(Request.RemoteSocket != null && Request.LocalSocket != null
-                                                        ? String.Concat(Request.RemoteSocket, " -> ", Request.LocalSocket)
-                                                        : "", Environment.NewLine,
-                                                    ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------", Environment.NewLine,
-                                                    Request.Timestamp.ToIso8601(), Environment.NewLine,
-                                                    Request.EntirePDU, Environment.NewLine,
-                                                    "<<<<<<--Response----<<<<<<------<<<<<<------<<<<<<------<<<<<<------<<<<<<------", Environment.NewLine,
-                                                    Response.Timestamp.ToIso8601(),
-                                                        " -> ",
-                                                        (Request.Timestamp - Response.Timestamp).TotalMilliseconds, "ms runtime", Environment.NewLine,
-                                                    Response.EntirePDU, Environment.NewLine,
-                                                    "--------------------------------------------------------------------------------"));
+                            File.AppendAllText(LogfileCreator(Context, LogEventName),
+                                               String.Concat(Request.RemoteSocket != null && Request.LocalSocket != null
+                                                                 ? String.Concat(Request.RemoteSocket, " -> ", Request.LocalSocket)
+                                                                 : "",                                                                           Environment.NewLine,
+                                                             ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------", Environment.NewLine,
+                                                             Request.Timestamp.ToIso8601(),                                                      Environment.NewLine,
+                                                             Request.EntirePDU,                                                                  Environment.NewLine,
+                                                             "<<<<<<--Response----<<<<<<------<<<<<<------<<<<<<------<<<<<<------<<<<<<------", Environment.NewLine,
+                                                             Response.Timestamp.ToIso8601(),
+                                                                 " -> ",
+                                                                 (Request.Timestamp - Response.Timestamp).TotalMilliseconds, "ms runtime",       Environment.NewLine,
+                                                             Response.EntirePDU,                                                                 Environment.NewLine,
+                                                             "--------------------------------------------------------------------------------"),
+                                               Encoding.UTF8);
 
+                            break;
+
+                        }
+                        catch (IOException e)
+                        {
+
+                            if (e.HResult != -2147024864)
+                            {
+                                DebugX.LogT("File access error while loggin to '" + LogfileCreator(Context, LogEventName) + "' (retry: " + retry++ + "): " + e.Message);
+                                Thread.Sleep(250);
+                            }
+
+                            else
+                            {
+                                DebugX.LogT("Could not log to '" + LogfileCreator(Context, LogEventName) + "': " + e.Message);
+                                break;
+                            }
+
+                        }
+                        catch (Exception e)
+                        {
+                            DebugX.LogT("Could not log to '" + LogfileCreator(Context, LogEventName) + "': " + e.Message);
+                            break;
                         }
 
                     }
-                    catch (Exception e)
-                    {
-                        DebugX.LogT("Could not log to '" + LogfileCreator(Context, LogEventName) + "': " + e.Message);
-                    }
+                    while (retry++ < MaxRetries) ;
 
                 }
 
