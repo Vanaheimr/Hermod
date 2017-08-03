@@ -449,7 +449,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     DebugX.Log("HTTPProcessor: " + ioe.Message);
 
                     //if (OnError != null)
-                    //    OnError(this, DateTime.Now, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), ioe, MemoryStream);
+                    //    OnError(this, DateTime.UtcNow, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), ioe, MemoryStream);
 
                 }
 
@@ -461,7 +461,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 DebugX.Log("HTTPProcessor: " + e.Message);
 
                 //if (OnError != null)
-                //    OnError(this, DateTime.Now, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), e, MemoryStream);
+                //    OnError(this, DateTime.UtcNow, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), e, MemoryStream);
 
             }
 

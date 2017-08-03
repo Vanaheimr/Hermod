@@ -454,7 +454,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                                while (e.InnerException != null)
                                                                    e = e.InnerException;
 
-                                                               Debug.WriteLine("[" + DateTime.Now + "] DNS exception " + e.Message);
+                                                               Debug.WriteLine("[" + DateTime.UtcNow + "] DNS exception " + e.Message);
 
                                                            }
 

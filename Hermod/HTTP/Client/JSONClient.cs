@@ -35,6 +35,10 @@ using Newtonsoft.Json.Linq;
 namespace org.GraphDefined.Vanaheimr.Hermod.JSON
 {
 
+    public delegate T CustomJSONParserDelegate<T>(JObject JSON, T Data);
+
+    public delegate JObject CustomJSONSerializerDelegate<T>(T ResponseBuilder, JObject JSON);
+
     /// <summary>
     /// A specialized HTTP client for JSON transport.
     /// </summary>
@@ -122,7 +126,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
         /// <param name="OnException">The delegate to call whenever an exception occured.</param>
         /// <param name="RequestTimeout">An optional timeout of the HTTP client [default 60 sec.]</param>
         /// <returns>The data structured after it had been processed by the OnSuccess delegate, or a fault.</returns>
-        public Task<HTTPResponse<T>>
+        public async Task<HTTPResponse<T>>
 
             Query<T>(JObject                                                         JSONRequest,
                      Func<HTTPResponse<JObject>,                   HTTPResponse<T>>  OnSuccess,
@@ -135,7 +139,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
 
                      CancellationToken?                                              CancellationToken     = null,
                      EventTracking_Id                                                EventTrackingId       = null,
-                     TimeSpan?                                                       RequestTimeout        = null)
+                     TimeSpan?                                                       RequestTimeout        = null,
+                     Byte                                                            NumberOfRetry         = 0)
 
         {
 
@@ -167,65 +172,85 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
 
             HTTPRequestBuilder?.Invoke(_RequestBuilder);
 
-            return this.Execute(_RequestBuilder,
-                                RequestLogDelegate,
-                                ResponseLogDelegate,
-                                CancellationToken.HasValue  ? CancellationToken.Value : new CancellationTokenSource().Token,
-                                EventTrackingId,
-                                RequestTimeout             ?? TimeSpan.FromSeconds(60)).
-
-                        ContinueWith(HttpResponseTask => {
-
-                            if (HttpResponseTask.Result                 == null              ||
-                                HttpResponseTask.Result.HTTPStatusCode  != HTTPStatusCode.OK ||
-                                HttpResponseTask.Result.HTTPBody        == null              ||
-                                HttpResponseTask.Result.HTTPBody.Length == 0)
-                            {
-
-                                var OnHTTPErrorLocal = OnHTTPError;
-                                if (OnHTTPErrorLocal != null)
-                                    return OnHTTPErrorLocal(DateTime.Now, this, HttpResponseTask?.Result);
-
-                                return new HTTPResponse<JObject>(HttpResponseTask?.Result,
-                                                                 new JObject(new JProperty("HTTPError", "")),
-                                                                 IsFault: true) as HTTPResponse<T>;
-
-                            }
-
-                            try
-                            {
-
-                                var JSON = JObject.Parse(HttpResponseTask.Result.HTTPBody.ToUTF8String());
-
-                                var OnSuccessLocal = OnSuccess;
-                                if (OnSuccessLocal != null)
-                                    return OnSuccessLocal(new HTTPResponse<JObject>(HttpResponseTask.Result, JSON));
-
-                                //var OnSOAPFaultLocal = OnSOAPFault;
-                                //if (OnSOAPFaultLocal != null)
-                                //    return OnSOAPFaultLocal(DateTime.Now, this, new HTTPResponse<XElement>(HttpResponseTask.Result, SOAPXML));
-
-                                return new HTTPResponse<JObject>(HttpResponseTask.Result,
-                                                                 new JObject(new JProperty("fault", "")),
-                                                                 IsFault: true) as HTTPResponse<T>;
+            var HttpResponse = await Execute(_RequestBuilder,
+                                             RequestLogDelegate,
+                                             ResponseLogDelegate,
+                                             CancellationToken.HasValue  ? CancellationToken.Value : new CancellationTokenSource().Token,
+                                             EventTrackingId,
+                                             RequestTimeout ?? DefaultRequestTimeout,
+                                             NumberOfRetry);
 
 
-                            } catch (Exception e)
-                            {
+            if (HttpResponse                 != null              &&
+                HttpResponse.HTTPStatusCode  == HTTPStatusCode.OK &&
+                HttpResponse.HTTPBody        != null              &&
+                HttpResponse.HTTPBody.Length > 0)
+            {
 
-                                OnException?.Invoke(DateTime.Now, this, e);
+                try
+                {
 
-                                //var OnFaultLocal = OnSOAPFault;
-                                //if (OnFaultLocal != null)
-                                //    return OnFaultLocal(new HTTPResponse<XElement>(HttpResponseTask.Result, e));
+            //        var OnHTTPErrorLocal = OnHTTPError;
+            //    if (OnHTTPErrorLocal != null)
+            //        return OnHTTPErrorLocal(DateTime.UtcNow, this, HttpResponseTask?.Result);
 
-                                return new HTTPResponse<JObject>(HttpResponseTask.Result,
-                                                                 new JObject(new JProperty("exception", e.Message)),
-                                                                 IsFault: true) as HTTPResponse<T>;
+            //    return new HTTPResponse<JObject>(HttpResponseTask?.Result,
+            //                                     new JObject(new JProperty("HTTPError", "")),
+            //                                     IsFault: true) as HTTPResponse<T>;
 
-                            }
+            //}
 
-                        });
+            //try
+            //{
+
+                    var JSON = JObject.Parse(HttpResponse.HTTPBody.ToUTF8String());
+
+                    var OnSuccessLocal = OnSuccess;
+                    if (OnSuccessLocal != null)
+                        return OnSuccessLocal(new HTTPResponse<JObject>(HttpResponse, JSON));
+
+                    //var OnSOAPFaultLocal = OnSOAPFault;
+                    //if (OnSOAPFaultLocal != null)
+                    //    return OnSOAPFaultLocal(DateTime.UtcNow, this, new HTTPResponse<XElement>(HttpResponseTask.Result, SOAPXML));
+
+                    return new HTTPResponse<JObject>(HttpResponse,
+                                                     new JObject(new JProperty("fault", "")),
+                                                     IsFault: true) as HTTPResponse<T>;
+
+
+                } catch (Exception e)
+                {
+
+                    OnException?.Invoke(DateTime.UtcNow, this, e);
+
+                    //var OnFaultLocal = OnSOAPFault;
+                    //if (OnFaultLocal != null)
+                    //    return OnFaultLocal(new HTTPResponse<XElement>(HttpResponseTask.Result, e));
+
+                    return new HTTPResponse<JObject>(HttpResponse,
+                                                     new JObject(new JProperty("exception", e.Message)),
+                                                     IsFault: true) as HTTPResponse<T>;
+
+                }
+
+            }
+
+            else
+            {
+
+                DebugX.LogT("HTTPRepose is null! (" + _RequestBuilder.URI + ")");
+
+                var OnHTTPErrorLocal = OnHTTPError;
+                if (OnHTTPErrorLocal != null)
+                    return OnHTTPErrorLocal(DateTime.UtcNow, this, HttpResponse);
+
+                return new HTTPResponse<JObject>(HttpResponse,
+                                                 new JObject(
+                                                     new JProperty("HTTPError", true)
+                                                 ),
+                                                 IsFault: true) as HTTPResponse<T>;
+
+            }
 
         }
 

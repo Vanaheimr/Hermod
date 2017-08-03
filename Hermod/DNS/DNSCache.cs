@@ -60,8 +60,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                        CleanUpEvery.HasValue ? CleanUpEvery.Value : TimeSpan.FromMinutes(1));
 
             _DNSCache.Add("localhost",
-                          new DNSCacheEntry(RefreshTime:  DateTime.Now,
-                                            EndOfLife:    DateTime.Now + TimeSpan.FromDays(3650),
+                          new DNSCacheEntry(RefreshTime:  DateTime.UtcNow,
+                                            EndOfLife:    DateTime.UtcNow + TimeSpan.FromDays(3650),
                                             DNSInfo:      new DNSInfo(Origin:               new IPSocket(IPv4Address.Parse("127.0.0.1"), IPPort.Parse(53)),
                                                                       QueryId:              0,
                                                                       IsAuthorativeAnswer:  true,
@@ -78,8 +78,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                          ));
 
             _DNSCache.Add("loopback",
-                          new DNSCacheEntry(RefreshTime:  DateTime.Now,
-                                            EndOfLife:    DateTime.Now + TimeSpan.FromDays(3650),
+                          new DNSCacheEntry(RefreshTime:  DateTime.UtcNow,
+                                            EndOfLife:    DateTime.UtcNow + TimeSpan.FromDays(3650),
                                             DNSInfo:      new DNSInfo(Origin:               new IPSocket(IPv4Address.Parse("127.0.0.1"), IPPort.Parse(53)),
                                                                       QueryId:              0,
                                                                       IsAuthorativeAnswer:  true,
@@ -118,16 +118,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 if (!_DNSCache.TryGetValue(Domainname, out CacheEntry))
                     _DNSCache.Add(Domainname, new DNSCacheEntry(
-                                                         DateTime.Now + TimeSpan.FromSeconds(DNSInformation.Answers.First().TimeToLive.TotalSeconds / 2),
-                                                         DateTime.Now + DNSInformation.Answers.First().TimeToLive,
+                                                         DateTime.UtcNow + TimeSpan.FromSeconds(DNSInformation.Answers.First().TimeToLive.TotalSeconds / 2),
+                                                         DateTime.UtcNow + DNSInformation.Answers.First().TimeToLive,
                                                          DNSInformation));
 
                 else
                 {
                     // ToDo: Merge of DNS responses!
                     _DNSCache[Domainname] = new DNSCacheEntry(
-                                                       DateTime.Now + TimeSpan.FromSeconds(DNSInformation.Answers.First().TimeToLive.TotalSeconds / 2),
-                                                       DateTime.Now + DNSInformation.Answers.First().TimeToLive,
+                                                       DateTime.UtcNow + TimeSpan.FromSeconds(DNSInformation.Answers.First().TimeToLive.TotalSeconds / 2),
+                                                       DateTime.UtcNow + DNSInformation.Answers.First().TimeToLive,
                                                        DNSInformation);
                 }
 
@@ -157,12 +157,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 DNSCacheEntry CacheEntry = null;
 
-                //Debug.WriteLine("[" + DateTime.Now + "] Adding '" + Domainname + "' to the DNS cache!");
+                //Debug.WriteLine("[" + DateTime.UtcNow + "] Adding '" + Domainname + "' to the DNS cache!");
 
                 if (!_DNSCache.TryGetValue(Domainname, out CacheEntry))
                     _DNSCache.Add(Domainname, new DNSCacheEntry(
-                                                         DateTime.Now + TimeSpan.FromSeconds(ResourceRecord.TimeToLive.TotalSeconds / 2),
-                                                         DateTime.Now + ResourceRecord.TimeToLive,
+                                                         DateTime.UtcNow + TimeSpan.FromSeconds(ResourceRecord.TimeToLive.TotalSeconds / 2),
+                                                         DateTime.UtcNow + ResourceRecord.TimeToLive,
                                                          new DNSInfo(Origin:               Origin,
                                                                      QueryId:              new Random().Next(),
                                                                      IsAuthorativeAnswer:  false,
@@ -178,7 +178,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 {
 
                     // ToDo: Merge of DNS responses!
-                    Debug.WriteLine("[" + DateTime.Now + "] Resource record for '" + Domainname + "' already exists within the DNS cache!");
+                    Debug.WriteLine("[" + DateTime.UtcNow + "] Resource record for '" + Domainname + "' already exists within the DNS cache!");
 
                 }
 
@@ -227,7 +227,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 try
                 {
 
-                    var Now             = DateTime.Now;
+                    var Now             = DateTime.UtcNow;
 
                     var ExpiredEntries  = _DNSCache.
                                               Where(entry => entry.Value.EndOfLife < Now).
@@ -243,7 +243,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 catch (Exception e)
                 {
-                    Debug.WriteLine("[" + DateTime.Now + "] An exception occured during DNS cache cleanup: " + e.Message);
+                    Debug.WriteLine("[" + DateTime.UtcNow + "] An exception occured during DNS cache cleanup: " + e.Message);
                 }
 
                 finally

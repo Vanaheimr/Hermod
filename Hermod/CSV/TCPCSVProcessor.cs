@@ -212,7 +212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                                     {
 
                                         TCPConnection.WriteLineToResponseStream(OnNotificationLocal(TCPConnection,
-                                                                                                    DateTime.Now,
+                                                                                                    DateTime.UtcNow,
                                                                                                     CSVArray));
 
                                     }
@@ -275,7 +275,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                 {
 
                     //if (OnError != null)
-                    //    OnError(this, DateTime.Now, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), ioe, MemoryStream);
+                    //    OnError(this, DateTime.UtcNow, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), ioe, MemoryStream);
 
                 }
 
@@ -285,7 +285,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
             {
 
                 //if (OnError != null)
-                //    OnError(this, DateTime.Now, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), e, MemoryStream);
+                //    OnError(this, DateTime.UtcNow, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), e, MemoryStream);
 
             }
 

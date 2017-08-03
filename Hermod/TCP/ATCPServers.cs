@@ -602,7 +602,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                     Action(_TCPServer);
 
-                    SendTCPSocketAttached(DateTime.Now, _TCPServer.IPSocket);
+                    SendTCPSocketAttached(DateTime.UtcNow, _TCPServer.IPSocket);
 
                 }
 
@@ -784,7 +784,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                 _IsStarted = true;
 
-                SendStarted(this, DateTime.Now);
+                SendStarted(this, DateTime.UtcNow);
 
             }
 
@@ -803,7 +803,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 foreach (var TCPServer in _TCPServers)
                     TCPServer.Start(Delay, InBackground);
 
-                SendStarted(this, DateTime.Now);
+                SendStarted(this, DateTime.UtcNow);
 
             }
 
@@ -822,7 +822,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 foreach (var TCPServer in _TCPServers)
                     TCPServer.Shutdown(Message, Wait);
 
-                SendCompleted(this, DateTime.Now, Message);
+                SendCompleted(this, DateTime.UtcNow, Message);
 
             }
 

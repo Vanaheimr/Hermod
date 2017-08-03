@@ -810,7 +810,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         var BlockLength = ChunkedBytes.ReadTEBlockLength(LastPos,
                                                                                          CurrentPosition - LastPos - 2);
 
-                                        //Debug.WriteLine(DateTime.Now + " Chunked encoded block of length " + BlockLength + " bytes detected");
+                                        //Debug.WriteLine(DateTime.UtcNow + " Chunked encoded block of length " + BlockLength + " bytes detected");
 
                                         #region End of stream reached...
 
@@ -860,7 +860,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             // Reaching this point means we need to read more
                                             // data from the network stream and decode again!
 
-                                            //Debug.WriteLine(DateTime.Now + " Chunked decoding restarted after reading " + NumberOfBlocks + " blocks!");
+                                            //Debug.WriteLine(DateTime.UtcNow + " Chunked decoding restarted after reading " + NumberOfBlocks + " blocks!");
 
                                             break;
 

@@ -387,7 +387,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this._HTTPRequest       = HTTPRequest;
             this._HTTPStatusCode    = HTTPStatusCode;
-            this._Timestamp         = DateTime.Now;
+            this._Timestamp         = DateTime.UtcNow;
             this.ProtocolName       = "HTTP";
             this.ProtocolVersion    = new HTTPVersion(1, 1);
             this.CancellationToken  = HTTPRequest?.CancellationToken ?? new CancellationTokenSource().Token;

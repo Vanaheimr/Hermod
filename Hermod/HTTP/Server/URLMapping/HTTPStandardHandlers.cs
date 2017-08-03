@@ -58,7 +58,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                  HTTPStatusCode  = HTTPStatusCode.OK,
                                                  Server          = HTTPServer.DefaultServerName,
-                                                 Date            = DateTime.Now,
+                                                 Date            = DateTime.UtcNow,
                                                  CacheControl    = "no-cache",
                                                  Connection      = "close",
                                                  ContentType     = HTTPContentType.TEXT_UTF8,
@@ -143,7 +143,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              return new HTTPResponseBuilder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.OK,
                                                  Server          = HTTPServer.DefaultServerName,
-                                                 Date            = DateTime.Now,
+                                                 Date            = DateTime.UtcNow,
                                                  ContentType     = HTTPContentType.EVENTSTREAM,
                                                  CacheControl    = "no-cache",
                                                  Connection      = "keep-alive",
@@ -213,7 +213,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  return new HTTPResponseBuilder(Request) {
                                                      HTTPStatusCode  = HTTPStatusCode.OK,
                                                      Server          = HTTPServer.DefaultServerName,
-                                                     Date            = DateTime.Now,
+                                                     Date            = DateTime.UtcNow,
                                                      ContentType     = ResponseContentType,
                                                      ContentStream   = FileStream,
                                                      CacheControl    = CacheControl,
@@ -276,7 +276,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      return new HTTPResponseBuilder(Request) {
                                                          HTTPStatusCode  = HTTPStatusCode.NotFound,
                                                          Server          = HTTPServer.DefaultServerName,
-                                                         Date            = DateTime.Now,
+                                                         Date            = DateTime.UtcNow,
                                                          CacheControl    = "no-cache",
                                                          Connection      = "close",
                                                      };
@@ -335,7 +335,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         return new HTTPResponseBuilder(Request) {
                             HTTPStatusCode   = HTTPStatusCode.Unauthorized,
                             Server           = HTTPServer.DefaultServerName,
-                            Date             = DateTime.Now,
+                            Date             = DateTime.UtcNow,
                             WWWAuthenticate  = @"Basic realm=""" + HTTPRealm + @"""",
                             ContentType      = HTTPContentType.TEXT_UTF8,
                             Content          = "Unauthorized Access!".ToUTF8Bytes(),
@@ -388,7 +388,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     return new HTTPResponseBuilder(Request) {
                         HTTPStatusCode  = HTTPStatusCode.OK,
                         Server          = HTTPServer.DefaultServerName,
-                        Date            = DateTime.Now,
+                        Date            = DateTime.UtcNow,
                         ContentType     = ResponseContentType,
                         ContentStream   = FileStream,
                         CacheControl    = "public, max-age=300",
@@ -444,7 +444,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         return new HTTPResponseBuilder(Request) {
                             HTTPStatusCode  = HTTPStatusCode.NotFound,
                             Server          = HTTPServer.DefaultServerName,
-                            Date            = DateTime.Now,
+                            Date            = DateTime.UtcNow,
                             ContentType     = ResponseContentType,
                             ContentStream   = ErrorStream,
                             CacheControl    = "no-cache",
@@ -459,7 +459,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         return new HTTPResponseBuilder(Request) {
                             HTTPStatusCode  = HTTPStatusCode.NotFound,
                             Server          = HTTPServer.DefaultServerName,
-                            Date            = DateTime.Now,
+                            Date            = DateTime.UtcNow,
                             CacheControl    = "no-cache",
                             Connection      = "close",
                         };
@@ -562,7 +562,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      {
                                                          HTTPStatusCode  = HTTPStatusCode.OK,
                                                          Server          = HTTPServer.DefaultServerName,
-                                                         Date            = DateTime.Now,
+                                                         Date            = DateTime.UtcNow,
                                                          ContentType     = ResponseContentType,
                                                          ContentStream   = FileStream,
                                                          CacheControl    = CacheControl,
@@ -577,7 +577,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              {
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
                                                  Server          = HTTPServer.DefaultServerName,
-                                                 Date            = DateTime.Now,
+                                                 Date            = DateTime.UtcNow,
                                                  CacheControl    = "no-cache",
                                                  Connection      = "close",
                                              };
@@ -633,7 +633,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                         new HTTPResponseBuilder(Request) {
                                                             HTTPStatusCode  = HTTPStatusCode.NotFound,
                                                             Server          = HTTPServer.DefaultServerName,
-                                                            Date            = DateTime.Now,
+                                                            Date            = DateTime.UtcNow,
                                                             CacheControl    = "no-cache",
                                                             Connection      = "close",
                                                         }.AsImmutable());
@@ -670,7 +670,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                     new HTTPResponseBuilder(Request) {
                                                         HTTPStatusCode  = HTTPStatusCode.OK,
                                                         Server          = HTTPServer.DefaultServerName,
-                                                        Date            = DateTime.Now,
+                                                        Date            = DateTime.UtcNow,
                                                         ContentType     = ResponseContentType,
                                                         ContentStream   = FileStream,
                                                         CacheControl    = "public, max-age=300",
@@ -691,7 +691,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                     new HTTPResponseBuilder(Request) {
                                                         HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                         Server          = HTTPServer.DefaultServerName,
-                                                        Date            = DateTime.Now,
+                                                        Date            = DateTime.UtcNow,
                                                         ContentType     = HTTPContentType.JSON_UTF8,
                                                         Content         = JSONObject.Create(new JProperty("message", e.Message)).ToUTF8Bytes(),
                                                         CacheControl    = "no-cache",
@@ -715,7 +715,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             source.
                 GetEventSource(HTTPSSE_EventIdentification).
                 SubmitSubEvent(ChangeType,
-                               @"{ ""timestamp"": """ + DateTime.Now.ToIso8601() +  @""", ""filename"": """ + FileName + @""" }");
+                               @"{ ""timestamp"": """ + DateTime.UtcNow.ToIso8601() +  @""", ""filename"": """ + FileName + @""" }");
         }
 
         private static void FileWasRenamed(object source, RenamedEventArgs e)
@@ -825,7 +825,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      return new HTTPResponseBuilder(Request) {
                                                          HTTPStatusCode  = HTTPStatusCode.OK,
                                                          Server          = HTTPServer.DefaultServerName,
-                                                         Date            = DateTime.Now,
+                                                         Date            = DateTime.UtcNow,
                                                          ContentType     = ResponseContentType,
                                                          ContentStream   = FileStream,
                                                          CacheControl    = "public, max-age=300",
@@ -846,7 +846,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              return new HTTPResponseBuilder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
                                                  Server          = HTTPServer.DefaultServerName,
-                                                 Date            = DateTime.Now,
+                                                 Date            = DateTime.UtcNow,
                                                  ContentType     = HTTPContentType.TEXT_UTF8,
                                                  Content         = "Error 404 - Not found!".ToUTF8Bytes(),
                                                  CacheControl    = "no-cache",

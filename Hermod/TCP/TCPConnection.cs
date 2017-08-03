@@ -254,7 +254,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         {
 
             this._TCPServer           = TCPServer;
-            this._ServerTimestamp     = DateTime.Now;
+            this._ServerTimestamp     = DateTime.UtcNow;
             this.TCPClient            = TCPClient;
             this.ConnectionId         = TCPServer.ConnectionIdBuilder(this, this._ServerTimestamp, base.LocalSocket, base.RemoteSocket);
             this._IsClosed             = false;
@@ -684,7 +684,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 TCPClient.Close();
 
             if (!_IsClosed)
-                _TCPServer.SendConnectionClosed(DateTime.Now, RemoteSocket, ConnectionId, ClosedBy);
+                _TCPServer.SendConnectionClosed(DateTime.UtcNow, RemoteSocket, ConnectionId, ClosedBy);
 
             _IsClosed = true;
 

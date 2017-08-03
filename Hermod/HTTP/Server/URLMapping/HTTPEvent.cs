@@ -72,7 +72,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                          params String[]  Data)
 
             : this(Id,
-                   DateTime.Now,
+                   DateTime.UtcNow,
                    String.Empty,
                    Data)
 
@@ -114,7 +114,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                          params String[]  Data)
 
             : this(Id,
-                   DateTime.Now,
+                   DateTime.UtcNow,
                    Subevent,
                    Data)
 

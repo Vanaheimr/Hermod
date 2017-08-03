@@ -288,7 +288,7 @@
 
 //                        // Wait for the next packet...
 //                        NumberOfReceivedBytes = MulticastSocket.ReceiveFrom(UDPPacket, ref RemoteEndPoint);
-//                        Timestamp = DateTime.Now;
+//                        Timestamp = DateTime.UtcNow;
 
 //                        if (NumberOfReceivedBytes > 0)
 //                        {
@@ -429,7 +429,7 @@
 //            //        {
 
 //            //            var _NumberOfReceivedBytes = MulticastSocket.ReceiveFrom(data, ref LocalEndPoint);
-//            //            Timestamp = DateTime.Now;
+//            //            Timestamp = DateTime.UtcNow;
 
 //            //            Array.Resize(ref data, _NumberOfReceivedBytes);
 

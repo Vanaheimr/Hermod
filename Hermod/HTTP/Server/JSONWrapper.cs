@@ -475,7 +475,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = DefaultServerName,
-                    Date            = DateTime.Now,
+                    Date            = DateTime.UtcNow,
                     ContentType     = HTTPContentType.JSON_UTF8,
                     Content         = JSONObject.Create(
                                           new JProperty("description", "Missing JSON property '" + PropertyName + "'!")
@@ -496,7 +496,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
                         HTTPStatusCode  = HTTPStatusCode.BadRequest,
                         Server          = DefaultServerName,
-                        Date            = DateTime.Now,
+                        Date            = DateTime.UtcNow,
                         ContentType     = HTTPContentType.JSON_UTF8,
                         Content         = JSONObject.Create(
                                               new JProperty("description", "Unknown " + PropertyDescription + "!")
@@ -543,7 +543,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = DefaultServerName,
-                    Date            = DateTime.Now,
+                    Date            = DateTime.UtcNow,
                     ContentType     = HTTPContentType.JSON_UTF8,
                     Content         = JSONObject.Create(
                                           new JProperty("description", "Missing JSON property '" + PropertyName + "'!")
@@ -564,7 +564,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
                         HTTPStatusCode  = HTTPStatusCode.BadRequest,
                         Server          = DefaultServerName,
-                        Date            = DateTime.Now,
+                        Date            = DateTime.UtcNow,
                         ContentType     = HTTPContentType.JSON_UTF8,
                         Content         = JSONObject.Create(
                                               new JProperty("description",  "Unknown " + PropertyDescription + "!")
@@ -607,7 +607,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
                         HTTPStatusCode  = HTTPStatusCode.BadRequest,
                         Server          = DefaultServerName,
-                        Date            = DateTime.Now,
+                        Date            = DateTime.UtcNow,
                         ContentType     = HTTPContentType.JSON_UTF8,
                         Content         = JSONObject.Create(
                                               new JProperty("description",  "Missing JSON property '" + PropertyName + "'!")
@@ -671,7 +671,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
                         HTTPStatusCode  = HTTPStatusCode.BadRequest,
                         Server          = DefaultServerName,
-                        Date            = DateTime.Now,
+                        Date            = DateTime.UtcNow,
                         ContentType     = HTTPContentType.JSON_UTF8,
                         Content         = JSONObject.Create(
                                               new JProperty("description",  "Missing JSON property '" + PropertyName + "'!")
@@ -718,7 +718,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = DefaultServerName,
-                    Date            = DateTime.Now,
+                    Date            = DateTime.UtcNow,
                     ContentType     = HTTPContentType.JSON_UTF8,
                     Content         = JSONObject.Create(
                                           new JProperty("description", "Missing at least one of the following properties: " + PropertyNames.AggregateWith(", ") + "!")
@@ -777,7 +777,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
                             HTTPStatusCode  = HTTPStatusCode.BadRequest,
                             Server          = DefaultServerName,
-                            Date            = DateTime.Now,
+                            Date            = DateTime.UtcNow,
                             ContentType     = HTTPContentType.JSON_UTF8,
                             Content         = JSONObject.Create(
                                                   new JProperty("description", "Invalid timestamp '" + JSONToken.ToString() + "'!")
@@ -801,7 +801,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = DefaultServerName,
-                    Date            = DateTime.Now,
+                    Date            = DateTime.UtcNow,
                     ContentType     = HTTPContentType.JSON_UTF8,
                     Content         = JSONObject.Create(
                                           new JProperty("description", "Missing property '" + PropertyName + "'!")
@@ -853,7 +853,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
                             HTTPStatusCode  = HTTPStatusCode.BadRequest,
                             Server          = DefaultServerName,
-                            Date            = DateTime.Now,
+                            Date            = DateTime.UtcNow,
                             ContentType     = HTTPContentType.JSON_UTF8,
                             Content         = JSONObject.Create(
                                                   new JProperty("description", "Invalid timestamp '" + JSONToken.ToString() + "'!")
@@ -877,7 +877,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = DefaultServerName,
-                    Date            = DateTime.Now,
+                    Date            = DateTime.UtcNow,
                     ContentType     = HTTPContentType.JSON_UTF8,
                     Content         = JSONObject.Create(
                                           new JProperty("description", "Missing at least one of the following properties: " + PropertyNames.AggregateWith(", ") + "!")
@@ -921,7 +921,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
                             HTTPStatusCode  = HTTPStatusCode.BadRequest,
                             Server          = DefaultServerName,
-                            Date            = DateTime.Now,
+                            Date            = DateTime.UtcNow,
                             ContentType     = HTTPContentType.JSON_UTF8,
                             Content         = JSONObject.Create(
                                                   new JProperty("description",  "Unknown " + PropertyDescription + "!")
@@ -977,7 +977,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
                             HTTPStatusCode  = HTTPStatusCode.BadRequest,
                             Server          = DefaultServerName,
-                            Date            = DateTime.Now,
+                            Date            = DateTime.UtcNow,
                             ContentType     = HTTPContentType.JSON_UTF8,
                             Content         = JSONObject.Create(
                                                   new JProperty("description",  "Unknown " + PropertyDescription + "!")
@@ -1032,7 +1032,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
                             HTTPStatusCode  = HTTPStatusCode.BadRequest,
                             Server          = DefaultServerName,
-                            Date            = DateTime.Now,
+                            Date            = DateTime.UtcNow,
                             ContentType     = HTTPContentType.JSON_UTF8,
                             Content         = JSONObject.Create(
                                                   new JProperty("description", "Unknown " + PropertyDescription + "!")
@@ -1078,7 +1078,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
                         HTTPStatusCode  = HTTPStatusCode.BadRequest,
                         Server          = DefaultServerName,
-                        Date            = DateTime.Now,
+                        Date            = DateTime.UtcNow,
                         ContentType     = HTTPContentType.JSON_UTF8,
                         Content         = JSONObject.Create(
                                               new JProperty("description", "JSON object expected!")
@@ -1194,7 +1194,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
                             HTTPStatusCode  = HTTPStatusCode.BadRequest,
                             Server          = DefaultServerName,
-                            Date            = DateTime.Now,
+                            Date            = DateTime.UtcNow,
                             ContentType     = HTTPContentType.JSON_UTF8,
                             Content         = JSONObject.Create(
                                                   new JProperty("description",  "Invalid timestamp '" + JSONToken + "'!")
@@ -1252,7 +1252,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
                             HTTPStatusCode  = HTTPStatusCode.BadRequest,
                             Server          = DefaultServerName,
-                            Date            = DateTime.Now,
+                            Date            = DateTime.UtcNow,
                             ContentType     = HTTPContentType.JSON_UTF8,
                             Content         = JSONObject.Create(
                                                   new JProperty("description",  "Invalid timestamp '" + JSONToken + "'!")
@@ -1396,7 +1396,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             else
             {
-                Value = DateTime.Now;
+                Value = DateTime.UtcNow;
                 HTTPResp = null;
                 return false;
             }

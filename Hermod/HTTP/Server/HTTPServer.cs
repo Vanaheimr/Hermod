@@ -1796,7 +1796,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             return new HTTPResponseBuilder(Request) {
                 HTTPStatusCode  = HTTPStatusCode.NotFound,
                 Server          = Request.Host.ToString(),
-                Date            = DateTime.Now,
+                Date            = DateTime.UtcNow,
                 ContentType     = HTTPContentType.TEXT_UTF8,
                 Content         = "Error 404 - Not Found!".ToUTF8Bytes(),
                 Connection      = "close"

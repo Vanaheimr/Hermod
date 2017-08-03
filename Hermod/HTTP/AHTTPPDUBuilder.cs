@@ -612,7 +612,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.HeaderFields  = new Dictionary<String, Object>(StringComparer.OrdinalIgnoreCase);
 
-            this.Date          = DateTime.Now;
+            this.Date          = DateTime.UtcNow;
 
         }
 

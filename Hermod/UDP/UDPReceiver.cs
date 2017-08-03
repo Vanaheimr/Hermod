@@ -604,7 +604,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
                             if (CancellationToken.IsCancellationRequested)
                                 break;
 
-                            Timestamp = DateTime.Now;
+                            Timestamp = DateTime.UtcNow;
 
                             if (NumberOfReceivedBytes > 0)
                             {
@@ -711,7 +711,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
                         {
                             var OnErrorLocal = OnExceptionOccured;
                             if (OnErrorLocal != null)
-                                OnErrorLocal(this, DateTime.Now, e);
+                                OnErrorLocal(this, DateTime.UtcNow, e);
                         }
 
                     }
@@ -729,12 +729,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
             {
                 var OnErrorLocal = OnExceptionOccured;
                 if (OnErrorLocal != null)
-                    OnErrorLocal(this, DateTime.Now, e);
+                    OnErrorLocal(this, DateTime.UtcNow, e);
             }
 
             var OnStartedLocal = OnStarted;
             if (OnStartedLocal != null)
-                OnStartedLocal(this, DateTime.Now);
+                OnStartedLocal(this, DateTime.UtcNow);
 
         }
 
@@ -799,7 +799,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
 
             var OnCompletedLocal = OnCompleted;
             if (OnCompletedLocal != null)
-                OnCompletedLocal(this, DateTime.Now, Message);
+                OnCompletedLocal(this, DateTime.UtcNow, Message);
 
         }
 

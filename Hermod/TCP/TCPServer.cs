@@ -607,8 +607,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                 while (e.InnerException != null)
                                     e = e.InnerException;
 
-                                OnExceptionOccured?.Invoke(this, DateTime.Now, e);
-                                Console.WriteLine(DateTime.Now + " " + e.Message + Environment.NewLine + e.StackTrace);
+                                OnExceptionOccured?.Invoke(this, DateTime.UtcNow, e);
+                                Console.WriteLine(DateTime.UtcNow + " " + e.Message + Environment.NewLine + e.StackTrace);
 
                             }
 
@@ -637,7 +637,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 {
                     var OnExceptionLocal = OnExceptionOccured;
                     if (OnExceptionLocal != null)
-                        OnExceptionLocal(this, DateTime.Now, Exception);
+                        OnExceptionLocal(this, DateTime.UtcNow, Exception);
                 }
 
                 #endregion
@@ -803,21 +803,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             try
             {
 
-                Debug.WriteLine("[" + DateTime.Now + "] Starting TCP listener on port " + _Port);
+                Debug.WriteLine("[" + DateTime.UtcNow + "] Starting TCP listener on port " + _Port);
 
                 _TCPListener.Start((Int32) _MaxClientConnections);
 
             }
             catch (Exception e)
             {
-                Debug.WriteLine("[" + DateTime.Now + "] An exception occured in Hermod.TCPServer.Start(MaxClientConnections) [_TCPListener.Start((Int32) _MaxClientConnections)]: " + e.Message + Environment.NewLine + e.StackTrace);
+                Debug.WriteLine("[" + DateTime.UtcNow + "] An exception occured in Hermod.TCPServer.Start(MaxClientConnections) [_TCPListener.Start((Int32) _MaxClientConnections)]: " + e.Message + Environment.NewLine + e.StackTrace);
             }
 
             try
             {
 
                 if (_ListenerThread == null)
-                    Debug.WriteLine("[" + DateTime.Now + "] An exception occured in Hermod.TCPServer.Start(MaxClientConnections) [_ListenerThread == null]!");
+                    Debug.WriteLine("[" + DateTime.UtcNow + "] An exception occured in Hermod.TCPServer.Start(MaxClientConnections) [_ListenerThread == null]!");
 
                 // Start the TCPListenerThread
                 _ListenerThread.Start();
@@ -825,7 +825,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             }
             catch (Exception e)
             {
-                Debug.WriteLine("[" + DateTime.Now + "] An exception occured in Hermod.TCPServer.Start(MaxClientConnections) [_ListenerThread.Start()]: " + e.Message + Environment.NewLine + e.StackTrace);
+                Debug.WriteLine("[" + DateTime.UtcNow + "] An exception occured in Hermod.TCPServer.Start(MaxClientConnections) [_ListenerThread.Start()]: " + e.Message + Environment.NewLine + e.StackTrace);
             }
 
 
@@ -833,7 +833,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             while (!_IsRunning)
                 Thread.Sleep(10);
 
-            OnStarted?.Invoke(this, DateTime.Now);
+            OnStarted?.Invoke(this, DateTime.UtcNow);
 
         }
 
@@ -862,7 +862,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             var OnCompletedLocal = OnCompleted;
             if (OnCompletedLocal != null)
-                OnCompletedLocal(this, DateTime.Now, (Message != null) ? Message : String.Empty);
+                OnCompletedLocal(this, DateTime.UtcNow, (Message != null) ? Message : String.Empty);
 
         }
 

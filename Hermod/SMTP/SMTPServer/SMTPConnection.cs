@@ -244,7 +244,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                 if (MemoryStream.Length > 0)
                                 {
 
-                                    var RequestTimestamp = DateTime.Now;
+                                    var RequestTimestamp = DateTime.UtcNow;
 
                                     #region Check UTF8 encoding
 
@@ -559,7 +559,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                                 TCPConnection.WriteLineSMTP(SMTPStatusCode.TransactionFailed, "The e-mail could not be parsed!");
 
-                                                Debug.WriteLine("[" + DateTime.Now + "] Incoming e-mail could not be parsed!");
+                                                Debug.WriteLine("[" + DateTime.UtcNow + "] Incoming e-mail could not be parsed!");
                                                 Debug.WriteLine(MailText.AggregateWith(Environment.NewLine));
 
                                             }
@@ -711,7 +711,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 {
 
                     //if (OnError != null)
-                    //    OnError(this, DateTime.Now, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), ioe, MemoryStream);
+                    //    OnError(this, DateTime.UtcNow, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), ioe, MemoryStream);
 
                 }
 
@@ -721,7 +721,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             {
 
                 //if (OnError != null)
-                //    OnError(this, DateTime.Now, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), e, MemoryStream);
+                //    OnError(this, DateTime.UtcNow, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), e, MemoryStream);
 
             }
 

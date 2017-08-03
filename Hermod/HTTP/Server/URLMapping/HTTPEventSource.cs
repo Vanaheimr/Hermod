@@ -303,13 +303,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 SubEvent = SubEvent.Trim().Replace(",", "");
 
             if (SubEvent.IsNullOrEmpty())
-                await SubmitTimestampedEvent(DateTime.Now,
+                await SubmitTimestampedEvent(DateTime.UtcNow,
                                              Data).
                           ConfigureAwait(false);
 
             else
                 await SubmitTimestampedSubEvent(SubEvent,
-                                                DateTime.Now,
+                                                DateTime.UtcNow,
                                                 Data).
                           ConfigureAwait(false);
 

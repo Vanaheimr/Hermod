@@ -448,7 +448,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             this._Cc                    = EMailAddressListBuilder.Empty;
             this._Bcc                   = EMailAddressListBuilder.Empty;
             this._Subject               = "";
-            this. Date                  = DateTime.Now;
+            this. Date                  = DateTime.UtcNow;
             this._References            = new List<MessageId>();
             this._Attachments           = new List<EMailBodypart>();
 
