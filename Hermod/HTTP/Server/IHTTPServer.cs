@@ -86,8 +86,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         void Start(TimeSpan Delay, Boolean InBackground = true);
         void Shutdown(String Message = null, Boolean Wait = true);
 
-        void Dispose();
-
     }
 
 }

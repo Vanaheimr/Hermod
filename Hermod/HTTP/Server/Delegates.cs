@@ -79,7 +79,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="Response">The outgoing response.</param>
     /// <param name="Error">The occured error.</param>
     /// <param name="LastException">The last occured exception.</param>
-    public delegate void ErrorLogHandler(DateTime      Timestamp,
+    public delegate Task ErrorLogHandler(DateTime      Timestamp,
                                          IHTTPServer   HTTPServer,
                                          HTTPRequest   Request,
                                          HTTPResponse  Response,

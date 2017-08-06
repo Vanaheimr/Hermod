@@ -35,7 +35,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
     /// <summary>
     /// An abstract base class for all HTTP clients.
     /// </summary>
-    public abstract class AHTTPClient : IDisposable
+    public abstract class AHTTPClient : IHTTPClient
     {
 
         #region Data

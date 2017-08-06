@@ -79,7 +79,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A http client.
     /// </summary>
-    public class HTTPClient : IDisposable
+    public class HTTPClient : IHTTPClient
     {
 
         #region Data
@@ -154,7 +154,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         //    public LocalCertificateSelectionCallback ClientCertificateSelector { get; set; }
 
-        public TimeSpan        RequestTimeout       {get; }
+        public TimeSpan?       RequestTimeout       {get; }
 
 
 
