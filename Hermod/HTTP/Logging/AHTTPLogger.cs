@@ -212,8 +212,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                             if (e.HResult != -2147024864)
                             {
-                                DebugX.LogT("File access error while loggin to '" + LogfileCreator(Context, LogEventName) + "' (retry: " + retry++ + "): " + e.Message);
-                                Thread.Sleep(250);
+                                DebugX.LogT("File access error while logging to '" + LogfileCreator(Context, LogEventName) + "' (retry: " + retry++ + "): " + e.Message);
+                                Thread.Sleep(100);
                             }
 
                             else
@@ -231,6 +231,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     }
                     while (retry++ < MaxRetries);
+
+                    if (retry > 0)
+                        DebugX.LogT("Successfully written to logfile '" + LogfileCreator(Context, LogEventName) + "' (retry: " + retry++ + ")!");
 
                 }
 
@@ -303,8 +306,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                             if (e.HResult != -2147024864)
                             {
-                                DebugX.LogT("File access error while loggin to '" + LogfileCreator(Context, LogEventName) + "' (retry: " + retry++ + "): " + e.Message);
-                                Thread.Sleep(250);
+                                DebugX.LogT("File access error while logging to '" + LogfileCreator(Context, LogEventName) + "' (retry: " + retry++ + "): " + e.Message);
+                                Thread.Sleep(100);
                             }
 
                             else
@@ -321,7 +324,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         }
 
                     }
-                    while (retry++ < MaxRetries) ;
+                    while (retry++ < MaxRetries);
+
+                    if (retry > 0)
+                        DebugX.LogT("Successfully written to logfile '" + LogfileCreator(Context, LogEventName) + "' (retry: " + retry++ + ")!");
 
                 }
 

@@ -537,6 +537,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPHeader">A valid string representation of a http response header.</param>
         /// <param name="HTTPBody">The HTTP body as an array of bytes.</param>
         /// <param name="HTTPBodyStream">The HTTP body as an stream of bytes.</param>
+        /// <param name="HTTPBodyReceiveBufferSize">The size of the HTTP body receive buffer.</param>
         /// <param name="CancellationToken">A token to cancel the HTTP response processing.</param>
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         /// <param name="Runtime">The runtime of the HTTP request/response pair.</param>
@@ -546,12 +547,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              IPSocket            LocalSocket,
                              HTTPRequest         HTTPRequest,
                              String              HTTPHeader,
-                             Byte[]              HTTPBody            = null,
-                             Stream              HTTPBodyStream      = null,
-                             CancellationToken?  CancellationToken   = null,
-                             EventTracking_Id    EventTrackingId     = null,
-                             TimeSpan?           Runtime             = null,
-                             Byte                NumberOfRetries     = 0)
+                             Byte[]              HTTPBody                    = null,
+                             Stream              HTTPBodyStream              = null,
+                             UInt32              HTTPBodyReceiveBufferSize   = DefaultHTTPBodyReceiveBufferSize,
+                             CancellationToken?  CancellationToken           = null,
+                             EventTracking_Id    EventTrackingId             = null,
+                             TimeSpan?           Runtime                     = null,
+                             Byte                NumberOfRetries             = 0)
 
             : base(Timestamp,
                    RemoteSocket,
@@ -559,6 +561,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    HTTPHeader,
                    HTTPBody,
                    HTTPBodyStream,
+                   HTTPBodyReceiveBufferSize,
                    CancellationToken,
                    EventTrackingId)
 
@@ -600,6 +603,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    ResponseHeader,
                    null,
                    new MemoryStream(),
+                   DefaultHTTPBodyReceiveBufferSize,
                    Request?.CancellationToken,
                    Request?.EventTrackingId,
                    DateTime.UtcNow - Request.Timestamp,
@@ -638,22 +642,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    ResponseHeader,
                    ResponseBody,
                    null,
+                   DefaultHTTPBodyReceiveBufferSize,
                    Request?.CancellationToken,
                    Request?.EventTrackingId,
                    DateTime.UtcNow - Request.Timestamp)
 
         { }
 
+        #endregion
+
+        #region (private) HTTPResponse(ResponseHeader, ResponseBodyStream, Request, HTTPBodyReceiveBufferSize = default)
 
         /// <summary>
         /// Create a new HTTP response.
         /// </summary>
         /// <param name="ResponseHeader">The HTTP header of the response.</param>
-        /// <param name="ResponseBody">The HTTP body of the response.</param>
+        /// <param name="ResponseBodyStream">The HTTP body of the response.</param>
         /// <param name="Request">The HTTP request leading to this response.</param>
+        /// <param name="HTTPBodyReceiveBufferSize">The size of the HTTP body receive buffer.</param>
         private HTTPResponse(String       ResponseHeader,
-                             Stream       ResponseBody,
-                             HTTPRequest  Request)
+                             Stream       ResponseBodyStream,
+                             HTTPRequest  Request,
+                             UInt32       HTTPBodyReceiveBufferSize  = DefaultHTTPBodyReceiveBufferSize)
 
             : this(DateTime.UtcNow,
                    null,
@@ -661,7 +671,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Request,
                    ResponseHeader,
                    null,
-                   ResponseBody,
+                   ResponseBodyStream,
+                   HTTPBodyReceiveBufferSize,
                    Request?.CancellationToken,
                    Request?.EventTrackingId,
                    DateTime.UtcNow - Request.Timestamp)

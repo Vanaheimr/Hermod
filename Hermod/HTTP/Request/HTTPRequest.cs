@@ -668,6 +668,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
         /// <param name="HTTPBody">The HTTP body as an array of bytes.</param>
         /// <param name="HTTPBodyStream">The HTTP body as an stream of bytes.</param>
+        /// <param name="HTTPBodyReceiveBufferSize">The size of the HTTP body receive buffer.</param>
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         private HTTPRequest(DateTime            Timestamp,
@@ -675,10 +676,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             IPSocket            LocalSocket,
                             HTTPServer          HTTPServer,
                             String              HTTPHeader,
-                            Byte[]              HTTPBody           = null,
-                            Stream              HTTPBodyStream     = null,
-                            CancellationToken?  CancellationToken  = null,
-                            EventTracking_Id    EventTrackingId    = null)
+                            Byte[]              HTTPBody                    = null,
+                            Stream              HTTPBodyStream              = null,
+                            UInt32              HTTPBodyReceiveBufferSize   = DefaultHTTPBodyReceiveBufferSize,
+                            CancellationToken?  CancellationToken           = null,
+                            EventTracking_Id    EventTrackingId             = null)
 
             : base(Timestamp,
                    RemoteSocket,
@@ -686,6 +688,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    HTTPHeader,
                    HTTPBody,
                    HTTPBodyStream,
+                   HTTPBodyReceiveBufferSize,
                    CancellationToken,
                    EventTrackingId)
 
@@ -805,6 +808,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LocalSocket">The local TCP/IP socket.</param>
         /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
         /// <param name="HTTPBodyStream">The HTTP body as an stream of bytes.</param>
+        /// <param name="HTTPBodyReceiveBufferSize">The size of the HTTP body receive buffer.</param>
         public HTTPRequest(DateTime           Timestamp,
                            HTTPServer         HTTPServer,
                            CancellationToken  CancellationToken,
@@ -812,7 +816,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            IPSocket           RemoteSocket,
                            IPSocket           LocalSocket,
                            String             HTTPHeader,
-                           Stream             HTTPBodyStream)
+                           Stream             HTTPBodyStream,
+                           UInt32             HTTPBodyReceiveBufferSize  = DefaultHTTPBodyReceiveBufferSize)
 
             : this(Timestamp, 
                    RemoteSocket,
@@ -821,6 +826,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    HTTPHeader,
                    null,
                    HTTPBodyStream,
+                   HTTPBodyReceiveBufferSize,
                    CancellationToken,
                    EventTrackingId)
 
@@ -880,8 +886,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPHeader">The string representation of a HTTP header.</param>
         /// <param name="HTTPBodyStream">The HTTP body as an stream of bytes.</param>
-        public HTTPRequest(String  HTTPHeader,
-                           Stream  HTTPBodyStream)
+        /// <param name="HTTPBodyReceiveBufferSize">The size of the HTTP body receive buffer.</param>
+        /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+        public HTTPRequest(String              HTTPHeader,
+                           Stream              HTTPBodyStream,
+                           UInt32              HTTPBodyReceiveBufferSize  = DefaultHTTPBodyReceiveBufferSize,
+                           CancellationToken?  CancellationToken          = null,
+                           EventTracking_Id    EventTrackingId            = null)
 
             : this(DateTime.UtcNow,
                    null,
@@ -889,7 +901,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    null,
                    HTTPHeader,
                    null,
-                   HTTPBodyStream)
+                   HTTPBodyStream,
+                   HTTPBodyReceiveBufferSize,
+                   CancellationToken,
+                   EventTrackingId)
 
         { }
 

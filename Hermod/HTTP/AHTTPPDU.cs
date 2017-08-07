@@ -26,6 +26,7 @@ using System.Collections;
 using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Net.Sockets;
 
 #endregion
 
@@ -58,6 +59,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected readonly static Char[]   _SpaceSeparator  = new Char[]   { ' ' };
         protected readonly static Char[]   _URLSeparator    = new Char[]   { '?', '!' };
         protected readonly static Char[]   _HashSeparator   = new Char[]   { '#' };
+
+        /// <summary>
+        /// The default size of the HTTP body receive buffer (==8 KByte).
+        /// </summary>
+        public const UInt32 DefaultHTTPBodyReceiveBufferSize  =    8 * 1024 * 1024;
+
+        /// <summary>
+        /// The maximum size of the HTTP body receive buffer (==1 MByte).
+        /// </summary>
+        public const UInt32 MaxHTTPBodyReceiveBufferSize      = 1024 * 1024 * 1024;
 
         #endregion
 
@@ -396,6 +407,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region HTTPBodyReceiveBufferSize
+
+        /// <summary>
+        /// The size of the HTTP body receive buffer.
+        /// </summary>
+        public UInt32  HTTPBodyReceiveBufferSize   { get; }
+
+        #endregion
 
         #region Constructor(s)
 
@@ -407,9 +426,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public AHTTPPDU()
         {
 
-            this.Timestamp       = DateTime.UtcNow;
-            this._HeaderFields   = new Dictionary<String,          Object>(StringComparer.OrdinalIgnoreCase);
-            this._HeaderFields2  = new Dictionary<HTTPHeaderField, Object>();
+            this.Timestamp                  = DateTime.UtcNow;
+            this._HeaderFields              = new Dictionary<String,          Object>(StringComparer.OrdinalIgnoreCase);
+            this._HeaderFields2             = new Dictionary<HTTPHeaderField, Object>();
+            this.HTTPBodyReceiveBufferSize  = DefaultHTTPBodyReceiveBufferSize;
 
         }
 
@@ -426,29 +446,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
         /// <param name="HTTPBody">The HTTP body as an array of bytes.</param>
         /// <param name="HTTPBodyStream">The HTTP body as an stream of bytes.</param>
+        /// <param name="HTTPBodyReceiveBufferSize">The size of the HTTP body receive buffer.</param>
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         public AHTTPPDU(DateTime            Timestamp,
                         IPSocket            RemoteSocket,
                         IPSocket            LocalSocket,
                         String              HTTPHeader,
-                        Byte[]              HTTPBody           = null,
-                        Stream              HTTPBodyStream     = null,
-                        CancellationToken?  CancellationToken  = null,
-                        EventTracking_Id    EventTrackingId    = null)
+                        Byte[]              HTTPBody                    = null,
+                        Stream              HTTPBodyStream              = null,
+                        UInt32              HTTPBodyReceiveBufferSize   = DefaultHTTPBodyReceiveBufferSize,
+                        CancellationToken?  CancellationToken           = null,
+                        EventTracking_Id    EventTrackingId             = null)
 
             : this()
 
         {
 
-            this.Timestamp          = Timestamp;
-            this.RemoteSocket       = RemoteSocket;
-            this._LocalSocket       = LocalSocket;
-            this.RawHTTPHeader      = HTTPHeader.Trim();
-            this._HTTPBody          = HTTPBody;
-            this._HTTPBodyStream    = HTTPBodyStream;
-            this.CancellationToken  = CancellationToken.HasValue ? CancellationToken.Value : new CancellationTokenSource().Token;
-            this.EventTrackingId    = EventTrackingId;
+            this.Timestamp                  = Timestamp;
+            this.RemoteSocket               = RemoteSocket;
+            this._LocalSocket               = LocalSocket;
+            this.RawHTTPHeader              = HTTPHeader.Trim();
+            this._HTTPBody                  = HTTPBody;
+            this._HTTPBodyStream            = HTTPBodyStream;
+            this.HTTPBodyReceiveBufferSize  = HTTPBodyReceiveBufferSize < MaxHTTPBodyReceiveBufferSize
+                                                  ? HTTPBodyReceiveBufferSize
+                                                  : DefaultHTTPBodyReceiveBufferSize;
+            this.CancellationToken          = CancellationToken.HasValue ? CancellationToken.Value : new CancellationTokenSource().Token;
+            this.EventTrackingId            = EventTrackingId;
 
             #region Process first line...
 
@@ -496,17 +521,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this.Timestamp          = HTTPPDU?.Timestamp         ?? DateTime.UtcNow;
-            this.RemoteSocket       = HTTPPDU?.RemoteSocket;
-            this._LocalSocket       = HTTPPDU?.LocalSocket;
-            this.RawHTTPHeader      = HTTPPDU?.RawHTTPHeader;
-            this.RawPDU             = HTTPPDU?.RawPDU;
-            this._HTTPBody          = HTTPPDU?.HTTPBody;
-            this._HTTPBodyStream    = HTTPPDU?.HTTPBodyStream;
-            this.CancellationToken  = HTTPPDU?.CancellationToken ?? new CancellationTokenSource().Token;
-            this.EventTrackingId    = HTTPPDU?.EventTrackingId;
+            this.Timestamp                  = HTTPPDU?.Timestamp         ?? DateTime.UtcNow;
+            this.RemoteSocket               = HTTPPDU?.RemoteSocket;
+            this._LocalSocket               = HTTPPDU?.LocalSocket;
+            this.RawHTTPHeader              = HTTPPDU?.RawHTTPHeader;
+            this.RawPDU                     = HTTPPDU?.RawPDU;
+            this._HTTPBody                  = HTTPPDU?.HTTPBody;
+            this._HTTPBodyStream            = HTTPPDU?.HTTPBodyStream;
+            this.HTTPBodyReceiveBufferSize  = DefaultHTTPBodyReceiveBufferSize;
+            this.CancellationToken          = HTTPPDU?.CancellationToken ?? new CancellationTokenSource().Token;
+            this.EventTrackingId            = HTTPPDU?.EventTrackingId;
 
-            this.FirstPDULine       = HTTPPDU?.FirstPDULine;
+            this.FirstPDULine               = HTTPPDU?.FirstPDULine;
 
             if (HTTPPDU._HeaderFields != null)
                 foreach (var field in HTTPPDU._HeaderFields)
@@ -935,9 +961,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-
-
-        //ToDo: Fix me for slow clients!
         public Boolean TryReadHTTPBodyStream()
         {
 
@@ -951,16 +974,70 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return true;
             }
 
-            var Buffer = new Byte[(Int32) ContentLength.Value];
-            Thread.Sleep(50);
-            var Read = _HTTPBodyStream.Read(Buffer, 0, (Int32) ContentLength.Value);
+               _HTTPBody   = new Byte[(Int32) ContentLength.Value];
+            var Buffer     = new Byte[16*1024*1024]; //ToDo: Make the HTTP Body read buffer more flexible!
+            var Read       = 0;
+            var Position   = 0;
 
-            if (Read == (Int32) ContentLength.Value)
+            do
             {
-                _HTTPBody = Buffer;
-                return true;
-            }
 
+                try
+                {
+
+                    Read = _HTTPBodyStream.Read(Buffer, 0, Buffer.Length);
+
+                    if (Read > 0)
+                    {
+
+                        if (Position + Read <= _HTTPBody.Length)
+                        {
+                            Array.Copy(Buffer, 0, _HTTPBody, Position, Read);
+                            Position += Read;
+                        }
+
+                        else
+                        {
+                            Array.Copy(Buffer, 0, _HTTPBody, Position, _HTTPBody.Length - Position);
+                            Position += Read;
+                        }
+
+                    }
+
+                    if (Position >= _HTTPBody.Length)
+                    {
+                        this._HTTPBody = HTTPBody;
+                        return true;
+                    }
+
+                    Thread.Sleep(10);
+
+                }
+                catch (IOException ex)
+                {
+
+                    // If the ReceiveTimeout is reached an IOException will be raised...
+                    // with an InnerException of type SocketException and ErrorCode 10060
+                    var socketExept = ex.InnerException as SocketException;
+
+                    // If it's not the "expected" exception, let's not hide the error
+                    if (socketExept == null || socketExept.ErrorCode != 10060)
+                        throw;
+
+                    // If it is the receive timeout, then reading ended
+                    break;
+
+                }
+                catch (Exception e)
+                {
+                    DebugX.LogT(nameof(AHTTPPDU) + " could not read HTTP body (" + ContentLength.Value + " bytes): " + e.Message);
+                    return false;
+                }
+
+            }
+            while (Read > 0);
+
+            Array.Resize(ref _HTTPBody, Position);
             return false;
 
         }
