@@ -298,7 +298,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             set
             {
-                this.SetEMailHeader("Date", value.ToString("ddd, d MMM yyyy HH:mm:ss zzz"));
+                this.SetEMailHeader("Date", value.ToLocalTime().ToString("ddd, d MMM yyyy HH:mm:ss zzz"));
             }
 
         }

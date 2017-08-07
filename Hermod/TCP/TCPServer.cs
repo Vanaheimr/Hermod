@@ -803,21 +803,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             try
             {
 
-                Debug.WriteLine("[" + DateTime.UtcNow + "] Starting TCP listener on port " + _Port);
+                DebugX.LogT("Starting TCP listener on port " + _Port);
 
                 _TCPListener.Start((Int32) _MaxClientConnections);
 
             }
             catch (Exception e)
             {
-                Debug.WriteLine("[" + DateTime.UtcNow + "] An exception occured in Hermod.TCPServer.Start(MaxClientConnections) [_TCPListener.Start((Int32) _MaxClientConnections)]: " + e.Message + Environment.NewLine + e.StackTrace);
+                DebugX.LogT("An exception occured in Hermod.TCPServer.Start(MaxClientConnections) [_TCPListener.Start((Int32) _MaxClientConnections)]: " + e.Message + Environment.NewLine + e.StackTrace);
             }
 
             try
             {
 
                 if (_ListenerThread == null)
-                    Debug.WriteLine("[" + DateTime.UtcNow + "] An exception occured in Hermod.TCPServer.Start(MaxClientConnections) [_ListenerThread == null]!");
+                    DebugX.LogT("An exception occured in Hermod.TCPServer.Start(MaxClientConnections) [_ListenerThread == null]!");
 
                 // Start the TCPListenerThread
                 _ListenerThread.Start();
@@ -825,7 +825,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             }
             catch (Exception e)
             {
-                Debug.WriteLine("[" + DateTime.UtcNow + "] An exception occured in Hermod.TCPServer.Start(MaxClientConnections) [_ListenerThread.Start()]: " + e.Message + Environment.NewLine + e.StackTrace);
+                DebugX.LogT("An exception occured in Hermod.TCPServer.Start(MaxClientConnections) [_ListenerThread.Start()]: " + e.Message + Environment.NewLine + e.StackTrace);
             }
 
 

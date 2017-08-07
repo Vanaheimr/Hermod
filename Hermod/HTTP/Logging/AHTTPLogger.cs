@@ -89,7 +89,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var PreviousColor = Console.ForegroundColor;
 
                 Console.ForegroundColor = ConsoleColor.Gray;
-                Console.Write("[" + Request.Timestamp.ToLocalTime() + ", Thread " + Thread.CurrentThread.ManagedThreadId.ToString() + "] ");
+                Console.Write("[" + Request.Timestamp.ToLocalTime() + " T:" + Thread.CurrentThread.ManagedThreadId.ToString() + "] ");
                 Console.ForegroundColor = ConsoleColor.DarkGray;
                 Console.Write(Context + "/");
                 Console.ForegroundColor = ConsoleColor.Yellow;
@@ -133,7 +133,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var PreviousColor = Console.ForegroundColor;
 
                 Console.ForegroundColor = ConsoleColor.Gray;
-                Console.Write("[" + Request.Timestamp.ToLocalTime() + ", Thread " + Thread.CurrentThread.ManagedThreadId.ToString() + "] ");
+                Console.Write("[" + Request.Timestamp.ToLocalTime() + " T:" + Thread.CurrentThread.ManagedThreadId.ToString() + "] ");
                 Console.ForegroundColor = ConsoleColor.DarkGray;
                 Console.Write(Context + "/");
                 Console.ForegroundColor = ConsoleColor.Yellow;
