@@ -390,6 +390,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region HTTPBodyAsUTF8String
+
+        /// <summary>
+        /// The HTTP body/content as an UTF8 string.
+        /// </summary>
+        public String HTTPBodyAsUTF8String
+        {
+            get
+            {
+
+                try
+                {
+
+                    if (_HTTPBody == null)
+                        TryReadHTTPBodyStream();
+
+                    return _HTTPBody.ToUTF8String();
+
+                }
+                catch (Exception)
+                {
+                    return null;
+                }
+
+            }
+        }
+
+        #endregion
+
         #region HTTPBodyStream
 
         private Stream _HTTPBodyStream;
