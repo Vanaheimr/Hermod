@@ -277,13 +277,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 SubEvent = SubEvent.Trim().Replace(",", "");
 
             if (SubEvent.IsNullOrEmpty())
-                QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
-                                                 Data));
+                await QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
+                                         Data));
 
             else
-                QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
-                                                 SubEvent,
-                                                 Data));
+                await QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
+                                         SubEvent,
+                                         Data));
 
         }
 
