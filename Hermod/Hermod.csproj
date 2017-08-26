@@ -55,6 +55,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DNS\IPTransport.cs" />
+    <Compile Include="Entities\ADistributedEntities.cs" />
     <Compile Include="Helpers\Datastructures\AReadOnlyLocalRemoteSockets.cs" />
     <Compile Include="DNS\DNSTools.cs" />
     <Compile Include="Helpers\JSON.cs" />

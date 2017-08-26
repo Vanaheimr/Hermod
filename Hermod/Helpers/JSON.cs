@@ -239,11 +239,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (PropertyKey.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(PropertyKey), "The given property key must not be null or empty!");
 
-            var i18NString = I18NString.Empty;
-            var jobject    = JObject[PropertyKey] as JObject;
+            var jobject = JObject[PropertyKey] as JObject;
 
             if (jobject == null)
-                throw new ArgumentException("The value of the given JSON property '" + PropertyKey + "' is not a JSON object!", nameof(JObject));
+                return I18NString.Empty;
+
+            var i18NString = I18NString.Empty;
 
             foreach (var jproperty in jobject)
                 i18NString.Add((Languages) Enum.Parse(typeof(Languages), jproperty.Key),
