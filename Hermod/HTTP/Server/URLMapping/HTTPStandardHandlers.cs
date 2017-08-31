@@ -558,8 +558,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  if (FileStream != null)
                                                  {
 
-                                                     return new HTTPResponseBuilder(Request)
-                                                     {
+                                                     return new HTTPResponseBuilder(Request) {
                                                          HTTPStatusCode  = HTTPStatusCode.OK,
                                                          Server          = HTTPServer.DefaultServerName,
                                                          Date            = DateTime.UtcNow,
@@ -573,8 +572,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              }
 
-                                             return new HTTPResponseBuilder(Request)
-                                             {
+                                             return new HTTPResponseBuilder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
                                                  Server          = HTTPServer.DefaultServerName,
                                                  Date            = DateTime.UtcNow,
