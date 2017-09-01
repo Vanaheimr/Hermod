@@ -133,7 +133,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region ToJSON(this DataLicenses)
 
-        public static JArray ToJSON(this ReactiveSet<DataLicense> DataLicenses)
+        public static JArray ToJSON(this IEnumerable<DataLicense> DataLicenses)
 
             => DataLicenses != null
                    ? new JArray(DataLicenses.SafeSelect(license => license.ToJSON()))
