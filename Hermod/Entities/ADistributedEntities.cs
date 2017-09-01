@@ -60,10 +60,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Distributed
 
         #endregion
 
-        #region Events
-
-        #endregion
-
         #region Constructor(s)
 
         /// <summary>
@@ -88,7 +84,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Distributed
         {
 
             CurrentCryptoHash = "json:sha256:" +
-                          new SHA256Managed().ComputeHash(Encoding.Unicode.GetBytes(Helpers.UserDB_RegEx.Replace(ToJSON(IncludeHash: false).ToString(), " "))).
+                          new SHA256Managed().ComputeHash(Encoding.Unicode.GetBytes(Helpers.UserDB_RegEx.Replace(ToJSON(IncludeCryptoHash: false).ToString(), " "))).
                                               Select(value => String.Format("{0:x2}", value)).
                                               Aggregate();
 
@@ -101,8 +97,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Distributed
         /// <summary>
         /// Return a JSON representation of this object.
         /// </summary>
-        /// <param name="IncludeHash">Include the hash value of this object.</param>
-        public abstract JObject ToJSON(Boolean IncludeHash = true);
+        /// <param name="IncludeCryptoHash">Include the cryptograhical hash value of this object.</param>
+        public abstract JObject ToJSON(Boolean IncludeCryptoHash = true);
 
         #endregion
 
