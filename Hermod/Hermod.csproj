@@ -61,6 +61,7 @@
     <Compile Include="Helpers\DataLicenses.cs" />
     <Compile Include="Helpers\DataLicense_Id.cs" />
     <Compile Include="Helpers\ICustomDataBuilder.cs" />
+    <Compile Include="Helpers\InfoStatus.cs" />
     <Compile Include="Helpers\JSON_IO.cs" />
     <Compile Include="Helpers\Datastructures\AReadOnlyLocalRemoteSockets.cs" />
     <Compile Include="DNS\DNSTools.cs" />
