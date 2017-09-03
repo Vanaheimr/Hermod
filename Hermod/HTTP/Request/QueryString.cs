@@ -316,16 +316,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       Func<T, String, Boolean>  FilterDelegate)
         {
 
-            List<String> Values = null;
-
-            if (FilterDelegate != null                             &&
-                _Dictionary.TryGetValue(ParameterName, out Values) &&
-                Values         != null                             &&
+            if (FilterDelegate != null                                          &&
+                _Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values         != null                                          &&
                 Values.Count    > 0)
+            {
 
                 return item => Values.Last().StartsWith("!", StringComparison.Ordinal)
                                    ? !FilterDelegate(item, Values.Last().Substring(1))
                                    :  FilterDelegate(item, Values.Last());
+
+            }
 
             return item => true;
 
@@ -425,15 +426,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          UInt64 DefaultValue = 0)
         {
 
-            List<String> Values;
-            UInt64       Number;
-
-            if (_Dictionary.TryGetValue(ParameterName, out Values) &&
-                Values       != null                               &&
-                Values.Count  > 0                                  &&
-                UInt64.TryParse(Values.Last(), out Number))
-
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values       != null                                            &&
+                Values.Count  > 0                                               &&
+                UInt64.TryParse(Values.Last(), out UInt64 Number))
+            {
                 return Number;
+            }
 
             return DefaultValue;
 
@@ -546,22 +545,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region GetDateTime(ParameterName)
+        #region GetDateTimeOrDefault(ParameterName, DefaultValue = null)
 
-        public DateTime? GetDateTime(String ParameterName)
+        public DateTime? GetDateTimeOrDefault(String    ParameterName,
+                                              DateTime? DefaultValue = null)
         {
 
-            List<String> Values  = null;
-            DateTime     Timestamp;
-
-            if (_Dictionary.TryGetValue(ParameterName, out Values) &&
-                Values       != null                               &&
-                Values.Count >  0                                  &&
-                DateTime.TryParse(Values.Last(), out Timestamp))
-
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values       != null                                            &&
+                Values.Count  > 0                                               &&
+                DateTime.TryParse(Values.Last(), out DateTime Timestamp))
+            {
                 return Timestamp;
+            }
 
-            return new DateTime?();
+            return DefaultValue;
 
         }
 
@@ -573,16 +571,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                         Func<T, DateTime, Boolean>  FilterDelegate)
         {
 
-            List<String> Value  = null;
-            DateTime     Timestamp;
-
-            if (FilterDelegate != null                             &&
-                _Dictionary.TryGetValue(ParameterName, out Value)  &&
-                Value          != null                             &&
-                Value.Count     > 0                                &&
-                DateTime.TryParse(Value.Last(), out Timestamp))
-
+            if (FilterDelegate != null                                          &&
+                _Dictionary.TryGetValue(ParameterName, out List<String> Value)  &&
+                Value          != null                                          &&
+                Value.Count     > 0                                             &&
+                DateTime.TryParse(Value.Last(), out DateTime Timestamp))
+            {
                 return item => FilterDelegate(item, Timestamp);
+            }
 
             return item => true;
 

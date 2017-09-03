@@ -32,7 +32,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region Properties
 
         /// <summary>
-        /// All custom data.
+        /// An optional dictionary of customer-specific data.
         /// </summary>
         public IReadOnlyDictionary<String, Object>  CustomData   { get; }
 

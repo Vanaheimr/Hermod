@@ -258,8 +258,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Get HostNode or "*" or fail
 
-                HostnameNode _HostNode = null;
-                if (!_HostnameNodes.TryGetValue(Host, out _HostNode))
+                if (!_HostnameNodes.TryGetValue(Host, out HostnameNode _HostNode))
                     if (!_HostnameNodes.TryGetValue(HTTPHostname.Any, out _HostNode))
                         return null;
                         //return GetErrorHandler(Host, URL, HTTPMethod, HTTPContentType, HTTPStatusCode.BadRequest);

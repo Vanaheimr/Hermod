@@ -58,6 +58,7 @@
     <Compile Include="Entities\ADistributedEntities.cs" />
     <Compile Include="Helpers\ACustomData.cs" />
     <Compile Include="Helpers\Address.cs" />
+    <Compile Include="Helpers\ChangeMethods.cs" />
     <Compile Include="Helpers\DataLicenses.cs" />
     <Compile Include="Helpers\DataLicense_Id.cs" />
     <Compile Include="Helpers\ICustomDataBuilder.cs" />
@@ -70,6 +71,7 @@
     <Compile Include="Helpers\ExtentionMethods\IPAddressHelper.cs" />
     <Compile Include="Helpers\Datastructures\ILocalSocket.cs" />
     <Compile Include="Helpers\Signature.cs" />
+    <Compile Include="Helpers\StatusSchedule.cs" />
     <Compile Include="HTTP\AHTTPPDU.cs" />
     <Compile Include="HTTP\AHTTPPDUBuilder.cs" />
     <Compile Include="HTTP\Client\ClientResult.cs" />
