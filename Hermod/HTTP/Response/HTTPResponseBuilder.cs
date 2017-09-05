@@ -392,7 +392,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.ProtocolVersion    = new HTTPVersion(1, 1);
             this.CancellationToken  = HTTPRequest?.CancellationToken ?? new CancellationTokenSource().Token;
             base.EventTrackingId    = HTTPRequest?.EventTrackingId   ?? EventTracking_Id.New;
-            this.Runtime            = DateTime.UtcNow - HTTPRequest.Timestamp;
+            this.Runtime            = HTTPRequest != null
+                                          ? DateTime.UtcNow - HTTPRequest.Timestamp
+                                          : TimeSpan.Zero;
 
         }
 
