@@ -212,7 +212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                             if (e.HResult != -2147024864)
                             {
-                                DebugX.LogT("File access error while logging to '" + LogfileCreator(Context, LogEventName) + "' (retry: " + retry++ + "): " + e.Message);
+                                DebugX.LogT("File access error while logging to '" + LogfileCreator(Context, LogEventName) + "' (retry: " + retry + "): " + e.Message);
                                 Thread.Sleep(100);
                             }
 
@@ -232,8 +232,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
                     while (retry++ < MaxRetries);
 
-                    if (retry > 0)
-                        DebugX.LogT("Successfully written to logfile '" + LogfileCreator(Context, LogEventName) + "' (retry: " + retry++ + ")!");
+                    if (retry >= MaxRetries)
+                        DebugX.LogT("Could not write to logfile '"      + LogfileCreator(Context, LogEventName) + "' for "   + retry + " retries!");
+
+                    else if (retry > 0)
+                        DebugX.LogT("Successfully written to logfile '" + LogfileCreator(Context, LogEventName) + "' after " + retry + " retries!");
 
                 }
 
@@ -306,7 +309,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                             if (e.HResult != -2147024864)
                             {
-                                DebugX.LogT("File access error while logging to '" + LogfileCreator(Context, LogEventName) + "' (retry: " + retry++ + "): " + e.Message);
+                                DebugX.LogT("File access error while logging to '" + LogfileCreator(Context, LogEventName) + "' (retry: " + retry + "): " + e.Message);
                                 Thread.Sleep(100);
                             }
 
@@ -326,8 +329,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
                     while (retry++ < MaxRetries);
 
-                    if (retry > 0)
-                        DebugX.LogT("Successfully written to logfile '" + LogfileCreator(Context, LogEventName) + "' (retry: " + retry++ + ")!");
+                    if (retry >= MaxRetries)
+                        DebugX.LogT("Could not write to logfile '"      + LogfileCreator(Context, LogEventName) + "' for "   + retry + " retries!");
+
+                    else if (retry > 0)
+                        DebugX.LogT("Successfully written to logfile '" + LogfileCreator(Context, LogEventName) + "' after " + retry + " retries!");
 
                 }
 
