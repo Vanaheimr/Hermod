@@ -19,7 +19,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
+
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -58,7 +59,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (CustomData == null)
                 return false;
 
+            if (Key.IsNullOrEmpty())
+                return false;
+
             return CustomData.TryGetValue(Key, out Object _Value);
+
+        }
+
+        public Boolean IsDefined(String Key, Object Value)
+        {
+
+            if (CustomData == null)
+                return false;
+
+            if (Key.IsNullOrEmpty())
+                return false;
+
+            if (CustomData.TryGetValue(Key, out Object _Value))
+                return Value.Equals(_Value);
+
+            return false;
 
         }
 
@@ -97,17 +117,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         }
 
+        public Boolean TryGetCustomData(String Key, out Object Value)
+        {
+
+            if (CustomData == null)
+            {
+                Value = null;
+                return false;
+            }
+
+            return CustomData.TryGetValue(Key, out Value);
+
+        }
+
+        public Boolean TryGetCustomDataAs<T>(String Key, out T Value)
+        {
+
+            if (CustomData != null)
+            {
+
+                try
+                {
+
+                    if (CustomData.TryGetValue(Key, out Object _Value))
+                    {
+                        Value = (T)_Value;
+                        return true;
+                    }
+
+                }
+#pragma warning disable RCS1075 // Avoid empty catch clause that catches System.Exception.
+                catch (Exception)
+                { }
+#pragma warning restore RCS1075 // Avoid empty catch clause that catches System.Exception.
+
+            }
+
+            Value = default(T);
+            return false;
+
+        }
+
 
         public void IfDefined(String          Key,
                               Action<Object>  ValueDelegate)
         {
 
-            if (CustomData   == null ||
-                ValueDelegate == null)
-                return;
-
-            if (CustomData.TryGetValue(Key, out Object _Value))
-                ValueDelegate(_Value);
+            if (CustomData    != null &&
+                ValueDelegate != null &&
+                CustomData.TryGetValue(Key, out Object Value))
+            {
+                ValueDelegate(Value);
+            }
 
         }
 
@@ -115,12 +176,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                    Action<T>  ValueDelegate)
         {
 
-            if (CustomData   == null ||
-                ValueDelegate == null)
-                return;
+            if (CustomData    != null &&
+                ValueDelegate != null &&
+                CustomData.TryGetValue(Key, out Object Value))
+            {
 
-            if (CustomData.TryGetValue(Key, out Object _Value))
-                ValueDelegate((T) _Value);
+                try
+                {
+                    ValueDelegate((T) Value);
+                }
+#pragma warning disable RCS1075 // Avoid empty catch clause that catches System.Exception.
+                catch (Exception)
+                { }
+#pragma warning restore RCS1075 // Avoid empty catch clause that catches System.Exception.
+
+            }
 
         }
 
