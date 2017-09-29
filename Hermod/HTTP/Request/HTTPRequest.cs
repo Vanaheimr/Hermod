@@ -22,9 +22,9 @@ using System.IO;
 using System.Web;
 using System.Linq;
 using System.Threading;
+using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using System.Collections.Generic;
 
 #endregion
 
@@ -39,18 +39,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region HTTPServer
 
-        private readonly HTTPServer _HTTPServer;
-
         /// <summary>
         /// The HTTP server of this request.
         /// </summary>
-        public HTTPServer HTTPServer
-        {
-            get
-            {
-                return _HTTPServer;
-            }
-        }
+        public HTTPServer  HTTPServer    { get; }
 
         #endregion
 
@@ -58,18 +50,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region HTTPMethod
 
-        private readonly HTTPMethod _HTTPMethod;
-
         /// <summary>
         /// The HTTP method.
         /// </summary>
-        public HTTPMethod HTTPMethod
-        {
-            get
-            {
-                return _HTTPMethod;
-            }
-        }
+        public HTTPMethod   HTTPMethod         { get; }
 
         #endregion
 
@@ -102,7 +86,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The minimal URI (this means e.g. without the query string).
         /// </summary>
-        public String URI { get; }
+        public String       URI                { get; }
 
         #endregion
 
@@ -134,18 +118,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region QueryString
 
-        private readonly QueryString _QueryString;
-
         /// <summary>
         /// The HTTP query string.
         /// </summary>
-        public QueryString QueryString
-        {
-            get
-            {
-                return _QueryString;
-            }
-        }
+        public QueryString  QueryString        { get; }
 
         #endregion
 
@@ -177,35 +153,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ProtocolName
 
-        private readonly String _ProtocolName;
-
         /// <summary>
         /// The HTTP protocol name field.
         /// </summary>
-        public String ProtocolName
-        {
-            get
-            {
-                return _ProtocolName;
-            }
-        }
+        public String       ProtocolName       { get; }
 
         #endregion
 
         #region ProtocolVersion
 
-        private readonly HTTPVersion _ProtocolVersion;
-
         /// <summary>
         /// The HTTP protocol version.
         /// </summary>
-        public HTTPVersion ProtocolVersion
-        {
-            get
-            {
-                return _ProtocolVersion;
-            }
-        }
+        public HTTPVersion  ProtocolVersion    { get; }
 
         #endregion
 
@@ -694,7 +654,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this._HTTPServer = HTTPServer;
+            this.HTTPServer = HTTPServer;
 
             #region Parse HTTPMethod (first line of the http request)
 
@@ -706,9 +666,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             // Parse HTTP method
             // Propably not usefull to define here, as we can not send a response having an "Allow-header" here!
-            this._HTTPMethod = (HTTPMethod.TryParseString(_HTTPMethodHeader[0], out _HTTPMethod))
-                                   ? _HTTPMethod
-                                   : HTTPMethod.Create(_HTTPMethodHeader[0]);
+            this.HTTPMethod = (HTTPMethod.TryParseString(_HTTPMethodHeader[0], out HTTPMethod _HTTPMethod))
+                                  ? _HTTPMethod
+                                  : HTTPMethod.Create(_HTTPMethodHeader[0]);
 
             #endregion
 
@@ -730,30 +690,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             // Parse QueryString after '?'
             if (RawUrl.IndexOf('?') > -1 && _ParsedURL[1].IsNeitherNullNorEmpty())
-                this._QueryString = QueryString.Parse(_ParsedURL[1]);
+                this.QueryString = QueryString.Parse(_ParsedURL[1]);
             else
-                this._QueryString = QueryString.Empty;
+                this.QueryString = QueryString.Empty;
 
             #endregion
 
             #region Parse protocol name and -version (first line of the http request)
 
             var _ProtocolArray  = _HTTPMethodHeader[2].Split(_SlashSeparator, 2, StringSplitOptions.RemoveEmptyEntries);
-            this._ProtocolName  = _ProtocolArray[0].ToUpper();
+            this.ProtocolName   = _ProtocolArray[0].ToUpper();
 
-            if (ProtocolName.ToUpper() != "HTTP")
+            if (!String.Equals(ProtocolName, "HTTP", StringComparison.CurrentCultureIgnoreCase))
                 throw new Exception("Bad request");
 
-            HTTPVersion _HTTPVersion = null;
-
-            if (HTTPVersion.TryParseVersionString(_ProtocolArray[1], out _HTTPVersion))
-                this._ProtocolVersion  = _HTTPVersion;
+            if (HTTPVersion.TryParseVersionString(_ProtocolArray[1], out HTTPVersion _HTTPVersion))
+                this.ProtocolVersion  = _HTTPVersion;
 
             if (ProtocolVersion != HTTPVersion.HTTP_1_0 && ProtocolVersion != HTTPVersion.HTTP_1_1)
                 throw new Exception("HTTP version not supported");
 
             #endregion
-
 
             #region Check Host header
 
@@ -989,6 +946,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => EntirePDU;
 
         #endregion
+
 
     }
 

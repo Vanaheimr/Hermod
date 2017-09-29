@@ -193,13 +193,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 TryReadHTTPBodyStream();
 
-                if (HTTPBody != null && HTTPBody.Length > 0)
+                if (HTTPBody?.Length > 0)
                     return RawHTTPHeader.Trim() + "\r\n\r\n" +
-                           Encoding.UTF8.GetString(HTTPBody,
-                                                   0,
-                                                   ContentLength.HasValue
-                                                       ? Math.Min(HTTPBody.Length, (Int32) ContentLength.Value)
-                                                       : HTTPBody.Length);
+                           Encoding.UTF8.GetString(HTTPBody);
+
+                                                   //Note: Because of \n vs \r\n the content-length might be invalid when a PDU is loaded from disc!
+                                                   //0,
+                                                   //ContentLength.HasValue
+                                                   //    ? (Int32) ContentLength.Value//Math.Min(HTTPBody.Length, (Int32) ContentLength.Value)
+                                                       //: HTTPBody.Length);
 
                 return RawHTTPHeader;
 

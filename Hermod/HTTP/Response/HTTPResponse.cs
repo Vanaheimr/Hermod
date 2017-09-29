@@ -291,39 +291,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region HTTPRequest
 
-        private readonly HTTPRequest _HTTPRequest;
-
         /// <summary>
         /// The HTTP request for this HTTP response.
         /// </summary>
-        public HTTPRequest  HTTPRequest
-        {
-            get
-            {
-                return _HTTPRequest;
-            }
-        }
-
-        #endregion
-
-        #region First PDU line
-
-        #region HTTPStatusCode
-
-        private readonly HTTPStatusCode _HTTPStatusCode;
+        public HTTPRequest     HTTPRequest       { get; }
 
         /// <summary>
         /// The HTTP status code.
         /// </summary>
-        public HTTPStatusCode HTTPStatusCode
-        {
-            get
-            {
-                return _HTTPStatusCode;
-            }
-        }
-
-        #endregion
+        public HTTPStatusCode  HTTPStatusCode    { get; }
 
         #endregion
 
@@ -517,9 +493,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this._HTTPRequest     = Response?.HTTPRequest;
-            this._HTTPStatusCode  = Response?.HTTPStatusCode;
-            this.Runtime          = Response.Runtime;
+            this.HTTPRequest     = Response?.HTTPRequest;
+            this.HTTPStatusCode  = Response?.HTTPStatusCode;
+            this.Runtime         = Response.Runtime;
 
         }
 
@@ -567,13 +543,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this._HTTPRequest     = HTTPRequest;
+            this.HTTPRequest      = HTTPRequest;
 
             var _StatusCodeLine   = FirstPDULine.Split(' ');
             if (_StatusCodeLine.Length < 3)
                 throw new Exception("Invalid HTTP response!");
 
-            this._HTTPStatusCode  = HTTPStatusCode.ParseString(_StatusCodeLine[1]);
+            this.HTTPStatusCode   = HTTPStatusCode.ParseString(_StatusCodeLine[1]);
             this.Runtime          = Runtime ?? DateTime.UtcNow - HTTPRequest.Timestamp;
             this.NumberOfRetries  = NumberOfRetries;
 
@@ -611,13 +587,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this._HTTPRequest     = Request;
+            this.HTTPRequest     = Request;
 
-            var _StatusCodeLine   = FirstPDULine.Split(' ');
+            var _StatusCodeLine  = FirstPDULine.Split(' ');
             if (_StatusCodeLine.Length < 3)
                 throw new Exception("Invalid HTTP response!");
 
-            this._HTTPStatusCode  = HTTPStatusCode.ParseString(_StatusCodeLine[1]);
+            this.HTTPStatusCode  = HTTPStatusCode.ParseString(_StatusCodeLine[1]);
 
         }
 

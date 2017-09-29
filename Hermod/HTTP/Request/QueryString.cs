@@ -268,19 +268,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region GetString(ParameterName, DefaultValue = null)
+        #region GetString         (ParameterName, DefaultValue = null)
 
         public String GetString(String  ParameterName,
                                 String  DefaultValue = null)
         {
 
-            List<String> Values = null;
-
-            if (_Dictionary.TryGetValue(ParameterName, out Values) &&
-                Values       != null                               &&
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values       != null                                            &&
                 Values.Count  > 0)
-
+            {
                 return Values.Last();
+            }
 
             return DefaultValue;
 
@@ -288,27 +287,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region GetStrings(ParameterName, ToLowerCase = false)
+        #region GetStrings        (ParameterName, ToLowerCase = false)
 
         public IEnumerable<String> GetStrings(String   ParameterName,
                                               Boolean  ToLowerCase = false)
         {
 
-            List<String>         Value    = null;
             Func<String, String> ToLower  = ToLowerCase ? ToLower = s => s.ToLower() : ToLower = s => s;
 
-            if (_Dictionary.TryGetValue(ParameterName, out Value) &&
-                Value       != null                               &&
-                Value.Count  > 0)
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Value) &&
+                Value != null &&
+                Value.Count > 0)
+            {
 
                 return Value.SelectMany(item => item.Split(new Char[] { ',' }, StringSplitOptions.RemoveEmptyEntries).
                                                      Select(s => ToLower(s)));
+
+            }
 
             return new List<String>();
 
         }
 
         #endregion
+
+
+        #region TryGetString (ParameterName, DefaultValue = null)
+
+        public Boolean TryGetString(String      ParameterName,
+                                    out String  Value)
+        {
+
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values       != null                                            &&
+                Values.Count  > 0)
+            {
+
+                Value = Values.Last();
+                return true;
+
+            }
+
+            Value = null;
+            return false;
+
+        }
+
+        #endregion
+
 
         #region CreateStringFilter(ParameterName, FilterDelegate)
 
