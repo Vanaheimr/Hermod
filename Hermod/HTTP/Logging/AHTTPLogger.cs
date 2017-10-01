@@ -197,11 +197,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             File.AppendAllText(LogfileCreator(Context, LogEventName),
                                                String.Concat(Request.RemoteSocket != null && Request.LocalSocket != null
                                                                  ? String.Concat(Request.RemoteSocket, " -> ", Request.LocalSocket)
-                                                                 : "",                                                                           Environment.NewLine,
-                                                             ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------", Environment.NewLine,
-                                                             Request.Timestamp.ToIso8601(),                                                      Environment.NewLine,
-                                                             Request.EntirePDU,                                                                  Environment.NewLine,
-                                                             "--------------------------------------------------------------------------------", Environment.NewLine),
+                                                                 : "",                                                                            Environment.NewLine,
+                                                             ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------",  Environment.NewLine,
+                                                             Request.Timestamp.ToIso8601(),                                                       Environment.NewLine,
+                                                             Request.EntirePDU,                                                                   Environment.NewLine,
+                                                             "--------------------------------------------------------------------------------",  Environment.NewLine),
                                                Encoding.UTF8);
 
                             break;
@@ -289,16 +289,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             File.AppendAllText(LogfileCreator(Context, LogEventName),
                                                String.Concat(Request.RemoteSocket != null && Request.LocalSocket != null
                                                                  ? String.Concat(Request.RemoteSocket, " -> ", Request.LocalSocket)
-                                                                 : "",                                                                           Environment.NewLine,
-                                                             ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------", Environment.NewLine,
-                                                             Request.Timestamp.ToIso8601(),                                                      Environment.NewLine,
-                                                             Request.EntirePDU,                                                                  Environment.NewLine,
-                                                             "<<<<<<--Response----<<<<<<------<<<<<<------<<<<<<------<<<<<<------<<<<<<------", Environment.NewLine,
+                                                                 : "",                                                                            Environment.NewLine,
+                                                             ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------",  Environment.NewLine,
+                                                             Request.Timestamp.ToIso8601(),                                                       Environment.NewLine,
+                                                             Request.EntirePDU,                                                                   Environment.NewLine,
+                                                             "<<<<<<--Response----<<<<<<------<<<<<<------<<<<<<------<<<<<<------<<<<<<------",  Environment.NewLine,
                                                              Response.Timestamp.ToIso8601(),
                                                                  " -> ",
-                                                                 (Response.Timestamp - Request.Timestamp).TotalMilliseconds, "ms runtime",       Environment.NewLine,
-                                                             Response.EntirePDU,                                                                 Environment.NewLine,
-                                                             "--------------------------------------------------------------------------------", Environment.NewLine),
+                                                                 (Response.Timestamp - Request.Timestamp).TotalMilliseconds, "ms runtime",        Environment.NewLine,
+                                                             Response.EntirePDU,                                                                  Environment.NewLine,
+                                                             "--------------------------------------------------------------------------------",  Environment.NewLine),
                                                Encoding.UTF8);
 
                             break;

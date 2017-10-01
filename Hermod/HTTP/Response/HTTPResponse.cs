@@ -20,10 +20,12 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using System.Threading;
 
 #endregion
 
@@ -748,6 +750,93 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+
+        #region (static) LoadHTTPResponseLogfiles(FilePath, FilePattern, FromTimestamp = null, ToTimestamp = null)
+
+        public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfiles(String     FilePath,
+                                                                         String     FilePattern,
+                                                                         DateTime?  FromTimestamp  = null,
+                                                                         DateTime?  ToTimestamp    = null)
+        {
+
+            var _responses  = new ConcurrentBag<HTTPResponse>();
+
+            Parallel.ForEach(Directory.EnumerateFiles(Directory.GetCurrentDirectory() + Path.DirectorySeparatorChar + FilePath,
+                                                      FilePattern),
+                             file => {
+
+                var _request            = new List<String>();
+                var _response           = new List<String>();
+                var copy                = "none";
+                var relativelinenumber  = 0;
+                var RequestTimestamp    = DateTime.Now;
+                var ResponseTimestamp   = DateTime.Now;
+
+                foreach (var line in File.ReadLines(file))
+                {
+
+                    try
+                    {
+
+                        if      (relativelinenumber == 1 && copy == "request")
+                            RequestTimestamp  = DateTime.Parse(line);
+
+                        else if (relativelinenumber == 1 && copy == "response")
+                            ResponseTimestamp = DateTime.Parse(line.Substring(0, line.IndexOf(" ")));
+
+                        else if (line == ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------")
+                        {
+                            copy = "request";
+                            relativelinenumber = 0;
+                        }
+
+                        else if (line == "<<<<<<--Response----<<<<<<------<<<<<<------<<<<<<------<<<<<<------<<<<<<------")
+                        {
+                            copy = "response";
+                            relativelinenumber = 0;
+                        }
+
+                        else if (line == "--------------------------------------------------------------------------------")
+                        {
+
+                            if ((FromTimestamp == null || ResponseTimestamp >= FromTimestamp.Value) &&
+                                (  ToTimestamp == null || ResponseTimestamp <    ToTimestamp.Value))
+                            {
+
+                                _responses.Add(HTTPResponse.Parse(_response,
+                                                                  Timestamp: ResponseTimestamp,
+                                                                  Request:   HTTPRequest.Parse(_request, Timestamp: RequestTimestamp)));
+
+                            }
+
+                            copy       = "none";
+                            _request   = new List<String>();
+                            _response  = new List<String>();
+
+                        }
+
+                        else if (copy == "request")
+                            _request.Add(line);
+
+                        else if (copy == "response")
+                            _response.Add(line);
+
+                        relativelinenumber++;
+
+                    }
+                    catch (Exception)
+                    {
+                    }
+
+                }
+
+            });
+
+            return _responses.OrderBy(response => response.Timestamp);
+
+        }
+
+        #endregion
 
 
         #region (static) BadRequest

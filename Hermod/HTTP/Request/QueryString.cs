@@ -31,6 +31,148 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
+    /// Extention methods for the QueryString class.
+    /// </summary>
+    public static class QueryStringExtentions
+    {
+
+        #region CreateStringFilter(this QueryString, ParameterName, FilterDelegate)
+
+        public static Func<T, Boolean> CreateStringFilter<T>(this QueryString          QueryString,
+                                                             String                    ParameterName,
+                                                             Func<T, String, Boolean>  FilterDelegate)
+        {
+
+            if (FilterDelegate != null &&
+                QueryString.TryGetString(ParameterName, out String Value))
+            {
+
+                return item => Value.StartsWith("!", StringComparison.Ordinal)
+                                   ? !FilterDelegate(item, Value.Substring(1))
+                                   :  FilterDelegate(item, Value);
+
+            }
+
+            return item => true;
+
+        }
+
+        #endregion
+
+
+        #region GetDateTimeOrDefault(this QueryString, ParameterName, DefaultValue = null)
+
+        public static DateTime? GetDateTimeOrDefault(this QueryString  QueryString,
+                                                     String            ParameterName,
+                                                     DateTime?         DefaultValue  = null)
+        {
+
+            if (QueryString.TryGetString(ParameterName, out String Value) &&
+                DateTime.TryParse(Value, out DateTime Timestamp))
+            {
+                return Timestamp;
+            }
+
+            return DefaultValue;
+
+        }
+
+        #endregion
+
+        #region TryGetDateTime      (this QueryString, ParameterName, out Timestamp)
+
+        public static Boolean TryGetDateTime(this QueryString  QueryString,
+                                             String            ParameterName,
+                                             out DateTime      Timestamp)
+        {
+
+            if (QueryString.TryGetString(ParameterName, out String Value) &&
+                DateTime.TryParse(Value, out Timestamp))
+            {
+                return true;
+            }
+
+            Timestamp = default(DateTime);
+            return false;
+
+        }
+
+        #endregion
+
+        #region CreateDateTimeFilter(this QueryString, ParameterName, FilterDelegate)
+
+        public static Func<T, Boolean> CreateDateTimeFilter<T>(this QueryString            QueryString,
+                                                               String                      ParameterName,
+                                                               Func<T, DateTime, Boolean>  FilterDelegate)
+        {
+
+            if (FilterDelegate != null &&
+                QueryString.TryGetDateTime(ParameterName, out DateTime Timestamp))
+            {
+                return item => FilterDelegate(item, Timestamp);
+            }
+
+            return item => true;
+
+        }
+
+        #endregion
+
+
+        #region ParseFromTimestampFilter   (this QueryString)
+
+        /// <summary>
+        /// Parse optional from-timestamp filter...
+        /// </summary>
+        public static DateTime? ParseFromTimestampFilter(this QueryString  QueryString)
+        {
+
+            if (QueryString.TryGetDateTime("from", out DateTime Timestamp))
+                return Timestamp;
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region ParseToTimestampFilter     (this QueryString)
+
+        /// <summary>
+        /// Parse optional to-timestamp filter...
+        /// </summary>
+        public static DateTime? ParseToTimestampFilter(this QueryString  QueryString)
+        {
+
+            if (QueryString.TryGetDateTime("to", out DateTime Timestamp))
+                return Timestamp;
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region ParseFromToTimestampFilters(this QueryString, out FromTimestamp, out ToTimestamp)
+
+        /// <summary>
+        /// Parse optional from-/to-timestamp filters...
+        /// </summary>
+        public static void ParseFromToTimestampFilters(this QueryString  QueryString,
+                                                       out  DateTime?    FromTimestamp,
+                                                       out  DateTime?    ToTimestamp)
+        {
+
+            FromTimestamp = QueryString.ParseFromTimestampFilter();
+              ToTimestamp = QueryString.ParseToTimestampFilter();
+
+        }
+
+        #endregion
+
+    }
+
+    /// <summary>
     /// A HTTP Query String.
     /// </summary>
     public class QueryString : IEnumerable<KeyValuePair<String, IEnumerable<String>>>
@@ -77,8 +219,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         {
 
                             case 1:
-                                Add(HttpUtility.UrlDecode(split[0]),
-                                                          "");
+                                Add(HttpUtility.UrlDecode(split[0]), "");
                                 break;
 
                             case 2:
@@ -135,13 +276,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region Initial checks
 
             if (Key.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(Key),    "The key must not be null or empty!");
+                throw new ArgumentNullException(nameof(Key),  "The given key must not be null or empty!");
 
             #endregion
 
-            List<String> ValueList = null;
-
-            if (_Dictionary.TryGetValue(Key, out ValueList) && Value != null)
+            if (_Dictionary.TryGetValue(Key, out List<String> ValueList) && Value != null)
                 ValueList.Add(Value);
 
             else
@@ -322,39 +461,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Values       != null                                            &&
                 Values.Count  > 0)
             {
-
                 Value = Values.Last();
                 return true;
-
             }
 
             Value = null;
             return false;
-
-        }
-
-        #endregion
-
-
-        #region CreateStringFilter(ParameterName, FilterDelegate)
-
-        public Func<T, Boolean> CreateStringFilter<T>(String                    ParameterName,
-                                                      Func<T, String, Boolean>  FilterDelegate)
-        {
-
-            if (FilterDelegate != null                                          &&
-                _Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values         != null                                          &&
-                Values.Count    > 0)
-            {
-
-                return item => Values.Last().StartsWith("!", StringComparison.Ordinal)
-                                   ? !FilterDelegate(item, Values.Last().Substring(1))
-                                   :  FilterDelegate(item, Values.Last());
-
-            }
-
-            return item => true;
 
         }
 
@@ -562,48 +674,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       ? !FilterDelegate(item, ValueT)
                                       :  FilterDelegate(item, ValueT);
 
-            }
-
-            return item => true;
-
-        }
-
-        #endregion
-
-
-        #region GetDateTimeOrDefault(ParameterName, DefaultValue = null)
-
-        public DateTime? GetDateTimeOrDefault(String    ParameterName,
-                                              DateTime? DefaultValue = null)
-        {
-
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values       != null                                            &&
-                Values.Count  > 0                                               &&
-                DateTime.TryParse(Values.Last(), out DateTime Timestamp))
-            {
-                return Timestamp;
-            }
-
-            return DefaultValue;
-
-        }
-
-        #endregion
-
-        #region CreateDateTimeFilter(ParameterName, FilterDelegate)
-
-        public Func<T, Boolean> CreateDateTimeFilter<T>(String                      ParameterName,
-                                                        Func<T, DateTime, Boolean>  FilterDelegate)
-        {
-
-            if (FilterDelegate != null                                          &&
-                _Dictionary.TryGetValue(ParameterName, out List<String> Value)  &&
-                Value          != null                                          &&
-                Value.Count     > 0                                             &&
-                DateTime.TryParse(Value.Last(), out DateTime Timestamp))
-            {
-                return item => FilterDelegate(item, Timestamp);
             }
 
             return item => true;
