@@ -385,9 +385,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public String GetString(String Key)
         {
 
-            Object Value = null;
-
-            if (TryGetValue(Key, out Value))
+            if (TryGetValue(Key, out Object Value))
             {
 
                 var ReturnValue = Value as String;
@@ -400,6 +398,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
             return String.Empty;
+
+        }
+
+        public Boolean GetBoolean(String Key)
+        {
+
+            try
+            {
+
+                if (TryGetValue(Key, out Object Value))
+                    return (Boolean)Value;
+
+            }
+            catch (Exception)
+            { }
+
+            return false;
 
         }
 
@@ -467,9 +482,65 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          out HTTPResponse  HTTPResponse)
         {
 
-            Object JSONToken = null;
+            if (!TryGetValue(PropertyName, out Object JSONToken) || JSONToken == null)
+            {
 
-            if (!TryGetValue(PropertyName, out JSONToken))
+                HTTPResponse = new HTTPResponseBuilder(HTTPRequest)
+                {
+                    HTTPStatusCode = HTTPStatusCode.BadRequest,
+                    Server = DefaultServerName,
+                    Date = DateTime.UtcNow,
+                    ContentType = HTTPContentType.JSON_UTF8,
+                    Content = JSONObject.Create(
+                                          new JProperty("description", "Missing JSON property '" + PropertyName + "'!")
+                                      ).ToUTF8Bytes()
+                };
+
+                Value = default(T);
+
+                return false;
+
+            }
+
+            if (!Parser(JSONToken.ToString(), out Value))
+            {
+
+                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                    Server          = DefaultServerName,
+                    Date            = DateTime.UtcNow,
+                    ContentType     = HTTPContentType.JSON_UTF8,
+                    Content         = JSONObject.Create(
+                                          new JProperty("description", "Unknown " + PropertyDescription + "!")
+                                      ).ToUTF8Bytes()
+                };
+
+                return false;
+
+            }
+
+            HTTPResponse = null;
+            return true;
+
+        }
+
+        #endregion
+
+        #region ParseMandatoryN<T>   (this JSON, PropertyName, PropertyDescription, DefaultServerName, Parser, out Value, HTTPRequest, out HTTPResponse)
+
+        public Boolean ParseMandatoryN<T>(String            PropertyName,
+                                          String            PropertyDescription,
+                                          String            DefaultServerName,
+                                          PFunc<T>          Parser,
+                                          out T?            Value,
+                                          HTTPRequest       HTTPRequest,
+                                          out HTTPResponse  HTTPResponse)
+
+            where T : struct
+
+        {
+
+            if (!TryGetValue(PropertyName, out Object JSONToken) || JSONToken == null)
             {
 
                 HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
@@ -488,9 +559,91 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            if (JSONToken != null)
+            if (!Parser(JSONToken.ToString(), out T _Value))
             {
-                if (!Parser(JSONToken.ToString(), out Value))
+
+                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                    Server          = DefaultServerName,
+                    Date            = DateTime.UtcNow,
+                    ContentType     = HTTPContentType.JSON_UTF8,
+                    Content         = JSONObject.Create(
+                                          new JProperty("description", "Unknown " + PropertyDescription + "!")
+                                      ).ToUTF8Bytes()
+                };
+
+                Value = default(T);
+
+                return false;
+
+            }
+
+            Value        = _Value;
+            HTTPResponse = null;
+            return true;
+
+        }
+
+        #endregion
+
+        #region ParseMandatory<T>    (this JSON, PropertyName, PropertyDescription, DefaultServerName, Parser, out Values, HTTPRequest, out HTTPResponse)
+
+        public Boolean ParseMandatory<T>(String              PropertyName,
+                                         String              PropertyDescription,
+                                         String              DefaultServerName,
+                                         PFunc<T>            Parser,
+                                         out IEnumerable<T>  Values,
+                                         HTTPRequest         HTTPRequest,
+                                         out HTTPResponse    HTTPResponse)
+
+        {
+
+            if (!TryGetValue(PropertyName, out Object JSONToken) || JSONToken == null)
+            {
+
+                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                    Server          = DefaultServerName,
+                    Date            = DateTime.UtcNow,
+                    ContentType     = HTTPContentType.JSON_UTF8,
+                    Content         = JSONObject.Create(
+                                          new JProperty("description", "Missing JSON property '" + PropertyName + "'!")
+                                      ).ToUTF8Bytes()
+                };
+
+                Values = new T[0];
+
+                return false;
+
+            }
+
+            var JSONArray = JSONToken as JArray;
+
+            if (JSONArray == null)
+            {
+
+                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                    Server          = DefaultServerName,
+                    Date            = DateTime.UtcNow,
+                    ContentType     = HTTPContentType.JSON_UTF8,
+                    Content         = JSONObject.Create(
+                                          new JProperty("description", "JSON property '" + PropertyName + "' must be a JSON array!")
+                                      ).ToUTF8Bytes()
+                };
+
+                Values = new T[0];
+
+                return false;
+
+            }
+
+            var _Values = new List<T>();
+
+            foreach (var item in JSONArray)
+            {
+
+                if (!Parser(item.ToString(), out T Value))
                 {
 
                     HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
@@ -499,23 +652,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         Date            = DateTime.UtcNow,
                         ContentType     = HTTPContentType.JSON_UTF8,
                         Content         = JSONObject.Create(
-                                              new JProperty("description", "Unknown " + PropertyDescription + "!")
+                                              new JProperty("description", "Invalid item '" + item + "' in '" + PropertyName + "' array!")
                                           ).ToUTF8Bytes()
                     };
 
-                    Value = default(T);
+                    Values = new T[0];
 
                     return false;
 
                 }
 
-                HTTPResponse = null;
-                return true;
+                _Values.Add(Value);
 
             }
 
-            Value = default(T);
-            HTTPResponse  = null;
+            Values       = _Values;
+            HTTPResponse = null;
             return true;
 
         }
@@ -556,30 +708,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            if (JSONToken != null)
+            if (JSONToken == null || !Enum.TryParse(JSONToken.ToString(), true, out Value))
             {
-                if (!Enum.TryParse<TEnum>(JSONToken.ToString(), true, out Value))
-                {
 
-                    HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
-                        HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                        Server          = DefaultServerName,
-                        Date            = DateTime.UtcNow,
-                        ContentType     = HTTPContentType.JSON_UTF8,
-                        Content         = JSONObject.Create(
-                                              new JProperty("description",  "Unknown " + PropertyDescription + "!")
-                                          ).ToUTF8Bytes()
-                    };
+                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                    Server          = DefaultServerName,
+                    Date            = DateTime.UtcNow,
+                    ContentType     = HTTPContentType.JSON_UTF8,
+                    Content         = JSONObject.Create(
+                                          new JProperty("description",  "Unknown " + PropertyDescription + "!")
+                                      ).ToUTF8Bytes()
+                };
 
-                    Value = default(TEnum);
+                Value = default(TEnum);
+                return false;
 
-                    return false;
-
-                }
             }
 
-            Value = default(TEnum);
-            HTTPResponse  = null;
+            HTTPResponse = null;
             return true;
 
         }
@@ -1055,7 +1202,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ParseOptional(this JSON, PropertyName,  PropertyDescription, DefaultServerName, out Text,      HTTPRequest, out HTTPResponse)
+        #region ParseOptional(this JSON, PropertyName,                       DefaultServerName, out JSON,      HTTPRequest, out HTTPResponse)
 
         public Boolean ParseOptional(String            PropertyName,
                                      String            DefaultServerName,
@@ -1102,14 +1249,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ParseOptional(this JSON, PropertyName,  PropertyDescription, DefaultServerName, out Text,      HTTPRequest, out HTTPResponse)
+        #region ParseOptional(this JSON, PropertyName,                                          out Text)
 
         public Boolean ParseOptional(String            PropertyName,
-                                     String            PropertyDescription,
-                                     String            DefaultServerName,
-                                     out String        Text,
-                                     HTTPRequest       HTTPRequest,
-                                     out HTTPResponse  HTTPResponse)
+                                     //String            PropertyDescription,
+                                     //String            DefaultServerName,
+                                     out String        Text)
+                                     //HTTPRequest       HTTPRequest,
+                                     //out HTTPResponse  HTTPResponse)
 
         {
 
@@ -1124,21 +1271,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
             }
 
-            HTTPResponse  = null;
+            //HTTPResponse  = null;
             return true;
 
         }
 
         #endregion
 
-        #region ParseOptional(this JSON, PropertyNames, PropertyDescription, DefaultServerName, out Text,      HTTPRequest, out HTTPResponse)
+        #region ParseOptional(this JSON, PropertyNames,                                         out Text)
 
         public Boolean ParseOptional(IEnumerable<String>  PropertyNames,
-                                     String               PropertyDescription,
-                                     String               DefaultServerName,
-                                     out String           Text,
-                                     HTTPRequest          HTTPRequest,
-                                     out HTTPResponse     HTTPResponse)
+                                     //String               PropertyDescription,
+                                     //String               DefaultServerName,
+                                     out String           Text)
+                                     //HTTPRequest          HTTPRequest,
+                                     //out HTTPResponse     HTTPResponse)
 
         {
 
@@ -1155,8 +1302,76 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
             }
 
-            Text          = null;
-            HTTPResponse  = null;
+            Text = null;
+            return true;
+
+        }
+
+        #endregion
+
+        #region ParseOptional(this JSON, PropertyName, PropertyDescription, DefaultServerName,         out I18NText, HTTPRequest, out HTTPResponse)
+
+        public Boolean ParseOptional(String            PropertyName,
+                                     String            PropertyDescription,
+                                     String            DefaultServerName,
+                                     out I18NString    I18NText,
+                                     HTTPRequest       HTTPRequest,
+                                     out HTTPResponse  HTTPResponse)
+
+        {
+
+            if (TryGetValue(PropertyName, out Object JSONToken) && JSONToken != null)
+            {
+
+                var jobject = JSONToken as JObject;
+
+                if (jobject == null)
+                {
+                    I18NText      = I18NString.Empty;
+                    HTTPResponse  = null;
+                    return true;
+                }
+
+                var i18NString = I18NString.Empty;
+
+                foreach (var jproperty in jobject)
+                {
+
+                    try
+                    {
+
+                        i18NString.Add((Languages) Enum.Parse(typeof(Languages), jproperty.Key),
+                                       jproperty.Value.Value<String>());
+
+                    } catch (Exception e)
+                    {
+
+                        HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                            HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                            Server          = DefaultServerName,
+                            Date            = DateTime.UtcNow,
+                            ContentType     = HTTPContentType.JSON_UTF8,
+                            Content         = JSONObject.Create(
+                                                  new JProperty("description", "Invalid " + PropertyDescription + "!")
+                                              ).ToUTF8Bytes()
+                        };
+
+                        I18NText = null;
+
+                        return false;
+
+                    }
+
+                }
+
+                HTTPResponse = null;
+                I18NText     = i18NString;
+                return true;
+
+            }
+
+            HTTPResponse = null;
+            I18NText     = I18NString.Empty;
             return true;
 
         }
@@ -1276,7 +1491,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
-        public Boolean ParseHTTP(String ParameterName, HTTPRequest HTTPRequest, out Single Value, out HTTPResponse HTTPResp, String Context = null, Single DefaultValue = 0)
+        public Boolean ParseHTTP(String ParameterName, HTTPRequest HTTPRequest, out Single   Value, out HTTPResponse HTTPResp, String Context = null, Single   DefaultValue = 0)
         {
 
             Object JSONToken;
@@ -1318,7 +1533,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
-        public Boolean ParseHTTP(String ParameterName, HTTPRequest HTTPRequest, out Double Value, out HTTPResponse HTTPResp, String Context = null, Double DefaultValue = 0)
+        public Boolean ParseHTTP(String ParameterName, HTTPRequest HTTPRequest, out Double   Value, out HTTPResponse HTTPResp, String Context = null, Double   DefaultValue = 0)
         {
 
             Object JSONToken;
@@ -1406,7 +1621,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
-        public Boolean ParseHTTP( String ParameterName, HTTPRequest HTTPRequest, out String Value, out HTTPResponse HTTPResp, String Context = null, String DefaultValue = null)
+        public Boolean ParseHTTP(String ParameterName, HTTPRequest HTTPRequest, out String   Value, out HTTPResponse HTTPResp, String Context = null, String   DefaultValue = null)
         {
 
             Object JSONToken;

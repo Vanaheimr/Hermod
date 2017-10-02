@@ -114,7 +114,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+        public static Boolean TryParseAddress(this JObject JSON, out Address Address)
+        {
 
+            try
+            {
+
+                Address = Address.Create(Country.Parse(JSON["country"]?.Value<String>()),
+                                         JSON["postalCode" ]?.Value<String>(),
+                                         (JSON["city"] as JObject)?.ParseI18NString(),
+                                         JSON["street"     ]?.Value<String>(),
+                                         JSON["houseNumber"]?.Value<String>(),
+                                         JSON["floorLevel" ]?.Value<String>());
+
+                return true;
+
+            }
+            catch (Exception)
+            { }
+
+            Address = null;
+            return false;
+
+        }
+
+        public static Boolean TryParseAddress(this String Text, out Address Address)
+            => TryParseAddress(JObject.Parse(Text), out Address);
+
+
+
+        #region ToJSON(this DataLicenseIds)
+
+        public static JArray ToJSON(this IEnumerable<DataLicense_Id> DataLicenseIds)
+
+            => DataLicenseIds != null
+                   ? new JArray(DataLicenseIds)
+                   : null;
+
+        #endregion
+
+        #region ToJSON(this DataLicenseIds, JPropertyKey)
+
+        public static JProperty ToJSON(this IEnumerable<DataLicense_Id> DataLicenseIds, String JPropertyKey)
+
+            => DataLicenseIds != null
+                   ? new JProperty(JPropertyKey, new JArray(DataLicenseIds))
+                   : null;
+
+        #endregion
 
         #region ToJSON(this DataLicense)
 
@@ -143,7 +190,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region ToJSON(this DataLicenses, JPropertyKey)
 
-        public static JProperty ToJSON(this ReactiveSet<DataLicense> DataLicenses, String JPropertyKey)
+        public static JProperty ToJSON(this IEnumerable<DataLicense> DataLicenses, String JPropertyKey)
 
             => DataLicenses != null
                    ? new JProperty(JPropertyKey,

@@ -41,7 +41,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The data stored within the cookie.
         /// </summary>
-        private Dictionary<String, String> Crumbs;
+        private readonly Dictionary<String, String> Crumbs;
 
         #endregion
 
@@ -59,8 +59,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP cookie.
         /// </summary>
-        private HTTPCookie(String Name,
-                           IEnumerable<KeyValuePair<String, String>> Crumbs)
+        private HTTPCookie(String                                     Name,
+                           IEnumerable<KeyValuePair<String, String>>  Crumbs)
         {
 
             this.Name    = Name;
@@ -131,14 +131,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region [Crumb]
+
+        #region this[Crumb]
 
         /// <summary>
         /// Return the value of the given crumb.
         /// </summary>
         /// <param name="Crumb">The key/name of the crumb.</param>
         public String this[String Crumb]
-            => Crumbs[Crumb];
+        {
+            get
+            {
+
+                if (Crumbs.TryGetValue(Crumb, out String Value))
+                    return Value;
+
+                return null;
+
+            }
+        }
+
+        #endregion
+
+        #region Get(Crumb)
+
+        /// <summary>
+        /// Return the value of the given crumb.
+        /// </summary>
+        /// <param name="Crumb">The key/name of the crumb.</param>
+        public String Get(String Crumb)
+        {
+
+            if (Crumbs.TryGetValue(Crumb, out String Value))
+                return Value;
+
+            return null;
+
+        }
 
         #endregion
 
