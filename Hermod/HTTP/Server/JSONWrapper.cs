@@ -1202,6 +1202,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region ParseOptional<T>    (this JSON, PropertyName, PropertyDescription, DefaultServerName, Parser, out Value, HTTPRequest, out HTTPResponse)
+
+        public Boolean ParseOptional<T>(String              PropertyName,
+                                        String              PropertyDescription,
+                                        String              DefaultServerName,
+                                        PFunc<T>            Parser,
+                                        out IEnumerable<T>  Values,
+                                        HTTPRequest         HTTPRequest,
+                                        out HTTPResponse    HTTPResponse)
+        {
+
+            var _Values = new List<T>();
+
+            if (TryGetValue(PropertyName, out Object JSONToken) &&
+                JSONToken is JArray JSONArray)
+            {
+
+                foreach (var item in JSONArray)
+                {
+
+                    if (!Parser(item.ToString(), out T Value))
+                    {
+
+                        HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                            HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                            Server          = DefaultServerName,
+                            Date            = DateTime.UtcNow,
+                            ContentType     = HTTPContentType.JSON_UTF8,
+                            Content         = JSONObject.Create(
+                                                  new JProperty("description", "Invalid item '" + item + "' in " + PropertyDescription + " array!")
+                                              ).ToUTF8Bytes()
+                        };
+
+                        Values = new T[0];
+                        return false;
+
+                    }
+
+                    _Values.Add(Value);
+
+                }
+
+            }
+
+            Values        = _Values;
+            HTTPResponse  = null;
+            return true;
+
+        }
+
+        #endregion
+
         #region ParseOptional(this JSON, PropertyName,                       DefaultServerName, out JSON,      HTTPRequest, out HTTPResponse)
 
         public Boolean ParseOptional(String            PropertyName,

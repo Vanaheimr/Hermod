@@ -20,42 +20,37 @@
 using System;
 using System.Text;
 using System.Linq;
-using System.Collections.Generic;
 using System.Security.Cryptography;
-using System.Collections.Concurrent;
-using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
+
+using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using Newtonsoft.Json.Linq;
-using System.Text.RegularExpressions;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Distributed
 {
 
-    public static class Helpers
-    {
-
-        public static readonly Regex UserDB_RegEx = new Regex(@"(\s)+", RegexOptions.IgnorePatternWhitespace);
-
-    }
-
-
-    //public interface IEntityClass<TClass> : IEquatable<TClass>,
-    //                                        IComparable<TClass>,
-    //                                        IComparable
-    //{ }
-
     /// <summary>
     /// An abstract entity.
     /// </summary>
+    /// <typeparam name="TId">The type of the entity identification.</typeparam>
     public abstract class ADistributedEntity<TId> : AEntity<TId>
         where TId : IId
     {
 
+        #region Data
+
+        private static readonly Regex JSONWhitespaceRegEx = new Regex(@"(\s)+", RegexOptions.IgnorePatternWhitespace);
+
+        #endregion
+
         #region Properties
 
+        /// <summary>
+        /// The hash value of this object.
+        /// </summary>
         public String  CurrentCryptoHash   { get; protected set; }
 
         #endregion
@@ -66,25 +61,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Distributed
         /// Create a new abstract entity.
         /// </summary>
         /// <param name="Id">The unique entity identification.</param>
-        public ADistributedEntity(TId Id)
+        /// <param name="DataSource">The source of this information, e.g. an automatic importer.</param>
+        protected ADistributedEntity(TId     Id,
+                                     String  DataSource)
 
-            : base(Id)
+            : base(Id,
+                   DataSource)
 
-        {
-
-
-        }
+        { }
 
         #endregion
 
 
         #region (protected) CalcHash()
 
+        /// <summary>
+        /// Calculate the hash value of this object.
+        /// </summary>
         protected void CalcHash()
         {
 
             CurrentCryptoHash = "json:sha256:" +
-                          new SHA256Managed().ComputeHash(Encoding.Unicode.GetBytes(Helpers.UserDB_RegEx.Replace(ToJSON(IncludeCryptoHash: false).ToString(), " "))).
+                          new SHA256Managed().ComputeHash(Encoding.Unicode.GetBytes(JSONWhitespaceRegEx.Replace(ToJSON(IncludeCryptoHash: false).ToString(), " "))).
                                               Select(value => String.Format("{0:x2}", value)).
                                               Aggregate();
 
