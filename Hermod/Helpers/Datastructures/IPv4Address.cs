@@ -20,8 +20,6 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
 
 #endregion
 
@@ -54,12 +52,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// The length of an IPv4Address.
         /// </summary>
         public Byte Length
-        {
-            get
-            {
-                return _Length;
-            }
-        }
+
+            => _Length;
 
         #endregion
 
@@ -70,12 +64,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// 224.0.0.0 - 239.255.255.255
         /// </summary>
         public Boolean IsMulticast
-        {
-            get
-            {
-                return IPAddressArray[0] >= 224 && IPAddressArray[0] <= 239;
-            }
-        }
+
+            => IPAddressArray[0] >= 224 && IPAddressArray[0] <= 239;
 
         #endregion
 
@@ -205,12 +195,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// The IPv4.Any / 0.0.0.0 address.
         /// </summary>
         public static IPv4Address Any
-        {
-            get
-            {
-                return new IPv4Address(new Byte[_Length]);
-            }
-        }
+
+            => new IPv4Address(
+                   new Byte[_Length]
+               );
 
         #endregion
 
@@ -220,12 +208,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// The IPv4 localhost / 127.0.0.1
         /// </summary>
         public static IPv4Address Localhost
-        {
-            get
-            {
-                return new IPv4Address(new Byte[] { 127, 0, 0, 1 });
-            }
-        }
+
+            => new IPv4Address(
+                   new Byte[] {
+                       127, 0, 0, 1
+                   }
+               );
 
         #endregion
 
@@ -235,12 +223,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// The IPv4 broadcast / 255.255.255.255
         /// </summary>
         public static IPv4Address Broadcast
-        {
-            get
-            {
-                return new IPv4Address(new Byte[] { 255, 255, 255, 255 });
-            }
-        }
+
+            => new IPv4Address(
+                   new Byte[] {
+                       255, 255, 255, 255
+                   }
+               );
 
         #endregion
 
@@ -350,9 +338,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IPv4Address2">Another IPv4Address.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (IPv4Address IPv4Address1, IPv4Address IPv4Address2)
-        {
-            return !(IPv4Address1 == IPv4Address2);
-        }
+            => !(IPv4Address1 == IPv4Address2);
 
         #endregion
 
@@ -402,9 +388,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             for (var _BytePosition = 0; _BytePosition < 4; _BytePosition++)
             {
-                
+
                 _Comparision = IPAddressArray[0].CompareTo(_ByteArray[0]);
-                
+
                 if (_Comparision != 0)
                     return _Comparision;
 
@@ -434,7 +420,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if ((Object) _IPv4Address == null)
                 throw new ArgumentException("The given IIPAddress is not an IPv4Address!");
 
-            return this.CompareTo(_IPv4Address);
+            return CompareTo(_IPv4Address);
 
         }
 
@@ -462,7 +448,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if ((Object) _IPv4Address == null)
                 throw new ArgumentException("The given object is not an IPv4Address!");
 
-            return this.Equals(_IPv4Address);
+            return Equals(_IPv4Address);
 
         }
 
@@ -485,7 +471,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (Object.ReferenceEquals(this, IPv4Address))
                 return true;
 
-            return this.ToString().Equals(IPv4Address.ToString());
+            return ToString().Equals(IPv4Address.ToString());
 
         }
 
@@ -512,7 +498,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if ((Object) _IPv4Address == null)
                 return false;
 
-            return this.Equals(_IPv4Address);
+            return Equals(_IPv4Address);
 
         }
 
@@ -526,9 +512,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Return the HashCode of this object.
         /// </summary>
         public override Int32 GetHashCode()
-        {
-            return this.ToString().GetHashCode();
-        }
+
+            => ToString().GetHashCode();
 
         #endregion
 
@@ -538,9 +523,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Returns a string representation of this object.
         /// </summary>
         public override String ToString()
-        {
-            return String.Format("{0}.{1}.{2}.{3}", IPAddressArray[0], IPAddressArray[1], IPAddressArray[2], IPAddressArray[3]);
-        }
+
+            => String.Format("{0}.{1}.{2}.{3}",
+                             IPAddressArray[0],
+                             IPAddressArray[1],
+                             IPAddressArray[2],
+                             IPAddressArray[3]);
 
         #endregion
 
