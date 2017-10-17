@@ -90,12 +90,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Distributed
 
         #endregion
 
-        #region ToJSON(IncludeHash = true)
+        #region ToJSON(IncludeCryptoHash = true)
 
         /// <summary>
         /// Return a JSON representation of this object.
         /// </summary>
-        /// <param name="IncludeCryptoHash">Include the cryptograhical hash value of this object.</param>
+        /// <param name="IncludeCryptoHash">Include the crypto hash value of this object.</param>
         public abstract JObject ToJSON(Boolean IncludeCryptoHash = true);
 
         #endregion

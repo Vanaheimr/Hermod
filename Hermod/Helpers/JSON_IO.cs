@@ -114,6 +114,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+        public static Address ParseAddress(this JObject JSONObject, String PropertyKey)
+        {
+
+            try
+            {
+
+                if (JSONObject[PropertyKey] is JObject JSON)
+                    return Address.Create(Country.Parse(JSON["country"    ]?.Value<String>()),
+                                                        JSON["postalCode" ]?.Value<String>(),
+                                                       (JSON["city"       ] as JObject)?.ParseI18NString(),
+                                                        JSON["street"     ]?.Value<String>(),
+                                                        JSON["houseNumber"]?.Value<String>(),
+                                                        JSON["floorLevel" ]?.Value<String>());
+
+            }
+            catch (Exception)
+            { }
+
+            return null;
+
+        }
+
         public static Boolean TryParseAddress(this JObject JSON, out Address Address)
         {
 
