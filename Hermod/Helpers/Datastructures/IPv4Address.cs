@@ -263,9 +263,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static IPv4Address Parse(String IPv4AddressString)
         {
 
-            IPv4Address _IPv4Address;
-
-            if (IPv4Address.TryParse(IPv4AddressString, out _IPv4Address))
+            if (TryParse(IPv4AddressString, out IPv4Address _IPv4Address))
                 return _IPv4Address;
 
             throw new FormatException("The given string '" + IPv4AddressString + "' is not a valid IPv4Address!");
