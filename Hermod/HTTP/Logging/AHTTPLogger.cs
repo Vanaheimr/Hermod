@@ -154,7 +154,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Console.Write(Response.HTTPStatusCode);
 
                 Console.ForegroundColor = ConsoleColor.Gray;
-                Console.WriteLine(String.Concat(" in ", Math.Round((Request.Timestamp - Response.Timestamp).TotalMilliseconds), "ms"));
+                Console.WriteLine(String.Concat(" in ", Math.Round((Response.Timestamp - Request.Timestamp).TotalMilliseconds), "ms"));
 
                 Console.ForegroundColor = PreviousColor;
 

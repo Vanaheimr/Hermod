@@ -67,9 +67,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Return the IPPort for the given UInt16.
         /// </summary>
         public static IPPort Parse(UInt16 UInt16)
-        {
-            return new IPPort(UInt16);
-        }
+
+            => new IPPort(UInt16);
 
         #endregion
 
@@ -79,9 +78,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Return the IPPort for the given UInt16.
         /// </summary>
         public static IPPort Parse(Int32 Int32)
-        {
-            return new IPPort((UInt16) Int32);
-        }
+
+            => new IPPort((UInt16) Int32);
 
         #endregion
 
@@ -91,9 +89,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Return the IPPort for the given String.
         /// </summary>
         public static IPPort Parse(String String)
-        {
-            return new IPPort(UInt16.Parse(String));
-        }
+
+            => new IPPort(UInt16.Parse(String));
 
         #endregion
 
