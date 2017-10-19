@@ -186,6 +186,75 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
+        public static Boolean TryParseJObjectRequestBody(this HTTPRequest  Request,
+                                                         out JObject       JSON,
+                                                         out HTTPResponse  HTTPResponse,
+                                                         Boolean           AllowEmptyHTTPBody = false,
+                                                         String            JSONLDContext      = null)
+        {
+
+            #region AllowEmptyHTTPBody
+
+            JSON          = null;
+            HTTPResponse  = null;
+
+            if (Request.ContentLength == 0 && AllowEmptyHTTPBody)
+            {
+
+                HTTPResponse = new HTTPResponseBuilder(Request) {
+                    HTTPStatusCode = HTTPStatusCode.OK,
+                };
+
+                return false;
+
+            }
+
+            #endregion
+
+            #region Get text body
+
+            var RequestBodyString = Request.GetRequestBodyAsUTF8String(HTTPContentType.JSON_UTF8, AllowEmptyHTTPBody);
+            if (RequestBodyString.HasErrors)
+            {
+                HTTPResponse  = RequestBodyString.Error;
+                return false;
+            }
+
+            #endregion
+
+            #region Try to parse the JSON
+
+            try
+            {
+
+                JSON = JObject.Parse(RequestBodyString.Data);
+
+            }
+            catch (Exception e)
+            {
+
+                HTTPResponse  = new HTTPResponseBuilder(Request) {
+                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                    ContentType     = HTTPContentType.JSON_UTF8,
+                    Content         = JSONObject.Create(
+                                          JSONLDContext.IsNotNullOrEmpty()
+                                              ? new JProperty("context",  JSONLDContext)
+                                              : null,
+                                          new JProperty("description",  "Invalid JSON Object request body!"),
+                                          new JProperty("hint",         e.Message)
+                                      ).ToUTF8Bytes()
+                };
+
+                return false;
+
+            }
+
+            return true;
+
+            #endregion
+
+        }
+
         #endregion
 
         #region TryParseJArrayRequestBody    (this Request, out JSON, out HTTPResponse, AllowEmptyHTTPBody = false, JSONLDContext = null)

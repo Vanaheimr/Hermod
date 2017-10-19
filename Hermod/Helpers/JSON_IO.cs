@@ -75,7 +75,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                          _Address.PostalCodeSub      .ToJSON("postalCodeSub"),
                          _Address.City               .ToJSON("city"),
                          _Address.Country != null
-                              ? _Address.Country.CountryName.ToJSON("country")
+                              ? _Address.Country.Alpha3Code.ToJSON("country")
                               : null
                      )
                    : null;
@@ -152,8 +152,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 return true;
 
             }
-            catch (Exception)
-            { }
+            catch (Exception e)
+            {
+            }
 
             Address = null;
             return false;
