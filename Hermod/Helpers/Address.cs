@@ -69,7 +69,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public I18NString  City             { get; }
 
         /// <summary>
-        /// The city.
+        /// The country.
         /// </summary>
         public Country     Country          { get; }
 
