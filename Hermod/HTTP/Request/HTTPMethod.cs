@@ -386,6 +386,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPMethod SET           = new HTTPMethod("SET");
 
         /// <summary>
+        /// Change the owner of a resource
+        /// </summary>
+        public static readonly HTTPMethod CHOWN         = new HTTPMethod("CHOWN");
+
+        /// <summary>
         /// Authenticate at the given resource, e.g. for login purposes.
         /// </summary>
         public static readonly HTTPMethod AUTH          = new HTTPMethod("AUTH");

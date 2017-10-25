@@ -73,12 +73,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Distributed
         #endregion
 
 
-        #region (protected) CalcHash()
+        #region CalcHash()
 
         /// <summary>
         /// Calculate the hash value of this object.
         /// </summary>
-        protected void CalcHash()
+        public void CalcHash()
         {
 
             CurrentCryptoHash = "json:sha256:" +

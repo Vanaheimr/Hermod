@@ -63,7 +63,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="EMailAddressList">A list of e-mail addresses.</param>
         private EMailAddressList(EMailAddress[] EMailAddressList = null)
         {
-            this._MailAddressList = EMailAddressList ?? new EMailAddress[0];
+
+            _MailAddressList = EMailAddressList ?? new EMailAddress[0];
+
+            if (_MailAddressList.Length > 0)
+                _MailAddressList = _MailAddressList.
+                                        Where(address => address != null).
+                                        ToArray();
+
         }
 
         #endregion
