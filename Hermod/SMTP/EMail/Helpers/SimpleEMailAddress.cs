@@ -257,9 +257,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="SimpleEMailAddress2">Another SimpleEMailAddress.</param>
         /// <returns>true|false</returns>
         public static Boolean operator < (SimpleEMailAddress SimpleEMailAddress1, SimpleEMailAddress SimpleEMailAddress2)
-        {
-            return SimpleEMailAddress1.Value.CompareTo(SimpleEMailAddress2.Value) < 0;
-        }
+            => SimpleEMailAddress1.Value.CompareTo(SimpleEMailAddress2.Value) < 0;
 
         #endregion
 
@@ -285,9 +283,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="SimpleEMailAddress2">Another SimpleEMailAddress.</param>
         /// <returns>true|false</returns>
         public static Boolean operator >(SimpleEMailAddress SimpleEMailAddress1, SimpleEMailAddress SimpleEMailAddress2)
-        {
-            return SimpleEMailAddress1.Value.CompareTo(SimpleEMailAddress2.Value) > 0;
-        }
+            => SimpleEMailAddress1.Value.CompareTo(SimpleEMailAddress2.Value) > 0;
 
         #endregion
 

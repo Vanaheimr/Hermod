@@ -39,73 +39,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #region Properties
 
-        #region OwnerName
-
-        private readonly String _OwnerName;
-
         /// <summary>
         /// The name of the owner of the e-mail address.
         /// </summary>
-        public String OwnerName
-        {
-            get
-            {
-                return _OwnerName;
-            }
-        }
-
-        #endregion
-
-        #region Address
-
-        private readonly SimpleEMailAddress _Address;
+        public String              OwnerName        { get; }
 
         /// <summary>
         /// The e-mail address.
         /// </summary>
-        public SimpleEMailAddress Address
-        {
-            get
-            {
-                return _Address;
-            }
-        }
-
-        #endregion
-
-        #region SecretKeyRing
-
-        private readonly PgpSecretKeyRing _SecretKeyRing;
+        public SimpleEMailAddress  Address          { get; }
 
         /// <summary>
         /// The secret key ring for the given e-mail address.
         /// </summary>
-        public PgpSecretKeyRing SecretKeyRing
-        {
-            get
-            {
-                return _SecretKeyRing;
-            }
-        }
-
-        #endregion
-
-        #region PublicKeyRing
-
-        private readonly PgpPublicKeyRing _PublicKeyRing;
+        public PgpSecretKeyRing    SecretKeyRing    { get; }
 
         /// <summary>
         /// The public key ring for the given e-mail address.
         /// </summary>
-        public PgpPublicKeyRing PublicKeyRing
-        {
-            get
-            {
-                return _PublicKeyRing;
-            }
-        }
+        public PgpPublicKeyRing    PublicKeyRing    { get; }
 
-        #endregion
 
         #region (private) DebugView
 
@@ -114,9 +67,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             get
             {
 
-                return this.ToString() +
-                       (PublicKeyRing != null ? " publickey: "  + _PublicKeyRing.First().KeyId + " (" + _PublicKeyRing.Count() + ")" : "") +
-                       (SecretKeyRing != null ? " privatekey: " + _SecretKeyRing.First().KeyId + " (" + _PublicKeyRing.Count() + ")" : "");
+                return this +
+                       (PublicKeyRing != null ? " publickey: "  + PublicKeyRing.First().KeyId + " (" + PublicKeyRing.Count() + ")" : "") +
+                       (SecretKeyRing != null ? " privatekey: " + SecretKeyRing.First().KeyId + " (" + PublicKeyRing.Count() + ")" : "");
 
             }
         }
@@ -127,7 +80,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #region Constructor(s)
 
-        #region EMailAddress(SimpleEMailAddress, SecretKeyRing = null, PublicKeyRing = null)
+        #region EMailAddress(           SimpleEMailAddress,       SecretKeyRing = null, PublicKeyRing = null)
 
         /// <summary>
         /// Create a new e-mail address.
@@ -135,17 +88,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="SimpleEMailAddress">A simple e-mail address.</param>
         /// <param name="SecretKeyRing">The secret key ring for an e-mail address.</param>
         /// <param name="PublicKeyRing">The public key ring for an e-mail address.</param>
-        public EMailAddress(SimpleEMailAddress SimpleEMailAddress,
-                            PgpSecretKeyRing    SecretKeyRing  = null,
-                            PgpPublicKeyRing    PublicKeyRing  = null)
+        public EMailAddress(SimpleEMailAddress  SimpleEMailAddress,
+                            PgpSecretKeyRing    SecretKeyRing   = null,
+                            PgpPublicKeyRing    PublicKeyRing   = null)
+        {
 
-            : this("", SimpleEMailAddress, SecretKeyRing, PublicKeyRing)
+            this.OwnerName      = "";
+            this.Address        = SimpleEMailAddress;
+            this.PublicKeyRing  = PublicKeyRing;
+            this.SecretKeyRing  = SecretKeyRing;
 
-        { }
+        }
 
         #endregion
 
-        #region EMailAddress(SimpleEMailAddressString, SecretKeyRing = null, PublicKeyRing = null)
+        #region EMailAddress(           SimpleEMailAddressString, SecretKeyRing = null, PublicKeyRing = null)
 
         /// <summary>
         /// Create a new e-mail address.
@@ -154,16 +111,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="SecretKeyRing">The secret key ring for an e-mail address.</param>
         /// <param name="PublicKeyRing">The public key ring for an e-mail address.</param>
         public EMailAddress(String            SimpleEMailAddressString,
-                            PgpSecretKeyRing  SecretKeyRing = null,
-                            PgpPublicKeyRing  PublicKeyRing = null)
+                            PgpSecretKeyRing  SecretKeyRing   = null,
+                            PgpPublicKeyRing  PublicKeyRing   = null)
+        {
 
-            : this("", SimpleEMailAddress.Parse(SimpleEMailAddressString), SecretKeyRing, PublicKeyRing)
+            this.OwnerName      = "";
+            this.Address        = SimpleEMailAddress.Parse(SimpleEMailAddressString);
+            this.PublicKeyRing  = PublicKeyRing;
+            this.SecretKeyRing  = SecretKeyRing;
 
-        { }
+        }
 
         #endregion
 
-        #region EMailAddress(OwnerName, SimpleEMailAddress, SecretKeyRing = null, PublicKeyRing = null)
+        #region EMailAddress(OwnerName, SimpleEMailAddress,       SecretKeyRing = null, PublicKeyRing = null)
 
         /// <summary>
         /// Create a new e-mail address.
@@ -174,15 +135,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="PublicKeyRing">The public key ring for an e-mail address.</param>
         public EMailAddress(String              OwnerName,
                             SimpleEMailAddress  SimpleEMailAddress,
-                            PgpSecretKeyRing    SecretKeyRing = null,
-                            PgpPublicKeyRing    PublicKeyRing = null)
+                            PgpSecretKeyRing    SecretKeyRing   = null,
+                            PgpPublicKeyRing    PublicKeyRing   = null)
 
         {
 
-            this._OwnerName      = OwnerName.Trim();
-            this._Address        = SimpleEMailAddress;
-            this._PublicKeyRing  = PublicKeyRing;
-            this._SecretKeyRing  = SecretKeyRing;
+            #region Initial checks
+
+            if (OwnerName.IsNullOrEmpty() || OwnerName.Trim().IsNullOrEmpty())
+                throw new ArgumentNullException(nameof(OwnerName),  "The given OwnerName must not be null or empty!");
+
+            #endregion
+
+            this.OwnerName      = OwnerName.Trim();
+            this.Address        = SimpleEMailAddress;
+            this.PublicKeyRing  = PublicKeyRing;
+            this.SecretKeyRing  = SecretKeyRing;
 
         }
 
@@ -199,10 +167,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="PublicKeyRing">The secret key ring for an e-mail address.</param>
         public EMailAddress(String            OwnerName,
                             String            SimpleEMailAddressString,
-                            PgpSecretKeyRing  SecretKeyRing = null,
-                            PgpPublicKeyRing  PublicKeyRing = null)
+                            PgpSecretKeyRing  SecretKeyRing   = null,
+                            PgpPublicKeyRing  PublicKeyRing   = null)
 
-            : this(OwnerName, SimpleEMailAddress.Parse(SimpleEMailAddressString), SecretKeyRing, PublicKeyRing)
+            : this(OwnerName,
+                   SimpleEMailAddress.Parse(SimpleEMailAddressString),
+                   SecretKeyRing,
+                   PublicKeyRing)
 
         { }
 
@@ -219,31 +190,239 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="EMailAddress">A simple e-mail address.</param>
         /// <returns>A e-mail address.</returns>
         public static implicit operator EMailAddress(SimpleEMailAddress EMailAddress)
+            => new EMailAddress(EMailAddress);
+
+        #endregion
+
+
+        #region (static) Parse(EMailAddressString)
+
+        /// <summary>
+        /// Parse the given e-mail address.
+        /// </summary>
+        /// <param name="EMailAddressString">A text representation of an e-mail address.</param>
+        public static EMailAddress Parse(String EMailAddressString)
         {
-            return new EMailAddress(EMailAddress);
+
+            if (EMailAddressString.IsNullOrEmpty())
+                return null;
+
+            EMailAddressString = EMailAddressString.Trim();
+
+            if (EMailAddressString.IsNullOrEmpty())
+                return null;
+
+            var b      = EMailAddressString.IndexOf('<');
+            var c      = EMailAddressString.IndexOf('>');
+            var name   = (b >= 0 && c > b)
+                             ? EMailAddressString.Remove(b, c - b + 1).Trim()
+                             : "";
+            var email  = (b >= 0 && c > b)
+                             ? EMailAddressString.Substring(b + 1, c - b - 1).Trim()
+                             : EMailAddressString.Trim();
+
+            if (name.IsNeitherNullNorEmpty())
+                return new EMailAddress(name, email);
+
+            return new EMailAddress(email);
+
         }
 
         #endregion
 
 
-        public static EMailAddress Parse(String EMailString)
+        #region Operator overloading
+
+        #region Operator == (EMailAddress1, EMailAddress2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="EMailAddress1">A EMailAddress.</param>
+        /// <param name="EMailAddress2">Another EMailAddress.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator == (EMailAddress EMailAddress1, EMailAddress EMailAddress2)
         {
 
-            if (EMailString.IsNullOrEmpty())
-                return null;
+            // If both are null, or both are same instance, return true.
+            if (Object.ReferenceEquals(EMailAddress1, EMailAddress2))
+                return true;
 
-            var b = EMailString.IndexOf('<');
-            var c = EMailString.IndexOf('>');
+            // If one is null, but not both, return false.
+            if (((Object) EMailAddress1 == null) || ((Object) EMailAddress2 == null))
+                return false;
 
-            if (b >= 0 && c > b)
-                return new EMailAddress(EMailString.Remove(b, c-b+1).Trim(),
-                                        SimpleEMailAddress.Parse(EMailString.Substring(b+1, c-b-1).Trim()));
-
-            return new EMailAddress(SimpleEMailAddress.Parse(EMailString));
+            return EMailAddress1.Equals(EMailAddress2);
 
         }
 
+        #endregion
 
+        #region Operator != (EMailAddress1, EMailAddress2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="EMailAddress1">A EMailAddress.</param>
+        /// <param name="EMailAddress2">Another EMailAddress.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator != (EMailAddress EMailAddress1, EMailAddress EMailAddress2)
+            => !(EMailAddress1 == EMailAddress2);
+
+        #endregion
+
+        #region Operator <  (EMailAddress1, EMailAddress2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="EMailAddress1">A EMailAddress.</param>
+        /// <param name="EMailAddress2">Another EMailAddress.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator < (EMailAddress EMailAddress1, EMailAddress EMailAddress2)
+            => EMailAddress1.CompareTo(EMailAddress2) < 0;
+
+        #endregion
+
+        #region Operator <= (EMailAddress1, EMailAddress2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="EMailAddress1">A EMailAddress.</param>
+        /// <param name="EMailAddress2">Another EMailAddress.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator <= (EMailAddress EMailAddress1, EMailAddress EMailAddress2)
+            => !(EMailAddress1 > EMailAddress2);
+
+        #endregion
+
+        #region Operator >  (EMailAddress1, EMailAddress2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="EMailAddress1">A EMailAddress.</param>
+        /// <param name="EMailAddress2">Another EMailAddress.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator >(EMailAddress EMailAddress1, EMailAddress EMailAddress2)
+            => EMailAddress1.CompareTo(EMailAddress2) > 0;
+
+        #endregion
+
+        #region Operator >= (EMailAddress1, EMailAddress2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="EMailAddress1">A EMailAddress.</param>
+        /// <param name="EMailAddress2">Another EMailAddress.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator >= (EMailAddress EMailAddress1, EMailAddress EMailAddress2)
+            => !(EMailAddress1 < EMailAddress2);
+
+        #endregion
+
+        #endregion
+
+        #region IComparable<EMailAddress> Member
+
+        #region CompareTo(Object)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="Object">An object to compare with.</param>
+        public Int32 CompareTo(Object Object)
+        {
+
+            if (Object == null)
+                throw new ArgumentNullException(nameof(Object), "The given object must not be null!");
+
+            if (!(Object is EMailAddress))
+                throw new ArgumentException("The given object is not a EMailAddress!", nameof(Object));
+
+            return CompareTo((EMailAddress) Object);
+
+        }
+
+        #endregion
+
+        #region CompareTo(EMailAddress)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="EMailAddress">A EMailAddress to compare with.</param>
+        public Int32 CompareTo(EMailAddress EMailAddress)
+        {
+
+            if ((Object) EMailAddress == null)
+                throw new ArgumentNullException();
+
+            return String.Compare(ToString(), EMailAddress.ToString(), StringComparison.Ordinal);
+
+        }
+
+        #endregion
+
+        #endregion
+
+        #region IEquatable<EMailAddress> Members
+
+        #region Equals(Object)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="Object">An object to compare with.</param>
+        /// <returns>true|false</returns>
+        public override Boolean Equals(Object Object)
+        {
+
+            if (Object == null)
+                return false;
+
+            if (!(Object is EMailAddress))
+                return false;
+
+            return Equals((EMailAddress) Object);
+
+        }
+
+        #endregion
+
+        #region Equals(EMailAddress)
+
+        /// <summary>
+        /// Compares two EMailAddresss for equality.
+        /// </summary>
+        /// <param name="EMailAddress">A EMailAddress to compare with.</param>
+        /// <returns>True if both match; False otherwise.</returns>
+        public Boolean Equals(EMailAddress EMailAddress)
+        {
+
+            if ((Object) EMailAddress == null)
+                return false;
+
+            return ToString().Equals(EMailAddress.ToString());
+
+        }
+
+        #endregion
+
+        #endregion
+
+        #region (override) GetHashCode()
+
+        /// <summary>
+        /// Return the HashCode of this object.
+        /// </summary>
+        /// <returns>The HashCode of this object.</returns>
+        public override Int32 GetHashCode()
+            => ToString().GetHashCode();
+
+        #endregion
 
         #region (override) ToString()
 
@@ -253,9 +432,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public override String ToString()
         {
 
-            return _OwnerName.IsNotNullOrEmpty()
-                       ? (_OwnerName + " <" + _Address + ">").Trim()
-                       : _Address.ToString();
+            return OwnerName.IsNotNullOrEmpty()
+                       ? (OwnerName + " <" + Address + ">").Trim()
+                       : Address.ToString();
 
         }
 
