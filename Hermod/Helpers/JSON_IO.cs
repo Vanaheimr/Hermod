@@ -68,15 +68,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             => _Address != null
                    ? JSONObject.Create(
-                         _Address.FloorLevel         .ToJSON("floorLevel"),
-                         _Address.HouseNumber        .ToJSON("houseNumber"),
-                         _Address.Street             .ToJSON("street"),
-                         _Address.PostalCode         .ToJSON("postalCode"),
-                         _Address.PostalCodeSub      .ToJSON("postalCodeSub"),
-                         _Address.City               .ToJSON("city"),
+                         _Address.FloorLevel.   ToJSON("floorLevel"),
+                         _Address.HouseNumber.  ToJSON("houseNumber"),
+                         _Address.Street.       ToJSON("street"),
+                         _Address.PostalCode.   ToJSON("postalCode"),
+                         _Address.PostalCodeSub.ToJSON("postalCodeSub"),
+                         _Address.City.         ToJSON("city"),
                          _Address.Country != null
                               ? _Address.Country.Alpha3Code.ToJSON("country")
-                              : null
+                              : null,
+                         _Address.Comment.      ToJSON("comment")
                      )
                    : null;
 
@@ -126,7 +127,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                        (JSON["city"       ] as JObject)?.ParseI18NString(),
                                                         JSON["street"     ]?.Value<String>(),
                                                         JSON["houseNumber"]?.Value<String>(),
-                                                        JSON["floorLevel" ]?.Value<String>());
+                                                        JSON["floorLevel" ]?.Value<String>(),
+                                                       (JSON["comment"    ] as JObject)?.ParseI18NString());
 
             }
             catch (Exception)
@@ -147,7 +149,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                          (JSON["city"] as JObject)?.ParseI18NString(),
                                          JSON["street"     ]?.Value<String>(),
                                          JSON["houseNumber"]?.Value<String>(),
-                                         JSON["floorLevel" ]?.Value<String>());
+                                         JSON["floorLevel" ]?.Value<String>(),
+                                        (JSON["comment"    ] as JObject)?.ParseI18NString());
 
                 return true;
 

@@ -135,7 +135,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Street">The name of the street.</param>
         /// <param name="HouseNumber">The house number.</param>
         /// <param name="FloorLevel">The floor level.</param>
-        /// 
+        /// <param name="Comment">A comment to this address.</param>
         /// <param name="CustomData">An optional dictionary of customer-specific data.</param>
         public static Address Create(Country                              Country,
                                      String                               PostalCode,
@@ -143,7 +143,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                      String                               Street,
                                      String                               HouseNumber,
                                      String                               FloorLevel   = null,
-
+                                     I18NString                           Comment      = null,
                                      IReadOnlyDictionary<String, Object>  CustomData   = null)
 
 
@@ -154,7 +154,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                            "",
                            City,
                            Country,
-                           new I18NString(),
+                           Comment,
                            CustomData);
 
         #endregion
