@@ -317,6 +317,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 //foreach (var _Match in _Matches)
                 //{
 
+                var FilteredByMethod = _Matches.        Where (match      => match.URLNode.HTTPMethods.Keys.Contains(HTTPMethod)).
+                                                        Select(match      => match.URLNode.HTTPMethods[HTTPMethod]).
+                                                        Select(methodnode => HTTPContentTypeSelector(methodnode.HTTPContentTypes.Keys.ToArray())).
+                                                        ToArray();
+
+                //foreach (var aa in FilteredByMethod)
+                //{
+
+                //    var BestMatchingContentType = HTTPContentTypeSelector(aa.HTTPContentTypes.Keys.ToArray());
+
+                //    //if (aa.HTTPContentTypes
+
+                //}
+
                 // Use best matching URL Handler!
                 var _Match2 = _Matches.First();
 

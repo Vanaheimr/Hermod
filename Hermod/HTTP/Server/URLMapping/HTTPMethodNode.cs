@@ -18,7 +18,7 @@
 #region Usings
 
 using System;
-using System.Reflection;
+using System.Linq;
 using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -36,72 +36,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Properties
 
-        #region HTTPMethod
-
         /// <summary>
         /// The http method for this service.
         /// </summary>
-        public HTTPMethod HTTPMethod { get; }
+        public HTTPMethod                                    HTTPMethod                  { get; }
 
-        #endregion
-
-        #region RequestHandler
-
-        public HTTPDelegate RequestHandler { get; }
-
-        #endregion
-
-        #region HTTPMethodAuthentication
+        public HTTPDelegate                                  RequestHandler              { get; }
 
         /// <summary>
         /// This and all subordinated nodes demand an explicit HTTP method authentication.
         /// </summary>
-        public HTTPAuthentication HTTPMethodAuthentication { get; }
-
-        #endregion
-
-        #region DefaultErrorHandler
+        public HTTPAuthentication                            HTTPMethodAuthentication    { get; }
 
         /// <summary>
         /// A general error handling method.
         /// </summary>
-        public HTTPDelegate DefaultErrorHandler { get; }
-
-        #endregion
-
-        #region ErrorHandlers
-
-        private readonly Dictionary<HTTPStatusCode, HTTPDelegate> _ErrorHandlers;
+        public HTTPDelegate                                  DefaultErrorHandler         { get; }
 
         /// <summary>
         /// Error handling methods for specific http status codes.
         /// </summary>
-        public Dictionary<HTTPStatusCode, HTTPDelegate> ErrorHandlers
-        {
-            get
-            {
-                return _ErrorHandlers;
-            }
-        }
-
-        #endregion
-
-        #region HTTPMethods
-
-        private readonly Dictionary<HTTPContentType, ContentTypeNode> _HTTPContentTypes;
+        public Dictionary<HTTPStatusCode,  HTTPDelegate>     ErrorHandlers               { get; }
 
         /// <summary>
         /// A mapping from HTTPContentTypes to HTTPContentTypeNodes.
         /// </summary>
-        public Dictionary<HTTPContentType, ContentTypeNode> HTTPContentTypes
-        {
-            get
-            {
-                return _HTTPContentTypes;
-            }
-        }
-
-        #endregion
+        public Dictionary<HTTPContentType, ContentTypeNode>  HTTPContentTypes            { get; }
 
         #endregion
 
@@ -115,22 +75,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RequestHandler">The default delegate to call for any request to this URI template.</param>
         /// <param name="DefaultErrorHandler">The default error handling delegate.</param>
         internal HTTPMethodNode(HTTPMethod          HTTPMethod,
-                                HTTPAuthentication  HTTPMethodAuthentication    = null,
-                                HTTPDelegate        RequestHandler              = null,
-                                HTTPDelegate        DefaultErrorHandler         = null)
+                                HTTPAuthentication  HTTPMethodAuthentication   = null,
+                                HTTPDelegate        RequestHandler             = null,
+                                HTTPDelegate        DefaultErrorHandler        = null)
 
         {
 
-            if (HTTPMethod == null)
-                throw new ArgumentException("HTTPMethod == null!");
-
-            this.HTTPMethod                = HTTPMethod;
+            this.HTTPMethod                = HTTPMethod ?? throw new ArgumentException("HTTPMethod == null!");
             this.HTTPMethodAuthentication  = HTTPMethodAuthentication;
             this.RequestHandler            = RequestHandler;
             this.DefaultErrorHandler       = DefaultErrorHandler;
 
-            this._ErrorHandlers             = new Dictionary<HTTPStatusCode,  HTTPDelegate>();
-            this._HTTPContentTypes          = new Dictionary<HTTPContentType, ContentTypeNode>();
+            this.ErrorHandlers             = new Dictionary<HTTPStatusCode,  HTTPDelegate>();
+            this.HTTPContentTypes          = new Dictionary<HTTPContentType, ContentTypeNode>();
 
         }
 
@@ -147,18 +104,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            ContentTypeNode _ContentTypeNode = null;
-
             if (HTTPContentType == null)
             {
                 //RequestHandler       = HTTPDelegate;
                 //DefaultErrorHandler  = DefaultErrorHandler;
             }
 
-            else if (!_HTTPContentTypes.TryGetValue(HTTPContentType, out _ContentTypeNode))
+            else if (!HTTPContentTypes.TryGetValue(HTTPContentType, out ContentTypeNode _ContentTypeNode))
             {
                 _ContentTypeNode = new ContentTypeNode(HTTPContentType, ContentTypeAuthentication, HTTPDelegate, DefaultErrorHandler, AllowReplacement);
-                _HTTPContentTypes.Add(HTTPContentType, _ContentTypeNode);
+                HTTPContentTypes.Add(HTTPContentType, _ContentTypeNode);
             }
 
             else
@@ -167,7 +122,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (_ContentTypeNode.AllowReplacement == URIReplacement.Allow)
                 {
                     _ContentTypeNode = new ContentTypeNode(HTTPContentType, ContentTypeAuthentication, HTTPDelegate, DefaultErrorHandler, AllowReplacement);
-                    _HTTPContentTypes[HTTPContentType] = _ContentTypeNode;
+                    HTTPContentTypes[HTTPContentType] = _ContentTypeNode;
                 }
 
                 else if (_ContentTypeNode.AllowReplacement == URIReplacement.Ignore)
@@ -182,6 +137,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
+
+
+        public override String ToString()
+
+            => String.Concat(HTTPMethod,
+                             " (",
+                             HTTPContentTypes.Select(contenttype => contenttype.Value.ToString()).AggregateWith(", "),
+                             ")");
 
     }
 

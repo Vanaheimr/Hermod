@@ -1566,8 +1566,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (URITemplates == null || !URITemplates.Any())
                 throw new ArgumentNullException(nameof(URITemplates),     "The given URI template must not be null or empty!");
 
-            if (HTTPContentType == null)
-                throw new ArgumentNullException(nameof(HTTPContentType),  "The given HTTP content type must not be null!");
+            //if (HTTPContentType == null)
+            //    throw new ArgumentNullException(nameof(HTTPContentType),  "The given HTTP content type must not be null!");
 
             if (HTTPDelegate == null)
                 throw new ArgumentNullException(nameof(HTTPDelegate),     "The given HTTP delegate must not be null!");

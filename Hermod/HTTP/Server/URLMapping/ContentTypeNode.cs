@@ -36,27 +36,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The HTTP content type for this service.
         /// </summary>
-        public HTTPContentType                           HTTPContentType                   { get; }
+        public HTTPContentType                           HTTPContentType                  { get; }
 
-        public HTTPDelegate                              RequestHandler                    { get; }
+        public HTTPDelegate                              RequestHandler                   { get; }
 
         /// <summary>
         /// This and all subordinated nodes demand an explicit HTTP content type authentication.
         /// </summary>
-        public HTTPAuthentication                        HTTPContentTypeAuthentication     { get; }
+        public HTTPAuthentication                        HTTPContentTypeAuthentication    { get; }
 
         /// <summary>
         /// A general error handling method.
         /// </summary>
-        public HTTPDelegate                              DefaultErrorHandler               { get; }
+        public HTTPDelegate                              DefaultErrorHandler              { get; }
 
-        public URIReplacement                            AllowReplacement                  { get; }
+        public URIReplacement                            AllowReplacement                 { get; }
 
 
         /// <summary>
         /// Error handling methods for specific http status codes.
         /// </summary>
-        public Dictionary<HTTPStatusCode, HTTPDelegate>  ErrorHandlers                     { get; }
+        public Dictionary<HTTPStatusCode, HTTPDelegate>  ErrorHandlers                    { get; }
 
         #endregion
 
@@ -77,14 +77,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                  URIReplacement      AllowReplacement                = URIReplacement.Fail)
         {
 
-            #region Initial checks
-
-            if (HTTPContentType == null)
-                throw new ArgumentNullException(nameof(HTTPContentType),  "The given HTTP content type must not be null!");
-
-            #endregion
-
-            this.HTTPContentType                = HTTPContentType;
+            this.HTTPContentType                = HTTPContentType ?? throw new ArgumentNullException(nameof(HTTPContentType),  "The given HTTP content type must not be null!");
             this.HTTPContentTypeAuthentication  = HTTPContentTypeAuthentication;
             this.RequestHandler                 = RequestHandler;
             this.DefaultErrorHandler            = DefaultErrorHandler;
@@ -96,6 +89,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+
+        public override String ToString()
+
+            => String.Concat(HTTPContentType);
 
     }
 
