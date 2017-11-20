@@ -32,6 +32,11 @@ using org.GraphDefined.Vanaheimr.Illias;
 namespace org.GraphDefined.Vanaheimr.Hermod.Distributed
 {
 
+    public static class ADistributedEntity
+    {
+        public static readonly Regex JSONWhitespaceRegEx = new Regex(@"(\s)+", RegexOptions.IgnorePatternWhitespace);
+    }
+
     /// <summary>
     /// An abstract entity.
     /// </summary>
@@ -39,12 +44,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Distributed
     public abstract class ADistributedEntity<TId> : AEntity<TId>
         where TId : IId
     {
-
-        #region Data
-
-        private static readonly Regex JSONWhitespaceRegEx = new Regex(@"(\s)+", RegexOptions.IgnorePatternWhitespace);
-
-        #endregion
 
         #region Properties
 
@@ -82,7 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Distributed
         {
 
             CurrentCryptoHash = "json:sha256:" +
-                          new SHA256Managed().ComputeHash(Encoding.Unicode.GetBytes(JSONWhitespaceRegEx.Replace(ToJSON(IncludeCryptoHash: false).ToString(), " "))).
+                          new SHA256Managed().ComputeHash(Encoding.Unicode.GetBytes(ADistributedEntity.JSONWhitespaceRegEx.Replace(ToJSON(IncludeCryptoHash: false).ToString(), " "))).
                                               Select(value => String.Format("{0:x2}", value)).
                                               Aggregate();
 
