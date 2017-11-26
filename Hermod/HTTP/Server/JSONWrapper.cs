@@ -344,6 +344,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region GetMandatory(this JSON, Key, out Values)
+
+        public static Boolean GetMandatory(this JObject             JSON,
+                                           String                   Key,
+                                           out IEnumerable<String>  Values)
+        {
+
+            if (JSON.TryGetValue(Key, out JToken JSONToken))
+            {
+
+                var _Values = JSONToken as JArray;
+
+                if (_Values == null)
+                {
+                    Values = null;
+                    return false;
+                }
+
+                Values = _Values.AsEnumerable().
+                                 Select(jtoken => jtoken.Value<String>()).
+                                 Where (value  => value != null);
+
+                return true;
+
+            }
+
+            Values = null;
+            return false;
+
+        }
+
+        #endregion
+
 
 
 
