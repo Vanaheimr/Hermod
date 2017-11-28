@@ -426,6 +426,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region GetBoolean        (ParameterName, DefaultValue = false)
+
+        public Boolean? GetBoolean(String    ParameterName,
+                                   Boolean?  DefaultValue = false)
+        {
+
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values != null &&
+                Values.Count > 0)
+            {
+                return Values.Last() == "true";
+            }
+
+            return DefaultValue ?? false;
+
+        }
+
+        #endregion
+
         #region GetStrings        (ParameterName, ToLowerCase = false)
 
         public IEnumerable<String> GetStrings(String   ParameterName,
@@ -451,7 +470,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region TryGetString (ParameterName, DefaultValue = null)
+
+
+        #region TryGetString (ParameterName, out Value)
 
         public Boolean TryGetString(String      ParameterName,
                                     out String  Value)
@@ -466,6 +487,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
             Value = null;
+            return false;
+
+        }
+
+        #endregion
+
+        #region TryGetBoolean(ParameterName, out Value, DefaultValue = false)
+
+        public Boolean TryGetBoolean(String       ParameterName,
+                                     out Boolean  Value,
+                                     Boolean?     DefaultValue = false)
+        {
+
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values != null &&
+                Values.Count > 0)
+            {
+                Value = Values.Last() == "true";
+                return true;
+            }
+
+            Value = DefaultValue ?? false;
             return false;
 
         }
