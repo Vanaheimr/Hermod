@@ -482,28 +482,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region (internal) HTTPResponse(Response)
-
-        /// <summary>
-        /// Create a new HTTP response based on the given HTTP response.
-        /// (e.g. upgrade a HTTPResponse to a HTTPResponse&lt;TContent&gt;)
-        /// </summary>
-        /// <param name="Response">A HTTP response.</param>
-        internal HTTPResponse(HTTPResponse Response)
-
-            : base(Response)
-
-        {
-
-            this.HTTPRequest     = Response?.HTTPRequest;
-            this.HTTPStatusCode  = Response?.HTTPStatusCode;
-            this.Runtime         = Response.Runtime;
-
-        }
-
-        #endregion
-
-        #region (private) HTTPResponse(...)
+        #region (private)  HTTPResponse(...)
 
         /// <summary>
         /// Parse the given HTTP response header.
@@ -554,6 +533,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.HTTPStatusCode   = HTTPStatusCode.ParseString(_StatusCodeLine[1]);
             this.Runtime          = Runtime ?? DateTime.UtcNow - HTTPRequest.Timestamp;
             this.NumberOfRetries  = NumberOfRetries;
+
+        }
+
+        #endregion
+
+        #region (internal) HTTPResponse(Response)
+
+        /// <summary>
+        /// Create a new HTTP response based on the given HTTP response.
+        /// (e.g. upgrade a HTTPResponse to a HTTPResponse&lt;TContent&gt;)
+        /// </summary>
+        /// <param name="Response">A HTTP response.</param>
+        internal HTTPResponse(HTTPResponse Response)
+
+            : base(Response)
+
+        {
+
+            this.HTTPRequest     = Response?.HTTPRequest;
+            this.HTTPStatusCode  = Response?.HTTPStatusCode;
+            this.Runtime         = Response.Runtime;
 
         }
 

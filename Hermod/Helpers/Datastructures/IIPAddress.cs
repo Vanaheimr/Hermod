@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Illias;
 using System;
 
 #endregion
@@ -24,8 +25,29 @@ using System;
 namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
+    public static class IPAddress
+    {
+
+        public static IIPAddress Parse(String Text)
+        {
+
+            if (Text != null)
+                Text = Text.Trim();
+
+            if (Text.IsNullOrEmpty())
+                throw new ArgumentNullException(nameof(Text), "The given IP address must not be null or empty!");
+
+            return Text.Contains(".")
+                       ? (IIPAddress) IPv4Address.Parse(Text)
+                       : (IIPAddress) IPv6Address.Parse(Text);
+
+        }
+
+    }
+
+
     /// <summary>
-    /// A common interface for all kinds of IP Addresses.
+    /// A common interface for all kinds of Internet protocol addresses.
     /// </summary>
     public interface IIPAddress : IComparable,
                                   IComparable<IIPAddress>,
@@ -45,6 +67,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         Boolean IsIPv4 { get; }
 
         Boolean IsIPv6 { get; }
+
+        Boolean IsLocalhost { get; }
 
 
         /// <summary>

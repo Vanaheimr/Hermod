@@ -29,7 +29,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <summary>
     /// An IPv4 address.
     /// </summary>    
-    public class IPv4Address : IIPAddress,
+    public struct IPv4Address : IIPAddress,
                                IComparable<IPv4Address>,
                                IEquatable<IPv4Address>
     {
@@ -74,6 +74,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public Boolean IsIPv6
             => false;
+
+        public Boolean IsLocalhost
+            => ToString() == "127.0.0.1";
 
         #endregion
 
@@ -270,7 +273,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static Boolean TryParse(String IPv4AddressString, out IPv4Address IPv4Address)
         {
 
-            IPv4Address  = null;
+            IPv4Address  = default(IPv4Address);
 
             var Elements = IPv4AddressString.Split(Splitter, _Length, StringSplitOptions.None);
 
@@ -357,12 +360,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (Object == null)
                 throw new ArgumentNullException("The given object must not be null!");
 
-            // Check if the given object can be casted to an IPv4Address
-            var _IPv4Address = Object as IPv4Address;
-            if ((Object) _IPv4Address == null)
-                throw new ArgumentException("The given object is not an IPv4Address!");
+            if (!(Object is IPv4Address))
+                throw new ArgumentException("The given object is not an IPv4 address!");
 
-            return CompareTo(_IPv4Address);
+            return CompareTo((IPv4Address) Object);
 
         }
 
@@ -373,13 +374,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="IPv4Address">An object to compare with.</param>
+        /// <param name="IPv4Address">An IPv4 address to compare with.</param>
         /// <returns>true|false</returns>
         public Int32 CompareTo(IPv4Address IPv4Address)
         {
 
             if ((Object) IPv4Address == null)
-                throw new ArgumentNullException("The given IPv4Address must not be null!");
+                throw new ArgumentNullException("The given IPv4 address must not be null!");
 
             var _ByteArray   = IPv4Address.GetBytes();
             var _Comparision = 0;
@@ -405,7 +406,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="Object">An object to compare with.</param>
+        /// <param name="IIPAddress">An ip address to compare with.</param>
         /// <returns>true|false</returns>
         public Int32 CompareTo(IIPAddress IIPAddress)
         {
@@ -413,12 +414,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (IIPAddress == null)
                 throw new ArgumentNullException("The given IIPAddress must not be null!");
 
-            // Check if the given object can be casted to an IPv4Address
-            var _IPv4Address = IIPAddress as IPv4Address;
-            if ((Object) _IPv4Address == null)
-                throw new ArgumentException("The given IIPAddress is not an IPv4Address!");
+            if (!(IIPAddress is IPv4Address))
+                throw new ArgumentException("The given object is not an IPv4 address!");
 
-            return CompareTo(_IPv4Address);
+            return CompareTo((IPv4Address) IIPAddress);
 
         }
 
@@ -439,14 +438,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         {
 
             if (Object == null)
-                throw new ArgumentNullException("The given object must not be null!");
+                return false;
 
-            // Check if the given object can be casted to an IPv4Address
-            var _IPv4Address = Object as IPv4Address;
-            if ((Object) _IPv4Address == null)
-                throw new ArgumentException("The given object is not an IPv4Address!");
+            if (!(Object is IPv4Address))
+                return false;
 
-            return Equals(_IPv4Address);
+            return Equals((IPv4Address) Object);
 
         }
 
@@ -457,16 +454,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="IPv4Address">An object to compare with.</param>
+        /// <param name="IPv4Address">An IPv4 address to compare with.</param>
         /// <returns>true|false</returns>
         public Boolean Equals(IPv4Address IPv4Address)
         {
 
             if ((Object) IPv4Address == null)
-                throw new ArgumentNullException("The given IPv4Address must not be null!");
+                return false;
 
             // If both are null, or both are same instance, return true.
-            if (Object.ReferenceEquals(this, IPv4Address))
+            if (ReferenceEquals(this, IPv4Address))
                 return true;
 
             return ToString().Equals(IPv4Address.ToString());
@@ -491,12 +488,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (_Length != IIPAddress.Length)
                 return false;
 
-            // Check if the given IIPAddress can be casted to an IPv4Address
-            var _IPv4Address = IIPAddress as IPv4Address;
-            if ((Object) _IPv4Address == null)
+            if (!(IIPAddress is IPv4Address))
                 return false;
 
-            return Equals(_IPv4Address);
+            return Equals((IPv4Address) IIPAddress);
 
         }
 

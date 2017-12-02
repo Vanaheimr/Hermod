@@ -461,7 +461,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             else if (_IPAddress is IPv6Address)
                 _TCPSocket = new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp);
 
-            _TCPSocket.Connect(IPAddress.Parse(_IPAddress.ToString()), Port.ToUInt16());
+            _TCPSocket.Connect(System.Net.IPAddress.Parse(_IPAddress.ToString()), Port.ToUInt16());
 
             return _TCPSocket;
 

@@ -616,7 +616,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region (private) HTTPRequest(Timestamp, RemoteSocket, LocalSocket, HTTPServer, HTTPHeader, HTTPBody = null, HTTPBodyStream = null, CancellationToken = null, EventTrackingId = null)
+        #region (private)  HTTPRequest(Timestamp, RemoteSocket, LocalSocket, HTTPServer, HTTPHeader, HTTPBody = null, HTTPBodyStream = null, CancellationToken = null, EventTrackingId = null)
 
         /// <summary>
         /// Create a new http request header based on the given string representation.
@@ -752,6 +752,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region (internal) HTTPRequest(Request)
+
+        /// <summary>
+        /// Create a new HTTP request based on the given HTTP request.
+        /// (e.g. upgrade a HTTPRequest to a HTTPRequest&lt;TContent&gt;)
+        /// </summary>
+        /// <param name="Request">A HTTP request.</param>
+        internal HTTPRequest(HTTPRequest Request)
+
+            : base(Request)
+
+        { }
+
+        #endregion
+
         #region HTTPRequest(Timestamp, HTTPServer, CancellationToken, EventTrackingId, RemoteSocket, LocalSocket, HTTPHeader, HTTPBodyStream)
 
         /// <summary>
@@ -870,6 +885,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        public HTTPRequest<TContent> ConvertContent<TContent>(Func<Byte[], TContent> ContentConverter)
+
+            => new HTTPRequest<TContent>(this,
+                                         ContentConverter(HTTPBody));
+
+        public HTTPRequest<TContent> ConvertContent<TContent>(Func<String, TContent> ContentConverter)
+
+            => new HTTPRequest<TContent>(this,
+                                         ContentConverter(HTTPBodyAsUTF8String));
+
+
+
         #region (static) Parse(Text, Timestamp = null, RemoteSocket = null, LocalSocket = null, EventTrackingId = null)
 
         /// <summary>
@@ -949,5 +976,69 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
     }
+
+
+    #region HTTPRequest<TContent>
+
+    /// <summary>
+    /// A helper class to transport HTTP data and its metadata.
+    /// </summary>
+    /// <typeparam name="TContent">The type of the parsed data.</typeparam>
+    public class HTTPRequest<TContent> : HTTPRequest
+    {
+
+        #region Data
+
+        private readonly Boolean _IsFault;
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// The parsed content.
+        /// </summary>
+        public TContent   Content    { get; }
+
+        /// <summary>
+        /// An exception during parsing.
+        /// </summary>
+        public Exception  Exception  { get; }
+
+        /// <summary>
+        /// An error during parsing.
+        /// </summary>
+        public Boolean HasErrors
+            => Exception != null && !_IsFault;
+
+        #endregion
+
+        #region Constructor(s)
+
+        #region HTTPRequest(Request, Content, IsFault = false, Exception = null)
+
+        public HTTPRequest(HTTPRequest  Request,
+                           TContent     Content,
+                           Boolean      IsFault    = false,
+                           Exception    Exception  = null)
+
+            : base(Request)
+
+        {
+
+            this.Content    = Content;
+            this._IsFault   = IsFault;
+            this.Exception  = Exception;
+
+        }
+
+        #endregion
+
+        #endregion
+
+
+    }
+
+    #endregion
 
 }

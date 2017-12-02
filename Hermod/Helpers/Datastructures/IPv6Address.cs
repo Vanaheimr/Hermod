@@ -32,17 +32,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
     /// <summary>
     /// An IPv6 address.
-    /// </summary>    
-    public class IPv6Address : IIPAddress,
-                               IComparable<IPv6Address>,
-                               IEquatable<IPv6Address>
+    /// </summary>
+    public struct IPv6Address : IIPAddress,
+                                IComparable<IPv6Address>,
+                                IEquatable<IPv6Address>
     {
 
         #region Data
 
         private static readonly  Char[] Splitter        = new Char[1] { ':' };
 
-        private readonly Byte[] IPAddressArray;
+        private readonly         Byte[] IPAddressArray;
 
         #endregion
 
@@ -82,18 +82,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region InterfaceId
 
-        private readonly String _InterfaceId;
-
         /// <summary>
         /// The interface identification for local IPv6 addresses, e.g. .
         /// </summary>
-        public String InterfaceId
-        {
-            get
-            {
-                return _InterfaceId;
-            }
-        }
+        public String InterfaceId { get; }
 
         #endregion
 
@@ -102,6 +94,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public Boolean IsIPv6
             => true;
+
+        public Boolean IsLocalhost
+            => ToString() == "::1";
 
         #endregion
 
@@ -133,7 +128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             Array.Copy(ByteArray, IPAddressArray, Math.Max(ByteArray.Length, _Length));
 
-            this._InterfaceId = (InterfaceId != null) ? InterfaceId : "";
+            this.InterfaceId = (InterfaceId != null) ? InterfaceId : "";
 
         }
 
@@ -152,6 +147,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             IPAddressArray = new Byte[_Length];
             Stream.Read(IPAddressArray, 0, _Length);
+            this.InterfaceId = "";
 
         }
 
@@ -205,7 +201,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region Parse(IPv4AddressString)
+        #region Parse(IPv6AddressString)
 
         /// <summary>
         /// Parsed the given string representation into a new IPv6Address.
@@ -237,7 +233,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             // 2001:0db8:85a3:08d3:1319:8a2e:0370:7344
             // fd00::9ec7:a6ff:feb7:c6 => fd00:0000:0000:0000:9ec7:a6ff:feb7:00c6
-            IPv6Address = null;
+            IPv6Address = default(IPv6Address);
 
             if (IPv6AddressString.IndexOf(':') < 0)
                 return false;
@@ -324,48 +320,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Operator overloading
 
-        #region Operator == (myIPv6Address1, myIPv6Address2)
+        #region Operator == (IPv6Address1, IPv6Address2)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="myIPv6Address1">A IPv6Address.</param>
-        /// <param name="myIPv6Address2">Another IPv6Address.</param>
+        /// <param name="IPv6Address1">A IPv6 address.</param>
+        /// <param name="IPv6Address2">Another IPv6 address.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (IPv6Address myIPv6Address1, IPv6Address myIPv6Address2)
+        public static Boolean operator == (IPv6Address IPv6Address1, IPv6Address IPv6Address2)
         {
 
             // If both are null, or both are same instance, return true.
-            if (Object.ReferenceEquals(myIPv6Address1, myIPv6Address2))
+            if (Object.ReferenceEquals(IPv6Address1, IPv6Address2))
                 return true;
 
             // If one is null, but not both, return false.
-            if (((Object) myIPv6Address1 == null) || ((Object) myIPv6Address2 == null))
+            if (((Object) IPv6Address1 == null) || ((Object) IPv6Address2 == null))
                 return false;
 
-            return myIPv6Address1.Equals(myIPv6Address2);
+            return IPv6Address1.Equals(IPv6Address2);
 
         }
 
         #endregion
 
-        #region Operator != (myIPv6Address1, myIPv6Address2)
+        #region Operator != (IPv6Address1, IPv6Address2)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="myIPv6Address1">A IPv6Address.</param>
-        /// <param name="myIPv6Address2">Another IPv6Address.</param>
+        /// <param name="IPv6Address1">A IPv6 address.</param>
+        /// <param name="IPv6Address2">Another IPv6 address.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator != (IPv6Address myIPv6Address1, IPv6Address myIPv6Address2)
-        {
-            return !(myIPv6Address1 == myIPv6Address2);
-        }
+        public static Boolean operator != (IPv6Address IPv6Address1, IPv6Address IPv6Address2)
+            => !(IPv6Address1 == IPv6Address2);
 
         #endregion
 
         #endregion
-
 
         #region IComparable<IPAddress> Members
 
@@ -374,107 +367,150 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="myObject">An object to compare with.</param>
+        /// <param name="Object">An object to compare with.</param>
         /// <returns>true|false</returns>
-        public Int32 CompareTo(Object myObject)
+        public Int32 CompareTo(Object Object)
         {
 
-            // Check if myObject is null
-            if (myObject == null)
-                throw new ArgumentNullException("myObject must not be null!");
+            if (Object == null)
+                throw new ArgumentNullException("The given object must not be null!");
 
-            // Check if myObject can be casted to an ElementId object
-            var myIPAddress = myObject as IPv6Address;
-            if ((Object) myIPAddress == null)
-                throw new ArgumentException("myObject is not of type IPAddress!");
+            if (!(Object is IPv6Address))
+                throw new ArgumentException("The given object is not an IPv6Address!");
 
-            return CompareTo(myIPAddress);
+            return CompareTo((IPv6Address) Object);
 
         }
 
         #endregion
 
-        #region CompareTo(myIPAddress)
+        #region CompareTo(IPv6Address)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="myElementId">An object to compare with.</param>
+        /// <param name="IPv6Address">An IPv6 address to compare with.</param>
         /// <returns>true|false</returns>
-        public Int32 CompareTo(IPv6Address myIPAddress)
+        public Int32 CompareTo(IPv6Address IPv6Address)
         {
 
-            // Check if myIPAddress is null
-            if (myIPAddress == null)
-                throw new ArgumentNullException("myElementId must not be null!");
+            if ((Object)IPv6Address == null)
+                throw new ArgumentNullException("The given IPv6 address must not be null!");
 
-            //return _IPAddress.GetAddressBytes() .CompareTo(myIPAddress._IPAddress);
+            var _ByteArray = IPv6Address.GetBytes();
+            var _Comparision = 0;
+
+            for (var _BytePosition = 0; _BytePosition < 4; _BytePosition++)
+            {
+
+                _Comparision = IPAddressArray[0].CompareTo(_ByteArray[0]);
+
+                if (_Comparision != 0)
+                    return _Comparision;
+
+            }
+
             return 0;
 
         }
 
         #endregion
 
-        public int CompareTo(IIPAddress other)
+        #region CompareTo(IIPAddress)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="IIPAddress">An ip address to compare with.</param>
+        /// <returns>true|false</returns>
+        public Int32 CompareTo(IIPAddress IIPAddress)
         {
-            throw new NotImplementedException();
+
+            if (IIPAddress == null)
+                throw new ArgumentNullException("The given IIPAddress must not be null!");
+
+            if (!(IIPAddress is IPv6Address))
+                throw new ArgumentException("The given object is not an IPv6 address!");
+
+            return CompareTo((IPv6Address) IIPAddress);
+
         }
+
+        #endregion
 
         #endregion
 
         #region IEquatable<IPAddress> Members
 
-        #region Equals(myObject)
+        #region Equals(Object)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="myObject">An object to compare with.</param>
+        /// <param name="Object">An object to compare with.</param>
         /// <returns>true|false</returns>
-        public override Boolean Equals(Object myObject)
+        public override Boolean Equals(Object Object)
         {
 
-            // Check if myObject is null
-            if (myObject == null)
-                throw new ArgumentNullException("Parameter myObject must not be null!");
+            if (Object == null)
+                return false;
 
-            // Check if myObject can be cast to IPAddress
-            var myIPAddress = myObject as IPv6Address;
-            if ((Object) myIPAddress == null)
-                throw new ArgumentException("Parameter myObject could not be casted to type IPAddress!");
+            if (!(Object is IPv6Address))
+                return false;
 
-            return this.Equals(myIPAddress);
+            return Equals((IPv6Address) Object);
 
         }
 
         #endregion
 
-        #region Equals(myIPAddress)
+        #region Equals(IPv6Address)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="myElementId">An object to compare with.</param>
+        /// <param name="IPv6Address">An IPv6 address to compare with.</param>
         /// <returns>true|false</returns>
-        public Boolean Equals(IPv6Address myIPAddress)
+        public Boolean Equals(IPv6Address IPv6Address)
         {
 
-            // Check if myIPAddress is null
-            if (myIPAddress == null)
-                throw new ArgumentNullException("Parameter myIPAddress must not be null!");
+            if ((Object) IPv6Address == null)
+                return false;
 
-            var __IPAddress = IPAddressArray.Equals(myIPAddress.IPAddressArray);
+            // If both are null, or both are same instance, return true.
+            if (ReferenceEquals(this, IPv6Address))
+                return true;
 
-            return false;
+            return ToString().Equals(IPv6Address.ToString());
 
         }
 
         #endregion
 
-        public bool Equals(IIPAddress other)
+        #region Equals(IIPAddress)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="IIPAddress">An IIPAddress.</param>
+        /// <returns>true|false</returns>
+        public Boolean Equals(IIPAddress IIPAddress)
         {
-            throw new NotImplementedException();
+
+            if ((Object) IIPAddress == null)
+                throw new ArgumentNullException("The given IIPAddress must not be null!");
+
+            if (_Length != IIPAddress.Length)
+                return false;
+
+            if (!(IIPAddress is IPv6Address))
+                return false;
+
+            return Equals((IPv6Address) IIPAddress);
+
         }
+
+        #endregion
 
         #endregion
 
@@ -485,9 +521,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
-        {
-            return IPAddressArray.GetHashCode() ^ InterfaceId.GetHashCode();
-        }
+
+            => ToString().GetHashCode();
 
         #endregion
 
@@ -498,20 +533,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         /// <returns>A string representation of this object.</returns>
         public override String ToString()
-        {
 
-            return String.Format("{0}:{1}:{2}:{3}:{4}:{5}:{6}:{7}{8}",
-                                 IPAddressArray[ 0].ToString("x2") + IPAddressArray[ 1].ToString("x2"),
-                                 IPAddressArray[ 2].ToString("x2") + IPAddressArray[ 3].ToString("x2"),
-                                 IPAddressArray[ 4].ToString("x2") + IPAddressArray[ 5].ToString("x2"),
-                                 IPAddressArray[ 6].ToString("x2") + IPAddressArray[ 7].ToString("x2"),
-                                 IPAddressArray[ 8].ToString("x2") + IPAddressArray[ 9].ToString("x2"),
-                                 IPAddressArray[10].ToString("x2") + IPAddressArray[11].ToString("x2"),
-                                 IPAddressArray[12].ToString("x2") + IPAddressArray[13].ToString("x2"),
-                                 IPAddressArray[14].ToString("x2") + IPAddressArray[15].ToString("x2"),
-                                 (InterfaceId.IsNotNullOrEmpty() ? "%" + InterfaceId : ""));
-
-        }
+            => String.Format("{0}:{1}:{2}:{3}:{4}:{5}:{6}:{7}{8}",
+                             IPAddressArray[ 0].ToString("x2") + IPAddressArray[ 1].ToString("x2"),
+                             IPAddressArray[ 2].ToString("x2") + IPAddressArray[ 3].ToString("x2"),
+                             IPAddressArray[ 4].ToString("x2") + IPAddressArray[ 5].ToString("x2"),
+                             IPAddressArray[ 6].ToString("x2") + IPAddressArray[ 7].ToString("x2"),
+                             IPAddressArray[ 8].ToString("x2") + IPAddressArray[ 9].ToString("x2"),
+                             IPAddressArray[10].ToString("x2") + IPAddressArray[11].ToString("x2"),
+                             IPAddressArray[12].ToString("x2") + IPAddressArray[13].ToString("x2"),
+                             IPAddressArray[14].ToString("x2") + IPAddressArray[15].ToString("x2"),
+                             InterfaceId.IsNotNullOrEmpty() ? "%" + InterfaceId : "");
 
         #endregion
 

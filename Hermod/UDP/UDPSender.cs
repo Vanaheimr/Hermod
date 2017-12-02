@@ -94,10 +94,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
 
         #region Data
 
-        private readonly Func<T, Byte[]>  MessageProcessor;
-        private readonly Socket           DotNetSocket;
-        private          IPAddress        DotNetIPAddress;
-        private          IPEndPoint       RemoteIPEndPoint;
+        private readonly Func<T, Byte[]>       MessageProcessor;
+        private readonly Socket                DotNetSocket;
+        private          System.Net.IPAddress  DotNetIPAddress;
+        private          IPEndPoint            RemoteIPEndPoint;
 
         #endregion
 

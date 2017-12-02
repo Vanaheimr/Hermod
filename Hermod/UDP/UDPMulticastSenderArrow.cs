@@ -89,7 +89,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Multicast
         public UDPMulticastSenderArrow(String MulticastAddress, IPPort IPPort, Byte HopCount = 255)
         {
             this.MulticastSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            this.IPEndPoint      = new IPEndPoint(IPAddress.Parse(MulticastAddress), IPPort.ToInt32());
+            this.IPEndPoint      = new IPEndPoint(System.Net.IPAddress.Parse(MulticastAddress), IPPort.ToInt32());
             this.HopCount        = HopCount;
         }
 

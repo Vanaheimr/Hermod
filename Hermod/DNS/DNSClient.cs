@@ -407,7 +407,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     try
                     {
 
-                        var serverAddress  = IPAddress.Parse(DNSServer.IPAddress.ToString());
+                        var serverAddress  = System.Net.IPAddress.Parse(DNSServer.IPAddress.ToString());
                         var endPoint       = (EndPoint) new IPEndPoint(serverAddress, DNSServer.Port.ToInt32());
                         socket             = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
                         socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout,    (Int32) QueryTimeout.TotalMilliseconds);
