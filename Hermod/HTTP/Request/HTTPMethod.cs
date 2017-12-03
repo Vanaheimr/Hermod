@@ -350,7 +350,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public static readonly HTTPMethod ADD           = new HTTPMethod("ADD");
 
+        /// <summary>
+        /// Adds a new resource to a resource collection. The request will be silently
+        /// ignored when the unique identification of the resource already exists on
+        /// the server.
+        /// </summary>
+        public static readonly HTTPMethod ADDIFNOTEXISTS  = new HTTPMethod("ADDIFNOTEXISTS");
 
+
+        
 
 
 
