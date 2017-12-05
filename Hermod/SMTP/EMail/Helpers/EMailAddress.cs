@@ -33,7 +33,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
     /// <summary>
     /// A e-mail address with owner name and optional cryptographic keys.
     /// </summary>
-    [DebuggerDisplay("{DebugView}")]
+    //[DebuggerDisplay("{DebugView}")]
     public class EMailAddress
     {
 
