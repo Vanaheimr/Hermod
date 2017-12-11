@@ -426,10 +426,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region GetBoolean        (ParameterName, DefaultValue = false)
+        #region GetBoolean        (ParameterName)
 
-        public Boolean? GetBoolean(String    ParameterName,
-                                   Boolean?  DefaultValue = false)
+        public Boolean? GetBoolean(String ParameterName)
         {
 
             if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
@@ -439,7 +438,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return Values.Last() == "true";
             }
 
-            return DefaultValue ?? false;
+            return new Boolean?();
+
+        }
+
+        #endregion
+
+        #region GetBoolean        (ParameterName, DefaultValue = false)
+
+        public Boolean GetBoolean(String  ParameterName,
+                                  Boolean DefaultValue  = false)
+        {
+
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values != null &&
+                Values.Count > 0)
+            {
+                return Values.Last() == "true";
+            }
+
+            return DefaultValue;
 
         }
 
