@@ -381,16 +381,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                            out IEnumerable<String>  Values)
         {
 
-            if (JSON.TryGetValue(Key, out JToken JSONToken))
+            if (JSON.TryGetValue(Key, out JToken JSONToken) && 
+                JSONToken is JArray _Values)
             {
-
-                var _Values = JSONToken as JArray;
-
-                if (_Values == null)
-                {
-                    Values = null;
-                    return false;
-                }
 
                 Values = _Values.AsEnumerable().
                                  Select(jtoken => jtoken.Value<String>()).
@@ -492,7 +485,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region ParseOptional<T>    (this JSON, PropertyName, PropertyDescription, DefaultServerName, Parser, out Value, HTTPRequest, out HTTPResponse)
+        #region ParseOptional<T>    (this JSON, PropertyName, PropertyDescription,                    Parser, out Value,              out HTTPResponse)
 
         public static Boolean ParseOptional<T>(this JObject      JSON,
                                                String            PropertyName,
@@ -502,19 +495,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                out String        ErrorResponse)
         {
 
-            Value = default(T);
-
-            if (JSON.TryGetValue(PropertyName, out JToken JSONToken) && 
-                JSONToken != null &&
-                !Parser(JSONToken.ToString(), out Value))
+            if (JSON.TryGetValue(PropertyName, out JToken JSONToken) &&
+                JSONToken != null)
             {
-                ErrorResponse = "Unknown " + PropertyDescription + "!";
-                Value         = default(T);
-                return false;
+
+                if (!Parser(JSONToken.ToString(), out Value))
+                {
+                    Value          = default(T);
+                    ErrorResponse  = "The value '" + JSONToken + "' is not valid for JSON property '" + PropertyDescription + "!";
+                }
+
+                else
+                    ErrorResponse  = null;
+
+                return true;
+
             }
 
-            ErrorResponse = null;
-            return true;
+            Value          = default(T);
+            ErrorResponse  = null;
+            return false;
 
         }
 
@@ -576,7 +576,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ParseOptional<TEnum>(this JSON, PropertyName, PropertyDescription, DefaultServerName,         out Value, HTTPRequest, out HTTPResponse)
+        #region ParseOptional<TEnum>(this JSON, PropertyName, PropertyDescription,                            out Value,              out ErrorResponse)
 
         public static Boolean ParseOptional<TEnum>(this JObject  JSON,
                                                    String        PropertyName,
@@ -667,6 +667,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return JSONToken.Value<String>();
 
             return String.Empty;
+
+        }
+
+        #endregion
+
+        #region GetOptional(this JSON, Key, out Values)
+
+        public static Boolean GetOptional(this JObject             JSON,
+                                          String                   Key,
+                                          out IEnumerable<String>  Values)
+        {
+
+            if (JSON.TryGetValue(Key, out JToken JSONToken))
+            {
+
+                if (JSONToken is JArray _Values)
+                {
+
+                    try
+                    {
+
+                        Values = _Values.AsEnumerable().
+                                         Select(jtoken => jtoken.Value<String>()).
+                                         Where(value => value != null);
+
+                        return true;
+
+                    }
+#pragma warning disable RCS1075 // Avoid empty catch clause that catches System.Exception.
+                    catch (Exception)
+#pragma warning restore RCS1075 // Avoid empty catch clause that catches System.Exception.
+                    { }
+
+                }
+
+                Values = null;
+                return false;
+
+            }
+
+            Values = null;
+            return true;
 
         }
 
