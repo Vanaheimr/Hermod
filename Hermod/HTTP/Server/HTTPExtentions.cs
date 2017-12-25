@@ -21,7 +21,7 @@ using System;
 using System.Xml.Linq;
 
 using Newtonsoft.Json.Linq;
-
+using org.GraphDefined.Vanaheimr.Hermod.MIME;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Illias.ConsoleLog;
 
@@ -357,6 +357,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
+
+
+
+        #region TryParseMultipartFormDataRequestBody(this Request, MimeMultipart, HTTPResponse)
+
+        public static Boolean TryParseMultipartFormDataRequestBody(this HTTPRequest  Request,
+                                                                   out Multipart     MimeMultipart,
+                                                                   out HTTPResponse  HTTPResponse)
+        {
+
+            #region Initial checks
+
+            if (Request.ContentType     != HTTPContentType.MULTIPART_FORMDATA ||
+                Request.ContentLength   == 0                                  ||
+                !Request.TryReadHTTPBodyStream()                              ||
+                Request.HTTPBody        == null                               ||
+                Request.HTTPBody.Length == 0)
+            {
+
+                MimeMultipart = null;
+                HTTPResponse  = HTTPResponse = new HTTPResponseBuilder(Request,
+                                                                       HTTPStatusCode.BadRequest);
+
+                return false;
+
+            }
+
+            #endregion
+
+
+            var RequestBodyString = Request.HTTPBody.ToUTF8String().Trim();
+
+            MimeMultipart = Multipart.Parse(Request.HTTPBody,
+                                            Request.ContentType.MIMEBoundary);
+            HTTPResponse  = null;
+            return true;
+
+        }
+
+        #endregion
+
+
+
+
+
+
+
 
 
 

@@ -43,91 +43,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           IComparable
     {
 
+        private static readonly Char[]                                Splitter        = new Char[1] { ';' };
+
         private static readonly Dictionary<String, HTTPContentType>   _Lookup         = new Dictionary<String, HTTPContentType>();
         private static readonly Dictionary<String, HTTPContentType[]> _ReverseLookup  = new Dictionary<String, HTTPContentType[]>();
 
         #region Properties
 
-        #region MediaType
-
-        private readonly String _MediaType;
-
         /// <summary>
         /// The media type.
         /// </summary>
-        public String MediaType
-        {
-            get
-            {
-                return _MediaType;
-            }
-        }
-
-        #endregion
-
-        #region MediaTypePrefix
+        public String MediaType { get; }
 
         /// <summary>
         /// The prefix of the media type.
         /// </summary>
         public String MediaTypePrefix
-        {
-            get
-            {
-                return MediaType.Split(new[] { '/' })[0];
-            }
-        }
-
-        #endregion
-
-        #region MediaSubType
+            => MediaType.Split(new[] { '/' })[0];
 
         /// <summary>
         /// The media subtype.
         /// </summary>
         public String MediaSubType
-        {
-            get
-            {
-                return MediaType.Split(new[] { '/' })[1];
-            }
-        }
-
-        #endregion
-
-        #region CharSet
-
-        private readonly CharSetType _CharSet;
+            => MediaType.Split(new[] { '/' })[1];
 
         /// <summary>
         /// The character set.
         /// </summary>
-        public CharSetType CharSet
-        {
-            get
-            {
-                return _CharSet;
-            }
-        }
+        public String CharSet { get; }
 
-        #endregion
-
-        #region FileExtentions
 
         private readonly String[] _FileExtentions;
 
         /// <summary>
         /// Well-known file extentions using this HTTP content type.
         /// </summary>
-        public String[] FileExtentions
-        {
-            get
-            {
-                return _FileExtentions;
-            }
-        }
+        public IEnumerable<String> FileExtentions
+            => _FileExtentions;
 
-        #endregion
+        /// <summary>
+        /// The (optional) MIME boundary.
+        /// </summary>
+        public String MIMEBoundary { get; }
+
 
         #region DebugView
 
@@ -135,12 +93,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a string representation of this object.
         /// </summary>
         public String DebugView
-        {
-            get
-            {
-                return String.Concat(MediaType, ", charset=", CharSet, (FileExtentions != null & FileExtentions.Any()) ? ", file extentions: " + FileExtentions.Aggregate((a, b) => a + ", " + b) : "");
-            }
-        }
+            => ToString() +
+               (FileExtentions != null & FileExtentions.Any() ? ", file extentions: " + FileExtentions.Aggregate((a, b) => a + ", " + b) : "");
 
         #endregion
 
@@ -159,7 +113,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPContentType(String           MediaType,
                                params String[]  FileExtentions)
 
-            : this(MediaType, CharSetType.UTF8, FileExtentions)
+            : this(MediaType, "utf-8", FileExtentions)
 
         { }
 
@@ -175,13 +129,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CharSet">The char set of the HTTP content type.</param>
         /// <param name="FileExtentions">Well-known file extentions using this HTTP content type.</param>
         public HTTPContentType(String           MediaType,
-                               CharSetType      CharSet  = CharSetType.UTF8,
+                               String           CharSet,
                                params String[]  FileExtentions)
         {
 
-            this._MediaType       = MediaType;
-            this._CharSet         = CharSet;
-            this._FileExtentions  = FileExtentions;
+            this.MediaType        = MediaType;
+            this.CharSet          = CharSet        ?? "utf-8";
+            this._FileExtentions  = FileExtentions ?? new String[0];
 
             if (!_Lookup.ContainsKey(MediaType))
                 _Lookup.Add(MediaType, this);
@@ -202,6 +156,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region HTTPContentType(MediaType, CharSet, MIMEBoundary)
+
+        /// <summary>
+        /// Creates a new HTTP content type based on the given media type,
+        /// character set and file extentions.
+        /// </summary>
+        /// <param name="MediaType">The media type for the HTTP content type.</param>
+        /// <param name="CharSet">The char set of the HTTP content type.</param>
+        /// <param name="MIMEBoundary">The MIME boundary.</param>
+        public HTTPContentType(String  MediaType,
+                               String  CharSet,
+                               String  MIMEBoundary)
+        {
+
+            this.MediaType        = MediaType;
+            this.CharSet          = CharSet ?? "utf-8";
+            this._FileExtentions  = new String[0];
+            this.MIMEBoundary     = MIMEBoundary;
+
+        }
+
+        #endregion
+
         #endregion
 
 
@@ -214,7 +191,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPContentType CSS_UTF8             = new HTTPContentType("text/css",                               "css");
         public static readonly HTTPContentType JAVASCRIPT_UTF8      = new HTTPContentType("text/javascript",                        "js");
         public static readonly HTTPContentType XMLTEXT_UTF8         = new HTTPContentType("text/xml",                               "xml");
-        public static readonly HTTPContentType MARKDONW_UTF8        = new HTTPContentType("text/markdown",                          "md");
+        public static readonly HTTPContentType MARKDOWN_UTF8        = new HTTPContentType("text/markdown",                          "md");
 
         public static readonly HTTPContentType JSON_UTF8            = new HTTPContentType("application/json",                       "json");
         public static readonly HTTPContentType JSONLD_UTF8          = new HTTPContentType("application/ld+json",                    "json-ld");
@@ -239,6 +216,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPContentType OCTETSTREAM          = new HTTPContentType("application/octet-stream");
         public static readonly HTTPContentType EVENTSTREAM          = new HTTPContentType("text/event-stream");
 
+        public static readonly HTTPContentType MULTIPART_FORMDATA   = new HTTPContentType("multipart/form-data");
+
         #endregion
 
 
@@ -247,21 +226,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean TryParseString(String Text, out HTTPContentType HTTPContentType)
         {
 
-            var Split = Text.Split(new String[1] { ";" }, StringSplitOptions.None);
+            var Parts = Text.Split(Splitter, StringSplitOptions.RemoveEmptyEntries).
+                             SafeSelect(part => part.Trim()).
+                             ToArray();
 
-            var MediaType = Split[0].Trim();
-            var CharSet   = (Split.Length > 1) ? Split[1].Trim() : "UTF-8";
+            var MediaType = Parts[0];
+            var Charset   = Parts.FirstOrDefault(part => part.StartsWith("charset",  StringComparison.OrdinalIgnoreCase));
+            var Boundary  = Parts.FirstOrDefault(part => part.StartsWith("boundary", StringComparison.OrdinalIgnoreCase));
 
-            HTTPContentType = (from   _FieldInfo in typeof(HTTPContentType).GetFields()
-                               let    __HTTPContentType = _FieldInfo.GetValue(null) as HTTPContentType
-                               where  __HTTPContentType != null
-                               where  __HTTPContentType.MediaType == MediaType
-                               select __HTTPContentType).FirstOrDefault();
+            Charset = Charset.IsNeitherNullNorEmpty() ? Charset.Substring(Charset.IndexOf("=") + 1).Trim() : "utf-8";
 
-            if (HTTPContentType != null)
+            if (Boundary != null)
+            {
+
+                HTTPContentType = new HTTPContentType(MediaType,
+                                                      Charset,
+                                                      Boundary.Substring(Boundary.IndexOf("----")));
                 return true;
 
-            return false;
+            }
+
+            else
+            {
+
+                HTTPContentType = (from _FieldInfo in typeof(HTTPContentType).GetFields()
+                                   let __HTTPContentType = _FieldInfo.GetValue(null) as HTTPContentType
+                                   where __HTTPContentType != null
+                                   where __HTTPContentType.MediaType == MediaType
+                                   select __HTTPContentType).FirstOrDefault();
+
+                if (HTTPContentType != null)
+                    return true;
+
+                return false;
+
+            }
 
         }
 
@@ -271,15 +270,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Func<HTTPContentType>  DefaultValueFactory = null)
         {
 
-            HTTPContentType HTTPContentType = null;
-
-            if (_Lookup.TryGetValue(MediaType, out HTTPContentType))
+            if (_Lookup.TryGetValue(MediaType, out HTTPContentType HTTPContentType))
                 return HTTPContentType;
 
             if (DefaultValueFactory != null)
                 return DefaultValueFactory();
 
-            return HTTPContentType.ALL;
+            return ALL;
 
         }
 
@@ -287,9 +284,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                     Func<HTTPContentType>  DefaultValueFactory = null)
         {
 
-            HTTPContentType[] HTTPContentTypes = null;
-
-            if (_ReverseLookup.TryGetValue(FileExtention, out HTTPContentTypes))
+            if (_ReverseLookup.TryGetValue(FileExtention, out HTTPContentType[] HTTPContentTypes))
                 return HTTPContentTypes;
 
             if (DefaultValueFactory != null)
@@ -324,9 +319,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Operator != (myHTTPContentType1, myHTTPContentType2)
 
         public static Boolean operator != (HTTPContentType myHTTPContentType1, HTTPContentType myHTTPContentType2)
-        {
-            return !(myHTTPContentType1 == myHTTPContentType2);
-        }
+            => !(myHTTPContentType1 == myHTTPContentType2);
 
         #endregion
 
@@ -371,18 +364,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Operator <= (myHTTPContentType1, myHTTPContentType2)
 
         public static Boolean operator <= (HTTPContentType myHTTPContentType1, HTTPContentType myHTTPContentType2)
-        {
-            return !(myHTTPContentType1 > myHTTPContentType2);
-        }
+            => !(myHTTPContentType1 > myHTTPContentType2);
 
         #endregion
 
         #region Operator >= (myHTTPContentType1, myHTTPContentType2)
 
         public static Boolean operator >= (HTTPContentType myHTTPContentType1, HTTPContentType myHTTPContentType2)
-        {
-            return !(myHTTPContentType1 < myHTTPContentType2);
-        }
+            => !(myHTTPContentType1 < myHTTPContentType2);
 
         #endregion
 
@@ -402,7 +391,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Object == null)
                 throw new ArgumentNullException("The given object must not be null!");
 
-            // Check if the given object is an HTTPContentType.
             var HTTPContentType = Object as HTTPContentType;
             if ((Object) HTTPContentType == null)
                 throw new ArgumentException("The given object is not a HTTPContentType!");
@@ -448,12 +436,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Object == null)
                 return false;
 
-            // Check if the given object is an HTTPContentType.
             var HTTPContentType = Object as HTTPContentType;
             if ((Object) HTTPContentType == null)
                 return false;
 
-            return this.Equals(HTTPContentType);
+            return Equals(HTTPContentType);
 
         }
 
@@ -472,7 +459,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if ((Object) HTTPContentType == null)
                 return false;
 
-            return MediaType == HTTPContentType.MediaType;
+            return MediaType.Equals(HTTPContentType.MediaType);// &&
+                   //CharSet  .Equals(HTTPContentType.CharSet)   &&
+
+                   //((MIMEBoundary == null && HTTPContentType.MIMEBoundary == null) ||
+                   // (MIMEBoundary != null && HTTPContentType.MIMEBoundary != null && MIMEBoundary.Equals(HTTPContentType.MIMEBoundary)));
+
+        }
+
+        #endregion
+
+        #region LesserEquals(HTTPContentType)
+
+        /// <summary>
+        /// Compares two HTTPContentTypes for lesser equality.
+        /// </summary>
+        /// <param name="HTTPContentType">A HTTPContentType to compare with.</param>
+        /// <returns>True if both match; False otherwise.</returns>
+        public Boolean LesserEquals(HTTPContentType HTTPContentType)
+        {
+
+            if ((Object) HTTPContentType == null)
+                return false;
+
+            return MediaType.Equals(HTTPContentType.MediaType);// &&
+                   //CharSet  .Equals(HTTPContentType.CharSet);
 
         }
 
@@ -487,7 +498,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public override Int32 GetHashCode()
         {
-            return MediaType.GetHashCode();// ^ CharSet.GetHashCode();
+            unchecked
+            {
+
+                return MediaType.GetHashCode();// * 5 ^
+                       //CharSet.  GetHashCode() * 3 ^
+
+                       //(MIMEBoundary.IsNeitherNullNorEmpty()
+                       //     ? MIMEBoundary.GetHashCode()
+                       //     : 0);
+
+            }
         }
 
         #endregion
@@ -498,9 +519,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a string representation of this object.
         /// </summary>
         public override String ToString()
-        {
-            return String.Concat(MediaType, "; charset=", CharSet.ToString().Replace("UTF8", "utf-8"));
-        }
+
+            => String.Concat(MediaType,
+                             "; charset=", CharSet.ToString(),
+
+                             MIMEBoundary.IsNotNullOrEmpty()
+                                 ? "; boundary = " + MIMEBoundary
+                                 : "");
 
         #endregion
 

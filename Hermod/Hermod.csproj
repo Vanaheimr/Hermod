@@ -134,6 +134,7 @@
     <Compile Include="HTTP\Server\URLMapping\URIReplacement.cs" />
     <Compile Include="HTTP\Server\URLMapping\URINode.cs" />
     <Compile Include="HTTP\HTTPSemantics.cs" />
+    <Compile Include="MIME\AMIME.cs" />
     <Compile Include="SMTP\EMail\AbstractEMail.cs" />
     <Compile Include="SMTP\EMail\EMailEnvelop.cs" />
     <Compile Include="SMTP\EMail\AbstractEMailBuilder.cs" />
