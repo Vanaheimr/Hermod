@@ -91,6 +91,7 @@
     <Compile Include="HTTP\Logging\HTTPClientLogger.cs" />
     <Compile Include="HTTP\Logging\HTTPServerLogger.cs" />
     <Compile Include="HTTP\Request\Extentions.cs" />
+    <Compile Include="HTTP\Server\Class1.cs" />
     <Compile Include="HTTP\Server\IHTTPServer.cs" />
     <Compile Include="HTTP\Server\JSONWrapper.cs" />
     <Compile Include="HTTP\Logging\HTTPLoggerExtentions.cs" />

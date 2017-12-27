@@ -30,7 +30,7 @@ using org.GraphDefined.Vanaheimr.Illias;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
-    public delegate Boolean PFunc<TResult>(String Input, out TResult arg);
+    public delegate Boolean TryParser<TResult>(String Input, out TResult arg);
 
     /// <summary>
     /// HTTP API - JSON I/O.
