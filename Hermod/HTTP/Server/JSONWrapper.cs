@@ -1474,6 +1474,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region ParseOptional       (this JSON, PropertyName, PropertyDescription,                            out Timestamp,          out ErrorResponse)
+
+        public static Boolean ParseOptional(this JObject  JSON,
+                                            String        PropertyName,
+                                            String        PropertyDescription,
+                                            out DateTime  Timestamp,
+                                            out String    ErrorResponse)
+        {
+
+            Timestamp = DateTime.MinValue;
+
+            if (JSON == null)
+            {
+                ErrorResponse = "Invalid JSON provided!";
+                return true;
+            }
+
+            if (PropertyName.IsNullOrEmpty() || PropertyName.Trim().IsNullOrEmpty())
+            {
+                ErrorResponse = "Invalid JSON property name provided!";
+                return true;
+            }
+
+            if (!JSON.TryGetValue(PropertyName, out JToken JSONToken))
+            {
+                ErrorResponse = "Missing property '" + PropertyName + "'!";
+                return true;
+            }
+
+            try
+            {
+
+                Timestamp = JSONToken.Value<DateTime>();
+
+            }
+            catch (Exception)
+            {
+                ErrorResponse = "Invalid " + PropertyDescription ?? PropertyName + "!";
+                return false;
+            }
+
+            ErrorResponse = null;
+            return true;
+
+        }
+
+        #endregion
+
         #region ParseOptional<T>    (this JSON, PropertyName, PropertyDescription, DefaultServerName, Parser, out Value, HTTPRequest, out HTTPResponse)
 
         public static Boolean ParseOptional<T>(this JObject        JSON,
