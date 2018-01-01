@@ -36,9 +36,9 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Newtonsoft.Json, Version=4.5.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+    <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\libs\Newtonsoft.Json.dll</HintPath>
+      <HintPath>..\..\Styx\libs\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -240,10 +240,6 @@
     <ProjectReference Include="..\..\BouncyCastle\crypto\crypto.csproj">
       <Project>{38872a5f-e87e-4fad-b109-8eb7b2e6a4a0}</Project>
       <Name>crypto</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\Illias\Illias\Illias.csproj">
-      <Project>{23d37453-2d4e-4bd8-b40f-3e731fee7712}</Project>
-      <Name>Illias</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\Styx\Styx\Styx.csproj">
       <Project>{af76ecc0-2ca5-4cff-9e1e-ff5478c4b6e4}</Project>
