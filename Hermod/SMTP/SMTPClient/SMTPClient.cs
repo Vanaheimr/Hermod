@@ -143,7 +143,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         private                 Byte[]                       input;
         private static readonly Byte[]                       ByteZero    = new Byte[1] { 0x00 };
 
-        private static readonly Random                       _Random     = new Random();
+        private static readonly Random                       _Random     = new Random(DateTime.UtcNow.Millisecond);
         private static readonly SHA256CryptoServiceProvider  _SHAHasher  = new SHA256CryptoServiceProvider();
 
         #endregion
