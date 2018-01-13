@@ -399,7 +399,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var _ContentTypeString = GetHeaderField<String>("Content-Type");
                 if (_ContentTypeString != null)
                 {
-                    _ContentType = new HTTPContentType(_ContentTypeString);
+                    _ContentType = new HTTPContentType(_ContentTypeString, "utf-8", null, null);
                     SetHeaderField("Content-Type", _ContentType);
                     return _ContentType;
                 }
