@@ -95,14 +95,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         #region Constructor
 
         /// <summary>
-        /// Create a new specialized HTTP client for the Simple Object Access Protocol (SOAP).
+        /// Create a new specialized HTTP client for the Simple Object Access Protocol (SOAP) v1.1.
         /// </summary>
         /// <param name="Hostname">The hostname of the remote HTTP/SOAP service.</param>
         /// <param name="HTTPPort">The HTTP port of the remote HTTP/SOAP service.</param>
         /// <param name="HTTPVirtualHost">The HTTP virtual host to use.</param>
         /// <param name="URIPrefix">The URI-prefix of the HTTP/SOAP service.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
-        /// <param name="LocalCertificateSelector">Selects the local certificate used for authentication.</param>
+        /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="UserAgent">The HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
@@ -111,7 +111,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                           String                               HTTPVirtualHost,
                           String                               URIPrefix,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
-                          LocalCertificateSelectionCallback    LocalCertificateSelector     = null,
+                          LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
                           String                               UserAgent                    = DefaultUserAgent,
                           TimeSpan?                            RequestTimeout               = null,
                           DNSClient                            DNSClient                    = null)
@@ -119,7 +119,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
             : base(Hostname,
                    HTTPPort       ?? DefaultHTTPPort,
                    RemoteCertificateValidator,
-                   LocalCertificateSelector,
+                   ClientCertificateSelector,
                    null,
                    UserAgent      ?? DefaultUserAgent,
                    RequestTimeout ?? DefaultRequestTimeout,
@@ -361,7 +361,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         #region Constructor
 
         /// <summary>
-        /// Create a new specialized HTTP client for the Simple Object Access Protocol (SOAP).
+        /// Create a new specialized HTTP client for the Simple Object Access Protocol (SOAP) v1.2.
         /// </summary>
         /// <param name="Hostname">The hostname of the remote HTTP/SOAP service.</param>
         /// <param name="HTTPPort">The HTTP port of the remote HTTP/SOAP service.</param>
@@ -460,20 +460,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
             #endregion
 
             var _RequestBuilder = new HTTPRequest.Builder(this) {
-                                      HTTPMethod         = HTTPMethod.POST,
-                                      Host               = HTTPVirtualHost,
-                                      URI                = URIPrefix,
-                                      Content            = QueryXML.ToUTF8Bytes(),
-                                      ContentType        = ContentType ?? HTTPContentType.XMLTEXT_UTF8,
-                                      UserAgent          = UserAgent,
-                                      FakeURIPrefix      = "https://" + HTTPVirtualHost
+                                      HTTPMethod     = HTTPMethod.POST,
+                                      Host           = HTTPVirtualHost,
+                                      URI            = URIPrefix,
+                                      Content        = QueryXML.ToUTF8Bytes(),
+                                      ContentType    = ContentType ?? new HTTPContentType("application/soap+xml",
+                                                                                          "utf-8",
+                                                                                          SOAPAction,
+                                                                                          null),
+                                      UserAgent      = UserAgent,
+                                      FakeURIPrefix  = "https://" + HTTPVirtualHost
                                   };
 
             // Always send a Content-Length header, even when it's value is zero
             _RequestBuilder.SetContentLength(0);
-
-            _RequestBuilder.Set("SOAPAction", @"""" + SOAPAction + @"""");
-
 
             HTTPRequestBuilder?.Invoke(_RequestBuilder);
 

@@ -535,14 +535,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public override String ToString()
 
             => String.Concat(MediaType,
-                             "; charset=", CharSet.ToString(),
+                             "; charset=", CharSet,
 
                              MIMEBoundary.IsNotNullOrEmpty()
-                                 ? "; boundary = " + MIMEBoundary
+                                 ? "; boundary=\"" + MIMEBoundary + "\""
                                  : "",
 
                              Action.IsNotNullOrEmpty()
-                                 ? "; action = " + Action
+                                 ? "; action=\"" + Action + "\""
                                  : "");
 
         #endregion
