@@ -333,12 +333,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URI">An URI.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A new HTTPRequest object.</returns>
-        public HTTPRequestBuilder CreateRequest(HTTPMethod                  HTTPMethod,
-                                                String                      URI,
-                                                Action<HTTPRequestBuilder>  BuilderAction  = null)
+        public HTTPRequest.Builder CreateRequest(HTTPMethod                   HTTPMethod,
+                                                 String                       URI,
+                                                 Action<HTTPRequest.Builder>  BuilderAction  = null)
         {
 
-            var Builder     = new HTTPRequestBuilder(this) {
+            var Builder     = new HTTPRequest.Builder(this) {
                 HTTPMethod  = HTTPMethod,
                 URI         = URI
             };

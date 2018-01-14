@@ -39,6 +39,13 @@ using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
+    public delegate HTTPResponse HTTPFilter1Delegate (                   HTTPRequest Request);
+    public delegate HTTPResponse HTTPFilter2Delegate (HTTPServer Server, HTTPRequest Request);
+
+    public delegate HTTPRequest  HTTPRewrite1Delegate(                   HTTPRequest Request);
+    public delegate HTTPRequest  HTTPRewrite2Delegate(HTTPServer Server, HTTPRequest Request);
+
+
     /// <summary>
     /// A multitenant HTTP/1.1 server.
     /// </summary>
@@ -752,12 +759,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        public void AddFilter(Func<HTTPServer, HTTPRequest, HTTPResponse> Filter)
+        public void AddFilter(HTTPFilter1Delegate Filter)
         {
             _HTTPServer.AddFilter(Filter);
         }
 
-        public void Rewrite(HTTPServer.HTTPRewriteDelegate Rewrite)
+        public void AddFilter(HTTPFilter2Delegate Filter)
+        {
+            _HTTPServer.AddFilter(Filter);
+        }
+
+        public void Rewrite(HTTPRewrite1Delegate Rewrite)
+        {
+            _HTTPServer.Rewrite(Rewrite);
+        }
+
+        public void Rewrite(HTTPRewrite2Delegate Rewrite)
         {
             _HTTPServer.Rewrite(Rewrite);
         }
@@ -1427,7 +1444,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            _URIMapping.AddHandler(req => InvokeHandler(new HTTPRequestBuilder(req).SetURI(URITarget)),
+            _URIMapping.AddHandler(req => InvokeHandler(new HTTPRequest.Builder(req).SetURI(URITarget)),
                                    Hostname,
                                    (URITemplate.IsNotNullOrEmpty()) ? URITemplate     : "/",
                                    HTTPMethod      ?? HTTPMethod.GET,
@@ -1457,7 +1474,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            _URIMapping.AddHandler(req => InvokeHandler(new HTTPRequestBuilder(req).SetURI(URITarget)),
+            _URIMapping.AddHandler(req => InvokeHandler(new HTTPRequest.Builder(req).SetURI(URITarget)),
                                    HTTPHostname.Any,
                                    (URITemplate.IsNotNullOrEmpty()) ? URITemplate     : "/",
                                    HTTPMethod      ?? HTTPMethod.GET,
@@ -1738,18 +1755,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        private List<Func<HTTPServer, HTTPRequest, HTTPResponse>> _HTTPFilters = new List<Func<HTTPServer, HTTPRequest, HTTPResponse>>();
 
-        public void AddFilter(Func<HTTPServer, HTTPRequest, HTTPResponse> Filter)
+
+        private readonly List<HTTPFilter2Delegate> _HTTPFilters = new List<HTTPFilter2Delegate>();
+
+        public void AddFilter(HTTPFilter1Delegate Filter)
+        {
+            _HTTPFilters.Add((server, request) => Filter(request));
+        }
+
+        public void AddFilter(HTTPFilter2Delegate Filter)
         {
             _HTTPFilters.Add(Filter);
         }
 
-        public delegate HTTPRequest HTTPRewriteDelegate(HTTPServer Server, HTTPRequest Request);
 
-        private List<HTTPRewriteDelegate> _HTTPRewrites = new List<HTTPRewriteDelegate>();
+        private readonly List<HTTPRewrite2Delegate> _HTTPRewrites = new List<HTTPRewrite2Delegate>();
 
-        public void Rewrite(HTTPRewriteDelegate Rewrite)
+        public void Rewrite(HTTPRewrite1Delegate Rewrite)
+        {
+            _HTTPRewrites.Add((server, request) => Rewrite(request));
+        }
+
+        public void Rewrite(HTTPRewrite2Delegate Rewrite)
         {
             _HTTPRewrites.Add(Rewrite);
         }
