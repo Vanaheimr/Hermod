@@ -75,7 +75,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                                                             },
                                                                       Authorities:          new ADNSResourceRecord[0],
                                                                       AdditionalRecords:    new ADNSResourceRecord[0])
-                                                         ));
+                                                         )
+                          );
 
             _DNSCache.Add("loopback",
                           new DNSCacheEntry(RefreshTime:  DateTime.UtcNow,
@@ -93,7 +94,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                                                             },
                                                                       Authorities:          new ADNSResourceRecord[0],
                                                                       AdditionalRecords:    new ADNSResourceRecord[0])
-                                                         ));
+                                                         )
+                          );
 
         }
 
@@ -114,21 +116,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             lock (_DNSCache)
             {
 
-                DNSCacheEntry CacheEntry = null;
+                if (!_DNSCache.TryGetValue(Domainname, out DNSCacheEntry CacheEntry))
+                {
 
-                if (!_DNSCache.TryGetValue(Domainname, out CacheEntry))
-                    _DNSCache.Add(Domainname, new DNSCacheEntry(
-                                                         DateTime.UtcNow + TimeSpan.FromSeconds(DNSInformation.Answers.First().TimeToLive.TotalSeconds / 2),
-                                                         DateTime.UtcNow + DNSInformation.Answers.First().TimeToLive,
-                                                         DNSInformation));
+                    _DNSCache.Add(Domainname,
+                                  new DNSCacheEntry(
+                                      DateTime.UtcNow + TimeSpan.FromSeconds(DNSInformation.Answers.First().TimeToLive.TotalSeconds / 2),
+                                      DateTime.UtcNow + DNSInformation.Answers.First().TimeToLive,
+                                      DNSInformation)
+                                 );
+
+                }
 
                 else
                 {
+
                     // ToDo: Merge of DNS responses!
                     _DNSCache[Domainname] = new DNSCacheEntry(
-                                                       DateTime.UtcNow + TimeSpan.FromSeconds(DNSInformation.Answers.First().TimeToLive.TotalSeconds / 2),
-                                                       DateTime.UtcNow + DNSInformation.Answers.First().TimeToLive,
-                                                       DNSInformation);
+                                                DateTime.UtcNow + TimeSpan.FromSeconds(DNSInformation.Answers.First().TimeToLive.TotalSeconds / 2),
+                                                DateTime.UtcNow + DNSInformation.Answers.First().TimeToLive,
+                                                DNSInformation
+                                            );
+
                 }
 
                 return this;
@@ -139,40 +148,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Add(Domainname, Origin, ResourceRecord)
+        #region Add(Domainname, Origin, params ResourceRecords)
 
         /// <summary>
         /// Add the given DNS resource record to the DNS cache.
         /// </summary>
         /// <param name="Domainname">The domain name.</param>
         /// <param name="Origin">The origin of the DNS resource record.</param>
-        /// <param name="ResourceRecord">The DNS resource record to add.</param>
-        public DNSCache Add(String              Domainname,
-                            IPSocket            Origin,
-                            ADNSResourceRecord  ResourceRecord)
+        /// <param name="ResourceRecords">The DNS resource records to add.</param>
+        public DNSCache Add(String                       Domainname,
+                            IPSocket                     Origin,
+                            params ADNSResourceRecord[]  ResourceRecords)
         {
 
             lock (_DNSCache)
             {
 
-                DNSCacheEntry CacheEntry = null;
+                if (!_DNSCache.TryGetValue(Domainname, out DNSCacheEntry CacheEntry))
+                {
 
-                //Debug.WriteLine("[" + DateTime.UtcNow + "] Adding '" + Domainname + "' to the DNS cache!");
+                    _DNSCache.Add(Domainname,
+                                  new DNSCacheEntry(
+                                      DateTime.UtcNow + TimeSpan.FromSeconds(ResourceRecords.Min(rr => rr.TimeToLive.TotalSeconds) / 2),
+                                      DateTime.UtcNow + ResourceRecords.Min(rr => rr.TimeToLive),
+                                      new DNSInfo(Origin:               Origin,
+                                                  QueryId:              new Random(DateTime.UtcNow.Millisecond).Next(),
+                                                  IsAuthorativeAnswer:  false,
+                                                  IsTruncated:          false,
+                                                  RecursionDesired:     false,
+                                                  RecursionAvailable:   false,
+                                                  ResponseCode:         DNSResponseCodes.NoError,
+                                                  Answers:              ResourceRecords,
+                                                  Authorities:          new ADNSResourceRecord[0],
+                                                  AdditionalRecords:    new ADNSResourceRecord[0])
+                                  ));
 
-                if (!_DNSCache.TryGetValue(Domainname, out CacheEntry))
-                    _DNSCache.Add(Domainname, new DNSCacheEntry(
-                                                         DateTime.UtcNow + TimeSpan.FromSeconds(ResourceRecord.TimeToLive.TotalSeconds / 2),
-                                                         DateTime.UtcNow + ResourceRecord.TimeToLive,
-                                                         new DNSInfo(Origin:               Origin,
-                                                                     QueryId:              new Random(DateTime.UtcNow.Millisecond).Next(),
-                                                                     IsAuthorativeAnswer:  false,
-                                                                     IsTruncated:          false,
-                                                                     RecursionDesired:     false,
-                                                                     RecursionAvailable:   false,
-                                                                     ResponseCode:         DNSResponseCodes.NoError,
-                                                                     Answers:              new ADNSResourceRecord[1] { ResourceRecord },
-                                                                     Authorities:          new ADNSResourceRecord[0],
-                                                                     AdditionalRecords:    new ADNSResourceRecord[0])));
+                }
 
                 else
                 {
@@ -202,9 +213,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             lock (_DNSCache)
             {
 
-                DNSCacheEntry CacheEntry = null;
-
-                if (_DNSCache.TryGetValue(DomainName, out CacheEntry))
+                if (_DNSCache.TryGetValue(DomainName, out DNSCacheEntry CacheEntry))
                     return CacheEntry.DNSInfo;
 
                 return null;
@@ -229,15 +238,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                     var Now             = DateTime.UtcNow;
 
+                    // Info: Will remove all resource records even when only a single one is expired!
                     var ExpiredEntries  = _DNSCache.
                                               Where(entry => entry.Value.EndOfLife < Now).
                                               ToArray();
 
                     ExpiredEntries.ForEach(entry => _DNSCache.Remove(entry.Key));
-
-#if DEBUG
-                //    ExpiredEntries.ForEach(entry => Debug.WriteLine("[" + Now + "] Removed '" + entry.Key + "' from the DNS cache!"));
-#endif
 
                 }
 
@@ -264,9 +270,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Get a string representation of this object.
         /// </summary>
         public override String ToString()
-        {
-            return _DNSCache.Count + " cached DNS entries";
-        }
+            => _DNSCache.Count + " cached DNS entries";
 
         #endregion
 

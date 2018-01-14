@@ -46,7 +46,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
 {
 
     /// <summary>
-    /// SOAP XML Namespace
+    /// SOAP v1.1 XML Namespace
     /// </summary>
     public static class NS
     {
@@ -64,7 +64,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
     }
 
     /// <summary>
-    /// A specialized HTTP client for the Simple Object Access Protocol (SOAP).
+    /// A specialized HTTP client for the Simple Object Access Protocol (SOAP) v1.1.
     /// </summary>
     public class SOAPClient : HTTPClient
     {
@@ -103,7 +103,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         /// <param name="URIPrefix">The URI-prefix of the HTTP/SOAP service.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="LocalCertificateSelector">Selects the local certificate used for authentication.</param>
-        /// <param name="ClientCert">The TLS client certificate to use.</param>
         /// <param name="UserAgent">The HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
@@ -113,7 +112,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                           String                               URIPrefix,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
                           LocalCertificateSelectionCallback    LocalCertificateSelector     = null,
-                          X509Certificate                      ClientCert                   = null,
                           String                               UserAgent                    = DefaultUserAgent,
                           TimeSpan?                            RequestTimeout               = null,
                           DNSClient                            DNSClient                    = null)
@@ -122,7 +120,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                    HTTPPort       ?? DefaultHTTPPort,
                    RemoteCertificateValidator,
                    LocalCertificateSelector,
-                   ClientCert,
+                   null,
                    UserAgent      ?? DefaultUserAgent,
                    RequestTimeout ?? DefaultRequestTimeout,
                    DNSClient)
@@ -314,7 +312,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
 {
 
     /// <summary>
-    /// SOAP XML Namespace
+    /// SOAP v1.2 XML Namespace
     /// </summary>
     public static class NS
     {
@@ -332,7 +330,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
     }
 
     /// <summary>
-    /// A specialized HTTP client for the Simple Object Access Protocol (SOAP).
+    /// A specialized HTTP client for the Simple Object Access Protocol (SOAP) v1.2.
     /// </summary>
     public class SOAPClient : HTTPClient
     {
@@ -342,7 +340,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         /// <summary>
         /// The default HTTP/SOAP user agent.
         /// </summary>
-        public new const String DefaultUserAgent  = "GraphDefined HTTP/SOAP Client";
+        public new const String DefaultUserAgent  = "GraphDefined HTTP/SOAPv1.2 Client";
 
         #endregion
 
@@ -370,8 +368,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         /// <param name="HTTPVirtualHost">The HTTP virtual host to use.</param>
         /// <param name="URIPrefix">The URI-prefix of the HTTP/SOAP service.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
-        /// <param name="LocalCertificateSelector">Selects the local certificate used for authentication.</param>
-        /// <param name="ClientCert">The TLS client certificate to use.</param>
+        /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="UserAgent">The HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
@@ -380,8 +377,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                           String                               HTTPVirtualHost,
                           String                               URIPrefix,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
-                          LocalCertificateSelectionCallback    LocalCertificateSelector     = null,
-                          X509Certificate                      ClientCert                   = null,
+                          LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
                           String                               UserAgent                    = DefaultUserAgent,
                           TimeSpan?                            RequestTimeout               = null,
                           DNSClient                            DNSClient                    = null)
@@ -389,8 +385,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
             : base(Hostname,
                    HTTPPort       ?? DefaultHTTPPort,
                    RemoteCertificateValidator,
-                   LocalCertificateSelector,
-                   ClientCert,
+                   ClientCertificateSelector,
+                   null,
                    UserAgent      ?? DefaultUserAgent,
                    RequestTimeout ?? DefaultRequestTimeout,
                    DNSClient)

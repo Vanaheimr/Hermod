@@ -494,28 +494,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         if (RemoteIPAddress == null)
                         {
 
-                            try
-                            {
+                            var IPv4AddressLookupTask  = DNSClient.
+                                                             Query<A>(Hostname).
+                                                             ContinueWith(query => query.Result.Select(ARecord    => ARecord.IPv4Address));
 
-                                var IPv4Addresses = await DNSClient.
-                                                              Query<A>(Hostname).
-                                                                  ContinueWith(QueryTask => QueryTask.Result.
-                                                                                                Select(ARecord => ARecord.IPv4Address).
-                                                                                                ToArray());
+                            var IPv6AddressLookupTask  = DNSClient.
+                                                             Query<AAAA>(Hostname).
+                                                             ContinueWith(query => query.Result.Select(AAAARecord => AAAARecord.IPv6Address));
 
-                                var IPv6Addresses = await DNSClient.
-                                                              Query<AAAA>(Hostname).
-                                                                  ContinueWith(QueryTask => QueryTask.Result.
-                                                                                                Select(AAAARecord => AAAARecord.IPv6Address).
-                                                                                                ToArray());
+                            await Task.WhenAll(IPv4AddressLookupTask,
+                                               IPv6AddressLookupTask).
+                                       ConfigureAwait(false);
 
-                                RemoteIPAddress = IPv4Addresses.FirstOrDefault();
 
-                            }
-                            catch (Exception e)
-                            {
-                                DebugX.Log("HTTP Client DNS lookup failed: " + e.Message);
-                            }
+                            if (IPv4AddressLookupTask.Result.Any())
+                                RemoteIPAddress = IPv4AddressLookupTask.Result.First();
+
+                            else if (IPv6AddressLookupTask.Result.Any())
+                                RemoteIPAddress = IPv6AddressLookupTask.Result.First();
+
+
+                            if (RemoteIPAddress == null || RemoteIPAddress.GetBytes() == null)
+                                throw new Exception("DNS lookup failed!");
 
                         }
 

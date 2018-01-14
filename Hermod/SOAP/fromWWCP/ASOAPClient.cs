@@ -20,7 +20,6 @@
 using System;
 using System.Xml.Linq;
 using System.Net.Security;
-using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
@@ -81,7 +80,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="RemotePort">The remote TCP port to connect to.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
-        /// <param name="ClientCert">The TLS client certificate to use.</param>
         /// <param name="HTTPVirtualHost">An optional HTTP virtual host name to use.</param>
         /// <param name="URIPrefix">An default URI prefix.</param>
         /// <param name="WSSLoginPassword">The WebService-Security username/password.</param>
@@ -94,7 +92,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                               IPPort                               RemotePort,
                               RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
                               LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
-                              X509Certificate                      ClientCert                   = null,
                               String                               HTTPVirtualHost              = null,
                               String                               URIPrefix                    = null,
                               Tuple<String, String>                WSSLoginPassword             = null,
@@ -108,7 +105,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                    RemotePort,
                    RemoteCertificateValidator,
                    ClientCertificateSelector,
-                   ClientCert,
                    HTTPVirtualHost,
                    UserAgent,
                    RequestTimeout,

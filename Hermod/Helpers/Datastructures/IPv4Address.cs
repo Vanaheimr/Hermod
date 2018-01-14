@@ -52,7 +52,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// The length of an IPv4Address.
         /// </summary>
         public Byte Length
-
             => _Length;
 
         #endregion
@@ -240,7 +239,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public Byte[] GetBytes()
         {
-            return IPAddressArray;
+
+            var result = new Byte[_Length];
+
+            Array.Copy(IPAddressArray,
+                       result,
+                       _Length);
+
+            return result;
+
         }
 
         #endregion

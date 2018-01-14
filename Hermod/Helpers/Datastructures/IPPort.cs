@@ -55,6 +55,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public static readonly IPPort SSH    = new IPPort(22);
         public static readonly IPPort TELNET = new IPPort(23);
+        public static readonly IPPort DNS    = new IPPort(53);
         public static readonly IPPort HTTP   = new IPPort(80);
         public static readonly IPPort HTTPS  = new IPPort(443);
 

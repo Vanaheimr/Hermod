@@ -97,15 +97,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         //   public X509Certificate2  ServerCert              { get; }
 
-        public RemoteCertificateValidationCallback RemoteCertificateValidator { get; }
+        public RemoteCertificateValidationCallback  RemoteCertificateValidator    { get; }
 
-        public LocalCertificateSelectionCallback ClientCertificateSelector { get; }
+        public LocalCertificateSelectionCallback    ClientCertificateSelector     { get; }
 
-        public X509Certificate ClientCert { get; }
-
-        //        public LocalCertificateSelectionCallback ClientCertificateSelector { get; set; }
-
-        public Boolean          UseTLS                  { get; set; }
+        public Boolean                              UseTLS                        { get; set; }
 
         #endregion
 
@@ -146,7 +142,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="RemotePort">The remote TCP port to connect to.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
-        /// <param name="ClientCert">The TLS client certificate to use.</param>
         /// <param name="HTTPVirtualHost">An optional HTTP virtual host name to use.</param>
         /// <param name="UserAgent">An optional HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional timeout for HTTP requests.</param>
@@ -157,7 +152,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                            IPPort                               RemotePort,
                            RemoteCertificateValidationCallback  RemoteCertificateValidator  = null,
                            LocalCertificateSelectionCallback    ClientCertificateSelector   = null,
-                           X509Certificate                      ClientCert                  = null,
                            String                               HTTPVirtualHost             = null,
                            String                               UserAgent                   = DefaultHTTPUserAgent,
                            TimeSpan?                            RequestTimeout              = null,
@@ -181,7 +175,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
             this.ClientCertificateSelector   = ClientCertificateSelector;
-            this.ClientCert                  = ClientCert;
 
             this.HTTPVirtualHost             = HTTPVirtualHost?.IsNotNullOrEmpty() == true
                                                    ? HTTPVirtualHost

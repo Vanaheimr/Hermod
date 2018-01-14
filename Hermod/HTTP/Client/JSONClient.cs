@@ -78,8 +78,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
         /// <param name="HTTPVirtualHost">The HTTP virtual host to use.</param>
         /// <param name="URIPrefix">The URI-prefix of the HTTP/JSON service.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
-        /// <param name="LocalCertificateSelector">Selects the local certificate used for authentication.</param>
-        /// <param name="ClientCert">The TLS client certificate to use.</param>
+        /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="UserAgent">The HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
@@ -88,8 +87,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
                           String                               HTTPVirtualHost,
                           String                               URIPrefix,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
-                          LocalCertificateSelectionCallback    LocalCertificateSelector     = null,
-                          X509Certificate                      ClientCert                   = null,
+                          LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
                           String                               UserAgent                    = DefaultUserAgent,
                           TimeSpan?                            RequestTimeout               = null,
                           DNSClient                            DNSClient                    = null)
@@ -97,8 +95,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
             : base(Hostname,
                    HTTPPort       ?? DefaultHTTPPort,
                    RemoteCertificateValidator,
-                   LocalCertificateSelector,
-                   ClientCert,
+                   ClientCertificateSelector,
+                   null,
                    UserAgent      ?? DefaultUserAgent,
                    RequestTimeout ?? DefaultRequestTimeout,
                    DNSClient)
