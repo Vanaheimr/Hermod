@@ -553,7 +553,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #region Create (Crypto-)Stream
 
                 TCPStream = new NetworkStream(TCPSocket, true);
-                TCPStream.ReadTimeout = (Int32)RequestTimeout.Value.TotalMilliseconds;
+                TCPStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
 
                 TLSStream = RemoteCertificateValidator != null
 
@@ -566,7 +566,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                  : null;
 
                 if (TLSStream != null)
-                    TLSStream.ReadTimeout = (Int32)RequestTimeout.Value.TotalMilliseconds;
+                    TLSStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
 
                 HTTPStream = null;
 
@@ -579,7 +579,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 else
                     HTTPStream = TCPStream;
 
-                HTTPStream.ReadTimeout = (Int32)RequestTimeout.Value.TotalMilliseconds;
+                HTTPStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
 
                 #endregion
 

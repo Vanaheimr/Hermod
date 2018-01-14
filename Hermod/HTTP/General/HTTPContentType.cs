@@ -86,6 +86,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public String MIMEBoundary { get; }
 
+        /// <summary>
+        /// The (optional) (SOAP) action.
+        /// </summary>
+        public String Action { get; }
+
 
         #region DebugView
 
@@ -104,18 +109,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region HTTPContentType(MediaType, params FileExtentions)
 
-        /// <summary>
-        /// Creates a new HTTP content type based on the given media type
-        /// and file extentions.
-        /// </summary>
-        /// <param name="MediaType">The media type for the HTTP content type.</param>
-        /// <param name="FileExtentions">Well-known file extentions using this HTTP content type.</param>
-        public HTTPContentType(String           MediaType,
-                               params String[]  FileExtentions)
+        ///// <summary>
+        ///// Creates a new HTTP content type based on the given media type
+        ///// and file extentions.
+        ///// </summary>
+        ///// <param name="MediaType">The media type for the HTTP content type.</param>
+        ///// <param name="FileExtentions">Well-known file extentions using this HTTP content type.</param>
+        //public HTTPContentType(String           MediaType,
+        //                       String           MIMEBoundary,
+        //                       params String[]  FileExtentions)
 
-            : this(MediaType, "utf-8", FileExtentions)
+        //    : this(MediaType,
+        //           "utf-8",
+        //           MIMEBoundary,
+        //           FileExtentions)
 
-        { }
+        //{ }
 
         #endregion
 
@@ -130,11 +139,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="FileExtentions">Well-known file extentions using this HTTP content type.</param>
         public HTTPContentType(String           MediaType,
                                String           CharSet,
+                               String           Action,
+                               String           MIMEBoundary,
                                params String[]  FileExtentions)
         {
 
             this.MediaType        = MediaType;
             this.CharSet          = CharSet        ?? "utf-8";
+            this.Action           = Action;
+            this.MIMEBoundary     = MIMEBoundary;
             this._FileExtentions  = FileExtentions ?? new String[0];
 
             if (!_Lookup.ContainsKey(MediaType))
@@ -158,24 +171,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region HTTPContentType(MediaType, CharSet, MIMEBoundary)
 
-        /// <summary>
-        /// Creates a new HTTP content type based on the given media type,
-        /// character set and file extentions.
-        /// </summary>
-        /// <param name="MediaType">The media type for the HTTP content type.</param>
-        /// <param name="CharSet">The char set of the HTTP content type.</param>
-        /// <param name="MIMEBoundary">The MIME boundary.</param>
-        public HTTPContentType(String  MediaType,
-                               String  CharSet,
-                               String  MIMEBoundary)
-        {
+        ///// <summary>
+        ///// Creates a new HTTP content type based on the given media type,
+        ///// character set and file extentions.
+        ///// </summary>
+        ///// <param name="MediaType">The media type for the HTTP content type.</param>
+        ///// <param name="CharSet">The char set of the HTTP content type.</param>
+        ///// <param name="MIMEBoundary">The MIME boundary.</param>
+        //public HTTPContentType(String  MediaType,
+        //                       String  CharSet,
+        //                       String  MIMEBoundary)
+        //{
 
-            this.MediaType        = MediaType;
-            this.CharSet          = CharSet ?? "utf-8";
-            this._FileExtentions  = new String[0];
-            this.MIMEBoundary     = MIMEBoundary;
+        //    this.MediaType        = MediaType;
+        //    this.CharSet          = CharSet ?? "utf-8";
+        //    this._FileExtentions  = new String[0];
+        //    this.MIMEBoundary     = MIMEBoundary;
 
-        }
+        //}
 
         #endregion
 
@@ -184,39 +197,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Static HTTP content types
 
-        public static readonly HTTPContentType ALL                  = new HTTPContentType("*/*");
+        public static readonly HTTPContentType ALL                  = new HTTPContentType("*/*",                                    "utf-8", null, null);
 
-        public static readonly HTTPContentType TEXT_UTF8            = new HTTPContentType("text/plain",                             "utf-8", "txt");
-        public static readonly HTTPContentType HTML_UTF8            = new HTTPContentType("text/html",                              "utf-8", "htm", "html");
-        public static readonly HTTPContentType CSS_UTF8             = new HTTPContentType("text/css",                               "utf-8", "css");
-        public static readonly HTTPContentType JAVASCRIPT_UTF8      = new HTTPContentType("text/javascript",                        "utf-8", "js");
-        public static readonly HTTPContentType XMLTEXT_UTF8         = new HTTPContentType("text/xml",                               "utf-8", "xml");
-        public static readonly HTTPContentType MARKDOWN_UTF8        = new HTTPContentType("text/markdown",                          "utf-8", "md");
+        public static readonly HTTPContentType TEXT_UTF8            = new HTTPContentType("text/plain",                             "utf-8", null, null, "txt");
+        public static readonly HTTPContentType HTML_UTF8            = new HTTPContentType("text/html",                              "utf-8", null, null, "htm", "html");
+        public static readonly HTTPContentType CSS_UTF8             = new HTTPContentType("text/css",                               "utf-8", null, null, "css");
+        public static readonly HTTPContentType JAVASCRIPT_UTF8      = new HTTPContentType("text/javascript",                        "utf-8", null, null, "js");
+        public static readonly HTTPContentType XMLTEXT_UTF8         = new HTTPContentType("text/xml",                               "utf-8", null, null, "xml");
+        public static readonly HTTPContentType MARKDOWN_UTF8        = new HTTPContentType("text/markdown",                          "utf-8", null, null, "md");
 
-        public static readonly HTTPContentType JSON_UTF8            = new HTTPContentType("application/json",                       "utf-8", "json");
-        public static readonly HTTPContentType JSONLD_UTF8          = new HTTPContentType("application/ld+json",                    "utf-8", "json-ld");
-        public static readonly HTTPContentType XML_UTF8             = new HTTPContentType("application/xml",                        "utf-8", "xml");
-        public static readonly HTTPContentType SOAPXML_UTF8         = new HTTPContentType("application/soap+xml",                   "utf-8", "soap");
+        public static readonly HTTPContentType JSON_UTF8            = new HTTPContentType("application/json",                       "utf-8", null, null, "json");
+        public static readonly HTTPContentType JSONLD_UTF8          = new HTTPContentType("application/ld+json",                    "utf-8", null, null, "json-ld");
+        public static readonly HTTPContentType XML_UTF8             = new HTTPContentType("application/xml",                        "utf-8", null, null, "xml");
+        public static readonly HTTPContentType SOAPXML_UTF8         = new HTTPContentType("application/soap+xml",                   "utf-8", null, null, "soap");
 
-        public static readonly HTTPContentType GEXF_UTF8            = new HTTPContentType("application/gexf+xml",                   "utf-8", "gexf");
-        public static readonly HTTPContentType GRAPHML_UTF8         = new HTTPContentType("application/graphml+xml",                "utf-8", "graphml");
-        public static readonly HTTPContentType SWF                  = new HTTPContentType("application/x-shockwave-flash",          null,    "swf");
-        public static readonly HTTPContentType PDF                  = new HTTPContentType("application/pdf",                        "utf-8", "pdf");
-        public static readonly HTTPContentType CSV                  = new HTTPContentType("application/csv",                        "utf-8", "csv");
-        public static readonly HTTPContentType SIG                  = new HTTPContentType("application/pgp-signature",              "utf-8", "sig");
+        public static readonly HTTPContentType GEXF_UTF8            = new HTTPContentType("application/gexf+xml",                   "utf-8", null, null, "gexf");
+        public static readonly HTTPContentType GRAPHML_UTF8         = new HTTPContentType("application/graphml+xml",                "utf-8", null, null, "graphml");
+        public static readonly HTTPContentType SWF                  = new HTTPContentType("application/x-shockwave-flash",          null,    null, null, "swf");
+        public static readonly HTTPContentType PDF                  = new HTTPContentType("application/pdf",                        "utf-8", null, null, "pdf");
+        public static readonly HTTPContentType CSV                  = new HTTPContentType("application/csv",                        "utf-8", null, null, "csv");
+        public static readonly HTTPContentType SIG                  = new HTTPContentType("application/pgp-signature",              "utf-8", null, null, "sig");
 
-        public static readonly HTTPContentType GIF                  = new HTTPContentType("image/gif",                              null,    "gif");
-        public static readonly HTTPContentType ICO                  = new HTTPContentType("image/ico",                              null,    "ico");
-        public static readonly HTTPContentType PNG                  = new HTTPContentType("image/png",                              null,    "png");
-        public static readonly HTTPContentType JPEG                 = new HTTPContentType("image/jpeg",                             null,    "jpg", "jpeg");
-        public static readonly HTTPContentType SVG                  = new HTTPContentType("image/svg+xml",                          "utf-8", "svg");
-        public static readonly HTTPContentType WOFF                 = new HTTPContentType("application/font-woff",                  "utf-8", "woff", "woff2");
+        public static readonly HTTPContentType GIF                  = new HTTPContentType("image/gif",                              null,    null, null, "gif");
+        public static readonly HTTPContentType ICO                  = new HTTPContentType("image/ico",                              null,    null, null, "ico");
+        public static readonly HTTPContentType PNG                  = new HTTPContentType("image/png",                              null,    null, null, "png");
+        public static readonly HTTPContentType JPEG                 = new HTTPContentType("image/jpeg",                             null,    null, null, "jpg", "jpeg");
+        public static readonly HTTPContentType SVG                  = new HTTPContentType("image/svg+xml",                          "utf-8", null, null, "svg");
+        public static readonly HTTPContentType WOFF                 = new HTTPContentType("application/font-woff",                  "utf-8", null, null, "woff", "woff2");
 
-        public static readonly HTTPContentType XWWWFormUrlEncoded   = new HTTPContentType("application/x-www-form-urlencoded");
-        public static readonly HTTPContentType OCTETSTREAM          = new HTTPContentType("application/octet-stream");
-        public static readonly HTTPContentType EVENTSTREAM          = new HTTPContentType("text/event-stream");
+        public static readonly HTTPContentType XWWWFormUrlEncoded   = new HTTPContentType("application/x-www-form-urlencoded",      "utf-8", null, null);
+        public static readonly HTTPContentType OCTETSTREAM          = new HTTPContentType("application/octet-stream",               "utf-8", null, null);
+        public static readonly HTTPContentType EVENTSTREAM          = new HTTPContentType("text/event-stream",                      "utf-8", null, null);
 
-        public static readonly HTTPContentType MULTIPART_FORMDATA   = new HTTPContentType("multipart/form-data");
+        public static readonly HTTPContentType MULTIPART_FORMDATA   = new HTTPContentType("multipart/form-data",                    "utf-8", null, null);
 
         #endregion
 
@@ -241,6 +254,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPContentType = new HTTPContentType(MediaType,
                                                       Charset,
+                                                      null,
                                                       Boundary.Substring(Boundary.IndexOf("----")));
                 return true;
 
@@ -525,6 +539,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                              MIMEBoundary.IsNotNullOrEmpty()
                                  ? "; boundary = " + MIMEBoundary
+                                 : "",
+
+                             Action.IsNotNullOrEmpty()
+                                 ? "; action = " + Action
                                  : "");
 
         #endregion

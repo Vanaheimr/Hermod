@@ -147,7 +147,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             var SOAPDispatch = _SOAPDispatches.
                                     Select(dispatch => new {
                                         dispatch    = dispatch,
-                                        SOAPHeader  = XMLRequest.Data.Root.Descendants(NS.SOAPEnvelope_v1_2 + "Header").FirstOrDefault(),
+                                        SOAPHeader  = XMLRequest.Data.Root.Descendants(v1_2.NS.SOAPEnvelope + "Header").FirstOrDefault(),
                                         SOAPBody    = dispatch.Matcher(XMLRequest.Data.Root)
                                     }).
                                     FirstOrDefault(match => match.SOAPBody != null);

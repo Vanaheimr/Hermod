@@ -91,7 +91,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            this.ContentType  = HTTPContentType.ForMediaType(AcceptString, () => new HTTPContentType(AcceptString));
+            this.ContentType  = HTTPContentType.ForMediaType(AcceptString, () => new HTTPContentType(AcceptString, "utf-8", null, null));
             this.Quality      = Quality;
 
         }
@@ -115,12 +115,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
 
                 case 1:
-                    ContentType  = HTTPContentType.ForMediaType(AcceptString, () => new HTTPContentType(AcceptString));
+                    ContentType  = HTTPContentType.ForMediaType(AcceptString, () => new HTTPContentType(AcceptString, "utf-8", null, null));
                     Quality      = 1.0;
                     break;
 
                 case 2:
-                    this.ContentType  = HTTPContentType.ForMediaType(AcceptString, () => new HTTPContentType(SplittedAcceptString[0]));
+                    this.ContentType  = HTTPContentType.ForMediaType(AcceptString, () => new HTTPContentType(SplittedAcceptString[0], "utf-8", null, null));
                     this.Quality      = Double.Parse(SplittedAcceptString[1].Substring(2));
                     break;
 

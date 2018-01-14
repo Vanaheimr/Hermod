@@ -36,7 +36,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         #region Data
 
         private        readonly  AbstractEMail   _EMailHeader;
-        private static readonly  Random          _Random         = new Random();
+        private static readonly  Random          _Random         = new Random(DateTime.UtcNow.Millisecond);
 
         #endregion
 

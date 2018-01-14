@@ -23,9 +23,7 @@ using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -59,6 +57,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// A delegate called whenever a SOAP error occured.
         /// </summary>
+        /// <param name="Timestamp">The timestamp of the error.</param>
+        /// <param name="Sender">The sender of the error.</param>
+        /// <param name="SOAPXML">The SOAP error message.</param>
         public delegate void OnSOAPErrorDelegate(DateTime Timestamp, Object Sender, XElement SOAPXML);
 
         /// <summary>
@@ -79,6 +80,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="Hostname">The hostname to connect to.</param>
         /// <param name="RemotePort">The remote TCP port to connect to.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
+        /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The TLS client certificate to use.</param>
         /// <param name="HTTPVirtualHost">An optional HTTP virtual host name to use.</param>
         /// <param name="URIPrefix">An default URI prefix.</param>
@@ -87,25 +89,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="RequestTimeout">An optional timeout for upstream queries.</param>
         /// <param name="MaxNumberOfRetries">The default number of maximum transmission retries.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
-        public ASOAPClient(String                               ClientId,
-                           String                               Hostname,
-                           IPPort                               RemotePort,
-                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
-                           LocalCertificateSelectionCallback    LocalCertificateSelector     = null,
-                           X509Certificate                      ClientCert                   = null,
-                           String                               HTTPVirtualHost              = null,
-                           String                               URIPrefix                    = null,
-                           Tuple<String, String>                WSSLoginPassword             = null,
-                           String                               UserAgent                    = DefaultHTTPUserAgent,
-                           TimeSpan?                            RequestTimeout               = null,
-                           Byte?                                MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
-                           DNSClient                            DNSClient                    = null)
+        protected ASOAPClient(String                               ClientId,
+                              String                               Hostname,
+                              IPPort                               RemotePort,
+                              RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
+                              LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
+                              X509Certificate                      ClientCert                   = null,
+                              String                               HTTPVirtualHost              = null,
+                              String                               URIPrefix                    = null,
+                              Tuple<String, String>                WSSLoginPassword             = null,
+                              String                               UserAgent                    = DefaultHTTPUserAgent,
+                              TimeSpan?                            RequestTimeout               = null,
+                              Byte?                                MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
+                              DNSClient                            DNSClient                    = null)
 
             : base(ClientId,
                    Hostname,
                    RemotePort,
                    RemoteCertificateValidator,
-                   LocalCertificateSelector,
+                   ClientCertificateSelector,
                    ClientCert,
                    HTTPVirtualHost,
                    UserAgent,
@@ -115,7 +117,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         {
 
-            this.URIPrefix         = URIPrefix.Trim();
+            this.URIPrefix         = URIPrefix.WhenNullOrEmpty("");
             this.WSSLoginPassword  = WSSLoginPassword;
 
         }

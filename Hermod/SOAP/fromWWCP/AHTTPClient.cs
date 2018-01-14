@@ -99,7 +99,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         public RemoteCertificateValidationCallback RemoteCertificateValidator { get; }
 
-        public LocalCertificateSelectionCallback LocalCertificateSelector { get; }
+        public LocalCertificateSelectionCallback ClientCertificateSelector { get; }
 
         public X509Certificate ClientCert { get; }
 
@@ -145,6 +145,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="Hostname">The hostname to connect to.</param>
         /// <param name="RemotePort">The remote TCP port to connect to.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
+        /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The TLS client certificate to use.</param>
         /// <param name="HTTPVirtualHost">An optional HTTP virtual host name to use.</param>
         /// <param name="UserAgent">An optional HTTP user agent to use.</param>
@@ -155,7 +156,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                            String                               Hostname,
                            IPPort                               RemotePort,
                            RemoteCertificateValidationCallback  RemoteCertificateValidator  = null,
-                           LocalCertificateSelectionCallback    LocalCertificateSelector    = null,
+                           LocalCertificateSelectionCallback    ClientCertificateSelector   = null,
                            X509Certificate                      ClientCert                  = null,
                            String                               HTTPVirtualHost             = null,
                            String                               UserAgent                   = DefaultHTTPUserAgent,
@@ -166,8 +167,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             #region Initial checks
 
+            if (ClientId.IsNullOrEmpty())
+                throw new ArgumentNullException(nameof(ClientId),  "The given client identification must not be null or empty!");
+
             if (Hostname.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(Hostname), "The given parameter must not be null or empty!");
+                throw new ArgumentNullException(nameof(Hostname),  "The given parameter must not be null or empty!");
 
             #endregion
 
@@ -176,14 +180,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             this.RemotePort                  = RemotePort         ?? DefaultRemotePort;
 
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
-            this.LocalCertificateSelector    = LocalCertificateSelector;
+            this.ClientCertificateSelector   = ClientCertificateSelector;
             this.ClientCert                  = ClientCert;
 
-            this.HTTPVirtualHost             = HTTPVirtualHost.IsNotNullOrEmpty()
+            this.HTTPVirtualHost             = HTTPVirtualHost?.IsNotNullOrEmpty() == true
                                                    ? HTTPVirtualHost
                                                    : Hostname;
 
-            this.UserAgent                   = UserAgent          ?? DefaultHTTPUserAgent;
+            this.UserAgent                   = UserAgent.WhenNullOrEmpty(DefaultHTTPUserAgent);
             this.RequestTimeout              = RequestTimeout     ?? DefaultRequestTimeout;
             this.MaxNumberOfRetries          = MaxNumberOfRetries ?? DefaultMaxNumberOfRetries;
             this.DNSClient                   = DNSClient          ?? new DNSClient();

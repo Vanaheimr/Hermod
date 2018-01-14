@@ -164,7 +164,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                          DateTime.UtcNow + TimeSpan.FromSeconds(ResourceRecord.TimeToLive.TotalSeconds / 2),
                                                          DateTime.UtcNow + ResourceRecord.TimeToLive,
                                                          new DNSInfo(Origin:               Origin,
-                                                                     QueryId:              new Random().Next(),
+                                                                     QueryId:              new Random(DateTime.UtcNow.Millisecond).Next(),
                                                                      IsAuthorativeAnswer:  false,
                                                                      IsTruncated:          false,
                                                                      RecursionDesired:     false,
