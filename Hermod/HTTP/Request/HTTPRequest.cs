@@ -34,7 +34,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A read-only HTTP request header.
     /// </summary>
-    public class HTTPRequest : AHTTPPDU
+    public partial class HTTPRequest : AHTTPPDU
     {
 
         #region HTTPServer

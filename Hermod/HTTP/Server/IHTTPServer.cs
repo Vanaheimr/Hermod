@@ -60,7 +60,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                        HTTPDelegate                    DefaultErrorHandler         = null);
 
-        void AddFilter(Func<HTTPServer, HTTPRequest, HTTPResponse> Filter);
         void AddMethodCallback(HTTPHostname Hostname, HTTPMethod HTTPMethod, IEnumerable<string> URITemplates, HTTPContentType HTTPContentType = null, HTTPAuthentication HostAuthentication = null, HTTPAuthentication URIAuthentication = null, HTTPAuthentication HTTPMethodAuthentication = null, HTTPAuthentication ContentTypeAuthentication = null, HTTPDelegate HTTPDelegate = null, URIReplacement AllowReplacement = URIReplacement.Fail);
         void AddMethodCallback(HTTPHostname Hostname, HTTPMethod HTTPMethod, IEnumerable<string> URITemplates, IEnumerable<HTTPContentType> HTTPContentTypes, HTTPAuthentication HostAuthentication = null, HTTPAuthentication URIAuthentication = null, HTTPAuthentication HTTPMethodAuthentication = null, HTTPAuthentication ContentTypeAuthentication = null, HTTPDelegate HTTPDelegate = null, URIReplacement AllowReplacement = URIReplacement.Fail);
         void AddMethodCallback(HTTPHostname Hostname, HTTPMethod HTTPMethod, string URITemplate, HTTPContentType HTTPContentType = null, HTTPAuthentication HostAuthentication = null, HTTPAuthentication URIAuthentication = null, HTTPAuthentication HTTPMethodAuthentication = null, HTTPAuthentication ContentTypeAuthentication = null, HTTPDelegate HTTPDelegate = null, URIReplacement AllowReplacement = URIReplacement.Fail);
@@ -77,7 +76,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         Task<HTTPResponse> InvokeHandler(HTTPRequest Request);
         void Redirect(HTTPHostname Hostname, HTTPMethod HTTPMethod, string URITemplate, HTTPContentType HTTPContentType, string URITarget);
         void Redirect(HTTPMethod HTTPMethod, string URITemplate, HTTPContentType HTTPContentType, string URITarget);
-        void Rewrite(HTTPServer.HTTPRewriteDelegate Rewrite);
+
+        void AddFilter(HTTPFilter1Delegate Filter);
+        void AddFilter(HTTPFilter2Delegate Filter);
+
+        void Rewrite(HTTPRewrite1Delegate Rewrite);
+        void Rewrite(HTTPRewrite2Delegate Rewrite);
+
         bool TryGetEventSource(string EventSourceIdentification, out HTTPEventSource EventSource);
         void UseEventSource(string EventSourceIdentification, Action<HTTPEventSource> Action);
         void UseEventSource<T>(string EventSourceIdentification, IEnumerable<T> DataSource, Action<HTTPEventSource, T> Action);

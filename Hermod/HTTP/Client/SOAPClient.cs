@@ -158,7 +158,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                      Func<DateTime, Object, HTTPResponse<XElement>, HTTPResponse<T>>  OnSOAPFault,
                      Func<DateTime, Object, HTTPResponse,           HTTPResponse<T>>  OnHTTPError,
                      Func<DateTime, Object, Exception,              HTTPResponse<T>>  OnException,
-                     Action<HTTPRequestBuilder>                                       HTTPRequestBuilder    = null,
+                     Action<HTTPRequest.Builder>                                      HTTPRequestBuilder    = null,
                      ClientRequestLogHandler                                          RequestLogDelegate    = null,
                      ClientResponseLogHandler                                         ResponseLogDelegate   = null,
                      HTTPContentType                                                  ContentType           = null,
@@ -193,7 +193,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
 
             #endregion
 
-            var _RequestBuilder = new HTTPRequestBuilder(this) {
+            var _RequestBuilder = new HTTPRequest.Builder(this) {
                                       HTTPMethod         = HTTPMethod.POST,
                                       Host               = HTTPVirtualHost,
                                       URI                = URIPrefix,
@@ -424,7 +424,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                      Func<DateTime, Object, HTTPResponse<XElement>, HTTPResponse<T>>  OnSOAPFault,
                      Func<DateTime, Object, HTTPResponse,           HTTPResponse<T>>  OnHTTPError,
                      Func<DateTime, Object, Exception,              HTTPResponse<T>>  OnException,
-                     Action<HTTPRequestBuilder>                                       HTTPRequestBuilder    = null,
+                     Action<HTTPRequest.Builder>                                      HTTPRequestBuilder    = null,
                      ClientRequestLogHandler                                          RequestLogDelegate    = null,
                      ClientResponseLogHandler                                         ResponseLogDelegate   = null,
                      HTTPContentType                                                  ContentType           = null,
@@ -459,7 +459,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
 
             #endregion
 
-            var _RequestBuilder = new HTTPRequestBuilder(this) {
+            var _RequestBuilder = new HTTPRequest.Builder(this) {
                                       HTTPMethod         = HTTPMethod.POST,
                                       Host               = HTTPVirtualHost,
                                       URI                = URIPrefix,

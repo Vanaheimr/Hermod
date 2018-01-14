@@ -131,7 +131,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
                      Func<DateTime, Object, HTTPResponse<JObject>, HTTPResponse<T>>  OnJSONFault,
                      Func<DateTime, Object, HTTPResponse,          HTTPResponse<T>>  OnHTTPError,
                      Func<DateTime, Object, Exception,             HTTPResponse<T>>  OnException,
-                     Action<HTTPRequestBuilder>                                      HTTPRequestBuilder    = null,
+                     Action<HTTPRequest.Builder>                                     HTTPRequestBuilder    = null,
                      ClientRequestLogHandler                                         RequestLogDelegate    = null,
                      ClientResponseLogHandler                                        ResponseLogDelegate   = null,
 
