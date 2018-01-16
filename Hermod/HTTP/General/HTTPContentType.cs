@@ -95,7 +95,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region DebugView
 
         /// <summary>
-        /// Return a string representation of this object.
+        /// Return a text representation of this object.
         /// </summary>
         public String DebugView
             => ToString() +
@@ -530,7 +530,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (override) ToString()
 
         /// <summary>
-        /// Return a string representation of this object.
+        /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
 
