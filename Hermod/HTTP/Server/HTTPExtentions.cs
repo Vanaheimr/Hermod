@@ -461,7 +461,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                ContentType     = HTTPContentType.JSON_UTF8,
                                Content         = new JObject(new JProperty("description", "Invalid roaming network description!")).ToUTF8Bytes()
-                           }.AsImmutable();
+                           }.AsImmutable;
 
                 return false;
 
@@ -483,7 +483,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                    ContentType     = HTTPContentType.JSON_UTF8,
                                    Content         = new JObject(new JProperty("description", "Unknown or invalid language definition '" + Description.Key + "'!")).ToUTF8Bytes()
-                               }.AsImmutable();
+                               }.AsImmutable;
 
                     return false;
 
@@ -500,7 +500,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                    ContentType     = HTTPContentType.JSON_UTF8,
                                    Content         = new JObject(new JProperty("description", "Invalid description text!")).ToUTF8Bytes()
-                               }.AsImmutable();
+                               }.AsImmutable;
 
                     return false;
 

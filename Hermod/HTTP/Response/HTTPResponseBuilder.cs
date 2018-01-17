@@ -424,14 +424,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (implicit operator) HTTPResponseBuilder => HTTPResponse
 
         /// <summary>
-        /// Declare an implicit conversion of a HTTPResponseBuilder
-        /// to a HTTPResponse object.
+        /// An implicit conversion of a HTTPResponseBuilder into a HTTPResponse.
         /// </summary>
         /// <param name="HTTPResponseBuilder">A HTTP response builder.</param>
         public static implicit operator HTTPResponse(HTTPResponseBuilder HTTPResponseBuilder)
-        {
-            return HTTPResponseBuilder.AsImmutable();
-        }
+            => HTTPResponseBuilder.AsImmutable;
 
         #endregion
 
@@ -742,29 +739,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region AsImmutable()
+        #region AsImmutable
 
         /// <summary>
         /// Converts this HTTPResponseBuilder into an immutable HTTPResponse.
         /// </summary>
-        public HTTPResponse AsImmutable()
+        public HTTPResponse AsImmutable
         {
+            get
+            {
 
-            PrepareImmutability();
+                PrepareImmutability();
 
-            HTTPResponse response = null;
+                if (Content != null)
+                    return HTTPResponse.Parse(HTTPHeader, Content, _HTTPRequest);
 
-            if (Content != null)
-                response = HTTPResponse.Parse(HTTPHeader, Content, _HTTPRequest);
+                else if (ContentStream != null)
+                    return HTTPResponse.Parse(HTTPHeader, ContentStream, _HTTPRequest);
 
-            else if (ContentStream != null)
-                response = HTTPResponse.Parse(HTTPHeader, ContentStream, _HTTPRequest);
+                else
+                    return HTTPResponse.Parse(HTTPHeader, _HTTPRequest);
 
-            else
-                response = HTTPResponse.Parse(HTTPHeader, _HTTPRequest);
-
-            return response;
-
+            }
         }
 
         #endregion

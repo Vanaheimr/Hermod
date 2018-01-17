@@ -728,12 +728,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region (operator) HTTPRequestBuilder => HTTPRequestHeader
 
             /// <summary>
-            /// Declare an explicit conversion from a HTTPRequestBuilder to an HTTPRequestHeader
+            /// An implicit conversion from a HTTPRequestBuilder into a HTTPRequest.
             /// </summary>
             /// <param name="Builder">An HTTP request builder.</param>
             public static implicit operator HTTPRequest(Builder Builder)
-
-                => Builder.AsImmutable();
+                => Builder.AsImmutable;
 
             #endregion
 
@@ -1425,8 +1424,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
             public Task<HTTPResponse> ExecuteReturnResult()
-
-                => this._HTTPClient?.Execute(AsImmutable());
+                => _HTTPClient?.Execute(AsImmutable);
 
 
             #region PrepareImmutability()
@@ -1442,22 +1440,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region AsImmutable()
+            #region AsImmutable
 
             /// <summary>
             /// Converts this HTTPRequestBuilder into an immutable HTTPRequest.
             /// </summary>
-            public HTTPRequest AsImmutable()
+            public HTTPRequest AsImmutable
             {
+                get
+                {
 
-                PrepareImmutability();
+                    PrepareImmutability();
 
-                var _HTTPRequest = new HTTPRequest(EntireRequestHeader, Content);
+                    return new HTTPRequest(EntireRequestHeader, Content) {
+                        FakeURIPrefix = FakeURIPrefix
+                    };
 
-                _HTTPRequest.FakeURIPrefix = this.FakeURIPrefix;
-
-                return _HTTPRequest;
-
+                }
             }
 
             #endregion

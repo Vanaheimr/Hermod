@@ -634,7 +634,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                             Date            = DateTime.UtcNow,
                                                             CacheControl    = "no-cache",
                                                             Connection      = "close",
-                                                        }.AsImmutable());
+                                                        }.AsImmutable);
 
 
                                                 #region Choose HTTP Content Type based on the file name extention...
@@ -676,7 +676,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                         KeepAlive       = new KeepAliveType(TimeSpan.FromMinutes(15),
                                                                                             500),
                                                         Connection      = "Keep-Alive",
-                                                    }.AsImmutable());
+                                                    }.AsImmutable);
 
                                                 #endregion
 
@@ -694,7 +694,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                         Content         = JSONObject.Create(new JProperty("message", e.Message)).ToUTF8Bytes(),
                                                         CacheControl    = "no-cache",
                                                         Connection      = "close",
-                                                    }.AsImmutable());
+                                                    }.AsImmutable);
 
                                             }
 

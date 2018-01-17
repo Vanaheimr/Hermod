@@ -236,6 +236,13 @@
     <Compile Include="UDP\UDPPacket.cs" />
     <Compile Include="UDP\UDPReceiver.cs" />
     <Compile Include="UDP\UDPSender.cs" />
+    <Compile Include="Warden\Delegates.cs" />
+    <Compile Include="Warden\IWardenCheck.cs" />
+    <Compile Include="Warden\Version.cs" />
+    <Compile Include="Warden\Warden.cs" />
+    <Compile Include="Warden\WardenCheck.cs" />
+    <Compile Include="Warden\WardenExtentions.cs" />
+    <Compile Include="Warden\WardenProperties.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\BouncyCastle\crypto\crypto.csproj">

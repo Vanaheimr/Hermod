@@ -206,7 +206,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                   ).ToUTF8Bytes(),
                 Connection      = "close"
 
-            }.AsImmutable());
+            }.AsImmutable);
 
         }
 
