@@ -71,6 +71,7 @@
     <Compile Include="Helpers\ExtentionMethods\NetworkingHelpers.cs" />
     <Compile Include="Helpers\ExtentionMethods\IPAddressHelper.cs" />
     <Compile Include="Helpers\Datastructures\ILocalSocket.cs" />
+    <Compile Include="Helpers\PriorityList.cs" />
     <Compile Include="Helpers\Signature.cs" />
     <Compile Include="Helpers\StatusSchedule.cs" />
     <Compile Include="HTTP\AHTTPPDU.cs" />
