@@ -1,11 +1,13 @@
 ﻿using System;
+using System.Net.Security;
+using System.Security.Authentication;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Threading.Tasks;
 
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using System.Security.Cryptography.X509Certificates;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
@@ -13,15 +15,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public interface IHTTPServer : IDisposable
     {
 
-        string DefaultServerName { get; }
-        HTTPSecurity HTTPSecurity { get; }
+        String                               DefaultServerName             { get; }
+        HTTPSecurity                         HTTPSecurity                  { get; }
 
-        DNSClient DNSClient { get; }
+        DNSClient                            DNSClient                     { get; }
 
         /// <summary>
-        /// The X509 certificate.
+        /// The optional delegate to select a SSL/TLS server certificate.
         /// </summary>
-        X509Certificate2 X509Certificate { get; }
+        ServerCertificateSelectorDelegate    ServerCertificateSelector     { get; }
+
+        /// <summary>
+        /// The optional delegate to verify the SSL/TLS client certificate used for authentication.
+        /// </summary>
+        RemoteCertificateValidationCallback  ClientCertificateValidator    { get; }
+
+        /// <summary>
+        /// The optional delegate to select the SSL/TLS client certificate used for authentication.
+        /// </summary>
+        LocalCertificateSelectionCallback    ClientCertificateSelector     { get; }
+
+        /// <summary>
+        /// The SSL/TLS protocol(s) allowed for this connection.
+        /// </summary>
+        SslProtocols                         AllowedTLSProtocols           { get; }
 
         /// <summary>
         /// Is the server already started?

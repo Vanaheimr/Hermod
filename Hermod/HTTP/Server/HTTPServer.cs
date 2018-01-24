@@ -21,6 +21,8 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Reflection;
+using System.Net.Security;
+using System.Security.Authentication;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
@@ -67,8 +69,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The internal HTTP server.
         /// </summary>
-        public HTTPServer InternalHTTPServer
-            => _HTTPServer;
+        //internal HTTPServer InternalHTTPServer
+        //    => _HTTPServer;
 
         /// <summary>
         /// The default HTTP servername, used whenever
@@ -90,10 +92,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => _HTTPServer.DNSClient;
 
         /// <summary>
-        /// The X509 certificate.
+        /// The optional delegate to select a SSL/TLS server certificate.
         /// </summary>
-        public X509Certificate2 X509Certificate
-            => _HTTPServer.X509Certificate;
+        public ServerCertificateSelectorDelegate ServerCertificateSelector
+            => _HTTPServer.ServerCertificateSelector;
+
+        /// <summary>
+        /// The optional delegate to verify the SSL/TLS client certificate used for authentication.
+        /// </summary>
+        public RemoteCertificateValidationCallback ClientCertificateValidator
+            => _HTTPServer.ClientCertificateValidator;
+
+        /// <summary>
+        /// The optional delegate to select the SSL/TLS client certificate used for authentication.
+        /// </summary>
+        public LocalCertificateSelectionCallback ClientCertificateSelector
+            => _HTTPServer.ClientCertificateSelector;
+
+        /// <summary>
+        /// The SSL/TLS protocol(s) allowed for this connection.
+        /// </summary>
+        public SslProtocols AllowedTLSProtocols
+            => _HTTPServer.AllowedTLSProtocols;
 
         /// <summary>
         /// Is the server already started?
@@ -191,8 +211,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="TCPPort">An IP port to listen on.</param>
         /// <param name="DefaultServerName">The default HTTP servername, used whenever no HTTP Host-header had been given.</param>
-        /// <param name="X509Certificate">Use this X509 certificate for TLS.</param>
-        /// <param name="CallingAssemblies">A list of calling assemblies to include e.g. into embedded ressources lookups.</param>
+        /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
+        /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
+        /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
+        /// <param name="AllowedTLSProtocols">The SSL/TLS protocol(s) allowed for this connection.</param>
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
@@ -204,26 +226,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
-        public HTTPServer(IPPort                            TCPPort                           = null,
-                          String                            DefaultServerName                 = HTTPServer.DefaultHTTPServerName,
-                          X509Certificate2                  X509Certificate                   = null,
-                          IEnumerable<Assembly>             CallingAssemblies                 = null,
-                          String                            ServerThreadName                  = null,
-                          ThreadPriority                    ServerThreadPriority              = ThreadPriority.AboveNormal,
-                          Boolean                           ServerThreadIsBackground          = true,
-                          ConnectionIdBuilder               ConnectionIdBuilder               = null,
-                          ConnectionThreadsNameBuilder      ConnectionThreadsNameBuilder      = null,
-                          ConnectionThreadsPriorityBuilder  ConnectionThreadsPriorityBuilder  = null,
-                          Boolean                           ConnectionThreadsAreBackground    = true,
-                          TimeSpan?                         ConnectionTimeout                 = null,
-                          UInt32                            MaxClientConnections              = TCPServer.__DefaultMaxClientConnections,
-                          DNSClient                         DNSClient                         = null,
-                          Boolean                           Autostart                         = false)
+        public HTTPServer(IPPort                               TCPPort                            = null,
+                          String                               DefaultServerName                  = HTTPServer.DefaultHTTPServerName,
+                          ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
+                          RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
+                          LocalCertificateSelectionCallback    ClientCertificateSelector          = null,
+                          SslProtocols                         AllowedTLSProtocols                = SslProtocols.Tls12,
+                          String                               ServerThreadName                   = null,
+                          ThreadPriority                       ServerThreadPriority               = ThreadPriority.AboveNormal,
+                          Boolean                              ServerThreadIsBackground           = true,
+                          ConnectionIdBuilder                  ConnectionIdBuilder                = null,
+                          ConnectionThreadsNameBuilder         ConnectionThreadsNameBuilder       = null,
+                          ConnectionThreadsPriorityBuilder     ConnectionThreadsPriorityBuilder   = null,
+                          Boolean                              ConnectionThreadsAreBackground     = true,
+                          TimeSpan?                            ConnectionTimeout                  = null,
+                          UInt32                               MaxClientConnections               = TCPServer.__DefaultMaxClientConnections,
+                          DNSClient                            DNSClient                          = null,
+                          Boolean                              Autostart                          = false)
 
             : this(new HTTPServer(TCPPort,
                                   DefaultServerName,
-                                  X509Certificate,
-                                  CallingAssemblies,
+                                  ServerCertificateSelector,
+                                  ClientCertificateValidator,
+                                  ClientCertificateSelector,
+                                  AllowedTLSProtocols,
                                   ServerThreadName,
                                   ServerThreadPriority,
                                   ServerThreadIsBackground,
@@ -1105,8 +1131,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="TCPPort">A TCP port to listen on.</param>
         /// <param name="DefaultServerName">The default HTTP servername, used whenever no HTTP Host-header had been given.</param>
-        /// <param name="X509Certificate">Use this X509 certificate for TLS.</param>
-        /// <param name="CallingAssemblies">A list of calling assemblies to include e.g. into embedded ressources lookups.</param>
+        /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
+        /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
+        /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
+        /// <param name="AllowedTLSProtocols">The SSL/TLS protocol(s) allowed for this connection.</param>
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
@@ -1118,24 +1146,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
-        public HTTPServer(IPPort                            TCPPort                           = null,
-                          String                            DefaultServerName                 = DefaultHTTPServerName,
-                          X509Certificate2                  X509Certificate                   = null,
-                          IEnumerable<Assembly>             CallingAssemblies                 = null,
-                          String                            ServerThreadName                  = null,
-                          ThreadPriority                    ServerThreadPriority              = ThreadPriority.AboveNormal,
-                          Boolean                           ServerThreadIsBackground          = true,
-                          ConnectionIdBuilder               ConnectionIdBuilder               = null,
-                          ConnectionThreadsNameBuilder      ConnectionThreadsNameBuilder      = null,
-                          ConnectionThreadsPriorityBuilder  ConnectionThreadsPriorityBuilder  = null,
-                          Boolean                           ConnectionThreadsAreBackground    = true,
-                          TimeSpan?                         ConnectionTimeout                 = null,
-                          UInt32                            MaxClientConnections              = TCPServer.__DefaultMaxClientConnections,
-                          DNSClient                         DNSClient                         = null,
-                          Boolean                           Autostart                         = false)
+        public HTTPServer(IPPort                               TCPPort                            = null,
+                          String                               DefaultServerName                  = DefaultHTTPServerName,
+                          ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
+                          RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
+                          LocalCertificateSelectionCallback    ClientCertificateSelector          = null,
+                          SslProtocols                         AllowedTLSProtocols                = SslProtocols.Tls12,
+                          String                               ServerThreadName                   = null,
+                          ThreadPriority                       ServerThreadPriority               = ThreadPriority.AboveNormal,
+                          Boolean                              ServerThreadIsBackground           = true,
+                          ConnectionIdBuilder                  ConnectionIdBuilder                = null,
+                          ConnectionThreadsNameBuilder         ConnectionThreadsNameBuilder       = null,
+                          ConnectionThreadsPriorityBuilder     ConnectionThreadsPriorityBuilder   = null,
+                          Boolean                              ConnectionThreadsAreBackground     = true,
+                          TimeSpan?                            ConnectionTimeout                  = null,
+                          UInt32                               MaxClientConnections               = TCPServer.__DefaultMaxClientConnections,
+                          DNSClient                            DNSClient                          = null,
+                          Boolean                              Autostart                          = false)
 
             : base(DefaultServerName,
-                   X509Certificate,
+                   ServerCertificateSelector,
+                   ClientCertificateValidator,
+                   ClientCertificateSelector,
+                   AllowedTLSProtocols,
                    ServerThreadName,
                    ServerThreadPriority,
                    ServerThreadIsBackground,

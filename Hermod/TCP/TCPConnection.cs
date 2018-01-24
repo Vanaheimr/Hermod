@@ -36,6 +36,8 @@ using System.Diagnostics;
 namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 {
 
+    public delegate X509Certificate2 ServerCertificateSelectorDelegate(TCPServer TCPServer, TcpClient TCPClient);
+
     /// <summary>
     /// An abstract class for all TCP connections.
     /// </summary>
@@ -44,52 +46,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region Data
 
-        protected readonly TcpClient      TCPClient;
-        protected readonly NetworkStream  Stream;
-
         // For method 'ReadLine(...)'...
-        private            Boolean        SkipNextN  = false;
+        private Boolean SkipNextN = false;
 
         #endregion
 
         #region Properties
 
-        #region TCPServer
-
-        private readonly TCPServer _TCPServer;
-
         /// <summary>
         /// The associated TCP server.
         /// </summary>
-        public TCPServer TCPServer
-        {
-            get
-            {
-                return _TCPServer;
-            }
-        }
+        public TCPServer         TCPServer            { get; }
 
-        #endregion
+        /// <summary>
+        /// The associated TCP client.
+        /// </summary>
+        public TcpClient         TCPClient            { get; }
 
-        #region ServerTimestamp
+        /// <summary>
+        /// The underlying network stream.
+        /// </summary>
+        public NetworkStream     NetworkStream        { get; }
 
-        private DateTime _ServerTimestamp;
+        /// <summary>
+        /// An optional SSL/TLS server certificate.
+        /// </summary>
+        public X509Certificate2  ServerCertificate    { get; }
+
+        /// <summary>
+        /// The SSL/TLS protocol(s) to use.
+        /// </summary>
+        public SslProtocols      TLSProtocols         { get; }
+
+        /// <summary>
+        /// The underlying SSL/TLS stream.
+        /// </summary>
+        public SslStream         SSLStream            { get; }
 
         /// <summary>
         /// The timestamp of the packet.
         /// </summary>
-        public DateTime ServerTimestamp
-        {
-            get
-            {
-                return _ServerTimestamp;
-            }
-        }
+        public DateTime          ServerTimestamp      { get; }
 
-        #endregion
-
-
-        public String ConnectionId { get; private set; }
+        /// <summary>
+        /// The TCP connection identification.
+        /// </summary>
+        public String            ConnectionId         { get;}
 
         #region IsConnected
 
@@ -113,7 +115,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 // TCP connection is/was closed
                 if (TCPClient.Client.Poll(1, SelectMode.SelectRead) &&
                     TCPClient.Available == 0)
+                {
                     return false;
+                }
 
                 return true;
 
@@ -133,7 +137,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         {
             get
             {
-                return this.Stream.DataAvailable;
+                return this.NetworkStream.DataAvailable;
             }
         }
 
@@ -150,12 +154,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             get
             {
-                return this.Stream.ReadTimeout;
+                return this.NetworkStream.ReadTimeout;
             }
 
             set
             {
-                this.Stream.ReadTimeout = value;
+                this.NetworkStream.ReadTimeout = value;
             }
 
         }
@@ -217,19 +221,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
-
-        #region NetworkStream
-
-        public NetworkStream NetworkStream
-        {
-            get
-            {
-                return Stream;
-            }
-        }
-
-        #endregion
-
         #endregion
 
         #region Events
@@ -243,8 +234,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// Create a new TCP connection.
         /// </summary>
-        public TCPConnection(TCPServer   TCPServer,
-                             TcpClient   TCPClient)
+        /// <param name="TCPServer">A TCP server.</param>
+        /// <param name="TCPClient">A TCP client.</param>
+        /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
+        /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
+        /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
+        /// <param name="AllowedTLSProtocols">The SSL/TLS protocol(s) allowed for this connection.</param>
+        public TCPConnection(TCPServer                            TCPServer,
+                             TcpClient                            TCPClient,
+                             ServerCertificateSelectorDelegate    ServerCertificateSelector,
+                             RemoteCertificateValidationCallback  ClientCertificateValidator,
+                             LocalCertificateSelectionCallback    ClientCertificateSelector,
+                             SslProtocols                         AllowedTLSProtocols = SslProtocols.Tls12)
 
             : base(new IPSocket(new IPv4Address((         TCPClient.Client.LocalEndPoint  as IPEndPoint).Address),
                                 new IPPort     ((UInt16) (TCPClient.Client.LocalEndPoint  as IPEndPoint).Port)),
@@ -253,33 +254,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         {
 
-            this._TCPServer           = TCPServer;
-            this._ServerTimestamp     = DateTime.UtcNow;
+            this.TCPServer            = TCPServer;
+            this.ServerTimestamp      = DateTime.UtcNow;
             this.TCPClient            = TCPClient;
-            this.ConnectionId         = TCPServer.ConnectionIdBuilder(this, this._ServerTimestamp, base.LocalSocket, base.RemoteSocket);
-            this._IsClosed             = false;
+            this.ConnectionId         = TCPServer.ConnectionIdBuilder(this,
+                                                                      this.ServerTimestamp,
+                                                                      base.LocalSocket,
+                                                                      base.RemoteSocket);
+            this._IsClosed            = false;
+            this.NetworkStream        = TCPClient.GetStream();
+            this.ServerCertificate    = ServerCertificateSelector?.Invoke(TCPServer, TCPClient);
 
-            this.Stream               = TCPClient.GetStream();
+            if (ServerCertificate != null)
+            {
+
+                this.SSLStream      = new SslStream(innerStream:                        NetworkStream,
+                                                    leaveInnerStreamOpen:               false,
+                                                    userCertificateValidationCallback:  ClientCertificateValidator,
+                                                    userCertificateSelectionCallback:   ClientCertificateSelector,
+                                                    encryptionPolicy:                   EncryptionPolicy.RequireEncryption);
+
+                this.SSLStream.AuthenticateAsServer(serverCertificate:                  ServerCertificate,
+                                                    clientCertificateRequired:          ClientCertificateValidator != null,
+                                                    enabledSslProtocols:                AllowedTLSProtocols,
+                                                    checkCertificateRevocation:         false);
+
+            }
 
             //_TCPClient.ReceiveTimeout           = (Int32) ConnectionTimeout.TotalMilliseconds;
             //_TCPConnection.Value.ReadTimeout    = ClientTimeout;
             //_TCPConnection.Value.StopRequested  = false;
 
-//#if __MonoCS__
-//                        // Code for Mono C# compiler
-//#else
+            //#if __MonoCS__
+            //                        // Code for Mono C# compiler
+            //#else
 
-//            Thread.CurrentThread.Name = (TCPServer.ConnectionThreadsNameBuilder != null)
-//                                             ? TCPServer.ConnectionThreadsNameBuilder(this,
-//                                                                                      this._ServerTimestamp,
-//                                                                                      base.LocalSocket,
-//                                                                                      base.RemoteSocket)
-//                                             : "TCP connection from " +
-//                                                     base.RemoteSocket.IPAddress.ToString() +
-//                                                     ":" +
-//                                                     base.RemoteSocket.Port.ToString();
+            //            Thread.CurrentThread.Name = (TCPServer.ConnectionThreadsNameBuilder != null)
+            //                                             ? TCPServer.ConnectionThreadsNameBuilder(this,
+            //                                                                                      this._ServerTimestamp,
+            //                                                                                      base.LocalSocket,
+            //                                                                                      base.RemoteSocket)
+            //                                             : "TCP connection from " +
+            //                                                     base.RemoteSocket.IPAddress.ToString() +
+            //                                                     ":" +
+            //                                                     base.RemoteSocket.Port.ToString();
 
-//#endif
+            //#endif
 
         }
 
@@ -297,20 +317,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public Byte Read(UInt16 SleepingTimeMS = 5, UInt32 MaxInitialWaitingTimeMS = 500)
         {
 
-            if (!Stream.CanRead)
+            if (!NetworkStream.CanRead)
                 return 0x00;
 
             var WaitingTimeMS = 0;
             var Value         = -1;
 
-            while (!Stream.DataAvailable && (WaitingTimeMS < MaxInitialWaitingTimeMS))
+            while (!NetworkStream.DataAvailable && (WaitingTimeMS < MaxInitialWaitingTimeMS))
             {
                 Thread.Sleep(SleepingTimeMS);
                 WaitingTimeMS += SleepingTimeMS;
             }
 
-            if (Stream.DataAvailable)
-                Value = Stream.ReadByte();
+            if (NetworkStream.DataAvailable)
+                Value = NetworkStream.ReadByte();
 
             if (Value == -1)
                 return 0x00;
@@ -335,7 +355,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             Byte = 0x00;
 
-            if (!Stream.CanRead)
+            if (!NetworkStream.CanRead)
                 return TCPClientResponse.CanNotRead;
 
             var WaitingTimeMS = 0;
@@ -347,15 +367,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
 
             while (TCPClient.Client.Poll(1, SelectMode.SelectRead) == false &&
-                   Stream.DataAvailable == false &&
+                   NetworkStream.DataAvailable == false &&
                    (WaitingTimeMS < MaxInitialWaitingTimeMS))
             {
                 Thread.Sleep(SleepingTimeMS);
                 WaitingTimeMS += SleepingTimeMS;
             }
 
-            if (Stream.DataAvailable)
-                Value = Stream.ReadByte();
+            if (NetworkStream.DataAvailable)
+                Value = NetworkStream.ReadByte();
             else
             {
                 if (WaitingTimeMS >= MaxInitialWaitingTimeMS)
@@ -390,19 +410,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             if (Buffer == null || Buffer.Length < 1)
                 throw new ArgumentNullException("The given buffer is not valid!");
 
-            if (!Stream.CanRead)
+            if (!NetworkStream.CanRead)
                 return 0;
 
             var WaitingTimeMS = 0;
 
-            while (!Stream.DataAvailable && (WaitingTimeMS < MaxInitialWaitingTimeMS))
+            while (!NetworkStream.DataAvailable && (WaitingTimeMS < MaxInitialWaitingTimeMS))
             {
                 Thread.Sleep(SleepingTimeMS);
                 WaitingTimeMS += SleepingTimeMS;
             }
 
-            if (Stream.DataAvailable)
-                return Stream.Read(Buffer, 0, Buffer.Length);
+            if (NetworkStream.DataAvailable)
+                return NetworkStream.Read(Buffer, 0, Buffer.Length);
 
             return 0;
 
@@ -422,28 +442,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public String ReadString(Int32 MaxLength = 1024, Encoding Encoding = null, UInt16 SleepingTimeMS = 5, UInt32 MaxInitialWaitingTimeMS = 500)
         {
 
-            if (!Stream.CanRead)
+            if (!NetworkStream.CanRead)
                 return String.Empty;
 
             var WaitingTimeMS = 0;
 
-            while (!Stream.DataAvailable && (WaitingTimeMS < MaxInitialWaitingTimeMS))
+            while (!NetworkStream.DataAvailable && (WaitingTimeMS < MaxInitialWaitingTimeMS))
             {
                 Thread.Sleep(SleepingTimeMS);
                 WaitingTimeMS += SleepingTimeMS;
             }
 
-            if (Stream.DataAvailable)
+            if (NetworkStream.DataAvailable)
             {
 
                 Byte ByteValue;
                 var ByteArray  = new Byte[MaxLength];
                 var Position   = 0U;
 
-                while (Stream.DataAvailable)
+                while (NetworkStream.DataAvailable)
                 {
 
-                    ByteValue = (Byte) Stream.ReadByte();
+                    ByteValue = (Byte) NetworkStream.ReadByte();
 
                     ByteArray[Position++] = ByteValue;
 
@@ -485,18 +505,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public String ReadLine(Int32 MaxLength = 65535, Encoding Encoding = null, UInt16 SleepingTimeMS = 5, UInt32 MaxInitialWaitingTimeMS = 500)
         {
 
-            if (!Stream.CanRead)
+            if (!NetworkStream.CanRead)
                 return String.Empty;
 
             var WaitingTimeMS = 0;
 
-            while (!Stream.DataAvailable && (WaitingTimeMS < MaxInitialWaitingTimeMS))
+            while (!NetworkStream.DataAvailable && (WaitingTimeMS < MaxInitialWaitingTimeMS))
             {
                 Thread.Sleep(SleepingTimeMS);
                 WaitingTimeMS += SleepingTimeMS;
             }
 
-            if (Stream.DataAvailable)
+            if (NetworkStream.DataAvailable)
             {
 
                 Int32 ByteValue;
@@ -508,7 +528,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 while (true)
                 {
 
-                    ByteValue = Stream.ReadByte();
+                    ByteValue = NetworkStream.ReadByte();
 
                     #region Nothing or a '\r' or a '\n' was read!
 
@@ -601,7 +621,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public void WriteToResponseStream(Byte Byte)
         {
             if (IsConnected)
-                Stream.WriteByte(Byte);
+                NetworkStream.WriteByte(Byte);
         }
 
         #endregion
@@ -615,7 +635,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public void WriteToResponseStream(Byte[] ByteArray)
         {
             if (ByteArray != null && IsConnected)
-                Stream.Write(ByteArray, 0, ByteArray.Length);
+                NetworkStream.Write(ByteArray, 0, ByteArray.Length);
         }
 
         #endregion
@@ -644,7 +664,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                     do
                     {
                         _BytesRead = InputStream.Read(_Buffer, 0, _Buffer.Length);
-                        Stream.Write(_Buffer, 0, _BytesRead);
+                        NetworkStream.Write(_Buffer, 0, _BytesRead);
                     } while (_BytesRead != 0);
 
             }
@@ -657,19 +677,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public void EnableTLSServer(X509Certificate2 TLSCert)
         {
 
-#if __MonoCS__
-            // mono specific code
-#else
-            var _TLSStream = new SslStream(Stream);
-            _TLSStream.AuthenticateAsServer(TLSCert, false, SslProtocols.Tls12, false);
-#endif
+            var _TLSStream = new SslStream(NetworkStream);
+
+            _TLSStream.AuthenticateAsServer(TLSCert,
+                                            false,
+                                            SslProtocols.Tls12,
+                                            false);
 
         }
 
 
         public void Flush()
         {
-            Stream.Flush();
+            NetworkStream.Flush();
         }
 
         #region Close(ClosedBy = ConnectionClosedBy.Server)
@@ -684,7 +704,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 TCPClient.Close();
 
             if (!_IsClosed)
-                _TCPServer.SendConnectionClosed(DateTime.UtcNow, RemoteSocket, ConnectionId, ClosedBy);
+                TCPServer.SendConnectionClosed(DateTime.UtcNow, RemoteSocket, ConnectionId, ClosedBy);
 
             _IsClosed = true;
 
