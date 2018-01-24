@@ -47,12 +47,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <summary>
         /// The default service banner.
         /// </summary>
-        public new const String                  __DefaultServiceBanner  = "Vanaheimr Hermod TCP/CSV Service v0.9";
+        public new const String                  __DefaultServiceBanner  = "Vanaheimr Hermod TCP/CSV Service v0.10";
 
         /// <summary>
         /// The default array of delimiters to split the incoming CSV line into individual elements.
         /// </summary>
-        public static readonly Char[]            DefaultSpitCharacters   = { ',' };
+        public static readonly Char[]            DefaultSplitCharacters   = { ',' };
 
         private readonly TCPCSVProcessor         _TCPCSVProcessor;
         private readonly TCPCSVCommandProcessor  _TCPCSVCommandProcessor;
@@ -64,16 +64,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <summary>
         /// The characters to split the incoming CSV text lines.
         /// </summary>
-        public Char[] SplitCharacters { get; }
+        public Char[]  SplitCharacters    { get; }
 
         #endregion
 
         #region Events
 
-        public event BoomerangSenderHandler<String, DateTime, String[], TCPResult<String>> OnNotification;
-
+        /// <summary>
+        /// A delegate called whenever new data hab been received.
+        /// </summary>
+        /// <param name="ConnectionId">The unique identification of the TCP connection.</param>
+        /// <param name="Timestamp">The current server timestamp.</param>
+        /// <param name="CSVData">The CSV data.</param>
         public delegate void OnNewDataHandler(String ConnectionId, DateTime Timestamp, String[] CSVData);
+
+        /// <summary>
+        /// An event called whenever new data hab been received.
+        /// </summary>
         public event OnNewDataHandler OnNewData;
+
+
+        public event BoomerangSenderHandler<String, DateTime, String[], TCPResult<String>> OnNotification;
 
         #endregion
 
@@ -205,12 +216,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         {
 
             this.ServiceBanner            = ServiceBanner;
-            this.SplitCharacters          = SplitCharacters != null ? SplitCharacters.ToArray() : DefaultSpitCharacters;
+            this.SplitCharacters          = SplitCharacters != null ? SplitCharacters.ToArray() : DefaultSplitCharacters;
 
             this._TCPCSVProcessor         = new TCPCSVProcessor(this.SplitCharacters);
             this.SendTo(_TCPCSVProcessor);
-          //  this.OnNewConnection         += (TCPServer, Timestamp, RemoteSocket, ConnectionId, TCPConnection) => SendNewConnection   (Timestamp, RemoteSocket, ConnectionId, TCPConnection);
-          //  this.OnConnectionClosed      += (TCPServer, Timestamp, RemoteSocket, ConnectionId, ClosedBy)      => SendConnectionClosed(Timestamp, RemoteSocket, ConnectionId, ClosedBy);
 
             this._TCPCSVCommandProcessor  = new TCPCSVCommandProcessor();
             this._TCPCSVProcessor.ConnectTo(_TCPCSVCommandProcessor);
@@ -296,11 +305,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                                                    String[]  CSVArray)
         {
 
-            var OnNewDataLocal = OnNewData;
-            if (OnNewDataLocal != null)
-                OnNewData(ConnectionId,
-                          Timestamp,
-                          CSVArray);
+            OnNewData?.Invoke(ConnectionId,
+                              Timestamp,
+                              CSVArray);
 
             var OnNotificationLocal = OnNotification;
             if (OnNotificationLocal != null)

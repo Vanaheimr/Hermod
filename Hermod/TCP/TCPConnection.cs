@@ -19,17 +19,16 @@
 
 using System;
 using System.IO;
+using System.Net;
+using System.Net.Security;
 using System.Text;
 using System.Threading;
 using System.Net.Sockets;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
-using System.Net;
-using System.Net.Security;
-using System.Security.Authentication;
-using System.Security.Cryptography.X509Certificates;
-using System.Diagnostics;
 
 #endregion
 
@@ -242,21 +241,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="AllowedTLSProtocols">The SSL/TLS protocol(s) allowed for this connection.</param>
         public TCPConnection(TCPServer                            TCPServer,
                              TcpClient                            TCPClient,
-                             ServerCertificateSelectorDelegate    ServerCertificateSelector,
-                             RemoteCertificateValidationCallback  ClientCertificateValidator,
-                             LocalCertificateSelectionCallback    ClientCertificateSelector,
-                             SslProtocols                         AllowedTLSProtocols = SslProtocols.Tls12)
+                             ServerCertificateSelectorDelegate    ServerCertificateSelector    = null,
+                             RemoteCertificateValidationCallback  ClientCertificateValidator   = null,
+                             LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
+                             SslProtocols                         AllowedTLSProtocols          = SslProtocols.Tls12)
 
-            : base(new IPSocket(new IPv4Address((         TCPClient.Client.LocalEndPoint  as IPEndPoint).Address),
-                                new IPPort     ((UInt16) (TCPClient.Client.LocalEndPoint  as IPEndPoint).Port)),
-                   new IPSocket(new IPv4Address((         TCPClient.Client.RemoteEndPoint as IPEndPoint).Address),
-                                new IPPort     ((UInt16) (TCPClient.Client.RemoteEndPoint as IPEndPoint).Port)))
+            : base(new IPSocket(new IPv4Address((         TCPClient.Client.LocalEndPoint  as IPEndPoint)?.Address),
+                                new IPPort     ((UInt16) (TCPClient.Client.LocalEndPoint  as IPEndPoint)?.Port)),
+                   new IPSocket(new IPv4Address((         TCPClient.Client.RemoteEndPoint as IPEndPoint)?.Address),
+                                new IPPort     ((UInt16) (TCPClient.Client.RemoteEndPoint as IPEndPoint)?.Port)))
 
         {
 
-            this.TCPServer            = TCPServer;
+            this.TCPServer            = TCPServer ?? throw new ArgumentNullException(nameof(TCPServer), "The given TCP server must not be null!");
+            this.TCPClient            = TCPClient ?? throw new ArgumentNullException(nameof(TCPClient), "The given TCP client must not be null!");
             this.ServerTimestamp      = DateTime.UtcNow;
-            this.TCPClient            = TCPClient;
             this.ConnectionId         = TCPServer.ConnectionIdBuilder(this,
                                                                       this.ServerTimestamp,
                                                                       base.LocalSocket,
@@ -330,7 +329,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             }
 
             if (NetworkStream.DataAvailable)
-                Value = NetworkStream.ReadByte();
+            {
+                Value = SSLStream != null
+                            ? SSLStream.    ReadByte()
+                            : NetworkStream.ReadByte();
+            }
 
             if (Value == -1)
                 return 0x00;
@@ -375,7 +378,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             }
 
             if (NetworkStream.DataAvailable)
-                Value = NetworkStream.ReadByte();
+            {
+                Value = SSLStream != null
+                            ? SSLStream.    ReadByte()
+                            : NetworkStream.ReadByte();
+            }
             else
             {
                 if (WaitingTimeMS >= MaxInitialWaitingTimeMS)
@@ -422,7 +429,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             }
 
             if (NetworkStream.DataAvailable)
-                return NetworkStream.Read(Buffer, 0, Buffer.Length);
+            {
+                return SSLStream != null
+                           ? SSLStream.    Read(Buffer, 0, Buffer.Length)
+                           : NetworkStream.Read(Buffer, 0, Buffer.Length);
+            }
 
             return 0;
 
@@ -463,7 +474,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 while (NetworkStream.DataAvailable)
                 {
 
-                    ByteValue = (Byte) NetworkStream.ReadByte();
+                    ByteValue = SSLStream != null
+                                    ? (Byte) SSLStream.    ReadByte()
+                                    : (Byte) NetworkStream.ReadByte();
 
                     ByteArray[Position++] = ByteValue;
 
@@ -528,7 +541,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 while (true)
                 {
 
-                    ByteValue = NetworkStream.ReadByte();
+                    ByteValue = SSLStream != null
+                                    ? SSLStream.    ReadByte()
+                                    : NetworkStream.ReadByte();
 
                     #region Nothing or a '\r' or a '\n' was read!
 
@@ -568,7 +583,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                     if (Encoding == null)
                         Encoding = Encoding.UTF8;
 
-                    Array.Resize(ref ByteArray, (Int32) Position);
+                    Array.Resize(ref ByteArray, Position);
 
                     return Encoding.GetString(ByteArray);
 
@@ -621,7 +636,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public void WriteToResponseStream(Byte Byte)
         {
             if (IsConnected)
-                NetworkStream.WriteByte(Byte);
+            {
+
+                if (SSLStream != null)
+                    SSLStream.    WriteByte(Byte);
+
+                else
+                    NetworkStream.WriteByte(Byte);
+
+            }
         }
 
         #endregion
@@ -635,7 +658,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public void WriteToResponseStream(Byte[] ByteArray)
         {
             if (ByteArray != null && IsConnected)
-                NetworkStream.Write(ByteArray, 0, ByteArray.Length);
+            {
+
+                if (SSLStream != null)
+                    SSLStream.    Write(ByteArray, 0, ByteArray.Length);
+
+                else
+                    NetworkStream.Write(ByteArray, 0, ByteArray.Length);
+
+            }
         }
 
         #endregion
@@ -654,18 +685,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             if (IsConnected)
             {
 
-                var _Buffer = new Byte[BufferSize];
-                var _BytesRead = 0;
+                var _Buffer     = new Byte[BufferSize];
+                var _BytesRead  = 0;
 
                 if (InputStream.CanTimeout && ReadTimeout != 1000)
                     InputStream.ReadTimeout = ReadTimeout;
 
                 if (IsConnected)
+                {
                     do
                     {
+
                         _BytesRead = InputStream.Read(_Buffer, 0, _Buffer.Length);
-                        NetworkStream.Write(_Buffer, 0, _BytesRead);
+
+                        if (SSLStream != null)
+                            SSLStream.Write(_Buffer, 0, _BytesRead);
+
+                        else
+                            NetworkStream.Write(_Buffer, 0, _BytesRead);
+
                     } while (_BytesRead != 0);
+                }
 
             }
 
@@ -674,34 +714,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         #endregion
 
 
-        public void EnableTLSServer(X509Certificate2 TLSCert)
-        {
+        #region Flush()
 
-            var _TLSStream = new SslStream(NetworkStream);
-
-            _TLSStream.AuthenticateAsServer(TLSCert,
-                                            false,
-                                            SslProtocols.Tls12,
-                                            false);
-
-        }
-
-
+        /// <summary>
+        /// Flush all streams.
+        /// </summary>
         public void Flush()
         {
-            NetworkStream.Flush();
+            SSLStream?.Flush();
+            NetworkStream?.Flush();
         }
+
+        #endregion
 
         #region Close(ClosedBy = ConnectionClosedBy.Server)
 
         /// <summary>
         /// Close this TCP connection.
         /// </summary>
+        /// <param name="ClosedBy">Whether the connection was closed by the client or the server.</param>
         public void Close(ConnectionClosedBy ClosedBy = ConnectionClosedBy.Server)
         {
 
-            if (TCPClient != null)
-                TCPClient.Close();
+            TCPClient?.Close();
 
             if (!_IsClosed)
                 TCPServer.SendConnectionClosed(DateTime.UtcNow, RemoteSocket, ConnectionId, ClosedBy);
