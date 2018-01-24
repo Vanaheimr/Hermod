@@ -374,7 +374,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var JSONValue = JSONToken?.Value<String>()?.Trim();
 
             if (JSONValue.IsNeitherNullNorEmpty() &&
-                !TryParser(JSONValue, out Value))
+                //!TryParser(JSONValue, out Value))
+                TryParser(JSONValue, out Value))
             {
                 ErrorResponse = null;
                 return true;
