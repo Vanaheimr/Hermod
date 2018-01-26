@@ -98,18 +98,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         /// Create a new specialized HTTP client for the Simple Object Access Protocol (SOAP) v1.1.
         /// </summary>
         /// <param name="Hostname">The hostname of the remote HTTP/SOAP service.</param>
-        /// <param name="HTTPPort">The HTTP port of the remote HTTP/SOAP service.</param>
         /// <param name="HTTPVirtualHost">The HTTP virtual host to use.</param>
         /// <param name="URIPrefix">The URI-prefix of the HTTP/SOAP service.</param>
+        /// <param name="HTTPSPort">The HTTPS port of the remote HTTP/SOAP service.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="UserAgent">The HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public SOAPClient(String                               Hostname,
-                          IPPort                               HTTPPort,
                           String                               HTTPVirtualHost,
                           String                               URIPrefix,
+                          IPPort?                              HTTPSPort                    = null,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
                           LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
                           String                               UserAgent                    = DefaultUserAgent,
@@ -117,7 +117,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                           DNSClient                            DNSClient                    = null)
 
             : base(Hostname,
-                   HTTPPort       ?? DefaultHTTPPort,
+                   HTTPSPort      ?? IPPort.HTTPS,
                    RemoteCertificateValidator,
                    ClientCertificateSelector,
                    null,
@@ -373,9 +373,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public SOAPClient(String                               Hostname,
-                          IPPort                               HTTPPort,
                           String                               HTTPVirtualHost,
                           String                               URIPrefix,
+                          IPPort?                              HTTPPort                     = null,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
                           LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
                           String                               UserAgent                    = DefaultUserAgent,
@@ -383,7 +383,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                           DNSClient                            DNSClient                    = null)
 
             : base(Hostname,
-                   HTTPPort       ?? DefaultHTTPPort,
+                   HTTPPort       ?? IPPort.HTTP,
                    RemoteCertificateValidator,
                    ClientCertificateSelector,
                    null,

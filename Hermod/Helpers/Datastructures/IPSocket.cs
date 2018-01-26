@@ -76,7 +76,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public IPSocket(IPEndPoint IPEndPoint)
         {
             this.IPAddress  = IPAddressHelper.Build(IPEndPoint.Address.GetAddressBytes());
-            this.Port       = new IPPort((UInt16) IPEndPoint.Port);
+            this.Port       = IPPort.Parse((UInt16) IPEndPoint.Port);
         }
 
         #endregion
@@ -281,7 +281,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region (override) ToString()
 
         /// <summary>
-        /// Returns a string representation of this object.
+        /// Returns a text representation of this object.
         /// </summary>
         /// <returns>A string representation of this object.</returns>
         public override String ToString()

@@ -187,7 +187,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <summary>
         /// Initialize the SMTP server using the given parameters.
         /// </summary>
-        /// <param name="IPPort"></param>
+        /// <param name="TCPPort"></param>
         /// <param name="DefaultServerName">The default SMTP servername.</param>
         /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
         /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
@@ -205,7 +205,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="Autostart">Start the SMTP server thread immediately (default: no).</param>
-        public SMTPServer(IPPort                               IPPort                             = null,
+        public SMTPServer(IPPort?                              TCPPort                            = null,
                           String                               DefaultServerName                  = __DefaultServerName,
                           ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
                           RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
@@ -254,8 +254,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             _SMTPConnection.ErrorLog        += (HTTPProcessor, ServerTimestamp, SMTPCommand, Request, Response, Error, LastException) =>
                                                      LogError (ServerTimestamp, SMTPCommand, Request, Response, Error, LastException);
 
-            if (IPPort != null)
-                this.AttachTCPPort(IPPort);
+            if (TCPPort != null)
+                this.AttachTCPPort(TCPPort ?? IPPort.SMTP);
 
             if (Autostart)
                 Start();

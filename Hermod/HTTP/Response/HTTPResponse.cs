@@ -869,7 +869,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (override) ToString()
 
         /// <summary>
-        /// Returns a string representation of this object.
+        /// Returns a text representation of this object.
         /// </summary>
         /// <returns>A string representation of this object.</returns>
         public override String ToString()

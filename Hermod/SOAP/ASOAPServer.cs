@@ -51,7 +51,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The default HTTP/SOAP/XML server TCP port.
         /// </summary>
-        public static readonly IPPort           DefaultHTTPServerPort   = new IPPort(443);
+        public static readonly IPPort           DefaultHTTPServerPort   = IPPort.HTTPS;
 
         /// <summary>
         /// The default HTTP/SOAP/XML server URI prefix.
@@ -180,7 +180,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="RegisterHTTPRootService">Register HTTP root services for sending a notice to clients connecting via HTML or plain text.</param>
         /// <param name="AutoStart">Start the server immediately.</param>
         protected ASOAPServer(String            HTTPServerName            = DefaultHTTPServerName,
-                              IPPort            TCPPort                   = null,
+                              IPPort?           TCPPort                   = null,
                               String            URIPrefix                 = DefaultURIPrefix,
                               HTTPContentType   SOAPContentType           = null,
                               Boolean           RegisterHTTPRootService   = true,
@@ -223,7 +223,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="RegisterHTTPRootService">Register HTTP root services for sending a notice to clients connecting via HTML or plain text.</param>
         /// <param name="AutoStart">Start the server immediately.</param>
         protected ASOAPServer(String                               HTTPServerName               = DefaultHTTPServerName,
-                              IPPort                               TCPPort                      = null,
+                              IPPort?                              TCPPort                      = null,
                               ServerCertificateSelectorDelegate    ServerCertificateSelector    = null,
                               RemoteCertificateValidationCallback  ClientCertificateValidator   = null,
                               LocalCertificateSelectionCallback    ClientCertificateSelector    = null,

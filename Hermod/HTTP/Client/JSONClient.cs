@@ -74,18 +74,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
         /// Create a new specialized HTTP client for the JavaScript Object Notation (JSON).
         /// </summary>
         /// <param name="Hostname">The hostname of the remote HTTP/JSON service.</param>
-        /// <param name="HTTPPort">The HTTP port of the remote HTTP/JSON service.</param>
         /// <param name="HTTPVirtualHost">The HTTP virtual host to use.</param>
         /// <param name="URIPrefix">The URI-prefix of the HTTP/JSON service.</param>
+        /// <param name="HTTPSPort">The HTTP port of the remote HTTP/JSON service.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="UserAgent">The HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public JSONClient(String                               Hostname,
-                          IPPort                               HTTPPort,
                           String                               HTTPVirtualHost,
                           String                               URIPrefix,
+                          IPPort?                              HTTPSPort                    = null,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
                           LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
                           String                               UserAgent                    = DefaultUserAgent,
@@ -93,7 +93,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
                           DNSClient                            DNSClient                    = null)
 
             : base(Hostname,
-                   HTTPPort       ?? DefaultHTTPPort,
+                   HTTPSPort      ?? IPPort.HTTPS,
                    RemoteCertificateValidator,
                    ClientCertificateSelector,
                    null,

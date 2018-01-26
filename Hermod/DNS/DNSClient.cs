@@ -78,7 +78,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="DNSServer">The DNS server to query.</param>
         public DNSClient(IIPAddress DNSServer)
 
-            : this(new IPSocket[] { new IPSocket(DNSServer, new IPPort(53)) })
+            : this(new IPSocket[] { new IPSocket(DNSServer, IPPort.DNS) })
 
         { }
 
@@ -107,7 +107,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="DNSServers">A list of DNS servers to query.</param>
         public DNSClient(IEnumerable<IIPAddress> DNSServers)
 
-            : this(DNSServers.Select(IPAddress => new IPSocket(IPAddress, new IPPort(53))))
+            : this(DNSServers.Select(IPAddress => new IPSocket(IPAddress, IPPort.DNS)))
 
         { }
 
@@ -174,7 +174,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                          Where     (NI        => NI.OperationalStatus == OperationalStatus.Up).
                                          SelectMany(NI        => NI.GetIPProperties().DnsAddresses).
                                          Where     (IPAddress => IPAddress.AddressFamily == AddressFamily.InterNetwork).
-                                         Select    (IPAddress => new IPSocket(new IPv4Address(IPAddress), new IPPort(53))));
+                                         Select    (IPAddress => new IPSocket(new IPv4Address(IPAddress), IPPort.DNS)));
 
             if (SearchForIPv6DNSServers)
                 _DNSServers.AddRange(NetworkInterface.
@@ -182,7 +182,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                          Where     (NI        => NI.OperationalStatus == OperationalStatus.Up).
                                          SelectMany(NI        => NI.GetIPProperties().DnsAddresses).
                                          Where     (IPAddress => IPAddress.AddressFamily == AddressFamily.InterNetworkV6).
-                                         Select    (IPAddress => new IPSocket(new IPv6Address(IPAddress), new IPPort(53))));
+                                         Select    (IPAddress => new IPSocket(new IPv6Address(IPAddress), IPPort.DNS)));
 
             #endregion
 

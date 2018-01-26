@@ -247,9 +247,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                              SslProtocols                         AllowedTLSProtocols          = SslProtocols.Tls12)
 
             : base(new IPSocket(new IPv4Address((         TCPClient.Client.LocalEndPoint  as IPEndPoint)?.Address),
-                                new IPPort     ((UInt16) (TCPClient.Client.LocalEndPoint  as IPEndPoint)?.Port)),
+                                IPPort.Parse   ((UInt16) (TCPClient.Client.LocalEndPoint  as IPEndPoint)?.Port)),
                    new IPSocket(new IPv4Address((         TCPClient.Client.RemoteEndPoint as IPEndPoint)?.Address),
-                                new IPPort     ((UInt16) (TCPClient.Client.RemoteEndPoint as IPEndPoint)?.Port)))
+                                IPPort.Parse   ((UInt16) (TCPClient.Client.RemoteEndPoint as IPEndPoint)?.Port)))
 
         {
 

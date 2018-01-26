@@ -41,11 +41,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         #region Data
 
         /// <summary>
-        /// The default remote TCP port to connect to.
-        /// </summary>
-        public static readonly IPPort    DefaultRemotePort           = IPPort.Parse(443);
-
-        /// <summary>
         /// The default HTTP user agent.
         /// </summary>
         public const           String    DefaultHTTPUserAgent        = "GraphDefined HTTP Client";
@@ -74,7 +69,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The remote TCP port to connect to.
         /// </summary>
-        public IPPort            RemotePort              { get; }
+        public IPPort            HTTPPort                { get; }
 
         public String            HTTPVirtualHost         { get; }
 
@@ -139,7 +134,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// </summary>
         /// <param name="ClientId">A unqiue identification of this client.</param>
         /// <param name="Hostname">The hostname to connect to.</param>
-        /// <param name="RemotePort">The remote TCP port to connect to.</param>
+        /// <param name="HTTPPort">The remote HTTP port to connect to.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="HTTPVirtualHost">An optional HTTP virtual host name to use.</param>
@@ -149,7 +144,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="DNSClient">An optional DNS client.</param>
         public AHTTPClient(String                               ClientId,
                            String                               Hostname,
-                           IPPort                               RemotePort,
+                           IPPort?                              HTTPPort                    = null,
                            RemoteCertificateValidationCallback  RemoteCertificateValidator  = null,
                            LocalCertificateSelectionCallback    ClientCertificateSelector   = null,
                            String                               HTTPVirtualHost             = null,
@@ -171,7 +166,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             this.ClientId                    = ClientId;
             this.Hostname                    = Hostname;
-            this.RemotePort                  = RemotePort         ?? DefaultRemotePort;
+            this.HTTPPort                  = HTTPPort           ?? IPPort.HTTP;
 
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
             this.ClientCertificateSelector   = ClientCertificateSelector;

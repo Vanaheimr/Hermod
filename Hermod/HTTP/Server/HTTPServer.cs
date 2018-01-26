@@ -226,7 +226,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
-        public HTTPServer(IPPort                               TCPPort                            = null,
+        public HTTPServer(IPPort?                              TCPPort                            = null,
                           String                               DefaultServerName                  = HTTPServer.DefaultHTTPServerName,
                           ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
                           RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
@@ -1080,7 +1080,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The default HTTP server TCP port.
         /// </summary>
-        public static readonly  IPPort           DefaultHTTPServerPort  = new IPPort(80);
+        public static readonly  IPPort           DefaultHTTPServerPort  = IPPort.HTTP;
 
         private readonly        URIMapping       _URIMapping;
 
@@ -1146,7 +1146,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
-        public HTTPServer(IPPort                               TCPPort                            = null,
+        public HTTPServer(IPPort?                              TCPPort                            = null,
                           String                               DefaultServerName                  = DefaultHTTPServerName,
                           ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
                           RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
@@ -1193,7 +1193,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             _HTTPProcessor.ErrorLog        += (HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException) => LogError  (ServerTimestamp, Request, Response, Error, LastException);
 
             if (TCPPort != null)
-                this.AttachTCPPort(TCPPort);
+                this.AttachTCPPort(TCPPort ?? IPPort.HTTP);
             else
                 this.AttachTCPPort(DefaultHTTPServerPort);
 

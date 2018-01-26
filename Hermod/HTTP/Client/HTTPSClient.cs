@@ -71,7 +71,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            LocalCertificateSelectionCallback    LocalCertificateSelector   = null,
                            X509Certificate                      ClientCert                 = null,
                            String                               UserAgent                  = DefaultUserAgent,
-                           IPPort                               RemotePort                 = null,
+                           IPPort?                              RemotePort                 = null,
                            TimeSpan?                            RequestTimeout             = null,
                            DNSClient                            DNSClient                  = null)
 
@@ -137,7 +137,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            RemoteCertificateValidationCallback  RemoteCertificateValidator,
                            LocalCertificateSelectionCallback    LocalCertificateSelector   = null,
                            X509Certificate                      ClientCert                 = null,
-                           IPPort                               RemotePort                 = null,
+                           IPPort?                              RemotePort                 = null,
                            String                               UserAgent                  = DefaultUserAgent,
                            TimeSpan?                            RequestTimeout             = null,
                            DNSClient                            DNSClient                  = null)
