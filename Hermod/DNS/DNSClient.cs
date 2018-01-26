@@ -432,10 +432,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         length = socket.ReceiveFrom(data, ref endPoint);
 
                     }
+                    catch (SocketException se)
+                    {
+
+                        if (se.SocketErrorCode == SocketError.AddressFamilyNotSupported)
+                            return new DNSInfo(new IPSocket(DNSServer.IPAddress, DNSServer.Port),
+                                               QueryPacket.TransactionId,
+                                               false,
+                                               false,
+                                               false,
+                                               false,
+                                               DNSResponseCodes.ServerFailure,
+                                               new ADNSResourceRecord[0],
+                                               new ADNSResourceRecord[0],
+                                               new ADNSResourceRecord[0]);
+
+                        // A SocketException might be thrown after the timeout was reached!
+                        throw new Exception("DNS server '" + DNSServer + "' did not respond within " + QueryTimeout.TotalSeconds + " seconds!");
+
+                    }
                     catch (Exception e)
                     {
                         // A SocketException might be thrown after the timeout was reached!
-                        throw new Exception("DNS server '" + DNSServer.ToString() + "' did not respond within " + QueryTimeout.TotalSeconds + " seconds!");
+                        throw new Exception("DNS server '" + DNSServer + "' did not respond within " + QueryTimeout.TotalSeconds + " seconds!");
                     }
                     finally
                     {
@@ -448,7 +467,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 },
                 TaskCreationOptions.AttachedToParent);
 
-            }).ToArray();
+            }).ToList();
 
             #endregion
 
@@ -456,14 +475,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             try
             {
 
-                // Return first/fastest reply
-                var FirstReply = Task.WhenAny(AllDNSServerRequests).Result.Result;
+                Task<DNSInfo> FirstReply = null;
 
-                // Cache reply
-                if (FirstReply != null)
-                    AddToCache(DomainName, FirstReply);
+                do
+                {
 
-                return FirstReply;
+                    // Return first/fastest reply
+                    FirstReply = Task.WhenAny(AllDNSServerRequests).Result;
+
+                    AllDNSServerRequests.Remove(FirstReply);
+
+                }
+                while (FirstReply.Result.ResponseCode != DNSResponseCodes.NoError || AllDNSServerRequests.Count > 0);
+
+                // Cache first good response...
+                if (FirstReply.Result.ResponseCode == DNSResponseCodes.NoError)
+                    AddToCache(DomainName, FirstReply.Result);
+
+                return FirstReply.Result;
 
             }
             catch (Exception e)

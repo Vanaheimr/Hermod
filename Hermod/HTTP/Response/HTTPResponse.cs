@@ -562,24 +562,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         // Parse the HTTP response from its text-representation...
 
-        #region (private) HTTPResponse(ResponseHeader, Request)
+        #region (private) HTTPResponse(ResponseHeader, Request, HTTPBody = null, NumberOfRetry = 0)
 
         /// <summary>
         /// Create a new HTTP response.
         /// </summary>
         /// <param name="ResponseHeader">The HTTP header of the response.</param>
         /// <param name="Request">The HTTP request leading to this response.</param>
+        /// <param name="HTTPBody">A HTTP body.</param>
         /// <param name="NumberOfRetry">The number of retransmissions of this request.</param>
         private HTTPResponse(String       ResponseHeader,
                              HTTPRequest  Request,
-                             Byte         NumberOfRetry = 0)
+                             Byte[]       HTTPBody       = null,
+                             Byte         NumberOfRetry  = 0)
 
             : this(DateTime.UtcNow,
                    null,
                    null,
                    Request,
                    ResponseHeader,
-                   null,
+                   HTTPBody,
                    new MemoryStream(),
                    DefaultHTTPBodyReceiveBufferSize,
                    Request?.CancellationToken,
@@ -662,20 +664,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (static) Parse(HTTPResponseHeader, HTTPRequest)
+        #region (static) Parse(HTTPResponseHeader, HTTPRequest, HTTPBody = null, NumberOfRetry = 0, )
 
         /// <summary>
         /// Parse the HTTP response from its text-representation.
         /// </summary>
         /// <param name="HTTPResponseHeader">The HTTP header of the response.</param>
         /// <param name="HTTPRequest">The HTTP request leading to this response.</param>
+        /// <param name="HTTPBody">An optional HTTP body.</param>
         /// <param name="NumberOfRetry">The number of retransmissions of this request.</param>
         public static HTTPResponse Parse(String       HTTPResponseHeader,
                                          HTTPRequest  HTTPRequest,
-                                         Byte         NumberOfRetry = 0)
+                                         Byte[]       HTTPBody       = null,
+                                         Byte         NumberOfRetry  = 0)
 
             => new HTTPResponse(HTTPResponseHeader,
                                 HTTPRequest,
+                                HTTPBody,
                                 NumberOfRetry);
 
         #endregion

@@ -390,6 +390,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
         }
 
+        internal void ResizeBody(Int32 NewSize)
+        {
+            Array.Resize(ref _HTTPBody, NewSize);
+        }
+
         #endregion
 
         #region HTTPBodyAsUTF8String
