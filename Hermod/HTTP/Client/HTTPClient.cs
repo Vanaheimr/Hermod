@@ -629,7 +629,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var CurrentHeaderLength  = 0;
                 var HeaderEndsAt         = 0;
 
-                var _Buffer = new Byte[512];
+                var _Buffer = new Byte[4096];
 
                 do
                 {
@@ -697,6 +697,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #endregion
 
 
+                _Buffer = new Byte[50 * 1024 * 1024];
+
                 #region A single fixed-lenght HTTP request -> read '$Content-Length' bytes...
 
                 // Copy only the number of bytes given within
@@ -747,8 +749,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 else if (Response.TransferEncoding == "chunked")
                 {
-
-                    _Buffer = new Byte[50 * 1024 * 1024];
 
                     //var HTTPBodyStartsAt = HTTPHeaderBytes.Length + 4;
 
