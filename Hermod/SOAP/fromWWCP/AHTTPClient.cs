@@ -166,12 +166,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             this.ClientId                    = ClientId;
             this.Hostname                    = Hostname;
-            this.HTTPPort                  = HTTPPort           ?? IPPort.HTTP;
+            this.HTTPPort                    = HTTPPort           ?? IPPort.HTTP;
 
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
             this.ClientCertificateSelector   = ClientCertificateSelector;
 
-            this.HTTPVirtualHost             = HTTPVirtualHost?.IsNotNullOrEmpty() == true
+            this.HTTPVirtualHost             = HTTPVirtualHost.IsNotNullOrEmpty()
                                                    ? HTTPVirtualHost
                                                    : Hostname;
 
