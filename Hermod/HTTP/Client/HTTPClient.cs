@@ -598,7 +598,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 DebugX.LogT("HTTPClient (" + Request.HTTPMethod + Request.URI + ") sent request of " + Request.EntirePDU.Length + " bytes at " + sw.ElapsedMilliseconds + "ms!");
 
                 var _InternalHTTPStream  = new MemoryStream();
-                var _Buffer              = new Byte[10485760]; // 10 MBytes, a smaller value leads to read errors!
+                var _Buffer              = new Byte[52428800]; // 50 MBytes, a smaller value leads to read errors!
 
                 #endregion
 
