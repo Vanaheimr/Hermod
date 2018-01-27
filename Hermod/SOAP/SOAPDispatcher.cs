@@ -47,12 +47,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The URI template of this SOAP endpoint.
         /// </summary>
-        public String                     URITemplate       { get; }
+        public String                     URITemplate        { get; }
 
         /// <summary>
         /// The HTTP content type the SOAP/XML request will be send.
         /// </summary>
-        public HTTPContentType            SOAPContentType   { get; }
+        public HTTPContentType            SOAPContentType    { get; }
 
         /// <summary>
         /// All registeres SOAP dispatches.
@@ -73,14 +73,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                               HTTPContentType  SOAPContentType)
         {
 
-            #region Initial checks
-
-            if (URITemplate == null)
-                throw new ArgumentNullException(nameof(URITemplate), "The given URI template must not be null!");
-
-            #endregion
-
-            this.URITemplate      = URITemplate;
+            this.URITemplate      = URITemplate ?? throw new ArgumentNullException(nameof(URITemplate), "The given URI template must not be null!"); ;
             this.SOAPContentType  = SOAPContentType;
             this._SOAPDispatches  = new List<SOAPDispatch>();
 
@@ -191,9 +184,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// </summary>
         /// <param name="Request">A HTTP request.</param>
         public Task<HTTPResponse> EndpointTextInfo(HTTPRequest Request)
-        {
 
-            return Task.FromResult(new HTTPResponseBuilder(Request) {
+            => Task.FromResult(new HTTPResponseBuilder(Request) {
 
                 HTTPStatusCode  = HTTPStatusCode.OK,
                 ContentType     = HTTPContentType.TEXT_UTF8,
@@ -208,8 +200,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             }.AsImmutable);
 
-        }
-
         #endregion
 
 
@@ -219,9 +209,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-        {
-            return _SOAPDispatches.Select(item => item.Description).AggregateWith(", ");
-        }
+            => _SOAPDispatches.Select(item => item.Description).AggregateWith(", ");
 
         #endregion
 

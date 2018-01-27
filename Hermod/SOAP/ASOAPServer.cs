@@ -324,6 +324,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                                      ContentType     = HTTPContentType.TEXT_UTF8,
                                                      Content         = ("Welcome at " + DefaultHTTPServerName + Environment.NewLine +
                                                                         "This is a HTTP/SOAP/XML endpoint!" + Environment.NewLine + Environment.NewLine +
+
+                                                                        ((Request.HTTPBodyStream is SslStream)
+                                                                             ? (Request.HTTPBodyStream as SslStream)?.RemoteCertificate.Subject + Environment.NewLine +
+                                                                               (Request.HTTPBodyStream as SslStream)?.RemoteCertificate.Issuer  + Environment.NewLine +
+                                                                                Environment.NewLine
+                                                                             : "") +
+
                                                                         "Defined endpoints: " + Environment.NewLine + Environment.NewLine +
                                                                         SOAPServer.
                                                                             SOAPDispatchers.

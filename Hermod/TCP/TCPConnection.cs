@@ -73,6 +73,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public X509Certificate2  ServerCertificate    { get; }
 
         /// <summary>
+        /// The optional HTTP client certificate.
+        /// </summary>
+        public X509Certificate   ClientCertificate    { get; }
+
+        /// <summary>
         /// The SSL/TLS protocol(s) to use.
         /// </summary>
         public SslProtocols      TLSProtocols         { get; }
@@ -268,7 +273,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             {
 
                 this.SSLStream      = new SslStream(innerStream:                        NetworkStream,
-                                                    leaveInnerStreamOpen:               false,
+                                                    leaveInnerStreamOpen:               true,
                                                     userCertificateValidationCallback:  ClientCertificateValidator,
                                                     userCertificateSelectionCallback:   ClientCertificateSelector,
                                                     encryptionPolicy:                   EncryptionPolicy.RequireEncryption);
@@ -277,6 +282,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                                     clientCertificateRequired:          ClientCertificateValidator != null,
                                                     enabledSslProtocols:                AllowedTLSProtocols,
                                                     checkCertificateRevocation:         false);
+
+                var aa = SSLStream.RemoteCertificate;
 
             }
 
@@ -360,6 +367,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             if (!NetworkStream.CanRead)
                 return TCPClientResponse.CanNotRead;
+
+            if (SSLStream != null)
+            {
+
+                var value = SSLStream.ReadByte();
+
+                if (value == -1)
+                    return TCPClientResponse.CanNotRead;
+
+                Byte = (Byte) value;
+
+                return TCPClientResponse.DataAvailable;
+
+            }
 
             var WaitingTimeMS = 0;
             var Value         = -1;

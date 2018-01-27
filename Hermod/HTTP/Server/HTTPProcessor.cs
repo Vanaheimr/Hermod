@@ -294,7 +294,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                       TCPConnection.RemoteSocket,
                                                                       TCPConnection.LocalSocket,
                                                                       HTTPHeaderString.Trim(),
-                                                                      TCPConnection.NetworkStream);
+                                                                      TCPConnection.SSLStream != null
+                                                                          ? (Stream) TCPConnection.SSLStream
+                                                                          : (Stream) TCPConnection.NetworkStream);
 
                                     }
                                     catch (Exception e)
