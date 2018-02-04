@@ -407,7 +407,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region GetString         (ParameterName, DefaultValue = null)
+        #region GetString    (ParameterName, DefaultValue = null)
 
         public String GetString(String  ParameterName,
                                 String  DefaultValue = null)
@@ -426,44 +426,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region GetBoolean        (ParameterName)
-
-        public Boolean? GetBoolean(String ParameterName)
-        {
-
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values != null &&
-                Values.Count > 0)
-            {
-                return Values.Last() == "true";
-            }
-
-            return new Boolean?();
-
-        }
-
-        #endregion
-
-        #region GetBoolean        (ParameterName, DefaultValue = false)
-
-        public Boolean GetBoolean(String  ParameterName,
-                                  Boolean DefaultValue  = false)
-        {
-
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values != null &&
-                Values.Count > 0)
-            {
-                return Values.Last() == "true";
-            }
-
-            return DefaultValue;
-
-        }
-
-        #endregion
-
-        #region GetStrings        (ParameterName, ToLowerCase = false)
+        #region GetStrings   (ParameterName, ToLowerCase = false)
 
         public IEnumerable<String> GetStrings(String   ParameterName,
                                               Boolean  ToLowerCase = false)
@@ -487,9 +450,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-
-
-
         #region TryGetString (ParameterName, out Value)
 
         public Boolean TryGetString(String      ParameterName,
@@ -511,6 +471,65 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+
+        #region GetBoolean   (ParameterName)
+
+        /// <summary>
+        /// Get an optional Boolean.
+        /// </summary>
+        /// <param name="ParameterName">The name of the HTTP query paramerter.</param>
+        public Boolean? GetBoolean(String ParameterName)
+        {
+
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values != null &&
+                Values.Count > 0)
+            {
+
+                var LastValue = Values.LastOrDefault()?.ToLower();
+
+                if (LastValue == ""  || LastValue == "1" || LastValue == "true")
+                    return true;
+
+                if (LastValue == "0" || LastValue == "false")
+                    return false;
+
+            }
+
+            return new Boolean?();
+
+        }
+
+        #endregion
+
+        #region GetBoolean   (ParameterName, DefaultValue = false)
+
+        /// <summary>
+        /// Get a Boolean, or the given default value.
+        /// </summary>
+        /// <param name="ParameterName">The name of the HTTP query paramerter.</param>
+        /// <param name="DefaultValue">The default value.</param>
+        public Boolean GetBoolean(String  ParameterName,
+                                  Boolean DefaultValue  = false)
+        {
+
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values != null &&
+                Values.Count > 0)
+            {
+
+                var LastValue = Values.LastOrDefault()?.ToLower();
+
+                return LastValue == "" || LastValue == "1" || LastValue == "true";
+
+            }
+
+            return DefaultValue;
+
+        }
+
+        #endregion
+
         #region TryGetBoolean(ParameterName, out Value, DefaultValue = false)
 
         public Boolean TryGetBoolean(String       ParameterName,
@@ -522,8 +541,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Values != null &&
                 Values.Count > 0)
             {
-                Value = Values.Last() == "true";
-                return true;
+
+                var LastValue = Values.LastOrDefault()?.ToLower();
+
+                if (LastValue == "" || LastValue == "1" || LastValue == "true")
+                {
+                    Value = true;
+                    return true;
+                }
+
             }
 
             Value = DefaultValue ?? false;
@@ -534,22 +560,119 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region GetInt32(ParameterName)
+        #region GetInt16 (ParameterName)
+
+        public Int16? GetInt16(String ParameterName)
+        {
+
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values       != null                                            &&
+                Values.Count  > 0                                               &&
+                Int16.TryParse(Values.LastOrDefault(), out Int16 Number))
+            {
+                return Number;
+            }
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region GetInt16 (ParameterName, DefaultValue)
+
+        public Int16 GetInt16(String ParameterName,
+                              Int16  DefaultValue)
+        {
+
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values       != null                                            &&
+                Values.Count  > 0                                               &&
+                Int16.TryParse(Values.Last(), out Int16 Number))
+            {
+                return Number;
+            }
+
+            return DefaultValue;
+
+        }
+
+        #endregion
+
+        #region GetUInt16(ParameterName)
+
+        public UInt16? GetUInt16(String ParameterName)
+        {
+
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values       != null                                            &&
+                Values.Count  > 0                                               &&
+                UInt16.TryParse(Values.LastOrDefault(), out UInt16 Number))
+            {
+                return Number;
+            }
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region GetUInt16(ParameterName, DefaultValue)
+
+        public UInt16 GetUInt16(String ParameterName,
+                                UInt16 DefaultValue)
+        {
+
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values       != null                                            &&
+                Values.Count  > 0                                               &&
+                UInt16.TryParse(Values.Last(), out UInt16 Number))
+            {
+                return Number;
+            }
+
+            return DefaultValue;
+
+        }
+
+        #endregion
+
+
+        #region GetInt32 (ParameterName)
 
         public Int32? GetInt32(String ParameterName)
         {
 
-            List<String>  Values;
-            Int32         Number;
-
-            if (_Dictionary.TryGetValue(ParameterName, out Values) &&
-                Values       != null                               &&
-                Values.Count  > 0                                  &&
-                Int32.TryParse(Values.LastOrDefault(), out Number))
-
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values       != null                                            &&
+                Values.Count  > 0                                               &&
+                Int32.TryParse(Values.LastOrDefault(), out Int32 Number))
+            {
                 return Number;
+            }
 
             return null;
+
+        }
+
+        #endregion
+
+        #region GetInt32 (ParameterName, DefaultValue)
+
+        public Int32 GetInt32(String ParameterName,
+                              Int32  DefaultValue)
+        {
+
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values       != null                                            &&
+                Values.Count  > 0                                               &&
+                Int32.TryParse(Values.Last(), out Int32 Number))
+            {
+                return Number;
+            }
+
+            return DefaultValue;
 
         }
 
@@ -560,15 +683,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public UInt32? GetUInt32(String ParameterName)
         {
 
-            List<String>  Values;
-            UInt32        Number;
-
-            if (_Dictionary.TryGetValue(ParameterName, out Values) &&
-                Values       != null                               &&
-                Values.Count  > 0                                  &&
-                UInt32.TryParse(Values.LastOrDefault(), out Number))
-
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values       != null                                            &&
+                Values.Count  > 0                                               &&
+                UInt32.TryParse(Values.LastOrDefault(), out UInt32 Number))
+            {
                 return Number;
+            }
 
             return null;
 
@@ -576,21 +697,59 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region GetUInt32OrDefault(ParameterName, DefaultValue = 0)
+        #region GetUInt32(ParameterName, DefaultValue)
 
-        public UInt32 GetUInt32OrDefault(String ParameterName,
-                                         UInt32 DefaultValue = 0)
+        public UInt32 GetUInt32(String ParameterName,
+                                UInt32 DefaultValue)
         {
 
-            List<String> Values;
-            UInt32       Number;
-
-            if (_Dictionary.TryGetValue(ParameterName, out Values) &&
-                Values       != null                               &&
-                Values.Count  > 0                                  &&
-                UInt32.TryParse(Values.Last(), out Number))
-
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values       != null                                            &&
+                Values.Count  > 0                                               &&
+                UInt32.TryParse(Values.Last(), out UInt32 Number))
+            {
                 return Number;
+            }
+
+            return DefaultValue;
+
+        }
+
+        #endregion
+
+
+        #region GetInt64 (ParameterName)
+
+        public Int64? GetInt64(String ParameterName)
+        {
+
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values       != null                                            &&
+                Values.Count  > 0                                               &&
+                Int64.TryParse(Values.LastOrDefault(), out Int64 Number))
+            {
+                return Number;
+            }
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region GetInt64 (ParameterName, DefaultValue)
+
+        public Int64 GetInt64(String ParameterName,
+                              Int64  DefaultValue)
+        {
+
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values       != null                                            &&
+                Values.Count  > 0                                               &&
+                Int64.TryParse(Values.Last(), out Int64 Number))
+            {
+                return Number;
+            }
 
             return DefaultValue;
 
@@ -603,15 +762,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public UInt64? GetUInt64(String ParameterName)
         {
 
-            List<String> Values;
-            UInt64       Number;
-
-            if (_Dictionary.TryGetValue(ParameterName, out Values) &&
-                Values       != null                               &&
-                Values.Count  > 0                                  &&
-                UInt64.TryParse(Values.Last(), out Number))
-
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values       != null                                            &&
+                Values.Count  > 0                                               &&
+                UInt64.TryParse(Values.LastOrDefault(), out UInt64 Number))
+            {
                 return Number;
+            }
 
             return null;
 
@@ -619,10 +776,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region GetUInt64OrDefault(ParameterName, DefaultValue = 0)
+        #region GetUInt64(ParameterName, DefaultValue)
 
-        public UInt64 GetUInt64OrDefault(String ParameterName,
-                                         UInt64 DefaultValue = 0)
+        public UInt64 GetUInt64(String ParameterName,
+                                UInt64 DefaultValue)
         {
 
             if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
