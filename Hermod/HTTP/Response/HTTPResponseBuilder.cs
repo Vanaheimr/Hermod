@@ -239,12 +239,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Location
 
-        public String Location
+        public HTTPURI Location
         {
 
             get
             {
-                return GetHeaderField(HTTPHeaderField.Location);
+                return HTTPURI.Parse(GetHeaderField(HTTPHeaderField.Location));
             }
 
             set

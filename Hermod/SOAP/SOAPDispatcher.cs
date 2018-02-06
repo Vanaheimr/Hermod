@@ -47,7 +47,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The URI template of this SOAP endpoint.
         /// </summary>
-        public String                     URITemplate        { get; }
+        public HTTPURI                    URITemplate        { get; }
 
         /// <summary>
         /// The HTTP content type the SOAP/XML request will be send.
@@ -69,11 +69,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// </summary>
         /// <param name="URITemplate">The URI template of the SOAP dispatcher.</param>
         /// <param name="SOAPContentType">The HTTP content type the SOAP/XML request will be send.</param>
-        public SOAPDispatcher(String           URITemplate,
+        public SOAPDispatcher(HTTPURI          URITemplate,
                               HTTPContentType  SOAPContentType)
         {
 
-            this.URITemplate      = URITemplate ?? throw new ArgumentNullException(nameof(URITemplate), "The given URI template must not be null!"); ;
+            this.URITemplate      = URITemplate;
             this.SOAPContentType  = SOAPContentType;
             this._SOAPDispatches  = new List<SOAPDispatch>();
 

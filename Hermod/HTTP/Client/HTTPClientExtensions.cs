@@ -31,7 +31,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public static class HTTPClientExtensions
     {
 
-        #region RFC 2616 - HTTP/1.1
+        // RFC 2616 - HTTP/1.1
 
         #region DELETE (this HTTPClient, URI = "/", BuilderAction = null)
 
@@ -43,7 +43,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
         public static HTTPRequest.Builder DELETE(this HTTPClient              HTTPClient,
-                                                 String                       URI,
+                                                 HTTPURI                      URI,
                                                  Action<HTTPRequest.Builder>  BuilderAction = null)
         {
             return HTTPClient.CreateRequest(HTTPMethod.DELETE, URI, BuilderAction);
@@ -61,7 +61,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
         public static HTTPRequest.Builder GET(this HTTPClient              HTTPClient,
-                                              String                       URI,
+                                              HTTPURI                      URI,
                                               Action<HTTPRequest.Builder>  BuilderAction = null)
 
             => HTTPClient.CreateRequest(HTTPMethod.GET, URI, BuilderAction);
@@ -78,7 +78,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
         public static HTTPRequest.Builder COUNT(this HTTPClient              HTTPClient,
-                                                String                       URI,
+                                                HTTPURI                      URI,
                                                 Action<HTTPRequest.Builder>  BuilderAction = null)
 
             => HTTPClient.CreateRequest(HTTPMethod.COUNT, URI, BuilderAction);
@@ -95,7 +95,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
         public static HTTPRequest.Builder CREATE(this HTTPClient              HTTPClient,
-                                                 String                       URI,
+                                                 HTTPURI                      URI,
                                                  Action<HTTPRequest.Builder>  BuilderAction = null)
 
             => HTTPClient.CreateRequest(HTTPMethod.CREATE, URI, BuilderAction);
@@ -111,9 +111,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URI">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder ADD(this HTTPClient             HTTPClient,
-                                             String                      URI,
-                                             Action<HTTPRequest.Builder>  BuilderAction = null)
+        public static HTTPRequest.Builder ADD(this HTTPClient              HTTPClient,
+                                              HTTPURI                      URI,
+                                              Action<HTTPRequest.Builder>  BuilderAction = null)
 
             => HTTPClient.CreateRequest(HTTPMethod.ADD, URI, BuilderAction);
 
@@ -129,7 +129,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
         public static HTTPRequest.Builder SET(this HTTPClient              HTTPClient,
-                                              String                       URI,
+                                              HTTPURI                      URI,
                                               Action<HTTPRequest.Builder>  BuilderAction = null)
 
             => HTTPClient.CreateRequest(HTTPMethod.SET, URI, BuilderAction);
@@ -145,7 +145,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URI">An URL path.</param>
         /// <returns>A HTTP request object.</returns>
         public static HTTPRequest.Builder CREATE(this HTTPClient  HTTPClient,
-                                                 String           URI)
+                                                 HTTPURI          URI)
 
             => HTTPClient.CreateRequest(HTTPMethod.CREATE, URI);
 
@@ -160,7 +160,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URI">An URL path.</param>
         /// <returns>A HTTP request object.</returns>
         public static HTTPRequest.Builder HEAD(this HTTPClient  HTTPClient,
-                                               String           URI)
+                                               HTTPURI          URI)
 
             => HTTPClient.CreateRequest(HTTPMethod.HEAD, URI);
 
@@ -175,7 +175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URI">An URL path.</param>
         /// <returns>A HTTP request object.</returns>
         public static HTTPRequest.Builder OPTIONS(this HTTPClient  HTTPClient,
-                                                 String           URI)
+                                                  HTTPURI          URI)
 
             => HTTPClient.CreateRequest(HTTPMethod.OPTIONS, URI);
 
@@ -191,7 +191,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
         public static HTTPRequest.Builder POST(this HTTPClient              HTTPClient,
-                                               String                       URI,
+                                               HTTPURI                      URI,
                                                Action<HTTPRequest.Builder>  BuilderAction = null)
 
             => HTTPClient.
@@ -210,7 +210,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URI">An URL path.</param>
         /// <returns>A HTTP request object.</returns>
         public static HTTPRequest.Builder PUT(this HTTPClient              HTTPClient,
-                                              String                       URI,
+                                              HTTPURI                      URI,
                                               Action<HTTPRequest.Builder>  BuilderAction = null)
 
             => HTTPClient.CreateRequest(HTTPMethod.PUT, URI, BuilderAction);
@@ -226,15 +226,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URI">An URL path.</param>
         /// <returns>A HTTP request object.</returns>
         public static HTTPRequest.Builder TRACE(this HTTPClient  HTTPClient,
-                                               String           URI)
+                                                HTTPURI          URI)
 
             => HTTPClient.CreateRequest(HTTPMethod.TRACE, URI);
 
         #endregion
 
-        #endregion
 
-        #region Additional methods
+        // Additional methods
 
         #region PATCH   (this HTTPClient, URI = "/")
 
@@ -245,7 +244,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URI">An URL path.</param>
         /// <returns>A HTTP request object.</returns>
         public static HTTPRequest.Builder PATCH(this HTTPClient  HTTPClient,
-                                                String           URI)
+                                                HTTPURI          URI)
 
             => HTTPClient.CreateRequest(HTTPMethod.PATCH, URI);
 
@@ -260,13 +259,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URI">An URL path.</param>
         /// <returns>A HTTP request object.</returns>
         public static HTTPRequest.Builder TRAVERSE(this HTTPClient  HTTPClient,
-                                                   String           URI)
+                                                   HTTPURI          URI)
 
             => HTTPClient.CreateRequest(HTTPMethod.TRAVERSE, URI);
 
         #endregion
 
-        #endregion
 
     }
 

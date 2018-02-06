@@ -83,12 +83,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         /// <summary>
         /// The HTTP virtual host to use.
         /// </summary>
-        public String  HTTPVirtualHost   { get; }
+        public String   HTTPVirtualHost   { get; }
 
         /// <summary>
         /// The URI-prefix of the HTTP/SOAP service.
         /// </summary>
-        public String  URIPrefix         { get; }
+        public HTTPURI  URIPrefix         { get; }
 
         #endregion
 
@@ -108,7 +108,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         /// <param name="DNSClient">An optional DNS client.</param>
         public SOAPClient(String                               Hostname,
                           String                               HTTPVirtualHost,
-                          String                               URIPrefix,
+                          HTTPURI                              URIPrefix,
                           IPPort?                              HTTPSPort                    = null,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
                           LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
@@ -128,7 +128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         {
 
             this.HTTPVirtualHost  = HTTPVirtualHost;
-            this.URIPrefix        = URIPrefix.IsNotNullOrEmpty() ? URIPrefix : "/";
+            this.URIPrefix        = URIPrefix.IsNotNullOrEmpty() ? URIPrefix : HTTPURI.Parse("/");
 
         }
 
@@ -354,7 +354,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         /// <summary>
         /// The URI-prefix of the HTTP/SOAP service.
         /// </summary>
-        public String  URIPrefix         { get; }
+        public HTTPURI URIPrefix         { get; }
 
         #endregion
 
@@ -374,7 +374,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         /// <param name="DNSClient">An optional DNS client.</param>
         public SOAPClient(String                               Hostname,
                           String                               HTTPVirtualHost,
-                          String                               URIPrefix,
+                          HTTPURI                              URIPrefix,
                           IPPort?                              HTTPPort                     = null,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
                           LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
@@ -394,7 +394,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         {
 
             this.HTTPVirtualHost  = HTTPVirtualHost;
-            this.URIPrefix        = URIPrefix.IsNotNullOrEmpty() ? URIPrefix : "/";
+            this.URIPrefix        = URIPrefix.IsNotNullOrEmpty() ? URIPrefix : HTTPURI.Parse("/");
 
         }
 

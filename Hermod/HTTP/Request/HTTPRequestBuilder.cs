@@ -94,12 +94,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region URI
 
-            private String _URI;
+            private HTTPURI _URI;
 
             /// <summary>
             /// The minimal URL (this means e.g. without the query string).
             /// </summary>
-            public String URI
+            public HTTPURI URI
             {
 
                 get
@@ -686,7 +686,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 this.HTTPStatusCode   = HTTPStatusCode.OK;
                 this.HTTPMethod       = HTTPMethod.GET;
-                this.URI              = "/";
+                this.URI              = HTTPURI.Parse("/");
                 this._QueryString     = QueryString.Empty;
                 SetHeaderField(HTTPHeaderField.Accept, new AcceptTypes());
                 this.ProtocolName     = "HTTP";
@@ -743,7 +743,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// Set the HTTP method.
             /// </summary>
             /// <param name="URI">The new URI.</param>
-            public Builder SetURI(String URI)
+            public Builder SetURI(HTTPURI URI)
             {
                 this.URI = URI;
                 return this;

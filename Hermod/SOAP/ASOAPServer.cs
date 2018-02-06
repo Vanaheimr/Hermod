@@ -56,7 +56,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The default HTTP/SOAP/XML server URI prefix.
         /// </summary>
-        public const           String           DefaultURIPrefix        = "";
+        public static readonly HTTPURI          DefaultURIPrefix        = HTTPURI.Parse("/");
 
         /// <summary>
         /// The default HTTP/SOAP/XML content type.
@@ -80,7 +80,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The common URI prefix for this HTTP/SOAP service.
         /// </summary>
-        public String      URIPrefix    { get; }
+        public HTTPURI     URIPrefix    { get; }
 
         /// <summary>
         /// The DNS client used by this server.
@@ -181,7 +181,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="AutoStart">Start the server immediately.</param>
         protected ASOAPServer(String            HTTPServerName            = DefaultHTTPServerName,
                               IPPort?           TCPPort                   = null,
-                              String            URIPrefix                 = DefaultURIPrefix,
+                              HTTPURI?          URIPrefix                 = null,
                               HTTPContentType   SOAPContentType           = null,
                               Boolean           RegisterHTTPRootService   = true,
                               DNSClient         DNSClient                 = null,
@@ -228,7 +228,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                               RemoteCertificateValidationCallback  ClientCertificateValidator   = null,
                               LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
                               SslProtocols                         AllowedTLSProtocols          = SslProtocols.Tls12,
-                              String                               URIPrefix                    = DefaultURIPrefix,
+                              HTTPURI?                             URIPrefix                    = null,
                               HTTPContentType                      SOAPContentType              = null,
                               Boolean                              RegisterHTTPRootService      = true,
                               DNSClient                            DNSClient                    = null,
@@ -265,29 +265,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="SOAPServer">A SOAP server.</param>
         /// <param name="URIPrefix">An optional URI prefix for the SOAP URI templates.</param>
         protected ASOAPServer(SOAPServer  SOAPServer,
-                              String      URIPrefix  = DefaultURIPrefix)
+                              HTTPURI?    URIPrefix = null)
         {
 
             #region Initial checks
 
-            if (SOAPServer == null)
-                throw new ArgumentNullException(nameof(SOAPServer),  "The given SOAP server must not be null!");
-
-            if (URIPrefix != null && URIPrefix.Trim().IsNotNullOrEmpty())
-                URIPrefix = URIPrefix.Trim();
-            else
-                URIPrefix = DefaultURIPrefix;
-
-            if (URIPrefix.Length > 0 && !URIPrefix.StartsWith("/", StringComparison.Ordinal))
-                URIPrefix = "/" + URIPrefix;
-
-            while (URIPrefix.EndsWith("/", StringComparison.Ordinal))
-                URIPrefix = URIPrefix.Substring(0, URIPrefix.Length - 1);
+            if (URIPrefix.HasValue)
+                while (URIPrefix.Value.EndsWith("/", StringComparison.Ordinal))
+                    URIPrefix = URIPrefix.Value.Substring(0, (Int32) URIPrefix.Value.Length - 1);
 
             #endregion
 
-            this.SOAPServer  = SOAPServer;
-            this.URIPrefix   = URIPrefix;
+            this.SOAPServer  = SOAPServer ?? throw new ArgumentNullException(nameof(SOAPServer), "The given SOAP server must not be null!");
+            this.URIPrefix   = URIPrefix ?? DefaultURIPrefix;
             this.DNSClient   = SOAPServer.DNSClient;
 
         }
@@ -305,8 +295,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             SOAPServer.AddMethodCallback(HTTPHostname.Any,
                                          HTTPMethod.GET,
 
-                                         new String[] {
-                                             "/",
+                                         new HTTPURI[] {
+                                             HTTPURI.Parse("/"),
                                              URIPrefix + "/"
                                          },
 

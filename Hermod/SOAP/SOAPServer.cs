@@ -60,12 +60,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         #region SOAPDispatchers
 
-        private readonly Dictionary<String, SOAPDispatcher> _SOAPDispatchers;
+        private readonly Dictionary<HTTPURI, SOAPDispatcher> _SOAPDispatchers;
 
         /// <summary>
         /// All registered SOAP dispatchers.
         /// </summary>
-        public ILookup<String, SOAPDispatcher> SOAPDispatchers
+        public ILookup<HTTPURI, SOAPDispatcher> SOAPDispatchers
 
             => _SOAPDispatchers.ToLookup(_ => _.Key, _ => _.Value);
 
@@ -136,7 +136,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         {
 
             this.SOAPContentType  = SOAPContentType ?? DefaultSOAPContentType;
-            this._SOAPDispatchers  = new Dictionary<String, SOAPDispatcher>();
+            this._SOAPDispatchers  = new Dictionary<HTTPURI, SOAPDispatcher>();
 
             if (Autostart)
                 Start();
@@ -157,7 +157,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="SOAPMatch">A delegate to check whether this dispatcher matches the given XML.</param>
         /// <param name="SOAPBodyDelegate">A delegate to process a matching SOAP request.</param>
         public void RegisterSOAPDelegate(HTTPHostname      Hostname,
-                                         String            URITemplate,
+                                         HTTPURI           URITemplate,
                                          String            Description,
                                          SOAPMatch         SOAPMatch,
                                          SOAPBodyDelegate  SOAPBodyDelegate)
@@ -218,7 +218,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="SOAPMatch">A delegate to check whether this dispatcher matches the given XML.</param>
         /// <param name="SOAPHeaderAndBodyDelegate">A delegate to process a matching SOAP request.</param>
         public void RegisterSOAPDelegate(HTTPHostname               Hostname,
-                                         String                     URITemplate,
+                                         HTTPURI                    URITemplate,
                                          String                     Description,
                                          SOAPMatch                  SOAPMatch,
                                          SOAPHeaderAndBodyDelegate  SOAPHeaderAndBodyDelegate)

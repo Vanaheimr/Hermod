@@ -851,8 +851,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected String GetHeaderField(HTTPHeaderField HeaderField)
         {
 
-            Object Value;
-            if (HeaderFields.TryGetValue(HeaderField.Name, out Value))
+            if (HeaderFields.TryGetValue(HeaderField.Name, out Object Value))
                 return Value.ToString();
 
             return null;

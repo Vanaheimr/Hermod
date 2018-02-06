@@ -59,12 +59,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
         /// <summary>
         /// The HTTP virtual host to use.
         /// </summary>
-        public String  HTTPVirtualHost   { get; }
+        public String   HTTPVirtualHost   { get; }
 
         /// <summary>
         /// The URI-prefix of the HTTP/JSON service.
         /// </summary>
-        public String  URIPrefix         { get; }
+        public HTTPURI  URIPrefix         { get; }
 
         #endregion
 
@@ -84,7 +84,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
         /// <param name="DNSClient">An optional DNS client.</param>
         public JSONClient(String                               Hostname,
                           String                               HTTPVirtualHost,
-                          String                               URIPrefix,
+                          HTTPURI                              URIPrefix,
                           IPPort?                              HTTPSPort                    = null,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
                           LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
@@ -104,7 +104,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
         {
 
             this.HTTPVirtualHost  = HTTPVirtualHost;
-            this.URIPrefix        = URIPrefix.IsNotNullOrEmpty() ? URIPrefix : "/";
+            this.URIPrefix        = URIPrefix;
 
         }
 

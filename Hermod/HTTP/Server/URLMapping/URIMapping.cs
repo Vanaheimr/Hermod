@@ -78,7 +78,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         internal void AddHandler(HTTPDelegate        HTTPDelegate,
 
                                  HTTPHostname        Hostname                    = null,
-                                 String              URITemplate                 = "/",
+                                 HTTPURI?            URITemplate                 = null,
                                  HTTPMethod          HTTPMethod                  = null,
                                  HTTPContentType     HTTPContentType             = null,
 
@@ -103,9 +103,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (Hostname == null)
                     Hostname = HTTPHostname.Any;
 
-                if (URITemplate.IsNullOrEmpty())
-                    URITemplate = "/";
-
                 if (HTTPMethod == null && HTTPContentType != null)
                     throw new ArgumentNullException("If HTTPMethod is null the HTTPContentType must also be null!");
 
@@ -113,8 +110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region AddOrUpdate HostNode
 
-                HostnameNode _HostnameNode = null;
-                if (!_HostnameNodes.TryGetValue(Hostname, out _HostnameNode))
+                if (!_HostnameNodes.TryGetValue(Hostname, out HostnameNode _HostnameNode))
                 {
                     _HostnameNode = new HostnameNode(Hostname, HostAuthentication, HTTPDelegate, DefaultErrorHandler);
                     _HostnameNodes.Add(Hostname, _HostnameNode);
@@ -159,7 +155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         internal void ReplaceHandler(HTTPDelegate        HTTPDelegate,
 
                                      HTTPHostname        Hostname                    = null,
-                                     String              URITemplate                 = "/",
+                                     HTTPURI?            URITemplate                 = null,
                                      HTTPMethod          HTTPMethod                  = null,
                                      HTTPContentType     HTTPContentType             = null,
 
@@ -183,9 +179,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (Hostname == null)
                     Hostname = HTTPHostname.Any;
 
-                if (URITemplate.IsNullOrEmpty())
-                    URITemplate = "/";
-
                 if (HTTPMethod == null && HTTPContentType != null)
                     throw new ArgumentNullException("If HTTPMethod is null the HTTPContentType must also be null!");
 
@@ -193,8 +186,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region AddOrUpdate HostNode
 
-                HostnameNode _HostnameNode = null;
-                if (!_HostnameNodes.TryGetValue(Hostname, out _HostnameNode))
+                if (!_HostnameNodes.TryGetValue(Hostname, out HostnameNode _HostnameNode))
                 {
                     _HostnameNode = new HostnameNode(Hostname, HostAuthentication, HTTPDelegate, DefaultErrorHandler);
                     _HostnameNodes.Add(Hostname, _HostnameNode);
@@ -229,7 +221,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         internal HTTPDelegate GetHandler(HTTPRequest Request)
 
             => GetHandler(Request.Host ?? HTTPHostname.Any,
-                          Request.URI.IsNullOrEmpty() ? "/" : Request.URI,
+                          Request.URI.IsNullOrEmpty() ? HTTPURI.Parse("/") : Request.URI,
                           Request.HTTPMethod,
                           AvailableContentTypes => Request.Accept.BestMatchingContentType(AvailableContentTypes),
                           ParsedURIParameters   => Request.ParsedURIParameters = ParsedURIParameters.ToArray());
@@ -242,14 +234,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return the best matching method handler for the given parameters.
         /// </summary>
         internal HTTPDelegate GetHandler(HTTPHostname                              Host,
-                                         String                                    URI,
+                                         HTTPURI                                   URI,
                                          HTTPMethod                                HTTPMethod                   = null,
                                          Func<HTTPContentType[], HTTPContentType>  HTTPContentTypeSelector      = null,
                                          Action<IEnumerable<String>>               ParsedURIParametersDelegate  = null)
         {
 
             Host                     = Host                    ?? HTTPHostname.Any;
-            URI                      = URI.IsNullOrEmpty()      ? "/" : URI;
+            URI                      = URI.IsNullOrEmpty()      ? HTTPURI.Parse("/") : URI;
             HTTPMethod               = HTTPMethod              ?? HTTPMethod.GET;
             HTTPContentTypeSelector  = HTTPContentTypeSelector ?? (v => HTTPContentType.HTML_UTF8);
 
@@ -278,7 +270,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     in     _RegexList
                                     select new {
                                         URLNode = _RegexTupel.URLNode,
-                                        Match   = _RegexTupel.Regex.Match(URI)
+                                        Match   = _RegexTupel.Regex.Match(URI.ToString())
                                     };
 
                 var _Matches      = from    _Match
@@ -434,7 +426,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         internal HTTPEventSource AddEventSource(String                          EventIdentification,
-                                                String                          URITemplate,
+                                                HTTPURI                         URITemplate,
 
                                                 UInt32                          MaxNumberOfCachedEvents     = 500,
                                                 TimeSpan?                       RetryIntervall              = null,
@@ -458,9 +450,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Get or Create Event Source
 
-                HTTPEventSource _HTTPEventSource;
-
-                if (!_EventSources.TryGetValue(EventIdentification, out _HTTPEventSource))
+                if (!_EventSources.TryGetValue(EventIdentification, out HTTPEventSource _HTTPEventSource))
                     _HTTPEventSource = _EventSources.AddAndReturnValue(EventIdentification,
                                                                        new HTTPEventSource(EventIdentification,
                                                                                            MaxNumberOfCachedEvents,
