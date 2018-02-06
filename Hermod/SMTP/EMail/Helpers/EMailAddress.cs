@@ -142,7 +142,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             #region Initial checks
 
-            if (OwnerName.IsNullOrEmpty() || OwnerName.Trim().IsNullOrEmpty())
+            if (OwnerName.IsNotNullOrEmpty())
+                OwnerName = OwnerName.Trim();
+
+            if (OwnerName.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(OwnerName),  "The given OwnerName must not be null or empty!");
 
             #endregion
