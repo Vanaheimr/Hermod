@@ -77,7 +77,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         internal void AddHandler(HTTPDelegate        HTTPDelegate,
 
-                                 HTTPHostname        Hostname                    = null,
+                                 HTTPHostname?       Hostname                    = null,
                                  HTTPURI?            URITemplate                 = null,
                                  HTTPMethod          HTTPMethod                  = null,
                                  HTTPContentType     HTTPContentType             = null,
@@ -100,8 +100,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (HTTPDelegate == null)
                     throw new ArgumentNullException("HTTPDelegate", "The given parameter must not be null!");
 
-                if (Hostname == null)
-                    Hostname = HTTPHostname.Any;
+                var _Hostname = Hostname ?? HTTPHostname.Any;
 
                 if (HTTPMethod == null && HTTPContentType != null)
                     throw new ArgumentNullException("If HTTPMethod is null the HTTPContentType must also be null!");
@@ -110,10 +109,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region AddOrUpdate HostNode
 
-                if (!_HostnameNodes.TryGetValue(Hostname, out HostnameNode _HostnameNode))
+                if (!_HostnameNodes.TryGetValue(_Hostname, out HostnameNode _HostnameNode))
                 {
-                    _HostnameNode = new HostnameNode(Hostname, HostAuthentication, HTTPDelegate, DefaultErrorHandler);
-                    _HostnameNodes.Add(Hostname, _HostnameNode);
+                    _HostnameNode = new HostnameNode(_Hostname, HostAuthentication, HTTPDelegate, DefaultErrorHandler);
+                    _HostnameNodes.Add(_Hostname, _HostnameNode);
                 }
 
                 #endregion
@@ -154,7 +153,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         internal void ReplaceHandler(HTTPDelegate        HTTPDelegate,
 
-                                     HTTPHostname        Hostname                    = null,
+                                     HTTPHostname?       Hostname                    = null,
                                      HTTPURI?            URITemplate                 = null,
                                      HTTPMethod          HTTPMethod                  = null,
                                      HTTPContentType     HTTPContentType             = null,
@@ -176,8 +175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (HTTPDelegate == null)
                     throw new ArgumentNullException("HTTPDelegate", "The given parameter must not be null!");
 
-                if (Hostname == null)
-                    Hostname = HTTPHostname.Any;
+                var _Hostname = Hostname ?? HTTPHostname.Any;
 
                 if (HTTPMethod == null && HTTPContentType != null)
                     throw new ArgumentNullException("If HTTPMethod is null the HTTPContentType must also be null!");
@@ -186,10 +184,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region AddOrUpdate HostNode
 
-                if (!_HostnameNodes.TryGetValue(Hostname, out HostnameNode _HostnameNode))
+                if (!_HostnameNodes.TryGetValue(_Hostname, out HostnameNode _HostnameNode))
                 {
-                    _HostnameNode = new HostnameNode(Hostname, HostAuthentication, HTTPDelegate, DefaultErrorHandler);
-                    _HostnameNodes.Add(Hostname, _HostnameNode);
+                    _HostnameNode = new HostnameNode(_Hostname, HostAuthentication, HTTPDelegate, DefaultErrorHandler);
+                    _HostnameNodes.Add(_Hostname, _HostnameNode);
                 }
 
                 #endregion
@@ -220,7 +218,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Request">A HTTP request.</param>
         internal HTTPDelegate GetHandler(HTTPRequest Request)
 
-            => GetHandler(Request.Host ?? HTTPHostname.Any,
+            => GetHandler(Request.Host,
                           Request.URI.IsNullOrEmpty() ? HTTPURI.Parse("/") : Request.URI,
                           Request.HTTPMethod,
                           AvailableContentTypes => Request.Accept.BestMatchingContentType(AvailableContentTypes),
@@ -240,7 +238,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          Action<IEnumerable<String>>               ParsedURIParametersDelegate  = null)
         {
 
-            Host                     = Host                    ?? HTTPHostname.Any;
             URI                      = URI.IsNullOrEmpty()      ? HTTPURI.Parse("/") : URI;
             HTTPMethod               = HTTPMethod              ?? HTTPMethod.GET;
             HTTPContentTypeSelector  = HTTPContentTypeSelector ?? (v => HTTPContentType.HTML_UTF8);
@@ -433,7 +430,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                 Func<String, DateTime, String>  LogfileName                 = null,
                                                 String                          LogfileReloadSearchPattern  = null,
 
-                                                HTTPHostname                    Hostname                    = null,
+                                                HTTPHostname?                   Hostname                    = null,
                                                 HTTPMethod                      HTTPMethod                  = null,
                                                 HTTPContentType                 HTTPContentType             = null,
 

@@ -104,7 +104,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region TryParse(VersionString, out URI)
+        #region TryParse(Text, out URI)
 
         /// <summary>
         /// Try to parse the given text representation of a HTTP uniform resource identifier.
@@ -452,7 +452,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean Equals(HTTPURI HTTPURI)
         {
 
-            if ((Object) HTTPURI == null)
+            if ((Object) HTTPURI == null || InternalId == null)
                 return false;
 
             return InternalId.Equals(HTTPURI.InternalId);

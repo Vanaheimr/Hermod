@@ -876,7 +876,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               Func<String, DateTime, String>  LogfileName                 = null,
                                               String                          LogfileReloadSearchPattern  = null,
 
-                                              HTTPHostname                    Hostname                    = null,
+                                              HTTPHostname?                   Hostname                    = null,
                                               HTTPMethod                      HTTPMethod                  = null,
                                               HTTPContentType                 HTTPContentType             = null,
 
@@ -1925,7 +1925,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               Func<String, DateTime, String>  LogfileName                 = null,
                                               String                          LogfileReloadSearchPattern  = null,
 
-                                              HTTPHostname                    Hostname                    = null,
+                                              HTTPHostname?                   Hostname                    = null,
                                               HTTPMethod                      HTTPMethod                  = null,
                                               HTTPContentType                 HTTPContentType             = null,
 

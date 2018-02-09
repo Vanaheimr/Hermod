@@ -23,6 +23,7 @@ using System.Net.Security;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -35,12 +36,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
     public abstract class ASOAPClient : AHTTPClient
     {
 
+        #region Data
+
+        /// <summary>
+        /// The default URI prefix.
+        /// </summary>
+        protected static readonly HTTPURI DefaultURIPrefix  = HTTPURI.Parse("/");
+
+        #endregion
+
         #region Properties
 
         /// <summary>
         /// The default URI prefix.
         /// </summary>
-        public String                 URIPrefix          { get; }
+        public HTTPURI                URIPrefix          { get; }
 
         /// <summary>
         /// The WebService-Security username/password.
@@ -93,7 +103,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                               RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
                               LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
                               String                               HTTPVirtualHost              = null,
-                              String                               URIPrefix                    = null,
+                              HTTPURI?                             URIPrefix                    = null,
                               Tuple<String, String>                WSSLoginPassword             = null,
                               String                               UserAgent                    = DefaultHTTPUserAgent,
                               TimeSpan?                            RequestTimeout               = null,
@@ -113,7 +123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         {
 
-            this.URIPrefix         = URIPrefix.WhenNullOrEmpty("");
+            this.URIPrefix         = URIPrefix ?? DefaultURIPrefix;
             this.WSSLoginPassword  = WSSLoginPassword;
 
         }
