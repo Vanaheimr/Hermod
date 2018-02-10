@@ -173,6 +173,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public bool StartsWith(String value)
             => InternalId.StartsWith(value);
 
+        public bool StartsWith(HTTPURI value)
+            => InternalId.StartsWith(value.ToString());
+
 
         public bool EndsWith(String value)
             => InternalId.EndsWith(value);
@@ -182,6 +185,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public bool EndsWith(String value, bool ignoreCase, CultureInfo culture)
             => InternalId.EndsWith(value, ignoreCase, culture);
+
+        public bool EndsWith(HTTPURI value)
+            => InternalId.EndsWith(value.ToString());
 
 
         public Boolean IsNullOrEmpty()
@@ -389,10 +395,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Object == null)
                 throw new ArgumentNullException("The given object must not be null!");
 
-            if (!(Object is HTTPURI))
-                throw new ArgumentException("The given object is not a HTTP uniform resource identifier!");
+            if (Object is HTTPURI)
+                return CompareTo((HTTPURI) Object);
 
-            return CompareTo((HTTPURI) Object);
+            if (Object is String)
+                return InternalId.CompareTo((String) Object);
+
+            throw new ArgumentException("The given object is neither a HTTP uniform resource identifier, nor its text representation!");
 
         }
 
@@ -433,10 +442,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Object == null)
                 return false;
 
-            if (!(Object is HTTPURI))
-                return false;
+            if (Object is HTTPURI)
+                return Equals((HTTPURI) Object);
 
-            return Equals((HTTPURI) Object);
+            if (Object is String)
+                return InternalId.Equals((String) Object);
+
+            return false;
 
         }
 
