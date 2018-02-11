@@ -115,7 +115,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (TryParse(Text, out HTTPHostname Hostname))
                 return Hostname;
 
-            throw new ArgumentException("The given text is not a valid HTTP hostname!", nameof(Text));
+            throw new ArgumentException("The given text '" + Text + "' is not a valid HTTP hostname!", nameof(Text));
 
         }
 
