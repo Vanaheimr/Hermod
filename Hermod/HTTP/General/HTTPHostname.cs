@@ -165,6 +165,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var Parts = Text.Trim().Split(':');
 
+            if (Parts.Length == 1)
+            {
+                Hostname = new HTTPHostname(Parts[0], null);
+                return true;
+            }
+
             if (Parts.Length == 2)// || Parts[0].IsNullOrEmpty() || Parts[0].Trim().IsNullOrEmpty())
             {
 
