@@ -2074,6 +2074,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        //public void AddFilter(Func<HTTPRequest, HTTPResponse> p)
+        //{
+        //    throw new NotImplementedException();
+        //}
 
     }
 
