@@ -83,6 +83,8 @@
     <Compile Include="HTTP\Client\IHTTPClient.cs" />
     <Compile Include="HTTP\Client\JSONClient.cs" />
     <Compile Include="HTTP\Client\SOAPClient.cs" />
+    <Compile Include="HTTP\General\HTTPCookies.cs" />
+    <Compile Include="HTTP\General\HTTPCookieName.cs" />
     <Compile Include="HTTP\General\HTTPContentType.cs" />
     <Compile Include="HTTP\General\HTTPCookie.cs" />
     <Compile Include="HTTP\General\HTTPHostname.cs" />
