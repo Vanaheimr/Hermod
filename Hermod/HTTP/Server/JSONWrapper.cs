@@ -1050,14 +1050,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
-        public static Boolean ParseMandatory<T>(this JObject      JSONIn,
+        public static Boolean ParseMandatory<T>(this JObject      JSON,
                                                 String            PropertyName,
                                                 Func<String, T>   Mapper,
                                                 T                 InvalidResult,
                                                 out T             TOut)
         {
 
-            if (JSONIn == null ||
+            if (JSON == null ||
                 PropertyName.IsNullOrEmpty() ||
                 Mapper == null)
             {
@@ -1065,7 +1065,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return false;
             }
 
-            if (JSONIn.TryGetValue(PropertyName, out JToken _JToken) && _JToken?.Value<String>() != null)
+            if (JSON.TryGetValue(PropertyName, out JToken _JToken) && _JToken?.Value<String>() != null)
             {
 
                 try
@@ -1095,19 +1095,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         // Parse Optional
 
-        public static Boolean ParseOptional(this JObject  JSONIn,
+        public static Boolean ParseOptional(this JObject  JSON,
                                             String        PropertyName,
                                             out String    StringOut)
         {
 
-            if (JSONIn == null ||
+            if (JSON == null ||
                 PropertyName.IsNullOrEmpty())
             {
                 StringOut = String.Empty;
                 return false;
             }
 
-            if (JSONIn.TryGetValue(PropertyName, out JToken _JToken))
+            if (JSON.TryGetValue(PropertyName, out JToken _JToken))
             {
 
                 StringOut = _JToken?.Value<String>();
@@ -1125,19 +1125,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
 
-        public static Boolean ParseOptional(this JObject  JSONIn,
+        public static Boolean ParseOptional(this JObject  JSON,
                                             String        PropertyName,
                                             out Boolean?  BooleanOut)
         {
 
-            if (JSONIn == null ||
+            if (JSON == null ||
                 PropertyName.IsNullOrEmpty())
             {
                 BooleanOut = new Boolean?();
                 return false;
             }
 
-            if (JSONIn.TryGetValue(PropertyName, out JToken _JToken))
+            if (JSON.TryGetValue(PropertyName, out JToken _JToken))
             {
 
                 BooleanOut = _JToken?.Value<Boolean>();
@@ -1570,28 +1570,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 var JSONValue = JSONToken?.Value<String>();
 
-                if (JSONValue != null)
+                if (JSONValue == null)
                 {
-                    ErrorResponse = "Unknown " + PropertyDescription + "!";
-                    Value = default(TEnum);
-                    return false;
+                    ErrorResponse  = "Unknown " + PropertyDescription + "!";
+                    Value          = default(TEnum);
+                    return true;
                 }
 
                 if (!Enum.TryParse(JSONValue, true, out TEnum _Value))
                 {
-                    ErrorResponse = "Invalid " + PropertyDescription + "!";
-                    Value = default(TEnum);
-                    return false;
+                    ErrorResponse  = "Invalid " + PropertyDescription + "!";
+                    Value          = default(TEnum);
+                    return true;
                 }
 
-                Value         = _Value;
-                ErrorResponse = null;
+                Value          = _Value;
+                ErrorResponse  = null;
                 return true;
 
             }
 
-            Value         = default(TEnum);
-            ErrorResponse = null;
+            Value          = default(TEnum);
+            ErrorResponse  = null;
             return false;
 
         }
