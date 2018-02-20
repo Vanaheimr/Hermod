@@ -209,12 +209,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Initialize the multitenant HTTP server using the given parameters.
         /// </summary>
-        /// <param name="TCPPort">An IP port to listen on.</param>
+        /// <param name="TCPPort">The TCP port to listen on.</param>
         /// <param name="DefaultServerName">The default HTTP servername, used whenever no HTTP Host-header had been given.</param>
+        /// 
         /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
         /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
         /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
         /// <param name="AllowedTLSProtocols">The SSL/TLS protocol(s) allowed for this connection.</param>
+        /// 
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
@@ -224,14 +226,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ConnectionThreadsAreBackground">Whether the TCP connection threads are background threads or not (default: yes).</param>
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
+        /// 
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
         public HTTPServer(IPPort?                              TCPPort                            = null,
                           String                               DefaultServerName                  = HTTPServer.DefaultHTTPServerName,
+
                           ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
                           RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
                           LocalCertificateSelectionCallback    ClientCertificateSelector          = null,
                           SslProtocols                         AllowedTLSProtocols                = SslProtocols.Tls12,
+
                           String                               ServerThreadName                   = null,
                           ThreadPriority                       ServerThreadPriority               = ThreadPriority.AboveNormal,
                           Boolean                              ServerThreadIsBackground           = true,
@@ -241,6 +246,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           Boolean                              ConnectionThreadsAreBackground     = true,
                           TimeSpan?                            ConnectionTimeout                  = null,
                           UInt32                               MaxClientConnections               = TCPServer.__DefaultMaxClientConnections,
+
                           DNSClient                            DNSClient                          = null,
                           Boolean                              Autostart                          = false)
 
@@ -835,7 +841,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               TimeSpan?                       RetryIntervall  = null,
                                               Func<String, DateTime, String>  LogfileName     = null)
 
-
             => _HTTPServer.AddEventSource(EventIdentification,
                                           MaxNumberOfCachedEvents,
                                           RetryIntervall,
@@ -855,6 +860,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
         /// <param name="RetryIntervall">The retry intervall.</param>
         /// <param name="EnableLogging">Enables storing and reloading events </param>
+        /// <param name="LogfilePrefix">A prefix for the log file names or locations.</param>
         /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
         /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
         /// 
@@ -873,6 +879,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               UInt32                          MaxNumberOfCachedEvents     = 500,
                                               TimeSpan?                       RetryIntervall              = null,
                                               Boolean                         EnableLogging               = false,
+                                              String                          LogfilePrefix               = null,
                                               Func<String, DateTime, String>  LogfileName                 = null,
                                               String                          LogfileReloadSearchPattern  = null,
 
@@ -886,13 +893,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                               HTTPDelegate                    DefaultErrorHandler         = null)
 
-
             => _HTTPServer.AddEventSource(EventIdentification,
                                           URITemplate,
 
                                           MaxNumberOfCachedEvents,
                                           RetryIntervall,
                                           EnableLogging,
+                                          LogfilePrefix,
                                           LogfileName,
                                           LogfileReloadSearchPattern,
 
@@ -916,9 +923,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="EventSourceIdentification">A string to identify an event source.</param>
         public HTTPEventSource GetEventSource(String EventSourceIdentification)
-        {
-            return _HTTPServer.GetEventSource(EventSourceIdentification);
-        }
+            => _HTTPServer.GetEventSource(EventSourceIdentification);
 
         #endregion
 
@@ -932,12 +937,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Action">A delegate.</param>
         public void UseEventSource(String                   EventSourceIdentification,
                                    Action<HTTPEventSource>  Action)
-        {
 
-            _HTTPServer.UseEventSource(EventSourceIdentification,
-                                       Action);
-
-        }
+            => _HTTPServer.UseEventSource(EventSourceIdentification,
+                                          Action);
 
         #endregion
 
@@ -953,13 +955,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public void UseEventSource<T>(String                      EventSourceIdentification,
                                       IEnumerable<T>              DataSource,
                                       Action<HTTPEventSource, T>  Action)
-        {
 
-            _HTTPServer.UseEventSource(EventSourceIdentification,
-                                       DataSource,
-                                       Action);
-
-        }
+            => _HTTPServer.UseEventSource(EventSourceIdentification,
+                                          DataSource,
+                                          Action);
 
         #endregion
 
@@ -971,9 +970,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="EventSourceIdentification">A string to identify an event source.</param>
         /// <param name="EventSource">The event source.</param>
         public Boolean TryGetEventSource(String EventSourceIdentification, out HTTPEventSource EventSource)
-        {
-            return _HTTPServer.TryGetEventSource(EventSourceIdentification, out EventSource);
-        }
+            => _HTTPServer.TryGetEventSource(EventSourceIdentification, out EventSource);
 
         #endregion
 
@@ -983,9 +980,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// An enumeration of all event sources.
         /// </summary>
         public IEnumerable<HTTPEventSource> GetEventSources(Func<HTTPEventSource, Boolean> EventSourceSelector = null)
-        {
-            return _HTTPServer.GetEventSources(EventSourceSelector);
-        }
+            => _HTTPServer.GetEventSources(EventSourceSelector);
 
         #endregion
 
@@ -1129,12 +1124,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Initialize the HTTP server using the given parameters.
         /// </summary>
-        /// <param name="TCPPort">A TCP port to listen on.</param>
+        /// <param name="TCPPort">The TCP port to listen on.</param>
         /// <param name="DefaultServerName">The default HTTP servername, used whenever no HTTP Host-header had been given.</param>
+        /// 
         /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
         /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
         /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
         /// <param name="AllowedTLSProtocols">The SSL/TLS protocol(s) allowed for this connection.</param>
+        /// 
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
@@ -1144,14 +1141,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ConnectionThreadsAreBackground">Whether the TCP connection threads are background threads or not (default: yes).</param>
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
+        /// 
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
         public HTTPServer(IPPort?                              TCPPort                            = null,
                           String                               DefaultServerName                  = DefaultHTTPServerName,
+
                           ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
                           RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
                           LocalCertificateSelectionCallback    ClientCertificateSelector          = null,
                           SslProtocols                         AllowedTLSProtocols                = SslProtocols.Tls12,
+
                           String                               ServerThreadName                   = null,
                           ThreadPriority                       ServerThreadPriority               = ThreadPriority.AboveNormal,
                           Boolean                              ServerThreadIsBackground           = true,
@@ -1161,6 +1161,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           Boolean                              ConnectionThreadsAreBackground     = true,
                           TimeSpan?                            ConnectionTimeout                  = null,
                           UInt32                               MaxClientConnections               = TCPServer.__DefaultMaxClientConnections,
+
                           DNSClient                            DNSClient                          = null,
                           Boolean                              Autostart                          = false)
 
@@ -1904,6 +1905,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
         /// <param name="RetryIntervall">The retry intervall.</param>
         /// <param name="EnableLogging">Enables storing and reloading events </param>
+        /// <param name="LogfilePrefix">A prefix for the log file names or locations.</param>
         /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
         /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
         /// 
@@ -1922,6 +1924,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               UInt32                          MaxNumberOfCachedEvents     = 500,
                                               TimeSpan?                       RetryIntervall              = null,
                                               Boolean                         EnableLogging               = false,
+                                              String                          LogfilePrefix               = null,
                                               Func<String, DateTime, String>  LogfileName                 = null,
                                               String                          LogfileReloadSearchPattern  = null,
 
@@ -1942,9 +1945,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           MaxNumberOfCachedEvents,
                                           RetryIntervall,
                                           EnableLogging || LogfileName != null
-                                              ? LogfileName ?? ((eventid, time) => String.Concat(eventid, "_", time.Year, "-", time.Month.ToString("D2"), ".log"))
+                                              ? LogfileName ?? ((eventid, time) => String.Concat(LogfilePrefix ?? "",
+                                                                                                 eventid, "_",
+                                                                                                 time.Year, "-", time.Month.ToString("D2"),
+                                                                                                 ".log"))
                                               : null,
-                                          LogfileReloadSearchPattern ?? EventIdentification + "_*.log",
+                                          LogfileReloadSearchPattern ?? String.Concat(LogfilePrefix ?? "", EventIdentification, "_*.log"),
 
                                           Hostname,
                                           HTTPMethod,

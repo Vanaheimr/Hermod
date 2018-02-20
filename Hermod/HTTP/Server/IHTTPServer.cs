@@ -64,6 +64,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        UInt32                          MaxNumberOfCachedEvents     = 500,
                                        TimeSpan?                       RetryIntervall              = null,
                                        Boolean                         EnableLogging               = false,
+                                       String                          LogfilePrefix               = null,
                                        Func<String, DateTime, String>  LogfileName                 = null,
                                        String                          LogfileReloadSearchPattern  = null,
 
