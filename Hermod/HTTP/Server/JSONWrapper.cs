@@ -557,6 +557,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+
         #region ParseMandatory<TEnum>(this JSON, PropertyName, PropertyDescription,                               out EnumValue,              out ErrorResponse)
 
         public static Boolean ParseMandatory<TEnum>(this JObject  JSON,
@@ -645,6 +646,91 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
+
+
+        #region ParseMandatory(this JSON, PropertyName, PropertyDescription,                               out Single,              out ErrorResponse)
+
+        public static Boolean ParseMandatory(this JObject  JSON,
+                                             String        PropertyName,
+                                             String        PropertyDescription,
+                                             out Single    EnumValue,
+                                             out String    ErrorResponse)
+        {
+
+            EnumValue = default(Single);
+
+            if (JSON == null)
+            {
+                ErrorResponse = "Invalid JSON provided!";
+                return false;
+            }
+
+            if (PropertyName.IsNullOrEmpty() || PropertyName.Trim().IsNullOrEmpty())
+            {
+                ErrorResponse = "Invalid JSON property name provided!";
+                return false;
+            }
+
+            if (!JSON.TryGetValue(PropertyName, out JToken JSONToken))
+            {
+                ErrorResponse = "Missing JSON property '" + PropertyName + "'!";
+                return false;
+            }
+
+            if (JSONToken == null ||
+                !Single.TryParse(JSONToken.Value<String>(), out EnumValue))
+            {
+                ErrorResponse = "Invalid " + PropertyDescription ?? PropertyName + "!";
+                return false;
+            }
+
+            ErrorResponse = null;
+            return true;
+
+        }
+
+        #endregion
+
+        #region ParseMandatory<TEnum>(this JSON, PropertyName, PropertyDescription, DefaultServerName,            out Single, HTTPRequest, out HTTPResponse)
+
+        public static Boolean ParseMandatory(this JObject      JSON,
+                                             String            PropertyName,
+                                             String            PropertyDescription,
+                                             String            DefaultServerName,
+                                             out Single        EnumValue,
+                                             HTTPRequest       HTTPRequest,
+                                             out HTTPResponse  HTTPResponse)
+        {
+
+            var success = JSON.ParseMandatory(PropertyName,
+                                              PropertyDescription,
+                                              out EnumValue,
+                                              out String ErrorResponse);
+
+            if (ErrorResponse != null)
+            {
+
+                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                    Server          = DefaultServerName,
+                    Date            = DateTime.UtcNow,
+                    ContentType     = HTTPContentType.JSON_UTF8,
+                    Content         = JSONObject.Create(
+                                          new JProperty("description", ErrorResponse)
+                                      ).ToUTF8Bytes()
+                };
+
+                return false;
+
+            }
+
+            HTTPResponse = null;
+            return success;
+
+        }
+
+        #endregion
+
 
         #region ParseMandatory       (this JSON, PropertyName, PropertyDescription,                               out Timestamp,              out ErrorResponse)
 
