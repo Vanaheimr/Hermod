@@ -424,7 +424,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Call the optional HTTP request log delegate
 
-            DebugX.LogT("HTTPClient pre-logging (" + Request.URI + ")...");
+            //DebugX.LogT("HTTPClient pre-logging (" + Request.URI + ")...");
 
             try
             {
@@ -443,7 +443,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 e.Log(nameof(HTTPClient) + "." + nameof(RequestLogDelegate));
             }
 
-            DebugX.LogT("HTTPClient post-logging (" + Request.URI + ")...");
+            //DebugX.LogT("HTTPClient post-logging (" + Request.URI + ")...");
 
             #endregion
 
@@ -595,7 +595,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (RequestBodyLength > 0)
                     HTTPStream.Write(Request.HTTPBody, 0, RequestBodyLength);
 
-                DebugX.LogT("HTTPClient (" + Request.HTTPMethod + Request.URI + ") sent request of " + Request.EntirePDU.Length + " bytes at " + sw.ElapsedMilliseconds + "ms!");
+                //DebugX.LogT("HTTPClient (" + Request.HTTPMethod + " " + Request.URI + ") sent request of " + Request.EntirePDU.Length + " bytes at " + sw.ElapsedMilliseconds + "ms!");
 
                 var _InternalHTTPStream  = new MemoryStream();
 
@@ -614,7 +614,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 }
 
-                DebugX.LogT("HTTPClient (" + Request.HTTPMethod + Request.URI + ") got first response after " + sw.ElapsedMilliseconds + "ms!");
+                //DebugX.LogT("HTTPClient (" + Request.HTTPMethod + " " + Request.URI + ") got first response after " + sw.ElapsedMilliseconds + "ms!");
 
                 #endregion
 
