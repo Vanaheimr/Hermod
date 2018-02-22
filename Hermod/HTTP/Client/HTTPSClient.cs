@@ -76,12 +76,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            DNSClient                            DNSClient                  = null)
 
             : base(RemoteIPAddress,
-                   RemotePort     ?? DefaultHTTPSPort,
-                   RemoteCertificateValidator,
+                   RemotePort                 ?? DefaultHTTPSPort,
+                   RemoteCertificateValidator ?? throw new ArgumentNullException(nameof(RemoteCertificateValidator), "The given delegate for verifiying the remote SSL/TLS certificate must not be null!"),
                    LocalCertificateSelector,
                    ClientCert,
-                   UserAgent      ?? DefaultUserAgent,
-                   RequestTimeout ?? DefaultRequestTimeout,
+                   UserAgent                  ?? DefaultUserAgent,
+                   RequestTimeout             ?? DefaultRequestTimeout,
                    DNSClient)
 
         { }
@@ -109,11 +109,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            DNSClient                            DNSClient                  = null)
 
             : base(RemoteSocket,
-                   RemoteCertificateValidator,
+                   RemoteCertificateValidator ?? throw new ArgumentNullException(nameof(RemoteCertificateValidator), "The given delegate for verifiying the remote SSL/TLS certificate must not be null!"),
                    LocalCertificateSelector,
                    ClientCert,
-                   UserAgent      ?? DefaultUserAgent,
-                   RequestTimeout ?? DefaultRequestTimeout,
+                   UserAgent                  ?? DefaultUserAgent,
+                   RequestTimeout             ?? DefaultRequestTimeout,
                    DNSClient)
 
         { }
@@ -143,12 +143,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            DNSClient                            DNSClient                  = null)
 
             : base(RemoteHost,
-                   RemotePort     ?? DefaultHTTPSPort,
-                   RemoteCertificateValidator,
+                   RemotePort                 ?? DefaultHTTPSPort,
+                   RemoteCertificateValidator ?? throw new ArgumentNullException(nameof(RemoteCertificateValidator), "The given delegate for verifiying the remote SSL/TLS certificate must not be null!"),
                    LocalCertificateSelector,
                    ClientCert,
-                   UserAgent      ?? DefaultUserAgent,
-                   RequestTimeout ?? DefaultRequestTimeout,
+                   UserAgent                  ?? DefaultUserAgent,
+                   RequestTimeout             ?? DefaultRequestTimeout,
                    DNSClient)
 
         { }
