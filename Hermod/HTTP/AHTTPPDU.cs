@@ -454,14 +454,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Creates a new HTTP header.
         /// </summary>
-        public AHTTPPDU()
+        protected AHTTPPDU()
         {
-
             this.Timestamp                  = DateTime.UtcNow;
             this._HeaderFields              = new Dictionary<String,          Object>(StringComparer.OrdinalIgnoreCase);
             this._HeaderFields2             = new Dictionary<HTTPHeaderField, Object>();
             this.HTTPBodyReceiveBufferSize  = DefaultHTTPBodyReceiveBufferSize;
-
         }
 
         #endregion
@@ -480,15 +478,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPBodyReceiveBufferSize">The size of the HTTP body receive buffer.</param>
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
-        public AHTTPPDU(DateTime            Timestamp,
-                        IPSocket            RemoteSocket,
-                        IPSocket            LocalSocket,
-                        String              HTTPHeader,
-                        Byte[]              HTTPBody                    = null,
-                        Stream              HTTPBodyStream              = null,
-                        UInt32              HTTPBodyReceiveBufferSize   = DefaultHTTPBodyReceiveBufferSize,
-                        CancellationToken?  CancellationToken           = null,
-                        EventTracking_Id    EventTrackingId             = null)
+        protected AHTTPPDU(DateTime            Timestamp,
+                           IPSocket            RemoteSocket,
+                           IPSocket            LocalSocket,
+                           String              HTTPHeader,
+                           Byte[]              HTTPBody                    = null,
+                           Stream              HTTPBodyStream              = null,
+                           UInt32              HTTPBodyReceiveBufferSize   = DefaultHTTPBodyReceiveBufferSize,
+                           CancellationToken?  CancellationToken           = null,
+                           EventTracking_Id    EventTrackingId             = null)
 
             : this()
 
@@ -546,10 +544,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Creates a new HTTP header.
         /// </summary>
         /// <param name="HTTPPDU">Another HTTP PDU.</param>
-        public AHTTPPDU(AHTTPPDU  HTTPPDU)
-
+        protected AHTTPPDU(AHTTPPDU  HTTPPDU)
             : this()
-
         {
 
             this.Timestamp                  = HTTPPDU?.Timestamp         ?? DateTime.UtcNow;

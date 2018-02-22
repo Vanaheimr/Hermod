@@ -168,14 +168,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.List = new List<AcceptType>();
             var CurrentQuality = 1.0;
 
-            foreach (var AcceptString in AcceptsString.Split(new Char[2] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries).Reverse())
+            foreach (var AcceptString in AcceptsString.Split(new Char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
             {
 
-                if (AcceptString.StartsWith("q="))
-                    CurrentQuality = Double.Parse(AcceptString.Substring(2), CultureInfo.InvariantCulture);
+                //if (AcceptString.StartsWith("q="))
+                //    CurrentQuality = Double.Parse(AcceptString.Substring(2), CultureInfo.InvariantCulture);
 
-                else
-                    List.Add(new AcceptType(AcceptString, CurrentQuality));
+                //else
+                    List.Add(new AcceptType(AcceptString));
 
             }
 
@@ -252,7 +252,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (AvailableContentTypes.Contains(AcceptType.ContentType))
                     MatchingAcceptHeaders.Add(AcceptType.ContentType, AcceptType.Quality);
 
-                else if (AcceptType.ContentType.MediaType == "*/*")
+                else if (AcceptType.ContentType.ToString() == "*/*")
                     MatchingAcceptHeaders.Add(AcceptType.ContentType, AcceptType.Quality);
 
             }
@@ -269,11 +269,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                where  Matching.Quality == MaxQuality
                                select Matching;
 
-            if (BestMatches.Count() > 1)
+            if (BestMatches.Skip(1).Any())
                 BestMatches = from   Matching
                               in     MatchingAcceptHeaders
                               where  Matching.Quality == MaxQuality
-                              where  Matching.ContentType.MediaType != "*/*"
+                              where  Matching.ContentType.ToString() != "*/*"
                               select Matching;
 
 
@@ -313,7 +313,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (List.Count == 0)
                 return String.Empty;
 
-            return String.Join(",", List.Select(a => a.ContentType.MediaType.ToString() + ";q=" + a.Quality.ToString().Replace(',', '.')));
+            return String.Join(",", List.Select(a => a.ContentType + ";q=" + a.Quality.ToString().Replace(',', '.')));
 
         }
 

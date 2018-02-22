@@ -19,7 +19,7 @@
 
 using System;
 using System.Globalization;
-
+using System.Linq;
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -91,8 +91,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            this.ContentType  = HTTPContentType.ForMediaType(AcceptString, () => new HTTPContentType(AcceptString, "utf-8", null, null));
-            this.Quality      = Quality;
+            var _AcceptString  = AcceptString.Split('/');
+
+            this.ContentType   = HTTPContentType.ForMediaType(AcceptString, () => new HTTPContentType(_AcceptString[0], _AcceptString[1], "utf-8", null, null));
+            this.Quality       = Quality;
 
         }
 
@@ -109,24 +111,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.Quality = 1;
 
-            var SplittedAcceptString = AcceptString.Split(new Char[1] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+            var SplittedAcceptString  = AcceptString.Split(new Char[1] { ';' }, StringSplitOptions.RemoveEmptyEntries).Select(_ => _.Trim()).ToArray();
+            var MediaTypes            = SplittedAcceptString[0].Split('/');
+            var Charset               = Array.Find(SplittedAcceptString, part => part.StartsWith("charset=", StringComparison.OrdinalIgnoreCase));
+            var Quality               = Array.Find(SplittedAcceptString, part => part.StartsWith("q=",       StringComparison.OrdinalIgnoreCase));
 
-            switch (SplittedAcceptString.Length)
-            {
+            this.ContentType          = HTTPContentType.ForMediaType(AcceptString, () => new HTTPContentType(MediaTypes[0],
+                                                                                                             MediaTypes[1],
+                                                                                                             Charset.IsNotNullOrEmpty() ? Charset.Substring(8) : null,
+                                                                                                             null,
+                                                                                                             null));
 
-                case 1:
-                    ContentType  = HTTPContentType.ForMediaType(AcceptString, () => new HTTPContentType(AcceptString, "utf-8", null, null));
-                    Quality      = 1.0;
-                    break;
-
-                case 2:
-                    this.ContentType  = HTTPContentType.ForMediaType(AcceptString, () => new HTTPContentType(SplittedAcceptString[0], "utf-8", null, null));
-                    this.Quality      = Double.Parse(SplittedAcceptString[1].Substring(2));
-                    break;
-
-                default: throw new ArgumentException("Could not parse the given AcceptString!");
-
-            }
+            this.Quality              = Quality.IsNotNullOrEmpty() ? Double.Parse(Quality.Substring(2)) : 1.0;
 
         }
 
@@ -226,7 +222,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return true;
 
             if (ContentType.MediaSubType == "*" &&
-                ContentType.MediaTypePrefix.Equals(AcceptType.ContentType.MediaTypePrefix))
+                ContentType.MediaMainType.Equals(AcceptType.ContentType.MediaMainType))
                 return true;
 
             return false;

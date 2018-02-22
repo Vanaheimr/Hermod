@@ -390,7 +390,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             get
             {
-             //   return GetHeaderField<HTTPContentType>("Content-Type");
 
                 var _ContentType = GetHeaderField<HTTPContentType>("Content-Type");
                 if (_ContentType != null)
@@ -399,9 +398,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var _ContentTypeString = GetHeaderField<String>("Content-Type");
                 if (_ContentTypeString != null)
                 {
-                    _ContentType = new HTTPContentType(_ContentTypeString, "utf-8", null, null);
-                    SetHeaderField("Content-Type", _ContentType);
-                    return _ContentType;
+
+                    var __ContentTypeString = _ContentTypeString.Split('/');
+
+                    if (__ContentTypeString.Length == 2)
+                    {
+
+                        _ContentType = new HTTPContentType(__ContentTypeString[0],
+                                                           __ContentTypeString[1],
+                                                           "utf-8",
+                                                           null,
+                                                           null);
+
+                        SetHeaderField("Content-Type", _ContentType);
+
+                        return _ContentType;
+
+                    }
+
                 }
 
                 return null;

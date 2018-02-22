@@ -791,7 +791,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            Stream             HTTPBodyStream,
                            UInt32             HTTPBodyReceiveBufferSize  = DefaultHTTPBodyReceiveBufferSize)
 
-            : this(Timestamp, 
+            : this(Timestamp,
                    RemoteSocket,
                    LocalSocket,
                    HTTPServer,
