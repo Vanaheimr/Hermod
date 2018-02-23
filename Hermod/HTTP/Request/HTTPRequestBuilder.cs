@@ -94,12 +94,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region URI
 
-            private String _URI;
+            private HTTPURI _URI;
 
             /// <summary>
             /// The minimal URL (this means e.g. without the query string).
             /// </summary>
-            public String URI
+            public HTTPURI URI
             {
 
                 get
@@ -686,7 +686,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 this.HTTPStatusCode   = HTTPStatusCode.OK;
                 this.HTTPMethod       = HTTPMethod.GET;
-                this.URI              = "/";
+                this.URI              = HTTPURI.Parse("/");
                 this._QueryString     = QueryString.Empty;
                 SetHeaderField(HTTPHeaderField.Accept, new AcceptTypes());
                 this.ProtocolName     = "HTTP";
@@ -728,12 +728,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region (operator) HTTPRequestBuilder => HTTPRequestHeader
 
             /// <summary>
-            /// Declare an explicit conversion from a HTTPRequestBuilder to an HTTPRequestHeader
+            /// An implicit conversion from a HTTPRequestBuilder into a HTTPRequest.
             /// </summary>
             /// <param name="Builder">An HTTP request builder.</param>
             public static implicit operator HTTPRequest(Builder Builder)
-
-                => Builder.AsImmutable();
+                => Builder.AsImmutable;
 
             #endregion
 
@@ -744,7 +743,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// Set the HTTP method.
             /// </summary>
             /// <param name="URI">The new URI.</param>
-            public Builder SetURI(String URI)
+            public Builder SetURI(HTTPURI URI)
             {
                 this.URI = URI;
                 return this;
@@ -1425,8 +1424,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
             public Task<HTTPResponse> ExecuteReturnResult()
-
-                => this._HTTPClient?.Execute(AsImmutable());
+                => _HTTPClient?.Execute(AsImmutable);
 
 
             #region PrepareImmutability()
@@ -1442,22 +1440,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region AsImmutable()
+            #region AsImmutable
 
             /// <summary>
             /// Converts this HTTPRequestBuilder into an immutable HTTPRequest.
             /// </summary>
-            public HTTPRequest AsImmutable()
+            public HTTPRequest AsImmutable
             {
+                get
+                {
 
-                PrepareImmutability();
+                    PrepareImmutability();
 
-                var _HTTPRequest = new HTTPRequest(EntireRequestHeader, Content);
+                    return new HTTPRequest(EntireRequestHeader, Content) {
+                        FakeURIPrefix = FakeURIPrefix
+                    };
 
-                _HTTPRequest.FakeURIPrefix = this.FakeURIPrefix;
-
-                return _HTTPRequest;
-
+                }
             }
 
             #endregion

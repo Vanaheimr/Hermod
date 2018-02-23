@@ -86,7 +86,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The minimal URI (this means e.g. without the query string).
         /// </summary>
-        public String       URI                { get; }
+        public HTTPURI     URI                { get; }
 
         #endregion
 
@@ -532,8 +532,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Cookie
 
-        public HTTPCookie Cookie
-            => HTTPCookie.Parse(GetHeaderField(HTTPHeaderField.Cookie));
+        public HTTPCookies Cookies
+            => HTTPCookies.Parse(GetHeaderField(HTTPHeaderField.Cookie));
 
         #endregion
 
@@ -676,7 +676,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var RawUrl      = _HTTPMethodHeader[1];
             var _ParsedURL  = RawUrl.Split(_URLSeparator, 2, StringSplitOptions.None);
-            this.URI       = HttpUtility.UrlDecode(_ParsedURL[0]);
+            this.URI        = HTTPURI.Parse(HttpUtility.UrlDecode(_ParsedURL[0]));
 
             //if (URI.StartsWith("http", StringComparison.Ordinal) || URI.StartsWith("https", StringComparison.Ordinal))
             if (URI.Contains("://"))
@@ -686,7 +686,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
             if (URI == "" || URI == null)
-                URI = "/";
+                URI = HTTPURI.Parse("/");
 
             // Parse QueryString after '?'
             if (RawUrl.IndexOf('?') > -1 && _ParsedURL[1].IsNeitherNullNorEmpty())
@@ -704,7 +704,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (!String.Equals(ProtocolName, "HTTP", StringComparison.CurrentCultureIgnoreCase))
                 throw new Exception("Bad request");
 
-            if (HTTPVersion.TryParseVersionString(_ProtocolArray[1], out HTTPVersion _HTTPVersion))
+            if (HTTPVersion.TryParse(_ProtocolArray[1], out HTTPVersion _HTTPVersion))
                 this.ProtocolVersion  = _HTTPVersion;
 
             if (ProtocolVersion != HTTPVersion.HTTP_1_0 && ProtocolVersion != HTTPVersion.HTTP_1_1)
@@ -966,7 +966,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (override) ToString()
 
         /// <summary>
-        /// Returns a string representation of this object.
+        /// Returns a text representation of this object.
         /// </summary>
         /// <returns>A string representation of this object.</returns>
         public override String ToString()

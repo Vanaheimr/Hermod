@@ -1,11 +1,13 @@
 ﻿using System;
+using System.Net.Security;
+using System.Security.Authentication;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Threading.Tasks;
 
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using System.Security.Cryptography.X509Certificates;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
@@ -13,15 +15,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public interface IHTTPServer : IDisposable
     {
 
-        string DefaultServerName { get; }
-        HTTPSecurity HTTPSecurity { get; }
+        String                               DefaultServerName             { get; }
+        HTTPSecurity                         HTTPSecurity                  { get; }
 
-        DNSClient DNSClient { get; }
+        DNSClient                            DNSClient                     { get; }
 
         /// <summary>
-        /// The X509 certificate.
+        /// The optional delegate to select a SSL/TLS server certificate.
         /// </summary>
-        X509Certificate2 X509Certificate { get; }
+        ServerCertificateSelectorDelegate    ServerCertificateSelector     { get; }
+
+        /// <summary>
+        /// The optional delegate to verify the SSL/TLS client certificate used for authentication.
+        /// </summary>
+        RemoteCertificateValidationCallback  ClientCertificateValidator    { get; }
+
+        /// <summary>
+        /// The optional delegate to select the SSL/TLS client certificate used for authentication.
+        /// </summary>
+        LocalCertificateSelectionCallback    ClientCertificateSelector     { get; }
+
+        /// <summary>
+        /// The SSL/TLS protocol(s) allowed for this connection.
+        /// </summary>
+        SslProtocols                         AllowedTLSProtocols           { get; }
 
         /// <summary>
         /// Is the server already started?
@@ -42,15 +59,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         HTTPEventSource AddEventSource(String EventIdentification, uint MaxNumberOfCachedEvents, TimeSpan? RetryIntervall = default(TimeSpan?), Func<String, DateTime, String> LogfileName = null);
 
         HTTPEventSource AddEventSource(String                          EventIdentification,
-                                       String                          URITemplate,
+                                       HTTPURI                         URITemplate,
 
                                        UInt32                          MaxNumberOfCachedEvents     = 500,
                                        TimeSpan?                       RetryIntervall              = null,
                                        Boolean                         EnableLogging               = false,
+                                       String                          LogfilePrefix               = null,
                                        Func<String, DateTime, String>  LogfileName                 = null,
                                        String                          LogfileReloadSearchPattern  = null,
 
-                                       HTTPHostname                    Hostname                    = null,
+                                       HTTPHostname?                   Hostname                    = null,
                                        HTTPMethod                      HTTPMethod                  = null,
                                        HTTPContentType                 HTTPContentType             = null,
 
@@ -60,10 +78,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                        HTTPDelegate                    DefaultErrorHandler         = null);
 
-        void AddMethodCallback(HTTPHostname Hostname, HTTPMethod HTTPMethod, IEnumerable<string> URITemplates, HTTPContentType HTTPContentType = null, HTTPAuthentication HostAuthentication = null, HTTPAuthentication URIAuthentication = null, HTTPAuthentication HTTPMethodAuthentication = null, HTTPAuthentication ContentTypeAuthentication = null, HTTPDelegate HTTPDelegate = null, URIReplacement AllowReplacement = URIReplacement.Fail);
-        void AddMethodCallback(HTTPHostname Hostname, HTTPMethod HTTPMethod, IEnumerable<string> URITemplates, IEnumerable<HTTPContentType> HTTPContentTypes, HTTPAuthentication HostAuthentication = null, HTTPAuthentication URIAuthentication = null, HTTPAuthentication HTTPMethodAuthentication = null, HTTPAuthentication ContentTypeAuthentication = null, HTTPDelegate HTTPDelegate = null, URIReplacement AllowReplacement = URIReplacement.Fail);
-        void AddMethodCallback(HTTPHostname Hostname, HTTPMethod HTTPMethod, string URITemplate, HTTPContentType HTTPContentType = null, HTTPAuthentication HostAuthentication = null, HTTPAuthentication URIAuthentication = null, HTTPAuthentication HTTPMethodAuthentication = null, HTTPAuthentication ContentTypeAuthentication = null, HTTPDelegate HTTPDelegate = null, URIReplacement AllowReplacement = URIReplacement.Fail);
-        void AddMethodCallback(HTTPHostname Hostname, HTTPMethod HTTPMethod, string URITemplate, IEnumerable<HTTPContentType> HTTPContentTypes, HTTPAuthentication HostAuthentication = null, HTTPAuthentication URIAuthentication = null, HTTPAuthentication HTTPMethodAuthentication = null, HTTPAuthentication ContentTypeAuthentication = null, HTTPDelegate HTTPDelegate = null, URIReplacement AllowReplacement = URIReplacement.Fail);
+        void AddMethodCallback(HTTPHostname Hostname, HTTPMethod HTTPMethod, IEnumerable<HTTPURI> URITemplates, HTTPContentType HTTPContentType = null, HTTPAuthentication HostAuthentication = null, HTTPAuthentication URIAuthentication = null, HTTPAuthentication HTTPMethodAuthentication = null, HTTPAuthentication ContentTypeAuthentication = null, HTTPDelegate HTTPDelegate = null, URIReplacement AllowReplacement = URIReplacement.Fail);
+        void AddMethodCallback(HTTPHostname Hostname, HTTPMethod HTTPMethod, IEnumerable<HTTPURI> URITemplates, IEnumerable<HTTPContentType> HTTPContentTypes, HTTPAuthentication HostAuthentication = null, HTTPAuthentication URIAuthentication = null, HTTPAuthentication HTTPMethodAuthentication = null, HTTPAuthentication ContentTypeAuthentication = null, HTTPDelegate HTTPDelegate = null, URIReplacement AllowReplacement = URIReplacement.Fail);
+        void AddMethodCallback(HTTPHostname Hostname, HTTPMethod HTTPMethod, HTTPURI URITemplate, HTTPContentType HTTPContentType = null, HTTPAuthentication HostAuthentication = null, HTTPAuthentication URIAuthentication = null, HTTPAuthentication HTTPMethodAuthentication = null, HTTPAuthentication ContentTypeAuthentication = null, HTTPDelegate HTTPDelegate = null, URIReplacement AllowReplacement = URIReplacement.Fail);
+        void AddMethodCallback(HTTPHostname Hostname, HTTPMethod HTTPMethod, HTTPURI URITemplate, IEnumerable<HTTPContentType> HTTPContentTypes, HTTPAuthentication HostAuthentication = null, HTTPAuthentication URIAuthentication = null, HTTPAuthentication HTTPMethodAuthentication = null, HTTPAuthentication ContentTypeAuthentication = null, HTTPDelegate HTTPDelegate = null, URIReplacement AllowReplacement = URIReplacement.Fail);
         IHTTPServer AttachTCPPort(IPPort Port);
         IHTTPServer AttachTCPPorts(params IPPort[] Ports);
         IHTTPServer AttachTCPSocket(IPSocket Socket);
@@ -74,8 +92,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         HTTPEventSource GetEventSource(string EventSourceIdentification);
         IEnumerable<HTTPEventSource> GetEventSources(Func<HTTPEventSource, bool> EventSourceSelector = null);
         Task<HTTPResponse> InvokeHandler(HTTPRequest Request);
-        void Redirect(HTTPHostname Hostname, HTTPMethod HTTPMethod, string URITemplate, HTTPContentType HTTPContentType, string URITarget);
-        void Redirect(HTTPMethod HTTPMethod, string URITemplate, HTTPContentType HTTPContentType, string URITarget);
+        void Redirect(HTTPHostname Hostname, HTTPMethod HTTPMethod, HTTPURI URITemplate, HTTPContentType HTTPContentType, HTTPURI URITarget);
+        void Redirect(HTTPMethod HTTPMethod, HTTPURI URITemplate, HTTPContentType HTTPContentType, HTTPURI URITarget);
 
         void AddFilter(HTTPFilter1Delegate Filter);
         void AddFilter(HTTPFilter2Delegate Filter);

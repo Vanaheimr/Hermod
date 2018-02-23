@@ -452,25 +452,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         #endregion
 
 
-        #region Send(MailBuilder, NumberOfRetries = 3, AutoStart = true)
-
-        //public Task<MailSentStatus> Send(AbstractEMailBuilder  MailBuilder,
-        //                                 Byte                  NumberOfRetries  = 3,
-        //                                 Boolean               AutoStart        = true)
-        //{
-        //    return Send(MailBuilder.AsImmutable, NumberOfRetries);
-        //}
-
-        #endregion
-
         #region Send(EMail, NumberOfRetries = 3, AutoStart = true)
 
         public Task<MailSentStatus> Send(EMail    EMail,
                                          Byte     NumberOfRetries  = 3,
                                          Boolean  AutoStart        = true)
-        {
-            return Send(new EMailEnvelop(EMail), NumberOfRetries);
-        }
+
+            => Send(new EMailEnvelop(EMail),
+                    NumberOfRetries,
+                    AutoStart);
 
         #endregion
 

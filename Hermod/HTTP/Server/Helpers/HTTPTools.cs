@@ -40,7 +40,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPRequest">The HTTP request.</param>
         /// <param name="Location">The location of the redirect.</param>
         public static HTTPResponse MovedPermanently(HTTPRequest  HTTPRequest,
-                                                    String       Location)
+                                                    HTTPURI      Location)
         {
 
             #region Initial checks
@@ -69,7 +69,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPRequest">The HTTP request.</param>
         /// <param name="Location">The location of the redirect.</param>
         public static HTTPResponse MovedTemporarily(HTTPRequest  HTTPRequest,
-                                                    String       Location)
+                                                    HTTPURI      Location)
         {
 
             #region Initial checks

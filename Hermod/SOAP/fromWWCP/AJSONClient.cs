@@ -65,7 +65,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="Hostname">The hostname to connect to.</param>
         /// <param name="RemotePort">The remote TCP port to connect to.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
-        /// <param name="ClientCert">The TLS client certificate to use.</param>
+        /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="HTTPVirtualHost">An optional HTTP virtual host name to use.</param>
         /// <param name="UserAgent">An optional HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional timeout for upstream queries.</param>
@@ -75,8 +75,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                            String                               Hostname,
                            IPPort                               RemotePort,
                            RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
-                           LocalCertificateSelectionCallback    LocalCertificateSelector     = null,
-                           X509Certificate                      ClientCert                   = null,
+                           LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
                            String                               HTTPVirtualHost              = null,
                            String                               UserAgent                    = DefaultHTTPUserAgent,
                            TimeSpan?                            RequestTimeout               = null,
@@ -87,8 +86,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                    Hostname,
                    RemotePort,
                    RemoteCertificateValidator,
-                   LocalCertificateSelector,
-                   ClientCert,
+                   ClientCertificateSelector,
                    HTTPVirtualHost,
                    UserAgent,
                    RequestTimeout,

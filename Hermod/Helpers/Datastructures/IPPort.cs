@@ -27,25 +27,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <summary>
     /// An IP port.
     /// </summary>
-    public class IPPort : IEquatable<IPPort>,
-                          IComparable<IPPort>,
-                          IComparable
+    public struct IPPort : IEquatable<IPPort>,
+                           IComparable<IPPort>,
+                           IComparable
     {
 
         #region Data
 
-        private readonly UInt16 _IPPort;
+        private readonly UInt16 InternalId;
 
         #endregion
 
         #region Constructor(s)
 
         /// <summary>
-        /// Creates a new IPPort.
+        /// Create a new IP port.
         /// </summary>
-        public IPPort(UInt16 Port)
+        /// <param name="Port">An IP port number.</param>
+        private IPPort(UInt16 Port)
         {
-            this._IPPort = Port;
+            this.InternalId = Port;
         }
 
         #endregion
@@ -53,72 +54,154 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region /etc/services
 
-        public static readonly IPPort SSH    = new IPPort(22);
-        public static readonly IPPort TELNET = new IPPort(23);
-        public static readonly IPPort HTTP   = new IPPort(80);
-        public static readonly IPPort HTTPS  = new IPPort(443);
+        /// <summary>
+        /// SSH.
+        /// </summary>
+        public static readonly IPPort SSH       = new IPPort(22);
+
+        /// <summary>
+        /// TELNET.
+        /// </summary>
+        public static readonly IPPort TELNET    = new IPPort(23);
+
+        /// <summary>
+        /// SMTP.
+        /// </summary>
+        public static readonly IPPort SMTP      = new IPPort(25);
+
+        /// <summary>
+        /// DNS.
+        /// </summary>
+        public static readonly IPPort DNS       = new IPPort(53);
+
+        /// <summary>
+        /// HTTP.
+        /// </summary>
+        public static readonly IPPort HTTP      = new IPPort(80);
+
+        /// <summary>
+        /// HTTPS.
+        /// </summary>
+        public static readonly IPPort HTTPS     = new IPPort(443);
 
         #endregion
 
 
-        #region (static) Parse(UInt16)
+        #region (static) Parse   (Number)
 
         /// <summary>
-        /// Return the IPPort for the given UInt16.
+        /// Parse the given numeric representation of an IP port.
         /// </summary>
-        public static IPPort Parse(UInt16 UInt16)
+        /// <param name="Number">A numeric representation of an IP port to parse.</param>
+        public static IPPort Parse(UInt16 Number)
+            => new IPPort(Number);
 
-            => new IPPort(UInt16);
+
+        /// <summary>
+        /// Parse the given numeric representation of an IP port.
+        /// </summary>
+        /// <param name="Number">A numeric representation of an IP port to parse.</param>
+        public static IPPort Parse(Int32 Number)
+            => new IPPort((UInt16) Number);
 
         #endregion
 
-        #region (static) Parse(Int32)
+        #region (static) TryParse(Number)
 
         /// <summary>
-        /// Return the IPPort for the given UInt16.
+        /// Try to parse the given numeric representation of an IP port.
         /// </summary>
-        public static IPPort Parse(Int32 Int32)
+        /// <param name="Number">A numeric representation of an IP port to parse.</param>
+        public static IPPort? TryParse(UInt16 Number)
+        {
 
-            => new IPPort((UInt16) Int32);
+            if (TryParse(Number, out IPPort Port))
+                return Port;
+
+            return new IPPort?();
+
+        }
+
+        /// <summary>
+        /// Try to parse the given numeric representation of an IP port.
+        /// </summary>
+        /// <param name="Number">A numeric representation of an IP port to parse.</param>
+        public static IPPort? TryParse(Int32 Number)
+        {
+
+            if (TryParse(Number, out IPPort Port))
+                return Port;
+
+            return new IPPort?();
+
+        }
 
         #endregion
 
-        #region (static) Parse(String)
+        #region (static) TryParse(Number, out IPPort)
 
         /// <summary>
-        /// Return the IPPort for the given String.
+        /// Try to parse the given numeric representation of an IP port.
         /// </summary>
+        /// <param name="Number">A numeric representation of an IP port to parse.</param>
+        /// <param name="IPPort">The parsed IP port.</param>
+        public static Boolean TryParse(UInt16 Number, out IPPort IPPort)
+        {
+            IPPort = new IPPort(Number);
+            return true;
+        }
+
+        /// <summary>
+        /// Try to parse the given numeric representation of an IP port.
+        /// </summary>
+        /// <param name="Number">A numeric representation of an IP port to parse.</param>
+        /// <param name="IPPort">The parsed IP port.</param>
+        public static Boolean TryParse(Int32 Number, out IPPort IPPort)
+        {
+
+            try
+            {
+                IPPort = new IPPort((UInt16) Number);
+            }
+            catch (Exception)
+            {
+                IPPort = default(IPPort);
+                return false;
+            }
+
+            return true;
+
+        }
+
+        #endregion
+
+
+        #region (static) Parse   (String)
+
+        /// <summary>
+        /// Parse the given text representation of an IP port.
+        /// </summary>
+        /// <param name="String">A text representation of an IP port to parse.</param>
         public static IPPort Parse(String String)
 
             => new IPPort(UInt16.Parse(String));
 
         #endregion
 
-
-        #region (static) TryParse(UInt16, out IPPort)
-
-        /// <summary>
-        /// Return the IPPort for the given UInt16.
-        /// </summary>
-        /// <param name="UInt16">The UInt16 to parse.</param>
-        public static Boolean TryParse(UInt16 UInt16, out IPPort IPPort)
-        {
-            IPPort = new IPPort(UInt16);
-            return true;
-        }
-
-        #endregion
-
-        #region (static) TryParse(Int32, out IPPort)
+        #region (static) TryParse(String)
 
         /// <summary>
-        /// Return the IPPort for the given UInt16.
+        /// Try to parse the given text representation of an IP port.
         /// </summary>
-        /// <param name="Int32">The Int32 to parse.</param>
-        public static Boolean TryParse(Int32 Int32, out IPPort IPPort)
+        /// <param name="String">A text representation of an IP port to parse.</param>
+        public static IPPort? TryParse(String String)
         {
-            IPPort = new IPPort((UInt16) Int32);
-            return true;
+
+            if (TryParse(String, out IPPort Port))
+                return Port;
+
+            return new IPPort?();
+
         }
 
         #endregion
@@ -126,22 +209,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region (static) TryParse(String, out IPPort)
 
         /// <summary>
-        /// Return the IPPort for the given String.
+        /// Try to parse the given text representation of an IP port.
         /// </summary>
-        /// <param name="String">The string to parse.</param>
-        /// <param name="IPPort">The result.</param>
+        /// <param name="String">A text representation of an IP port to parse.</param>
+        /// <param name="IPPort">The parsed IP port.</param>
         public static Boolean TryParse(String String, out IPPort IPPort)
         {
 
-            UInt16 Port;
-
-            if (UInt16.TryParse(String, out Port))
+            if (UInt16.TryParse(String, out UInt16 Port))
             {
                 IPPort = new IPPort(Port);
                 return true;
             }
 
-            IPPort = null;
+            IPPort = default(IPPort);
             return false;
 
         }
@@ -152,147 +233,133 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region ToUInt16()
 
         /// <summary>
-        /// Returns the IPPort as UInt16.
+        /// Returns a numeric representation of an IP port.
         /// </summary>
         public UInt16 ToUInt16()
-        {
-            return _IPPort;
-        }
+            =>InternalId;
 
         #endregion
 
         #region ToInt32()
 
         /// <summary>
-        /// Returns the IPPort as Int32.
+        /// Returns a numeric representation of an IP port.
         /// </summary>
         public Int32 ToInt32()
-        {
-            return _IPPort;
-        }
+            => InternalId;
 
         #endregion
 
 
         #region Operator overloading
 
-        #region Operator == (myIPPort1, myIPPort2)
+        #region Operator == (IPPort1, IPPort2)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="myIPPort1">A IPPort.</param>
-        /// <param name="myIPPort2">Another IPPort.</param>
+        /// <param name="IPPort1">An IP port.</param>
+        /// <param name="IPPort2">Another IP port.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (IPPort myIPPort1, IPPort myIPPort2)
+        public static Boolean operator == (IPPort IPPort1, IPPort IPPort2)
         {
 
             // If both are null, or both are same instance, return true.
-            if (Object.ReferenceEquals(myIPPort1, myIPPort2))
+            if (Object.ReferenceEquals(IPPort1, IPPort2))
                 return true;
 
             // If one is null, but not both, return false.
-            if (((Object) myIPPort1 == null) || ((Object) myIPPort2 == null))
+            if (((Object) IPPort1 == null) || ((Object) IPPort2 == null))
                 return false;
 
-            return myIPPort1.Equals(myIPPort2);
+            return IPPort1.Equals(IPPort2);
 
         }
 
         #endregion
 
-        #region Operator != (myIPPort1, myIPPort2)
+        #region Operator != (IPPort1, IPPort2)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="myIPPort1">A IPPort.</param>
-        /// <param name="myIPPort2">Another IPPort.</param>
+        /// <param name="IPPort1">An IP port.</param>
+        /// <param name="IPPort2">Another IP port.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator != (IPPort myIPPort1, IPPort myIPPort2)
-        {
-            return !(myIPPort1 == myIPPort2);
-        }
+        public static Boolean operator != (IPPort IPPort1, IPPort IPPort2)
+            => !(IPPort1 == IPPort2);
 
         #endregion
 
-        #region Operator <  (myIPPort1, myIPPort2)
+        #region Operator <  (IPPort1, IPPort2)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="myIPPort1">A IPPort.</param>
-        /// <param name="myIPPort2">Another IPPort.</param>
+        /// <param name="IPPort1">An IP port.</param>
+        /// <param name="IPPort2">Another IP port.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator < (IPPort myIPPort1, IPPort myIPPort2)
+        public static Boolean operator < (IPPort IPPort1, IPPort IPPort2)
         {
 
-            // Check if myIPPort1 is null
-            if ((Object) myIPPort1 == null)
-                throw new ArgumentNullException("Parameter myIPPort1 must not be null!");
+            if ((Object) IPPort1 == null)
+                throw new ArgumentNullException("Parameter IPPort1 must not be null!");
 
-            // Check if myIPPort2 is null
-            if ((Object) myIPPort2 == null)
-                throw new ArgumentNullException("Parameter myIPPort2 must not be null!");
+            if ((Object) IPPort2 == null)
+                throw new ArgumentNullException("Parameter IPPort2 must not be null!");
 
-            return myIPPort1.CompareTo(myIPPort2) < 0;
+            return IPPort1.CompareTo(IPPort2) < 0;
 
         }
 
         #endregion
 
-        #region Operator >  (myIPPort1, myIPPort2)
+        #region Operator >  (IPPort1, IPPort2)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="myIPPort1">A IPPort.</param>
-        /// <param name="myIPPort2">Another IPPort.</param>
+        /// <param name="IPPort1">An IP port.</param>
+        /// <param name="IPPort2">Another IP port.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator > (IPPort myIPPort1, IPPort myIPPort2)
+        public static Boolean operator > (IPPort IPPort1, IPPort IPPort2)
         {
 
-            // Check if myIPPort1 is null
-            if ((Object) myIPPort1 == null)
-                throw new ArgumentNullException("Parameter myIPPort1 must not be null!");
+            if ((Object) IPPort1 == null)
+                throw new ArgumentNullException("Parameter IPPort1 must not be null!");
 
-            // Check if myIPPort2 is null
-            if ((Object) myIPPort2 == null)
-                throw new ArgumentNullException("Parameter myIPPort2 must not be null!");
+            if ((Object) IPPort2 == null)
+                throw new ArgumentNullException("Parameter IPPort2 must not be null!");
 
-            return myIPPort1.CompareTo(myIPPort2) > 0;
+            return IPPort1.CompareTo(IPPort2) > 0;
 
         }
 
         #endregion
 
-        #region Operator <= (myIPPort1, myIPPort2)
+        #region Operator <= (IPPort1, IPPort2)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="myIPPort1">A IPPort.</param>
-        /// <param name="myIPPort2">Another IPPort.</param>
+        /// <param name="IPPort1">An IP port.</param>
+        /// <param name="IPPort2">Another IP port.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator <= (IPPort myIPPort1, IPPort myIPPort2)
-        {
-            return !(myIPPort1 > myIPPort2);
-        }
+        public static Boolean operator <= (IPPort IPPort1, IPPort IPPort2)
+            => !(IPPort1 > IPPort2);
 
         #endregion
 
-        #region Operator >= (myIPPort1, myIPPort2)
+        #region Operator >= (IPPort1, IPPort2)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="myIPPort1">A IPPort.</param>
-        /// <param name="myIPPort2">Another IPPort.</param>
+        /// <param name="IPPort1">An IP port.</param>
+        /// <param name="IPPort2">Another IP port.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator >= (IPPort myIPPort1, IPPort myIPPort2)
-        {
-            return !(myIPPort1 < myIPPort2);
-        }
+        public static Boolean operator >= (IPPort IPPort1, IPPort IPPort2)
+            => !(IPPort1 < IPPort2);
 
         #endregion
 
@@ -313,12 +380,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (Object == null)
                 throw new ArgumentNullException("The given Object must not be null!");
 
-            // Check if myObject can be casted to an IPPort object
-            var _IPPort = Object as IPPort;
-            if ((Object) _IPPort == null)
-                throw new ArgumentException("The given Object is an IPPort!");
+            if (!(Object is IPPort))
+                throw new ArgumentException("The given Object is an IP port!");
 
-            return CompareTo(_IPPort);
+            return CompareTo((IPPort) Object);
 
         }
 
@@ -335,9 +400,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         {
 
             if ((Object) IPPort == null)
-                throw new ArgumentNullException("The given IPPort must not be null!");
+                throw new ArgumentNullException("The given IP port must not be null!");
 
-            return IPPort.CompareTo(IPPort._IPPort);
+            return IPPort.InternalId.CompareTo(IPPort.InternalId);
 
         }
 
@@ -360,18 +425,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (Object == null)
                 throw new ArgumentNullException("The given Object must not be null!");
 
-            // Check if myObject can be cast to IPPort
-            var _IPPort = Object as IPPort;
-            if ((Object) _IPPort == null)
-                throw new ArgumentException("The given Object is not an IPPort!");
+            if (!(Object is IPPort))
+                throw new ArgumentException("The given Object is not an IP port!");
 
-            return this.Equals(_IPPort);
+            return Equals((IPPort) Object);
 
         }
 
         #endregion
 
-        #region Equals(myIPPort)
+        #region Equals(IPPort)
 
         /// <summary>
         /// Compares two instances of this object.
@@ -384,7 +447,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if ((Object) IPPort == null)
                 throw new ArgumentNullException("The given IPPort must not be null!");
 
-            return _IPPort.Equals(IPPort._IPPort);
+            return InternalId.Equals(IPPort.InternalId);
 
         }
 
@@ -399,22 +462,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
-        {
-            return _IPPort;
-        }
+            => InternalId;
 
         #endregion
 
         #region (override) ToString()
 
         /// <summary>
-        /// Returns a string representation of this object.
+        /// Returns a text representation of this object.
         /// </summary>
         /// <returns>A string representation of this object.</returns>
         public override String ToString()
-        {
-            return _IPPort.ToString();
-        }
+            => InternalId.ToString();
 
         #endregion
 

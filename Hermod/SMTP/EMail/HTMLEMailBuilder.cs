@@ -212,8 +212,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         #endregion
 
 
+        #region (implicit operator) HTMLEMailBuilder => EMail
+
+        /// <summary>
+        /// An implicit conversion of a HTTPEMailBuilder into an EMail.
+        /// </summary>
+        /// <param name="HTMLEMailBuilder">A HTML e-mail builder.</param>
         public static implicit operator EMail(HTMLEMailBuilder HTMLEMailBuilder)
             => HTMLEMailBuilder.AsImmutable;
+
+        #endregion
 
     }
 

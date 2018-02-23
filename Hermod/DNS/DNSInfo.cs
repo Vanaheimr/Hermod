@@ -31,89 +31,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Properties
 
-        #region QueryId
+        /// <summary>
+        /// The source of the DNS information.
+        /// </summary>
+        public IPSocket          Origin                { get; }
 
-        private readonly Int32 _QueryId;
+        public Int32             QueryId               { get; }
 
-        public Int32 QueryId
-        {
-            get
-            {
-                return _QueryId;
-            }
-        }
+        public Boolean           AuthorativeAnswer     { get; }
 
-        #endregion
+        public Boolean           IsTruncated           { get; }
 
-        #region AuthorativeAnswer
+        public Boolean           RecursionRequested    { get; }
 
-        private readonly Boolean _AuthorativeAnswer;
+        public Boolean           RecursionAvailable    { get; }
 
-        public Boolean AuthorativeAnswer
-        {
-            get
-            {
-                return _AuthorativeAnswer;
-            }
-        }
-
-        #endregion
-
-        #region IsTruncated
-
-        private readonly Boolean _IsTruncated;
-
-        public Boolean IsTruncated
-        {
-            get
-            {
-                return _IsTruncated;
-            }
-        }
-
-        #endregion
-
-        #region RecursionRequested
-
-        private readonly Boolean _RecursionDesired;
-
-        public Boolean RecursionRequested
-        {
-            get
-            {
-                return _RecursionDesired;
-            }
-        }
-
-        #endregion
-
-        #region RecursionAvailable
-
-        private readonly Boolean _RecursionAvailable;
-
-        public Boolean RecursionAvailable
-        {
-            get
-            {
-                return _RecursionAvailable;
-            }
-        }
-
-        #endregion
-
-        #region ResponseCode
-
-        private readonly DNSResponseCodes _ResponseCode;
-
-        public DNSResponseCodes ResponseCode
-        {
-            get
-            {
-                return _ResponseCode;
-            }
-        }
-
-        #endregion
+        public DNSResponseCodes  ResponseCode          { get; }
 
 
         #region Answers
@@ -158,24 +91,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-
-        #region Origin
-
-        private readonly IPSocket _Origin;
-
-        /// <summary>
-        /// The source of the DNS information.
-        /// </summary>
-        public IPSocket Origin
-        {
-            get
-            {
-                return _Origin;
-            }
-        }
-
-        #endregion
-
         #endregion
 
         #region Constructor(s)
@@ -192,13 +107,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        IEnumerable<ADNSResourceRecord>  AdditionalRecords)
         {
 
-            this._Origin              = Origin;
-            this._QueryId             = QueryId;
-            this._AuthorativeAnswer   = IsAuthorativeAnswer;
-            this._IsTruncated         = IsTruncated;
-            this._RecursionDesired    = RecursionDesired;
-            this._RecursionAvailable  = RecursionAvailable;
-            this._ResponseCode        = ResponseCode;
+            this.Origin               = Origin;
+            this.QueryId              = QueryId;
+            this.AuthorativeAnswer    = IsAuthorativeAnswer;
+            this.IsTruncated          = IsTruncated;
+            this.RecursionRequested   = RecursionDesired;
+            this.RecursionAvailable   = RecursionAvailable;
+            this.ResponseCode         = ResponseCode;
 
             this._Answers             = new List<ADNSResourceRecord>(Answers);
             this._Authorities         = new List<ADNSResourceRecord>(Authorities);

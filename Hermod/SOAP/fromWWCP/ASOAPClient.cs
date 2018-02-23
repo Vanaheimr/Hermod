@@ -20,10 +20,10 @@
 using System;
 using System.Xml.Linq;
 using System.Net.Security;
-using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -36,12 +36,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
     public abstract class ASOAPClient : AHTTPClient
     {
 
+        #region Data
+
+        /// <summary>
+        /// The default URI prefix.
+        /// </summary>
+        protected static readonly HTTPURI DefaultURIPrefix  = HTTPURI.Parse("/");
+
+        #endregion
+
         #region Properties
 
         /// <summary>
         /// The default URI prefix.
         /// </summary>
-        public String                 URIPrefix          { get; }
+        public HTTPURI                URIPrefix          { get; }
 
         /// <summary>
         /// The WebService-Security username/password.
@@ -81,7 +90,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="RemotePort">The remote TCP port to connect to.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
-        /// <param name="ClientCert">The TLS client certificate to use.</param>
         /// <param name="HTTPVirtualHost">An optional HTTP virtual host name to use.</param>
         /// <param name="URIPrefix">An default URI prefix.</param>
         /// <param name="WSSLoginPassword">The WebService-Security username/password.</param>
@@ -94,9 +102,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                               IPPort                               RemotePort,
                               RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
                               LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
-                              X509Certificate                      ClientCert                   = null,
                               String                               HTTPVirtualHost              = null,
-                              String                               URIPrefix                    = null,
+                              HTTPURI?                             URIPrefix                    = null,
                               Tuple<String, String>                WSSLoginPassword             = null,
                               String                               UserAgent                    = DefaultHTTPUserAgent,
                               TimeSpan?                            RequestTimeout               = null,
@@ -108,7 +115,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                    RemotePort,
                    RemoteCertificateValidator,
                    ClientCertificateSelector,
-                   ClientCert,
                    HTTPVirtualHost,
                    UserAgent,
                    RequestTimeout,
@@ -117,7 +123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         {
 
-            this.URIPrefix         = URIPrefix.WhenNullOrEmpty("");
+            this.URIPrefix         = URIPrefix ?? DefaultURIPrefix;
             this.WSSLoginPassword  = WSSLoginPassword;
 
         }

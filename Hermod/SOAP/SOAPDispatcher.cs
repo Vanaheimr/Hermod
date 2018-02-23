@@ -47,12 +47,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The URI template of this SOAP endpoint.
         /// </summary>
-        public String                     URITemplate       { get; }
+        public HTTPURI                    URITemplate        { get; }
 
         /// <summary>
         /// The HTTP content type the SOAP/XML request will be send.
         /// </summary>
-        public HTTPContentType            SOAPContentType   { get; }
+        public HTTPContentType            SOAPContentType    { get; }
 
         /// <summary>
         /// All registeres SOAP dispatches.
@@ -69,16 +69,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// </summary>
         /// <param name="URITemplate">The URI template of the SOAP dispatcher.</param>
         /// <param name="SOAPContentType">The HTTP content type the SOAP/XML request will be send.</param>
-        public SOAPDispatcher(String           URITemplate,
+        public SOAPDispatcher(HTTPURI          URITemplate,
                               HTTPContentType  SOAPContentType)
         {
-
-            #region Initial checks
-
-            if (URITemplate == null)
-                throw new ArgumentNullException(nameof(URITemplate), "The given URI template must not be null!");
-
-            #endregion
 
             this.URITemplate      = URITemplate;
             this.SOAPContentType  = SOAPContentType;
@@ -191,9 +184,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// </summary>
         /// <param name="Request">A HTTP request.</param>
         public Task<HTTPResponse> EndpointTextInfo(HTTPRequest Request)
-        {
 
-            return Task.FromResult(new HTTPResponseBuilder(Request) {
+            => Task.FromResult(new HTTPResponseBuilder(Request) {
 
                 HTTPStatusCode  = HTTPStatusCode.OK,
                 ContentType     = HTTPContentType.TEXT_UTF8,
@@ -206,9 +198,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                   ).ToUTF8Bytes(),
                 Connection      = "close"
 
-            }.AsImmutable());
-
-        }
+            }.AsImmutable);
 
         #endregion
 
@@ -216,12 +206,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         #region (override) ToString()
 
         /// <summary>
-        /// Return a string representation of this object.
+        /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-        {
-            return _SOAPDispatches.Select(item => item.Description).AggregateWith(", ");
-        }
+            => _SOAPDispatches.Select(item => item.Description).AggregateWith(", ");
 
         #endregion
 

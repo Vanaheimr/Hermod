@@ -22,6 +22,7 @@ using System.Linq;
 using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Collections;
 
 #endregion
 
@@ -29,7 +30,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// The unique identification of a HTTP cookie.
+    /// A single HTTP cookie.
     /// </summary>
     public class HTTPCookie : IEquatable <HTTPCookie>,
                               IComparable<HTTPCookie>
@@ -37,6 +38,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     {
 
         #region Data
+
+        private static readonly Char[] MultipleCookiesSplitter = new Char[] { ';' };
 
         /// <summary>
         /// The data stored within the cookie.
@@ -50,7 +53,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The name of the cookie.
         /// </summary>
-        public String  Name   { get; }
+        public HTTPCookieName  Name   { get; }
 
         #endregion
 
@@ -59,7 +62,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP cookie.
         /// </summary>
-        private HTTPCookie(String                                     Name,
+        private HTTPCookie(HTTPCookieName                             Name,
                            IEnumerable<KeyValuePair<String, String>>  Crumbs)
         {
 
@@ -67,29 +70,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.Crumbs  = new Dictionary<String, String>();
 
             if (Crumbs != null)
+            {
                 foreach (var crumb in Crumbs)
                 {
                     if (!this.Crumbs.ContainsKey(crumb.Key))
                         this.Crumbs.Add(crumb.Key, crumb.Value);
                 }
+            }
 
         }
 
         #endregion
 
 
-        #region Parse(Text)
+        #region Parse   (Text)
 
         /// <summary>
-        /// Parse the given text as HTTP cookie.
+        /// Parse the given text as a single HTTP cookie.
         /// </summary>
-        /// <param name="Text"></param>
+        /// <param name="Text">A text representation of a single HTTP cookie.</param>
         public static HTTPCookie Parse(String Text)
         {
 
-            HTTPCookie _HTTPCookie;
-
-            if (TryParse(Text, out _HTTPCookie))
+            if (TryParse(Text, out HTTPCookie _HTTPCookie))
                 return _HTTPCookie;
 
             return null;
@@ -101,12 +104,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region TryParse(Text, out HTTPCookie)
 
         /// <summary>
-        /// Parse the given string as a HTTP cookie.
+        /// Parse the given string as a single HTTP cookie.
         /// </summary>
-        /// <param name="Text">A text representation of a HTTP cookie.</param>
+        /// <param name="Text">A text representation of a single HTTP cookie.</param>
         /// <param name="HTTPCookie">The parsed HTTP cookie.</param>
         public static Boolean TryParse(String Text, out HTTPCookie HTTPCookie)
         {
+
+            if (Text.IsNotNullOrEmpty())
+                Text = Text.Trim();
 
             if (Text.IsNullOrEmpty())
             {
@@ -114,15 +120,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return false;
             }
 
-            var CookieName = Text.Trim().Split('=').FirstOrDefault();
-
-            if (CookieName.IsNullOrEmpty())
+            if (!HTTPCookieName.TryParse(Text.Split('=').FirstOrDefault(), out HTTPCookieName _CookieName))
             {
                 HTTPCookie = null;
                 return false;
             }
 
-            HTTPCookie = new HTTPCookie(CookieName,
+            HTTPCookie = new HTTPCookie(_CookieName,
                                         Text.Trim().DoubleSplit(':', '='));
 
             return true;
@@ -401,10 +405,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (override) ToString()
 
         /// <summary>
-        /// Return a string representation of this object.
+        /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-            => Name;
+            => Name.ToString();
 
         #endregion
 

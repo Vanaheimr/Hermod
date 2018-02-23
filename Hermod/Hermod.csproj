@@ -56,6 +56,7 @@
   <ItemGroup>
     <Compile Include="DNS\IPTransport.cs" />
     <Compile Include="Entities\ADistributedEntities.cs" />
+    <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="Helpers\ACustomData.cs" />
     <Compile Include="Helpers\Address.cs" />
     <Compile Include="Helpers\ChangeMethods.cs" />
@@ -70,6 +71,7 @@
     <Compile Include="Helpers\ExtentionMethods\NetworkingHelpers.cs" />
     <Compile Include="Helpers\ExtentionMethods\IPAddressHelper.cs" />
     <Compile Include="Helpers\Datastructures\ILocalSocket.cs" />
+    <Compile Include="Helpers\PriorityList.cs" />
     <Compile Include="Helpers\Signature.cs" />
     <Compile Include="Helpers\StatusSchedule.cs" />
     <Compile Include="HTTP\AHTTPPDU.cs" />
@@ -81,10 +83,13 @@
     <Compile Include="HTTP\Client\IHTTPClient.cs" />
     <Compile Include="HTTP\Client\JSONClient.cs" />
     <Compile Include="HTTP\Client\SOAPClient.cs" />
+    <Compile Include="HTTP\General\HTTPCookies.cs" />
+    <Compile Include="HTTP\General\HTTPCookieName.cs" />
     <Compile Include="HTTP\General\HTTPContentType.cs" />
     <Compile Include="HTTP\General\HTTPCookie.cs" />
     <Compile Include="HTTP\General\HTTPHostname.cs" />
     <Compile Include="HTTP\General\HTTPStatusCode.cs" />
+    <Compile Include="HTTP\General\HTTPURI.cs" />
     <Compile Include="HTTP\General\HTTPVersion.cs" />
     <Compile Include="HTTP\HTTPHeaderField.cs" />
     <Compile Include="HTTP\JSON\JSON_IO_ExtentionMethods.cs" />
@@ -235,6 +240,13 @@
     <Compile Include="UDP\UDPPacket.cs" />
     <Compile Include="UDP\UDPReceiver.cs" />
     <Compile Include="UDP\UDPSender.cs" />
+    <Compile Include="Warden\Delegates.cs" />
+    <Compile Include="Warden\IWardenCheck.cs" />
+    <Compile Include="Warden\Version.cs" />
+    <Compile Include="Warden\Warden.cs" />
+    <Compile Include="Warden\WardenCheck.cs" />
+    <Compile Include="Warden\WardenExtentions.cs" />
+    <Compile Include="Warden\WardenProperties.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\BouncyCastle\crypto\crypto.csproj">

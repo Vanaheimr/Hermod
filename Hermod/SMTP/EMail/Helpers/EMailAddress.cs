@@ -142,7 +142,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             #region Initial checks
 
-            if (OwnerName.IsNullOrEmpty() || OwnerName.Trim().IsNullOrEmpty())
+            if (OwnerName.IsNotNullOrEmpty())
+                OwnerName = OwnerName.Trim();
+
+            if (OwnerName.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(OwnerName),  "The given OwnerName must not be null or empty!");
 
             #endregion
@@ -179,6 +182,85 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #endregion
 
+
+        #region EMailAddress(           SimpleEMailAddress,                             PublicKeyRing = null)
+
+        /// <summary>
+        /// Create a new e-mail address.
+        /// </summary>
+        /// <param name="SimpleEMailAddress">A simple e-mail address.</param>
+        /// <param name="PublicKeyRing">The public key ring for an e-mail address.</param>
+        public EMailAddress(SimpleEMailAddress  SimpleEMailAddress,
+                            PgpPublicKeyRing    PublicKeyRing  = null)
+
+            : this(SimpleEMailAddress:  SimpleEMailAddress,
+                   SecretKeyRing:       null,
+                   PublicKeyRing:       PublicKeyRing)
+
+        { }
+
+        #endregion
+
+        #region EMailAddress(           SimpleEMailAddressString,                       PublicKeyRing = null)
+
+        /// <summary>
+        /// Create a new e-mail address.
+        /// </summary>
+        /// <param name="SimpleEMailAddressString">A string representation of a simple e-mail address.</param>
+        /// <param name="PublicKeyRing">The public key ring for an e-mail address.</param>
+        public EMailAddress(String            SimpleEMailAddressString,
+                            PgpPublicKeyRing  PublicKeyRing  = null)
+
+            : this(SimpleEMailAddressString:  SimpleEMailAddressString,
+                   SecretKeyRing:             null,
+                   PublicKeyRing:             PublicKeyRing)
+
+        { }
+
+        #endregion
+
+        #region EMailAddress(OwnerName, SimpleEMailAddress,                             PublicKeyRing = null)
+
+        /// <summary>
+        /// Create a new e-mail address.
+        /// </summary>
+        /// <param name="OwnerName">The name of the owner of the e-mail address.</param>
+        /// <param name="SimpleEMailAddress">A simple e-mail address.</param>
+        /// <param name="PublicKeyRing">The public key ring for an e-mail address.</param>
+        public EMailAddress(String              OwnerName,
+                            SimpleEMailAddress  SimpleEMailAddress,
+                            PgpPublicKeyRing    PublicKeyRing  = null)
+
+            : this(OwnerName:           OwnerName,
+                   SimpleEMailAddress:  SimpleEMailAddress,
+                   SecretKeyRing:       null,
+                   PublicKeyRing:       PublicKeyRing)
+
+        { }
+
+        #endregion
+
+        #region EMailAddress(OwnerName, SimpleEMailAddressString,                       PublicKeyRing = null)
+
+        /// <summary>
+        /// Create a new e-mail address.
+        /// </summary>
+        /// <param name="OwnerName">The name of the owner of the e-mail address.</param>
+        /// <param name="SimpleEMailAddressString">A string representation of a simple e-mail address.</param>
+        /// <param name="PublicKeyRing">The secret key ring for an e-mail address.</param>
+        public EMailAddress(String            OwnerName,
+                            String            SimpleEMailAddressString,
+                            PgpPublicKeyRing  PublicKeyRing  = null)
+
+            : this(OwnerName:                 OwnerName,
+                   SimpleEMailAddressString:  SimpleEMailAddressString,
+                   SecretKeyRing:             null,
+                   PublicKeyRing:             PublicKeyRing)
+
+        { }
+
+        #endregion
+
         #endregion
 
 
@@ -187,10 +269,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <summary>
         /// Implicitly convert a SimpleEMailAddress into an EMailAddress.
         /// </summary>
-        /// <param name="EMailAddress">A simple e-mail address.</param>
-        /// <returns>A e-mail address.</returns>
-        public static implicit operator EMailAddress(SimpleEMailAddress EMailAddress)
-            => new EMailAddress(EMailAddress);
+        /// <param name="SimpleEMailAddress">A simple e-mail address.</param>
+        public static implicit operator EMailAddress(SimpleEMailAddress SimpleEMailAddress)
+            => new EMailAddress(SimpleEMailAddress:  SimpleEMailAddress,
+                                SecretKeyRing:       null,
+                                PublicKeyRing:       null);
 
         #endregion
 
@@ -222,9 +305,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                              : EMailAddressString.Trim();
 
             if (name.IsNeitherNullNorEmpty())
-                return new EMailAddress(name, email);
+                return new EMailAddress(OwnerName:                 name,
+                                        SimpleEMailAddressString:  email,
+                                        SecretKeyRing:             null,
+                                        PublicKeyRing:             null);
 
-            return new EMailAddress(email);
+            return new EMailAddress(SimpleEMailAddressString:  email,
+                                    SecretKeyRing:             null,
+                                    PublicKeyRing:             null);
 
         }
 
@@ -427,16 +515,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         #region (override) ToString()
 
         /// <summary>
-        /// Returns a string representation of this object.
+        /// Returns a text representation of this object.
         /// </summary>
         public override String ToString()
-        {
 
-            return OwnerName.IsNotNullOrEmpty()
-                       ? (OwnerName + " <" + Address + ">").Trim()
-                       : Address.ToString();
-
-        }
+            => OwnerName.IsNotNullOrEmpty()
+                   ? (OwnerName + " <" + Address + ">").Trim()
+                   : Address.ToString();
 
         #endregion
 

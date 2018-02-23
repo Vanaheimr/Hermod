@@ -28,6 +28,8 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using System.Security.Authentication;
+using System.Net.Security;
 
 #endregion
 
@@ -51,23 +53,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         #region Properties
 
-        #region SOAPContentType
-
         /// <summary>
         /// The SOAP XML HTTP content type.
         /// </summary>
         public HTTPContentType  SOAPContentType   { get; }
 
-        #endregion
-
         #region SOAPDispatchers
 
-        private readonly Dictionary<String, SOAPDispatcher> _SOAPDispatchers;
+        private readonly Dictionary<HTTPURI, SOAPDispatcher> _SOAPDispatchers;
 
         /// <summary>
         /// All registered SOAP dispatchers.
         /// </summary>
-        public ILookup<String, SOAPDispatcher> SOAPDispatchers
+        public ILookup<HTTPURI, SOAPDispatcher> SOAPDispatchers
 
             => _SOAPDispatchers.ToLookup(_ => _.Key, _ => _.Value);
 
@@ -83,8 +81,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="TCPPort">An IP port to listen on.</param>
         /// <param name="DefaultServerName">The default HTTP servername, used whenever no HTTP Host-header had been given.</param>
         /// <param name="SOAPContentType">The default HTTP content type used for all SOAP requests/responses.</param>
-        /// <param name="X509Certificate">Use this X509 certificate for TLS.</param>
-        /// <param name="CallingAssemblies">A list of calling assemblies to include e.g. into embedded ressources lookups.</param>
+        /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
+        /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
+        /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
+        /// <param name="AllowedTLSProtocols">The SSL/TLS protocol(s) allowed for this connection.</param>
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
@@ -96,27 +96,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
-        public SOAPServer(IPPort                            TCPPort                           = null,
-                          String                            DefaultServerName                 = DefaultHTTPServerName,
-                          HTTPContentType                   SOAPContentType                   = null,
-                          X509Certificate2                  X509Certificate                   = null,
-                          IEnumerable<Assembly>             CallingAssemblies                 = null,
-                          String                            ServerThreadName                  = null,
-                          ThreadPriority                    ServerThreadPriority              = ThreadPriority.AboveNormal,
-                          Boolean                           ServerThreadIsBackground          = true,
-                          ConnectionIdBuilder               ConnectionIdBuilder               = null,
-                          ConnectionThreadsNameBuilder      ConnectionThreadsNameBuilder      = null,
-                          ConnectionThreadsPriorityBuilder  ConnectionThreadsPriorityBuilder  = null,
-                          Boolean                           ConnectionThreadsAreBackground    = true,
-                          TimeSpan?                         ConnectionTimeout                 = null,
-                          UInt32                            MaxClientConnections              = TCPServer.__DefaultMaxClientConnections,
-                          DNSClient                         DNSClient                         = null,
-                          Boolean                           Autostart                         = false)
+        public SOAPServer(IPPort?                              TCPPort                            = null,
+                          String                               DefaultServerName                  = DefaultHTTPServerName,
+                          HTTPContentType                      SOAPContentType                    = null,
+                          ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
+                          RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
+                          LocalCertificateSelectionCallback    ClientCertificateSelector          = null,
+                          SslProtocols                         AllowedTLSProtocols                = SslProtocols.Tls12,
+                          String                               ServerThreadName                   = null,
+                          ThreadPriority                       ServerThreadPriority               = ThreadPriority.AboveNormal,
+                          Boolean                              ServerThreadIsBackground           = true,
+                          ConnectionIdBuilder                  ConnectionIdBuilder                = null,
+                          ConnectionThreadsNameBuilder         ConnectionThreadsNameBuilder       = null,
+                          ConnectionThreadsPriorityBuilder     ConnectionThreadsPriorityBuilder   = null,
+                          Boolean                              ConnectionThreadsAreBackground     = true,
+                          TimeSpan?                            ConnectionTimeout                  = null,
+                          UInt32                               MaxClientConnections               = TCPServer.__DefaultMaxClientConnections,
+                          DNSClient                            DNSClient                          = null,
+                          Boolean                              Autostart                          = false)
 
             : base(TCPPort,
                    DefaultServerName,
-                   X509Certificate,
-                   CallingAssemblies,
+                   ServerCertificateSelector,
+                   ClientCertificateValidator,
+                   ClientCertificateSelector,
+                   AllowedTLSProtocols,
                    ServerThreadName,
                    ServerThreadPriority,
                    ServerThreadIsBackground,
@@ -131,8 +135,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         {
 
-            this.SOAPContentType  = SOAPContentType != null ? SOAPContentType : DefaultSOAPContentType;
-            this._SOAPDispatchers  = new Dictionary<String, SOAPDispatcher>();
+            this.SOAPContentType  = SOAPContentType ?? DefaultSOAPContentType;
+            this._SOAPDispatchers  = new Dictionary<HTTPURI, SOAPDispatcher>();
 
             if (Autostart)
                 Start();
@@ -153,7 +157,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="SOAPMatch">A delegate to check whether this dispatcher matches the given XML.</param>
         /// <param name="SOAPBodyDelegate">A delegate to process a matching SOAP request.</param>
         public void RegisterSOAPDelegate(HTTPHostname      Hostname,
-                                         String            URITemplate,
+                                         HTTPURI           URITemplate,
                                          String            Description,
                                          SOAPMatch         SOAPMatch,
                                          SOAPBodyDelegate  SOAPBodyDelegate)
@@ -214,7 +218,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="SOAPMatch">A delegate to check whether this dispatcher matches the given XML.</param>
         /// <param name="SOAPHeaderAndBodyDelegate">A delegate to process a matching SOAP request.</param>
         public void RegisterSOAPDelegate(HTTPHostname               Hostname,
-                                         String                     URITemplate,
+                                         HTTPURI                    URITemplate,
                                          String                     Description,
                                          SOAPMatch                  SOAPMatch,
                                          SOAPHeaderAndBodyDelegate  SOAPHeaderAndBodyDelegate)

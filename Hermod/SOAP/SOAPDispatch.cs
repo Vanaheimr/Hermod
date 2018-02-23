@@ -32,73 +32,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         #region Properties
 
-        #region Description
-
-        private readonly String _Description;
-
         /// <summary>
         /// A description for this SOAP dispatch.
         /// </summary>
-        public String Description
-        {
-            get
-            {
-                return _Description;
-            }
-        }
-
-        #endregion
-
-        #region Matcher
-
-        private readonly SOAPMatch _Matcher;
+        public String                     Description              { get; }
 
         /// <summary>
         /// A delegate to check if this dispatch applies.
         /// </summary>
-        public SOAPMatch Matcher
-        {
-            get
-            {
-                return _Matcher;
-            }
-        }
-
-        #endregion
-
-        #region BodyDelegate
-
-        private readonly SOAPBodyDelegate _BodyDelegate;
+        public SOAPMatch                  Matcher                  { get; }
 
         /// <summary>
         /// A HTTP/SOAP delegate to invoke this dispatch.
         /// </summary>
-        public SOAPBodyDelegate BodyDelegate
-        {
-            get
-            {
-                return _BodyDelegate;
-            }
-        }
-
-        #endregion
-
-        #region HeaderAndBodyDelegate
-
-        private readonly SOAPHeaderAndBodyDelegate _HeaderAndBodyDelegate;
+        public SOAPBodyDelegate           BodyDelegate             { get; }
 
         /// <summary>
         /// A HTTP/SOAP delegate to invoke this dispatch.
         /// </summary>
-        public SOAPHeaderAndBodyDelegate HeaderAndBodyDelegate
-        {
-            get
-            {
-                return _HeaderAndBodyDelegate;
-            }
-        }
-
-        #endregion
+        public SOAPHeaderAndBodyDelegate  HeaderAndBodyDelegate    { get; }
 
         #endregion
 
@@ -117,9 +69,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                             SOAPBodyDelegate  BodyDelegate)
         {
 
-            this._Description   = Description;
-            this._Matcher       = Matcher;
-            this._BodyDelegate  = BodyDelegate;
+            this.Description   = Description;
+            this.Matcher       = Matcher;
+            this.BodyDelegate  = BodyDelegate;
 
         }
 
@@ -138,9 +90,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                             SOAPHeaderAndBodyDelegate  HeaderAndBodyDelegate)
         {
 
-            this._Description            = Description;
-            this._Matcher                = Matcher;
-            this._HeaderAndBodyDelegate  = HeaderAndBodyDelegate;
+            this.Description            = Description;
+            this.Matcher                = Matcher;
+            this.HeaderAndBodyDelegate  = HeaderAndBodyDelegate;
 
         }
 
@@ -152,12 +104,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         #region (override) ToString()
 
         /// <summary>
-        /// Return a string representation of this object.
+        /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-        {
-            return Description;
-        }
+            => Description;
 
         #endregion
 

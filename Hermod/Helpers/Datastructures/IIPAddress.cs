@@ -83,7 +83,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         Int32  GetHashCode();
 
         /// <summary>
-        /// Return a string representation of this object.
+        /// Return a text representation of this object.
         /// </summary>
         String ToString();
 

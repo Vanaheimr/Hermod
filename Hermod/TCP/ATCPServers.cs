@@ -28,6 +28,8 @@ using org.GraphDefined.Vanaheimr.Styx.Arrows;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 using System.Security.Cryptography.X509Certificates;
+using System.Net.Security;
+using System.Security.Authentication;
 
 #endregion
 
@@ -51,22 +53,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region Properties
 
-        #region DNSClient
-
-        private readonly DNSClient _DNSClient;
-
         /// <summary>
         /// The DNS defines which DNS servers to use.
         /// </summary>
-        public DNSClient DNSClient
-        {
-            get
-            {
-                return _DNSClient;
-            }
-        }
+        public DNSClient                            DNSClient                     { get; }
 
-        #endregion
+        /// <summary>
+        /// The optional delegate to select a SSL/TLS server certificate.
+        /// </summary>
+        public ServerCertificateSelectorDelegate    ServerCertificateSelector     { get; }
+
+        /// <summary>
+        /// The optional delegate to verify the SSL/TLS client certificate used for authentication.
+        /// </summary>
+        public RemoteCertificateValidationCallback  ClientCertificateValidator    { get; }
+
+        /// <summary>
+        /// The optional delegate to select the SSL/TLS client certificate used for authentication.
+        /// </summary>
+        public LocalCertificateSelectionCallback    ClientCertificateSelector     { get; }
+
+        /// <summary>
+        /// The SSL/TLS protocol(s) allowed for this connection.
+        /// </summary>
+        public SslProtocols                         AllowedTLSProtocols           { get; }
 
         #region ServiceBanner
 
@@ -93,24 +103,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         }
 
         #endregion
-
-        #region X509Certificate
-
-        private readonly X509Certificate2 _X509Certificate;
-
-        /// <summary>
-        /// The X509 certificate.
-        /// </summary>
-        public X509Certificate2 X509Certificate
-        {
-            get
-            {
-                return _X509Certificate;
-            }
-        }
-
-        #endregion
-
 
         #region ServerThreadName
 
@@ -454,7 +446,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// Create a new TCP service allowing to attach multiple TCP servers on different IP sockets.
         /// </summary>
         /// <param name="ServiceBanner">The service banner transmitted to a TCP client after connection initialization.</param>
-        /// <param name="X509Certificate">Use this X509 certificate for TLS.</param>
+        /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
+        /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
+        /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
+        /// <param name="AllowedTLSProtocols">The SSL/TLS protocol(s) allowed for this connection.</param>
         /// <param name="ServerThreadName">An optional name of the TCP server threads.</param>
         /// <param name="ServerThreadPriority">An optional priority of the TCP server threads (default: AboveNormal).</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server threads are a background thread or not (default: yes).</param>
@@ -466,29 +461,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="Autostart">Start the TCP server threads immediately (default: no).</param>
-        public ATCPServers(String                            ServiceBanner                     = TCPServer.__DefaultServiceBanner,
-                           X509Certificate2                  X509Certificate                   = null,
-                           String                            ServerThreadName                  = TCPServer.__DefaultServerThreadName,
-                           ThreadPriority                    ServerThreadPriority              = ThreadPriority.AboveNormal,
-                           Boolean                           ServerThreadIsBackground          = true,
-                           ConnectionIdBuilder               ConnectionIdBuilder               = null,
-                           ConnectionThreadsNameBuilder      ConnectionThreadsNameBuilder      = null,
-                           ConnectionThreadsPriorityBuilder  ConnectionThreadsPriorityBuilder  = null,
-                           Boolean                           ConnectionThreadsAreBackground    = true,
-                           TimeSpan?                         ConnectionTimeout                 = null,
-                           UInt32                            MaxClientConnections              = TCPServer.__DefaultMaxClientConnections,
-                           DNSClient                         DNSClient                         = null,
-                           Boolean                           Autostart                         = false)
+        public ATCPServers(String                               ServiceBanner                      = TCPServer.__DefaultServiceBanner,
+                           ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
+                           RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
+                           LocalCertificateSelectionCallback    ClientCertificateSelector          = null,
+                           SslProtocols                         AllowedTLSProtocols                = SslProtocols.Tls12,
+                           String                               ServerThreadName                   = TCPServer.__DefaultServerThreadName,
+                           ThreadPriority                       ServerThreadPriority               = ThreadPriority.AboveNormal,
+                           Boolean                              ServerThreadIsBackground           = true,
+                           ConnectionIdBuilder                  ConnectionIdBuilder                = null,
+                           ConnectionThreadsNameBuilder         ConnectionThreadsNameBuilder       = null,
+                           ConnectionThreadsPriorityBuilder     ConnectionThreadsPriorityBuilder   = null,
+                           Boolean                              ConnectionThreadsAreBackground     = true,
+                           TimeSpan?                            ConnectionTimeout                  = null,
+                           UInt32                               MaxClientConnections               = TCPServer.__DefaultMaxClientConnections,
+                           DNSClient                            DNSClient                          = null,
+                           Boolean                              Autostart                          = false)
 
         {
 
             this._TCPServers  = new List<TCPServer>();
-            this._DNSClient   = DNSClient;
+            this.DNSClient = DNSClient;
 
             #region TCP Server
 
-            this._ServiceBanner                    = ServiceBanner;
-            this._X509Certificate                  = X509Certificate;
+            this.ServerCertificateSelector          = ServerCertificateSelector;
+            this.ClientCertificateValidator         = ClientCertificateValidator;
+            this.ClientCertificateSelector          = ClientCertificateSelector;
+            this.AllowedTLSProtocols                = AllowedTLSProtocols;
+
+            this._ServiceBanner                     = ServiceBanner;
 
             #endregion
 
@@ -542,6 +544,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 {
 
                     var _TCPServer = _TCPServers.AddAndReturnElement(new TCPServer(Port,
+                                                                                   ServerCertificateSelector,
+                                                                                   ClientCertificateValidator,
+                                                                                   ClientCertificateSelector,
+                                                                                   AllowedTLSProtocols,
                                                                                    ServiceBanner,
                                                                                    _ServerThreadName,
                                                                                    _ServerThreadPriority,
@@ -583,6 +589,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 {
 
                     var _TCPServer = _TCPServers.AddAndReturnElement(new TCPServer(Socket,
+                                                                                   ServerCertificateSelector,
+                                                                                   ClientCertificateValidator,
+                                                                                   ClientCertificateSelector,
+                                                                                   AllowedTLSProtocols,
                                                                                    ServiceBanner,
                                                                                    _ServerThreadName,
                                                                                    _ServerThreadPriority,

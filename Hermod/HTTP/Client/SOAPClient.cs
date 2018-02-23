@@ -46,7 +46,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
 {
 
     /// <summary>
-    /// SOAP XML Namespace
+    /// SOAP v1.1 XML Namespace
     /// </summary>
     public static class NS
     {
@@ -64,7 +64,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
     }
 
     /// <summary>
-    /// A specialized HTTP client for the Simple Object Access Protocol (SOAP).
+    /// A specialized HTTP client for the Simple Object Access Protocol (SOAP) v1.1.
     /// </summary>
     public class SOAPClient : HTTPClient
     {
@@ -83,46 +83,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         /// <summary>
         /// The HTTP virtual host to use.
         /// </summary>
-        public String  HTTPVirtualHost   { get; }
+        public String   HTTPVirtualHost   { get; }
 
         /// <summary>
         /// The URI-prefix of the HTTP/SOAP service.
         /// </summary>
-        public String  URIPrefix         { get; }
+        public HTTPURI  URIPrefix         { get; }
 
         #endregion
 
         #region Constructor
 
         /// <summary>
-        /// Create a new specialized HTTP client for the Simple Object Access Protocol (SOAP).
+        /// Create a new specialized HTTP client for the Simple Object Access Protocol (SOAP) v1.1.
         /// </summary>
         /// <param name="Hostname">The hostname of the remote HTTP/SOAP service.</param>
-        /// <param name="HTTPPort">The HTTP port of the remote HTTP/SOAP service.</param>
         /// <param name="HTTPVirtualHost">The HTTP virtual host to use.</param>
         /// <param name="URIPrefix">The URI-prefix of the HTTP/SOAP service.</param>
+        /// <param name="HTTPSPort">The HTTPS port of the remote HTTP/SOAP service.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
-        /// <param name="LocalCertificateSelector">Selects the local certificate used for authentication.</param>
-        /// <param name="ClientCert">The TLS client certificate to use.</param>
+        /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="UserAgent">The HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public SOAPClient(String                               Hostname,
-                          IPPort                               HTTPPort,
                           String                               HTTPVirtualHost,
-                          String                               URIPrefix,
+                          HTTPURI                              URIPrefix,
+                          IPPort?                              HTTPSPort                    = null,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
-                          LocalCertificateSelectionCallback    LocalCertificateSelector     = null,
-                          X509Certificate                      ClientCert                   = null,
+                          LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
                           String                               UserAgent                    = DefaultUserAgent,
                           TimeSpan?                            RequestTimeout               = null,
                           DNSClient                            DNSClient                    = null)
 
             : base(Hostname,
-                   HTTPPort       ?? DefaultHTTPPort,
+                   HTTPSPort      ?? IPPort.HTTPS,
                    RemoteCertificateValidator,
-                   LocalCertificateSelector,
-                   ClientCert,
+                   ClientCertificateSelector,
+                   null,
                    UserAgent      ?? DefaultUserAgent,
                    RequestTimeout ?? DefaultRequestTimeout,
                    DNSClient)
@@ -130,7 +128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         {
 
             this.HTTPVirtualHost  = HTTPVirtualHost;
-            this.URIPrefix        = URIPrefix.IsNotNullOrEmpty() ? URIPrefix : "/";
+            this.URIPrefix        = URIPrefix.IsNotNullOrEmpty() ? URIPrefix : HTTPURI.Parse("/");
 
         }
 
@@ -314,7 +312,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
 {
 
     /// <summary>
-    /// SOAP XML Namespace
+    /// SOAP v1.2 XML Namespace
     /// </summary>
     public static class NS
     {
@@ -332,7 +330,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
     }
 
     /// <summary>
-    /// A specialized HTTP client for the Simple Object Access Protocol (SOAP).
+    /// A specialized HTTP client for the Simple Object Access Protocol (SOAP) v1.2.
     /// </summary>
     public class SOAPClient : HTTPClient
     {
@@ -342,7 +340,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         /// <summary>
         /// The default HTTP/SOAP user agent.
         /// </summary>
-        public new const String DefaultUserAgent  = "GraphDefined HTTP/SOAP Client";
+        public new const String DefaultUserAgent  = "GraphDefined HTTP/SOAPv1.2 Client";
 
         #endregion
 
@@ -356,41 +354,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         /// <summary>
         /// The URI-prefix of the HTTP/SOAP service.
         /// </summary>
-        public String  URIPrefix         { get; }
+        public HTTPURI URIPrefix         { get; }
 
         #endregion
 
         #region Constructor
 
         /// <summary>
-        /// Create a new specialized HTTP client for the Simple Object Access Protocol (SOAP).
+        /// Create a new specialized HTTP client for the Simple Object Access Protocol (SOAP) v1.2.
         /// </summary>
         /// <param name="Hostname">The hostname of the remote HTTP/SOAP service.</param>
         /// <param name="HTTPPort">The HTTP port of the remote HTTP/SOAP service.</param>
         /// <param name="HTTPVirtualHost">The HTTP virtual host to use.</param>
         /// <param name="URIPrefix">The URI-prefix of the HTTP/SOAP service.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
-        /// <param name="LocalCertificateSelector">Selects the local certificate used for authentication.</param>
-        /// <param name="ClientCert">The TLS client certificate to use.</param>
+        /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="UserAgent">The HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public SOAPClient(String                               Hostname,
-                          IPPort                               HTTPPort,
                           String                               HTTPVirtualHost,
-                          String                               URIPrefix,
+                          HTTPURI                              URIPrefix,
+                          IPPort?                              HTTPPort                     = null,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
-                          LocalCertificateSelectionCallback    LocalCertificateSelector     = null,
-                          X509Certificate                      ClientCert                   = null,
+                          LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
                           String                               UserAgent                    = DefaultUserAgent,
                           TimeSpan?                            RequestTimeout               = null,
                           DNSClient                            DNSClient                    = null)
 
             : base(Hostname,
-                   HTTPPort       ?? DefaultHTTPPort,
+                   HTTPPort       ?? IPPort.HTTP,
                    RemoteCertificateValidator,
-                   LocalCertificateSelector,
-                   ClientCert,
+                   ClientCertificateSelector,
+                   null,
                    UserAgent      ?? DefaultUserAgent,
                    RequestTimeout ?? DefaultRequestTimeout,
                    DNSClient)
@@ -398,7 +394,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         {
 
             this.HTTPVirtualHost  = HTTPVirtualHost;
-            this.URIPrefix        = URIPrefix.IsNotNullOrEmpty() ? URIPrefix : "/";
+            this.URIPrefix        = URIPrefix.IsNotNullOrEmpty() ? URIPrefix : HTTPURI.Parse("/");
 
         }
 
@@ -464,20 +460,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
             #endregion
 
             var _RequestBuilder = new HTTPRequest.Builder(this) {
-                                      HTTPMethod         = HTTPMethod.POST,
-                                      Host               = HTTPVirtualHost,
-                                      URI                = URIPrefix,
-                                      Content            = QueryXML.ToUTF8Bytes(),
-                                      ContentType        = ContentType ?? HTTPContentType.XMLTEXT_UTF8,
-                                      UserAgent          = UserAgent,
-                                      FakeURIPrefix      = "https://" + HTTPVirtualHost
+                                      HTTPMethod     = HTTPMethod.POST,
+                                      Host           = HTTPVirtualHost,
+                                      URI            = URIPrefix,
+                                      Content        = QueryXML.ToUTF8Bytes(),
+                                      ContentType    = ContentType ?? new HTTPContentType("application",
+                                                                                          "soap+xml",
+                                                                                          "utf-8",
+                                                                                          SOAPAction,
+                                                                                          null),
+                                      UserAgent      = UserAgent,
+                                      FakeURIPrefix  = "https://" + HTTPVirtualHost
                                   };
 
             // Always send a Content-Length header, even when it's value is zero
             _RequestBuilder.SetContentLength(0);
-
-            _RequestBuilder.Set("SOAPAction", @"""" + SOAPAction + @"""");
-
 
             HTTPRequestBuilder?.Invoke(_RequestBuilder);
 

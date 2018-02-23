@@ -529,7 +529,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region (override) ToString()
 
         /// <summary>
-        /// Returns a string representation of this object.
+        /// Returns a text representation of this object.
         /// </summary>
         /// <returns>A string representation of this object.</returns>
         public override String ToString()

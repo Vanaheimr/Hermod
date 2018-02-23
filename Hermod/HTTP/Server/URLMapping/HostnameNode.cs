@@ -120,12 +120,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region URINodes
 
-        private readonly Dictionary<String, URINode> _URINodes;
+        private readonly Dictionary<HTTPURI, URINode> _URINodes;
 
         /// <summary>
         /// A mapping from URIs to URINodes.
         /// </summary>
-        public Dictionary<String, URINode> URINodes
+        public Dictionary<HTTPURI, URINode> URINodes
         {
             get
             {
@@ -186,7 +186,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this._HostAuthentication   = (HostAuthentication != null) ? HostAuthentication : _ => true;
             this._RequestHandler       = RequestHandler;
             this._DefaultErrorHandler  = DefaultErrorHandler;
-            this._URINodes             = new Dictionary<String,         URINode>();
+            this._URINodes             = new Dictionary<HTTPURI,        URINode>();
             this._ErrorHandlers        = new Dictionary<HTTPStatusCode, HTTPDelegate>();
 
         }
@@ -198,7 +198,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public void AddHandler(HTTPDelegate        HTTPDelegate,
 
-                               String              URITemplate                 = "/",
+                               HTTPURI?            URITemplate                 = null,
                                HTTPMethod          HTTPMethod                  = null,
                                HTTPContentType     HTTPContentType             = null,
 
@@ -211,12 +211,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            URINode _URINode = null;
+            if (!URITemplate.HasValue)
+                URITemplate = HTTPURI.Parse("/");
 
-            if (!_URINodes.TryGetValue(URITemplate, out _URINode))
+            if (!_URINodes.TryGetValue(URITemplate.Value, out URINode _URINode))
             {
-                _URINode = new URINode(URITemplate, URIAuthentication, HTTPDelegate, DefaultErrorHandler);
-                _URINodes.Add(URITemplate, _URINode);
+                _URINode = new URINode(URITemplate.Value, URIAuthentication, HTTPDelegate, DefaultErrorHandler);
+                _URINodes.Add(URITemplate.Value, _URINode);
             }
 
             _URINode.AddHandler(HTTPDelegate,

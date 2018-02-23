@@ -51,40 +51,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Properties
 
-        #region DNSServers
-
-        private readonly List<IPSocket> _DNSServers;
-
         /// <summary>
         /// The DNS servers used by this DNS client.
         /// </summary>
-        public IEnumerable<IPSocket> DNSServers
-        {
-            get
-            {
-                return _DNSServers;
-            }
-        }
-
-        #endregion
-
-        #region QueryTimeout
+        public IEnumerable<IPSocket>  DNSServers          { get; }
 
         /// <summary>
         /// The DNS query timeout.
         /// </summary>
-        public TimeSpan  QueryTimeout  { get; set; }
-
-        #endregion
-
-        #region RecursionDesired
+        public TimeSpan               QueryTimeout        { get; set; }
 
         /// <summary>
         /// Whether DNS recursion is desired.
         /// </summary>
-        public Boolean  RecursionDesired  { get; set; }
-
-        #endregion
+        public Boolean                RecursionDesired    { get; set; }
 
         #endregion
 
@@ -98,7 +78,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="DNSServer">The DNS server to query.</param>
         public DNSClient(IIPAddress DNSServer)
 
-            : this(new IPSocket[1] { new IPSocket(DNSServer, new IPPort(53)) })
+            : this(new IPSocket[] { new IPSocket(DNSServer, IPPort.DNS) })
 
         { }
 
@@ -113,7 +93,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Port">The IP port of the DNS server to query.</param>
         public DNSClient(IIPAddress DNSServer, IPPort Port)
 
-            : this(new IPSocket[1] { new IPSocket(DNSServer, Port) })
+            : this(new IPSocket[] { new IPSocket(DNSServer, Port) })
 
         { }
 
@@ -127,7 +107,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="DNSServers">A list of DNS servers to query.</param>
         public DNSClient(IEnumerable<IIPAddress> DNSServers)
 
-            : this(DNSServers.Select(IPAddress => new IPSocket(IPAddress, new IPPort(53))))
+            : this(DNSServers.Select(IPAddress => new IPSocket(IPAddress, IPPort.DNS)))
 
         { }
 
@@ -158,7 +138,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public DNSClient(Boolean SearchForIPv4DNSServers = true,
                          Boolean SearchForIPv6DNSServers = true)
 
-            : this(new IPSocket[0], SearchForIPv4DNSServers, SearchForIPv6DNSServers)
+            : this(new IPSocket[0],
+                   SearchForIPv4DNSServers,
+                   SearchForIPv6DNSServers)
 
         { }
 
@@ -182,7 +164,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             this.RecursionDesired  = true;
             this.QueryTimeout      = TimeSpan.FromSeconds(23.5);
 
-            _DNSServers = new List<IPSocket>(ManualDNSServers);
+            var _DNSServers        = new List<IPSocket>(ManualDNSServers);
 
             #region Search for IPv4/IPv6 DNS Servers...
 
@@ -191,18 +173,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                          GetAllNetworkInterfaces().
                                          Where     (NI        => NI.OperationalStatus == OperationalStatus.Up).
                                          SelectMany(NI        => NI.GetIPProperties().DnsAddresses).
-                                         Where     (IPAddress => IPAddress.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork).
-                                         Select    (IPAddress => new IPSocket(new IPv4Address(IPAddress), new IPPort(53))));
+                                         Where     (IPAddress => IPAddress.AddressFamily == AddressFamily.InterNetwork).
+                                         Select    (IPAddress => new IPSocket(new IPv4Address(IPAddress), IPPort.DNS)));
 
             if (SearchForIPv6DNSServers)
                 _DNSServers.AddRange(NetworkInterface.
                                          GetAllNetworkInterfaces().
                                          Where     (NI        => NI.OperationalStatus == OperationalStatus.Up).
                                          SelectMany(NI        => NI.GetIPProperties().DnsAddresses).
-                                         Where     (IPAddress => IPAddress.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6).
-                                         Select    (IPAddress => new IPSocket(new IPv6Address(IPAddress), new IPPort(53))));
+                                         Where     (IPAddress => IPAddress.AddressFamily == AddressFamily.InterNetworkV6).
+                                         Select    (IPAddress => new IPSocket(new IPv6Address(IPAddress), IPPort.DNS)));
 
             #endregion
+
+            this.DNSServers        = _DNSServers;
 
             #region Reflect ResourceRecordTypes
 
@@ -298,7 +282,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             for (var i = 0; i < AdditionalCount; ++i)
                 AdditionalRecords.Add(ReadResourceRecord(DNSBuffer));
 
-            return new DNSInfo(Origin, RequestId, AA, TC, RD, RA, ResponseCode, Answers, Authorities, AdditionalRecords);
+            return new DNSInfo(Origin,
+                               RequestId,
+                               AA,
+                               TC,
+                               RD,
+                               RA,
+                               ResponseCode,
+                               Answers,
+                               Authorities,
+                               AdditionalRecords);
 
         }
 
@@ -339,12 +332,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                 DNSInfo   DNSInformation)
         {
 
-            if (DNSInformation.Answers != null)
-                DNSInformation.
-                    Answers.
-                    ForEach(ResourceRecord => _DNSCache.Add(DomainName,
-                                                            DNSInformation.Origin,
-                                                            ResourceRecord));
+            if (DomainName.IsNullOrEmpty() || DNSInformation == null)
+                return;
+
+            _DNSCache.Add(DomainName,
+                          DNSInformation);
 
         }
 
@@ -361,7 +353,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                A       ARecord)
         {
 
-            _DNSCache.Add(DomainName, IPSocket.Localhost(new IPPort(53)), ARecord);
+            if (DomainName.IsNullOrEmpty() || ARecord == null)
+                return;
+
+            _DNSCache.Add(DomainName,
+                          IPSocket.Localhost(IPPort.DNS),
+                          ARecord);
 
         }
 
@@ -374,27 +371,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                          params UInt16[]  ResourceRecordTypes)
         {
 
+            #region Initial checks
+
+            if (DomainName.IsNullOrEmpty())
+                return new DNSInfo(Origin:               new IPSocket(IPv4Address.Localhost, IPPort.DNS),
+                                   QueryId:              0,
+                                   IsAuthorativeAnswer:  false,
+                                   IsTruncated:          false,
+                                   RecursionDesired:     true,
+                                   RecursionAvailable:   false,
+                                   ResponseCode:         DNSResponseCodes.NameError,
+                                   Answers:              new ADNSResourceRecord[0],
+                                   Authorities:          new ADNSResourceRecord[0],
+                                   AdditionalRecords:    new ADNSResourceRecord[0]);
+
             if (ResourceRecordTypes.Length == 0)
                 ResourceRecordTypes = new UInt16[1] { 255 };
 
-            #region Try to get an answer from the DNS cache
+            #endregion
+
+            #region Try to get answers from the DNS cache
 
             var DNSInfo = _DNSCache.GetDNSInfo(DomainName);
 
             if (DNSInfo != null)
-            {
-                //var tcs = new TaskCompletionSource<DNSInfo>();
-                //tcs.SetResult(DNSInfo);
-                //return tcs.Task;
                 return DNSInfo;
-            }
+
+            #endregion
+
+
+            #region Prepare DNS query packet
+
+            var QueryPacket = new DNSQuery(DomainName,
+                                           RecursionDesired,
+                                           ResourceRecordTypes);
 
             #endregion
 
             #region Query all DNS server(s) in parallel...
-
-            // Preparing the DNS query packet
-            var QueryPacket = new DNSQuery(DomainName, RecursionDesired, ResourceRecordTypes);
 
             var AllDNSServerRequests = DNSServers.Select(DNSServer => {
 
@@ -418,10 +432,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         length = socket.ReceiveFrom(data, ref endPoint);
 
                     }
+                    catch (SocketException se)
+                    {
+
+                        if (se.SocketErrorCode == SocketError.AddressFamilyNotSupported)
+                            return new DNSInfo(new IPSocket(DNSServer.IPAddress, DNSServer.Port),
+                                               QueryPacket.TransactionId,
+                                               false,
+                                               false,
+                                               false,
+                                               false,
+                                               DNSResponseCodes.ServerFailure,
+                                               new ADNSResourceRecord[0],
+                                               new ADNSResourceRecord[0],
+                                               new ADNSResourceRecord[0]);
+
+                        // A SocketException might be thrown after the timeout was reached!
+                        throw new Exception("DNS server '" + DNSServer + "' did not respond within " + QueryTimeout.TotalSeconds + " seconds!");
+
+                    }
                     catch (Exception e)
                     {
                         // A SocketException might be thrown after the timeout was reached!
-                        throw new Exception("DNS server '" + DNSServer.ToString() + "' did not respond within " + QueryTimeout.TotalSeconds + " seconds!");
+                        throw new Exception("DNS server '" + DNSServer + "' did not respond within " + QueryTimeout.TotalSeconds + " seconds!");
                     }
                     finally
                     {
@@ -434,38 +467,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 },
                 TaskCreationOptions.AttachedToParent);
 
-            }).ToArray();
+            }).ToList();
 
             #endregion
 
-            #region Cache all replies...
 
-            AllDNSServerRequests.
-                ForEach(DNSServerTask => DNSServerTask.ContinueWith(x => {
+            try
+            {
 
-                                                           try
-                                                           {
-                                                               if (x.Result != null)
-                                                                   AddToCache(DomainName, x.Result);
-                                                           }
-                                                           catch (Exception e)
-                                                           {
+                Task<DNSInfo> FirstReply = null;
 
-                                                               while (e.InnerException != null)
-                                                                   e = e.InnerException;
+                do
+                {
 
-                                                               Debug.WriteLine("[" + DateTime.UtcNow + "] DNS exception " + e.Message);
+                    // Return first/fastest reply
+                    FirstReply = Task.WhenAny(AllDNSServerRequests).Result;
 
-                                                           }
+                    AllDNSServerRequests.Remove(FirstReply);
 
-                                                       }));
+                }
+                while (FirstReply.Result.ResponseCode != DNSResponseCodes.NoError || AllDNSServerRequests.Count > 0);
 
-            #endregion
+                // Cache first good response...
+                if (FirstReply.Result.ResponseCode == DNSResponseCodes.NoError)
+                    AddToCache(DomainName, FirstReply.Result);
 
-            // Return first/fastest reply
-            var FirstReply = Task.WhenAny(AllDNSServerRequests);
+                return FirstReply.Result;
 
-            return FirstReply.Result.Result;
+            }
+            catch (Exception e)
+            {
+
+                while (e.InnerException != null)
+                    e = e.InnerException;
+
+                Debug.WriteLine("[" + DateTime.UtcNow + "] DNS exception " + e.Message);
+
+            }
+
+            return new DNSInfo(Origin:               new IPSocket(IPv4Address.Localhost, IPPort.DNS),
+                               QueryId:              0,
+                               IsAuthorativeAnswer:  false,
+                               IsTruncated:          false,
+                               RecursionDesired:     true,
+                               RecursionAvailable:   false,
+                               ResponseCode:         DNSResponseCodes.NameError,
+                               Answers:              new ADNSResourceRecord[0],
+                               Authorities:          new ADNSResourceRecord[0],
+                               AdditionalRecords:    new ADNSResourceRecord[0]);
 
         }
 
@@ -482,12 +531,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (TypeIdField == null)
                 throw new ArgumentException("Constant field 'TypeId' of type '" + typeof(T).Name + "' was not found!");
 
-            var QueryTask = await Query(DomainName,
-                                        new UInt16[1] { (UInt16) TypeIdField.GetValue(typeof(T)) });
+            var QueryTask = await Query(
+                                      DomainName,
+                                      new UInt16[1] {
+                                          (UInt16) TypeIdField.GetValue(typeof(T))
+                                      }
+                                  ).ConfigureAwait(false);
 
             return QueryTask.Answers.
                              Where(v => v.GetType() == typeof(T)).
-                             Cast<T>();
+                             Cast<T>().
+                             Where(v => v != null);
 
         }
 
@@ -528,9 +582,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Get a string representation of this object.
         /// </summary>
         public override String ToString()
-        {
-            return "Using DNS servers: " + _DNSServers.Select(v => v.ToString()).AggregateWith(", ");
-        }
+
+            => "Using DNS servers: " +
+               DNSServers.SafeSelect(socket => socket.ToString()).AggregateWith(", ");
 
         #endregion
 

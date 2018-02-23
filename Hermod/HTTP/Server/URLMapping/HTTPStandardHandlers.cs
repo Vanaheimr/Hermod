@@ -45,7 +45,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public static void RegisterRAWRequestHandler(this HTTPServer  HTTPServer,
                                                      HTTPHostname     Hostname,
-                                                     String           URITemplate,
+                                                     HTTPURI          URITemplate,
                                                      HTTPMethod       HTTPMethod = null)
         {
 
@@ -87,8 +87,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public static void RegisterMovedTemporarilyHandler(this HTTPServer  HTTPServer,
                                                            HTTPHostname     Hostname,
-                                                           String           URITemplate,
-                                                           String           URITarget)
+                                                           HTTPURI          URITemplate,
+                                                           HTTPURI          URITarget)
         {
 
             HTTPServer.AddMethodCallback(Hostname,
@@ -107,7 +107,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public static void RegisterEventStreamHandler(this HTTPServer  HTTPServer,
                                                       HTTPHostname     Hostname,
-                                                      String           URITemplate,
+                                                      HTTPURI          URITemplate,
                                                       String           EventSource)
         {
 
@@ -171,7 +171,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CacheControl">Set the HTTP cache control response header.</param>
         public static void RegisterResourcesFile(this IHTTPServer  HTTPServer,
                                                  HTTPHostname      Hostname,
-                                                 String            URITemplate,
+                                                 HTTPURI           URITemplate,
                                                  Assembly          ResourceAssembly,
                                                  String            ResourceFilename,
                                                  HTTPContentType   ResponseContentType  = null,
@@ -309,7 +309,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPPassword">An optional password for HTTP basic authentication.</param>
         public static void RegisterResourcesFolder(this IHTTPServer  HTTPServer,
                                                    HTTPHostname      Hostname,
-                                                   String            URITemplate,
+                                                   HTTPURI           URITemplate,
                                                    String            ResourcePath,
                                                    Assembly          ResourceAssembly  = null,
                                                    String            DefaultFilename   = "index.html",
@@ -474,7 +474,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ~/map
             HTTPServer.AddMethodCallback(Hostname,
                                          HTTPMethod.GET,
-                                         URITemplate.EndsWith("/", StringComparison.InvariantCulture) ? URITemplate.Substring(0, URITemplate.Length) : URITemplate,
+                                         URITemplate.EndsWith("/", StringComparison.InvariantCulture) ? URITemplate.Substring(0, (Int32) URITemplate.Length) : URITemplate,
                                          HTTPDelegate: GetEmbeddedResources);
 
             // ~/map/
@@ -508,7 +508,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CacheControl">Set the HTTP cache control response header.</param>
         public static void RegisterFilesystemFile(this IHTTPServer         HTTPServer,
                                                   HTTPHostname             Hostname,
-                                                  String                   URITemplate,
+                                                  HTTPURI                  URITemplate,
                                                   Func<String[], String>   ResourceFilenameBuilder,
                                                   String                   DefaultFile          = null,
                                                   HTTPContentType          ResponseContentType  = null,
@@ -518,7 +518,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region Get the appropriate content type based on the suffix returned by the ResourceFilenameBuilder
 
                                                                                   // NumberOfTemplateParameters
-            var _ResourceFilename = ResourceFilenameBuilder(Enumerable.Repeat("", URITemplate.Count(c => c == '{')).ToArray());
+            var _ResourceFilename = ResourceFilenameBuilder(Enumerable.Repeat("", URITemplate.ToString().Count(c => c == '{')).ToArray());
 
             if (ResponseContentType == null)
                 switch (_ResourceFilename.Remove(0, _ResourceFilename.LastIndexOf(".") + 1))
@@ -600,7 +600,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DefaultFilename">The default file to load.</param>
         public static void RegisterFilesystemFolder(this IHTTPServer         HTTPServer,
                                                     HTTPHostname             Hostname,
-                                                    String                   URITemplate,
+                                                    HTTPURI                  URITemplate,
                                                     Func<String[], String>   ResourcePath,
                                                     String                   DefaultFilename  = "index.html")
         {
@@ -616,7 +616,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                 HTTPContentType ResponseContentType = null;
 
-                                                var NumberOfTemplateParameters = URITemplate.Count(c => c == '{');
+                                                var NumberOfTemplateParameters = URITemplate.ToString().Count(c => c == '{');
 
                                                 var FilePath    = (Request.ParsedURIParameters != null && Request.ParsedURIParameters.Length > NumberOfTemplateParameters)
                                                                       ? Request.ParsedURIParameters.Last().Replace('/', Path.DirectorySeparatorChar)
@@ -634,7 +634,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                             Date            = DateTime.UtcNow,
                                                             CacheControl    = "no-cache",
                                                             Connection      = "close",
-                                                        }.AsImmutable());
+                                                        }.AsImmutable);
 
 
                                                 #region Choose HTTP Content Type based on the file name extention...
@@ -676,7 +676,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                         KeepAlive       = new KeepAliveType(TimeSpan.FromMinutes(15),
                                                                                             500),
                                                         Connection      = "Keep-Alive",
-                                                    }.AsImmutable());
+                                                    }.AsImmutable);
 
                                                 #endregion
 
@@ -694,7 +694,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                         Content         = JSONObject.Create(new JProperty("message", e.Message)).ToUTF8Bytes(),
                                                         CacheControl    = "no-cache",
                                                         Connection      = "close",
-                                                    }.AsImmutable());
+                                                    }.AsImmutable);
 
                                             }
 
@@ -734,10 +734,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URITemplate">An URI template.</param>
         /// <param name="DefaultFilename">The default file to load.</param>
         public static void RegisterWatchedFileSystemFolder(this IHTTPServer        HTTPServer,
-                                                           String                  URITemplate,
+                                                           HTTPURI                 URITemplate,
                                                            String                  FileSystemLocation,
                                                            String                  HTTPSSE_EventIdentification,
-                                                           String                  HTTPSSE_URITemplate,
+                                                           HTTPURI                 HTTPSSE_URITemplate,
                                                            String                  DefaultFilename  = "index.html")
         {
 
@@ -759,10 +759,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DefaultFilename">The default file to load.</param>
         public static void RegisterWatchedFileSystemFolder(this IHTTPServer        HTTPServer,
                                                            HTTPHostname            Hostname,
-                                                           String                  URITemplate,
+                                                           HTTPURI                 URITemplate,
                                                            String                  FileSystemLocation,
                                                            String                  HTTPSSE_EventIdentification,
-                                                           String                  HTTPSSE_URITemplate,
+                                                           HTTPURI                 HTTPSSE_URITemplate,
                                                  //          Func<String[], String>  ResourcePath,
                                                            String                  DefaultFilename  = "index.html")
         {
@@ -797,7 +797,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              HTTPContentType ResponseContentType = null;
 
-                                             var NumberOfTemplateParameters = URITemplate.Count(c => c == '{');
+                                             var NumberOfTemplateParameters = URITemplate.ToString().Count(c => c == '{');
 
                                              var FilePath    = (Request.ParsedURIParameters != null && Request.ParsedURIParameters.Length > NumberOfTemplateParameters)
                                                                    ? Request.ParsedURIParameters.Last().Replace('/', Path.DirectorySeparatorChar)

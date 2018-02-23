@@ -59,12 +59,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
         /// <summary>
         /// The HTTP virtual host to use.
         /// </summary>
-        public String  HTTPVirtualHost   { get; }
+        public String   HTTPVirtualHost   { get; }
 
         /// <summary>
         /// The URI-prefix of the HTTP/JSON service.
         /// </summary>
-        public String  URIPrefix         { get; }
+        public HTTPURI  URIPrefix         { get; }
 
         #endregion
 
@@ -74,31 +74,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
         /// Create a new specialized HTTP client for the JavaScript Object Notation (JSON).
         /// </summary>
         /// <param name="Hostname">The hostname of the remote HTTP/JSON service.</param>
-        /// <param name="HTTPPort">The HTTP port of the remote HTTP/JSON service.</param>
         /// <param name="HTTPVirtualHost">The HTTP virtual host to use.</param>
         /// <param name="URIPrefix">The URI-prefix of the HTTP/JSON service.</param>
+        /// <param name="HTTPSPort">The HTTP port of the remote HTTP/JSON service.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
-        /// <param name="LocalCertificateSelector">Selects the local certificate used for authentication.</param>
-        /// <param name="ClientCert">The TLS client certificate to use.</param>
+        /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="UserAgent">The HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public JSONClient(String                               Hostname,
-                          IPPort                               HTTPPort,
                           String                               HTTPVirtualHost,
-                          String                               URIPrefix,
+                          HTTPURI                              URIPrefix,
+                          IPPort?                              HTTPSPort                    = null,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
-                          LocalCertificateSelectionCallback    LocalCertificateSelector     = null,
-                          X509Certificate                      ClientCert                   = null,
+                          LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
                           String                               UserAgent                    = DefaultUserAgent,
                           TimeSpan?                            RequestTimeout               = null,
                           DNSClient                            DNSClient                    = null)
 
             : base(Hostname,
-                   HTTPPort       ?? DefaultHTTPPort,
+                   HTTPSPort      ?? IPPort.HTTPS,
                    RemoteCertificateValidator,
-                   LocalCertificateSelector,
-                   ClientCert,
+                   ClientCertificateSelector,
+                   null,
                    UserAgent      ?? DefaultUserAgent,
                    RequestTimeout ?? DefaultRequestTimeout,
                    DNSClient)
@@ -106,7 +104,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
         {
 
             this.HTTPVirtualHost  = HTTPVirtualHost;
-            this.URIPrefix        = URIPrefix.IsNotNullOrEmpty() ? URIPrefix : "/";
+            this.URIPrefix        = URIPrefix;
 
         }
 

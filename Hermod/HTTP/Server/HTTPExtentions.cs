@@ -118,75 +118,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region TryParseJObjectRequestBody   (this Request, out JSON, out HTTPResponse, AllowEmptyHTTPBody = false, JSONLDContext = null)
 
         public static Boolean TryParseJObjectRequestBody(this HTTPRequest  Request,
-                                                         out JSONWrapper   JSON,
-                                                         out HTTPResponse  HTTPResponse,
-                                                         Boolean           AllowEmptyHTTPBody = false,
-                                                         String            JSONLDContext      = null)
-        {
-
-            #region AllowEmptyHTTPBody
-
-            JSON          = null;
-            HTTPResponse  = null;
-
-            if (Request.ContentLength == 0 && AllowEmptyHTTPBody)
-            {
-
-                HTTPResponse = new HTTPResponseBuilder(Request) {
-                    HTTPStatusCode = HTTPStatusCode.OK,
-                };
-
-                return false;
-
-            }
-
-            #endregion
-
-            #region Get text body
-
-            var RequestBodyString = Request.GetRequestBodyAsUTF8String(HTTPContentType.JSON_UTF8, AllowEmptyHTTPBody);
-            if (RequestBodyString.HasErrors)
-            {
-                HTTPResponse  = RequestBodyString.Error;
-                return false;
-            }
-
-            #endregion
-
-            #region Try to parse the JSON
-
-            try
-            {
-
-                JSON = new JSONWrapper(RequestBodyString.Data);
-
-            }
-            catch (Exception e)
-            {
-
-                HTTPResponse  = new HTTPResponseBuilder(Request) {
-                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    ContentType     = HTTPContentType.JSON_UTF8,
-                    Content         = JSONObject.Create(
-                                          JSONLDContext.IsNotNullOrEmpty()
-                                              ? new JProperty("context",  JSONLDContext)
-                                              : null,
-                                          new JProperty("description",  "Invalid JSON request body!"),
-                                          new JProperty("hint",         e.Message)
-                                      ).ToUTF8Bytes()
-                };
-
-                return false;
-
-            }
-
-            return true;
-
-            #endregion
-
-        }
-
-        public static Boolean TryParseJObjectRequestBody(this HTTPRequest  Request,
                                                          out JObject       JSON,
                                                          out HTTPResponse  HTTPResponse,
                                                          Boolean           AllowEmptyHTTPBody = false,
@@ -461,7 +392,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                ContentType     = HTTPContentType.JSON_UTF8,
                                Content         = new JObject(new JProperty("description", "Invalid roaming network description!")).ToUTF8Bytes()
-                           }.AsImmutable();
+                           }.AsImmutable;
 
                 return false;
 
@@ -483,7 +414,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                    ContentType     = HTTPContentType.JSON_UTF8,
                                    Content         = new JObject(new JProperty("description", "Unknown or invalid language definition '" + Description.Key + "'!")).ToUTF8Bytes()
-                               }.AsImmutable();
+                               }.AsImmutable;
 
                     return false;
 
@@ -500,7 +431,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                    ContentType     = HTTPContentType.JSON_UTF8,
                                    Content         = new JObject(new JProperty("description", "Invalid description text!")).ToUTF8Bytes()
-                               }.AsImmutable();
+                               }.AsImmutable;
 
                     return false;
 

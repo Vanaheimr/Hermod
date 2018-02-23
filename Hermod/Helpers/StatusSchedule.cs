@@ -123,6 +123,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Constructor(s)
 
+        #region StatusSchedule(               MaxStatusListSize = DefaultMaxStatusListSize)
+
         /// <summary>
         /// Create a new status schedule.
         /// </summary>
@@ -137,6 +139,87 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+        #region StatusSchedule(InitialValue,  MaxStatusListSize = DefaultMaxStatusListSize)
+
+        /// <summary>
+        /// Create a new status schedule.
+        /// </summary>
+        /// <param name="InitialValue">An initial value.</param>
+        /// <param name="MaxStatusListSize">The maximum number of stored status entries.</param>
+        public StatusSchedule(T      InitialValue,
+                              UInt16 MaxStatusListSize = DefaultMaxStatusListSize)
+
+            : this(MaxStatusListSize)
+
+        {
+
+            _StatusSchedule.Add(InitialValue);
+
+        }
+
+
+        /// <summary>
+        /// Create a new status schedule.
+        /// </summary>
+        /// <param name="InitialValue">An initial timestamped value.</param>
+        /// <param name="MaxStatusListSize">The maximum number of stored status entries.</param>
+        public StatusSchedule(Timestamped<T>  InitialValue,
+                              UInt16          MaxStatusListSize = DefaultMaxStatusListSize)
+
+            : this(MaxStatusListSize)
+
+        {
+
+            _StatusSchedule.Add(InitialValue);
+
+        }
+
+        #endregion
+
+        #region StatusSchedule(InitialValues, MaxStatusListSize = DefaultMaxStatusListSize)
+
+        /// <summary>
+        /// Create a new status schedule.
+        /// </summary>
+        /// <param name="InitialValues">Initial values.</param>
+        /// <param name="MaxStatusListSize">The maximum number of stored status entries.</param>
+        public StatusSchedule(IEnumerable<T>  InitialValues,
+                              UInt16          MaxStatusListSize = DefaultMaxStatusListSize)
+
+            : this(MaxStatusListSize)
+
+        {
+
+            if (InitialValues.IsNeitherNullNorEmpty())
+            {
+                var Now = DateTime.UtcNow;
+                _StatusSchedule.AddRange(InitialValues.Select(_ => new Timestamped<T>(Now, _)));
+            }
+
+        }
+
+
+        /// <summary>
+        /// Create a new status schedule.
+        /// </summary>
+        /// <param name="InitialValues">Initial timestamped values.</param>
+        /// <param name="MaxStatusListSize">The maximum number of stored status entries.</param>
+        public StatusSchedule(IEnumerable<Timestamped<T>>  InitialValues,
+                              UInt16                       MaxStatusListSize = DefaultMaxStatusListSize)
+
+            : this(MaxStatusListSize)
+
+        {
+
+            if (InitialValues.IsNeitherNullNorEmpty())
+                _StatusSchedule.AddRange(InitialValues);
+
+        }
+
+        #endregion
+
+        #endregion
+
 
         #region Insert(NewStatus)
 
@@ -144,10 +227,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Insert a new status entry.
         /// </summary>
         /// <param name="NewStatus">A new status.</param>
-        public void Insert(T NewStatus)
-        {
-            Insert(NewStatus, DateTime.UtcNow);
-        }
+        public StatusSchedule<T> Insert(T NewStatus)
+
+            => Insert(NewStatus,
+                      DateTime.UtcNow);
 
         #endregion
 
@@ -157,13 +240,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Insert a new status entry.
         /// </summary>
         /// <param name="NewTimestampedStatus">A new timestamped status.</param>
-        public void Insert(Timestamped<T> NewTimestampedStatus)
-        {
+        public StatusSchedule<T> Insert(Timestamped<T> NewTimestampedStatus)
 
-            Insert(NewTimestampedStatus.Value,
-                   NewTimestampedStatus.Timestamp);
-
-        }
+            => Insert(NewTimestampedStatus.Value,
+                      NewTimestampedStatus.Timestamp);
 
         #endregion
 
@@ -174,8 +254,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         /// <param name="Value">The value of the new status entry.</param>
         /// <param name="Timestamp">The timestamp of the new status entry.</param>
-        public void Insert(T         Value,
-                           DateTime  Timestamp)
+        public StatusSchedule<T> Insert(T         Value,
+                                        DateTime  Timestamp)
         {
 
             lock (_StatusSchedule)
@@ -207,6 +287,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             }
 
+            return this;
+
         }
 
         #endregion
@@ -218,8 +300,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         /// <param name="StatusList">An enumeration of status entries.</param>
         /// <param name="ChangeMethod">A change method.</param>
-        public void Insert(IEnumerable<Timestamped<T>>  StatusList,
-                           ChangeMethods                ChangeMethod  = ChangeMethods.Replace)
+        public StatusSchedule<T> Insert(IEnumerable<Timestamped<T>>  StatusList,
+                                        ChangeMethods                ChangeMethod  = ChangeMethods.Replace)
         {
 
             lock (_StatusSchedule)
@@ -257,6 +339,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 CheckCurrentStatus(_OldStatus);
 
             }
+
+            return this;
 
         }
 
@@ -331,7 +415,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region (override) ToString()
 
         /// <summary>
-        /// Return a string representation of this object.
+        /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
             => CurrentStatus.ToString();

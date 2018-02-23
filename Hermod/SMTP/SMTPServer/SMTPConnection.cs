@@ -69,19 +69,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #endregion
 
-        #region UseTLS
-
-        private readonly Boolean _UseTLS;
-
-        public Boolean UseTLS
-        {
-            get
-            {
-                return _UseTLS;
-            }
-        }
-
-        #endregion
+        /// <summary>
+        /// Allow to start SSL/TLS via the 'STARTTLS' SMTP command.
+        /// </summary>
+        public Boolean  AllowStartTLS   { get; }
 
         #region TLSEnabled
 
@@ -133,13 +124,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// decode the transmitted data as SMTP requests.
         /// </summary>
         /// <param name="DefaultServername">The default SMTP servername.</param>
-        /// <param name="UseTLS">Allow TLS on SMTP connections.</param>
+        /// <param name="AllowStartTLS">>Allow to start SSL/TLS via the 'STARTTLS' SMTP command.</param>
         public SMTPConnection(String  DefaultServername  = SMTPServer.__DefaultServerName,
-                              Boolean UseTLS             = true)
+                              Boolean AllowStartTLS      = true)
         {
 
             this._DefaultServerName  = DefaultServername;
-            this._UseTLS             = UseTLS;
+            this.AllowStartTLS       = AllowStartTLS;
             this._TLSEnabled         = false;
 
         }
@@ -328,8 +319,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                             TCPConnection.WriteLineSMTP(SMTPStatusCode.Ok,
                                                                         DefaultServerName,
                                                                         "VRFY",
-                                                                        _UseTLS     ? "STARTTLS"         : null,
-                                                                        _TLSEnabled ? "AUTH PLAIN LOGIN" : null,
+                                                                        AllowStartTLS ? "STARTTLS"         : null,
+                                                                        _TLSEnabled   ? "AUTH PLAIN LOGIN" : null,
                                                                         "SIZE 204800000",
                                                                         "ENHANCEDSTATUSCODES",
                                                                         "8BITMIME");

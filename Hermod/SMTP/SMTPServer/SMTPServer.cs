@@ -29,6 +29,8 @@ using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Mail;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using System.Security.Authentication;
+using System.Net.Security;
 
 #endregion
 
@@ -156,19 +158,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #endregion
 
-        #region UseTLS
-
-        private readonly Boolean _UseTLS;
-
-        public Boolean UseTLS
-        {
-            get
-            {
-                return _UseTLS;
-            }
-        }
-
-        #endregion
+        public Boolean AllowStartTLS { get; }
 
         #endregion
 
@@ -197,11 +187,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <summary>
         /// Initialize the SMTP server using the given parameters.
         /// </summary>
-        /// <param name="IPPort"></param>
+        /// <param name="TCPPort"></param>
         /// <param name="DefaultServerName">The default SMTP servername.</param>
-        /// <param name="X509Certificate">Use this X509 certificate for TLS.</param>
-        /// <param name="UseTLS">Use TLS (implicit true, if a X509 certificate was given!).</param>
-        /// <param name="CallingAssemblies">Calling assemblies.</param>
+        /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
+        /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
+        /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
+        /// <param name="AllowedTLSProtocols">The SSL/TLS protocol(s) allowed for this connection.</param>
+        /// <param name="AllowStartTLS">Allow to start SSL/TLS via the 'STARTTLS' SMTP command.</param>
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
@@ -213,25 +205,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="Autostart">Start the SMTP server thread immediately (default: no).</param>
-        public SMTPServer(IPPort                            IPPort                            = null,
-                          String                            DefaultServerName                 = __DefaultServerName,
-                          X509Certificate2                  X509Certificate                   = null,
-                          Boolean?                          UseTLS                            = true,
-                          IEnumerable<Assembly>             CallingAssemblies                 = null,
-                          String                            ServerThreadName                  = null,
-                          ThreadPriority                    ServerThreadPriority              = ThreadPriority.AboveNormal,
-                          Boolean                           ServerThreadIsBackground          = true,
-                          ConnectionIdBuilder               ConnectionIdBuilder               = null,
-                          ConnectionThreadsNameBuilder      ConnectionThreadsNameBuilder      = null,
-                          ConnectionThreadsPriorityBuilder  ConnectionThreadsPriorityBuilder  = null,
-                          Boolean                           ConnectionThreadsAreBackground    = true,
-                          TimeSpan?                         ConnectionTimeout                 = null,
-                          UInt32                            MaxClientConnections              = TCPServer.__DefaultMaxClientConnections,
-                          DNSClient                         DNSClient                         = null,
-                          Boolean                           Autostart                         = false)
+        public SMTPServer(IPPort?                              TCPPort                            = null,
+                          String                               DefaultServerName                  = __DefaultServerName,
+                          ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
+                          RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
+                          LocalCertificateSelectionCallback    ClientCertificateSelector          = null,
+                          SslProtocols                         AllowedTLSProtocols                = SslProtocols.Tls12,
+                          Boolean?                             AllowStartTLS                             = true,
+                          String                               ServerThreadName                   = null,
+                          ThreadPriority                       ServerThreadPriority               = ThreadPriority.AboveNormal,
+                          Boolean                              ServerThreadIsBackground           = true,
+                          ConnectionIdBuilder                  ConnectionIdBuilder                = null,
+                          ConnectionThreadsNameBuilder         ConnectionThreadsNameBuilder       = null,
+                          ConnectionThreadsPriorityBuilder     ConnectionThreadsPriorityBuilder   = null,
+                          Boolean                              ConnectionThreadsAreBackground     = true,
+                          TimeSpan?                            ConnectionTimeout                  = null,
+                          UInt32                               MaxClientConnections               = TCPServer.__DefaultMaxClientConnections,
+                          DNSClient                            DNSClient                          = null,
+                          Boolean                              Autostart                          = false)
 
             : base(DefaultServerName,
-                   X509Certificate,
+                   ServerCertificateSelector,
+                   ClientCertificateValidator,
+                   ClientCertificateSelector,
+                   AllowedTLSProtocols,
                    ServerThreadName,
                    ServerThreadPriority,
                    ServerThreadIsBackground,
@@ -247,21 +244,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         {
 
             this._DefaultServerName         = DefaultServerName;
-            this._UseTLS                    = UseTLS.HasValue
-                                                 ? UseTLS.Value
-                                                 : (X509Certificate != null
-                                                       ? true
-                                                       : false);
+            this.AllowStartTLS              = AllowStartTLS ?? (ServerCertificateSelector != null);
 
-            _SMTPConnection                  = new SMTPConnection(DefaultServerName, this._UseTLS);
+            _SMTPConnection                 = new SMTPConnection(DefaultServerName,
+                                                                 this.AllowStartTLS);
             _SMTPConnection.MAIL_FROMFilter += Process_MAIL_FROMFilter;
             _SMTPConnection.RCPT_TOFilter   += Process_RCPT_TOFilter;
             _SMTPConnection.OnNotification  += ProcessNotification;
             _SMTPConnection.ErrorLog        += (HTTPProcessor, ServerTimestamp, SMTPCommand, Request, Response, Error, LastException) =>
                                                      LogError (ServerTimestamp, SMTPCommand, Request, Response, Error, LastException);
 
-            if (IPPort != null)
-                this.AttachTCPPort(IPPort);
+            if (TCPPort != null)
+                this.AttachTCPPort(TCPPort ?? IPPort.SMTP);
 
             if (Autostart)
                 Start();
@@ -372,11 +366,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                      String         ConnectionId,
                                                      TCPConnection  TCPConnection)
         {
-
-            var OnNewConnectionLocal = OnNewConnection;
-            if (OnNewConnectionLocal != null)
-                OnNewConnectionLocal(this, Timestamp, RemoteSocket, TCPConnection);
-
+            OnNewConnection?.Invoke(this, Timestamp, RemoteSocket, TCPConnection);
         }
 
         private MAIL_FROM_FilterResponse Process_MAIL_FROMFilter(String MAIL_FROM)
@@ -403,11 +393,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         private void ProcessNotification(EMailEnvelop MailEnvelop)
         {
-
-            var OnNotificationLocal = OnNotification;
-            if (OnNotificationLocal != null)
-                OnNotificationLocal(this, MailEnvelop);
-
+            OnNotification?.Invoke(this, MailEnvelop);
         }
 
 

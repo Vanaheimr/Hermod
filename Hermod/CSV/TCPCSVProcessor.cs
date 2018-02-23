@@ -317,11 +317,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                                             Exception  ExceptionMessage)
         {
 
-            var OnExceptionOccuredLocal = OnExceptionOccured;
-            if (OnExceptionOccuredLocal != null)
-                OnExceptionOccuredLocal(Sender,
-                                        Timestamp,
-                                        ExceptionMessage);
+            OnExceptionOccured?.Invoke(Sender,
+                                       Timestamp,
+                                       ExceptionMessage);
 
         }
 
@@ -334,11 +332,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                                      String    Message = null)
         {
 
-            var OnCompletedLocal = OnCompleted;
-            if (OnCompletedLocal != null)
-                OnCompletedLocal(Sender,
-                                 Timestamp,
-                                 Message);
+            OnCompleted?.Invoke(Sender,
+                                Timestamp,
+                                Message);
 
         }
 

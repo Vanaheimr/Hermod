@@ -390,6 +390,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
         }
 
+        internal void ResizeBody(Int32 NewSize)
+        {
+            Array.Resize(ref _HTTPBody, NewSize);
+        }
+
         #endregion
 
         #region HTTPBodyAsUTF8String
@@ -748,8 +753,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected String GetHeaderField(HTTPHeaderField HeaderField)
         {
 
-            Object Value;
-            if (_HeaderFields.TryGetValue(HeaderField.Name, out Value))
+            if (_HeaderFields.TryGetValue(HeaderField.Name, out Object Value))
                 return Value.ToString();
 
             return String.Empty;

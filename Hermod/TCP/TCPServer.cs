@@ -20,13 +20,15 @@
 using System;
 using System.Linq;
 using System.Net.Sockets;
+using System.Net.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
-using System.Diagnostics;
 
 #endregion
 
@@ -130,6 +132,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         }
 
         #endregion
+
+        /// <summary>
+        /// The optional SSL/TLS certificate.
+        /// </summary>
+        public X509Certificate2  ServerCertificate             { get; }
+
+        /// <summary>
+        /// Whether SSL/TLS client certification is required.
+        /// </summary>
+        public Boolean           ClientCertificateRequired     { get; }
+
+        /// <summary>
+        /// Whether SSL/TLS client certificate revokation should be verified.
+        /// </summary>
+        public Boolean           CheckCertificateRevocation    { get; }
 
 
         #region ServiceBanner
@@ -384,6 +401,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// Initialize the TCP server using IPAddress.Any and the given parameters.
         /// </summary>
         /// <param name="Port">The listening port</param>
+        /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
+        /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
+        /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
+        /// <param name="AllowedTLSProtocols">The SSL/TLS protocol(s) allowed for this connection.</param>
         /// <param name="ServiceBanner">Service banner.</param>
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
@@ -395,21 +416,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="Autostart">Start the TCP server thread immediately (default: no).</param>
-        public TCPServer(IPPort                            Port,
-                         String                            ServiceBanner                     = __DefaultServiceBanner,
-                         String                            ServerThreadName                  = null,
-                         ThreadPriority                    ServerThreadPriority              = ThreadPriority.AboveNormal,
-                         Boolean                           ServerThreadIsBackground          = true,
-                         ConnectionIdBuilder               ConnectionIdBuilder               = null,
-                         ConnectionThreadsNameBuilder      ConnectionThreadsNameBuilder      = null,
-                         ConnectionThreadsPriorityBuilder  ConnectionThreadsPriorityBuilder  = null,
-                         Boolean                           ConnectionThreadsAreBackground    = true,
-                         TimeSpan?                         ConnectionTimeout                 = null,
-                         UInt32                            MaxClientConnections              = __DefaultMaxClientConnections,
-                         Boolean                           Autostart                         = false)
+        public TCPServer(IPPort                               Port,
+                         ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
+                         RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
+                         LocalCertificateSelectionCallback    ClientCertificateSelector          = null,
+                         SslProtocols                         AllowedTLSProtocols                = SslProtocols.Tls12,
+                         String                               ServiceBanner                      = __DefaultServiceBanner,
+                         String                               ServerThreadName                   = null,
+                         ThreadPriority                       ServerThreadPriority               = ThreadPriority.AboveNormal,
+                         Boolean                              ServerThreadIsBackground           = true,
+                         ConnectionIdBuilder                  ConnectionIdBuilder                = null,
+                         ConnectionThreadsNameBuilder         ConnectionThreadsNameBuilder       = null,
+                         ConnectionThreadsPriorityBuilder     ConnectionThreadsPriorityBuilder   = null,
+                         Boolean                              ConnectionThreadsAreBackground     = true,
+                         TimeSpan?                            ConnectionTimeout                  = null,
+                         UInt32                               MaxClientConnections               = __DefaultMaxClientConnections,
+                         Boolean                              Autostart                          = false)
 
             : this(IPv4Address.Any,
                    Port,
+                   ServerCertificateSelector,
+                   ClientCertificateValidator,
+                   ClientCertificateSelector,
+                   AllowedTLSProtocols,
                    ServiceBanner,
                    ServerThreadName,
                    ServerThreadPriority,
@@ -433,6 +462,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// </summary>
         /// <param name="IIPAddress">The listening IP address(es)</param>
         /// <param name="Port">The listening port</param>
+        /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
+        /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
+        /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
+        /// <param name="AllowedTLSProtocols">The SSL/TLS protocol(s) allowed for this connection.</param>
         /// <param name="ServiceBanner">Service banner.</param>
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
@@ -444,19 +477,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="Autostart">Start the TCP server thread immediately (default: no).</param>
-        public TCPServer(IIPAddress                        IIPAddress,
-                         IPPort                            Port,
-                         String                            ServiceBanner                     = __DefaultServiceBanner,
-                         String                            ServerThreadName                  = null,
-                         ThreadPriority                    ServerThreadPriority              = ThreadPriority.AboveNormal,
-                         Boolean                           ServerThreadIsBackground          = true,
-                         ConnectionIdBuilder               ConnectionIdBuilder               = null,
-                         ConnectionThreadsNameBuilder      ConnectionThreadsNameBuilder      = null,
-                         ConnectionThreadsPriorityBuilder  ConnectionThreadsPriorityBuilder  = null,
-                         Boolean                           ConnectionThreadsAreBackground    = true,
-                         TimeSpan?                         ConnectionTimeout                 = null,
-                         UInt32                            MaxClientConnections              = __DefaultMaxClientConnections,
-                         Boolean                           Autostart                         = false)
+        public TCPServer(IIPAddress                           IIPAddress,
+                         IPPort                               Port,
+                         ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
+                         RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
+                         LocalCertificateSelectionCallback    ClientCertificateSelector          = null,
+                         SslProtocols                         AllowedTLSProtocols                = SslProtocols.Tls12,
+                         String                               ServiceBanner                      = __DefaultServiceBanner,
+                         String                               ServerThreadName                   = null,
+                         ThreadPriority                       ServerThreadPriority               = ThreadPriority.AboveNormal,
+                         Boolean                              ServerThreadIsBackground           = true,
+                         ConnectionIdBuilder                  ConnectionIdBuilder                = null,
+                         ConnectionThreadsNameBuilder         ConnectionThreadsNameBuilder       = null,
+                         ConnectionThreadsPriorityBuilder     ConnectionThreadsPriorityBuilder   = null,
+                         Boolean                              ConnectionThreadsAreBackground     = true,
+                         TimeSpan?                            ConnectionTimeout                  = null,
+                         UInt32                               MaxClientConnections               = __DefaultMaxClientConnections,
+                         Boolean                              Autostart                          = false)
 
         {
 
@@ -464,6 +501,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             this._IPAddress                         = IIPAddress;
             this._Port                              = Port;
+            this.ServerCertificate                  = ServerCertificate;
+            this.ClientCertificateRequired          = ClientCertificateRequired;
+            this.CheckCertificateRevocation         = CheckCertificateRevocation;
             this._IPSocket                          = new IPSocket(_IPAddress, _Port);
             this._TCPListener                       = new TcpListener(new System.Net.IPAddress(_IPAddress.GetBytes()), _Port.ToInt32());
 
@@ -575,7 +615,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                 var _Tuple           = Tuple as Tuple<TCPServer, TcpClient>;
 
                                 var NewTCPConnection = new ThreadLocal<TCPConnection>(
-                                                           () => new TCPConnection(_Tuple.Item1, _Tuple.Item2)
+                                                           () => new TCPConnection(TCPServer:                   _Tuple.Item1,
+                                                                                   TCPClient:                   _Tuple.Item2,
+                                                                                   ServerCertificateSelector:   ServerCertificateSelector,
+                                                                                   ClientCertificateValidator:  ClientCertificateValidator,
+                                                                                   ClientCertificateSelector:   ClientCertificateSelector,
+                                                                                   AllowedTLSProtocols:         AllowedTLSProtocols)
                                                        );
 
                                 #region Copy ExceptionOccured event handlers
@@ -661,6 +706,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// Initialize the TCP server using IPAddress.Any and the given parameters.
         /// </summary>
         /// <param name="IPSocket">The IP socket to listen.</param>
+        /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
+        /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
+        /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
+        /// <param name="AllowedTLSProtocols">The SSL/TLS protocol(s) allowed for this connection.</param>
         /// <param name="ServiceBanner">Service banner.</param>
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
@@ -672,21 +721,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="Autostart">Start the TCP server thread immediately (default: no).</param>
-        public TCPServer(IPSocket                          IPSocket,
-                         String                            ServiceBanner                     = __DefaultServiceBanner,
-                         String                            ServerThreadName                  = null,
-                         ThreadPriority                    ServerThreadPriority              = ThreadPriority.AboveNormal,
-                         Boolean                           ServerThreadIsBackground          = true,
-                         ConnectionIdBuilder               ConnectionIdBuilder               = null,
-                         ConnectionThreadsNameBuilder      ConnectionThreadsNameBuilder      = null,
-                         ConnectionThreadsPriorityBuilder  ConnectionThreadsPriorityBuilder  = null,
-                         Boolean                           ConnectionThreadsAreBackground    = true,
-                         TimeSpan?                         ConnectionTimeout                 = null,
-                         UInt32                            MaxClientConnections              = __DefaultMaxClientConnections,
-                         Boolean                           Autostart                         = false)
+        public TCPServer(IPSocket                             IPSocket,
+                         ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
+                         RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
+                         LocalCertificateSelectionCallback    ClientCertificateSelector          = null,
+                         SslProtocols                         AllowedTLSProtocols                = SslProtocols.Tls12,
+                         String                               ServiceBanner                      = __DefaultServiceBanner,
+                         String                               ServerThreadName                   = null,
+                         ThreadPriority                       ServerThreadPriority               = ThreadPriority.AboveNormal,
+                         Boolean                              ServerThreadIsBackground           = true,
+                         ConnectionIdBuilder                  ConnectionIdBuilder                = null,
+                         ConnectionThreadsNameBuilder         ConnectionThreadsNameBuilder       = null,
+                         ConnectionThreadsPriorityBuilder     ConnectionThreadsPriorityBuilder   = null,
+                         Boolean                              ConnectionThreadsAreBackground     = true,
+                         TimeSpan?                            ConnectionTimeout                  = null,
+                         UInt32                               MaxClientConnections               = __DefaultMaxClientConnections,
+                         Boolean                              Autostart                          = false)
 
             : this(IPSocket.IPAddress,
                    IPSocket.Port,
+                   ServerCertificateSelector,
+                   ClientCertificateValidator,
+                   ClientCertificateSelector,
+                   AllowedTLSProtocols,
                    ServiceBanner,
                    ServerThreadName,
                    ServerThreadPriority,
@@ -906,7 +963,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         #region (override) ToString()
 
         /// <summary>
-        /// Return a string representation of this object.
+        /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
         {

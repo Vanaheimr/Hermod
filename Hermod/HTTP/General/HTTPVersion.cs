@@ -28,7 +28,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A HTTP version identifier.
     /// </summary>
-    public class HTTPVersion : IEquatable<HTTPVersion>, IComparable<HTTPVersion>, IComparable
+    public struct HTTPVersion : IEquatable<HTTPVersion>,
+                                IComparable<HTTPVersion>,
+                                IComparable
     {
 
         #region Properties
@@ -36,18 +38,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The major of this HTTP version
         /// </summary>
-        public UInt16 Major { get; private set; }
+        public UInt16  Major   { get; }
 
         /// <summary>
         /// The minor of this HTTP version
         /// </summary>
-        public UInt16 Minor { get; private set; }
+        public UInt16  Minor   { get; }
 
         #endregion
 
         #region Constructor(s)
-
-        #region HTTPVersion(Major, Minor)
 
         /// <summary>
         /// Create a new HTTP version identifier.
@@ -56,11 +56,73 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Minor">The minor number.</param>
         public HTTPVersion(UInt16 Major, UInt16 Minor)
         {
-            this.Major = Major;
-            this.Minor = Minor;
+            this.Major  = Major;
+            this.Minor  = Minor;
         }
 
         #endregion
+
+
+        #region Parse   (Text)
+
+        /// <summary>
+        /// Parse the given text representation of a HTTP version, e.g. "HTTP/1.1".
+        /// </summary>
+        /// <param name="Text">A text representation of a HTTP version, e.g. "HTTP/1.1".</param>
+        public static HTTPVersion Parse(String Text)
+        {
+
+            if (TryParse(Text, out HTTPVersion Version))
+                return Version;
+
+            throw new ArgumentException("The given string could not be parsed as a HTTP version!", nameof(Text));
+
+        }
+
+        #endregion
+
+        #region TryParse(Text)
+
+        /// <summary>
+        /// Try to parse the given text representation of a HTTP version, e.g. "HTTP/1.1".
+        /// </summary>
+        /// <param name="Text">A text representation of a HTTP version, e.g. "HTTP/1.1".</param>
+        public static HTTPVersion? TryParse(String Text)
+        {
+
+            if (TryParse(Text, out HTTPVersion Version))
+                return Version;
+
+            return new HTTPVersion?();
+
+        }
+
+        #endregion
+
+        #region TryParse(Text, out Version)
+
+        /// <summary>
+        /// Try to parse the given text representation of a HTTP version, e.g. "HTTP/1.1".
+        /// </summary>
+        /// <param name="Text">A text representation of a HTTP version, e.g. "HTTP/1.1".</param>
+        /// <param name="Version">The parsed HTTP version</param>
+        public static Boolean TryParse(String Text, out HTTPVersion Version)
+        {
+
+            var MajorMinor = Text.Split(new Char[] { '.' }, StringSplitOptions.None);
+
+            if (MajorMinor.Length != 2 ||
+                !UInt16.TryParse(MajorMinor[0], out UInt16 Major) ||
+                !UInt16.TryParse(MajorMinor[1], out UInt16 Minor))
+            {
+                Version = default(HTTPVersion);
+                return false;
+            }
+
+            Version = new HTTPVersion(Major, Minor);
+            return true;
+
+        }
 
         #endregion
 
@@ -80,134 +142,109 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region TryParseVersionString(VersionString, out HTTPVersion)
-
-        /// <summary>
-        /// Tries to find the appropriate HTTPVersion for the given string, e.g. "HTTP/1.1".
-        /// </summary>
-        /// <param name="VersionString">A HTTP version as stirng, e.g. "HTTP/1.1"</param>
-        /// <param name="HTTPVersion">The parsed HTTP version</param>
-        /// <returns>true or false</returns>
-        public static Boolean TryParseVersionString(String VersionString, out HTTPVersion HTTPVersion)
-        {
-
-            HTTPVersion = null;
-
-            var _MajorMinor = VersionString.Split(new Char[] { '.' }, StringSplitOptions.RemoveEmptyEntries);
-
-            if (_MajorMinor.Length != 2)
-                return false;
-
-            UInt16 __Major;
-            UInt16 __Minor;
-
-            if (!UInt16.TryParse(_MajorMinor[0], out __Major))
-                return false;
-
-            if (!UInt16.TryParse(_MajorMinor[1], out __Minor))
-                return false;
-
-            // Use reflection to find a static representation of the given version string.
-            HTTPVersion = (from _FieldInfo in typeof(HTTPVersion).GetFields()
-                           let    _HTTPVersion = _FieldInfo.GetValue(null) as HTTPVersion
-                           where  _HTTPVersion != null
-                           where  _HTTPVersion.Major == __Major
-                           where  _HTTPVersion.Minor == __Minor
-                           select _HTTPVersion).FirstOrDefault();
-
-            if (HTTPVersion != null)
-                return true;
-
-            return false;
-
-        }
-
-        #endregion
-
-
         #region Operator overloading
 
-        #region Operator == (myHTTPVersion1, myHTTPVersion2)
+        #region Operator == (HTTPVersion1, HTTPVersion2)
 
-        public static Boolean operator == (HTTPVersion myHTTPVersion1, HTTPVersion myHTTPVersion2)
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPVersion1">A HTTP version.</param>
+        /// <param name="HTTPVersion2">Another HTTP version.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator == (HTTPVersion HTTPVersion1, HTTPVersion HTTPVersion2)
         {
 
             // If both are null, or both are same instance, return true.
-            if (Object.ReferenceEquals(myHTTPVersion1, myHTTPVersion2))
+            if (Object.ReferenceEquals(HTTPVersion1, HTTPVersion2))
                 return true;
 
             // If one is null, but not both, return false.
-            if (((Object) myHTTPVersion1 == null) || ((Object) myHTTPVersion2 == null))
+            if (((Object) HTTPVersion1 == null) || ((Object) HTTPVersion2 == null))
                 return false;
 
-            return myHTTPVersion1.Equals(myHTTPVersion2);
+            return HTTPVersion1.Equals(HTTPVersion2);
 
         }
 
         #endregion
 
-        #region Operator != (myHTTPVersion1, myHTTPVersion2)
+        #region Operator != (HTTPVersion1, HTTPVersion2)
 
-        public static Boolean operator != (HTTPVersion myHTTPVersion1, HTTPVersion myHTTPVersion2)
-        {
-            return !(myHTTPVersion1 == myHTTPVersion2);
-        }
-
-        #endregion
-
-        #region Operator <  (myHTTPVersion1, myHTTPVersion2)
-
-        public static Boolean operator < (HTTPVersion myHTTPVersion1, HTTPVersion myHTTPVersion2)
-        {
-
-            // Check if myHTTPVersion1 is null
-            if ((Object) myHTTPVersion1 == null)
-                throw new ArgumentNullException("Parameter myHTTPVersion1 must not be null!");
-
-            // Check if myHTTPVersion2 is null
-            if ((Object) myHTTPVersion2 == null)
-                throw new ArgumentNullException("Parameter myHTTPVersion2 must not be null!");
-
-            return myHTTPVersion1.CompareTo(myHTTPVersion2) < 0;
-
-        }
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPVersion1">A HTTP version.</param>
+        /// <param name="HTTPVersion2">Another HTTP version.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator != (HTTPVersion HTTPVersion1, HTTPVersion HTTPVersion2)
+            => !(HTTPVersion1 == HTTPVersion2);
 
         #endregion
 
-        #region Operator >  (myHTTPVersion1, myHTTPVersion2)
+        #region Operator <  (HTTPVersion1, HTTPVersion2)
 
-        public static Boolean operator > (HTTPVersion myHTTPVersion1, HTTPVersion myHTTPVersion2)
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPVersion1">A HTTP version.</param>
+        /// <param name="HTTPVersion2">Another HTTP version.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator < (HTTPVersion HTTPVersion1, HTTPVersion HTTPVersion2)
         {
 
-            // Check if myHTTPVersion1 is null
-            if ((Object) myHTTPVersion1 == null)
-                throw new ArgumentNullException("Parameter myHTTPVersion1 must not be null!");
+            if ((Object) HTTPVersion1 == null)
+                throw new ArgumentNullException(nameof(HTTPVersion1), "The given HTTPVersion1 must not be null!");
 
-            // Check if myHTTPVersion2 is null
-            if ((Object) myHTTPVersion2 == null)
-                throw new ArgumentNullException("Parameter myHTTPVersion2 must not be null!");
-
-            return myHTTPVersion1.CompareTo(myHTTPVersion2) > 0;
+            return HTTPVersion1.CompareTo(HTTPVersion2) < 0;
 
         }
 
         #endregion
 
-        #region Operator <= (myHTTPVersion1, myHTTPVersion2)
+        #region Operator <= (HTTPVersion1, HTTPVersion2)
 
-        public static Boolean operator <= (HTTPVersion myHTTPVersion1, HTTPVersion myHTTPVersion2)
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPVersion1">A HTTP version.</param>
+        /// <param name="HTTPVersion2">Another HTTP version.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator <= (HTTPVersion HTTPVersion1, HTTPVersion HTTPVersion2)
+            => !(HTTPVersion1 > HTTPVersion2);
+
+        #endregion
+
+        #region Operator >  (HTTPVersion1, HTTPVersion2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPVersion1">A HTTP version.</param>
+        /// <param name="HTTPVersion2">Another HTTP version.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator > (HTTPVersion HTTPVersion1, HTTPVersion HTTPVersion2)
         {
-            return !(myHTTPVersion1 > myHTTPVersion2);
+
+            if ((Object) HTTPVersion1 == null)
+                throw new ArgumentNullException(nameof(HTTPVersion1), "The given HTTPVersion1 must not be null!");
+
+            return HTTPVersion1.CompareTo(HTTPVersion2) > 0;
+
         }
 
         #endregion
 
-        #region Operator >= (myHTTPVersion1, myHTTPVersion2)
+        #region Operator >= (HTTPVersion1, HTTPVersion2)
 
-        public static Boolean operator >= (HTTPVersion myHTTPVersion1, HTTPVersion myHTTPVersion2)
-        {
-            return !(myHTTPVersion1 < myHTTPVersion2);
-        }
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPVersion1">A HTTP version.</param>
+        /// <param name="HTTPVersion2">Another HTTP version.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator >= (HTTPVersion HTTPVersion1, HTTPVersion HTTPVersion2)
+            => !(HTTPVersion1 < HTTPVersion2);
 
         #endregion
 
@@ -227,12 +264,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Object == null)
                 throw new ArgumentNullException("The given object must not be null!");
 
-            // Check if the given object is a HTTPVersion.
-            var HTTPVersion = Object as HTTPVersion;
-            if ((Object) HTTPVersion == null)
-                throw new ArgumentException("The given object is not a HTTPVersion!");
+            if (!(Object is HTTPVersion))
+                throw new ArgumentException("The given object is not a HTTP version!");
 
-            return CompareTo(HTTPVersion);
+            return CompareTo((HTTPVersion) Object);
 
         }
 
@@ -248,7 +283,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             if ((Object) HTTPVersion == null)
-                throw new ArgumentNullException("The given HTTPVersion must not be null!");
+                throw new ArgumentNullException("The given HTTP version must not be null!");
 
             var _MajorCompared = Major.CompareTo(HTTPVersion.Major);
 
@@ -278,12 +313,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Object == null)
                 return false;
 
-            // Check if the given object is a HTTPVersion.
-            var HTTPVersion = Object as HTTPVersion;
-            if ((Object) HTTPVersion == null)
+            if (!(Object is HTTPVersion))
                 return false;
 
-            return this.Equals(HTTPVersion);
+            return Equals((HTTPVersion) Object);
 
         }
 
@@ -302,13 +335,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if ((Object) HTTPVersion == null)
                 return false;
 
-            if (Major != HTTPVersion.Major)
-                return false;
-
-            if (Minor != HTTPVersion.Minor)
-                return false;
-
-            return true;
+            return Major == HTTPVersion.Major &&
+                   Minor == HTTPVersion.Minor;
 
         }
 
@@ -324,7 +352,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
         {
-            return (Major.ToString() + Minor.ToString()).GetHashCode();
+            unchecked
+            {
+
+                return Major.GetHashCode() * 3 ^
+                       Minor.GetHashCode();
+
+            }
         }
 
         #endregion
@@ -332,12 +366,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (override) ToString()
 
         /// <summary>
-        /// Return a string representation of this object.
+        /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-        {
-            return String.Format("{0}.{1}", Major, Minor);
-        }
+            => String.Concat(Major, ".", Minor);
 
         #endregion
 

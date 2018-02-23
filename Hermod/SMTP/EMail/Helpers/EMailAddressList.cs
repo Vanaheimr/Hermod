@@ -185,7 +185,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <returns>A new e-mail address list.</returns>
         public static implicit operator EMailAddressList(SimpleEMailAddress SimpleEMailAddress)
 
-            => new EMailAddressList(new EMailAddress[] { new EMailAddress(SimpleEMailAddress) });
+            => new EMailAddressList(new EMailAddress[] { SimpleEMailAddress });
 
         #endregion
 
@@ -222,7 +222,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         #region (override) ToString()
 
         /// <summary>
-        /// Returns a string representation of this object.
+        /// Returns a text representation of this object.
         /// </summary>
         public override String ToString()
         {
@@ -406,7 +406,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <returns>A new e-mail address list.</returns>
         public static implicit operator EMailAddressListBuilder(SimpleEMailAddress SimpleEMailAddress)
 
-            => new EMailAddressListBuilder(new EMailAddress[] { new EMailAddress(SimpleEMailAddress) });
+            => new EMailAddressListBuilder(new EMailAddress[] { SimpleEMailAddress });
 
         #endregion
 
@@ -443,7 +443,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         #region (override) ToString()
 
         /// <summary>
-        /// Returns a string representation of this object.
+        /// Returns a text representation of this object.
         /// </summary>
         public override String ToString()
         {

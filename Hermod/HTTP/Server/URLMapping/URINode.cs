@@ -41,12 +41,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region URITemplate
 
-        private readonly String _URITemplate;
+        private readonly HTTPURI _URITemplate;
 
         /// <summary>
         /// The URL template for this service.
         /// </summary>
-        public String URITemplate
+        public HTTPURI URITemplate
         {
             get
             {
@@ -200,14 +200,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URIAuthentication">This and all subordinated nodes demand an explicit URI authentication.</param>
         /// <param name="RequestHandler">The default delegate to call for any request to this URI template.</param>
         /// <param name="DefaultErrorHandler">The default error handling delegate.</param>
-        internal URINode(String              URITemplate,
+        internal URINode(HTTPURI             URITemplate,
                          HTTPAuthentication  URIAuthentication    = null,
                          HTTPDelegate        RequestHandler       = null,
                          HTTPDelegate        DefaultErrorHandler  = null)
 
         {
-
-            URITemplate.FailIfNullOrEmpty();
 
             this._URITemplate           = URITemplate;
             this._URIAuthentication     = URIAuthentication;
@@ -217,9 +215,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this._HTTPMethods           = new Dictionary<HTTPMethod, HTTPMethodNode>();
 
             var _ReplaceLastParameter   = new Regex(@"\{[^/]+\}$");
-            this._ParameterCount        = (UInt16) _ReplaceLastParameter.Matches(URITemplate).Count;
-            var URLTemplate2            = _ReplaceLastParameter.Replace(URITemplate, "([^\n]+)");
-            var URLTemplateWithoutVars  = _ReplaceLastParameter.Replace(URITemplate, "");
+            this._ParameterCount        = (UInt16) _ReplaceLastParameter.Matches(URITemplate.ToString()).Count;
+            var URLTemplate2            = _ReplaceLastParameter.Replace(URITemplate.ToString(), "([^\n]+)");
+            var URLTemplateWithoutVars  = _ReplaceLastParameter.Replace(URITemplate.ToString(), "");
 
             var _ReplaceAllParameters   = new Regex(@"\{[^/]+\}");
             this._ParameterCount       += (UInt16) _ReplaceAllParameters.Matches(URLTemplate2).Count;
@@ -271,7 +269,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (override) ToString()
 
         /// <summary>
-        /// Return a string representation of this object.
+        /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
         {
