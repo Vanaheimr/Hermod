@@ -30,8 +30,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// The unique name of a HTTP cookie.
     /// </summary>
     public struct HTTPCookieName : IId,
-                                     IEquatable<HTTPCookieName>,
-                                     IComparable<HTTPCookieName>
+                                   IEquatable<HTTPCookieName>,
+                                   IComparable<HTTPCookieName>
     {
 
         #region Data
