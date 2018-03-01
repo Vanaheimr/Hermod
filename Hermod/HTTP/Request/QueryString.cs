@@ -31,13 +31,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// Extention methods for the QueryString class.
+    /// Extention methods for the HTTP QueryString class.
     /// </summary>
     public static class QueryStringExtentions
     {
 
         #region CreateStringFilter(this QueryString, ParameterName, FilterDelegate)
 
+        /// <summary>
+        /// Create a filter based on the given HTTP query parameter.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="QueryString">A HTTP query string.</param>
+        /// <param name="ParameterName">The name of the query parameter.</param>
+        /// <param name="FilterDelegate">A filter delegate.</param>
         public static Func<T, Boolean> CreateStringFilter<T>(this QueryString          QueryString,
                                                              String                    ParameterName,
                                                              Func<T, String, Boolean>  FilterDelegate)
@@ -53,7 +60,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            return item => true;
+            return _ => true;
 
         }
 
@@ -62,6 +69,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region GetDateTimeOrDefault(this QueryString, ParameterName, DefaultValue = null)
 
+        /// <summary>
+        /// Get a timestamp from a HTTP query parameter.
+        /// </summary>
+        /// <param name="QueryString">A HTTP query string.</param>
+        /// <param name="ParameterName">The name of the query parameter.</param>
+        /// <param name="DefaultValue">An optional default timestamp.</param>
         public static DateTime? GetDateTimeOrDefault(this QueryString  QueryString,
                                                      String            ParameterName,
                                                      DateTime?         DefaultValue  = null)
@@ -79,8 +92,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region TryGetDateTime      (this QueryString, ParameterName)
+
+        /// <summary>
+        /// Try to get a timestamp from a HTTP query parameter.
+        /// </summary>
+        /// <param name="QueryString">A HTTP query string.</param>
+        /// <param name="ParameterName">The name of the query parameter.</param>
+        public static DateTime? TryGetDateTime(this QueryString  QueryString,
+                                               String            ParameterName)
+        {
+
+            if (QueryString.TryGetString(ParameterName, out String Value) &&
+                DateTime.TryParse(Value, out DateTime Timestamp))
+            {
+                return Timestamp;
+            }
+
+            return null;
+
+        }
+
+        #endregion
+
         #region TryGetDateTime      (this QueryString, ParameterName, out Timestamp)
 
+        /// <summary>
+        /// Try to get a timestamp from a HTTP query parameter.
+        /// </summary>
+        /// <param name="QueryString">A HTTP query string.</param>
+        /// <param name="ParameterName">The name of the query parameter.</param>
+        /// <param name="Timestamp">The parsed timestamp.</param>
         public static Boolean TryGetDateTime(this QueryString  QueryString,
                                              String            ParameterName,
                                              out DateTime      Timestamp)
@@ -101,6 +143,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region CreateDateTimeFilter(this QueryString, ParameterName, FilterDelegate)
 
+        /// <summary>
+        /// Create a timestamp filter based on the given HTTP query parameter.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="QueryString">A HTTP query string.</param>
+        /// <param name="ParameterName">The name of the query parameter.</param>
+        /// <param name="FilterDelegate">A filter delegate.</param>
         public static Func<T, Boolean> CreateDateTimeFilter<T>(this QueryString            QueryString,
                                                                String                      ParameterName,
                                                                Func<T, DateTime, Boolean>  FilterDelegate)
@@ -112,7 +161,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return item => FilterDelegate(item, Timestamp);
             }
 
-            return item => true;
+            return _ => true;
 
         }
 
@@ -124,6 +173,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Parse optional from-timestamp filter...
         /// </summary>
+        /// <param name="QueryString">A HTTP query string.</param>
         public static DateTime? ParseFromTimestampFilter(this QueryString  QueryString)
         {
 
@@ -141,6 +191,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Parse optional to-timestamp filter...
         /// </summary>
+        /// <param name="QueryString">A HTTP query string.</param>
         public static DateTime? ParseToTimestampFilter(this QueryString  QueryString)
         {
 
@@ -158,6 +209,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Parse optional from-/to-timestamp filters...
         /// </summary>
+        /// <param name="QueryString">A HTTP query string.</param>
+        /// <param name="FromTimestamp">The optional 'from' query parameter.</param>
+        /// <param name="ToTimestamp">The optional 'to' query parameter.</param>
         public static void ParseFromToTimestampFilters(this QueryString  QueryString,
                                                        out  DateTime?    FromTimestamp,
                                                        out  DateTime?    ToTimestamp)
