@@ -554,18 +554,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             get
             {
 
-                Object Value;
-
-                if (!TryGetHeaderField(HTTPHeaderField.X_Real_IP, out Value))
+                if (!TryGetHeaderField(HTTPHeaderField.X_Real_IP, out Object Value))
                     return null;
 
-                IPv4Address IPv4;
-                IPv6Address IPv6;
-
-                if      (IPv4Address.TryParse((String) Value, out IPv4))
+                if      (IPv4Address.TryParse((String) Value, out IPv4Address IPv4))
                     return IPv4;
 
-                else if (IPv6Address.TryParse((String) Value, out IPv6))
+                else if (IPv6Address.TryParse((String) Value, out IPv6Address IPv6))
                     return IPv6;
 
                 else return null;
@@ -589,21 +584,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             get
             {
 
-                Object Value;
-
-                if (!TryGetHeaderField(HTTPHeaderField.X_Forwarded_For, out Value))
+                if (!TryGetHeaderField(HTTPHeaderField.X_Forwarded_For, out Object Value))
                     return null;
 
-                IPv4Address IPv4;
-                IPv6Address IPv6;
-
-                if      (IPv4Address.TryParse((String) Value, out IPv4))
+                if      (IPv4Address.TryParse((String) Value, out IPv4Address IPv4))
                     return IPv4;
 
-                else if (IPv6Address.TryParse((String) Value, out IPv6))
+                else if (IPv6Address.TryParse((String) Value, out IPv6Address IPv6))
                     return IPv6;
 
                 else return null;
+
+            }
+
+        }
+
+        #endregion
+
+        #region X-API-Key
+
+        /// <summary>
+        /// An optional API key for authentication.
+        /// </summary>
+        /// <example>X-API-Key: vfsf87wefh8743tzfgw9f489fh9fgs9z9z237hd208du79ehcv86egfsrf</example>
+        public APIKey? X_API_Key
+        {
+
+            get
+            {
+
+                if (!TryGetHeaderField(HTTPHeaderField.X_Real_IP, out Object Value))
+                    return null;
+
+                if (Value is String)
+                    return APIKey.TryParse(Value as String);
+
+                else
+                    return APIKey.TryParse(Value.ToString());
 
             }
 

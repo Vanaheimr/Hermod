@@ -95,6 +95,7 @@
     <Compile Include="HTTP\JSON\JSON_IO_ExtentionMethods.cs" />
     <Compile Include="HTTP\Logging\HTTPClientLogger.cs" />
     <Compile Include="HTTP\Logging\HTTPServerLogger.cs" />
+    <Compile Include="HTTP\Request\APIKey.cs" />
     <Compile Include="HTTP\Request\Extentions.cs" />
     <Compile Include="HTTP\Server\IHTTPServer.cs" />
     <Compile Include="HTTP\Server\JSONWrapper.cs" />
