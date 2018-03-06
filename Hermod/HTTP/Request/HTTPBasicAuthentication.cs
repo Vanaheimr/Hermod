@@ -161,15 +161,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region ToHTTPString()
+
+        /// <summary>
+        /// Return a HTTP text representation of this object.
+        /// </summary>
+        public String ToHTTPString()
+            => "Basic " + (Username + ":" + Password).ToBase64();
+
+        #endregion
+
         #region (override) ToString()
 
         /// <summary>
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-        {
-            return "Basic " + (Username + ":" + Password).ToBase64();
-        }
+            => String.Concat("Basic '", Username, "', '", Password, "'");
 
         #endregion
 
