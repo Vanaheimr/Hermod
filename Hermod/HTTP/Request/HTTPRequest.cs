@@ -613,7 +613,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             get
             {
 
-                if (!TryGetHeaderField(HTTPHeaderField.X_Real_IP, out Object Value))
+                if (!TryGetHeaderField(HTTPHeaderField.X_API_Key, out Object Value))
                     return null;
 
                 if (Value is String)
