@@ -226,6 +226,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
+
+        #region ToJSON(this IIPAddress, JPropertyKey)
+
+        /// <summary>
+        /// Create a JSON representation of the given IP address.
+        /// </summary>
+        /// <param name="IIPAddress">An identificator.</param>
+        /// <param name="JPropertyKey">The name of the JSON property key to use.</param>
+        public static JProperty ToJSON(this IIPAddress IIPAddress, String JPropertyKey)
+
+            => IIPAddress != null
+                   ? new JProperty(JPropertyKey, IIPAddress.ToString())
+                   : null;
+
+        #endregion
+
     }
 
 }
