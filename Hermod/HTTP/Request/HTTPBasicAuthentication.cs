@@ -18,7 +18,7 @@
 #region Usings
 
 using System;
-
+using System.Diagnostics;
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -29,64 +29,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A HTTP basic authentication.
     /// </summary>
+    [DebuggerDisplay("{DebugView}")]
     public class HTTPBasicAuthentication
     {
 
         #region Properties
 
-        #region Username
-
-        private readonly String _Username;
-
         /// <summary>
         /// The username.
         /// </summary>
-        public String Username
-        {
-            get
-            {
-                return _Username;
-            }
-
-        }
-
-        #endregion
-
-        #region Password
-
-        private readonly String _Password;
+        public String                   Username              { get; }
 
         /// <summary>
         /// The password.
         /// </summary>
-        public String Password
-        {
-            get
-            {
-                return _Password;
-            }
-
-        }
-
-        #endregion
-
-        #region HTTPCredentialType
-
-        private readonly HTTPAuthenticationTypes _HTTPCredentialType;
+        public String                   Password              { get; }
 
         /// <summary>
         /// The type of the HTTP authentication.
         /// </summary>
-        public HTTPAuthenticationTypes HTTPCredentialType
-        {
-            get
-            {
-                return _HTTPCredentialType;
-            }
+        public HTTPAuthenticationTypes  HTTPCredentialType    { get; }
 
-        }
 
-        #endregion
+        /// <summary>
+        /// Return a debug representation of this object.
+        /// </summary>
+        private String DebugView
+            => String.Concat("Basic '", Username, "', '", Password, "'");
 
         #endregion
 
@@ -111,9 +80,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            this._HTTPCredentialType  = HTTPAuthenticationTypes.Basic;
-            this._Username            = Username;
-            this._Password            = Password;
+            this.HTTPCredentialType  = HTTPAuthenticationTypes.Basic;
+            this.Username            = Username;
+            this.Password            = Password;
 
         }
 
@@ -141,7 +110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (splitted.IsNullOrEmpty())
                 return false;
 
-            if (splitted[0].ToLower() == "basic")
+            if (string.Equals(splitted[0], "basic", StringComparison.OrdinalIgnoreCase))
             {
 
                 var usernamePassword = splitted[1].FromBase64().Split(new Char[] { ':' });
@@ -161,23 +130,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region ToHTTPString()
-
-        /// <summary>
-        /// Return a HTTP text representation of this object.
-        /// </summary>
-        public String ToHTTPString()
-            => "Basic " + (Username + ":" + Password).ToBase64();
-
-        #endregion
-
         #region (override) ToString()
 
         /// <summary>
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-            => String.Concat("Basic '", Username, "', '", Password, "'");
+            => "Basic " + (Username + ":" + Password).ToBase64();
 
         #endregion
 

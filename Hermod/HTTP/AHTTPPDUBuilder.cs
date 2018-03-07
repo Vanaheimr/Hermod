@@ -93,7 +93,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         where  _KeyValuePair.Key   != null
                         where  _KeyValuePair.Value != null
                         where  !String.IsNullOrEmpty(_KeyValuePair.Value.ToString())
-                        select _KeyValuePair.Key + ": " + _KeyValuePair.Value.ToString()).
+                        select _KeyValuePair.Key + ": " + _KeyValuePair.Value).
                         AggregateOrDefault((a, b) => a + Environment.NewLine + b, String.Empty);
 
             }
