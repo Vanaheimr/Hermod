@@ -851,21 +851,124 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region Map(ParameterName, Mapper, DefaultValueT)
+        #region GetSingle(ParameterName)
+
+        public Single? GetSingle(String  ParameterName)
+        {
+
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values       != null                                            &&
+                Values.Count  > 0                                               &&
+                Single.TryParse(Values.LastOrDefault(), out Single Number))
+            {
+                return Number;
+            }
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region GetSingle(ParameterName, DefaultValue)
+
+        public Single GetSingle(String  ParameterName,
+                                Single  DefaultValue)
+        {
+
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values       != null                                            &&
+                Values.Count  > 0                                               &&
+                Single.TryParse(Values.Last(), out Single Number))
+            {
+                return Number;
+            }
+
+            return DefaultValue;
+
+        }
+
+        #endregion
+
+        #region GetDouble(ParameterName)
+
+        public Double? GetDouble(String  ParameterName)
+        {
+
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values       != null                                            &&
+                Values.Count  > 0                                               &&
+                Double.TryParse(Values.LastOrDefault(), out Double Number))
+            {
+                return Number;
+            }
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region GetDouble(ParameterName, DefaultValue)
+
+        public Double GetDouble(String  ParameterName,
+                                Double  DefaultValue)
+        {
+
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values       != null                                            &&
+                Values.Count  > 0                                               &&
+                Double.TryParse(Values.Last(), out Double Number))
+            {
+                return Number;
+            }
+
+            return DefaultValue;
+
+        }
+
+        #endregion
+
+
+        #region Map(ParameterName, Parser)
+
+        public T? Map<T>(String            ParameterName,
+                         Func<String, T?>  Parser)
+
+            where T : struct
+
+        {
+
+
+            if (Parser != null                                                  &&
+                _Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values != null                                                  &&
+                Values.Count > 0)
+            {
+                return Parser(Values.LastOrDefault());
+            }
+
+            return new T?();
+
+        }
+
+        #endregion
+
+        #region Map(ParameterName, Parser, DefaultValueT)
 
         public T Map<T>(String           ParameterName,
-                        Func<String, T>  Mapper,
+                        Func<String, T>  Parser,
                         T                DefaultValue)
         {
 
-            List<String> Values = null;
 
-            if (Mapper       != null                               &&
-                _Dictionary.TryGetValue(ParameterName, out Values) &&
-                Values       != null                               &&
-                Values.Count  > 0)
-
-                return Mapper(Values.LastOrDefault());
+            if (Parser != null                                                  &&
+                _Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values != null                                                  &&
+                Values.Count > 0)
+            {
+                return Parser(Values.LastOrDefault());
+            }
 
             return DefaultValue;
 

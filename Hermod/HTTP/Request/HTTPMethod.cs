@@ -317,7 +317,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Additional methods
 
         /// <summary>
-        /// Similar like GET, checks wether a resource exists, but only returns 'true' or 'false'.
+        /// Similar to SEARCH, searches for matching items, but might filter or sort those items differently.
+        /// </summary>
+        public static readonly HTTPMethod SEARCH        = new HTTPMethod("SEARCH",   IsIdempotent: true, IsSafe: true);
+
+        /// <summary>
+        /// Similar to GET, checks wether a resource exists, but only returns 'true' or 'false'.
         /// </summary>
         public static readonly HTTPMethod EXISTS        = new HTTPMethod("EXISTS",   IsIdempotent: true, IsSafe: true);
 
@@ -327,7 +332,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPMethod COUNT         = new HTTPMethod("COUNT",    IsIdempotent: true, IsSafe: true);
 
         /// <summary>
-        /// Similar like GET, but with an additional filter methods within the http body.
+        /// Similar to GET, but with an additional filter methods within the http body.
         /// </summary>
         public static readonly HTTPMethod FILTER        = new HTTPMethod("FILTER",   IsIdempotent: true, IsSafe: true);
 
