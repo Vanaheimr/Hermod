@@ -1029,13 +1029,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
              where TEnum : struct
         {
 
-            List<String> Values = null;
-            TEnum        ValueT;
 
-            if (FilterDelegate != null                             &&
-                _Dictionary.TryGetValue(ParameterName, out Values) &&
-                Values         != null                             &&
-                Values.Count    > 0)
+            if (FilterDelegate != null &&
+                _Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values != null &&
+                Values.Count > 0)
             {
 
                 var Value = Values.Last();
@@ -1043,11 +1041,67 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (Enum.TryParse(Value.StartsWith("!", StringComparison.Ordinal)
                                       ? Value.Substring(1)
                                       : Value,
-                                  out ValueT))
+                                  true,
+                                  out TEnum ValueT))
+                {
 
                     return item => Value.StartsWith("!", StringComparison.Ordinal)
                                       ? !FilterDelegate(item, ValueT)
                                       :  FilterDelegate(item, ValueT);
+
+                }
+
+            }
+
+            return item => true;
+
+        }
+
+        #endregion
+
+        #region CreateMultiEnumFilter(ParameterName, FilterDelegate)
+
+        public Func<T, Boolean> CreateMultiEnumFilter<T, TEnum>(String                   ParameterName,
+                                                                Func<T, TEnum>  FilterDelegate)
+             where TEnum : struct
+        {
+
+
+            if (FilterDelegate != null &&
+                _Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values != null &&
+                Values.Count > 0)
+            {
+
+                var Includes = new List<TEnum>();
+                var Excludes = new List<TEnum>();
+
+                foreach (var Value in Values)
+                {
+
+                    if (Enum.TryParse(Value.StartsWith("!", StringComparison.Ordinal)
+                                          ? Value.Substring(1)
+                                          : Value,
+                                      true,
+                                      out TEnum ValueT))
+                    {
+
+                        if (Value.StartsWith("!", StringComparison.Ordinal))
+                            Excludes.Add(ValueT);
+
+                        else
+                            Includes.Add(ValueT);
+
+                    }
+
+                }
+
+                if (Includes.Count > 0)
+                {
+
+
+
+                }
 
             }
 
