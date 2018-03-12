@@ -977,22 +977,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region ParseEnum(ParameterName, DefaultValueT)
+        #region ParseEnum   (ParameterName, DefaultValueT)
 
         public TEnum ParseEnum<TEnum>(String  ParameterName,
                                       TEnum   DefaultValueT)
              where TEnum : struct
         {
 
-            List<String> Values = null;
-            TEnum        ValueT;
-
-            if (_Dictionary.TryGetValue(ParameterName, out Values) &&
-                Values       != null                               &&
-                Values.Count  > 0                                  &&
-                Enum.TryParse(Values.Last(), out ValueT))
-
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values != null &&
+                Values.Count > 0 &&
+                Enum.TryParse(Values.Last(), out TEnum ValueT))
+            {
                 return ValueT;
+            }
 
             return DefaultValueT;
 
@@ -1006,15 +1004,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
              where TEnum : struct
         {
 
-            List<String> Values = null;
-            TEnum        ValueT;
-
-            if (_Dictionary.TryGetValue(ParameterName, out Values) &&
-                Values       != null                               &&
-                Values.Count  > 0                                  &&
-                Enum.TryParse(Values.Last(), out ValueT))
-
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values != null &&
+                Values.Count > 0 &&
+                Enum.TryParse(Values.Last(), out TEnum ValueT))
+            {
                 return new TEnum?(ValueT);
+            }
 
             return new TEnum?();
 
@@ -1022,7 +1018,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region CreateEnumFilter(ParameterName, FilterDelegate)
+        #region CreateEnumFilter     (ParameterName, FilterDelegate)
 
         public Func<T, Boolean> CreateEnumFilter<T, TEnum>(String                   ParameterName,
                                                            Func<T, TEnum, Boolean>  FilterDelegate)
