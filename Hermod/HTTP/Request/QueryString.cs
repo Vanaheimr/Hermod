@@ -256,7 +256,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Text.IsNotNullOrEmpty())
             {
 
-                Text = Text.Trim();
+                Text = HttpUtility.UrlDecode(Text.Trim());
 
                 var position = Text.IndexOf("?", StringComparison.Ordinal);
                 if (position >= 0)
@@ -275,13 +275,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         {
 
                             case 1:
-                                Add(HttpUtility.UrlDecode(split[0]), "");
+                                Add(split[0],
+                                    "");
                                 break;
 
                             case 2:
-                                Add(HttpUtility.UrlDecode(split[0]),
+                                Add(split[0],
                                     split[1].Split (CommaSign, StringSplitOptions.RemoveEmptyEntries).
-                                             Select(HttpUtility.UrlDecode));
+                                             Select(_ => _.Trim()));
                                 break;
 
                         }
