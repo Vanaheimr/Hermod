@@ -234,10 +234,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private readonly Dictionary<String, List<String>> _Dictionary;
+        private        readonly Dictionary<String, List<String>> _Dictionary;
 
-        private static Char[] AndSign    = { '&' };
-        private static Char[] EqualsSign = { '=' };
+        private static readonly Char[] AndSign     = { '&' };
+        private static readonly Char[] EqualsSign  = { '=' };
+        private static readonly Char[] CommaSign   = { ',' };
 
         #endregion
 
@@ -264,6 +265,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 String[] split = null;
 
                 if (Text.IsNotNullOrEmpty())
+                {
                     foreach (var keyValuePair in Text.Split(AndSign, StringSplitOptions.RemoveEmptyEntries))
                     {
 
@@ -278,12 +280,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                             case 2:
                                 Add(HttpUtility.UrlDecode(split[0]),
-                                    HttpUtility.UrlDecode(split[1]));
+                                    split[1].Split (CommaSign, StringSplitOptions.RemoveEmptyEntries).
+                                             Select(HttpUtility.UrlDecode));
                                 break;
 
                         }
 
                     }
+                }
 
             }
 
@@ -332,9 +336,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Key.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(Key),  "The given key must not be null or empty!");
 
+            if (Value == null)
+                return this;
+
             #endregion
 
-            if (_Dictionary.TryGetValue(Key, out List<String> ValueList) && Value != null)
+            if (_Dictionary.TryGetValue(Key, out List<String> ValueList))
                 ValueList.Add(Value);
 
             else
@@ -362,15 +369,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Key.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(Key),     "The key must not be null or empty!");
 
-            if (Values == null)
-                throw new ArgumentNullException(nameof(Values),  "The values must not be null!");
+            if (Values == null || !Values.Any())
+                return this;
 
             #endregion
 
-            List<String> ValueList = null;
-
-            if (_Dictionary.TryGetValue(Key, out ValueList))
+            if (_Dictionary.TryGetValue(Key, out List<String> ValueList))
                 ValueList.AddRange(Values);
+
             else
                 _Dictionary.Add(Key, new List<String>(Values));
 
@@ -422,14 +428,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentNullException(nameof(Key),    "The key must not be null or empty!");
 
             if (Value == null)
-                throw new ArgumentNullException(nameof(Value),  "The value must not be null!");
+                return this;
 
             #endregion
 
-            List<String> ValueList = null;
+            if (_Dictionary.TryGetValue(Key, out List<String> ValueList))
+            {
 
-            if (_Dictionary.TryGetValue(Key, out ValueList))
                 ValueList.Remove(Value);
+
+                if (ValueList.Count == 0)
+                    _Dictionary.Remove(Key);
+
+            }
 
             return this;
 
@@ -448,11 +459,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   IEnumerable<String>  Values)
         {
 
-            List<String> ValueList = null;
+            #region Initial checks
 
-            if (_Dictionary.TryGetValue(Key, out ValueList))
+            if (Key.IsNullOrEmpty())
+                throw new ArgumentNullException(nameof(Key), "The key must not be null or empty!");
+
+            if (Values == null || !Values.Any())
+                return this;
+
+            #endregion
+
+            if (_Dictionary.TryGetValue(Key, out List<String> ValueList))
+            {
+
                 foreach (var value in Values)
                     ValueList.Remove(value);
+
+                if (ValueList.Count == 0)
+                    _Dictionary.Remove(Key);
+
+            }
 
             return this;
 
@@ -1055,16 +1081,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region CreateMultiEnumFilter(ParameterName, FilterDelegate)
+        #region CreateMultiEnumFilter(ParameterName)
 
-        public Func<T, Boolean> CreateMultiEnumFilter<T, TEnum>(String                   ParameterName,
-                                                                Func<T, TEnum>  FilterDelegate)
+        public Func<TEnum, Boolean> CreateMultiEnumFilter<TEnum>(String ParameterName)
              where TEnum : struct
         {
 
-
-            if (FilterDelegate != null &&
-                _Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
                 Values != null &&
                 Values.Count > 0)
             {
@@ -1092,11 +1115,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 }
 
-                if (Includes.Count > 0)
+                if (Includes.Count == 0 && Excludes.Count == 0)
                 {
+                    return item => true;
+                }
 
+                else if (Includes.Count > 0 && Excludes.Count == 0)
+                {
+                    return item => Includes.Contains(item);
+                }
 
+                else if (Includes.Count == 0 && Excludes.Count > 0)
+                {
+                    return item => !Excludes.Contains(item);
+                }
 
+                else
+                {
+                    return item =>  Includes.Contains(item) &&
+                                   !Excludes.Contains(item);
                 }
 
             }
@@ -1140,11 +1177,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             foreach (var KeyValuePair in _Dictionary)
                 foreach (var Value in KeyValuePair.Value)
                     _StringBuilder.Append("&").
-                                   Append(HttpUtility.UrlEncodeUnicode(KeyValuePair.Key)).
+                                   Append(HttpUtility.UrlEncode(KeyValuePair.Key)).
                                    Append("=").
-                                   Append(HttpUtility.UrlEncodeUnicode(Value));
+                                   Append(HttpUtility.UrlEncode(Value));
 
-            return '?' + _StringBuilder.Remove(0, 1).ToString();
+            _StringBuilder[0] = '?';
+
+            return _StringBuilder[0].ToString();
 
         }
 
