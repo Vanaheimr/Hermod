@@ -36,145 +36,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public static class QueryStringExtentions
     {
 
-        #region CreateStringFilter(this QueryString, ParameterName, FilterDelegate)
-
-        /// <summary>
-        /// Create a filter based on the given HTTP query parameter.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="QueryString">A HTTP query string.</param>
-        /// <param name="ParameterName">The name of the query parameter.</param>
-        /// <param name="FilterDelegate">A filter delegate.</param>
-        public static Func<T, Boolean> CreateStringFilter<T>(this QueryString          QueryString,
-                                                             String                    ParameterName,
-                                                             Func<T, String, Boolean>  FilterDelegate)
-        {
-
-            if (FilterDelegate != null &&
-                QueryString.TryGetString(ParameterName, out String Value))
-            {
-
-                return item => Value.StartsWith("!", StringComparison.Ordinal)
-                                   ? !FilterDelegate(item, Value.Substring(1))
-                                   :  FilterDelegate(item, Value);
-
-            }
-
-            return _ => true;
-
-        }
-
-        #endregion
-
-
-        #region GetDateTimeOrDefault(this QueryString, ParameterName, DefaultValue = null)
-
-        /// <summary>
-        /// Get a timestamp from a HTTP query parameter.
-        /// </summary>
-        /// <param name="QueryString">A HTTP query string.</param>
-        /// <param name="ParameterName">The name of the query parameter.</param>
-        /// <param name="DefaultValue">An optional default timestamp.</param>
-        public static DateTime? GetDateTimeOrDefault(this QueryString  QueryString,
-                                                     String            ParameterName,
-                                                     DateTime?         DefaultValue  = null)
-        {
-
-            if (QueryString.TryGetString(ParameterName, out String Value) &&
-                DateTime.TryParse(Value, out DateTime Timestamp))
-            {
-                return Timestamp;
-            }
-
-            return DefaultValue;
-
-        }
-
-        #endregion
-
-        #region TryGetDateTime      (this QueryString, ParameterName)
-
-        /// <summary>
-        /// Try to get a timestamp from a HTTP query parameter.
-        /// </summary>
-        /// <param name="QueryString">A HTTP query string.</param>
-        /// <param name="ParameterName">The name of the query parameter.</param>
-        public static DateTime? TryGetDateTime(this QueryString  QueryString,
-                                               String            ParameterName)
-        {
-
-            if (QueryString.TryGetString(ParameterName, out String Value) &&
-                DateTime.TryParse(Value, out DateTime Timestamp))
-            {
-                return Timestamp;
-            }
-
-            return null;
-
-        }
-
-        #endregion
-
-        #region TryGetDateTime      (this QueryString, ParameterName, out Timestamp)
-
-        /// <summary>
-        /// Try to get a timestamp from a HTTP query parameter.
-        /// </summary>
-        /// <param name="QueryString">A HTTP query string.</param>
-        /// <param name="ParameterName">The name of the query parameter.</param>
-        /// <param name="Timestamp">The parsed timestamp.</param>
-        public static Boolean TryGetDateTime(this QueryString  QueryString,
-                                             String            ParameterName,
-                                             out DateTime      Timestamp)
-        {
-
-            if (QueryString.TryGetString(ParameterName, out String Value) &&
-                DateTime.TryParse(Value, out Timestamp))
-            {
-                return true;
-            }
-
-            Timestamp = default(DateTime);
-            return false;
-
-        }
-
-        #endregion
-
-        #region CreateDateTimeFilter(this QueryString, ParameterName, FilterDelegate)
-
-        /// <summary>
-        /// Create a timestamp filter based on the given HTTP query parameter.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="QueryString">A HTTP query string.</param>
-        /// <param name="ParameterName">The name of the query parameter.</param>
-        /// <param name="FilterDelegate">A filter delegate.</param>
-        public static Func<T, Boolean> CreateDateTimeFilter<T>(this QueryString            QueryString,
-                                                               String                      ParameterName,
-                                                               Func<T, DateTime, Boolean>  FilterDelegate)
-        {
-
-            if (FilterDelegate != null &&
-                QueryString.TryGetDateTime(ParameterName, out DateTime Timestamp))
-            {
-                return item => FilterDelegate(item, Timestamp);
-            }
-
-            return _ => true;
-
-        }
-
-        #endregion
-
-
         #region ParseFromTimestampFilter   (this QueryString)
 
         /// <summary>
         /// Parse optional from-timestamp filter...
         /// </summary>
         /// <param name="QueryString">A HTTP query string.</param>
-        public static DateTime? ParseFromTimestampFilter(this QueryString  QueryString)
+        public static DateTime? ParseFromTimestampFilter(this QueryString QueryString)
         {
 
             if (QueryString.TryGetDateTime("from", out DateTime Timestamp))
@@ -547,6 +415,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             Value = null;
             return false;
+
+        }
+
+        #endregion
+
+        #region CreateStringFilter(ParameterName, FilterDelegate)
+
+        /// <summary>
+        /// Create a filter based on the given HTTP query parameter.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="ParameterName">The name of the query parameter.</param>
+        /// <param name="FilterDelegate">A filter delegate.</param>
+        public Func<T, Boolean> CreateStringFilter<T>(String                    ParameterName,
+                                                      Func<T, String, Boolean>  FilterDelegate)
+        {
+
+            if (FilterDelegate != null &&
+                TryGetString(ParameterName, out String Value))
+            {
+
+                return item => Value.StartsWith("!", StringComparison.Ordinal)
+                                   ? !FilterDelegate(item, Value.Substring(1))
+                                   :  FilterDelegate(item, Value);
+
+            }
+
+            return _ => true;
 
         }
 
@@ -951,6 +847,79 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
             return DefaultValue;
+
+        }
+
+        #endregion
+
+
+        #region GetDateTime(ParameterName, DefaultValue = null)
+
+        /// <summary>
+        /// Get a timestamp from a HTTP query parameter.
+        /// </summary>
+        /// <param name="ParameterName">The name of the query parameter.</param>
+        /// <param name="DefaultValue">An optional default timestamp.</param>
+        public DateTime? GetDateTime(String    ParameterName,
+                                     DateTime? DefaultValue  = null)
+        {
+
+            if (TryGetString(ParameterName, out String Value) &&
+                DateTime.TryParse(Value, out DateTime Timestamp))
+            {
+                return Timestamp;
+            }
+
+            return DefaultValue;
+
+        }
+
+        #endregion
+
+        #region TryGetDateTime(ParameterName, out Timestamp)
+
+        /// <summary>
+        /// Try to get a timestamp from a HTTP query parameter.
+        /// </summary>
+        /// <param name="ParameterName">The name of the query parameter.</param>
+        /// <param name="Timestamp">The parsed timestamp.</param>
+        public Boolean TryGetDateTime(String        ParameterName,
+                                      out DateTime  Timestamp)
+        {
+
+            if (TryGetString(ParameterName, out String Value) &&
+                DateTime.TryParse(Value, out Timestamp))
+            {
+                return true;
+            }
+
+            Timestamp = default(DateTime);
+            return false;
+
+        }
+
+        #endregion
+
+        #region CreateDateTimeFilter(ParameterName, FilterDelegate)
+
+        /// <summary>
+        /// Create a timestamp filter based on the given HTTP query parameter.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="ParameterName">The name of the query parameter.</param>
+        /// <param name="FilterDelegate">A filter delegate.</param>
+        public Func<T, Boolean> CreateDateTimeFilter<T>(String                      ParameterName,
+                                                        Func<T, DateTime, Boolean>  FilterDelegate)
+        {
+
+            if (FilterDelegate != null &&
+                TryGetString(ParameterName, out String Value) &&
+                DateTime.TryParse(Value, out DateTime Timestamp))
+            {
+                return item => FilterDelegate(item, Timestamp);
+            }
+
+            return _ => true;
 
         }
 
