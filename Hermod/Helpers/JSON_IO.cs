@@ -196,7 +196,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             => DataLicense != null
                    ? JSONObject.Create(
                          new JProperty("@id",          DataLicense.Id.ToString()),
-                         new JProperty("@context",     "https://open.charging.cloud/contexts/DataLicense"),
+                         new JProperty("@context",     "https://opendata.social/contexts/dataLicenses"),
                          new JProperty("description",  DataLicense.Description),
                          new JProperty("uris",         new JArray(DataLicense.URIs))
                      )
@@ -209,7 +209,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static JArray ToJSON(this IEnumerable<DataLicense> DataLicenses)
 
             => DataLicenses != null
-                   ? new JArray(DataLicenses.SafeSelect(license => license.ToJSON()))
+                   ? new JArray(DataLicenses.SafeSelect(ToJSON))
                    : null;
 
         #endregion
