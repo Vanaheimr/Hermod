@@ -19,13 +19,79 @@
 
 using System;
 using System.Collections.Generic;
-
+using System.Linq;
+using Newtonsoft.Json.Linq;
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod
 {
+
+    /// <summary>
+    /// JSON I/O.
+    /// </summary>
+    public static class AddressExtentions
+    {
+
+        #region ToJSON(this Address)
+
+        public static JObject ToJSON(this Address _Address)
+
+            => _Address != null
+                   ? JSONObject.Create(
+                         new JProperty("@context", "https://opendata.social/contexts/UsersAPI+json/address"),
+                         _Address.FloorLevel.   ToJSON("floorLevel"),
+                         _Address.HouseNumber.  ToJSON("houseNumber"),
+                         _Address.Street.       ToJSON("street"),
+                         _Address.PostalCode.   ToJSON("postalCode"),
+                         _Address.PostalCodeSub.ToJSON("postalCodeSub"),
+                         _Address.City.         ToJSON("city"),
+                         _Address.Country != null
+                              ? _Address.Country.Alpha3Code.ToJSON("country")
+                              : null,
+                         _Address.Comment.      ToJSON("comment")
+                     )
+                   : null;
+
+        #endregion
+
+        #region ToJSON(this Address, JPropertyKey)
+
+        public static JProperty ToJSON(this Address Address, String JPropertyKey)
+
+            => Address != null
+                   ? new JProperty(JPropertyKey,
+                                   Address.ToJSON())
+                   : null;
+
+        #endregion
+
+        #region ToJSON(this Addresses, JPropertyKey)
+
+        public static JArray ToJSON(this IEnumerable<Address> Addresses)
+
+            => Addresses?.Any() == true
+                   ? new JArray(Addresses.SafeSelect(ToJSON))
+                   : null;
+
+        #endregion
+
+        #region ToJSON(this Addresses, JPropertyKey)
+
+        public static JProperty ToJSON(this IEnumerable<Address> Addresses, String JPropertyKey)
+
+            => Addresses != null
+                   ? new JProperty(JPropertyKey,
+                                   Addresses.ToJSON())
+                   : null;
+
+        #endregion
+
+        public static Boolean TryParseAddress(this String Text, out Address Address)
+            => Address.TryParseAddress(JObject.Parse(Text), out Address);
+
+    }
 
     /// <summary>
     /// A WWCP address.
@@ -158,6 +224,65 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                            CustomData);
 
         #endregion
+
+        public static Address Parse(String Text)
+        {
+
+            if (TryParseAddress(JObject.Parse(Text), out Address _Address))
+                return _Address;
+
+            return null;
+
+        }
+
+        public static Address ParseAddress(JObject JSONObject, String PropertyKey)
+        {
+
+            try
+            {
+
+                if (JSONObject[PropertyKey] is JObject JSON)
+                    return Create(Country.Parse(JSON["country"    ]?.Value<String>()),
+                                                JSON["postalCode" ]?.Value<String>(),
+                                               (JSON["city"       ] as JObject)?.ParseI18NString(),
+                                                JSON["street"     ]?.Value<String>(),
+                                                JSON["houseNumber"]?.Value<String>(),
+                                                JSON["floorLevel" ]?.Value<String>(),
+                                               (JSON["comment"    ] as JObject)?.ParseI18NString());
+
+            }
+            catch (Exception)
+            { }
+
+            return null;
+
+        }
+
+        public static Boolean TryParseAddress(JObject JSON, out Address Address)
+        {
+
+            try
+            {
+
+                Address = Create(Country.Parse(JSON["country"]?.Value<String>()),
+                                 JSON["postalCode" ]?.Value<String>(),
+                                 (JSON["city"] as JObject)?.ParseI18NString(),
+                                 JSON["street"     ]?.Value<String>(),
+                                 JSON["houseNumber"]?.Value<String>(),
+                                 JSON["floorLevel" ]?.Value<String>(),
+                                (JSON["comment"    ] as JObject)?.ParseI18NString());
+
+                return true;
+
+            }
+            catch (Exception e)
+            {
+            }
+
+            Address = null;
+            return false;
+
+        }
 
 
         #region Operator overloading

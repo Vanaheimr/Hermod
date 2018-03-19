@@ -67,7 +67,6 @@
     <Compile Include="Helpers\JSON_IO.cs" />
     <Compile Include="Helpers\Datastructures\AReadOnlyLocalRemoteSockets.cs" />
     <Compile Include="DNS\DNSTools.cs" />
-    <Compile Include="Helpers\JSON.cs" />
     <Compile Include="Helpers\ExtentionMethods\NetworkingHelpers.cs" />
     <Compile Include="Helpers\ExtentionMethods\IPAddressHelper.cs" />
     <Compile Include="Helpers\Datastructures\ILocalSocket.cs" />

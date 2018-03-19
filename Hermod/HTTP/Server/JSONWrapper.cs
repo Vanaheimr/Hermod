@@ -1292,7 +1292,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (JSONIn.TryGetValue(PropertyName, out JToken JSONToken) && JSONToken != null)
             {
-                Value          = Mapper(JSONToken.Value<String>());
+                Value          = JSONToken.Type == JTokenType.String
+                                     ? Mapper(JSONToken.Value<String>())
+                                     : Mapper(JSONToken.ToString());
                 ErrorResponse  = null;
                 return true;
             }
@@ -1924,7 +1926,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    Server          = DefaultServerName,
                                    Date            = DateTime.UtcNow,
                                    ContentType     = HTTPContentType.JSON_UTF8,
-                                   Content         = Hermod.JSONObject.Create(
+                                   Content         = Illias.JSONObject.Create(
                                                          new JProperty("description", ErrorResponse)
                                                      ).ToUTF8Bytes()
                                };
