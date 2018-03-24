@@ -839,11 +839,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPEventSource AddEventSource(String                          EventIdentification,
                                               UInt32                          MaxNumberOfCachedEvents,
                                               TimeSpan?                       RetryIntervall  = null,
+                                              Boolean                         EnableLogging   = true,
                                               Func<String, DateTime, String>  LogfileName     = null)
 
             => _HTTPServer.AddEventSource(EventIdentification,
                                           MaxNumberOfCachedEvents,
                                           RetryIntervall,
+                                          EnableLogging,
                                           LogfileName);
 
         #endregion
@@ -878,7 +880,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                               UInt32                          MaxNumberOfCachedEvents     = 500,
                                               TimeSpan?                       RetryIntervall              = null,
-                                              Boolean                         EnableLogging               = false,
+                                              Boolean                         EnableLogging               = true,
                                               String                          LogfilePrefix               = null,
                                               Func<String, DateTime, String>  LogfileName                 = null,
                                               String                          LogfileReloadSearchPattern  = null,
@@ -1884,11 +1886,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPEventSource AddEventSource(String                          EventIdentification,
                                               UInt32                          MaxNumberOfCachedEvents   = 500,
                                               TimeSpan?                       RetryIntervall            = null,
+                                              Boolean                         EnableLogging             = true,
                                               Func<String, DateTime, String>  LogfileName               = null)
 
             => _URIMapping.AddEventSource(EventIdentification,
                                           MaxNumberOfCachedEvents,
                                           RetryIntervall,
+                                          EnableLogging,
                                           LogfileName);
 
         #endregion
@@ -1944,6 +1948,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                           MaxNumberOfCachedEvents,
                                           RetryIntervall,
+                                          EnableLogging,
                                           EnableLogging || LogfileName != null
                                               ? LogfileName ?? ((eventid, time) => String.Concat(LogfilePrefix ?? "",
                                                                                                  eventid, "_",

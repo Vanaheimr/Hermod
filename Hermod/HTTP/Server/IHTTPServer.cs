@@ -56,7 +56,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         event BoomerangSenderHandler<string, DateTime, HTTPRequest, HTTPResponse> OnNotification;
         event RequestLogHandler RequestLog;
 
-        HTTPEventSource AddEventSource(String EventIdentification, uint MaxNumberOfCachedEvents, TimeSpan? RetryIntervall = default(TimeSpan?), Func<String, DateTime, String> LogfileName = null);
+        HTTPEventSource AddEventSource(String                          EventIdentification,
+                                       UInt32                          MaxNumberOfCachedEvents,
+                                       TimeSpan?                       RetryIntervall              = default(TimeSpan?),
+                                       Boolean                         EnableLogging               = true,
+                                       Func<String, DateTime, String>  LogfileName                 = null);
 
         HTTPEventSource AddEventSource(String                          EventIdentification,
                                        HTTPURI                         URITemplate,

@@ -378,6 +378,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         internal HTTPEventSource AddEventSource(String                          EventIdentification,
                                                 UInt32                          MaxNumberOfCachedEvents   = 500,
                                                 TimeSpan?                       RetryIntervall            = null,
+                                                Boolean                         EnableLogging             = true,
                                                 Func<String, DateTime, String>  LogfileName               = null)
         {
 
@@ -391,6 +392,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        new HTTPEventSource(EventIdentification,
                                                                            MaxNumberOfCachedEvents,
                                                                            RetryIntervall,
+                                                                           EnableLogging,
                                                                            LogfileName));
 
             }
@@ -427,6 +429,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                 UInt32                          MaxNumberOfCachedEvents     = 500,
                                                 TimeSpan?                       RetryIntervall              = null,
+                                                Boolean                         EnableLogging               = true,
                                                 Func<String, DateTime, String>  LogfileName                 = null,
                                                 String                          LogfileReloadSearchPattern  = null,
 
@@ -452,6 +455,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                        new HTTPEventSource(EventIdentification,
                                                                                            MaxNumberOfCachedEvents,
                                                                                            RetryIntervall,
+                                                                                           EnableLogging,
                                                                                            LogfileName,
                                                                                            LogfileReloadSearchPattern));
 

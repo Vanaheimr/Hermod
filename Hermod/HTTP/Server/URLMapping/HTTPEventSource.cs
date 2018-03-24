@@ -98,6 +98,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPEventSource(String                          EventIdentification,
                                UInt64                          MaxNumberOfCachedEvents     = 500,
                                TimeSpan?                       RetryIntervall              = null,
+                               Boolean                         EnableLogging               = true,
                                Func<String, DateTime, String>  LogfileName                 = null,
                                String                          LogfileReloadSearchPattern  = null)
         {
@@ -114,107 +115,112 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.LogfileName          = LogfileName;
             this.IdCounter            = 0;
 
-            #region Reload old data from logfile(s)...
-
-            if (LogfileReloadSearchPattern != null)
+            if (EnableLogging)
             {
 
-                var HTTPSSEs = new List<String[]>();
+                #region Reload old data from logfile(s)...
 
-                foreach (var logfilename in Directory.EnumerateFiles(Directory.GetCurrentDirectory(),
-                                                                     LogfileReloadSearchPattern,
-                                                                     SearchOption.TopDirectoryOnly).
-                                                      Reverse())
+                    if (LogfileReloadSearchPattern != null)
                 {
 
-                    File.ReadAllLines(logfilename).
-                         Reverse().
-                         Where  (line => line.IsNotNullOrEmpty() &&
-                                        !line.StartsWith("//")   &&
-                                        !line.StartsWith("#")).
-                         Take   ((Int64) MaxNumberOfCachedEvents - HTTPSSEs.Count).
-                         Select (line => line.Split((Char) 0x1E)).
-                         ForEach(line => {
+                    var HTTPSSEs = new List<String[]>();
 
-                                             if (line.Length == 3           &&
-                                                 line[0].IsNotNullOrEmpty() &&
-                                                 line[2].IsNotNullOrEmpty())
-                                             {
-                                                 HTTPSSEs.Add(line);
-                                             }
+                    foreach (var logfilename in Directory.EnumerateFiles(Directory.GetCurrentDirectory(),
+                                                                         LogfileReloadSearchPattern,
+                                                                         SearchOption.TopDirectoryOnly).
+                                                          Reverse())
+                    {
 
-                                             else
-                                                 DebugX.Log("Invalid HTTP event source data in file '", logfilename, "'!");
+                        File.ReadAllLines(logfilename).
+                             Reverse().
+                             Where  (line => line.IsNotNullOrEmpty() &&
+                                            !line.StartsWith("//")   &&
+                                            !line.StartsWith("#")).
+                             Take   ((Int64) MaxNumberOfCachedEvents - HTTPSSEs.Count).
+                             Select (line => line.Split((Char) 0x1E)).
+                             ForEach(line => {
 
-                                         });
+                                                 if (line.Length == 3           &&
+                                                     line[0].IsNotNullOrEmpty() &&
+                                                     line[2].IsNotNullOrEmpty())
+                                                 {
+                                                     HTTPSSEs.Add(line);
+                                                 }
 
-                    if (HTTPSSEs.ULongCount() >= MaxNumberOfCachedEvents)
-                        break;
+                                                 else
+                                                     DebugX.Log("Invalid HTTP event source data in file '", logfilename, "'!");
+
+                                             });
+
+                        if (HTTPSSEs.ULongCount() >= MaxNumberOfCachedEvents)
+                            break;
+
+                    }
+
+                    HTTPSSEs.Reverse();
+
+                    HTTPSSEs.ForEach(line => {
+
+                                         try
+                                         {
+
+                                             QueueOfEvents.Push(new HTTPEvent(Id:         (UInt64) IdCounter++,
+                                                                              Timestamp:  DateTime.Parse(line[0]).ToUniversalTime(),
+                                                                              Subevent:   line[1],
+                                                                              Data:       line[2].Split((Char) 0x1F))).
+                                                           Wait();
+
+                                         }
+                                         catch (Exception e)
+                                         {
+                                             DebugX.Log("Reloading HTTP event source data led to an exception: ", Environment.NewLine,
+                                                        e.Message);
+                                         }
+
+                                     });
 
                 }
 
-                HTTPSSEs.Reverse();
+                #endregion
 
-                HTTPSSEs.ForEach(line => {
+                #region Write new data to logfile(s)...
 
-                                     try
-                                     {
+                if (LogfileName != null)
+                {
 
-                                         QueueOfEvents.Push(new HTTPEvent(Id:         (UInt64) IdCounter++,
-                                                                          Timestamp:  DateTime.Parse(line[0]).ToUniversalTime(),
-                                                                          Subevent:   line[1],
-                                                                          Data:       line[2].Split((Char) 0x1F))).
-                                                       Wait();
+                    // Note: Do not attach this event handler before the data
+                    //       is reread from the logfiles above!
+                    QueueOfEvents.OnAdded += async (Sender, Value) => {
 
-                                     }
-                                     catch (Exception e)
-                                     {
-                                         DebugX.Log("Reloading HTTP event source data led to an exception: ", Environment.NewLine,
-                                                    e.Message);
-                                     }
+                        await LogfileLock.WaitAsync();
 
-                                 });
-
-            }
-
-            #endregion
-
-            #region Write new data to logfile(s)...
-
-            if (LogfileName != null)
-            {
-
-                // Note: Do not attach this event handler before the data
-                //       is reread from the logfiles above!
-                QueueOfEvents.OnAdded += async (Sender, Value) => {
-
-                    await LogfileLock.WaitAsync();
-
-                    try
-                    {
-
-                        using (var logfile = File.AppendText(this.LogfileName(this.EventIdentification,
-                                                                              DateTime.UtcNow)))
+                        try
                         {
 
-                            await logfile.WriteLineAsync(String.Concat(Value.Timestamp.ToIso8601(), (Char) 0x1E,
-                                                                       Value.Subevent,              (Char) 0x1E,
-                                                                       Value.Data.AggregateWith(    (Char) 0x1F))).
-                                          ConfigureAwait(false);
+                            using (var logfile = File.AppendText(this.LogfileName(this.EventIdentification,
+                                                                                  DateTime.UtcNow)))
+                            {
+
+                                await logfile.WriteLineAsync(String.Concat(Value.Timestamp.ToIso8601(), (Char) 0x1E,
+                                                                           Value.Subevent,              (Char) 0x1E,
+                                                                           Value.Data.AggregateWith(    (Char) 0x1F))).
+                                              ConfigureAwait(false);
+
+                            }
 
                         }
+                        finally
+                        {
+                            LogfileLock.Release();
+                        }
 
-                    }
-                    finally
-                    {
-                        LogfileLock.Release();
-                    }
+                    };
 
-                };
+                }
+
+                #endregion
 
             }
-
-            #endregion
 
         }
 
