@@ -113,14 +113,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.QueueOfEvents        = new TSQueue<HTTPEvent>(MaxNumberOfCachedEvents);
             this.RetryIntervall       = RetryIntervall ?? TimeSpan.FromSeconds(30);
             this.LogfileName          = LogfileName;
-            this.IdCounter            = 0;
+            this.IdCounter            = 1;
 
             if (EnableLogging)
             {
 
                 #region Reload old data from logfile(s)...
 
-                    if (LogfileReloadSearchPattern != null)
+                if (LogfileReloadSearchPattern != null)
                 {
 
                     var HTTPSSEs = new List<String[]>();

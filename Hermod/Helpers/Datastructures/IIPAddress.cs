@@ -46,7 +46,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     }
 
 
-    /// <summary>
+    /// <summary> 
     /// A common interface for all kinds of Internet protocol addresses.
     /// </summary>
     public interface IIPAddress : IComparable,

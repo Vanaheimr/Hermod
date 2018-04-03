@@ -578,7 +578,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// indicate the real IP address of the HTTP client.
         /// </summary>
         /// <example>X-Forwarded-For: 95.91.73.30</example>
-        public IIPAddress X_Forwarded_For
+        public IEnumerable<IIPAddress> X_Forwarded_For
         {
 
             get
@@ -587,13 +587,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (!TryGetHeaderField(HTTPHeaderField.X_Forwarded_For, out Object Value))
                     return null;
 
-                if      (IPv4Address.TryParse((String) Value, out IPv4Address IPv4))
-                    return IPv4;
+                var list = (String) Value;
 
-                else if (IPv6Address.TryParse((String) Value, out IPv6Address IPv6))
-                    return IPv6;
+                if (list == null)
+                    return null;
 
-                else return null;
+                return list.Split(new Char[] { ',' }, StringSplitOptions.RemoveEmptyEntries).
+                            Select(_ => IPAddress.Parse(_.Trim()));
 
             }
 

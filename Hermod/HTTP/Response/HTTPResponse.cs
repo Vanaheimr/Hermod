@@ -46,6 +46,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             => new HTTPResponse<TResult>(Response, ContentParser(Response.HTTPBodyStream));
 
+
+        public static void AppendLogfile(this HTTPResponse  Response,
+                                         String             Logfilename)
+        {
+
+            using (var Logfile = File.AppendText(Logfilename))
+            {
+
+                Logfile.WriteLine(
+                    String.Concat(HTTPResponse.RequestMarker,                     Environment.NewLine,
+                                  Response.HTTPRequest.RemoteSocket.ToString(),   Environment.NewLine,
+                                  Response.HTTPRequest.Timestamp.   ToIso8601(),  Environment.NewLine,
+                                  Response.HTTPRequest.EventTrackingId,           Environment.NewLine,
+                                  Response.HTTPRequest.EntirePDU,                 Environment.NewLine,
+                                  HTTPResponse.ResponseMarker,                    Environment.NewLine,
+                                  Response.Timestamp.               ToIso8601(),  Environment.NewLine,
+                                  Response.EntirePDU,                             Environment.NewLine,
+                                  HTTPResponse.EndMarker,                         Environment.NewLine));
+
+            }
+
+        }
+
+
     }
 
 
@@ -290,6 +314,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// </summary>
     public class HTTPResponse : AHTTPPDU
     {
+
+        #region Data
+
+        public const String RequestMarker   = "<<< Request <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
+        public const String ResponseMarker  = ">>> Response >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
+        public const String EndMarker       = "======================================================================================";
+
+        #endregion
 
         #region HTTPRequest
 
@@ -756,24 +788,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (static) LoadHTTPResponseLogfiles(FilePath, FilePattern, FromTimestamp = null, ToTimestamp = null)
+        #region (static) LoadHTTPResponseLogfiles(FilePath, FilePattern, SearchOption = TopDirectoryOnly, FromTimestamp = null, ToTimestamp = null)
 
-        public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfiles(String     FilePath,
-                                                                         String     FilePattern,
-                                                                         DateTime?  FromTimestamp  = null,
-                                                                         DateTime?  ToTimestamp    = null)
+        public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfiles(String        FilePath,
+                                                                         String        FilePattern,
+                                                                         SearchOption  SearchOption   = SearchOption.TopDirectoryOnly,
+                                                                         DateTime?     FromTimestamp  = null,
+                                                                         DateTime?     ToTimestamp    = null)
         {
 
             var _responses  = new ConcurrentBag<HTTPResponse>();
 
-            Parallel.ForEach(Directory.EnumerateFiles(Directory.GetCurrentDirectory() + Path.DirectorySeparatorChar + FilePath,
-                                                      FilePattern),
+            Parallel.ForEach(Directory.EnumerateFiles(FilePath,
+                                                      FilePattern,
+                                                      SearchOption),
+                             new ParallelOptions() { MaxDegreeOfParallelism = 1 },
                              file => {
 
                 var _request            = new List<String>();
                 var _response           = new List<String>();
                 var copy                = "none";
                 var relativelinenumber  = 0;
+                var RemoteSocket        = IPSocket.Localhost(IPPort.HTTPS);
                 var RequestTimestamp    = DateTime.Now;
                 var ResponseTimestamp   = DateTime.Now;
 
@@ -784,33 +820,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     {
 
                         if      (relativelinenumber == 1 && copy == "request")
+                            RemoteSocket      = IPSocket.Parse(line);
+
+                        else if (relativelinenumber == 2 && copy == "request")
                             RequestTimestamp  = DateTime.Parse(line);
 
                         else if (relativelinenumber == 1 && copy == "response")
-                            ResponseTimestamp = DateTime.Parse(line.Substring(0, line.IndexOf(" ")));
+                            ResponseTimestamp = DateTime.Parse(line);//.Substring(0, line.IndexOf(" ")));
 
-                        else if (line == ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------")
+                        else if (line == RequestMarker)//">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------")
                         {
                             copy = "request";
                             relativelinenumber = 0;
                         }
 
-                        else if (line == "<<<<<<--Response----<<<<<<------<<<<<<------<<<<<<------<<<<<<------<<<<<<------")
+                        else if (line == ResponseMarker)// "<<<<<<--Response----<<<<<<------<<<<<<------<<<<<<------<<<<<<------<<<<<<------")
                         {
                             copy = "response";
                             relativelinenumber = 0;
                         }
 
-                        else if (line == "--------------------------------------------------------------------------------")
+                        else if (line == EndMarker)// "--------------------------------------------------------------------------------")
                         {
 
                             if ((FromTimestamp == null || ResponseTimestamp >= FromTimestamp.Value) &&
                                 (  ToTimestamp == null || ResponseTimestamp <    ToTimestamp.Value))
                             {
 
-                                _responses.Add(HTTPResponse.Parse(_response,
-                                                                  Timestamp: ResponseTimestamp,
-                                                                  Request:   HTTPRequest.Parse(_request, Timestamp: RequestTimestamp)));
+                                _responses.Add(Parse(_response,
+                                                     ResponseTimestamp,
+                                                     RemoteSocket,
+                                                     Request: HTTPRequest.Parse(_request.Skip(1),
+                                                                                RequestTimestamp,
+                                                                                RemoteSocket,
+                                                                                EventTrackingId: EventTracking_Id.Parse(_request[0]))));
 
                             }
 
@@ -829,7 +872,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         relativelinenumber++;
 
                     }
-                    catch (Exception)
+                    catch (Exception e)
                     {
                     }
 
