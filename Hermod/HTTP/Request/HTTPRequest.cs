@@ -25,6 +25,8 @@ using System.Threading;
 using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Collections.Concurrent;
+using System.Threading.Tasks;
 
 #endregion
 
@@ -911,6 +913,79 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             => new HTTPRequest<TContent>(this,
                                          ContentConverter(HTTPBodyAsUTF8String));
+
+        #region (static) LoadHTTPRequestLogfiles_old(FilePath, FilePattern, FromTimestamp = null, ToTimestamp = null)
+
+        public static IEnumerable<HTTPRequest> LoadHTTPRequestLogfiles_old(String     FilePath,
+                                                                           String     FilePattern,
+                                                                           DateTime?  FromTimestamp  = null,
+                                                                           DateTime?  ToTimestamp    = null)
+        {
+
+            var _requests  = new ConcurrentBag<HTTPRequest>();
+
+            Parallel.ForEach(Directory.EnumerateFiles(Directory.GetCurrentDirectory() + Path.DirectorySeparatorChar + FilePath,
+                                                      FilePattern,
+                                                      SearchOption.TopDirectoryOnly),
+                             new ParallelOptions() { MaxDegreeOfParallelism = 1 },
+                             file => {
+
+                var _request            = new List<String>();
+                var copy                = "none";
+                var relativelinenumber  = 0;
+                var RequestTimestamp    = DateTime.Now;
+
+                foreach (var line in File.ReadLines(file))
+                {
+
+                    try
+                    {
+
+                        if      (relativelinenumber == 1 && copy == "request")
+                            RequestTimestamp  = DateTime.SpecifyKind(DateTime.Parse(line), DateTimeKind.Utc);
+
+                        else if (line == ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------")
+                        {
+                            copy = "request";
+                            relativelinenumber = 0;
+                        }
+
+                        else if (line == "--------------------------------------------------------------------------------")
+                        {
+
+                            if ((FromTimestamp == null || RequestTimestamp >= FromTimestamp.Value) &&
+                                (  ToTimestamp == null || RequestTimestamp <    ToTimestamp.Value))
+                            {
+
+                                _requests.Add(Parse(_request,
+                                                    Timestamp: RequestTimestamp));
+
+                            }
+
+                            copy      = "none";
+                            _request  = new List<String>();
+
+                        }
+
+                        else if (copy == "request")
+                            _request.Add(line);
+
+                        relativelinenumber++;
+
+                    }
+                    catch (Exception)
+                    {
+                    }
+
+                }
+
+            });
+
+            return _requests.OrderBy(request => request.Timestamp);
+
+        }
+
+        #endregion
 
 
 

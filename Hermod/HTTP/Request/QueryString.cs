@@ -865,9 +865,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             if (TryGetString(ParameterName, out String Value) &&
-                DateTime.TryParse(Value, out DateTime Timestamp))
+                DateTime.TryParse(Value, out DateTime _Timestamp))
             {
-                return Timestamp;
+                return DateTime.SpecifyKind(_Timestamp, DateTimeKind.Utc);
             }
 
             return DefaultValue;
@@ -888,8 +888,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             if (TryGetString(ParameterName, out String Value) &&
-                DateTime.TryParse(Value, out Timestamp))
+                DateTime.TryParse(Value, out DateTime _Timestamp))
             {
+                Timestamp = DateTime.SpecifyKind(_Timestamp, DateTimeKind.Utc);
                 return true;
             }
 
@@ -914,9 +915,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (FilterDelegate != null &&
                 TryGetString(ParameterName, out String Value) &&
-                DateTime.TryParse(Value, out DateTime Timestamp))
+                DateTime.TryParse(Value, out DateTime _Timestamp))
             {
-                return item => FilterDelegate(item, Timestamp);
+                return item => FilterDelegate(item, DateTime.SpecifyKind(_Timestamp, DateTimeKind.Utc));
             }
 
             return _ => true;

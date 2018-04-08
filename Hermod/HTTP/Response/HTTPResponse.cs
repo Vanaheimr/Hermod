@@ -788,6 +788,93 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region (static) LoadHTTPResponseLogfiles_old(FilePath, FilePattern, FromTimestamp = null, ToTimestamp = null)
+
+        public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfiles_old(String     FilePath,
+                                                                             String     FilePattern,
+                                                                             DateTime?  FromTimestamp  = null,
+                                                                             DateTime?  ToTimestamp    = null)
+        {
+
+            var _responses  = new ConcurrentBag<HTTPResponse>();
+
+            Parallel.ForEach(Directory.EnumerateFiles(Directory.GetCurrentDirectory() + Path.DirectorySeparatorChar + FilePath,
+                                                      FilePattern),
+                             file => {
+
+                var _request            = new List<String>();
+                var _response           = new List<String>();
+                var copy                = "none";
+                var relativelinenumber  = 0;
+                var RequestTimestamp    = DateTime.Now;
+                var ResponseTimestamp   = DateTime.Now;
+
+                foreach (var line in File.ReadLines(file))
+                {
+
+                    try
+                    {
+
+                        if      (relativelinenumber == 1 && copy == "request")
+                            RequestTimestamp  = DateTime.SpecifyKind(DateTime.Parse(line), DateTimeKind.Utc);
+
+                        else if (relativelinenumber == 1 && copy == "response")
+                            ResponseTimestamp = DateTime.SpecifyKind(DateTime.Parse(line.Substring(0, line.IndexOf(" "))), DateTimeKind.Utc);
+
+                        else if (line == ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------")
+                        {
+                            copy = "request";
+                            relativelinenumber = 0;
+                        }
+
+                        else if (line == "<<<<<<--Response----<<<<<<------<<<<<<------<<<<<<------<<<<<<------<<<<<<------")
+                        {
+                            copy = "response";
+                            relativelinenumber = 0;
+                        }
+
+                        else if (line == "--------------------------------------------------------------------------------")
+                        {
+
+                            if ((FromTimestamp == null || ResponseTimestamp >= FromTimestamp.Value) &&
+                                (  ToTimestamp == null || ResponseTimestamp <    ToTimestamp.Value))
+                            {
+
+                                _responses.Add(Parse(_response,
+                                                     Timestamp: ResponseTimestamp,
+                                                     Request:   HTTPRequest.Parse(_request, Timestamp: RequestTimestamp)));
+
+                            }
+
+                            copy       = "none";
+                            _request   = new List<String>();
+                            _response  = new List<String>();
+
+                        }
+
+                        else if (copy == "request")
+                            _request.Add(line);
+
+                        else if (copy == "response")
+                            _response.Add(line);
+
+                        relativelinenumber++;
+
+                    }
+                    catch (Exception)
+                    {
+                    }
+
+                }
+
+            });
+
+            return _responses.OrderBy(response => response.Timestamp);
+
+        }
+
+        #endregion
+
         #region (static) LoadHTTPResponseLogfiles(FilePath, FilePattern, SearchOption = TopDirectoryOnly, FromTimestamp = null, ToTimestamp = null)
 
         public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfiles(String        FilePath,
@@ -823,10 +910,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             RemoteSocket      = IPSocket.Parse(line);
 
                         else if (relativelinenumber == 2 && copy == "request")
-                            RequestTimestamp  = DateTime.Parse(line);
+                            RequestTimestamp  = DateTime.SpecifyKind(DateTime.Parse(line), DateTimeKind.Utc);
 
                         else if (relativelinenumber == 1 && copy == "response")
-                            ResponseTimestamp = DateTime.Parse(line);//.Substring(0, line.IndexOf(" ")));
+                            ResponseTimestamp = DateTime.SpecifyKind(DateTime.Parse(line), DateTimeKind.Utc);//.Substring(0, line.IndexOf(" ")));
 
                         else if (line == RequestMarker)//">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------")
                         {
