@@ -172,6 +172,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPContentType PNG                  = new HTTPContentType("image", "png",                              null,    null, null, "png");
         public static readonly HTTPContentType JPEG                 = new HTTPContentType("image", "jpeg",                             null,    null, null, "jpg", "jpeg");
         public static readonly HTTPContentType SVG                  = new HTTPContentType("image", "svg+xml",                          "utf-8", null, null, "svg");
+
+        public static readonly HTTPContentType OGM                  = new HTTPContentType("video", "ogm",                              null,    null, null, "ogm");
+        public static readonly HTTPContentType OGV                  = new HTTPContentType("video", "ogv",                              null,    null, null, "ogv");
+        public static readonly HTTPContentType OGG                  = new HTTPContentType("video", "ogg",                              null,    null, null, "ogg");
+        public static readonly HTTPContentType MP4                  = new HTTPContentType("video", "mp4",                              null,    null, null, "mp4");
+        public static readonly HTTPContentType WEBM                 = new HTTPContentType("video", "webm",                             null,    null, null, "webm");
+
         public static readonly HTTPContentType WOFF                 = new HTTPContentType("application", "font-woff",                  "utf-8", null, null, "woff", "woff2");
 
         public static readonly HTTPContentType XWWWFormUrlEncoded   = new HTTPContentType("application", "x-www-form-urlencoded",      "utf-8", null, null);
