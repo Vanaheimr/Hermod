@@ -81,7 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this.HTTPMethod                = HTTPMethod ?? throw new ArgumentException("HTTPMethod == null!");
+            this.HTTPMethod                = HTTPMethod;
             this.HTTPMethodAuthentication  = HTTPMethodAuthentication;
             this.RequestHandler            = RequestHandler;
             this.DefaultErrorHandler       = DefaultErrorHandler;

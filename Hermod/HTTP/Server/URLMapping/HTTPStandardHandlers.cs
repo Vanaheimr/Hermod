@@ -46,37 +46,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static void RegisterRAWRequestHandler(this HTTPServer  HTTPServer,
                                                      HTTPHostname     Hostname,
                                                      HTTPURI          URITemplate,
-                                                     HTTPMethod       HTTPMethod = null)
-        {
+                                                     HTTPMethod?      Method = null)
 
-            HTTPServer.AddMethodCallback(Hostname,
-                                         HTTPMethod:    HTTPMethod ?? HTTPMethod.GET,
-                                         URITemplate:   URITemplate,
-                                         HTTPDelegate:  async Request => {
+            => HTTPServer?.AddMethodCallback(Hostname,
+                                             HTTPMethod:    Method ?? HTTPMethod.GET,
+                                             URITemplate:   URITemplate,
+                                             HTTPDelegate:  async Request => {
 
-                                             return new HTTPResponseBuilder(Request) {
+                                                 return new HTTPResponseBuilder(Request) {
 
-                                                 HTTPStatusCode  = HTTPStatusCode.OK,
-                                                 Server          = HTTPServer.DefaultServerName,
-                                                 Date            = DateTime.UtcNow,
-                                                 CacheControl    = "no-cache",
-                                                 Connection      = "close",
-                                                 ContentType     = HTTPContentType.TEXT_UTF8,
-                                                 Content         = ("Incoming http connection from '" + Request.RemoteSocket + "'" +
-                                                                     Environment.NewLine + Environment.NewLine +
-                                                                     Request.RawHTTPHeader +
-                                                                     Environment.NewLine + Environment.NewLine +
-                                                                     "Method => "         + Request.HTTPMethod      + Environment.NewLine +
-                                                                     "URL => "            + Request.URI         + Environment.NewLine +
-                                                                     "QueryString => "    + Request.QueryString     + Environment.NewLine +
-                                                                     "Protocol => "       + Request.ProtocolName    + Environment.NewLine +
-                                                                     "Version => "        + Request.ProtocolVersion + Environment.NewLine).ToUTF8Bytes()
+                                                     HTTPStatusCode  = HTTPStatusCode.OK,
+                                                     Server          = HTTPServer.DefaultServerName,
+                                                     Date            = DateTime.UtcNow,
+                                                     CacheControl    = "no-cache",
+                                                     Connection      = "close",
+                                                     ContentType     = HTTPContentType.TEXT_UTF8,
+                                                     Content         = ("Incoming http connection from '" + Request.RemoteSocket + "'" +
+                                                                         Environment.NewLine + Environment.NewLine +
+                                                                         Request.RawHTTPHeader +
+                                                                         Environment.NewLine + Environment.NewLine +
+                                                                         "Method => "         + Request.HTTPMethod      + Environment.NewLine +
+                                                                         "URL => "            + Request.URI         + Environment.NewLine +
+                                                                         "QueryString => "    + Request.QueryString     + Environment.NewLine +
+                                                                         "Protocol => "       + Request.ProtocolName    + Environment.NewLine +
+                                                                         "Version => "        + Request.ProtocolVersion + Environment.NewLine).ToUTF8Bytes()
 
-                                             };
+                                                 };
 
-            });
-
-        }
+                });
 
         #endregion
 

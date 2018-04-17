@@ -2147,16 +2147,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region X-Real-IP
+        #region API_Key
 
         /// <summary>
         /// An API key for authentication.
         /// </summary>
-        /// <example>X-API-Key: vfsf87wefh8743tzfgw9f489fh9fgs9z9z237hd208du79ehcv86egfsrf</example>
-        public static readonly HTTPHeaderField X_API_Key = new HTTPHeaderField("X-API-Key",
-                                                                               typeof(APIKey),
-                                                                               HeaderFieldType.Request,
-                                                                               RequestPathSemantic.EndToEnd);
+        /// <example>API-Key: vfsf87wefh8743tzfgw9f489fh9fgs9z9z237hd208du79ehcv86egfsrf</example>
+        public static readonly HTTPHeaderField API_Key = new HTTPHeaderField("API-Key",
+                                                                             typeof(APIKey),
+                                                                             HeaderFieldType.Request,
+                                                                             RequestPathSemantic.EndToEnd);
 
         #endregion
 

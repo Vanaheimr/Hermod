@@ -603,19 +603,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region X-API-Key
+        #region API-Key
 
         /// <summary>
         /// An optional API key for authentication.
         /// </summary>
-        /// <example>X-API-Key: vfsf87wefh8743tzfgw9f489fh9fgs9z9z237hd208du79ehcv86egfsrf</example>
-        public APIKey? X_API_Key
+        /// <example>API-Key: vfsf87wefh8743tzfgw9f489fh9fgs9z9z237hd208du79ehcv86egfsrf</example>
+        public APIKey? API_Key
         {
 
             get
             {
 
-                if (!TryGetHeaderField(HTTPHeaderField.X_API_Key, out Object Value))
+                if (!TryGetHeaderField(HTTPHeaderField.API_Key, out Object Value))
                     return null;
 
                 if (Value is String)
@@ -711,7 +711,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (RawUrl.IndexOf('?') > -1 && _ParsedURL[1].IsNeitherNullNorEmpty())
                 this.QueryString = QueryString.Parse(_ParsedURL[1]);
             else
-                this.QueryString = QueryString.Empty;
+                this.QueryString = QueryString.New;
 
             #endregion
 

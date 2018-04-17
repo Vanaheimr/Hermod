@@ -199,7 +199,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public void AddHandler(HTTPDelegate        HTTPDelegate,
 
                                HTTPURI?            URITemplate                 = null,
-                               HTTPMethod          HTTPMethod                  = null,
+                               HTTPMethod?         Method                      = null,
                                HTTPContentType     HTTPContentType             = null,
 
                                HTTPAuthentication  URIAuthentication           = null,
@@ -222,7 +222,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             _URINode.AddHandler(HTTPDelegate,
 
-                                HTTPMethod,
+                                Method ?? HTTPMethod.GET,
                                 HTTPContentType,
 
                                 HTTPMethodAuthentication,

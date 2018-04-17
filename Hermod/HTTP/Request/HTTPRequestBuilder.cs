@@ -58,7 +58,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region HTTPRequestLine
 
             public String HTTPRequestLine
-                => HTTPMethod.ToString() + " " + this._URI + " " + ProtocolName + "/" + ProtocolVersion;
+                => String.Concat(HTTPMethod, " ", _URI, QueryString, " ", ProtocolName, "/", ProtocolVersion);
 
             #endregion
 
@@ -116,22 +116,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region QueryString
-
-            private readonly QueryString _QueryString;
-
             /// <summary>
             /// The HTTP query string.
             /// </summary>
-            public QueryString QueryString
-            {
-                get
-                {
-                    return _QueryString;
-                }
-            }
-
-            #endregion
+            public QueryString QueryString { get; }
 
             #endregion
 
@@ -687,7 +675,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 this.HTTPStatusCode   = HTTPStatusCode.OK;
                 this.HTTPMethod       = HTTPMethod.GET;
                 this.URI              = HTTPURI.Parse("/");
-                this._QueryString     = QueryString.Empty;
+                this.QueryString     = QueryString.New;
                 SetHeaderField(HTTPHeaderField.Accept, new AcceptTypes());
                 this.ProtocolName     = "HTTP";
                 this.ProtocolVersion  = new HTTPVersion(1, 1);
@@ -707,7 +695,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
              //   this.HTTPStatusCode   = OtherHTTPRequest.HTTPStatusCode;
                 this.HTTPMethod       = OtherHTTPRequest.HTTPMethod;
                 this.URI              = OtherHTTPRequest.URI;
-                this._QueryString     = OtherHTTPRequest.QueryString;
+                this.QueryString     = OtherHTTPRequest.QueryString;
                 SetHeaderField(HTTPHeaderField.Accept, new AcceptTypes(OtherHTTPRequest.Accept.ToArray()));
                 this.ProtocolName     = OtherHTTPRequest.ProtocolName;
                 this.ProtocolVersion  = OtherHTTPRequest.ProtocolVersion;

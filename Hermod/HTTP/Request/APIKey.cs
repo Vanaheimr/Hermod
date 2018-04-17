@@ -36,6 +36,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
+        private static readonly Random _random = new Random(DateTime.Now.Millisecond);
+
         /// <summary>
         /// The internal identification.
         /// </summary>
@@ -69,6 +71,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+
+        #region (static) Random   (Size)
+
+        /// <summary>
+        /// Parse the given string as An API key.
+        /// </summary>
+        /// <param name="Size">A text representation of An API key.</param>
+        public static APIKey Random(UInt16? Size = 64)
+
+            => new APIKey(_random.GetString(Size ?? 64));
+
+        #endregion
 
         #region (static) Parse   (Text)
 

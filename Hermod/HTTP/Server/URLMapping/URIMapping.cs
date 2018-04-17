@@ -79,7 +79,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                  HTTPHostname?       Hostname                    = null,
                                  HTTPURI?            URITemplate                 = null,
-                                 HTTPMethod          HTTPMethod                  = null,
+                                 HTTPMethod?         HTTPMethod                  = null,
                                  HTTPContentType     HTTPContentType             = null,
 
                                  HTTPAuthentication  HostAuthentication          = null,
@@ -155,7 +155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                      HTTPHostname?       Hostname                    = null,
                                      HTTPURI?            URITemplate                 = null,
-                                     HTTPMethod          HTTPMethod                  = null,
+                                     HTTPMethod?         HTTPMethod                  = null,
                                      HTTPContentType     HTTPContentType             = null,
 
                                      HTTPAuthentication  HostAuthentication          = null,
@@ -233,13 +233,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         internal HTTPDelegate GetHandler(HTTPHostname                              Host,
                                          HTTPURI                                   URI,
-                                         HTTPMethod                                HTTPMethod                   = null,
+                                         HTTPMethod?                               Method                       = null,
                                          Func<HTTPContentType[], HTTPContentType>  HTTPContentTypeSelector      = null,
                                          Action<IEnumerable<String>>               ParsedURIParametersDelegate  = null)
         {
 
             URI                      = URI.IsNullOrEmpty()      ? HTTPURI.Parse("/") : URI;
-            HTTPMethod               = HTTPMethod              ?? HTTPMethod.GET;
+            var httpMethod           = Method                  ?? HTTPMethod.GET;
             HTTPContentTypeSelector  = HTTPContentTypeSelector ?? (v => HTTPContentType.HTML_UTF8);
 
             lock (Lock)
@@ -306,8 +306,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 //foreach (var _Match in _Matches)
                 //{
 
-                var FilteredByMethod = _Matches.        Where (match      => match.URLNode.HTTPMethods.Keys.Contains(HTTPMethod)).
-                                                        Select(match      => match.URLNode.HTTPMethods[HTTPMethod]).
+                var FilteredByMethod = _Matches.        Where (match      => match.URLNode.HTTPMethods.Keys.Contains(httpMethod)).
+                                                        Select(match      => match.URLNode.HTTPMethods[httpMethod]).
                                                         Select(methodnode => HTTPContentTypeSelector(methodnode.HTTPContentTypes.Keys.ToArray())).
                                                         ToArray();
 
@@ -337,7 +337,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     #endregion
 
                     // If HTTPMethod was found...
-                    if (_Match2.URLNode.HTTPMethods.TryGetValue(HTTPMethod, out _HTTPMethodNode))
+                    if (_Match2.URLNode.HTTPMethods.TryGetValue(httpMethod, out _HTTPMethodNode))
                     {
 
                         var BestMatchingContentType = HTTPContentTypeSelector(_HTTPMethodNode.HTTPContentTypes.Keys.ToArray());
@@ -434,7 +434,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                 String                          LogfileReloadSearchPattern  = null,
 
                                                 HTTPHostname?                   Hostname                    = null,
-                                                HTTPMethod                      HTTPMethod                  = null,
+                                                HTTPMethod?                     Method                      = null,
                                                 HTTPContentType                 HTTPContentType             = null,
 
                                                 HTTPAuthentication              HostAuthentication          = null,
@@ -505,7 +505,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 AddHandler(_HTTPDelegate,
                            Hostname,
                            URITemplate,
-                           HTTPMethod ?? HTTPMethod.GET,
+                           Method ?? HTTPMethod.GET,
                            HTTPContentType.EVENTSTREAM,
 
                            HostAuthentication,
@@ -603,7 +603,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         internal Tuple<MethodInfo, IEnumerable<Object>> GetErrorHandler(String           Host,
                                                                         String           URL,
-                                                                        HTTPMethod       HTTPMethod       = null,
+                                                                        HTTPMethod?      HTTPMethod       = null,
                                                                         HTTPContentType  HTTPContentType  = null,
                                                                         HTTPStatusCode   HTTPStatusCode   = null)
 

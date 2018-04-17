@@ -73,7 +73,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        String                          LogfileReloadSearchPattern  = null,
 
                                        HTTPHostname?                   Hostname                    = null,
-                                       HTTPMethod                      HTTPMethod                  = null,
+                                       HTTPMethod?                     HTTPMethod                  = null,
                                        HTTPContentType                 HTTPContentType             = null,
 
                                        HTTPAuthentication              HostAuthentication          = null,
@@ -92,7 +92,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         IHTTPServer AttachTCPSockets(params IPSocket[] Sockets);
         IHTTPServer DetachTCPPort(IPPort Port);
         IHTTPServer DetachTCPPorts(params IPPort[] Ports);
-        Tuple<MethodInfo, IEnumerable<object>> GetErrorHandler(string Host, string URL, HTTPMethod HTTPMethod = null, HTTPContentType HTTPContentType = null, HTTPStatusCode HTTPStatusCode = null);
+        Tuple<MethodInfo, IEnumerable<object>> GetErrorHandler(string Host, string URL, HTTPMethod? HTTPMethod = null, HTTPContentType HTTPContentType = null, HTTPStatusCode HTTPStatusCode = null);
         HTTPEventSource GetEventSource(string EventSourceIdentification);
         IEnumerable<HTTPEventSource> GetEventSources(Func<HTTPEventSource, bool> EventSourceSelector = null);
         Task<HTTPResponse> InvokeHandler(HTTPRequest Request);

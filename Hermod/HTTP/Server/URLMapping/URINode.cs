@@ -233,7 +233,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public void AddHandler(HTTPDelegate        HTTPDelegate,
 
-                               HTTPMethod          HTTPMethod                  = null,
+                               HTTPMethod          HTTPMethod,
                                HTTPContentType     HTTPContentType             = null,
 
                                HTTPAuthentication  HTTPMethodAuthentication    = null,
@@ -244,9 +244,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            HTTPMethodNode _HTTPMethodNode = null;
-
-            if (!_HTTPMethods.TryGetValue(HTTPMethod, out _HTTPMethodNode))
+            if (!_HTTPMethods.TryGetValue(HTTPMethod, out HTTPMethodNode _HTTPMethodNode))
             {
                 _HTTPMethodNode = new HTTPMethodNode(HTTPMethod, HTTPMethodAuthentication, HTTPDelegate, DefaultErrorHandler);
                 _HTTPMethods.Add(HTTPMethod, _HTTPMethodNode);

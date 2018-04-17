@@ -192,7 +192,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// HTTP methods
     /// </summary>
-    public class HTTPMethod : IComparable, IComparable<HTTPMethod>, IEquatable<HTTPMethod>
+    public struct HTTPMethod : IEquatable<HTTPMethod>,
+                               IComparable<HTTPMethod>,
+                               IComparable
     {
 
         #region Properties
@@ -200,23 +202,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The name of the HTTP method.
         /// </summary>
-        public String  MethodName   { get; private set; }
+        public String  MethodName   { get; }
 
         /// <summary>
         /// IsSafe
         /// </summary>
-        public Boolean IsSafe       { get; private set; }
+        public Boolean IsSafe       { get; }
 
         /// <summary>
         /// This HTTP methods has no side-effects for N > 0 identical
         /// requests, as it is the same as for a single request.
         /// </summary>
-        public Boolean IsIdempotent { get; private set; }
+        public Boolean IsIdempotent { get; }
 
         /// <summary>
         /// The description of this HTTP method.
         /// </summary>
-        public String  Description  { get; private set; }
+        public String  Description  { get; }
 
         #endregion
 
@@ -258,14 +260,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         Boolean IsSafe        = false,
                                         Boolean IsIdempotent  = false,
                                         String  Description   = null)
-        {
 
-            return new HTTPMethod(MethodName,
-                                  IsSafe,
-                                  IsIdempotent,
-                                  Description);
-
-        }
+            => new HTTPMethod(MethodName,
+                              IsSafe,
+                              IsIdempotent,
+                              Description);
 
         #endregion
 
@@ -459,20 +458,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Tools
 
-        #region ParseEnum(myHTTPMethodsEnum)
+        #region ParseEnum  (HTTPMethodsEnum)
 
         /// <summary>
         /// Tries to find the appropriate HTTPMethod for the given HTTPMethods.
         /// </summary>
-        /// <param name="myCode">A HTTPMethod code as string</param>
+        /// <param name="HTTPMethodsEnum">A HTTPMethod code as string</param>
         /// <returns>A HTTPMethod</returns>
-        public static HTTPMethod ParseEnum(HTTPMethods myHTTPMethodsEnum)
+        public static HTTPMethod ParseEnum(HTTPMethods HTTPMethodsEnum)
         {
 
             return (from   _FieldInfo in typeof(HTTPMethod).GetFields()
-                    let    __HTTPMethod = _FieldInfo.GetValue(null) as HTTPMethod
+                    let    __HTTPMethod = (HTTPMethod) _FieldInfo.GetValue(null)
                     where  __HTTPMethod != null
-                    where  __HTTPMethod.MethodName == myHTTPMethodsEnum.ToString()
+                    where  __HTTPMethod.MethodName == HTTPMethodsEnum.ToString()
                     select __HTTPMethod).FirstOrDefault();
 
         }
@@ -490,7 +489,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             return (from   _FieldInfo in typeof(HTTPMethod).GetFields()
-                    let    __HTTPMethod = _FieldInfo.GetValue(null) as HTTPMethod
+                    let    __HTTPMethod = (HTTPMethod) _FieldInfo.GetValue(null)
                     where  __HTTPMethod != null
                     where  __HTTPMethod.MethodName == MethodNameAsString
                     select __HTTPMethod).FirstOrDefault();
@@ -512,7 +511,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             HTTPMethod = (from   _FieldInfo in typeof(HTTPMethod).GetFields()
-                          let    __HTTPMethod = _FieldInfo.GetValue(null) as HTTPMethod
+                          let    __HTTPMethod = (HTTPMethod) _FieldInfo.GetValue(null)
                           where  __HTTPMethod != null
                           where  __HTTPMethod.MethodName == HTTPMethodEnum.ToString()
                           select __HTTPMethod).FirstOrDefault();
@@ -535,7 +534,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             HTTPMethod = (from   _FieldInfo in typeof(HTTPMethod).GetFields()
-                          let    __HTTPMethod = _FieldInfo.GetValue(null) as HTTPMethod
+                          let    __HTTPMethod = (HTTPMethod) _FieldInfo.GetValue(null)
                           where  __HTTPMethod != null
                           where  __HTTPMethod.MethodName == MethodName
                           select __HTTPMethod).FirstOrDefault();
@@ -551,20 +550,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Operator overloading
 
-        #region Operator == (myHTTPMethod1, myHTTPMethod2)
+        #region Operator == (HTTPMethod1, HTTPMethod2)
 
-        public static Boolean operator == (HTTPMethod myHTTPMethod1, HTTPMethod myHTTPMethod2)
+        public static Boolean operator == (HTTPMethod HTTPMethod1, HTTPMethod HTTPMethod2)
         {
 
             // If both are null, or both are same instance, return true.
-            if (Object.ReferenceEquals(myHTTPMethod1, myHTTPMethod2))
+            if (Object.ReferenceEquals(HTTPMethod1, HTTPMethod2))
                 return true;
 
             // If one is null, but not both, return false.
-            if (((Object) myHTTPMethod1 == null) || ((Object) myHTTPMethod2 == null))
+            if (((Object) HTTPMethod1 == null) || ((Object) HTTPMethod2 == null))
                 return false;
 
-            return myHTTPMethod1.Equals(myHTTPMethod2);
+            return HTTPMethod1.Equals(HTTPMethod2);
 
         }
 
@@ -573,9 +572,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Operator != (myHTTPMethod1, myHTTPMethod2)
 
         public static Boolean operator != (HTTPMethod myHTTPMethod1, HTTPMethod myHTTPMethod2)
-        {
-            return !(myHTTPMethod1 == myHTTPMethod2);
-        }
+            => !(myHTTPMethod1 == myHTTPMethod2);
 
         #endregion
 
@@ -595,12 +592,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Object == null)
                 throw new ArgumentNullException("The given object must not be null!");
 
-            // Check if the given object is an HTTPMethod.
-            var HTTPMethod = Object as HTTPMethod;
-            if ((Object) HTTPMethod == null)
+            if (!(Object is HTTPMethod))
                 throw new ArgumentException("The given object is not a HTTPMethod!");
 
-            return CompareTo(HTTPMethod);
+            return CompareTo((HTTPMethod) Object);
 
         }
 
@@ -641,12 +636,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Object == null)
                 return false;
 
-            // Check if the given object is an HTTPMethod.
-            var HTTPMethod = Object as HTTPMethod;
-            if ((Object) HTTPMethod == null)
+            if (!(Object is HTTPMethod))
                 return false;
 
-            return this.Equals(HTTPMethod);
+            return Equals((HTTPMethod) Object);
 
         }
 
@@ -680,9 +673,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
-        {
-            return MethodName.GetHashCode();
-        }
+            => MethodName.GetHashCode();
 
         #endregion
 
@@ -692,9 +683,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-        {
-            return MethodName;
-        }
+            => MethodName;
 
         #endregion
 

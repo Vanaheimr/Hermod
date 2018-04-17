@@ -165,18 +165,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (static) Empty
+        #region (static) New
 
         /// <summary>
-        /// Return an empty query string.
+        /// Return a new empty query string.
         /// </summary>
-        public static QueryString Empty
+        public static QueryString New
 
             => new QueryString();
 
         #endregion
 
-        #region (static) Parse(String Text)
+        #region (static) Parse(Text)
 
         /// <summary>
         ///  Parse the given string repesentation of a HTTP Query String.
@@ -1154,7 +1154,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             _StringBuilder[0] = '?';
 
-            return _StringBuilder[0].ToString();
+            return _StringBuilder.ToString();
 
         }
 
