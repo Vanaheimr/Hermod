@@ -534,6 +534,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Cookie
 
+        /// <summary>
+        /// HTTP cookies.
+        /// </summary>
         public HTTPCookies Cookies
             => HTTPCookies.Parse(GetHeaderField(HTTPHeaderField.Cookie));
 

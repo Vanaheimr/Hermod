@@ -48,11 +48,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create new HTTP cookies.
         /// </summary>
-        private HTTPCookies(IEnumerable<HTTPCookie> Cookies)
+        /// <param name="Cookies">An enumeration of HTTP cookies.</param>
+        private HTTPCookies(IEnumerable<HTTPCookie> Cookies = null)
         {
 
-            this.Cookies = Cookies.ToDictionary(cookie => cookie.Name,
-                                                cookie => cookie);
+            this.Cookies = new Dictionary<HTTPCookieName, HTTPCookie>();
+
+            if (Cookies != null)
+            {
+
+                foreach (var cookie in Cookies)
+                {
+
+                    // There is no gurantee, that cookie.Name is unquie within a HTTP request!
+                    // Therefore use the latest cookie having this id/name!
+                    if (!this.Cookies.ContainsKey(cookie.Name))
+                        this.Cookies.Add(cookie.Name, cookie);
+
+                    else
+                        this.Cookies[cookie.Name] = cookie;
+
+                }
+
+            }
 
         }
 
