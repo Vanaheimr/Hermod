@@ -1471,6 +1471,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        // !!!!!!!!!!!!!!
         #region ParseOptional<T>        (this JSON, PropertyName, PropertyDescription,                    Parser, out Value,              out HTTPResponse)
 
         public static Boolean ParseOptional<T>(this JObject      JSON,
@@ -1500,7 +1501,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             Value          = default(T);
             ErrorResponse  = null;
-            return false;
+            return true;
 
         }
 
