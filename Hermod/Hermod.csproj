@@ -57,11 +57,7 @@
     <Compile Include="DNS\IPTransport.cs" />
     <Compile Include="Entities\ADistributedEntities.cs" />
     <Compile Include="GlobalSuppressions.cs" />
-    <Compile Include="Helpers\ACustomData.cs" />
-    <Compile Include="Helpers\Address.cs" />
     <Compile Include="Helpers\ChangeMethods.cs" />
-    <Compile Include="Helpers\DataLicenses.cs" />
-    <Compile Include="Helpers\DataLicense_Id.cs" />
     <Compile Include="Helpers\ICustomDataBuilder.cs" />
     <Compile Include="Helpers\InfoStatus.cs" />
     <Compile Include="Helpers\JSON_IO.cs" />
