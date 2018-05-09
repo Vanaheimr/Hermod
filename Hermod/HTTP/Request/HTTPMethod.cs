@@ -516,6 +516,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           where  __HTTPMethod.MethodName == HTTPMethodEnum.ToString()
                           select __HTTPMethod).FirstOrDefault();
 
+            if (HTTPMethod.MethodName == null)
+                HTTPMethod = new HTTPMethod(HTTPMethodEnum.ToString());
+
             return (HTTPMethod != null) ? true : false;
 
         }
@@ -538,6 +541,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           where  __HTTPMethod != null
                           where  __HTTPMethod.MethodName == MethodName
                           select __HTTPMethod).FirstOrDefault();
+
+            if (HTTPMethod.MethodName == null)
+                HTTPMethod = new HTTPMethod(MethodName);
 
             return (HTTPMethod != null) ? true : false;
 
