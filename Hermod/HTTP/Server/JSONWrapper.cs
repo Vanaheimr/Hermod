@@ -1413,6 +1413,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (JSON.TryGetValue(PropertyName, out JToken JSONToken) && JSONToken != null)
             {
 
+                if ((JSONToken as JObject)?.Count == 0)
+                {
+                    ErrorResponse = null;
+                    return true;
+                }
+
+                if ((JSONToken as JArray)?.Count == 0)
+                {
+                    ErrorResponse = null;
+                    return true;
+                }
+
                 if (!Parser(JSONToken.ToString(), out TStruct _Value))
                 {
                     ErrorResponse =  "Unknown " + PropertyDescription + "!";
