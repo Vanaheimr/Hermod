@@ -357,7 +357,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return;
 
             _DNSCache.Add(DomainName,
-                          IPSocket.Localhost(IPPort.DNS),
+                          IPSocket.LocalhostV4(IPPort.DNS),
                           ARecord);
 
         }

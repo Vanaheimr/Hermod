@@ -74,86 +74,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Non-HTTP header fields
 
-        #region Timestamp
-
         /// <summary>
         /// The timestamp of the HTTP request generation.
         /// </summary>
-        public DateTime Timestamp { get; }
-
-        #endregion
-
-        #region CancellationToken
+        public DateTime                 Timestamp            { get; }
 
         /// <summary>
         /// The cancellation token.
         /// </summary>
-        public CancellationToken CancellationToken { get; }
-
-        #endregion
-
-        #region EventTrackingId
+        public CancellationToken        CancellationToken    { get; }
 
         /// <summary>
         /// An unique event tracking identification for correlating this request with other events.
         /// </summary>
-        public EventTracking_Id EventTrackingId { get; }
-
-        #endregion
-
-        #region RemoteSocket
+        public EventTracking_Id         EventTrackingId      { get; }
 
         /// <summary>
         /// The remote TCP/IP socket.
         /// </summary>
-        public IPSocket RemoteSocket { get; }
+        public HTTPSource               HTTPSource           { get; }
 
-        #endregion
+        /// <summary>
+        /// The IP socket of the HTTP packet.
+        /// </summary>
+        public IPSocket                 RemoteSocket
+                   => HTTPSource.Socket;
 
-        #region LocalSocket
-
-        protected readonly IPSocket _LocalSocket;
+        /// <summary>
+        /// An additional enumeration of IP addresses, when the message had been forwarded between HTTP servers.
+        /// </summary>
+        public IEnumerable<IIPAddress>  ForwardedFor
+                   => HTTPSource.ForwardedFor;
 
         /// <summary>
         /// The local TCP/IP socket.
         /// </summary>
-        public IPSocket LocalSocket
-        {
-            get
-            {
-                return _LocalSocket;
-            }
-        }
+        public IPSocket?                LocalSocket          { get; }
 
-        #endregion
-
-
-        #region RawHTTPHeader
 
         /// <summary>
         /// The RAW, unparsed and unverified HTTP header.
         /// </summary>
-        public String RawHTTPHeader { get; }
-
-        #endregion
-
-        #region RawPDU
+        public String                   RawHTTPHeader        { get; }
 
         /// <summary>
         /// The raw unparsed HTTP protocol data unit.
         /// </summary>
-        public String RawPDU { get; }
-
-        #endregion
-
-        #region FirstPDULine
+        public String                   RawPDU               { get; }
 
         /// <summary>
         /// The first line of a HTTP request or response.
         /// </summary>
-        public String FirstPDULine { get; }
-
-        #endregion
+        public String                   FirstPDULine         { get; }
 
 
         #region (protected) ConstructedHTTPHeader
@@ -461,21 +433,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         protected AHTTPPDU()
         {
+
             this.Timestamp                  = DateTime.UtcNow;
             this._HeaderFields              = new Dictionary<String,          Object>(StringComparer.OrdinalIgnoreCase);
             this._HeaderFields2             = new Dictionary<HTTPHeaderField, Object>();
             this.HTTPBodyReceiveBufferSize  = DefaultHTTPBodyReceiveBufferSize;
+
         }
 
         #endregion
 
-        #region AHTTPPDU(Timestamp, RemoteSocket, LocalSocket, HTTPHeader, HTTPBody = null, HTTPBodyStream = null, CancellationToken = null, EventTrackingId = null)
+        #region AHTTPPDU(Timestamp, HTTPSource, LocalSocket, HTTPHeader, HTTPBody = null, HTTPBodyStream = null, CancellationToken = null, EventTrackingId = null)
 
         /// <summary>
         /// Creates a new HTTP header.
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
-        /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
+        /// <param name="HTTPSource">The remote TCP/IP socket.</param>
         /// <param name="LocalSocket">The local TCP/IP socket.</param>
         /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
         /// <param name="HTTPBody">The HTTP body as an array of bytes.</param>
@@ -484,7 +458,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         protected AHTTPPDU(DateTime            Timestamp,
-                           IPSocket            RemoteSocket,
+                           HTTPSource          HTTPSource,
                            IPSocket            LocalSocket,
                            String              HTTPHeader,
                            Byte[]              HTTPBody                    = null,
@@ -498,8 +472,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             this.Timestamp                  = Timestamp;
-            this.RemoteSocket               = RemoteSocket;
-            this._LocalSocket               = LocalSocket;
+            this.HTTPSource                 = HTTPSource;
+            this.LocalSocket                = LocalSocket;
             this.RawHTTPHeader              = HTTPHeader.Trim();
             this._HTTPBody                  = HTTPBody;
             this._HTTPBodyStream            = HTTPBodyStream;
@@ -554,8 +528,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             this.Timestamp                  = HTTPPDU?.Timestamp         ?? DateTime.UtcNow;
-            this.RemoteSocket               = HTTPPDU?.RemoteSocket;
-            this._LocalSocket               = HTTPPDU?.LocalSocket;
+            this.HTTPSource                 = HTTPPDU.HTTPSource;
+            this.LocalSocket                = HTTPPDU.LocalSocket;
             this.RawHTTPHeader              = HTTPPDU?.RawHTTPHeader;
             this.RawPDU                     = HTTPPDU?.RawPDU;
             this._HTTPBody                  = HTTPPDU?.HTTPBody;

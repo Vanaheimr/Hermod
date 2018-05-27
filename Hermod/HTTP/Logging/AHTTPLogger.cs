@@ -94,11 +94,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Console.Write(Context + "/");
                 Console.ForegroundColor = ConsoleColor.Yellow;
 
-                if (Request.RemoteSocket != null)
+                if (Request.HTTPSource != null)
                 {
                     Console.Write(LogEventName);
                     Console.ForegroundColor = ConsoleColor.Gray;
-                    Console.WriteLine(" from " + Request.RemoteSocket);
+                    Console.WriteLine(" from " + Request.HTTPSource);
                 }
 
                 else
@@ -139,7 +139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.Write(LogEventName);
                 Console.ForegroundColor = ConsoleColor.Gray;
-                Console.Write(String.Concat(" from ", (Request.RemoteSocket != null ? Request.RemoteSocket.ToString() : "<local>"), " => "));
+                Console.Write(String.Concat(" from ", (Request.HTTPSource != null ? Request.HTTPSource.ToString() : "<local>"), " => "));
 
                 if (Response.HTTPStatusCode == HTTPStatusCode.OK ||
                     Response.HTTPStatusCode == HTTPStatusCode.Created)
@@ -195,8 +195,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         {
 
                             File.AppendAllText(LogfileCreator(Context, LogEventName),
-                                               String.Concat(Request.RemoteSocket != null && Request.LocalSocket != null
-                                                                 ? String.Concat(Request.RemoteSocket, " -> ", Request.LocalSocket)
+                                               String.Concat(Request.HTTPSource != null && Request.LocalSocket != null
+                                                                 ? String.Concat(Request.HTTPSource, " -> ", Request.LocalSocket)
                                                                  : "",                                                                            Environment.NewLine,
                                                              ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------",  Environment.NewLine,
                                                              Request.Timestamp.ToIso8601(),                                                       Environment.NewLine,
@@ -287,8 +287,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         {
 
                             File.AppendAllText(LogfileCreator(Context, LogEventName),
-                                               String.Concat(Request.RemoteSocket != null && Request.LocalSocket != null
-                                                                 ? String.Concat(Request.RemoteSocket, " -> ", Request.LocalSocket)
+                                               String.Concat(Request.HTTPSource != null && Request.LocalSocket != null
+                                                                 ? String.Concat(Request.HTTPSource, " -> ", Request.LocalSocket)
                                                                  : "",                                                                            Environment.NewLine,
                                                              ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------",  Environment.NewLine,
                                                              Request.Timestamp.ToIso8601(),                                                       Environment.NewLine,

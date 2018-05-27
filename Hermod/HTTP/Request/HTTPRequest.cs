@@ -606,6 +606,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        //#region HTTPSource
+
+        ///// <summary>
+        ///// Intermediary HTTP proxies might include this field to
+        ///// indicate the real IP address of the HTTP client.
+        ///// </summary>
+        ///// <example>X-Forwarded-For: 95.91.73.30</example>
+        //public HTTPSource HTTPSource
+        //           => new HTTPSource(this.HTTPSource,
+        //                             this.X_Forwarded_For);
+
+        //#endregion
+
         #region API-Key
 
         /// <summary>
@@ -654,7 +667,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         private HTTPRequest(DateTime            Timestamp,
-                            IPSocket            RemoteSocket,
+                            HTTPSource          RemoteSocket,
                             IPSocket            LocalSocket,
                             HTTPServer          HTTPServer,
                             String              HTTPHeader,
@@ -789,7 +802,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region HTTPRequest(Timestamp, HTTPServer, CancellationToken, EventTrackingId, RemoteSocket, LocalSocket, HTTPHeader, HTTPBodyStream)
+        #region HTTPRequest(Timestamp, HTTPServer, CancellationToken, EventTrackingId, HTTPSource, LocalSocket, HTTPHeader, HTTPBodyStream)
 
         /// <summary>
         /// Create a new http request based on the given string representation of a HTTP header and a HTTP body stream.
@@ -798,7 +811,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPServer">The HTTP server of the request.</param>
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
-        /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
+        /// <param name="HTTPSource">The remote TCP/IP socket.</param>
         /// <param name="LocalSocket">The local TCP/IP socket.</param>
         /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
         /// <param name="HTTPBodyStream">The HTTP body as an stream of bytes.</param>
@@ -807,14 +820,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            HTTPServer         HTTPServer,
                            CancellationToken  CancellationToken,
                            EventTracking_Id   EventTrackingId,
-                           IPSocket           RemoteSocket,
+                           HTTPSource         HTTPSource,
                            IPSocket           LocalSocket,
                            String             HTTPHeader,
                            Stream             HTTPBodyStream,
                            UInt32             HTTPBodyReceiveBufferSize  = DefaultHTTPBodyReceiveBufferSize)
 
             : this(Timestamp,
-                   RemoteSocket,
+                   HTTPSource,
                    LocalSocket,
                    HTTPServer,
                    HTTPHeader,
@@ -843,8 +856,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPRequest(String HTTPHeader)
 
             : this(DateTime.UtcNow,
-                   null,
-                   null,
+                   new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
+                   IPSocket.LocalhostV4(IPPort.HTTPS),
                    null,
                    HTTPHeader)
 
@@ -863,8 +876,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            Byte[]  HTTPBody)
 
             : this(DateTime.UtcNow,
-                   null,
-                   null,
+                   new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
+                   IPSocket.LocalhostV4(IPPort.HTTPS),
                    null,
                    HTTPHeader,
                    HTTPBody)
@@ -890,8 +903,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            EventTracking_Id    EventTrackingId            = null)
 
             : this(DateTime.UtcNow,
-                   null,
-                   null,
+                   new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
+                   IPSocket.LocalhostV4(IPPort.HTTPS),
                    null,
                    HTTPHeader,
                    null,
@@ -992,20 +1005,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
-        #region (static) Parse(Text, Timestamp = null, RemoteSocket = null, LocalSocket = null, EventTrackingId = null)
+        #region (static) Parse(Text, Timestamp = null, HTTPSource = null, LocalSocket = null, EventTrackingId = null)
 
         /// <summary>
         /// Parse the given text as a HTTP request.
         /// </summary>
         /// <param name="Text">A text representation of a HTTP request.</param>
         /// <param name="Timestamp">The optional timestamp of the request.</param>
-        /// <param name="RemoteSocket">The optional remote TCP socket of the request.</param>
+        /// <param name="HTTPSource">The optional remote TCP socket of the request.</param>
         /// <param name="LocalSocket">The optional local TCp socket of the request.</param>
         /// <param name="EventTrackingId">The optional event tracking identification of the request.</param>
         public static HTTPRequest Parse(String            Text,
                                         DateTime?         Timestamp        = null,
-                                        IPSocket          RemoteSocket     = null,
-                                        IPSocket          LocalSocket      = null,
+                                        HTTPSource?       HTTPSource       = null,
+                                        IPSocket?         LocalSocket      = null,
                                         EventTracking_Id  EventTrackingId  = null)
         {
 
@@ -1013,9 +1026,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var Header       = Text.Substring(0, EndOfHeader + 2);
             var Body         = Text.Substring(EndOfHeader + 4);
 
-            return new HTTPRequest(Timestamp ?? DateTime.UtcNow,
-                                   RemoteSocket,
-                                   LocalSocket,
+            return new HTTPRequest(Timestamp   ?? DateTime.UtcNow,
+                                   HTTPSource  ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
+                                   LocalSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
                                    null,
                                    Header,
                                    Body.ToUTF8Bytes(),
@@ -1025,29 +1038,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) Parse(Text, Timestamp = null, RemoteSocket = null, LocalSocket = null, EventTrackingId = null)
+        #region (static) Parse(Text, Timestamp = null, HTTPSource = null, LocalSocket = null, EventTrackingId = null)
 
         /// <summary>
         /// Parse the given text as a HTTP request.
         /// </summary>
         /// <param name="Text">A text representation of a HTTP request.</param>
         /// <param name="Timestamp">The optional timestamp of the request.</param>
-        /// <param name="RemoteSocket">The optional remote TCP socket of the request.</param>
+        /// <param name="HTTPSource">The optional remote TCP socket of the request.</param>
         /// <param name="LocalSocket">The optional local TCp socket of the request.</param>
         /// <param name="EventTrackingId">The optional event tracking identification of the request.</param>
         public static HTTPRequest Parse(IEnumerable<String>  Text,
                                         DateTime?            Timestamp        = null,
-                                        IPSocket             RemoteSocket     = null,
-                                        IPSocket             LocalSocket      = null,
+                                        HTTPSource?          HTTPSource       = null,
+                                        IPSocket?            LocalSocket      = null,
                                         EventTracking_Id     EventTrackingId  = null)
         {
 
             var Header = Text.TakeWhile(line => line != "").        AggregateWith("\r\n");
             var Body   = Text.SkipWhile(line => line != "").Skip(1).AggregateWith("\r\n");
 
-            return new HTTPRequest(Timestamp ?? DateTime.UtcNow,
-                                   RemoteSocket,
-                                   LocalSocket,
+            return new HTTPRequest(Timestamp   ?? DateTime.UtcNow,
+                                   HTTPSource  ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
+                                   LocalSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
                                    null,
                                    Header,
                                    Body.ToUTF8Bytes(),

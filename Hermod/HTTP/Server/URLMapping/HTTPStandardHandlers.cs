@@ -61,7 +61,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      CacheControl    = "no-cache",
                                                      Connection      = "close",
                                                      ContentType     = HTTPContentType.TEXT_UTF8,
-                                                     Content         = ("Incoming http connection from '" + Request.RemoteSocket + "'" +
+                                                     Content         = ("Incoming http connection from '" + Request.HTTPSource + "'" +
                                                                          Environment.NewLine + Environment.NewLine +
                                                                          Request.RawHTTPHeader +
                                                                          Environment.NewLine + Environment.NewLine +

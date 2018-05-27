@@ -291,7 +291,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                       _HTTPServer,
                                                                       CTS.Token,
                                                                       EventTracking_Id.New,
-                                                                      TCPConnection.RemoteSocket,
+                                                                      new HTTPSource(TCPConnection.RemoteSocket),
                                                                       TCPConnection.LocalSocket,
                                                                       HTTPHeaderString.Trim(),
                                                                       TCPConnection.SSLStream != null

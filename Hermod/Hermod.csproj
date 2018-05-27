@@ -84,6 +84,7 @@
     <Compile Include="HTTP\General\HTTPCookie.cs" />
     <Compile Include="HTTP\General\HTTPHostname.cs" />
     <Compile Include="HTTP\General\HTTPStatusCode.cs" />
+    <Compile Include="HTTP\General\HTTPSource.cs" />
     <Compile Include="HTTP\General\HTTPURI.cs" />
     <Compile Include="HTTP\General\HTTPVersion.cs" />
     <Compile Include="HTTP\HTTPHeaderField.cs" />

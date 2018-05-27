@@ -15,16 +15,6 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using System;
-using System.Linq;
-using System.Collections.Generic;
-
-using org.GraphDefined.Vanaheimr.Illias;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 {
 
@@ -36,56 +26,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #region Properties
 
-        #region RemoteSocket
-
-        private readonly IPSocket _RemoteSocket;
-
         /// <summary>
         /// The remote socket of the incoming SMTP connection.
         /// </summary>
-        public IPSocket RemoteSocket
-        {
-            get
-            {
-                return _RemoteSocket;
-            }
-        }
-
-        #endregion
-
-        #region MailFrom
-
-        private readonly EMailAddressList _MailFrom;
+        public IPSocket?         RemoteSocket   { get; }
 
         /// <summary>
         /// The sender(s) of the e-mail.
         /// </summary>
-        public EMailAddressList MailFrom
-        {
-            get
-            {
-                return _MailFrom;
-            }
-        }
-
-        #endregion
-
-        #region RcptTo
-
-        private readonly EMailAddressList _RcptTo;
+        public EMailAddressList  MailFrom       { get; }
 
         /// <summary>
         /// The receiver(s) of the e-mail.
         /// </summary>
-        public EMailAddressList RcptTo
-        {
-            get
-            {
-                return _RcptTo;
-            }
-        }
-
-        #endregion
+        public EMailAddressList  RcptTo         { get; }
 
         //#region MailText
 
@@ -143,22 +97,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         //#endregion
 
-        #region Mail
-
-        protected readonly EMail _Mail;
-
         /// <summary>
         /// The embedded e-mail.
         /// </summary>
-        public EMail Mail
-        {
-            get
-            {
-                return _Mail;
-            }
-        }
-
-        #endregion
+        public EMail             Mail           { get; }
 
         #endregion
 
@@ -176,10 +118,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             MailBuilder.EncodeBodyparts();
 
-                              // ToDo: Deep cloning!
-            this._MailFrom  = EMailAddressList.Create(MailBuilder.From);
-            this._RcptTo    = EMailAddressList.Create(MailBuilder.To);
-            this._Mail      = new EMail(MailBuilder);
+                             // ToDo: Deep cloning!
+            this.MailFrom  = EMailAddressList.Create(MailBuilder.From);
+            this.RcptTo    = EMailAddressList.Create(MailBuilder.To);
+            this.Mail      = new EMail(MailBuilder);
 
         }
 
@@ -194,9 +136,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public EMailEnvelop(EMail EMail)
         {
 
-            this._MailFrom  = EMailAddressList.Create(EMail.From);
-            this._RcptTo    = EMailAddressList.Create(EMail.To);
-            this._Mail      = EMail;
+            this.MailFrom  = EMailAddressList.Create(EMail.From);
+            this.RcptTo    = EMailAddressList.Create(EMail.To);
+            this.Mail      = EMail;
 
         }
 
@@ -215,13 +157,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public EMailEnvelop(EMailAddressList  MailFrom,
                             EMailAddressList  RcptTo,
                             EMail             EMail,
-                            IPSocket          RemoteSocket  = null)
+                            IPSocket?         RemoteSocket  = null)
         {
 
-            this._MailFrom      = MailFrom;
-            this._RcptTo        = RcptTo;
-            this._Mail          = EMail;
-            this._RemoteSocket  = RemoteSocket;
+            this.MailFrom      = MailFrom;
+            this.RcptTo        = RcptTo;
+            this.Mail          = EMail;
+            this.RemoteSocket  = RemoteSocket;
 
         }
 
@@ -240,13 +182,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public EMailEnvelop(EMailAddressList      MailFrom,
                             EMailAddressList      RcptTo,
                             AbstractEMailBuilder  MailBuilder,
-                            IPSocket              RemoteSocket  = null)
+                            IPSocket?             RemoteSocket  = null)
         {
 
-            this._RemoteSocket  = RemoteSocket;
-            this._MailFrom      = MailFrom;
-            this._RcptTo        = RcptTo;
-            this._Mail          = new EMail(MailBuilder);
+            this.RemoteSocket  = RemoteSocket;
+            this.MailFrom      = MailFrom;
+            this.RcptTo        = RcptTo;
+            this.Mail          = new EMail(MailBuilder);
 
         }
 
