@@ -1105,15 +1105,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public event RequestLogHandler                                                    RequestLog;
 
+        public RequestLogEvent RequestLog2 = new RequestLogEvent();
+
         /// <summary>
         /// An event called whenever a request could successfully be processed.
         /// </summary>
         public event AccessLogHandler                                                     AccessLog;
 
+        public AccessLogEvent AccessLog2 = new AccessLogEvent();
+
         /// <summary>
         /// An event called whenever a request resulted in an error.
         /// </summary>
         public event ErrorLogHandler                                                      ErrorLog;
+
+        public ErrorLogEvent ErrorLog2 = new ErrorLogEvent();
 
         #endregion
 
@@ -1188,8 +1194,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             _HTTPProcessor                  = new HTTPProcessor(this);
             _HTTPProcessor.OnNotification  += ProcessBoomerang;
             _HTTPProcessor.RequestLog      += (HTTPProcessor, ServerTimestamp, Request)                                 => LogRequest(ServerTimestamp, Request);
+            _HTTPProcessor.RequestLog2     += (HTTPProcessor, ServerTimestamp, Request)                                 => RequestLog2.WhenAll(HTTPProcessor, ServerTimestamp, Request);
             _HTTPProcessor.AccessLog       += (HTTPProcessor, ServerTimestamp, Request, Response)                       => LogAccess (ServerTimestamp, Request, Response);
+            _HTTPProcessor.AccessLog2      += (HTTPProcessor, ServerTimestamp, Request, Response)                       => AccessLog2. WhenAll(HTTPProcessor, ServerTimestamp, Request, Response);
             _HTTPProcessor.ErrorLog        += (HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException) => LogError  (ServerTimestamp, Request, Response, Error, LastException);
+            _HTTPProcessor.ErrorLog2       += (HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException) => ErrorLog2.  WhenAll(HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException);
 
             if (TCPPort != null)
                 this.AttachTCPPort(TCPPort ?? IPPort.HTTP);

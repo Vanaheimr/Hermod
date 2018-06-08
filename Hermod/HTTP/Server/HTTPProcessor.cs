@@ -29,11 +29,265 @@ using org.GraphDefined.Vanaheimr.Styx.Arrows;
 using org.GraphDefined.Vanaheimr.Hermod.Services;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using System.Collections.Generic;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
+
+    public class RequestLogEvent
+    {
+
+        private readonly List<Func<HTTPProcessor, DateTime, HTTPRequest, Task>> invocationList;
+        private readonly object locker;
+
+        public RequestLogEvent()
+        {
+            invocationList = new List<Func<HTTPProcessor, DateTime, HTTPRequest, Task>>();
+            locker         = new object();
+        }
+
+        public static RequestLogEvent operator + (RequestLogEvent e, Func<HTTPProcessor, DateTime, HTTPRequest, Task> callback)
+        {
+
+            if (callback == null)
+                throw new NullReferenceException("callback is null");
+
+            if (e == null)
+                e = new RequestLogEvent();
+
+            lock (e.locker)
+            {
+                e.invocationList.Add(callback);
+            }
+
+            return e;
+
+        }
+
+        public static RequestLogEvent operator - (RequestLogEvent e, Func<HTTPProcessor, DateTime, HTTPRequest, Task> callback)
+        {
+
+            if (callback == null)
+                throw new NullReferenceException("callback is null");
+
+            if (e == null)
+                return null;
+
+            lock (e.locker)
+            {
+                e.invocationList.Remove(callback);
+            }
+
+            return e;
+
+        }
+
+        public async Task InvokeAsync(HTTPProcessor HTTPProcessor, DateTime ServerTimestamp, HTTPRequest Request)
+        {
+
+            Func<HTTPProcessor, DateTime, HTTPRequest, Task>[] tmpInvocationList;
+
+            lock (locker)
+            {
+                tmpInvocationList = invocationList.ToArray();
+            }
+
+            foreach (var callback in tmpInvocationList)
+                await callback(HTTPProcessor, ServerTimestamp, Request).ConfigureAwait(false);
+
+        }
+
+        public Task WhenAll(HTTPProcessor HTTPProcessor, DateTime ServerTimestamp, HTTPRequest Request)
+        {
+
+            Task[] tmpInvocationList;
+
+            lock (locker)
+            {
+                tmpInvocationList = invocationList.
+                                        Select(callback => callback(HTTPProcessor, ServerTimestamp, Request)).
+                                        ToArray();
+            }
+
+            return Task.WhenAll(tmpInvocationList);
+
+        }
+
+    }
+
+    public class AccessLogEvent
+    {
+
+        private readonly List<Func<HTTPProcessor, DateTime, HTTPRequest, HTTPResponse, Task>> invocationList;
+        private readonly object locker;
+
+        public AccessLogEvent()
+        {
+            invocationList = new List<Func<HTTPProcessor, DateTime, HTTPRequest, HTTPResponse, Task>>();
+            locker = new object();
+        }
+
+        public static AccessLogEvent operator + (AccessLogEvent e, Func<HTTPProcessor, DateTime, HTTPRequest, HTTPResponse, Task> callback)
+        {
+
+            if (callback == null)
+                throw new NullReferenceException("callback is null");
+
+            if (e == null)
+                e = new AccessLogEvent();
+
+            lock (e.locker)
+            {
+                e.invocationList.Add(callback);
+            }
+
+            return e;
+
+        }
+
+        public static AccessLogEvent operator - (AccessLogEvent e, Func<HTTPProcessor, DateTime, HTTPRequest, HTTPResponse, Task> callback)
+        {
+
+            if (callback == null)
+                throw new NullReferenceException("callback is null");
+
+            if (e == null)
+                return null;
+
+            lock (e.locker)
+            {
+                e.invocationList.Remove(callback);
+            }
+
+            return e;
+
+        }
+
+        public async Task InvokeAsync(HTTPProcessor HTTPProcessor, DateTime ServerTimestamp, HTTPRequest Request, HTTPResponse Response)
+        {
+
+            Func<HTTPProcessor, DateTime, HTTPRequest, HTTPResponse, Task>[] tmpInvocationList;
+
+            lock (locker)
+            {
+                tmpInvocationList = invocationList.ToArray();
+            }
+
+            foreach (var callback in tmpInvocationList)
+                await callback(HTTPProcessor, ServerTimestamp, Request, Response).ConfigureAwait(false);
+
+        }
+
+        public Task WhenAll(HTTPProcessor HTTPProcessor, DateTime ServerTimestamp, HTTPRequest Request, HTTPResponse Response)
+        {
+
+            Task[] tmpInvocationList;
+
+            lock (locker)
+            {
+                tmpInvocationList = invocationList.
+                                        Select(callback => callback(HTTPProcessor, ServerTimestamp, Request, Response)).
+                                        ToArray();
+            }
+
+            return Task.WhenAll(tmpInvocationList);
+
+        }
+
+    }
+
+    public class ErrorLogEvent
+    {
+
+        private readonly List<Func<HTTPProcessor, DateTime, HTTPRequest, HTTPResponse, String, Exception, Task>> invocationList;
+        private readonly object locker;
+
+        public ErrorLogEvent()
+        {
+            invocationList = new List<Func<HTTPProcessor, DateTime, HTTPRequest, HTTPResponse, String, Exception, Task>>();
+            locker = new object();
+        }
+
+        public static ErrorLogEvent operator +(ErrorLogEvent e, Func<HTTPProcessor, DateTime, HTTPRequest, HTTPResponse, String, Exception, Task> callback)
+        {
+
+            if (callback == null)
+                throw new NullReferenceException("callback is null");
+
+            if (e == null)
+                e = new ErrorLogEvent();
+
+            lock (e.locker)
+            {
+                e.invocationList.Add(callback);
+            }
+
+            return e;
+
+        }
+
+        public static ErrorLogEvent operator -(ErrorLogEvent e, Func<HTTPProcessor, DateTime, HTTPRequest, HTTPResponse, String, Exception, Task> callback)
+        {
+
+            if (callback == null)
+                throw new NullReferenceException("callback is null");
+
+            if (e == null)
+                return null;
+
+            lock (e.locker)
+            {
+                e.invocationList.Remove(callback);
+            }
+
+            return e;
+
+        }
+
+        public async Task InvokeAsync(HTTPProcessor  HTTPProcessor,
+                                      DateTime       ServerTimestamp,
+                                      HTTPRequest    Request,
+                                      HTTPResponse   Response,
+                                      String         Error          = null,
+                                      Exception      LastException  = null)
+        {
+
+            Func<HTTPProcessor, DateTime, HTTPRequest, HTTPResponse, String, Exception, Task>[] tmpInvocationList;
+
+            lock (locker)
+            {
+                tmpInvocationList = invocationList.ToArray();
+            }
+
+            foreach (var callback in tmpInvocationList)
+                await callback(HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException).ConfigureAwait(false);
+
+        }
+
+        public Task WhenAll(HTTPProcessor  HTTPProcessor,
+                            DateTime       ServerTimestamp,
+                            HTTPRequest    Request,
+                            HTTPResponse   Response,
+                            String         Error          = null,
+                            Exception      LastException  = null)
+        {
+
+            Task[] tmpInvocationList;
+
+            lock (locker)
+            {
+                tmpInvocationList = invocationList.
+                                        Select(callback => callback(HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException)).
+                                        ToArray();
+            }
+
+            return Task.WhenAll(tmpInvocationList);
+
+        }
+
+    }
 
     /// <summary>
     /// This processor will accept incoming HTTP TCP connections and
@@ -73,29 +327,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Events
 
-        public   event StartedEventHandler                                                  OnStarted;
+        public   event StartedEventHandler                                                        OnStarted;
 
         /// <summary>
         /// An event called whenever a request came in.
         /// </summary>
-        internal event InternalRequestLogHandler                                            RequestLog;
+        internal event InternalRequestLogHandler                                                  RequestLog;
+
+        public RequestLogEvent RequestLog2 = new RequestLogEvent();
 
         /// <summary>
         /// An event called whenever a request came in.
         /// </summary>
-        internal event InternalAccessLogHandler                                             AccessLog;
+        internal event InternalAccessLogHandler                                                   AccessLog;
+
+        public AccessLogEvent AccessLog2 = new AccessLogEvent();
 
         /// <summary>
         /// An event called whenever a request resulted in an error.
         /// </summary>
-        internal event InternalErrorLogHandler                                              ErrorLog;
+        internal event InternalErrorLogHandler                                                    ErrorLog;
+
+        public ErrorLogEvent ErrorLog2 = new ErrorLogEvent();
+
 
         public   event BoomerangSenderHandler<String, DateTime, HTTPRequest, Task<HTTPResponse>>  OnNotification;
 
-        public   event CompletedEventHandler                                                OnCompleted;
+        public   event CompletedEventHandler                                                      OnCompleted;
 
 
-        public   event ExceptionOccuredEventHandler                                         OnExceptionOccured;
+        public   event ExceptionOccuredEventHandler                                               OnExceptionOccured;
 
         #endregion
 
@@ -317,11 +578,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                     #region Call RequestLog delegate
 
-                                    var RequestLogLocal = RequestLog;
-                                    if (RequestLogLocal != null &&
-                                        HttpRequest     != null)
+                                    if (HttpRequest != null)
                                     {
-                                        RequestLogLocal(this, RequestTimestamp, HttpRequest);
+
+                                        RequestLog?.Invoke(this,
+                                                           RequestTimestamp,
+                                                           HttpRequest);
+
+                                        try
+                                        {
+
+                                            RequestLog2?.WhenAll(this,
+                                                                 RequestTimestamp,
+                                                                 HttpRequest);
+
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            DebugX.LogT(nameof(HTTPProcessor) + " => " + e.Message);
+                                        }
+
                                     }
 
                                     #endregion
@@ -354,7 +630,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             _HTTPResponse.HTTPBodyStream.Dispose();
                                         }
 
-                                        if (_HTTPResponse.Connection.ToLower().Contains("close"))
+                                        if (_HTTPResponse.Connection.IndexOf("close", StringComparison.OrdinalIgnoreCase) >= 0)
                                             ServerClose = true;
 
                                     }
@@ -372,6 +648,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                           HttpRequest,
                                                           _HTTPResponse);
 
+                                        try
+                                        {
+
+                                            AccessLog2?.WhenAll(this,
+                                                                RequestTimestamp,
+                                                                HttpRequest,
+                                                                _HTTPResponse);
+
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            DebugX.LogT(nameof(HTTPProcessor) + " => " + e.Message);
+                                        }
+
                                     }
 
                                     #endregion
@@ -388,6 +678,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          RequestTimestamp,
                                                          HttpRequest,
                                                          _HTTPResponse);
+
+                                        try
+                                        {
+
+                                            ErrorLog2?.WhenAll(this,
+                                                               RequestTimestamp,
+                                                               HttpRequest,
+                                                               _HTTPResponse);
+
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            DebugX.LogT(nameof(HTTPProcessor) + " => " + e.Message);
+                                        }
 
                                     }
 
