@@ -287,10 +287,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public static EMailAddress Parse(String EMailAddressString)
         {
 
-            if (EMailAddressString.IsNullOrEmpty())
-                return null;
-
-            EMailAddressString = EMailAddressString.Trim();
+            if (EMailAddressString != null)
+                EMailAddressString = EMailAddressString.Trim();
 
             if (EMailAddressString.IsNullOrEmpty())
                 return null;
@@ -311,6 +309,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                                         PublicKeyRing:             null);
 
             return new EMailAddress(SimpleEMailAddressString:  email,
+                                    SecretKeyRing:             null,
+                                    PublicKeyRing:             null);
+
+        }
+
+        #endregion
+
+        #region (static) Parse(OwnerName, EMailAddress)
+
+        /// <summary>
+        /// Parse the given e-mail address.
+        /// </summary>
+        /// <param name="OwnerName">The name of the owner of the e-mail address.</param>
+        /// <param name="EMailAddress">The text representation of an e-mail address.</param>
+        public static EMailAddress Parse(String OwnerName,
+                                         String EMailAddress)
+        {
+
+            if (OwnerName != null)
+                OwnerName = OwnerName.Trim();
+
+            if (EMailAddress != null)
+                EMailAddress = EMailAddress.Trim();
+
+            if (OwnerName.IsNullOrEmpty() || EMailAddress.IsNullOrEmpty())
+                return null;
+
+
+            return new EMailAddress(OwnerName:                 OwnerName,
+                                    SimpleEMailAddressString:  EMailAddress,
                                     SecretKeyRing:             null,
                                     PublicKeyRing:             null);
 
