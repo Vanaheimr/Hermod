@@ -36,7 +36,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Data
 
-        private static readonly  Char[] Splitter        = new Char[1] { '.' };
+        private static readonly  Char[] Splitter = new Char[1] { '.' };
 
         private readonly         Byte[] IPAddressArray;
 
@@ -287,21 +287,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (Elements.Length != _Length)
                 return false;
 
-            var _IPv4AddressArray = new Byte[_Length];
+            var ipv4AddressArray = new Byte[_Length];
 
-            if (!Byte.TryParse(Elements[0], out _IPv4AddressArray[0]))
+            if (!Byte.TryParse(Elements[0], out ipv4AddressArray[0]))
                 return false;
 
-            if (!Byte.TryParse(Elements[1], out _IPv4AddressArray[1]))
+            if (!Byte.TryParse(Elements[1], out ipv4AddressArray[1]))
                 return false;
 
-            if (!Byte.TryParse(Elements[2], out _IPv4AddressArray[2]))
+            if (!Byte.TryParse(Elements[2], out ipv4AddressArray[2]))
                 return false;
 
-            if (!Byte.TryParse(Elements[3], out _IPv4AddressArray[3]))
+            if (!Byte.TryParse(Elements[3], out ipv4AddressArray[3]))
                 return false;
 
-            IPv4Address = new IPv4Address(_IPv4AddressArray);
+            IPv4Address = new IPv4Address(ipv4AddressArray);
 
             return true;
 

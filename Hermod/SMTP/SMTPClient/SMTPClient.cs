@@ -140,6 +140,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #region Data
 
+        private readonly Object Lock = new Object();
+
         private                 Byte[]                       input;
         private static readonly Byte[]                       ByteZero    = new Byte[1] { 0x00 };
 
@@ -150,59 +152,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #region Properties
 
-        #region LocalDomain
-
-        private String _LocalDomain;
-
         /// <summary>
         /// The local domain is used in the HELO or EHLO commands sent to
         /// the SMTP server. If left unset, the local IP address will be
         /// used instead.
         /// </summary>
-        public String LocalDomain
-        {
-            get
-            {
-                return _LocalDomain;
-            }
-        }
-
-        #endregion
-
-        #region Login
-
-        private readonly String _Login;
+        public String LocalDomain   { get; }
 
         /// <summary>
         /// A login name which can be used for SMTP authentication.
         /// </summary>
-        public String Login
-        {
-            get
-            {
-                return _Login;
-            }
-        }
-
-        #endregion
-
-        #region Password
-
-        private readonly String _Password;
+        public String Login         { get; }
 
         /// <summary>
         /// The password for the login name, which both will be used
         /// for SMTP authentication.
         /// </summary>
-        public String Password
-        {
-            get
-            {
-                return _Password;
-            }
-        }
+        public String Password      { get; }
 
-        #endregion
 
         #region MaxMailSize
 
@@ -252,8 +219,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #region Constructor(s)
 
-        #region SMTPClient()
-
         /// <summary>
         /// Create a new SMTP client for sending e-mails.
         /// </summary>
@@ -300,14 +265,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         {
 
-            this._Login               = Login;
-            this._Password            = Password;
-            this._LocalDomain         = (LocalDomain != null) ? LocalDomain : System.Net.Dns.GetHostName();
+            this.Login                = Login;
+            this.Password             = Password;
+            this.LocalDomain          = LocalDomain ?? System.Net.Dns.GetHostName();
             this._UnknownAuthMethods  = new List<String>();
 
         }
-
-        #endregion
 
         #endregion
 
@@ -473,21 +436,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             var SendMailTask = new Task<MailSentStatus>(() => {
 
-                lock (this) {
+                lock (Lock) {
 
                 switch (Connect())
                 {
 
-                    case Sockets.TCP.TCPConnectResult.InvalidDomainName:
+                    case TCPConnectResult.InvalidDomainName:
                         return MailSentStatus.failed;
 
-                    case Sockets.TCP.TCPConnectResult.NoIPAddressFound:
+                    case TCPConnectResult.NoIPAddressFound:
                         return MailSentStatus.failed;
 
-                    case Sockets.TCP.TCPConnectResult.UnknownError:
+                    case TCPConnectResult.UnknownError:
                         return MailSentStatus.failed;
 
-                    case Sockets.TCP.TCPConnectResult.Ok:
+                    case TCPConnectResult.Ok:
 
                         // 220 mail.ahzf.de ESMTP Postfix (Debian/GNU)
                         var LoginResponse = this.ReadSMTPResponse();
@@ -687,9 +650,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                 var AuthPLAINResponse  = SendCommandAndWait("AUTH PLAIN " +
                                                                             Convert.ToBase64String(ByteZero.
-                                                                                                   Concat(_Login.   ToUTF8Bytes()).
+                                                                                                   Concat(Login.   ToUTF8Bytes()).
                                                                                                    Concat(ByteZero).
-                                                                                                   Concat(_Password.ToUTF8Bytes()).
+                                                                                                   Concat(Password.ToUTF8Bytes()).
                                                                                                    ToArray()));
 
                             }
@@ -702,8 +665,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                             {
 
                                 var AuthLOGIN1Response  = SendCommandAndWait("AUTH LOGIN");
-                                var AuthLOGIN2Response  = SendCommandAndWait(Convert.ToBase64String(_Login.   ToUTF8Bytes()));
-                                var AuthLOGIN3Response  = SendCommandAndWait(Convert.ToBase64String(_Password.ToUTF8Bytes()));
+                                var AuthLOGIN2Response  = SendCommandAndWait(Convert.ToBase64String(Login.   ToUTF8Bytes()));
+                                var AuthLOGIN3Response  = SendCommandAndWait(Convert.ToBase64String(Password.ToUTF8Bytes()));
 
                             }
 
@@ -731,7 +694,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     var cc = Ext2.CRAM_MD5("<1529645438.10349126@mail.ahzf.de>", "ahzf", "ahzf2305!");
 
                                     var zz = Ext2.CRAM_MD5(Convert.FromBase64String(AuthCRAMMD5Response.Response).ToUTF8String(),
-                                                           _Login, _Password);
+                                                           Login, Password);
 
                                     var AuthPLAINResponse = SendCommandAndWait(Convert.ToBase64String(zz));
 

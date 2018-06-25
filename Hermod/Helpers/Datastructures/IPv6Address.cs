@@ -258,58 +258,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (Elements.Length != 8)
                 return false;
 
-            var _IPv6AddressArray = new Byte[_Length];
+            var ipv6AddressArray = new Byte[_Length];
 
-            if (!Byte.TryParse(Elements[0].Substring(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[0]))
+            if (!Byte.TryParse(Elements[0].Substring(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out ipv6AddressArray[0]))
                 return false;
 
-            if (!Byte.TryParse(Elements[0].Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[1]))
+            if (!Byte.TryParse(Elements[0].Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out ipv6AddressArray[1]))
                 return false;
 
-            if (!Byte.TryParse(Elements[1].Substring(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[2]))
+            if (!Byte.TryParse(Elements[1].Substring(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out ipv6AddressArray[2]))
                 return false;
 
-            if (!Byte.TryParse(Elements[1].Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[3]))
+            if (!Byte.TryParse(Elements[1].Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out ipv6AddressArray[3]))
                 return false;
 
-            if (!Byte.TryParse(Elements[2].Substring(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[4]))
+            if (!Byte.TryParse(Elements[2].Substring(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out ipv6AddressArray[4]))
                 return false;
 
-            if (!Byte.TryParse(Elements[2].Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[5]))
+            if (!Byte.TryParse(Elements[2].Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out ipv6AddressArray[5]))
                 return false;
 
-            if (!Byte.TryParse(Elements[3].Substring(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[6]))
+            if (!Byte.TryParse(Elements[3].Substring(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out ipv6AddressArray[6]))
                 return false;
 
-            if (!Byte.TryParse(Elements[3].Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[7]))
+            if (!Byte.TryParse(Elements[3].Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out ipv6AddressArray[7]))
                 return false;
 
 
-            if (!Byte.TryParse(Elements[4].Substring(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[8]))
+            if (!Byte.TryParse(Elements[4].Substring(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out ipv6AddressArray[8]))
                 return false;
 
-            if (!Byte.TryParse(Elements[4].Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[9]))
+            if (!Byte.TryParse(Elements[4].Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out ipv6AddressArray[9]))
                 return false;
 
-            if (!Byte.TryParse(Elements[5].Substring(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[10]))
+            if (!Byte.TryParse(Elements[5].Substring(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out ipv6AddressArray[10]))
                 return false;
 
-            if (!Byte.TryParse(Elements[5].Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[11]))
+            if (!Byte.TryParse(Elements[5].Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out ipv6AddressArray[11]))
                 return false;
 
-            if (!Byte.TryParse(Elements[6].Substring(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[12]))
+            if (!Byte.TryParse(Elements[6].Substring(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out ipv6AddressArray[12]))
                 return false;
 
-            if (!Byte.TryParse(Elements[6].Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[13]))
+            if (!Byte.TryParse(Elements[6].Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out ipv6AddressArray[13]))
                 return false;
 
-            if (!Byte.TryParse(Elements[7].Substring(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[14]))
+            if (!Byte.TryParse(Elements[7].Substring(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out ipv6AddressArray[14]))
                 return false;
 
-            if (!Byte.TryParse(Elements[7].Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out _IPv6AddressArray[15]))
+            if (!Byte.TryParse(Elements[7].Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture.NumberFormat, out ipv6AddressArray[15]))
                 return false;
 
-            IPv6Address = new IPv6Address(_IPv6AddressArray, InterfaceId);
+            IPv6Address = new IPv6Address(ipv6AddressArray, InterfaceId);
 
             return true;
 

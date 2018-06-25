@@ -66,8 +66,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         private           A[]                    _CachedIPv4Addresses;
         private           AAAA[]                 _CachedIPv6Addresses;
-        private           List<IPSocket>         OrderedDNS;
-        private           IEnumerator<IPSocket>  OrderedDNSEnumerator;
+        private           List<IPSocket>         IPSocketList;
+        private           IEnumerator<IPSocket>  IPSocketListEnumerator;
         private           IPSocket               CurrentIPSocket;
 
 #if __MonoCS__
@@ -430,19 +430,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         private void QueryDNS()
         {
 
-            var IPv4Task = _DNSClient.Query<A>(RemoteHost);
-            IPv4Task.Wait();
-            _CachedIPv4Addresses = IPv4Task.Result.ToArray();
+            if      (IPv4Address.TryParse(RemoteHost, out IPv4Address ipv4address))
+                IPSocketList = new List<IPSocket>() { new IPSocket(ipv4address, this.RemotePort) };
 
-            var IPv6Task = _DNSClient.Query<AAAA>(RemoteHost);
-            IPv6Task.Wait();
-            _CachedIPv6Addresses = IPv6Task.Result.ToArray();
+            else if (IPv6Address.TryParse(RemoteHost, out IPv6Address ipv6address))
+                IPSocketList = new List<IPSocket>() { new IPSocket(ipv6address, this.RemotePort) };
 
-            OrderedDNS = (_CachedIPv4Addresses.Select(ARecord    => new IPSocket(ARecord.   IPv4Address, this.RemotePort)).Concat(
-                          _CachedIPv6Addresses.Select(AAAARecord => new IPSocket(AAAARecord.IPv6Address, this.RemotePort)))).
-                          ToList();
+            else
+            {
 
-            OrderedDNSEnumerator = OrderedDNS.GetEnumerator();
+                var IPv4Task = _DNSClient.Query<A>(RemoteHost);
+                IPv4Task.Wait();
+                _CachedIPv4Addresses = IPv4Task.Result.ToArray();
+
+                var IPv6Task = _DNSClient.Query<AAAA>(RemoteHost);
+                IPv6Task.Wait();
+                _CachedIPv6Addresses = IPv6Task.Result.ToArray();
+
+                IPSocketList            = (_CachedIPv4Addresses.Select(ARecord    => new IPSocket(ARecord.   IPv4Address, this.RemotePort)).Concat(
+                                           _CachedIPv6Addresses.Select(AAAARecord => new IPSocket(AAAARecord.IPv6Address, this.RemotePort)))).
+                                           ToList();
+
+            }
+
+            IPSocketListEnumerator = IPSocketList.GetEnumerator();
 
         }
 
@@ -450,20 +461,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region (private) CreateAndConnectTCPSocket(_IPAddress, Port)
 
-        private Socket CreateAndConnectTCPSocket(IIPAddress _IPAddress, IPPort Port)
+        private Socket CreateAndConnectTCPSocket(IIPAddress ipAddress, IPPort Port)
         {
 
-            Socket _TCPSocket = null;
+            Socket tcpSocket = null;
 
-            if (_IPAddress is IPv4Address)
-                _TCPSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            if      (ipAddress is IPv4Address)
+                tcpSocket = new Socket(AddressFamily.InterNetwork,   SocketType.Stream, ProtocolType.Tcp);
 
-            else if (_IPAddress is IPv6Address)
-                _TCPSocket = new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp);
+            else if (ipAddress is IPv6Address)
+                tcpSocket = new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp);
 
-            _TCPSocket.Connect(System.Net.IPAddress.Parse(_IPAddress.ToString()), Port.ToUInt16());
+            else
+                throw new Exception("IP address '" + ipAddress.ToString() + "' is invalid!");
 
-            return _TCPSocket;
+            tcpSocket.Connect(System.Net.IPAddress.Parse(ipAddress.ToString()), Port.ToUInt16());
+
+            return tcpSocket;
 
         }
 
@@ -558,31 +572,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             if (RemoteHost == null &&
                 RemoteHost == String.Empty)
+            {
                 return TCPConnectResult.InvalidDomainName;
+            }
 
             var retry = 0;
 
             do
             {
 
-                if (OrderedDNS == null)
+                if (IPSocketList == null)
                     QueryDNS();
 
-                if (OrderedDNS.Count == 0)
+                if (IPSocketList.Count == 0)
                     return TCPConnectResult.NoIPAddressFound;
 
                 // Get next IP socket in ordered list...
-                while (OrderedDNSEnumerator.MoveNext())
+                while (IPSocketListEnumerator.MoveNext())
                 {
 
-                    CurrentIPSocket = OrderedDNSEnumerator.Current;
+                    CurrentIPSocket = IPSocketListEnumerator.Current;
 
                     if (Reconnect())
                         return TCPConnectResult.Ok;
 
                 }
 
-                OrderedDNS = null;
+                IPSocketList = null;
                 retry++;
 
             } while (retry < 2);
