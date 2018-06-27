@@ -227,6 +227,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        private String JSON2String(JObject JSONObject)
+            => JSONObject.ToString().Replace("\r\n", "").Replace("\n", "");
+
+
         #region SubmitEvent(params Data)
 
         /// <summary>
@@ -234,12 +238,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Data">The attached event data.</param>
         public async Task SubmitEvent(params String[] Data)
-        {
 
-            QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
-                                             Data));
+            => await QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
+                                                      Data)).
+                                   ConfigureAwait(false);
 
-        }
+        #endregion
+
+        #region SubmitEvent(JSONObject)
+
+        /// <summary>
+        /// Submit a new event.
+        /// </summary>
+        /// <param name="JSONObject">The attached event data.</param>
+        public async Task SubmitEvent(JObject JSONObject)
+
+            => await QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
+                                                      JSON2String(JSONObject))).
+                                   ConfigureAwait(false);
 
         #endregion
 
@@ -251,20 +267,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the event.</param>
         /// <param name="Data">The attached event data.</param>
         public async Task SubmitTimestampedEvent(DateTime Timestamp, params String[] Data)
-        {
 
-            await SubmitEvent(new JObject(
-                                  new JProperty("Timestamp",  Timestamp),
-                                  new JProperty("Message",    Data?.Length > 0
-                                                                  ? Data.Aggregate((a, b) => a.Trim() + " " + b.Trim())
-                                                                  : "")
-                              ).
-                              ToString().
-                              Replace(Environment.NewLine, " ")
-                             ).
-                      ConfigureAwait(false);
+            => await SubmitEvent(JSON2String(
+                                     new JObject(
+                                         new JProperty("Timestamp",  Timestamp),
+                                         new JProperty("Message",    Data?.Length > 0
+                                                                         ? Data.Aggregate((a, b) => a.Trim() + " " + b.Trim())
+                                                                         : "")
+                                     )
+                                 )).ConfigureAwait(false);
 
-        }
+        #endregion
+
+        #region SubmitTimestampedEvent(Timestamp, JSONObject)
+
+        /// <summary>
+        /// Submit a new subevent with a timestamp.
+        /// </summary>
+        /// <param name="Timestamp">The timestamp of the event.</param>
+        /// <param name="JSONObject">The attached event data.</param>
+        public async Task SubmitTimestampedEvent(DateTime Timestamp, JObject JSONObject)
+
+            => await SubmitEvent(JSON2String(
+                                      new JObject(
+                                          new JProperty("Timestamp",  Timestamp),
+                                          new JProperty("Message",    JSONObject)
+                                      )
+                                 )).ConfigureAwait(false);
 
         #endregion
 
@@ -290,6 +319,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 await QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
                                          SubEvent,
                                          Data));
+
+        }
+
+        #endregion
+
+        #region SubmitSubEvent(SubEvent, JSONObject)
+
+        /// <summary>
+        /// Submit a new event.
+        /// </summary>
+        /// <param name="SubEvent">A subevent identification.</param>
+        /// <param name="JSONObject">The attached event data.</param>
+        public async Task SubmitSubEvent(String SubEvent, JObject JSONObject)
+        {
+
+            if (SubEvent.IsNotNullOrEmpty())
+                SubEvent = SubEvent.Trim().Replace(",", "");
+
+            if (SubEvent.IsNullOrEmpty())
+                await QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
+                                         JSON2String(JSONObject)));
+
+            else
+                await QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
+                                         SubEvent,
+                                         JSON2String(JSONObject)));
 
         }
 
@@ -323,6 +378,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region SubmitTimestampedSubEvent(SubEvent, JSONObject)
+
+        /// <summary>
+        /// Submit a new subevent, using the current time as timestamp.
+        /// </summary>
+        /// <param name="SubEvent">A subevent identification.</param>
+        /// <param name="JSONObject">The attached event data.</param>
+        public async Task SubmitSubEventWithTimestamp(String SubEvent, JObject JSONObject)
+        {
+
+            if (SubEvent.IsNotNullOrEmpty())
+                SubEvent = SubEvent.Trim().Replace(",", "");
+
+            if (SubEvent.IsNullOrEmpty())
+                await SubmitTimestampedEvent(DateTime.UtcNow,
+                                             JSONObject).
+                          ConfigureAwait(false);
+
+            else
+                await SubmitTimestampedSubEvent(SubEvent,
+                                                DateTime.UtcNow,
+                                                JSONObject).
+                          ConfigureAwait(false);
+
+        }
+
+        #endregion
+
         #region SubmitTimestampedSubEvent(SubEvent, Timestamp, params Data)
 
         /// <summary>
@@ -340,22 +423,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 SubEvent = SubEvent.Trim().Replace(",", "");
 
             if (SubEvent.IsNullOrEmpty())
-                await SubmitTimestampedEvent(Timestamp,
-                                             Data).
+                await SubmitTimestampedEvent(Timestamp, Data).
                           ConfigureAwait(false);
 
             else
                 await SubmitSubEvent(SubEvent,
-                                     new JObject(
-                                         new JProperty("Timestamp",  Timestamp),
-                                         new JProperty("Message",    Data?.Length > 0
-                                                                         ? Data.Aggregate((a, b) => a.Trim() + " " + b.Trim())
-                                                                         : "")
-                                     ).
-                                     ToString().
-                                     Replace(Environment.NewLine, " ")
-                                    ).
+                                     JSON2String(
+                                         new JObject(
+                                             new JProperty("Timestamp",  Timestamp),
+                                             new JProperty("Message",    Data?.Length > 0
+                                                                             ? Data.Aggregate((a, b) => a.Trim() + " " + b.Trim())
+                                                                             : "")
+                                         ))
+                                     ).ConfigureAwait(false);
+
+        }
+
+        #endregion
+
+        #region SubmitTimestampedSubEvent(SubEvent, Timestamp, params Data)
+
+        /// <summary>
+        /// Submit a new subevent with a timestamp.
+        /// </summary>
+        /// <param name="SubEvent">A subevent identification.</param>
+        /// <param name="Timestamp">The timestamp of the event.</param>
+        /// <param name="JSONObject">The attached event data.</param>
+        public async Task SubmitTimestampedSubEvent(String    SubEvent,
+                                                    DateTime  Timestamp,
+                                                    JObject   JSONObject)
+        {
+
+            if (SubEvent.IsNotNullOrEmpty())
+                SubEvent = SubEvent.Trim().Replace(",", "");
+
+            if (SubEvent.IsNullOrEmpty())
+                await SubmitTimestampedEvent(Timestamp,
+                                             JSON2String(JSONObject)).
                           ConfigureAwait(false);
+
+            else
+                await SubmitSubEvent(SubEvent,
+                                     JSON2String(
+                                         new JObject(
+                                             new JProperty("Timestamp",  Timestamp),
+                                             new JProperty("Message",    JSONObject)
+                                         ))
+                                     ).ConfigureAwait(false);
 
         }
 
