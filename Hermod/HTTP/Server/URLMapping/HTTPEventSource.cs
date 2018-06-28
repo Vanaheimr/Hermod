@@ -60,28 +60,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The internal identification of the HTTP event.
         /// </summary>
-        public String  EventIdentification   { get; }
+        public String                          EventIdentification    { get; }
 
         /// <summary>
         /// Maximum number of cached events.
         /// </summary>
         public UInt64  MaxNumberOfCachedEvents
-        {
-            get
-            {
-                return QueueOfEvents.MaxNumberOfElements;
-            }
-        }
+            => QueueOfEvents.MaxNumberOfElements;
 
         /// <summary>
         /// The retry intervall of this HTTP event.
         /// </summary>
-        public TimeSpan  RetryIntervall   { get; set; }
+        public TimeSpan                        RetryIntervall         { get; set; }
 
         /// <summary>
         /// The delegate to create a filename for storing and reloading events.
         /// </summary>
-        public Func<String, DateTime, String>  LogfileName   { get; }
+        public Func<String, DateTime, String>  LogfileName            { get; }
 
         #endregion
 
