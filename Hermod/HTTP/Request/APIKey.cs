@@ -80,7 +80,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Size">A text representation of An API key.</param>
         public static APIKey Random(UInt16? Size = 64)
 
-            => new APIKey(_random.GetString(Size ?? 64));
+            => new APIKey(_random.RandomString(Size ?? 64));
 
         #endregion
 
