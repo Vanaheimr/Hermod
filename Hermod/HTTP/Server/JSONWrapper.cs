@@ -1211,34 +1211,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
 
+        #region ParseOptional       (this JSON, PropertyName, PropertyDescription,                                 out BooleanOut,         out ErrorResponse)
+
         public static Boolean ParseOptional(this JObject  JSON,
                                             String        PropertyName,
-                                            out Boolean?  BooleanOut)
+                                            String        PropertyDescription,
+                                            out Boolean?  BooleanOut,
+                                            out String    ErrorResponse)
         {
 
-            if (JSON == null ||
-                PropertyName.IsNullOrEmpty())
+            BooleanOut = new Boolean?();
+
+            if (JSON == null)
             {
-                BooleanOut = new Boolean?();
+                ErrorResponse = "The given JSON object must not be null!";
                 return false;
             }
 
-            if (JSON.TryGetValue(PropertyName, out JToken _JToken))
+            if (PropertyName.IsNullOrEmpty() || PropertyName.Trim().IsNullOrEmpty())
+            {
+                ErrorResponse = "Invalid JSON property name provided!";
+                return true;
+            }
+
+            if (JSON.TryGetValue(PropertyName, out JToken JSONToken))
             {
 
-                BooleanOut = _JToken?.Value<Boolean>();
-
-                if (BooleanOut.HasValue)
+                if (JSONToken == null)
+                {
+                    ErrorResponse = "Unknown or invalid '" + PropertyDescription + "'!";
                     return true;
+                }
 
-                return false;
+                BooleanOut    = JSONToken.Value<Boolean>();
+                ErrorResponse = null;
+                return true;
 
             }
 
-            BooleanOut = null;
+            ErrorResponse = null;
             return true;
 
         }
+
+        #endregion
 
 
         #region ParseOptional       (this JSON, PropertyName, PropertyDescription, DefaultServerName, Mapper, out Value,      HTTPRequest, out HTTPResponse)
@@ -1410,6 +1426,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             Value = new TStruct?();
 
+            if (JSON == null)
+            {
+                ErrorResponse = "The given JSON object must not be null!";
+                return false;
+            }
+
             if (JSON.TryGetValue(PropertyName, out JToken JSONToken) && JSONToken != null)
             {
 
@@ -1494,6 +1516,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                out String        ErrorResponse)
         {
 
+            if (JSON == null)
+            {
+                Value         = default(T);
+                ErrorResponse = "The given JSON object must not be null!";
+                return false;
+            }
+
             if (JSON.TryGetValue(PropertyName, out JToken JSONToken) &&
                 JSONToken != null)
             {
@@ -1566,6 +1595,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             out String      ErrorResponse)
 
         {
+
+            if (JSON == null)
+            {
+                I18NText      = I18NString.Empty;
+                ErrorResponse = "The given JSON object must not be null!";
+                return false;
+            }
 
             if (JSON.TryGetValue(PropertyName, out JToken JSONToken) && JSONToken != null)
             {
@@ -1666,6 +1702,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
+            if (JSON == null)
+            {
+                Value         = default(TEnum);
+                ErrorResponse = "The given JSON object must not be null!";
+                return false;
+            }
+
             if (JSON.TryGetValue(PropertyName, out JToken JSONToken))
             {
 
@@ -1750,7 +1793,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (JSON == null)
             {
-                ErrorResponse = "Invalid JSON provided!";
+                ErrorResponse = "The given JSON object must not be null!";
                 return true;
             }
 
@@ -1836,7 +1879,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (JSON == null)
             {
-                ErrorResponse = "Invalid JSON provided!";
+                ErrorResponse = "The given JSON object must not be null!";
                 return true;
             }
 
@@ -1877,12 +1920,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean ParseOptional<T>(this JObject        JSON,
                                                String              PropertyName,
                                                String              PropertyDescription,
-                                               TryParser<T>            Parser,
+                                               TryParser<T>        Parser,
                                                out IEnumerable<T>  Values,
                                                out String          ErrorResponse)
         {
 
             var _Values = new List<T>();
+
+            if (JSON == null)
+            {
+                Values        = _Values;
+                ErrorResponse = "The given JSON object must not be null!";
+                return false;
+            }
 
             if (JSON.TryGetValue(PropertyName, out JToken JSONToken) &&
                 JSONToken is JArray JSONArray)
@@ -1960,19 +2010,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
+            JSONObject = new JObject();
+
+            if (JSON == null)
+            {
+                ErrorResponse = "The given JSON object must not be null!";
+                return false;
+            }
+
+            if (PropertyName.IsNullOrEmpty() || PropertyName.Trim().IsNullOrEmpty())
+            {
+                ErrorResponse = "Invalid JSON property name provided!";
+                return true;
+            }
+
             if (JSON.TryGetValue(PropertyName, out JToken JSONToken) && JSONToken != null)
             {
 
                 JSONObject = JSONToken as JObject;
 
-                if (JSONObject != null)
+                if (JSONObject == null)
                 {
-                    ErrorResponse = null;
+                    ErrorResponse = "The given property '" + PropertyName + "' is not a valid JSON object!";
                     return true;
                 }
 
-                ErrorResponse = "Invalid JSON object!";
-                return false;
+                ErrorResponse = null;
+                return true;
 
             }
 
@@ -2032,19 +2096,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
+            JSONArray = new JArray();
+
+            if (JSON == null)
+            {
+                ErrorResponse = "The given JSON object must not be null!";
+                return true;
+            }
+
             if (JSON.TryGetValue(PropertyName, out JToken JSONToken) && JSONToken != null)
             {
 
                 JSONArray = JSONToken as JArray;
 
-                if (JSONArray != null)
+                if (JSONArray == null)
                 {
-                    ErrorResponse = null;
-                    return true;
+                    ErrorResponse = "The given property '" + PropertyName + "' is not a valid JSON array!";
+                    return false;
                 }
 
-                ErrorResponse = "Invalid JSON array!";
-                return false;
+                ErrorResponse = null;
+                return true;
 
             }
 
@@ -2059,9 +2131,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region GetOptional(this JSON, Key)
 
-        public static String GetOptional(this JObject JSON,
-                                         String       Key)
+        public static String GetOptional(this JObject  JSON,
+                                         String        Key)
         {
+
+            if (JSON == null)
+                return String.Empty;
 
             if (JSON.TryGetValue(Key, out JToken JSONToken))
                 return JSONToken.Value<String>();
@@ -2078,6 +2153,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           String                   Key,
                                           out IEnumerable<String>  Values)
         {
+
+            if (JSON == null)
+            {
+                Values = new String[0];
+                return false;
+            }
 
             if (JSON.TryGetValue(Key, out JToken JSONToken))
             {
