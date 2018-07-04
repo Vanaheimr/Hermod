@@ -39,155 +39,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Properties
 
-        #region URITemplate
-
-        private readonly HTTPURI _URITemplate;
-
         /// <summary>
         /// The URL template for this service.
         /// </summary>
-        public HTTPURI URITemplate
-        {
-            get
-            {
-                return _URITemplate;
-            }
-        }
-
-        #endregion
-
-        #region URIRegex
-
-        private readonly Regex _URIRegex;
+        public HTTPURI             URITemplate            { get; }
 
         /// <summary>
         /// The URI regex for this service.
         /// </summary>
-        public Regex URIRegex
-        {
-            get
-            {
-                return _URIRegex;
-            }
-        }
-
-        #endregion
-
-        #region ParameterCount
-
-        private readonly UInt16 _ParameterCount;
+        public Regex               URIRegex               { get; }
 
         /// <summary>
         /// The number of parameters within this URLNode for shorting best-matching URLs.
         /// </summary>
-        public UInt16 ParameterCount
-        {
-            get
-            {
-                return _ParameterCount;
-            }
-        }
-
-        #endregion
-
-        #region SortLength
-
-        private readonly UInt16 _SortLength;
+        public UInt16              ParameterCount         { get; }
 
         /// <summary>
         /// The lenght of the minimalized URL template for shorting best-matching URLs.
         /// </summary>
-        public UInt16 SortLength
-        {
-            get
-            {
-                return _SortLength;
-            }
-        }
+        public UInt16              SortLength             { get; }
 
-        #endregion
-
-        #region RequestHandler
-
-        private readonly HTTPDelegate _RequestHandler;
-
-        public HTTPDelegate RequestHandler
-        {
-            get
-            {
-                return _RequestHandler;
-            }
-        }
-
-        #endregion
-
-        #region URIAuthentication
-
-        private readonly HTTPAuthentication _URIAuthentication;
+        public HTTPDelegate        RequestHandler         { get; }
 
         /// <summary>
         /// This and all subordinated nodes demand an explicit URI authentication.
         /// </summary>
-        public HTTPAuthentication URIAuthentication
-        {
-            get
-            {
-                return _URIAuthentication;
-            }
-        }
-
-        #endregion
-
-        #region DefaultErrorHandler
-
-        private readonly HTTPDelegate _DefaultErrorHandler;
+        public HTTPAuthentication  URIAuthentication      { get; }
 
         /// <summary>
         /// A general error handling method.
         /// </summary>
-        public HTTPDelegate DefaultErrorHandler
-        {
-            get
-            {
-                return _DefaultErrorHandler;
-            }
-        }
-
-        #endregion
-
-        #region ErrorHandlers
-
-        private readonly Dictionary<HTTPStatusCode, HTTPDelegate> _ErrorHandlers;
+        public HTTPDelegate        DefaultErrorHandler    { get; }
 
         /// <summary>
         /// Error handling methods for specific http status codes.
         /// </summary>
-        public Dictionary<HTTPStatusCode, HTTPDelegate> ErrorHandlers
-        {
-            get
-            {
-                return _ErrorHandlers;
-            }
-        }
-
-        #endregion
-
-        #region HTTPMethods
-
-        private readonly Dictionary<HTTPMethod, HTTPMethodNode> _HTTPMethods;
+        public Dictionary<HTTPStatusCode, HTTPDelegate>  ErrorHandlers    { get; }
 
         /// <summary>
         /// A mapping from HTTPMethods to HTTPMethodNodes.
         /// </summary>
-        public Dictionary<HTTPMethod, HTTPMethodNode> HTTPMethods
-        {
-            get
-            {
-                return _HTTPMethods;
-            }
-        }
-
-        #endregion
+        public Dictionary<HTTPMethod, HTTPMethodNode>    HTTPMethods      { get; }
 
         #endregion
 
@@ -207,22 +99,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this._URITemplate           = URITemplate;
-            this._URIAuthentication     = URIAuthentication;
-            this._RequestHandler        = RequestHandler;
-            this._DefaultErrorHandler   = DefaultErrorHandler;
-            this._ErrorHandlers         = new Dictionary<HTTPStatusCode, HTTPDelegate>();
-            this._HTTPMethods           = new Dictionary<HTTPMethod, HTTPMethodNode>();
+            this.URITemplate            = URITemplate;
+            this.URIAuthentication      = URIAuthentication;
+            this.RequestHandler         = RequestHandler;
+            this.DefaultErrorHandler    = DefaultErrorHandler;
+            this.ErrorHandlers          = new Dictionary<HTTPStatusCode, HTTPDelegate>();
+            this.HTTPMethods            = new Dictionary<HTTPMethod, HTTPMethodNode>();
 
             var _ReplaceLastParameter   = new Regex(@"\{[^/]+\}$");
-            this._ParameterCount        = (UInt16) _ReplaceLastParameter.Matches(URITemplate.ToString()).Count;
+            this.ParameterCount         = (UInt16) _ReplaceLastParameter.Matches(URITemplate.ToString()).Count;
             var URLTemplate2            = _ReplaceLastParameter.Replace(URITemplate.ToString(), "([^\n]+)");
             var URLTemplateWithoutVars  = _ReplaceLastParameter.Replace(URITemplate.ToString(), "");
 
             var _ReplaceAllParameters   = new Regex(@"\{[^/]+\}");
-            this._ParameterCount       += (UInt16) _ReplaceAllParameters.Matches(URLTemplate2).Count;
-            this._URIRegex              = new Regex("^" + _ReplaceAllParameters.Replace(URLTemplate2, "([^/]+)") + "$");
-            this._SortLength            = (UInt16) _ReplaceAllParameters.Replace(URLTemplateWithoutVars, "").Length;
+            this.ParameterCount        += (UInt16) _ReplaceAllParameters.Matches(URLTemplate2).Count;
+            this.URIRegex               = new Regex("^" + _ReplaceAllParameters.Replace(URLTemplate2, "([^/]+)") + "$");
+            this.SortLength             = (UInt16) _ReplaceAllParameters.Replace(URLTemplateWithoutVars, "").Length;
 
         }
 
@@ -244,10 +136,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            if (!_HTTPMethods.TryGetValue(HTTPMethod, out HTTPMethodNode _HTTPMethodNode))
+            if (!HTTPMethods.TryGetValue(HTTPMethod, out HTTPMethodNode _HTTPMethodNode))
             {
                 _HTTPMethodNode = new HTTPMethodNode(HTTPMethod, HTTPMethodAuthentication, HTTPDelegate, DefaultErrorHandler);
-                _HTTPMethods.Add(HTTPMethod, _HTTPMethodNode);
+                HTTPMethods.Add(HTTPMethod, _HTTPMethodNode);
             }
 
             _HTTPMethodNode.AddHandler(HTTPDelegate,
@@ -273,11 +165,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             var _URLAuthentication = "";
-            if (_URIAuthentication != null)
+            if (URIAuthentication != null)
                 _URLAuthentication = " (auth)";
 
             var _URLErrorHandler = "";
-            if (_DefaultErrorHandler != null)
+            if (DefaultErrorHandler != null)
                 _URLErrorHandler = " (errhdl)";
 
             var _HTTPMethods = "";

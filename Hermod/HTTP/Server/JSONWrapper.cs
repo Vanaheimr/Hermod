@@ -691,7 +691,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ParseMandatory<TEnum>(this JSON, PropertyName, PropertyDescription, DefaultServerName,            out Single, HTTPRequest, out HTTPResponse)
+        #region ParseMandatory<TEnum>(this JSON, PropertyName, PropertyDescription, DefaultServerName,     out Single, HTTPRequest, out HTTPResponse)
 
         public static Boolean ParseMandatory(this JObject      JSON,
                                              String            PropertyName,
@@ -978,13 +978,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseMandatory       (this JSON, PropertyName, PropertyDescription, DefaultServerName,            out JObject,   HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseMandatory<T>(this JObject      JSON,
-                                                String            PropertyName,
-                                                String            PropertyDescription,
-                                                String            DefaultServerName,
-                                                out JObject       JObject,
-                                                HTTPRequest       HTTPRequest,
-                                                out HTTPResponse  HTTPResponse)
+        public static Boolean ParseMandatory(this JObject      JSON,
+                                             String            PropertyName,
+                                             String            PropertyDescription,
+                                             String            DefaultServerName,
+                                             out JObject       JObject,
+                                             HTTPRequest       HTTPRequest,
+                                             out HTTPResponse  HTTPResponse)
         {
 
             var success = JSON.ParseMandatory(PropertyName,
@@ -1066,13 +1066,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseMandatory       (this JSON, PropertyName, PropertyDescription, DefaultServerName,            out JArray,    HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseMandatory<T>(this JObject      JSON,
-                                                String            PropertyName,
-                                                String            PropertyDescription,
-                                                String            DefaultServerName,
-                                                out JArray        JArray,
-                                                HTTPRequest       HTTPRequest,
-                                                out HTTPResponse  HTTPResponse)
+        public static Boolean ParseMandatory(this JObject      JSON,
+                                             String            PropertyName,
+                                             String            PropertyDescription,
+                                             String            DefaultServerName,
+                                             out JArray        JArray,
+                                             HTTPRequest       HTTPRequest,
+                                             out HTTPResponse  HTTPResponse)
         {
 
             var success = JSON.ParseMandatory(PropertyName,

@@ -273,6 +273,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var _Matches      = from    _Match
                                     in      _AllTemplates
                                     where   _Match.Match.Success
+                                    where   _Match.URLNode.HTTPMethods.ContainsKey(httpMethod)
                                     orderby 100*_Match.URLNode.SortLength +
                                                 _Match.URLNode.ParameterCount
                                             descending
