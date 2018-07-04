@@ -39,20 +39,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The hostname.
         /// </summary>
-        public String Name { get; }
+        public String   Name    { get; }
 
         /// <summary>
         /// The TCP/IP port.
         /// </summary>
-        public UInt16? Port { get; }
+        public UInt16?  Port    { get; }
 
         /// <summary>
         /// Returns the length of the identification.
         /// </summary>
-        public UInt64 Length
+        public UInt64   Length
             => (UInt64) ToString().Length;
 
+        /// <summary>
+        /// Return a text representation of this object.
+        /// </summary>
+        public String   SimpleString
+            => Name + (Port.HasValue ? ":" + Port.Value.ToString() : "");
 
+        #endregion
+
+        #region Statics
 
         /// <summary>
         /// The HTTP 'ANY' host or "*".
@@ -89,7 +97,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Generate a new HTTP hostname based on the given name and port.
         /// </summary>
         private HTTPHostname(String   Name,
-                             UInt16?  Port)
+                             UInt16?  Port = null)
         {
 
             if (Name != null)
@@ -121,17 +129,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Parse(Text, Port = null)
+        #region Parse   (Text, Port)
 
         /// <summary>
         /// Parse the given name and port as HTTP hostname.
         /// </summary>
         /// <param name="Text">The text representation of a HTTP hostname.</param>
         /// <param name="Port">The TCP/IP port.</param>
-        public static HTTPHostname Parse(String   Text,
-                                         UInt16?  Port = null)
+        public static HTTPHostname Parse(String  Text,
+                                         UInt16  Port)
+        {
 
-            => new HTTPHostname(Text.Trim(), Port);
+            if (Text != null)
+                Text = Text.Trim().ToLower();
+
+            if (TryParse(Text, Port, out HTTPHostname httpHostname))
+                return httpHostname;
+
+            throw new ArgumentException("The given text '" + Text + "' is not a valid HTTP hostname!", nameof(Text));
+
+        }
 
         #endregion
 
@@ -153,30 +170,76 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region TryParse(Text, out Hostname)
+        #region TryParse(Text, Port)
 
         /// <summary>
         /// Parse the given string as a HTTP hostname.
         /// </summary>
-        /// <param name="Text">A text representation of a HTTP hostname.</param>
+        /// <param name="Text">The text representation of a HTTP hostname.</param>
+        /// <param name="Port">The TCP/IP port.</param>
+        public static HTTPHostname? TryParse(String Text, UInt16 Port)
+        {
+
+            if (TryParse(Text, Port, out HTTPHostname Hostname))
+                return Hostname;
+
+            return new HTTPHostname?();
+
+        }
+
+        #endregion
+
+        #region TryParse(Text,       out Hostname)
+
+        /// <summary>
+        /// Parse the given string as a HTTP hostname.
+        /// </summary>
+        /// <param name="Text">The text representation of a HTTP hostname.</param>
         /// <param name="Hostname">The parsed HTTP hostname.</param>
         public static Boolean TryParse(String Text, out HTTPHostname Hostname)
         {
 
-            var Parts = Text.Trim().Split(':');
+            if (Text != null)
+                Text = Text.Trim().ToLower();
+
+            if (Text.IsNullOrEmpty())
+            {
+                Hostname = default(HTTPHostname);
+                return false;
+            }
+
+            var Parts = Text.Split(':');
+
+            if (Parts[0] != null)
+                Parts[0] = Parts[0].Trim().ToLower();
+
+            if (Parts[0].IsNullOrEmpty())
+            {
+                Hostname = default(HTTPHostname);
+                return false;
+            }
 
             if (Parts.Length == 1)
             {
-                Hostname = new HTTPHostname(Parts[0], null);
+                Hostname = new HTTPHostname(Parts[0]);
                 return true;
             }
 
             if (Parts.Length == 2)// || Parts[0].IsNullOrEmpty() || Parts[0].Trim().IsNullOrEmpty())
             {
 
-                if (Parts[1].Trim() == "*")
+                if (Parts[1] != null)
+                    Parts[1] = Parts[1].Trim();
+
+                if (Parts[1].IsNullOrEmpty())
                 {
-                    Hostname = new HTTPHostname(Parts[0].Trim(), null);
+                    Hostname = default(HTTPHostname);
+                    return false;
+                }
+
+                if (Parts[1] == "*")
+                {
+                    Hostname = new HTTPHostname(Parts[0].Trim());
                     return true;
                 }
 
@@ -190,6 +253,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             Hostname = default(HTTPHostname);
             return false;
+
+        }
+
+        #endregion
+
+        #region TryParse(Text, Port, out Hostname)
+
+        /// <summary>
+        /// Parse the given string as a HTTP hostname.
+        /// </summary>
+        /// <param name="Text">The text representation of a HTTP hostname.</param>
+        /// <param name="Port">The TCP/IP port.</param>
+        /// <param name="Hostname">The parsed HTTP hostname.</param>
+        public static Boolean TryParse(String Text, UInt16 Port, out HTTPHostname Hostname)
+        {
+
+            if (Text != null)
+                Text = Text.Trim().ToLower();
+
+            if (Text.IsNullOrEmpty() || Text.Contains(":"))
+            {
+                Hostname = default(HTTPHostname);
+                return false;
+            }
+
+            Hostname = new HTTPHostname(Text, Port);
+            return true;
 
         }
 
@@ -324,10 +414,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Object == null)
                 throw new ArgumentNullException("The given object must not be null!");
 
-            if (!(Object is HTTPHostname))
-                throw new ArgumentException("The given object is not a Hostname!");
+            if (!(Object is HTTPHostname httpHostname))
+                throw new ArgumentException("The given object is not a HTTP hostname!");
 
-            return CompareTo((HTTPHostname) Object);
+            return CompareTo(httpHostname);
 
         }
 
@@ -343,7 +433,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             if ((Object) Hostname == null)
-                throw new ArgumentNullException("The given Hostname must not be null!");
+                throw new ArgumentNullException("The given HTTP hostname must not be null!");
 
             return ToString().CompareTo(Hostname.ToString());
 
@@ -368,10 +458,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Object == null)
                 return false;
 
-            if (!(Object is HTTPHostname))
+            if (!(Object is HTTPHostname httpHostname))
                 return false;
 
-            return Equals((HTTPHostname) Object);
+            return Equals(httpHostname);
 
         }
 
@@ -420,9 +510,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-        {
-            return Name + ":" + (Port.HasValue ? Port.Value.ToString() : "*");
-        }
+            => Name + ":" + (Port.HasValue ? Port.Value.ToString() : "*");
 
         #endregion
 
