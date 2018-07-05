@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2011-2014 Achim 'ahzf' Friedland <achim@graphdefined.com>
+ * Copyright (c) 2011-2018 Achim 'ahzf' Friedland <achim@graphdefined.com>
  * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
  * 
  * This program is free software; you can redistribute it and/or modify
@@ -24,8 +24,9 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
-using org.GraphDefined.Vanaheimr.Illias;
 using Newtonsoft.Json.Linq;
+
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -92,62 +93,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          HTTPMethod.GET,
                                          URITemplate,
                                          HTTPDelegate: async Request => HTTPTools.MovedTemporarily(Request, URITarget));
-
-        }
-
-        #endregion
-
-        #region RegisterEventStreamHandler(this HTTPServer, URITemplate, EventSource)
-
-        /// <summary>
-        /// Register a EventStream handler.
-        /// </summary>
-        public static void RegisterEventStreamHandler(this HTTPServer  HTTPServer,
-                                                      HTTPHostname     Hostname,
-                                                      HTTPURI          URITemplate,
-                                                      String           EventSource)
-        {
-
-            HTTPServer.AddMethodCallback(Hostname,
-                                         HTTPMethod.GET,
-                                         URITemplate,
-                                         HTTPDelegate: async Request => {
-
-                                             var _LastEventId        = 0UL;
-                                             var _Client_LastEventId = 0UL;
-                                             var _EventSource        = HTTPServer.GetEventSource(EventSource);
-
-                                             if (Request.TryGet<UInt64>("Last-Event-Id", out _Client_LastEventId))
-                                                 _LastEventId = _Client_LastEventId;
-
-                                             //_LastEventId = 0;
-
-                                             var _HTTPEvents      = (from   _HTTPEvent
-                                                                     in     _EventSource.GetAllEventsGreater(_LastEventId)
-                                                                     where  _HTTPEvent != null
-                                                                     select _HTTPEvent.ToString())
-                                                                    .ToArray(); // For thread safety!
-
-
-                                             // Transform HTTP events into an UTF8 string
-                                             var _ResourceContent = String.Empty;
-
-                                             if (_HTTPEvents.Length > 0)
-                                                 _ResourceContent = Environment.NewLine + _HTTPEvents.Aggregate((a, b) => a + Environment.NewLine + b);
-
-                                             _ResourceContent += Environment.NewLine + "retry: " + _EventSource.RetryIntervall.TotalMilliseconds + Environment.NewLine + Environment.NewLine;
-
-                                             return new HTTPResponseBuilder(Request) {
-                                                 HTTPStatusCode  = HTTPStatusCode.OK,
-                                                 Server          = HTTPServer.DefaultServerName,
-                                                 Date            = DateTime.UtcNow,
-                                                 ContentType     = HTTPContentType.EVENTSTREAM,
-                                                 CacheControl    = "no-cache",
-                                                 Connection      = "keep-alive",
-                                                 Content         = _ResourceContent.ToUTF8Bytes()
-                                             };
-
-                                         });
 
         }
 
@@ -705,7 +650,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region RegisterWatchedFilesystemFolder(this HTTPServer, URITemplate, ResourcePath, DefaultFilename = "index.html")
 
-        private static void FileWasChanged(IHTTPServer source, String HTTPSSE_EventIdentification, String ChangeType, String FileName)
+        private static void FileWasChanged(IHTTPServer source, HTTPEventSource_Id HTTPSSE_EventIdentification, String ChangeType, String FileName)
         {
             source.
                 GetEventSource(HTTPSSE_EventIdentification).
@@ -730,12 +675,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPServer">A HTTP server.</param>
         /// <param name="URITemplate">An URI template.</param>
         /// <param name="DefaultFilename">The default file to load.</param>
-        public static void RegisterWatchedFileSystemFolder(this IHTTPServer        HTTPServer,
-                                                           HTTPURI                 URITemplate,
-                                                           String                  FileSystemLocation,
-                                                           String                  HTTPSSE_EventIdentification,
-                                                           HTTPURI                 HTTPSSE_URITemplate,
-                                                           String                  DefaultFilename  = "index.html")
+        public static void RegisterWatchedFileSystemFolder(this IHTTPServer    HTTPServer,
+                                                           HTTPURI             URITemplate,
+                                                           String              FileSystemLocation,
+                                                           HTTPEventSource_Id  HTTPSSE_EventIdentification,
+                                                           HTTPURI             HTTPSSE_URITemplate,
+                                                           String              DefaultFilename  = "index.html")
         {
 
             RegisterWatchedFileSystemFolder(HTTPServer,
@@ -758,7 +703,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                            HTTPHostname            Hostname,
                                                            HTTPURI                 URITemplate,
                                                            String                  FileSystemLocation,
-                                                           String                  HTTPSSE_EventIdentification,
+                                                           HTTPEventSource_Id      HTTPSSE_EventIdentification,
                                                            HTTPURI                 HTTPSSE_URITemplate,
                                                  //          Func<String[], String>  ResourcePath,
                                                            String                  DefaultFilename  = "index.html")

@@ -60,7 +60,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The internal identification of the HTTP event.
         /// </summary>
-        public String                          EventIdentification    { get; }
+        public HTTPEventSource_Id              EventIdentification    { get; }
 
         /// <summary>
         /// Maximum number of cached events.
@@ -90,19 +90,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RetryIntervall">The retry intervall.</param>
         /// <param name="LogfileName">A delegate to create a filename for storing events.</param>
         /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
-        public HTTPEventSource(String                          EventIdentification,
+        public HTTPEventSource(HTTPEventSource_Id              EventIdentification,
                                UInt64                          MaxNumberOfCachedEvents     = 500,
                                TimeSpan?                       RetryIntervall              = null,
                                Boolean                         EnableLogging               = true,
                                Func<String, DateTime, String>  LogfileName                 = null,
                                String                          LogfileReloadSearchPattern  = null)
         {
-
-            #region Initial checks
-
-            EventIdentification.FailIfNullOrEmpty("The HTTP Server Sent Event must have a name!");
-
-            #endregion
 
             this.EventIdentification  = EventIdentification;
             this.QueueOfEvents        = new TSQueue<HTTPEvent>(MaxNumberOfCachedEvents);
@@ -192,7 +186,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         try
                         {
 
-                            using (var logfile = File.AppendText(this.LogfileName(this.EventIdentification,
+                            using (var logfile = File.AppendText(this.LogfileName(this.EventIdentification.ToString(),
                                                                                   DateTime.UtcNow)))
                             {
 
@@ -480,10 +474,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IEnumerable<HTTPEvent> GetAllEventsGreater(UInt64 LastEventId = 0)
         {
 
-            return from    Events in QueueOfEvents
-                   where   Events.Id > LastEventId
-                   orderby Events.Id
-                   select  Events;
+            lock (QueueOfEvents)
+            {
+
+                return from    Events in QueueOfEvents
+                       where   Events.Id > LastEventId
+                       orderby Events.Id
+                       select  Events;
+
+            }
 
         }
 
@@ -498,10 +497,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IEnumerable<HTTPEvent> GetAllEventsSince(DateTime Timestamp)
         {
 
-            return from    Events in QueueOfEvents
-                   where   Events.Timestamp >= Timestamp
-                   orderby Events.Timestamp
-                   select  Events;
+            lock (QueueOfEvents)
+            {
+
+                return from    Events in QueueOfEvents
+                       where   Events.Timestamp >= Timestamp
+                       orderby Events.Timestamp
+                       select  Events;
+
+            }
 
         }
 
@@ -511,24 +515,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region IEnumerable Members
 
         public IEnumerator<HTTPEvent> GetEnumerator()
-        {
-            return QueueOfEvents.GetEnumerator();
-        }
+            => QueueOfEvents.GetEnumerator();
 
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-        {
-            return QueueOfEvents.GetEnumerator();
-        }
+            => QueueOfEvents.GetEnumerator();
 
         #endregion
 
-        #region ToString()
+        #region (override) ToString()
 
         /// <summary>
-        /// Return a string representation of this object.
+        /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-            => EventIdentification;
+            => EventIdentification.ToString();
 
         #endregion
 

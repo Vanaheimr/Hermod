@@ -46,6 +46,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPAuthentication                        HTTPContentTypeAuthentication    { get; }
 
         /// <summary>
+        /// A HTTP request logger.
+        /// </summary>
+        public HTTPRequestDetailLogger                   HTTPRequestLogger                { get; }
+
+        /// <summary>
+        /// A HTTP response logger.
+        /// </summary>
+        public HTTPResponseDetailLogger                  HTTPResponseLogger               { get; }
+
+        /// <summary>
         /// A general error handling method.
         /// </summary>
         public HTTPDelegate                              DefaultErrorHandler              { get; }
@@ -67,32 +77,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPContentType">The http content type for this service.</param>
         /// <param name="HTTPContentTypeAuthentication">This and all subordinated nodes demand an explicit HTTP content type authentication.</param>
+        /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
         /// <param name="RequestHandler">The default delegate to call for any request to this URI template.</param>
+        /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handling delegate.</param>
         /// <param name="AllowReplacement">How to handle duplicate URI handlers.</param>
-        internal ContentTypeNode(HTTPContentType     HTTPContentType,
-                                 HTTPAuthentication  HTTPContentTypeAuthentication   = null,
-                                 HTTPDelegate        RequestHandler                  = null,
-                                 HTTPDelegate        DefaultErrorHandler             = null,
-                                 URIReplacement      AllowReplacement                = URIReplacement.Fail)
+        internal ContentTypeNode(HTTPContentType           HTTPContentType,
+                                 HTTPAuthentication        HTTPContentTypeAuthentication   = null,
+                                 HTTPRequestDetailLogger   HTTPRequestLogger               = null,
+                                 HTTPDelegate              RequestHandler                  = null,
+                                 HTTPResponseDetailLogger  HTTPResponseLogger              = null,
+                                 HTTPDelegate              DefaultErrorHandler             = null,
+                                 URIReplacement            AllowReplacement                = URIReplacement.Fail)
         {
 
-            this.HTTPContentType                = HTTPContentType ?? throw new ArgumentNullException(nameof(HTTPContentType),  "The given HTTP content type must not be null!");
-            this.HTTPContentTypeAuthentication  = HTTPContentTypeAuthentication;
-            this.RequestHandler                 = RequestHandler;
-            this.DefaultErrorHandler            = DefaultErrorHandler;
-            this.AllowReplacement               = AllowReplacement;
+            this.HTTPContentType                 = HTTPContentType ?? throw new ArgumentNullException(nameof(HTTPContentType),  "The given HTTP content type must not be null!");
+            this.HTTPContentTypeAuthentication   = HTTPContentTypeAuthentication;
+            this.HTTPRequestLogger               = HTTPRequestLogger;
+            this.RequestHandler                  = RequestHandler;
+            this.HTTPResponseLogger              = HTTPResponseLogger;
+            this.DefaultErrorHandler             = DefaultErrorHandler;
+            this.AllowReplacement                = AllowReplacement;
 
-            this.ErrorHandlers                  = new Dictionary<HTTPStatusCode, HTTPDelegate>();
+            this.ErrorHandlers                   = new Dictionary<HTTPStatusCode, HTTPDelegate>();
 
         }
 
         #endregion
 
 
+        #region (override) ToString()
+
+        /// <summary>
+        /// Return a text representation of this object.
+        /// </summary>
         public override String ToString()
 
-            => String.Concat(HTTPContentType);
+            => HTTPContentType.ToString();
+
+        #endregion
 
     }
 

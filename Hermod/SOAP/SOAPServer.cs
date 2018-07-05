@@ -166,12 +166,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             SOAPDispatcher _SOAPDispatcher = null;
 
             // Check if there are other SOAP dispatchers at the given URI template.
-            var _Handler = GetHandler(HTTPHostname.Any,
-                                      URITemplate,
-                                      HTTPMethod.POST,
-                                      ContentTypes => SOAPContentType);
+            var _Handlers = GetHandlers(HTTPHostname.Any,
+                                        URITemplate,
+                                        HTTPMethod.POST,
+                                        ContentTypes => SOAPContentType);
 
-            if (_Handler == null)
+            if (_Handlers == null)
             {
 
                 _SOAPDispatcher = new SOAPDispatcher(URITemplate, SOAPContentType);
@@ -194,7 +194,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             }
 
             else
-                _SOAPDispatcher = _Handler.Target as SOAPDispatcher;
+                _SOAPDispatcher = _Handlers.RequestHandler.Target as SOAPDispatcher;
 
             if (_SOAPDispatcher == null)
                 throw new Exception("'" + URITemplate + "' does not seem to be a valid SOAP endpoint!");
@@ -227,12 +227,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             SOAPDispatcher _SOAPDispatcher = null;
 
             // Check if there are other SOAP dispatchers at the given URI template.
-            var _Handler = GetHandler(HTTPHostname.Any,
-                                      URITemplate,
-                                      HTTPMethod.POST,
-                                      ContentTypes => SOAPContentType);
+            var _Handlers = GetHandlers(HTTPHostname.Any,
+                                        URITemplate,
+                                        HTTPMethod.POST,
+                                        ContentTypes => SOAPContentType);
 
-            if (_Handler == null)
+            if (_Handlers == null)
             {
 
                 _SOAPDispatcher = new SOAPDispatcher(URITemplate, SOAPContentType);
@@ -255,7 +255,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             }
 
             else
-                _SOAPDispatcher = _Handler.Target as SOAPDispatcher;
+                _SOAPDispatcher = _Handlers.RequestHandler.Target as SOAPDispatcher;
 
 
             _SOAPDispatcher.RegisterSOAPDelegate(Description,

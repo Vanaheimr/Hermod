@@ -19,12 +19,11 @@
 
 using System;
 using System.Text;
-using System.Reflection;
-using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using System.Collections.Generic;
+using System.Collections;
 
 #endregion
 
@@ -34,52 +33,82 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A URL node which stores some childnodes and a callback
     /// </summary>
-    public class URINode
+    public class URINode : IEnumerable<HTTPMethodNode>
     {
+
+        #region Data
+
+        /// <summary>
+        /// A mapping from HTTPMethods to HTTPMethodNodes.
+        /// </summary>
+        private readonly Dictionary<HTTPMethod, HTTPMethodNode> _HTTPMethodNodes;
+
+        #endregion
 
         #region Properties
 
         /// <summary>
         /// The URL template for this service.
         /// </summary>
-        public HTTPURI             URITemplate            { get; }
+        public HTTPURI                                   URITemplate            { get; }
 
         /// <summary>
         /// The URI regex for this service.
         /// </summary>
-        public Regex               URIRegex               { get; }
+        public Regex                                     URIRegex               { get; }
 
         /// <summary>
         /// The number of parameters within this URLNode for shorting best-matching URLs.
         /// </summary>
-        public UInt16              ParameterCount         { get; }
+        public UInt16                                    ParameterCount         { get; }
 
         /// <summary>
         /// The lenght of the minimalized URL template for shorting best-matching URLs.
         /// </summary>
-        public UInt16              SortLength             { get; }
+        public UInt16                                    SortLength             { get; }
 
-        public HTTPDelegate        RequestHandler         { get; }
+        /// <summary>
+        /// A HTTP request logger.
+        /// </summary>
+        public HTTPRequestDetailLogger                   HTTPRequestLogger      { get; private set; }
 
         /// <summary>
         /// This and all subordinated nodes demand an explicit URI authentication.
         /// </summary>
-        public HTTPAuthentication  URIAuthentication      { get; }
+        public HTTPAuthentication                        URIAuthentication      { get; }
+
+        /// <summary>
+        /// A HTTP delegate.
+        /// </summary>
+        public HTTPDelegate                              RequestHandler         { get; private set; }
 
         /// <summary>
         /// A general error handling method.
         /// </summary>
-        public HTTPDelegate        DefaultErrorHandler    { get; }
+        public HTTPDelegate                              DefaultErrorHandler    { get; private set; }
 
         /// <summary>
         /// Error handling methods for specific http status codes.
         /// </summary>
-        public Dictionary<HTTPStatusCode, HTTPDelegate>  ErrorHandlers    { get; }
+        public Dictionary<HTTPStatusCode, HTTPDelegate>  ErrorHandlers          { get; }
 
         /// <summary>
-        /// A mapping from HTTPMethods to HTTPMethodNodes.
+        /// A HTTP response logger.
         /// </summary>
-        public Dictionary<HTTPMethod, HTTPMethodNode>    HTTPMethods      { get; }
+        public HTTPResponseDetailLogger                  HTTPResponseLogger     { get; private set; }
+
+
+        /// <summary>
+        /// Return all defined HTTP methods.
+        /// </summary>
+        public IEnumerable<HTTPMethod> HTTPMethods
+            => _HTTPMethodNodes.Keys;
+
+        /// <summary>
+        /// Return all HTTP method nodes.
+        /// </summary>
+        public IEnumerable<HTTPMethodNode> HTTPMethodNodes
+            => _HTTPMethodNodes.Values;
 
         #endregion
 
@@ -90,12 +119,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="URITemplate">The URI template for this service.</param>
         /// <param name="URIAuthentication">This and all subordinated nodes demand an explicit URI authentication.</param>
-        /// <param name="RequestHandler">The default delegate to call for any request to this URI template.</param>
-        /// <param name="DefaultErrorHandler">The default error handling delegate.</param>
         internal URINode(HTTPURI             URITemplate,
-                         HTTPAuthentication  URIAuthentication    = null,
-                         HTTPDelegate        RequestHandler       = null,
-                         HTTPDelegate        DefaultErrorHandler  = null)
+                         HTTPAuthentication  URIAuthentication  = null)
 
         {
 
@@ -104,7 +129,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.RequestHandler         = RequestHandler;
             this.DefaultErrorHandler    = DefaultErrorHandler;
             this.ErrorHandlers          = new Dictionary<HTTPStatusCode, HTTPDelegate>();
-            this.HTTPMethods            = new Dictionary<HTTPMethod, HTTPMethodNode>();
+            this._HTTPMethodNodes       = new Dictionary<HTTPMethod, HTTPMethodNode>();
 
             var _ReplaceLastParameter   = new Regex(@"\{[^/]+\}$");
             this.ParameterCount         = (UInt16) _ReplaceLastParameter.Matches(URITemplate.ToString()).Count;
@@ -123,35 +148,110 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddHandler(...)
 
-        public void AddHandler(HTTPDelegate        HTTPDelegate,
+        public void AddHandler(HTTPDelegate              HTTPDelegate,
 
-                               HTTPMethod          HTTPMethod,
-                               HTTPContentType     HTTPContentType             = null,
+                               HTTPMethod                HTTPMethod,
+                               HTTPContentType           HTTPContentType             = null,
 
-                               HTTPAuthentication  HTTPMethodAuthentication    = null,
-                               HTTPAuthentication  ContentTypeAuthentication   = null,
+                               HTTPAuthentication        HTTPMethodAuthentication    = null,
+                               HTTPAuthentication        ContentTypeAuthentication   = null,
 
-                               HTTPDelegate        DefaultErrorHandler         = null,
-                               URIReplacement      AllowReplacement            = URIReplacement.Fail)
+                               HTTPRequestDetailLogger   HTTPRequestLogger           = null,
+                               HTTPResponseDetailLogger  HTTPResponseLogger          = null,
+
+                               HTTPDelegate              DefaultErrorHandler         = null,
+                               URIReplacement            AllowReplacement            = URIReplacement.Fail)
 
         {
 
-            if (!HTTPMethods.TryGetValue(HTTPMethod, out HTTPMethodNode _HTTPMethodNode))
+            lock (_HTTPMethodNodes)
             {
-                _HTTPMethodNode = new HTTPMethodNode(HTTPMethod, HTTPMethodAuthentication, HTTPDelegate, DefaultErrorHandler);
-                HTTPMethods.Add(HTTPMethod, _HTTPMethodNode);
+
+                if (!_HTTPMethodNodes.TryGetValue(HTTPMethod, out HTTPMethodNode _HTTPMethodNode))
+                {
+
+                    _HTTPMethodNode = _HTTPMethodNodes.AddAndReturnValue(HTTPMethod,
+                                                                         new HTTPMethodNode(HTTPMethod,
+                                                                                            HTTPMethodAuthentication));
+
+                }
+
+                _HTTPMethodNode.AddHandler(HTTPDelegate,
+
+                                           HTTPContentType,
+
+                                           ContentTypeAuthentication,
+
+                                           HTTPRequestLogger,
+                                           HTTPResponseLogger,
+
+                                           DefaultErrorHandler,
+                                           AllowReplacement);
+
             }
 
-            _HTTPMethodNode.AddHandler(HTTPDelegate,
+        }
 
-                                       HTTPContentType,
+        #endregion
 
-                                       ContentTypeAuthentication,
 
-                                       DefaultErrorHandler,
-                                       AllowReplacement);
+        #region Contains(Method)
+
+        /// <summary>
+        /// Determines whether the given HTTP method is defined.
+        /// </summary>
+        /// <param name="Method">A HTTP method.</param>
+        public Boolean Contains(HTTPMethod Method)
+
+            => _HTTPMethodNodes.ContainsKey(Method);
+
+        #endregion
+
+        #region Get     (Method)
+
+        /// <summary>
+        /// Return the HTTP method node for the given HTTP method.
+        /// </summary>
+        /// <param name="Method">A HTTP method.</param>
+        public HTTPMethodNode Get(HTTPMethod Method)
+        {
+
+            if (_HTTPMethodNodes.TryGetValue(Method, out HTTPMethodNode methodNode))
+                return methodNode;
+
+            return null;
 
         }
+
+        #endregion
+
+        #region TryGet  (Method, out MethodNode)
+
+        /// <summary>
+        /// Return the HTTP method node for the given HTTP method.
+        /// </summary>
+        /// <param name="Method">A HTTP method.</param>
+        /// <param name="MethodNode">The attached HTTP method node.</param>
+        public Boolean TryGet(HTTPMethod Method, out HTTPMethodNode MethodNode)
+
+            => _HTTPMethodNodes.TryGetValue(Method, out MethodNode);
+
+        #endregion
+
+
+        #region IEnumerable<URINode> members
+
+        /// <summary>
+        /// Return all HTTP method nodes.
+        /// </summary>
+        public IEnumerator<HTTPMethodNode> GetEnumerator()
+            => _HTTPMethodNodes.Values.GetEnumerator();
+
+        /// <summary>
+        /// Return all HTTP method nodes.
+        /// </summary>
+        IEnumerator IEnumerable.GetEnumerator()
+            => _HTTPMethodNodes.Values.GetEnumerator();
 
         #endregion
 
@@ -173,10 +273,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 _URLErrorHandler = " (errhdl)";
 
             var _HTTPMethods = "";
-            if (HTTPMethods.Count > 0)
+            if (_HTTPMethodNodes.Count > 0)
             {
-                var _StringBuilder = HTTPMethods.Keys.ForEach(new StringBuilder(" ["), (__StringBuilder, __HTTPMethod) => __StringBuilder.Append(__HTTPMethod.MethodName).Append(", "));
-                _StringBuilder.Length = _StringBuilder.Length - 2;
+                var _StringBuilder = _HTTPMethodNodes.Keys.ForEach(new StringBuilder(" ["), (__StringBuilder, __HTTPMethod) => __StringBuilder.Append(__HTTPMethod.MethodName).Append(", "));
+                _StringBuilder.Length -= 2;
                 _HTTPMethods = _StringBuilder.Append("]").ToString();
             }
 

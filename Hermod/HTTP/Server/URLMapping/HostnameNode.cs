@@ -19,6 +19,7 @@
 
 using System;
 using System.Linq;
+using System.Collections;
 using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -31,109 +32,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A node which stores information for maintaining multiple http hostnames.
     /// </summary>
-    public class HostnameNode
+    public class HostnameNode : IEnumerable<URINode>
     {
 
-        #region Properties
-
-        #region Hostname
-
-        private readonly HTTPHostname _Hostname;
-
-        /// <summary>
-        /// The hostname for this (virtual) http service.
-        /// </summary>
-        public HTTPHostname Hostname
-        {
-            get
-            {
-                return _Hostname;
-            }
-        }
-
-        #endregion
-
-        #region HostAuthentication
-
-        private readonly HTTPAuthentication _HostAuthentication;
-
-        /// <summary>
-        /// This and all subordinated nodes demand an explicit host authentication.
-        /// </summary>
-        public HTTPAuthentication HostAuthentication
-        {
-            get
-            {
-                return _HostAuthentication;
-            }
-        }
-
-        #endregion
-
-        #region RequestHandler
-
-        private readonly HTTPDelegate _RequestHandler;
-
-        public HTTPDelegate RequestHandler
-        {
-            get
-            {
-                return _RequestHandler;
-            }
-        }
-
-        #endregion
-
-        #region DefaultErrorHandler
-
-        private readonly HTTPDelegate _DefaultErrorHandler;
-
-        /// <summary>
-        /// A general error handling method.
-        /// </summary>
-        public HTTPDelegate DefaultErrorHandler
-        {
-            get
-            {
-                return _DefaultErrorHandler;
-            }
-        }
-
-        #endregion
-
-        #region ErrorHandlers
-
-        private readonly Dictionary<HTTPStatusCode, HTTPDelegate> _ErrorHandlers;
-
-        /// <summary>
-        /// Error handling methods for specific http status codes.
-        /// </summary>
-        public Dictionary<HTTPStatusCode, HTTPDelegate> ErrorHandlers
-        {
-            get
-            {
-                return _ErrorHandlers;
-            }
-        }
-
-        #endregion
-
-        #region URINodes
-
-        private readonly Dictionary<HTTPURI, URINode> _URINodes;
+        #region Data
 
         /// <summary>
         /// A mapping from URIs to URINodes.
         /// </summary>
-        public Dictionary<HTTPURI, URINode> URINodes
-        {
-            get
-            {
-                return _URINodes;
-            }
-        }
+        private readonly Dictionary<HTTPURI, URINode> _URINodes;
 
         #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// The hostname for this (virtual) http service.
+        /// </summary>
+        public HTTPHostname  Hostname    { get; }
+
+
+        /// <summary>
+        /// Return all defined URIs.
+        /// </summary>
+        public IEnumerable<HTTPURI> URIs
+            => _URINodes.Keys;
+
+        /// <summary>
+        /// Return all URI nodes.
+        /// </summary>
+        public IEnumerable<URINode> URINodes
+            => _URINodes.Values;
 
         #endregion
 
@@ -143,20 +72,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Creates a new hostname node.
         /// </summary>
         /// <param name="Hostname">The hostname(s) for this (virtual) http service.</param>
-        /// <param name="RequestHandler">The default delegate to call for any request to this hostname.</param>
-        /// <param name="HostAuthentication">This and all subordinated nodes demand an explicit host authentication.</param>
-        /// <param name="DefaultErrorHandler">The default error handling delegate.</param>
-        internal HostnameNode(HTTPHostname        Hostname,
-                              HTTPAuthentication  HostAuthentication   = null,
-                              HTTPDelegate        RequestHandler       = null,
-                              HTTPDelegate        DefaultErrorHandler  = null)
-
+        internal HostnameNode(HTTPHostname Hostname)
         {
 
             #region Check Hostname
 
             if (Hostname == null)
-                throw new ArgumentNullException("Hostname", "The given HTTP hostname must not be null!");
+                throw new ArgumentNullException(nameof(Hostname), "The given HTTP hostname must not be null!");
 
             var    HostHeader  = Hostname.ToString().Split(new Char[1] { ':' }, StringSplitOptions.None).Select(v => v.Trim()).ToArray();
             UInt16 HostPort    = 80;
@@ -172,22 +94,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // rfc 2616 - 3.2.2
             // If the port is empty or not given, port 80 is assumed.
             if (HostHeader.Length == 1)
-                this._Hostname = HTTPHostname.Parse(Hostname + ":" + HostPort);
+                this.Hostname = HTTPHostname.Parse(Hostname + ":" + HostPort);
 
             else if ((HostHeader.Length == 2 && (!UInt16.TryParse(HostHeader[1], out HostPort) && HostHeader[1] != "*")) ||
                       HostHeader.Length  > 2)
-                      throw new ArgumentException("Invalid Hostname!", "Hostname");
+                      throw new ArgumentException("Invalid Hostname!", nameof(Hostname));
 
             else
-                this._Hostname = HTTPHostname.Parse(HostHeader[0] + ":" + HostHeader[1]);
+                this.Hostname = HTTPHostname.Parse(HostHeader[0] + ":" + HostHeader[1]);
 
             #endregion
 
-            this._HostAuthentication   = (HostAuthentication != null) ? HostAuthentication : _ => true;
-            this._RequestHandler       = RequestHandler;
-            this._DefaultErrorHandler  = DefaultErrorHandler;
-            this._URINodes             = new Dictionary<HTTPURI,        URINode>();
-            this._ErrorHandlers        = new Dictionary<HTTPStatusCode, HTTPDelegate>();
+            this._URINodes  = new Dictionary<HTTPURI, URINode>();
 
         }
 
@@ -196,62 +114,129 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddHandler(...)
 
-        public void AddHandler(HTTPDelegate        HTTPDelegate,
+        public void AddHandler(HTTPDelegate              HTTPDelegate,
 
-                               HTTPURI?            URITemplate                 = null,
-                               HTTPMethod?         Method                      = null,
-                               HTTPContentType     HTTPContentType             = null,
+                               HTTPURI?                  URITemplate                 = null,
+                               HTTPMethod?               Method                      = null,
+                               HTTPContentType           HTTPContentType             = null,
 
-                               HTTPAuthentication  URIAuthentication           = null,
-                               HTTPAuthentication  HTTPMethodAuthentication    = null,
-                               HTTPAuthentication  ContentTypeAuthentication   = null,
+                               HTTPAuthentication        URIAuthentication           = null,
+                               HTTPAuthentication        HTTPMethodAuthentication    = null,
+                               HTTPAuthentication        ContentTypeAuthentication   = null,
 
-                               HTTPDelegate        DefaultErrorHandler         = null,
-                               URIReplacement      AllowReplacement            = URIReplacement.Fail)
+                               HTTPRequestDetailLogger   HTTPRequestLogger           = null,
+                               HTTPResponseDetailLogger  HTTPResponseLogger          = null,
+
+                               HTTPDelegate              DefaultErrorHandler         = null,
+                               URIReplacement            AllowReplacement            = URIReplacement.Fail)
 
         {
 
-            if (!URITemplate.HasValue)
-                URITemplate = HTTPURI.Parse("/");
-
-            if (!_URINodes.TryGetValue(URITemplate.Value, out URINode _URINode))
+            lock (_URINodes)
             {
-                _URINode = new URINode(URITemplate.Value, URIAuthentication, HTTPDelegate, DefaultErrorHandler);
-                _URINodes.Add(URITemplate.Value, _URINode);
+
+                if (!URITemplate.HasValue)
+                    URITemplate = HTTPURI.Parse("/");
+
+                if (!_URINodes.TryGetValue(URITemplate.Value, out URINode _URINode))
+                {
+
+                    _URINode = _URINodes.AddAndReturnValue(URITemplate.Value,
+                                                           new URINode(URITemplate.Value,
+                                                                       URIAuthentication));
+
+                }
+
+                _URINode.AddHandler(HTTPDelegate,
+
+                                    Method ?? HTTPMethod.GET,
+                                    HTTPContentType,
+
+                                    HTTPMethodAuthentication,
+                                    ContentTypeAuthentication,
+
+                                    HTTPRequestLogger,
+                                    HTTPResponseLogger,
+
+                                    DefaultErrorHandler,
+                                    AllowReplacement);
+
             }
-
-            _URINode.AddHandler(HTTPDelegate,
-
-                                Method ?? HTTPMethod.GET,
-                                HTTPContentType,
-
-                                HTTPMethodAuthentication,
-                                ContentTypeAuthentication,
-
-                                DefaultErrorHandler,
-                                AllowReplacement);
 
         }
 
         #endregion
 
 
-        #region (override) ToString()
+        #region Contains(URITemplate)
 
-        public override String ToString()
+        /// <summary>
+        /// Determines whether the given URI template is defined.
+        /// </summary>
+        /// <param name="URITemplate">An URI template.</param>
+        public Boolean Contains(HTTPURI URITemplate)
+
+            => _URINodes.ContainsKey(URITemplate);
+
+        #endregion
+
+        #region Get     (URITemplate)
+
+        /// <summary>
+        /// Return the URI node for the given URI template.
+        /// </summary>
+        /// <param name="URITemplate">An URI template.</param>
+        public URINode Get(HTTPURI URITemplate)
         {
 
-            var _HostAuthentication = "";
-            if (HostAuthentication != null)
-                _HostAuthentication = " (auth)";
+            if (_URINodes.TryGetValue(URITemplate, out URINode uriNode))
+                return uriNode;
 
-            var __DefaultErrorHandler = "";
-            if (_DefaultErrorHandler != null)
-                __DefaultErrorHandler = " (errhdl)";
-
-            return String.Concat(Hostname, _HostAuthentication, __DefaultErrorHandler);
+            return null;
 
         }
+
+        #endregion
+
+        #region TryGet  (URITemplate, out URINode)
+
+        /// <summary>
+        /// Return the URI node for the given URI template.
+        /// </summary>
+        /// <param name="URITemplate">An URI template.</param>
+        /// <param name="URINode">The attached URI node.</param>
+        public Boolean TryGet(HTTPURI URITemplate, out URINode URINode)
+
+            => _URINodes.TryGetValue(URITemplate, out URINode);
+
+        #endregion
+
+
+        #region IEnumerable<URINode> members
+
+        /// <summary>
+        /// Return all URI nodes.
+        /// </summary>
+        public IEnumerator<URINode> GetEnumerator()
+            => _URINodes.Values.GetEnumerator();
+
+        /// <summary>
+        /// Return all URI nodes.
+        /// </summary>
+        IEnumerator IEnumerable.GetEnumerator()
+            => _URINodes.Values.GetEnumerator();
+
+        #endregion
+
+
+        #region (override) ToString()
+
+        /// <summary>
+        /// Return a text representation of this object.
+        /// </summary>
+        public override String ToString()
+
+            => Hostname.ToString();
 
         #endregion
 

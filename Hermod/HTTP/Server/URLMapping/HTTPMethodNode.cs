@@ -22,6 +22,7 @@ using System.Linq;
 using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Collections;
 
 #endregion
 
@@ -31,8 +32,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A URL node which stores some childnodes and a callback
     /// </summary>
-    public class HTTPMethodNode
+    public class HTTPMethodNode : IEnumerable<ContentTypeNode>
     {
+
+        #region Data
+
+        /// <summary>
+        /// A mapping from HTTPContentTypes to HTTPContentTypeNodes.
+        /// </summary>
+        private readonly Dictionary<HTTPContentType, ContentTypeNode> _ContentTypeNodes;
+
+        #endregion
 
         #region Properties
 
@@ -41,7 +51,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public HTTPMethod                                    HTTPMethod                  { get; }
 
-        public HTTPDelegate                                  RequestHandler              { get; }
+        /// <summary>
+        /// Whether this HTTP method node HTTP handler can be replaced/overwritten.
+        /// </summary>
+        public URIReplacement                                AllowReplacement            { get; }
+
+        /// <summary>
+        /// A HTTP request logger.
+        /// </summary>
+        public HTTPRequestDetailLogger                       HTTPRequestLogger           { get; private set; }
 
         /// <summary>
         /// This and all subordinated nodes demand an explicit HTTP method authentication.
@@ -49,9 +67,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPAuthentication                            HTTPMethodAuthentication    { get; }
 
         /// <summary>
+        /// A HTTP delegate.
+        /// </summary>
+        public HTTPDelegate                                  RequestHandler              { get; private set; }
+
+        /// <summary>
         /// A general error handling method.
         /// </summary>
-        public HTTPDelegate                                  DefaultErrorHandler         { get; }
+        public HTTPDelegate                                  DefaultErrorHandler         { get; private set; }
 
         /// <summary>
         /// Error handling methods for specific http status codes.
@@ -59,9 +82,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Dictionary<HTTPStatusCode,  HTTPDelegate>     ErrorHandlers               { get; }
 
         /// <summary>
-        /// A mapping from HTTPContentTypes to HTTPContentTypeNodes.
+        /// A HTTP response logger.
         /// </summary>
-        public Dictionary<HTTPContentType, ContentTypeNode>  HTTPContentTypes            { get; }
+        public HTTPResponseDetailLogger                      HTTPResponseLogger          { get; private set; }
+
+
+
+        /// <summary>
+        /// Return all defined HTTP content types.
+        /// </summary>
+        public IEnumerable<HTTPContentType> ContentTypes
+            => _ContentTypeNodes.Keys;
+
+        /// <summary>
+        /// Return all HTTP content type nodes.
+        /// </summary>
+        public IEnumerable<ContentTypeNode> ContentTypeNodes
+            => _ContentTypeNodes.Values;
 
         #endregion
 
@@ -72,22 +109,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPMethod">The http method for this service.</param>
         /// <param name="HTTPMethodAuthentication">This and all subordinated nodes demand an explicit HTTP method authentication.</param>
-        /// <param name="RequestHandler">The default delegate to call for any request to this URI template.</param>
-        /// <param name="DefaultErrorHandler">The default error handling delegate.</param>
         internal HTTPMethodNode(HTTPMethod          HTTPMethod,
-                                HTTPAuthentication  HTTPMethodAuthentication   = null,
-                                HTTPDelegate        RequestHandler             = null,
-                                HTTPDelegate        DefaultErrorHandler        = null)
+                                HTTPAuthentication  HTTPMethodAuthentication  = null)
 
         {
 
             this.HTTPMethod                = HTTPMethod;
             this.HTTPMethodAuthentication  = HTTPMethodAuthentication;
-            this.RequestHandler            = RequestHandler;
-            this.DefaultErrorHandler       = DefaultErrorHandler;
-
             this.ErrorHandlers             = new Dictionary<HTTPStatusCode,  HTTPDelegate>();
-            this.HTTPContentTypes          = new Dictionary<HTTPContentType, ContentTypeNode>();
+            this._ContentTypeNodes         = new Dictionary<HTTPContentType, ContentTypeNode>();
 
         }
 
@@ -96,41 +126,85 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddHandler(...)
 
-        public void AddHandler(HTTPDelegate        HTTPDelegate,
-                               HTTPContentType     HTTPContentType            = null,
-                               HTTPAuthentication  ContentTypeAuthentication  = null,
-                               HTTPDelegate        DefaultErrorHandler        = null,
-                               URIReplacement      AllowReplacement           = URIReplacement.Fail)
+        public void AddHandler(HTTPDelegate              RequestHandler,
+                               HTTPContentType           HTTPContentType             = null,
+                               HTTPAuthentication        ContentTypeAuthentication   = null,
+                               HTTPRequestDetailLogger   HTTPRequestLogger           = null,
+                               HTTPResponseDetailLogger  HTTPResponseLogger          = null,
+                               HTTPDelegate              DefaultErrorHandler         = null,
+                               URIReplacement            AllowReplacement            = URIReplacement.Fail)
 
         {
 
-            if (HTTPContentType == null)
-            {
-                //RequestHandler       = HTTPDelegate;
-                //DefaultErrorHandler  = DefaultErrorHandler;
-            }
-
-            else if (!HTTPContentTypes.TryGetValue(HTTPContentType, out ContentTypeNode _ContentTypeNode))
-            {
-                _ContentTypeNode = new ContentTypeNode(HTTPContentType, ContentTypeAuthentication, HTTPDelegate, DefaultErrorHandler, AllowReplacement);
-                HTTPContentTypes.Add(HTTPContentType, _ContentTypeNode);
-            }
-
-            else
+            lock (_ContentTypeNodes)
             {
 
-                if (_ContentTypeNode.AllowReplacement == URIReplacement.Allow)
+                // For ANY content type...
+                if (HTTPContentType == null)
                 {
-                    _ContentTypeNode = new ContentTypeNode(HTTPContentType, ContentTypeAuthentication, HTTPDelegate, DefaultErrorHandler, AllowReplacement);
-                    HTTPContentTypes[HTTPContentType] = _ContentTypeNode;
+
+                    if (this.RequestHandler == null || AllowReplacement == URIReplacement.Allow)
+                    {
+
+                        this.HTTPRequestLogger    = HTTPRequestLogger;
+                        this.RequestHandler       = RequestHandler;
+                        this.DefaultErrorHandler  = DefaultErrorHandler;
+                        this.HTTPResponseLogger   = HTTPResponseLogger;
+
+                    }
+
+                    else
+                        throw new ArgumentException("An URI without a content type? Does this make sense here!");
+
                 }
 
-                else if (_ContentTypeNode.AllowReplacement == URIReplacement.Ignore)
-                {
-                }
-
+                // For a specific content type...
                 else
-                    throw new ArgumentException("Duplicate HTTP API definition!");
+                {
+
+                    // The content type already exists!
+                    if (_ContentTypeNodes.TryGetValue(HTTPContentType, out ContentTypeNode _ContentTypeNode))
+                    {
+
+                        if (_ContentTypeNode.AllowReplacement == URIReplacement.Allow)
+                        {
+
+                            _ContentTypeNodes[HTTPContentType] = new ContentTypeNode(HTTPContentType,
+                                                                                     ContentTypeAuthentication,
+                                                                                     HTTPRequestLogger,
+                                                                                     RequestHandler,
+                                                                                     HTTPResponseLogger,
+                                                                                     DefaultErrorHandler,
+                                                                                     AllowReplacement);
+
+                        }
+
+                        else if (_ContentTypeNode.AllowReplacement == URIReplacement.Ignore)
+                        {
+                        }
+
+                        else
+                            throw new ArgumentException("Duplicate HTTP API definition!");
+
+                    }
+
+
+                    // A new content type to add...
+                    else
+                    {
+
+                        _ContentTypeNodes.Add(HTTPContentType,
+                                              new ContentTypeNode(HTTPContentType,
+                                                                  ContentTypeAuthentication,
+                                                                  HTTPRequestLogger,
+                                                                  RequestHandler,
+                                                                  HTTPResponseLogger,
+                                                                  DefaultErrorHandler,
+                                                                  AllowReplacement));
+
+                    }
+
+                }
 
             }
 
@@ -139,12 +213,80 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region Contains(ContentType)
+
+        /// <summary>
+        /// Determines whether the given HTTP content type is defined.
+        /// </summary>
+        /// <param name="ContentType">A HTTP content type.</param>
+        public Boolean Contains(HTTPContentType ContentType)
+
+            => _ContentTypeNodes.ContainsKey(ContentType);
+
+        #endregion
+
+        #region Get     (ContentType)
+
+        /// <summary>
+        /// Return the HTTP content type node for the given HTTP content type.
+        /// </summary>
+        /// <param name="ContentType">A HTTP content type.</param>
+        public ContentTypeNode Get(HTTPContentType ContentType)
+        {
+
+            if (_ContentTypeNodes.TryGetValue(ContentType, out ContentTypeNode contentTypeNode))
+                return contentTypeNode;
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region TryGet  (ContentType, out ContentTypeNode)
+
+        /// <summary>
+        /// Return the HTTP content type node for the given HTTP content type.
+        /// </summary>
+        /// <param name="ContentType">A HTTP content type.</param>
+        /// <param name="ContentTypeNode">The attached HTTP content type node.</param>
+        public Boolean TryGet(HTTPContentType ContentType, out ContentTypeNode ContentTypeNode)
+
+            => _ContentTypeNodes.TryGetValue(ContentType, out ContentTypeNode);
+
+        #endregion
+
+
+        #region IEnumerable<URINode> members
+
+        /// <summary>
+        /// Return all HTTP method nodes.
+        /// </summary>
+        public IEnumerator<ContentTypeNode> GetEnumerator()
+            => _ContentTypeNodes.Values.GetEnumerator();
+
+        /// <summary>
+        /// Return all HTTP method nodes.
+        /// </summary>
+        IEnumerator IEnumerable.GetEnumerator()
+            => _ContentTypeNodes.Values.GetEnumerator();
+
+        #endregion
+
+
+        #region (override) ToString()
+
+        /// <summary>
+        /// Return a text representation of this object.
+        /// </summary>
         public override String ToString()
 
             => String.Concat(HTTPMethod,
                              " (",
-                             HTTPContentTypes.Select(contenttype => contenttype.Value.ToString()).AggregateWith(", "),
+                             _ContentTypeNodes.Select(contenttype => contenttype.Value.ToString()).AggregateWith(", "),
                              ")");
+
+        #endregion
 
     }
 

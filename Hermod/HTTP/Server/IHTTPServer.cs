@@ -51,18 +51,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         UInt64 NumberOfClients { get; }
 
 
-        event AccessLogHandler AccessLog;
-        event ErrorLogHandler ErrorLog;
-        event BoomerangSenderHandler<string, DateTime, HTTPRequest, HTTPResponse> OnNotification;
         event RequestLogHandler RequestLog;
+        event AccessLogHandler  AccessLog;
+        event ErrorLogHandler   ErrorLog;
+        event BoomerangSenderHandler<String, DateTime, HTTPRequest, Task<HTTPResponse>> OnNotification;
 
-        HTTPEventSource AddEventSource(String                          EventIdentification,
+        HTTPEventSource AddEventSource(HTTPEventSource_Id              EventIdentification,
                                        UInt32                          MaxNumberOfCachedEvents,
                                        TimeSpan?                       RetryIntervall              = default(TimeSpan?),
                                        Boolean                         EnableLogging               = true,
                                        Func<String, DateTime, String>  LogfileName                 = null);
 
-        HTTPEventSource AddEventSource(String                          EventIdentification,
+        HTTPEventSource AddEventSource(HTTPEventSource_Id              EventIdentification,
                                        HTTPURI                         URITemplate,
 
                                        UInt32                          MaxNumberOfCachedEvents     = 500,
@@ -76,26 +76,75 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        HTTPMethod?                     HTTPMethod                  = null,
                                        HTTPContentType                 HTTPContentType             = null,
 
-                                       HTTPAuthentication              HostAuthentication          = null,
                                        HTTPAuthentication              URIAuthentication           = null,
                                        HTTPAuthentication              HTTPMethodAuthentication    = null,
 
                                        HTTPDelegate                    DefaultErrorHandler         = null);
 
-        void AddMethodCallback(HTTPHostname Hostname, HTTPMethod HTTPMethod, IEnumerable<HTTPURI> URITemplates, HTTPContentType HTTPContentType = null, HTTPAuthentication HostAuthentication = null, HTTPAuthentication URIAuthentication = null, HTTPAuthentication HTTPMethodAuthentication = null, HTTPAuthentication ContentTypeAuthentication = null, HTTPDelegate HTTPDelegate = null, URIReplacement AllowReplacement = URIReplacement.Fail);
-        void AddMethodCallback(HTTPHostname Hostname, HTTPMethod HTTPMethod, IEnumerable<HTTPURI> URITemplates, IEnumerable<HTTPContentType> HTTPContentTypes, HTTPAuthentication HostAuthentication = null, HTTPAuthentication URIAuthentication = null, HTTPAuthentication HTTPMethodAuthentication = null, HTTPAuthentication ContentTypeAuthentication = null, HTTPDelegate HTTPDelegate = null, URIReplacement AllowReplacement = URIReplacement.Fail);
-        void AddMethodCallback(HTTPHostname Hostname, HTTPMethod HTTPMethod, HTTPURI URITemplate, HTTPContentType HTTPContentType = null, HTTPAuthentication HostAuthentication = null, HTTPAuthentication URIAuthentication = null, HTTPAuthentication HTTPMethodAuthentication = null, HTTPAuthentication ContentTypeAuthentication = null, HTTPDelegate HTTPDelegate = null, URIReplacement AllowReplacement = URIReplacement.Fail);
-        void AddMethodCallback(HTTPHostname Hostname, HTTPMethod HTTPMethod, HTTPURI URITemplate, IEnumerable<HTTPContentType> HTTPContentTypes, HTTPAuthentication HostAuthentication = null, HTTPAuthentication URIAuthentication = null, HTTPAuthentication HTTPMethodAuthentication = null, HTTPAuthentication ContentTypeAuthentication = null, HTTPDelegate HTTPDelegate = null, URIReplacement AllowReplacement = URIReplacement.Fail);
+        void AddMethodCallback(HTTPHostname              Hostname,
+                               HTTPMethod                HTTPMethod,
+                               HTTPURI                   URITemplate,
+                               HTTPContentType           HTTPContentType             = null,
+                               HTTPAuthentication        URIAuthentication           = null,
+                               HTTPAuthentication        HTTPMethodAuthentication    = null,
+                               HTTPAuthentication        ContentTypeAuthentication   = null,
+                               HTTPRequestDetailLogger   HTTPRequestLogger           = null,
+                               HTTPResponseDetailLogger  HTTPResponseLogger          = null,
+                               HTTPDelegate              DefaultErrorHandler         = null,
+                               HTTPDelegate              HTTPDelegate                = null,
+                               URIReplacement            AllowReplacement            = URIReplacement.Fail);
+
+        void AddMethodCallback(HTTPHostname              Hostname,
+                               HTTPMethod                HTTPMethod,
+                               IEnumerable<HTTPURI>      URITemplates,
+                               HTTPContentType           HTTPContentType             = null,
+                               HTTPAuthentication        URIAuthentication           = null,
+                               HTTPAuthentication        HTTPMethodAuthentication    = null,
+                               HTTPAuthentication        ContentTypeAuthentication   = null,
+                               HTTPRequestDetailLogger   HTTPRequestLogger           = null,
+                               HTTPResponseDetailLogger  HTTPResponseLogger          = null,
+                               HTTPDelegate              DefaultErrorHandler         = null,
+                               HTTPDelegate              HTTPDelegate                = null,
+                               URIReplacement            AllowReplacement            = URIReplacement.Fail);
+
+        void AddMethodCallback(HTTPHostname                  Hostname,
+                               HTTPMethod                    HTTPMethod,
+                               HTTPURI                       URITemplate,
+                               IEnumerable<HTTPContentType>  HTTPContentTypes,
+                               HTTPAuthentication            URIAuthentication           = null,
+                               HTTPAuthentication            HTTPMethodAuthentication    = null,
+                               HTTPAuthentication            ContentTypeAuthentication   = null,
+                               HTTPRequestDetailLogger       HTTPRequestLogger           = null,
+                               HTTPResponseDetailLogger      HTTPResponseLogger          = null,
+                               HTTPDelegate                  DefaultErrorHandler         = null,
+                               HTTPDelegate                  HTTPDelegate                = null,
+                               URIReplacement                AllowReplacement            = URIReplacement.Fail);
+
+        void AddMethodCallback(HTTPHostname                  Hostname,
+                               HTTPMethod                    HTTPMethod,
+                               IEnumerable<HTTPURI>          URITemplates,
+                               IEnumerable<HTTPContentType>  HTTPContentTypes,
+                               HTTPAuthentication            URIAuthentication           = null,
+                               HTTPAuthentication            HTTPMethodAuthentication    = null,
+                               HTTPAuthentication            ContentTypeAuthentication   = null,
+                               HTTPRequestDetailLogger       HTTPRequestLogger           = null,
+                               HTTPResponseDetailLogger      HTTPResponseLogger          = null,
+                               HTTPDelegate                  DefaultErrorHandler         = null,
+                               HTTPDelegate                  HTTPDelegate                = null,
+                               URIReplacement                AllowReplacement            = URIReplacement.Fail);
+
         IHTTPServer AttachTCPPort(IPPort Port);
         IHTTPServer AttachTCPPorts(params IPPort[] Ports);
         IHTTPServer AttachTCPSocket(IPSocket Socket);
         IHTTPServer AttachTCPSockets(params IPSocket[] Sockets);
         IHTTPServer DetachTCPPort(IPPort Port);
         IHTTPServer DetachTCPPorts(params IPPort[] Ports);
+
         Tuple<MethodInfo, IEnumerable<object>> GetErrorHandler(string Host, string URL, HTTPMethod? HTTPMethod = null, HTTPContentType HTTPContentType = null, HTTPStatusCode HTTPStatusCode = null);
-        HTTPEventSource GetEventSource(string EventSourceIdentification);
-        IEnumerable<HTTPEventSource> GetEventSources(Func<HTTPEventSource, bool> EventSourceSelector = null);
+        HTTPEventSource GetEventSource(HTTPEventSource_Id EventSourceIdentification);
+        IEnumerable<HTTPEventSource> GetEventSources(Func<HTTPEventSource, Boolean> IncludeEventSource = null);
         Task<HTTPResponse> InvokeHandler(HTTPRequest Request);
+
         void Redirect(HTTPHostname Hostname, HTTPMethod HTTPMethod, HTTPURI URITemplate, HTTPContentType HTTPContentType, HTTPURI URITarget);
         void Redirect(HTTPMethod HTTPMethod, HTTPURI URITemplate, HTTPContentType HTTPContentType, HTTPURI URITarget);
 
@@ -105,9 +154,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         void Rewrite(HTTPRewrite1Delegate Rewrite);
         void Rewrite(HTTPRewrite2Delegate Rewrite);
 
-        bool TryGetEventSource(string EventSourceIdentification, out HTTPEventSource EventSource);
-        void UseEventSource(string EventSourceIdentification, Action<HTTPEventSource> Action);
-        void UseEventSource<T>(string EventSourceIdentification, IEnumerable<T> DataSource, Action<HTTPEventSource, T> Action);
+        bool TryGetEventSource(HTTPEventSource_Id EventSourceIdentification, out HTTPEventSource EventSource);
+        void UseEventSource   (HTTPEventSource_Id EventSourceIdentification, Action<HTTPEventSource> Action);
+        void UseEventSource<T>(HTTPEventSource_Id EventSourceIdentification, IEnumerable<T> DataSource, Action<HTTPEventSource, T> Action);
 
         void Start();
         void Start(TimeSpan Delay, Boolean InBackground = true);

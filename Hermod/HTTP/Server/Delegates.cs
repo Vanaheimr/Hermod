@@ -28,27 +28,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// The delegate for the HTTP request log.
     /// </summary>
-    /// <param name="HTTPProcessor">The sending HTTP processor.</param>
-    /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
-    /// <param name="Request">The incoming request.</param>
-    internal delegate void InternalRequestLogHandler(HTTPProcessor HTTPProcessor, DateTime ServerTimestamp, HTTPRequest Request);
-
-    /// <summary>
-    /// The delegate for the HTTP request log.
-    /// </summary>
-    /// <param name="HTTPProcessor">The sending HTTP processor.</param>
-    /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
-    /// <param name="Request">The incoming request.</param>
-    /// <param name="Response">The outgoing response.</param>
-    internal delegate void InternalAccessLogHandler(HTTPProcessor HTTPProcessor, DateTime ServerTimestamp, HTTPRequest Request, HTTPResponse Response);
-
-
-
-
-
-    /// <summary>
-    /// The delegate for the HTTP request log.
-    /// </summary>
     /// <param name="Timestamp">The timestamp of the incoming request.</param>
     /// <param name="HTTPServer">The sending HTTP server.</param>
     /// <param name="Request">The incoming request.</param>
@@ -112,27 +91,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   HTTPClient    HTTPClient,
                                                   HTTPRequest   Request,
                                                   HTTPResponse  Response);
-
-
-
-
-
-    /// <summary>
-    /// The delegate for the HTTP error log.
-    /// </summary>
-    /// <param name="HTTPProcessor">The sending HTTP processor.</param>
-    /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
-    /// <param name="Request">The incoming request.</param>
-    /// <param name="Response">The outgoing response.</param>
-    /// <param name="Error">The occured error.</param>
-    /// <param name="LastException">The last occured exception.</param>
-    internal delegate void InternalErrorLogHandler (HTTPProcessor  HTTPProcessor,
-                                                    DateTime       ServerTimestamp,
-                                                    HTTPRequest    Request,
-                                                    HTTPResponse   Response,
-                                                    String         Error          = null,
-                                                    Exception      LastException  = null);
-
 
 
     /// <summary>
