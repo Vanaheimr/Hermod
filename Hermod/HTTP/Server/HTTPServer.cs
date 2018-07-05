@@ -131,74 +131,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Events
 
-        public event BoomerangSenderHandler<String, DateTime, HTTPRequest, Task<HTTPResponse>> OnNotification
-        {
-
-            add
-            {
-                _HTTPServer.OnNotification += value;
-            }
-
-            remove
-            {
-                _HTTPServer.OnNotification -= value;
-            }
-
-        }
-
-        /// <summary>
-        /// An event called whenever a request came in.
-        /// </summary>
-        public event RequestLogHandler RequestLog
-        {
-
-            add
-            {
-                _HTTPServer.RequestLog += value;
-            }
-
-            remove
-            {
-                _HTTPServer.RequestLog -= value;
-            }
-
-        }
-
-        /// <summary>
-        /// An event called whenever a request could successfully be processed.
-        /// </summary>
-        public event AccessLogHandler AccessLog
-        {
-
-            add
-            {
-                _HTTPServer.AccessLog += value;
-            }
-
-            remove
-            {
-                _HTTPServer.AccessLog -= value;
-            }
-
-        }
-
-        /// <summary>
-        /// An event called whenever a request resulted in an error.
-        /// </summary>
-        public event ErrorLogHandler ErrorLog
-        {
-
-            add
-            {
-                _HTTPServer.ErrorLog += value;
-            }
-
-            remove
-            {
-                _HTTPServer.ErrorLog -= value;
-            }
-
-        }
 
         #endregion
 
@@ -476,69 +408,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             _HTTPServer.DetachTCPPorts(Ports);
 
             return this;
-
-        }
-
-        #endregion
-
-        #endregion
-
-        #region HTTP Logging
-
-        #region (internal) LogRequest(Timestamp, Request)
-
-        /// <summary>
-        /// Log an incoming request.
-        /// </summary>
-        /// <param name="Timestamp">The timestamp of the incoming request.</param>
-        /// <param name="Request">The incoming request.</param>
-        internal void LogRequest(DateTime     Timestamp,
-                                 HTTPRequest  Request)
-        {
-
-            _HTTPServer.LogRequest(Timestamp, Request);
-
-        }
-
-        #endregion
-
-        #region (internal) LogAccess (Timestamp, Request, Response)
-
-        /// <summary>
-        /// Log an successful request processing.
-        /// </summary>
-        /// <param name="Timestamp">The timestamp of the incoming request.</param>
-        /// <param name="Request">The incoming request.</param>
-        /// <param name="Response">The outgoing response.</param>
-        internal void LogAccess(DateTime      Timestamp,
-                                HTTPRequest   Request,
-                                HTTPResponse  Response)
-        {
-
-            _HTTPServer.LogAccess(Timestamp, Request, Response);
-
-        }
-
-        #endregion
-
-        #region (internal) LogError  (Timestamp, Request, Response, Error = null, LastException = null)
-
-        /// <summary>
-        /// Log an error during request processing.
-        /// </summary>
-        /// <param name="Timestamp">The timestamp of the incoming request.</param>
-        /// <param name="Request">The incoming request.</param>
-        /// <param name="Response">The outgoing response.</param>
-        /// <param name="Error">The occured error.</param>
-        /// <param name="LastException">The last occured exception.</param>
-        internal void LogError(DateTime      Timestamp,
-                               HTTPRequest   Request,
-                               HTTPResponse  Response,
-                               String        Error          = null,
-                               Exception     LastException  = null)
-        {
-
-            _HTTPServer.LogError(Timestamp, Request, Response, Error, LastException);
 
         }
 
@@ -1086,8 +955,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// </summary>
     public class HTTPServer : ATCPServers,
                               IHTTPServer,
-                              IArrowReceiver<TCPConnection>,
-                              IBoomerangSender<String, DateTime, HTTPRequest, Task<HTTPResponse>>
+                              IArrowReceiver<TCPConnection>
     {
 
         public class Handlers
@@ -1187,28 +1055,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Events
 
-        public event BoomerangSenderHandler<String, DateTime, HTTPRequest, Task<HTTPResponse>>  OnNotification;
+        /// <summary>
+        /// An event called whenever a HTTP request came in.
+        /// </summary>
+        public RequestLogEvent   RequestLog    = new RequestLogEvent();
 
         /// <summary>
-        /// An event called whenever a request came in.
+        /// An event called whenever a HTTP request could successfully be processed.
         /// </summary>
-        public event RequestLogHandler                                                    RequestLog;
-
-        public RequestLogEvent RequestLog2 = new RequestLogEvent();
+        public ResponseLogEvent  ResponseLog   = new ResponseLogEvent();
 
         /// <summary>
-        /// An event called whenever a request could successfully be processed.
+        /// An event called whenever a HTTP request resulted in an error.
         /// </summary>
-        public event AccessLogHandler                                                     AccessLog;
-
-        public ResponseLogEvent ResponseLog2 = new ResponseLogEvent();
-
-        /// <summary>
-        /// An event called whenever a request resulted in an error.
-        /// </summary>
-        public event ErrorLogHandler                                                      ErrorLog;
-
-        public ErrorLogEvent ErrorLog2 = new ErrorLogEvent();
+        public ErrorLogEvent     ErrorLog      = new ErrorLogEvent();
 
         #endregion
 
@@ -1398,11 +1258,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Call OnError delegates
 
-            var ErrorLogLocal = ErrorLog;
-            if (ErrorLogLocal != null)
-            {
-                ErrorLogLocal(Timestamp, this, Request, Response, Error, LastException);
-            }
+            //var ErrorLogLocal = ErrorLog;
+            //if (ErrorLogLocal != null)
+            //{
+            //    ErrorLogLocal(Timestamp, this, Request, Response, Error, LastException);
+            //}
 
             #endregion
 
@@ -1587,16 +1447,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     if (HttpRequest != null)
                                     {
 
-                                        RequestLog?.Invoke(RequestTimestamp,
-                                                           this,
-                                                           HttpRequest);
-
                                         try
                                         {
 
-                                            RequestLog2?.WhenAll(this as Object as HTTPAPI,
-                                                                 RequestTimestamp,
-                                                                 HttpRequest);
+                                            RequestLog?.WhenAll(this as Object as HTTPAPI,
+                                                                RequestTimestamp,
+                                                                HttpRequest);
 
                                         }
                                         catch (Exception e)
@@ -1651,18 +1507,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         _HTTPResponse != null)
                                     {
 
-                                        AccessLog?.Invoke(RequestTimestamp,
-                                                          this,
-                                                          HttpRequest,
-                                                          _HTTPResponse);
-
                                         try
                                         {
 
-                                            ResponseLog2?.WhenAll(this as Object as HTTPAPI,
-                                                                  RequestTimestamp,
-                                                                  HttpRequest,
-                                                                  _HTTPResponse);
+                                            ResponseLog?.WhenAll(this as Object as HTTPAPI,
+                                                                 RequestTimestamp,
+                                                                 HttpRequest,
+                                                                 _HTTPResponse);
 
                                         }
                                         catch (Exception e)
@@ -1682,18 +1533,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         _HTTPResponse.HTTPStatusCode.Code <= 599)
                                     {
 
-                                        ErrorLog?.Invoke(RequestTimestamp,
-                                                         this,
-                                                         HttpRequest,
-                                                         _HTTPResponse);
-
                                         try
                                         {
 
-                                            ErrorLog2?.WhenAll(this as Object as HTTPAPI,
-                                                               RequestTimestamp,
-                                                               HttpRequest,
-                                                               _HTTPResponse);
+                                            ErrorLog?.WhenAll(this as Object as HTTPAPI,
+                                                              RequestTimestamp,
+                                                              HttpRequest,
+                                                              _HTTPResponse);
 
                                         }
                                         catch (Exception e)
@@ -1831,70 +1677,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //                     Message);
 
         }
-
-        #endregion
-
-
-        #region HTTP Logging
-
-        #region (internal) LogRequest(Timestamp, Request)
-
-        /// <summary>
-        /// Log an incoming request.
-        /// </summary>
-        /// <param name="Timestamp">The timestamp of the incoming request.</param>
-        /// <param name="Request">The incoming request.</param>
-        internal void LogRequest(DateTime     Timestamp,
-                                 HTTPRequest  Request)
-        {
-
-            RequestLog?.Invoke(Timestamp, this, Request);
-
-        }
-
-        #endregion
-
-        #region (internal) LogAccess (Timestamp, Request, Response)
-
-        /// <summary>
-        /// Log an successful request processing.
-        /// </summary>
-        /// <param name="Timestamp">The timestamp of the incoming request.</param>
-        /// <param name="Request">The incoming request.</param>
-        /// <param name="Response">The outgoing response.</param>
-        internal void LogAccess(DateTime      Timestamp,
-                                HTTPRequest   Request,
-                                HTTPResponse  Response)
-        {
-
-            AccessLog?.Invoke(Timestamp, this, Request, Response);
-
-        }
-
-        #endregion
-
-        #region (internal) LogError  (Timestamp, Request, Response, Error = null, LastException = null)
-
-        /// <summary>
-        /// Log an error during request processing.
-        /// </summary>
-        /// <param name="Timestamp">The timestamp of the incoming request.</param>
-        /// <param name="Request">The incoming request.</param>
-        /// <param name="Response">The outgoing response.</param>
-        /// <param name="Error">The occured error.</param>
-        /// <param name="LastException">The last occured exception.</param>
-        internal void LogError(DateTime      Timestamp,
-                               HTTPRequest   Request,
-                               HTTPResponse  Response,
-                               String        Error          = null,
-                               Exception     LastException  = null)
-        {
-
-            ErrorLog?.Invoke(Timestamp, this, Request, Response, Error, LastException);
-
-        }
-
-        #endregion
 
         #endregion
 

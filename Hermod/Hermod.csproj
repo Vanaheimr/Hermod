@@ -126,7 +126,7 @@
     <Compile Include="HTTP\Server\Interfaces\IHTTPConnection.cs" />
     <Compile Include="HTTP\Server\Interfaces\IHTTPService.cs" />
     <Compile Include="HTTP\Server\Security\HTTPSecurity.cs" />
-    <Compile Include="HTTP\Server\HTTPProcessor.cs" />
+    <Compile Include="HTTP\Server\HTTPAPI.cs" />
     <Compile Include="HTTP\Server\URLMapping\ContentTypeNode.cs" />
     <Compile Include="HTTP\Server\URLMapping\HostnameNode.cs" />
     <Compile Include="HTTP\Server\URLMapping\HTTPEvent.cs" />

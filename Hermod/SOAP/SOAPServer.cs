@@ -20,16 +20,14 @@
 using System;
 using System.Linq;
 using System.Threading;
-using System.Reflection;
+using System.Net.Security;
 using System.Collections.Generic;
-using System.Security.Cryptography.X509Certificates;
+using System.Security.Authentication;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
-using System.Security.Authentication;
-using System.Net.Security;
 
 #endregion
 
@@ -49,6 +47,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// </summary>
         public static readonly HTTPContentType DefaultSOAPContentType = HTTPContentType.SOAPXML_UTF8;
 
+        private readonly Dictionary<HTTPURI, SOAPDispatcher> _SOAPDispatchers;
+
         #endregion
 
         #region Properties
@@ -58,18 +58,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// </summary>
         public HTTPContentType  SOAPContentType   { get; }
 
-        #region SOAPDispatchers
-
-        private readonly Dictionary<HTTPURI, SOAPDispatcher> _SOAPDispatchers;
-
         /// <summary>
         /// All registered SOAP dispatchers.
         /// </summary>
         public ILookup<HTTPURI, SOAPDispatcher> SOAPDispatchers
-
             => _SOAPDispatchers.ToLookup(_ => _.Key, _ => _.Value);
-
-        #endregion
 
         #endregion
 
@@ -135,7 +128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         {
 
-            this.SOAPContentType  = SOAPContentType ?? DefaultSOAPContentType;
+            this.SOAPContentType   = SOAPContentType ?? DefaultSOAPContentType;
             this._SOAPDispatchers  = new Dictionary<HTTPURI, SOAPDispatcher>();
 
             if (Autostart)

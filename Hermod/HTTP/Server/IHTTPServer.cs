@@ -51,11 +51,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         UInt64 NumberOfClients { get; }
 
 
-        event RequestLogHandler RequestLog;
-        event AccessLogHandler  AccessLog;
-        event ErrorLogHandler   ErrorLog;
-        event BoomerangSenderHandler<String, DateTime, HTTPRequest, Task<HTTPResponse>> OnNotification;
-
         HTTPEventSource AddEventSource(HTTPEventSource_Id              EventIdentification,
                                        UInt32                          MaxNumberOfCachedEvents,
                                        TimeSpan?                       RetryIntervall              = default(TimeSpan?),

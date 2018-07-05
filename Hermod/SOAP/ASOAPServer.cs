@@ -19,15 +19,14 @@
 
 using System;
 using System.Linq;
+using System.Net.Security;
 using System.Threading.Tasks;
 using System.Collections.Generic;
-using System.Security.Cryptography.X509Certificates;
+using System.Security.Authentication;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using System.Security.Authentication;
-using System.Net.Security;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 
 #endregion
@@ -97,71 +96,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         #region Events
 
-        #region RequestLog
+        /// <summary>
+        /// An event called whenever a HTTP request came in.
+        /// </summary>
+        public RequestLogEvent   RequestLog    = new RequestLogEvent();
 
         /// <summary>
-        /// An event called whenever a request came in.
+        /// An event called whenever a HTTP request could successfully be processed.
         /// </summary>
-        public event RequestLogHandler RequestLog
-        {
-
-            add
-            {
-                SOAPServer.RequestLog += value;
-            }
-
-            remove
-            {
-                SOAPServer.RequestLog -= value;
-            }
-
-        }
-
-        #endregion
-
-        #region AccessLog
+        public ResponseLogEvent  ResponseLog   = new ResponseLogEvent();
 
         /// <summary>
-        /// An event called whenever a request could successfully be processed.
+        /// An event called whenever a HTTP request resulted in an error.
         /// </summary>
-        public event AccessLogHandler AccessLog
-        {
-
-            add
-            {
-                SOAPServer.AccessLog += value;
-            }
-
-            remove
-            {
-                SOAPServer.AccessLog -= value;
-            }
-
-        }
-
-        #endregion
-
-        #region ErrorLog
-
-        /// <summary>
-        /// An event called whenever a request resulted in an error.
-        /// </summary>
-        public event ErrorLogHandler ErrorLog
-        {
-
-            add
-            {
-                SOAPServer.ErrorLog += value;
-            }
-
-            remove
-            {
-                SOAPServer.ErrorLog -= value;
-            }
-
-        }
-
-        #endregion
+        public ErrorLogEvent     ErrorLog      = new ErrorLogEvent();
 
         #endregion
 
@@ -279,6 +227,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             this.SOAPServer  = SOAPServer ?? throw new ArgumentNullException(nameof(SOAPServer), "The given SOAP server must not be null!");
             this.URIPrefix   = URIPrefix ?? DefaultURIPrefix;
             this.DNSClient   = SOAPServer.DNSClient;
+
+            SOAPServer.RequestLog   += (HTTPProcessor, ServerTimestamp, Request)                                 => RequestLog. WhenAll(HTTPProcessor, ServerTimestamp, Request);
+            SOAPServer.ResponseLog  += (HTTPProcessor, ServerTimestamp, Request, Response)                       => ResponseLog.WhenAll(HTTPProcessor, ServerTimestamp, Request, Response);
+            SOAPServer.ErrorLog     += (HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException) => ErrorLog.   WhenAll(HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException);
 
         }
 
