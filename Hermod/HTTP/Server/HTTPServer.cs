@@ -44,9 +44,6 @@ using System.Text;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
-    public delegate Task HTTPRequestDetailLogger (HTTPRequest  Request);
-    public delegate Task HTTPResponseDetailLogger(HTTPResponse Response);
-
     public delegate HTTPResponse HTTPFilter1Delegate (                   HTTPRequest Request);
     public delegate HTTPResponse HTTPFilter2Delegate (HTTPServer Server, HTTPRequest Request);
 
@@ -507,18 +504,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
-        public void AddMethodCallback(HTTPHostname              Hostname,
-                                      HTTPMethod                HTTPMethod,
-                                      HTTPURI                   URITemplate,
-                                      HTTPContentType           HTTPContentType             = null,
-                                      HTTPAuthentication        URIAuthentication           = null,
-                                      HTTPAuthentication        HTTPMethodAuthentication    = null,
-                                      HTTPAuthentication        ContentTypeAuthentication   = null,
-                                      HTTPRequestDetailLogger   HTTPRequestLogger           = null,
-                                      HTTPResponseDetailLogger  HTTPResponseLogger          = null,
-                                      HTTPDelegate              DefaultErrorHandler         = null,
-                                      HTTPDelegate              HTTPDelegate                = null,
-                                      URIReplacement            AllowReplacement            = URIReplacement.Fail)
+        public void AddMethodCallback(HTTPHostname            Hostname,
+                                      HTTPMethod              HTTPMethod,
+                                      HTTPURI                 URITemplate,
+                                      HTTPContentType         HTTPContentType             = null,
+                                      HTTPAuthentication      URIAuthentication           = null,
+                                      HTTPAuthentication      HTTPMethodAuthentication    = null,
+                                      HTTPAuthentication      ContentTypeAuthentication   = null,
+                                      HTTPRequestLogHandler   HTTPRequestLogger           = null,
+                                      HTTPResponseLogHandler  HTTPResponseLogger          = null,
+                                      HTTPDelegate            DefaultErrorHandler         = null,
+                                      HTTPDelegate            HTTPDelegate                = null,
+                                      URIReplacement          AllowReplacement            = URIReplacement.Fail)
 
         {
 
@@ -555,18 +552,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
-        public void AddMethodCallback(HTTPHostname              Hostname,
-                                      HTTPMethod                HTTPMethod,
-                                      IEnumerable<HTTPURI>      URITemplates,
-                                      HTTPContentType           HTTPContentType             = null,
-                                      HTTPAuthentication        URIAuthentication           = null,
-                                      HTTPAuthentication        HTTPMethodAuthentication    = null,
-                                      HTTPAuthentication        ContentTypeAuthentication   = null,
-                                      HTTPRequestDetailLogger   HTTPRequestLogger           = null,
-                                      HTTPResponseDetailLogger  HTTPResponseLogger          = null,
-                                      HTTPDelegate              DefaultErrorHandler         = null,
-                                      HTTPDelegate              HTTPDelegate                = null,
-                                      URIReplacement            AllowReplacement            = URIReplacement.Fail)
+        public void AddMethodCallback(HTTPHostname            Hostname,
+                                      HTTPMethod              HTTPMethod,
+                                      IEnumerable<HTTPURI>    URITemplates,
+                                      HTTPContentType         HTTPContentType             = null,
+                                      HTTPAuthentication      URIAuthentication           = null,
+                                      HTTPAuthentication      HTTPMethodAuthentication    = null,
+                                      HTTPAuthentication      ContentTypeAuthentication   = null,
+                                      HTTPRequestLogHandler   HTTPRequestLogger           = null,
+                                      HTTPResponseLogHandler  HTTPResponseLogger          = null,
+                                      HTTPDelegate            DefaultErrorHandler         = null,
+                                      HTTPDelegate            HTTPDelegate                = null,
+                                      URIReplacement          AllowReplacement            = URIReplacement.Fail)
 
         {
 
@@ -610,8 +607,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPAuthentication            URIAuthentication           = null,
                                       HTTPAuthentication            HTTPMethodAuthentication    = null,
                                       HTTPAuthentication            ContentTypeAuthentication   = null,
-                                      HTTPRequestDetailLogger       HTTPRequestLogger           = null,
-                                      HTTPResponseDetailLogger      HTTPResponseLogger          = null,
+                                      HTTPRequestLogHandler         HTTPRequestLogger           = null,
+                                      HTTPResponseLogHandler        HTTPResponseLogger          = null,
                                       HTTPDelegate                  DefaultErrorHandler         = null,
                                       HTTPDelegate                  HTTPDelegate                = null,
                                       URIReplacement                AllowReplacement            = URIReplacement.Fail)
@@ -658,8 +655,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPAuthentication            URIAuthentication           = null,
                                       HTTPAuthentication            HTTPMethodAuthentication    = null,
                                       HTTPAuthentication            ContentTypeAuthentication   = null,
-                                      HTTPRequestDetailLogger       HTTPRequestLogger           = null,
-                                      HTTPResponseDetailLogger      HTTPResponseLogger          = null,
+                                      HTTPRequestLogHandler         HTTPRequestLogger           = null,
+                                      HTTPResponseLogHandler        HTTPResponseLogger          = null,
                                       HTTPDelegate                  DefaultErrorHandler         = null,
                                       HTTPDelegate                  HTTPDelegate                = null,
                                       URIReplacement                AllowReplacement            = URIReplacement.Fail)
@@ -983,16 +980,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region Properties
 
             public HTTPDelegate                              RequestHandler         { get; }
-            public HTTPRequestDetailLogger                   HTTPRequestLogger      { get; }
-            public HTTPResponseDetailLogger                  HTTPResponseLogger     { get; }
+            public HTTPRequestLogHandler                     HTTPRequestLogger      { get; }
+            public HTTPResponseLogHandler                    HTTPResponseLogger     { get; }
             public HTTPDelegate                              DefaultErrorHandler    { get; }
             public Dictionary<HTTPStatusCode, HTTPDelegate>  ErrorHandlers          { get; }
 
             #endregion
 
             public Handlers(HTTPDelegate                              RequestHandler,
-                            HTTPRequestDetailLogger                   HTTPRequestLogger,
-                            HTTPResponseDetailLogger                  HTTPResponseLogger,
+                            HTTPRequestLogHandler                     HTTPRequestLogger,
+                            HTTPResponseLogHandler                    HTTPResponseLogger,
                             HTTPDelegate                              DefaultErrorHandler,
                             Dictionary<HTTPStatusCode, HTTPDelegate>  ErrorHandlers)
 
@@ -1006,35 +1003,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            public Handlers(URINode URINode)
+            public static Handlers FromURINode(URINode URINode)
 
-                : this(URINode?.RequestHandler,
-                       URINode?.HTTPRequestLogger,
-                       URINode?.HTTPResponseLogger,
-                       URINode?.DefaultErrorHandler,
-                       URINode?.ErrorHandlers)
+                => new Handlers(URINode?.RequestHandler,
+                                URINode?.HTTPRequestLogger,
+                                URINode?.HTTPResponseLogger,
+                                URINode?.DefaultErrorHandler,
+                                URINode?.ErrorHandlers);
 
-            { }
+            public static Handlers FromMethodNode(HTTPMethodNode MethodNode)
 
-            public Handlers(HTTPMethodNode MethodNode)
+                => new Handlers(MethodNode?.RequestHandler,
+                                MethodNode?.HTTPRequestLogger,
+                                MethodNode?.HTTPResponseLogger,
+                                MethodNode?.DefaultErrorHandler,
+                                MethodNode?.ErrorHandlers);
 
-                : this(MethodNode?.RequestHandler,
-                       MethodNode?.HTTPRequestLogger,
-                       MethodNode?.HTTPResponseLogger,
-                       MethodNode?.DefaultErrorHandler,
-                       MethodNode?.ErrorHandlers)
+            public static Handlers FromContentTypeNode(ContentTypeNode ContentTypeNode)
 
-            { }
-
-            public Handlers(ContentTypeNode ContentTypeNode)
-
-                : this(ContentTypeNode?.RequestHandler,
-                       ContentTypeNode?.HTTPRequestLogger,
-                       ContentTypeNode?.HTTPResponseLogger,
-                       ContentTypeNode?.DefaultErrorHandler,
-                       ContentTypeNode?.ErrorHandlers)
-
-            { }
+                => new Handlers(ContentTypeNode?.RequestHandler,
+                                ContentTypeNode?.HTTPRequestLogger,
+                                ContentTypeNode?.HTTPResponseLogger,
+                                ContentTypeNode?.DefaultErrorHandler,
+                                ContentTypeNode?.ErrorHandlers);
 
         }
 
@@ -1830,8 +1821,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                  HTTPAuthentication        HTTPMethodAuthentication    = null,
                                  HTTPAuthentication        ContentTypeAuthentication   = null,
 
-                                 HTTPRequestDetailLogger   HTTPRequestLogger           = null,
-                                 HTTPResponseDetailLogger  HTTPResponseLogger          = null,
+                                 HTTPRequestLogHandler     HTTPRequestLogger           = null,
+                                 HTTPResponseLogHandler    HTTPResponseLogger          = null,
 
                                  HTTPDelegate              DefaultErrorHandler         = null,
                                  URIReplacement            AllowReplacement            = URIReplacement.Fail)
@@ -1901,8 +1892,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPAuthentication        URIAuthentication           = null,
                                       HTTPAuthentication        HTTPMethodAuthentication    = null,
                                       HTTPAuthentication        ContentTypeAuthentication   = null,
-                                      HTTPRequestDetailLogger   HTTPRequestLogger           = null,
-                                      HTTPResponseDetailLogger  HTTPResponseLogger          = null,
+                                      HTTPRequestLogHandler     HTTPRequestLogger           = null,
+                                      HTTPResponseLogHandler    HTTPResponseLogger          = null,
                                       HTTPDelegate              DefaultErrorHandler         = null,
                                       HTTPDelegate              HTTPDelegate                = null,
                                       URIReplacement            AllowReplacement            = URIReplacement.Fail)
@@ -1966,8 +1957,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPAuthentication        URIAuthentication           = null,
                                       HTTPAuthentication        HTTPMethodAuthentication    = null,
                                       HTTPAuthentication        ContentTypeAuthentication   = null,
-                                      HTTPRequestDetailLogger   HTTPRequestLogger           = null,
-                                      HTTPResponseDetailLogger  HTTPResponseLogger          = null,
+                                      HTTPRequestLogHandler     HTTPRequestLogger           = null,
+                                      HTTPResponseLogHandler    HTTPResponseLogger          = null,
                                       HTTPDelegate              DefaultErrorHandler         = null,
                                       HTTPDelegate              HTTPDelegate                = null,
                                       URIReplacement            AllowReplacement            = URIReplacement.Fail)
@@ -2031,8 +2022,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPAuthentication            URIAuthentication           = null,
                                       HTTPAuthentication            HTTPMethodAuthentication    = null,
                                       HTTPAuthentication            ContentTypeAuthentication   = null,
-                                      HTTPRequestDetailLogger       HTTPRequestLogger           = null,
-                                      HTTPResponseDetailLogger      HTTPResponseLogger          = null,
+                                      HTTPRequestLogHandler         HTTPRequestLogger           = null,
+                                      HTTPResponseLogHandler        HTTPResponseLogger          = null,
                                       HTTPDelegate                  DefaultErrorHandler         = null,
                                       HTTPDelegate                  HTTPDelegate                = null,
                                       URIReplacement                AllowReplacement            = URIReplacement.Fail)
@@ -2099,8 +2090,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPAuthentication            URIAuthentication           = null,
                                       HTTPAuthentication            HTTPMethodAuthentication    = null,
                                       HTTPAuthentication            ContentTypeAuthentication   = null,
-                                      HTTPRequestDetailLogger       HTTPRequestLogger           = null,
-                                      HTTPResponseDetailLogger      HTTPResponseLogger          = null,
+                                      HTTPRequestLogHandler         HTTPRequestLogger           = null,
+                                      HTTPResponseLogHandler        HTTPResponseLogger          = null,
                                       HTTPDelegate                  DefaultErrorHandler         = null,
                                       HTTPDelegate                  HTTPDelegate                = null,
                                       URIReplacement                AllowReplacement            = URIReplacement.Fail)
@@ -2172,8 +2163,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                      HTTPAuthentication        HTTPMethodAuthentication    = null,
                                      HTTPAuthentication        ContentTypeAuthentication   = null,
 
-                                     HTTPRequestDetailLogger   HTTPRequestLogger           = null,
-                                     HTTPResponseDetailLogger  HTTPResponseLogger          = null,
+                                     HTTPRequestLogHandler     HTTPRequestLogger           = null,
+                                     HTTPResponseLogHandler    HTTPResponseLogger          = null,
 
                                      HTTPDelegate              DefaultErrorHandler         = null)
 
@@ -2356,11 +2347,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         // No content types defined...
                         if (!_HTTPMethodNode.Any())
-                            return new Handlers(_HTTPMethodNode);
+                            return Handlers.FromMethodNode(_HTTPMethodNode);
 
                         // A single content type is defined...
                         else if (_HTTPMethodNode.Count() == 1)
-                            return new Handlers(_HTTPMethodNode.FirstOrDefault());
+                            return Handlers.FromContentTypeNode(_HTTPMethodNode.FirstOrDefault());
 
                         else
                             throw new ArgumentException(String.Concat(URI, " ", _HTTPMethodNode, " but multiple content type choices!"));
@@ -2369,18 +2360,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     // The requested content type was found...
                     else if (_HTTPMethodNode.TryGet(BestMatchingContentType, out _HTTPContentTypeNode))
-                        return new Handlers(_HTTPContentTypeNode);
+                        return Handlers.FromContentTypeNode(_HTTPContentTypeNode);
 
 
                     else
-                        return new Handlers(_HTTPMethodNode);
+                        return Handlers.FromMethodNode(_HTTPMethodNode);
 
                 }
 
                 //}
 
                 // No HTTPMethod was found => return best matching URL Handler
-                return new Handlers(_Match2.URLNode);
+                return Handlers.FromURINode(_Match2.URLNode);
 
                 //return GetErrorHandler(Host, URL, HTTPMethod, HTTPContentType, HTTPStatusCode.BadRequest);
 
@@ -2433,7 +2424,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 {
                     try
                     {
-                        await HTTPHandlers.HTTPRequestLogger(Request);
+
+                        await HTTPHandlers.HTTPRequestLogger(DateTime.UtcNow,
+                                                             null,
+                                                             Request);
+
                     }
                     catch (Exception e)
                     {
@@ -2443,7 +2438,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 try
                 {
+
                     _HTTPResponse = await HTTPHandlers.RequestHandler(Request);
+
                 }
                 catch (Exception e)
                 {
@@ -2469,7 +2466,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 {
                     try
                     {
-                        await HTTPHandlers.HTTPResponseLogger(_HTTPResponse);
+
+                        await HTTPHandlers.HTTPResponseLogger(DateTime.UtcNow,
+                                                              null,
+                                                              Request,
+                                                              _HTTPResponse);
+
                     }
                     catch (Exception e)
                     {

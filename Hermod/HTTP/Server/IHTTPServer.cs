@@ -83,8 +83,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPAuthentication        URIAuthentication           = null,
                                HTTPAuthentication        HTTPMethodAuthentication    = null,
                                HTTPAuthentication        ContentTypeAuthentication   = null,
-                               HTTPRequestDetailLogger   HTTPRequestLogger           = null,
-                               HTTPResponseDetailLogger  HTTPResponseLogger          = null,
+                               HTTPRequestLogHandler   HTTPRequestLogger           = null,
+                               HTTPResponseLogHandler    HTTPResponseLogger          = null,
                                HTTPDelegate              DefaultErrorHandler         = null,
                                HTTPDelegate              HTTPDelegate                = null,
                                URIReplacement            AllowReplacement            = URIReplacement.Fail);
@@ -96,8 +96,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPAuthentication        URIAuthentication           = null,
                                HTTPAuthentication        HTTPMethodAuthentication    = null,
                                HTTPAuthentication        ContentTypeAuthentication   = null,
-                               HTTPRequestDetailLogger   HTTPRequestLogger           = null,
-                               HTTPResponseDetailLogger  HTTPResponseLogger          = null,
+                               HTTPRequestLogHandler   HTTPRequestLogger           = null,
+                               HTTPResponseLogHandler    HTTPResponseLogger          = null,
                                HTTPDelegate              DefaultErrorHandler         = null,
                                HTTPDelegate              HTTPDelegate                = null,
                                URIReplacement            AllowReplacement            = URIReplacement.Fail);
@@ -109,8 +109,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPAuthentication            URIAuthentication           = null,
                                HTTPAuthentication            HTTPMethodAuthentication    = null,
                                HTTPAuthentication            ContentTypeAuthentication   = null,
-                               HTTPRequestDetailLogger       HTTPRequestLogger           = null,
-                               HTTPResponseDetailLogger      HTTPResponseLogger          = null,
+                               HTTPRequestLogHandler       HTTPRequestLogger           = null,
+                               HTTPResponseLogHandler        HTTPResponseLogger          = null,
                                HTTPDelegate                  DefaultErrorHandler         = null,
                                HTTPDelegate                  HTTPDelegate                = null,
                                URIReplacement                AllowReplacement            = URIReplacement.Fail);
@@ -122,8 +122,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPAuthentication            URIAuthentication           = null,
                                HTTPAuthentication            HTTPMethodAuthentication    = null,
                                HTTPAuthentication            ContentTypeAuthentication   = null,
-                               HTTPRequestDetailLogger       HTTPRequestLogger           = null,
-                               HTTPResponseDetailLogger      HTTPResponseLogger          = null,
+                               HTTPRequestLogHandler       HTTPRequestLogger           = null,
+                               HTTPResponseLogHandler        HTTPResponseLogger          = null,
                                HTTPDelegate                  DefaultErrorHandler         = null,
                                HTTPDelegate                  HTTPDelegate                = null,
                                URIReplacement                AllowReplacement            = URIReplacement.Fail);

@@ -48,12 +48,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// A HTTP request logger.
         /// </summary>
-        public HTTPRequestDetailLogger                   HTTPRequestLogger                { get; }
+        public HTTPRequestLogHandler                   HTTPRequestLogger                { get; }
 
         /// <summary>
         /// A HTTP response logger.
         /// </summary>
-        public HTTPResponseDetailLogger                  HTTPResponseLogger               { get; }
+        public HTTPResponseLogHandler                    HTTPResponseLogger               { get; }
 
         /// <summary>
         /// A general error handling method.
@@ -84,9 +84,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="AllowReplacement">How to handle duplicate URI handlers.</param>
         internal ContentTypeNode(HTTPContentType           HTTPContentType,
                                  HTTPAuthentication        HTTPContentTypeAuthentication   = null,
-                                 HTTPRequestDetailLogger   HTTPRequestLogger               = null,
+                                 HTTPRequestLogHandler   HTTPRequestLogger               = null,
                                  HTTPDelegate              RequestHandler                  = null,
-                                 HTTPResponseDetailLogger  HTTPResponseLogger              = null,
+                                 HTTPResponseLogHandler    HTTPResponseLogger              = null,
                                  HTTPDelegate              DefaultErrorHandler             = null,
                                  URIReplacement            AllowReplacement                = URIReplacement.Fail)
         {

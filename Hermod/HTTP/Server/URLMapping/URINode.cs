@@ -70,7 +70,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// A HTTP request logger.
         /// </summary>
-        public HTTPRequestDetailLogger                   HTTPRequestLogger      { get; private set; }
+        public HTTPRequestLogHandler                   HTTPRequestLogger      { get; private set; }
 
         /// <summary>
         /// This and all subordinated nodes demand an explicit URI authentication.
@@ -95,7 +95,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// A HTTP response logger.
         /// </summary>
-        public HTTPResponseDetailLogger                  HTTPResponseLogger     { get; private set; }
+        public HTTPResponseLogHandler                    HTTPResponseLogger     { get; private set; }
 
 
         /// <summary>
@@ -156,8 +156,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPAuthentication        HTTPMethodAuthentication    = null,
                                HTTPAuthentication        ContentTypeAuthentication   = null,
 
-                               HTTPRequestDetailLogger   HTTPRequestLogger           = null,
-                               HTTPResponseDetailLogger  HTTPResponseLogger          = null,
+                               HTTPRequestLogHandler   HTTPRequestLogger           = null,
+                               HTTPResponseLogHandler    HTTPResponseLogger          = null,
 
                                HTTPDelegate              DefaultErrorHandler         = null,
                                URIReplacement            AllowReplacement            = URIReplacement.Fail)

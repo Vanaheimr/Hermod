@@ -124,8 +124,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPAuthentication        HTTPMethodAuthentication    = null,
                                HTTPAuthentication        ContentTypeAuthentication   = null,
 
-                               HTTPRequestDetailLogger   HTTPRequestLogger           = null,
-                               HTTPResponseDetailLogger  HTTPResponseLogger          = null,
+                               HTTPRequestLogHandler   HTTPRequestLogger           = null,
+                               HTTPResponseLogHandler    HTTPResponseLogger          = null,
 
                                HTTPDelegate              DefaultErrorHandler         = null,
                                URIReplacement            AllowReplacement            = URIReplacement.Fail)
