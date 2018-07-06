@@ -131,6 +131,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Events
 
+        /// <summary>
+        /// An event called whenever a HTTP request came in.
+        /// </summary>
+        public RequestLogEvent   RequestLog    = new RequestLogEvent();
+
+        /// <summary>
+        /// An event called whenever a HTTP request could successfully be processed.
+        /// </summary>
+        public ResponseLogEvent  ResponseLog   = new ResponseLogEvent();
+
+        /// <summary>
+        /// An event called whenever a HTTP request resulted in an error.
+        /// </summary>
+        public ErrorLogEvent     ErrorLog      = new ErrorLogEvent();
 
         #endregion
 
@@ -215,6 +229,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this._HTTPServer    = HTTPServer;
             this._Multitenancy  = new ConcurrentDictionary<HTTPHostname, T>();
+
+            // Link HTTP events...
+            HTTPServer.RequestLog   += (HTTPProcessor, ServerTimestamp, Request)                                 => RequestLog. WhenAll(HTTPProcessor, ServerTimestamp, Request);
+            HTTPServer.ResponseLog  += (HTTPProcessor, ServerTimestamp, Request, Response)                       => ResponseLog.WhenAll(HTTPProcessor, ServerTimestamp, Request, Response);
+            HTTPServer.ErrorLog     += (HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException) => ErrorLog.   WhenAll(HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException);
 
         }
 
