@@ -35,6 +35,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                            IHTTPServer  HTTPServer,
                                            HTTPRequest  Request);
 
+    /// <summary>
+    /// The delegate for the HTTP request log.
+    /// </summary>
+    /// <param name="Timestamp">The timestamp of the incoming request.</param>
+    /// <param name="HTTPAPI">The sending HTTP API.</param>
+    /// <param name="Request">The incoming request.</param>
+    public delegate Task HTTPRequestLogHandler(DateTime     Timestamp,
+                                               HTTPAPI      HTTPAPI,
+                                               HTTPRequest  Request);
+
 
     /// <summary>
     /// The delegate for the HTTP access log.
@@ -47,6 +57,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           IHTTPServer   HTTPServer,
                                           HTTPRequest   Request,
                                           HTTPResponse  Response);
+
+    /// <summary>
+    /// The delegate for the HTTP access log.
+    /// </summary>
+    /// <param name="Timestamp">The timestamp of the incoming request.</param>
+    /// <param name="HTTPAPI">The sending HTTP API.</param>
+    /// <param name="Request">The incoming request.</param>
+    /// <param name="Response">The outgoing response.</param>
+    public delegate Task HTTPResponseLogHandler(DateTime      Timestamp,
+                                                HTTPAPI       HTTPAPI,
+                                                HTTPRequest   Request,
+                                                HTTPResponse  Response);
 
 
     /// <summary>
@@ -64,6 +86,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          HTTPResponse  Response,
                                          String        Error          = null,
                                          Exception     LastException  = null);
+
+    /// <summary>
+    /// The delegate for the HTTP error log.
+    /// </summary>
+    /// <param name="Timestamp">The timestamp of the incoming request.</param>
+    /// <param name="HTTPAPI">The sending HTTP API.</param>
+    /// <param name="Request">The incoming request.</param>
+    /// <param name="Response">The outgoing response.</param>
+    /// <param name="Error">The occured error.</param>
+    /// <param name="LastException">The last occured exception.</param>
+    public delegate Task HTTPErrorLogHandler(DateTime      Timestamp,
+                                             HTTPAPI       HTTPAPI,
+                                             HTTPRequest   Request,
+                                             HTTPResponse  Response,
+                                             String        Error          = null,
+                                             Exception     LastException  = null);
 
 
 

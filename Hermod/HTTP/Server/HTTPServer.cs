@@ -134,17 +134,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event called whenever a HTTP request came in.
         /// </summary>
-        public RequestLogEvent   RequestLog    = new RequestLogEvent();
+        public HTTPRequestLogEvent   RequestLog    = new HTTPRequestLogEvent();
 
         /// <summary>
         /// An event called whenever a HTTP request could successfully be processed.
         /// </summary>
-        public ResponseLogEvent  ResponseLog   = new ResponseLogEvent();
+        public HTTPResponseLogEvent  ResponseLog   = new HTTPResponseLogEvent();
 
         /// <summary>
         /// An event called whenever a HTTP request resulted in an error.
         /// </summary>
-        public ErrorLogEvent     ErrorLog      = new ErrorLogEvent();
+        public HTTPErrorLogEvent     ErrorLog      = new HTTPErrorLogEvent();
 
         #endregion
 
@@ -1077,17 +1077,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event called whenever a HTTP request came in.
         /// </summary>
-        public RequestLogEvent   RequestLog    = new RequestLogEvent();
+        public HTTPRequestLogEvent   RequestLog    = new HTTPRequestLogEvent();
 
         /// <summary>
         /// An event called whenever a HTTP request could successfully be processed.
         /// </summary>
-        public ResponseLogEvent  ResponseLog   = new ResponseLogEvent();
+        public HTTPResponseLogEvent  ResponseLog   = new HTTPResponseLogEvent();
 
         /// <summary>
         /// An event called whenever a HTTP request resulted in an error.
         /// </summary>
-        public ErrorLogEvent     ErrorLog      = new ErrorLogEvent();
+        public HTTPErrorLogEvent     ErrorLog      = new HTTPErrorLogEvent();
 
         #endregion
 
@@ -1469,8 +1469,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         try
                                         {
 
-                                            RequestLog?.WhenAll(this as Object as HTTPAPI,
-                                                                RequestTimestamp,
+                                            RequestLog?.WhenAll(RequestTimestamp,
+                                                                this as Object as HTTPAPI,
                                                                 HttpRequest);
 
                                         }
@@ -1529,8 +1529,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         try
                                         {
 
-                                            ResponseLog?.WhenAll(this as Object as HTTPAPI,
-                                                                 RequestTimestamp,
+                                            ResponseLog?.WhenAll(RequestTimestamp,
+                                                                 this as Object as HTTPAPI,
                                                                  HttpRequest,
                                                                  _HTTPResponse);
 
@@ -1555,10 +1555,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         try
                                         {
 
-                                            ErrorLog?.WhenAll(this as Object as HTTPAPI,
-                                                              RequestTimestamp,
+                                            ErrorLog?.WhenAll(RequestTimestamp,
+                                                              this as Object as HTTPAPI,
                                                               HttpRequest,
-                                                              _HTTPResponse);
+                                                              _HTTPResponse,
+                                                              _HTTPResponse.HTTPStatusCode.ToString());
 
                                         }
                                         catch (Exception e)
@@ -1650,11 +1651,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             try
             {
+
                 TCPConnection.Close(ClientClose
                                         ? ConnectionClosedBy.Client
                                         : ConnectionClosedBy.Server);
+
             }
+#pragma warning disable RCS1075 // Avoid empty catch clause that catches System.Exception.
             catch (Exception)
+#pragma warning restore RCS1075 // Avoid empty catch clause that catches System.Exception.
             { }
 
             #endregion

@@ -30,37 +30,73 @@ using org.GraphDefined.Vanaheimr.Illias;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
-    public class RequestLogEvent
+    #region (class) HTTPRequestLogEvent
+
+    /// <summary>
+    /// An async event notifying about HTTP requests.
+    /// </summary>
+    public class HTTPRequestLogEvent
     {
 
-        private readonly List<Func<HTTPAPI, DateTime, HTTPRequest, Task>> invocationList;
-        private readonly object locker;
+        #region Data
 
-        public RequestLogEvent()
+        private readonly List<HTTPRequestLogHandler> subscribers;
+
+        #endregion
+
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create a new async event notifying about incoming HTTP requests.
+        /// </summary>
+        public HTTPRequestLogEvent()
         {
-            invocationList = new List<Func<HTTPAPI, DateTime, HTTPRequest, Task>>();
-            locker         = new object();
+            subscribers = new List<HTTPRequestLogHandler>();
         }
 
-        public static RequestLogEvent operator + (RequestLogEvent e, Func<HTTPAPI, DateTime, HTTPRequest, Task> callback)
+        #endregion
+
+
+        #region + / Add
+
+        public static HTTPRequestLogEvent operator + (HTTPRequestLogEvent e, HTTPRequestLogHandler callback)
         {
 
             if (callback == null)
                 throw new NullReferenceException("callback is null");
 
             if (e == null)
-                e = new RequestLogEvent();
+                e = new HTTPRequestLogEvent();
 
-            lock (e.locker)
+            lock (e.subscribers)
             {
-                e.invocationList.Add(callback);
+                e.subscribers.Add(callback);
             }
 
             return e;
 
         }
 
-        public static RequestLogEvent operator - (RequestLogEvent e, Func<HTTPAPI, DateTime, HTTPRequest, Task> callback)
+        public HTTPRequestLogEvent Add(HTTPRequestLogHandler callback)
+        {
+
+            if (callback == null)
+                throw new NullReferenceException("callback is null");
+
+            lock (subscribers)
+            {
+                subscribers.Add(callback);
+            }
+
+            return this;
+
+        }
+
+        #endregion
+
+        #region - / Remove
+
+        public static HTTPRequestLogEvent operator - (HTTPRequestLogEvent e, HTTPRequestLogHandler callback)
         {
 
             if (callback == null)
@@ -69,79 +105,276 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (e == null)
                 return null;
 
-            lock (e.locker)
+            lock (e.subscribers)
             {
-                e.invocationList.Remove(callback);
+                e.subscribers.Remove(callback);
             }
 
             return e;
 
         }
 
-        public async Task InvokeAsync(HTTPAPI HTTPProcessor, DateTime ServerTimestamp, HTTPRequest Request)
+        public HTTPRequestLogEvent Remove(HTTPRequestLogHandler callback)
         {
 
-            Func<HTTPAPI, DateTime, HTTPRequest, Task>[] tmpInvocationList;
+            if (callback == null)
+                throw new NullReferenceException("callback is null");
 
-            lock (locker)
+            lock (subscribers)
             {
-                tmpInvocationList = invocationList.ToArray();
+                subscribers.Remove(callback);
             }
 
-            foreach (var callback in tmpInvocationList)
-                await callback(HTTPProcessor, ServerTimestamp, Request).ConfigureAwait(false);
+            return this;
 
         }
 
-        public Task WhenAll(HTTPAPI HTTPProcessor, DateTime ServerTimestamp, HTTPRequest Request)
+        #endregion
+
+
+        #region InvokeAsync(ServerTimestamp, HTTPAPI, Request)
+
+        /// <summary>
+        /// Call all subscribers sequentially.
+        /// </summary>
+        /// <param name="ServerTimestamp">The timestamp of the event.</param>
+        /// <param name="HTTPAPI">The sending HTTP API.</param>
+        /// <param name="Request">The HTTP request.</param>
+        public async Task InvokeAsync(DateTime     ServerTimestamp,
+                                      HTTPAPI      HTTPAPI,
+                                      HTTPRequest  Request)
         {
 
-            Task[] tmpInvocationList;
+            HTTPRequestLogHandler[] _invocationList;
 
-            lock (locker)
+            lock (subscribers)
             {
-                tmpInvocationList = invocationList.
-                                        Select(callback => callback(HTTPProcessor, ServerTimestamp, Request)).
+                _invocationList = subscribers.ToArray();
+            }
+
+            foreach (var callback in _invocationList)
+                await callback(ServerTimestamp, HTTPAPI, Request).ConfigureAwait(false);
+
+        }
+
+        #endregion
+
+        #region WhenAny    (ServerTimestamp, HTTPAPI, Request,               Timeout = null)
+
+        /// <summary>
+        /// Call all subscribers in parallel and wait for any to complete.
+        /// </summary>
+        /// <param name="ServerTimestamp">The timestamp of the event.</param>
+        /// <param name="HTTPAPI">The sending HTTP API.</param>
+        /// <param name="Request">The HTTP request.</param>
+        /// <param name="Timeout">A timeout for this operation.</param>
+        public Task WhenAny(DateTime      ServerTimestamp,
+                            HTTPAPI       HTTPAPI,
+                            HTTPRequest   Request,
+                            TimeSpan?     Timeout = null)
+        {
+
+            List<Task> _invocationList;
+
+            lock (subscribers)
+            {
+
+                _invocationList = subscribers.
+                                        Select(callback => callback(ServerTimestamp, HTTPAPI, Request)).
+                                        ToList();
+
+                if (Timeout.HasValue)
+                    _invocationList.Add(Task.Delay(Timeout.Value));
+
+            }
+
+            return Task.WhenAny(_invocationList);
+
+        }
+
+        #endregion
+
+        #region WhenFirst  (ServerTimestamp, HTTPAPI, Request, VerifyResult, Timeout = null, DefaultResult = null)
+
+        /// <summary>
+        /// Call all subscribers in parallel and wait for all to complete.
+        /// </summary>
+        /// <typeparam name="T">The type of the results.</typeparam>
+        /// <param name="ServerTimestamp">The timestamp of the event.</param>
+        /// <param name="HTTPAPI">The sending HTTP API.</param>
+        /// <param name="Request">The HTTP request.</param>
+        /// <param name="VerifyResult">A delegate to verify and filter results.</param>
+        /// <param name="Timeout">A timeout for this operation.</param>
+        /// <param name="DefaultResult">A default result in case of errors or a timeout.</param>
+        public Task<T> WhenFirst<T>(DateTime           ServerTimestamp,
+                                    HTTPAPI            HTTPAPI,
+                                    HTTPRequest        Request,
+                                    Func<T, Boolean>   VerifyResult,
+                                    TimeSpan?          Timeout        = null,
+                                    Func<TimeSpan, T>  DefaultResult  = null)
+        {
+
+            #region Data
+
+            List<Task>  _invocationList;
+            Task        WorkDone;
+            Task<T>     Result;
+            DateTime    StartTime    = DateTime.UtcNow;
+            Task        TimeoutTask  = null;
+
+            #endregion
+
+            lock (subscribers)
+            {
+
+                _invocationList = subscribers.
+                                        Select(callback => callback(ServerTimestamp, HTTPAPI, Request)).
+                                        ToList();
+
+                if (Timeout.HasValue)
+                    _invocationList.Add(TimeoutTask = Task.Run(() => System.Threading.Thread.Sleep(Timeout.Value)));
+
+            }
+
+            do
+            {
+
+                try
+                {
+
+                    WorkDone = Task.WhenAny(_invocationList);
+
+                    _invocationList.Remove(WorkDone);
+
+                    if (WorkDone != TimeoutTask)
+                    {
+
+                        Result = WorkDone as Task<T>;
+
+                        if (Result != null &&
+                            !EqualityComparer<T>.Default.Equals(Result.Result, default(T)) &&
+                            VerifyResult(Result.Result))
+                        {
+                            return Result;
+                        }
+
+                    }
+
+                }
+                catch (Exception e)
+                {
+                    DebugX.LogT(e.Message);
+                    WorkDone = null;
+                }
+
+            }
+            while (!(WorkDone == TimeoutTask || _invocationList.Count == 0));
+
+            return Task.FromResult(DefaultResult(DateTime.UtcNow - StartTime));
+
+        }
+
+        #endregion
+
+        #region WhenAll    (ServerTimestamp, HTTPAPI, Request)
+
+        /// <summary>
+        /// Call all subscribers in parallel and wait for all to complete.
+        /// </summary>
+        /// <param name="ServerTimestamp">The timestamp of the event.</param>
+        /// <param name="HTTPAPI">The sending HTTP API.</param>
+        /// <param name="Request">The HTTP request.</param>
+        public Task WhenAll(DateTime      ServerTimestamp,
+                            HTTPAPI       HTTPAPI,
+                            HTTPRequest   Request)
+        {
+
+            Task[] _invocationList;
+
+            lock (subscribers)
+            {
+                _invocationList = subscribers.
+                                        Select(callback => callback(ServerTimestamp, HTTPAPI, Request)).
                                         ToArray();
             }
 
-            return Task.WhenAll(tmpInvocationList);
+            return Task.WhenAll(_invocationList);
 
         }
+
+        #endregion
 
     }
 
-    public class ResponseLogEvent
+    #endregion
+
+    #region (class) HTTPResponseLogEvent
+
+    /// <summary>
+    /// An async event notifying about HTTP responses.
+    /// </summary>
+    public class HTTPResponseLogEvent
     {
 
-        private readonly List<Func<HTTPAPI, DateTime, HTTPRequest, HTTPResponse, Task>> invocationList;
-        private readonly object locker;
+        #region Data
 
-        public ResponseLogEvent()
+        private readonly List<HTTPResponseLogHandler> subscribers;
+
+        #endregion
+
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create a new async event notifying about HTTP responses.
+        /// </summary>
+        public HTTPResponseLogEvent()
         {
-            invocationList = new List<Func<HTTPAPI, DateTime, HTTPRequest, HTTPResponse, Task>>();
-            locker = new object();
+            subscribers = new List<HTTPResponseLogHandler>();
         }
 
-        public static ResponseLogEvent operator + (ResponseLogEvent e, Func<HTTPAPI, DateTime, HTTPRequest, HTTPResponse, Task> callback)
+        #endregion
+
+
+        #region + / Add
+
+        public static HTTPResponseLogEvent operator + (HTTPResponseLogEvent e, HTTPResponseLogHandler callback)
         {
 
             if (callback == null)
                 throw new NullReferenceException("callback is null");
 
             if (e == null)
-                e = new ResponseLogEvent();
+                e = new HTTPResponseLogEvent();
 
-            lock (e.locker)
+            lock (e.subscribers)
             {
-                e.invocationList.Add(callback);
+                e.subscribers.Add((timestamp, api, request, response) => callback(timestamp, api, request, response));
             }
 
             return e;
 
         }
 
-        public static ResponseLogEvent operator - (ResponseLogEvent e, Func<HTTPAPI, DateTime, HTTPRequest, HTTPResponse, Task> callback)
+        public HTTPResponseLogEvent Add(HTTPResponseLogHandler callback)
+        {
+
+            if (callback == null)
+                throw new NullReferenceException("callback is null");
+
+            lock (subscribers)
+            {
+                subscribers.Add(callback);
+            }
+
+            return this;
+
+        }
+
+        #endregion
+
+        #region - / Remove
+
+        public static HTTPResponseLogEvent operator - (HTTPResponseLogEvent e, HTTPResponseLogHandler callback)
         {
 
             if (callback == null)
@@ -150,79 +383,284 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (e == null)
                 return null;
 
-            lock (e.locker)
+            lock (e.subscribers)
             {
-                e.invocationList.Remove(callback);
+                e.subscribers.Remove(callback);
             }
 
             return e;
 
         }
 
-        public async Task InvokeAsync(HTTPAPI HTTPProcessor, DateTime ServerTimestamp, HTTPRequest Request, HTTPResponse Response)
+        public HTTPResponseLogEvent Remove(HTTPResponseLogHandler callback)
         {
 
-            Func<HTTPAPI, DateTime, HTTPRequest, HTTPResponse, Task>[] tmpInvocationList;
+            if (callback == null)
+                throw new NullReferenceException("callback is null");
 
-            lock (locker)
+            lock (subscribers)
             {
-                tmpInvocationList = invocationList.ToArray();
+                subscribers.Remove(callback);
             }
 
-            foreach (var callback in tmpInvocationList)
-                await callback(HTTPProcessor, ServerTimestamp, Request, Response).ConfigureAwait(false);
+            return this;
 
         }
 
-        public Task WhenAll(HTTPAPI HTTPProcessor, DateTime ServerTimestamp, HTTPRequest Request, HTTPResponse Response)
+        #endregion
+
+
+        #region InvokeAsync(ServerTimestamp, HTTPAPI, Request, Response)
+
+        /// <summary>
+        /// Call all subscribers sequentially.
+        /// </summary>
+        /// <param name="ServerTimestamp">The timestamp of the event.</param>
+        /// <param name="HTTPAPI">The sending HTTP API.</param>
+        /// <param name="Request">The HTTP request.</param>
+        /// <param name="Response">The HTTP response.</param>
+        public async Task InvokeAsync(DateTime      ServerTimestamp,
+                                      HTTPAPI       HTTPAPI,
+                                      HTTPRequest   Request,
+                                      HTTPResponse  Response)
         {
 
-            Task[] tmpInvocationList;
+            HTTPResponseLogHandler[] _invocationList;
 
-            lock (locker)
+            lock (subscribers)
             {
-                tmpInvocationList = invocationList.
-                                        Select(callback => callback(HTTPProcessor, ServerTimestamp, Request, Response)).
+                _invocationList = subscribers.ToArray();
+            }
+
+            foreach (var callback in _invocationList)
+                await callback(ServerTimestamp, HTTPAPI, Request, Response).ConfigureAwait(false);
+
+        }
+
+        #endregion
+
+        #region WhenAny    (ServerTimestamp, HTTPAPI, Request, Response,               Timeout = null)
+
+        /// <summary>
+        /// Call all subscribers in parallel and wait for any to complete.
+        /// </summary>
+        /// <param name="ServerTimestamp">The timestamp of the event.</param>
+        /// <param name="HTTPAPI">The sending HTTP API.</param>
+        /// <param name="Request">The HTTP request.</param>
+        /// <param name="Response">The HTTP response.</param>
+        /// <param name="Timeout">A timeout for this operation.</param>
+        public Task WhenAny(DateTime      ServerTimestamp,
+                            HTTPAPI       HTTPAPI,
+                            HTTPRequest   Request,
+                            HTTPResponse  Response,
+                            TimeSpan?     Timeout = null)
+        {
+
+            List<Task> _invocationList;
+
+            lock (subscribers)
+            {
+
+                _invocationList = subscribers.
+                                        Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response)).
+                                        ToList();
+
+                if (Timeout.HasValue)
+                    _invocationList.Add(Task.Delay(Timeout.Value));
+
+            }
+
+            return Task.WhenAny(_invocationList);
+
+        }
+
+        #endregion
+
+        #region WhenFirst  (ServerTimestamp, HTTPAPI, Request, Response, VerifyResult, Timeout = null, DefaultResult = null)
+
+        /// <summary>
+        /// Call all subscribers in parallel and wait for all to complete.
+        /// </summary>
+        /// <typeparam name="T">The type of the results.</typeparam>
+        /// <param name="ServerTimestamp">The timestamp of the event.</param>
+        /// <param name="HTTPAPI">The sending HTTP API.</param>
+        /// <param name="Request">The HTTP request.</param>
+        /// <param name="Response">The HTTP response.</param>
+        /// <param name="VerifyResult">A delegate to verify and filter results.</param>
+        /// <param name="Timeout">A timeout for this operation.</param>
+        /// <param name="DefaultResult">A default result in case of errors or a timeout.</param>
+        public Task<T> WhenFirst<T>(DateTime           ServerTimestamp,
+                                    HTTPAPI            HTTPAPI,
+                                    HTTPRequest        Request,
+                                    HTTPResponse       Response,
+                                    Func<T, Boolean>   VerifyResult,
+                                    TimeSpan?          Timeout        = null,
+                                    Func<TimeSpan, T>  DefaultResult  = null)
+        {
+
+            #region Data
+
+            List<Task>  _invocationList;
+            Task        WorkDone;
+            Task<T>     Result;
+            DateTime    StartTime    = DateTime.UtcNow;
+            Task        TimeoutTask  = null;
+
+            #endregion
+
+            lock (subscribers)
+            {
+
+                _invocationList = subscribers.
+                                        Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response)).
+                                        ToList();
+
+                if (Timeout.HasValue)
+                    _invocationList.Add(TimeoutTask = Task.Run(() => System.Threading.Thread.Sleep(Timeout.Value)));
+
+            }
+
+            do
+            {
+
+                try
+                {
+
+                    WorkDone = Task.WhenAny(_invocationList);
+
+                    _invocationList.Remove(WorkDone);
+
+                    if (WorkDone != TimeoutTask)
+                    {
+
+                        Result = WorkDone as Task<T>;
+
+                        if (Result != null &&
+                            !EqualityComparer<T>.Default.Equals(Result.Result, default(T)) &&
+                            VerifyResult(Result.Result))
+                        {
+                            return Result;
+                        }
+
+                    }
+
+                }
+                catch (Exception e)
+                {
+                    DebugX.LogT(e.Message);
+                    WorkDone = null;
+                }
+
+            }
+            while (!(WorkDone == TimeoutTask || _invocationList.Count == 0));
+
+            return Task.FromResult(DefaultResult(DateTime.UtcNow - StartTime));
+
+        }
+
+        #endregion
+
+        #region WhenAll    (ServerTimestamp, HTTPAPI, Request, Response)
+
+        /// <summary>
+        /// Call all subscribers in parallel and wait for all to complete.
+        /// </summary>
+        /// <param name="ServerTimestamp">The timestamp of the event.</param>
+        /// <param name="HTTPAPI">The sending HTTP API.</param>
+        /// <param name="Request">The HTTP request.</param>
+        /// <param name="Response">The HTTP response.</param>
+        public Task WhenAll(DateTime      ServerTimestamp,
+                            HTTPAPI       HTTPAPI,
+                            HTTPRequest   Request,
+                            HTTPResponse  Response)
+        {
+
+            Task[] _invocationList;
+
+            lock (subscribers)
+            {
+                _invocationList = subscribers.
+                                        Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response)).
                                         ToArray();
             }
 
-            return Task.WhenAll(tmpInvocationList);
+            return Task.WhenAll(_invocationList);
 
         }
+
+        #endregion
 
     }
 
-    public class ErrorLogEvent
+    #endregion
+
+    #region (class) HTTPErrorLogEvent
+
+    /// <summary>
+    /// An async event notifying about HTTP errors.
+    /// </summary>
+    public class HTTPErrorLogEvent
     {
 
-        private readonly List<Func<HTTPAPI, DateTime, HTTPRequest, HTTPResponse, String, Exception, Task>> invocationList;
-        private readonly object locker;
+        #region Data
 
-        public ErrorLogEvent()
+        private readonly List<HTTPErrorLogHandler> subscribers;
+
+        #endregion
+
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create a new async event notifying about HTTP errors.
+        /// </summary>
+        public HTTPErrorLogEvent()
         {
-            invocationList = new List<Func<HTTPAPI, DateTime, HTTPRequest, HTTPResponse, String, Exception, Task>>();
-            locker = new object();
+            subscribers = new List<HTTPErrorLogHandler>();
         }
 
-        public static ErrorLogEvent operator +(ErrorLogEvent e, Func<HTTPAPI, DateTime, HTTPRequest, HTTPResponse, String, Exception, Task> callback)
+        #endregion
+
+
+        #region + / Add
+
+        public static HTTPErrorLogEvent operator + (HTTPErrorLogEvent e, HTTPErrorLogHandler callback)
         {
 
             if (callback == null)
                 throw new NullReferenceException("callback is null");
 
             if (e == null)
-                e = new ErrorLogEvent();
+                e = new HTTPErrorLogEvent();
 
-            lock (e.locker)
+            lock (e.subscribers)
             {
-                e.invocationList.Add(callback);
+                e.subscribers.Add(callback);
             }
 
             return e;
 
         }
 
-        public static ErrorLogEvent operator -(ErrorLogEvent e, Func<HTTPAPI, DateTime, HTTPRequest, HTTPResponse, String, Exception, Task> callback)
+        public HTTPErrorLogEvent Add(HTTPErrorLogHandler callback)
+        {
+
+            if (callback == null)
+                throw new NullReferenceException("callback is null");
+
+            lock (subscribers)
+            {
+                subscribers.Add(callback);
+            }
+
+            return this;
+
+        }
+
+        #endregion
+
+        #region - / Remove
+
+        public static HTTPErrorLogEvent operator - (HTTPErrorLogEvent e, HTTPErrorLogHandler callback)
         {
 
             if (callback == null)
@@ -231,57 +669,232 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (e == null)
                 return null;
 
-            lock (e.locker)
+            lock (e.subscribers)
             {
-                e.invocationList.Remove(callback);
+                e.subscribers.Remove(callback);
             }
 
             return e;
 
         }
 
-        public async Task InvokeAsync(HTTPAPI        HTTPProcessor,
-                                      DateTime       ServerTimestamp,
-                                      HTTPRequest    Request,
-                                      HTTPResponse   Response,
-                                      String         Error          = null,
-                                      Exception      LastException  = null)
+        public HTTPErrorLogEvent Remove(HTTPErrorLogHandler callback)
         {
 
-            Func<HTTPAPI, DateTime, HTTPRequest, HTTPResponse, String, Exception, Task>[] tmpInvocationList;
+            if (callback == null)
+                throw new NullReferenceException("callback is null");
 
-            lock (locker)
+            lock (subscribers)
             {
-                tmpInvocationList = invocationList.ToArray();
+                subscribers.Remove(callback);
             }
 
-            foreach (var callback in tmpInvocationList)
-                await callback(HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException).ConfigureAwait(false);
+            return this;
 
         }
 
-        public Task WhenAll(HTTPAPI        HTTPProcessor,
-                            DateTime       ServerTimestamp,
-                            HTTPRequest    Request,
-                            HTTPResponse   Response,
-                            String         Error          = null,
-                            Exception      LastException  = null)
+        #endregion
+
+
+        #region InvokeAsync(ServerTimestamp, HTTPAPI, Request, Response, Error = null, LastException = null)
+
+        /// <summary>
+        /// Call all subscribers sequentially.
+        /// </summary>
+        /// <param name="ServerTimestamp">The timestamp of the event.</param>
+        /// <param name="HTTPAPI">The sending HTTP API.</param>
+        /// <param name="Request">The HTTP request.</param>
+        /// <param name="Response">The HTTP response.</param>
+        /// <param name="Error">An error message.</param>
+        /// <param name="LastException">The last exception occured.</param>
+        public async Task InvokeAsync(DateTime      ServerTimestamp,
+                                      HTTPAPI       HTTPAPI,
+                                      HTTPRequest   Request,
+                                      HTTPResponse  Response,
+                                      String        Error          = null,
+                                      Exception     LastException  = null)
         {
 
-            Task[] tmpInvocationList;
+            HTTPErrorLogHandler[] _invocationList;
 
-            lock (locker)
+            lock (subscribers)
             {
-                tmpInvocationList = invocationList.
-                                        Select(callback => callback(HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException)).
+                _invocationList = subscribers.ToArray();
+            }
+
+            foreach (var callback in _invocationList)
+                await callback(ServerTimestamp, HTTPAPI, Request, Response, Error, LastException).ConfigureAwait(false);
+
+        }
+
+        #endregion
+
+        #region WhenAny    (ServerTimestamp, HTTPAPI, Request, Response, Error = null, LastException = null, Timeout = null)
+
+        /// <summary>
+        /// Call all subscribers in parallel and wait for any to complete.
+        /// </summary>
+        /// <param name="ServerTimestamp">The timestamp of the event.</param>
+        /// <param name="HTTPAPI">The sending HTTP API.</param>
+        /// <param name="Request">The HTTP request.</param>
+        /// <param name="Response">The HTTP response.</param>
+        /// <param name="Error">An error message.</param>
+        /// <param name="LastException">The last exception occured.</param>
+        /// <param name="Timeout">A timeout for this operation.</param>
+        public Task WhenAny(DateTime      ServerTimestamp,
+                            HTTPAPI       HTTPAPI,
+                            HTTPRequest   Request,
+                            HTTPResponse  Response,
+                            String        Error          = null,
+                            Exception     LastException  = null,
+                            TimeSpan?     Timeout        = null)
+        {
+
+            List<Task> _invocationList;
+
+            lock (subscribers)
+            {
+
+                _invocationList = subscribers.
+                                        Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response, Error, LastException)).
+                                        ToList();
+
+                if (Timeout.HasValue)
+                    _invocationList.Add(Task.Delay(Timeout.Value));
+
+            }
+
+            return Task.WhenAny(_invocationList);
+
+        }
+
+        #endregion
+
+        #region WhenFirst  (ServerTimestamp, HTTPAPI, Request, Response, Error, LastException, VerifyResult, Timeout = null, DefaultResult = null)
+
+        /// <summary>
+        /// Call all subscribers in parallel and wait for all to complete.
+        /// </summary>
+        /// <typeparam name="T">The type of the results.</typeparam>
+        /// <param name="ServerTimestamp">The timestamp of the event.</param>
+        /// <param name="HTTPAPI">The sending HTTP API.</param>
+        /// <param name="Request">The HTTP request.</param>
+        /// <param name="Response">The HTTP response.</param>
+        /// <param name="Error">An error message.</param>
+        /// <param name="LastException">The last exception occured.</param>
+        /// <param name="VerifyResult">A delegate to verify and filter results.</param>
+        /// <param name="Timeout">A timeout for this operation.</param>
+        /// <param name="DefaultResult">A default result in case of errors or a timeout.</param>
+        public Task<T> WhenFirst<T>(DateTime           ServerTimestamp,
+                                    HTTPAPI            HTTPAPI,
+                                    HTTPRequest        Request,
+                                    HTTPResponse       Response,
+                                    String             Error,
+                                    Exception          LastException,
+                                    Func<T, Boolean>   VerifyResult,
+                                    TimeSpan?          Timeout        = null,
+                                    Func<TimeSpan, T>  DefaultResult  = null)
+        {
+
+            #region Data
+
+            List<Task>  _invocationList;
+            Task        WorkDone;
+            Task<T>     Result;
+            DateTime    StartTime    = DateTime.UtcNow;
+            Task        TimeoutTask  = null;
+
+            #endregion
+
+            lock (subscribers)
+            {
+
+                _invocationList = subscribers.
+                                        Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response, Error, LastException)).
+                                        ToList();
+
+                if (Timeout.HasValue)
+                    _invocationList.Add(TimeoutTask = Task.Run(() => System.Threading.Thread.Sleep(Timeout.Value)));
+
+            }
+
+            do
+            {
+
+                try
+                {
+
+                    WorkDone = Task.WhenAny(_invocationList);
+
+                    _invocationList.Remove(WorkDone);
+
+                    if (WorkDone != TimeoutTask)
+                    {
+
+                        Result = WorkDone as Task<T>;
+
+                        if (Result != null &&
+                            !EqualityComparer<T>.Default.Equals(Result.Result, default(T)) &&
+                            VerifyResult(Result.Result))
+                        {
+                            return Result;
+                        }
+
+                    }
+
+                }
+                catch (Exception e)
+                {
+                    DebugX.LogT(e.Message);
+                    WorkDone = null;
+                }
+
+            }
+            while (!(WorkDone == TimeoutTask || _invocationList.Count == 0));
+
+            return Task.FromResult(DefaultResult(DateTime.UtcNow - StartTime));
+
+        }
+
+        #endregion
+
+        #region WhenAll    (ServerTimestamp, HTTPAPI, Request, Response, Error = null, LastException = null)
+
+        /// <summary>
+        /// Call all subscribers in parallel and wait for all to complete.
+        /// </summary>
+        /// <param name="ServerTimestamp">The timestamp of the event.</param>
+        /// <param name="HTTPAPI">The sending HTTP API.</param>
+        /// <param name="Request">The HTTP request.</param>
+        /// <param name="Response">The HTTP response.</param>
+        /// <param name="Error">An error message.</param>
+        /// <param name="LastException">The last exception occured.</param>
+        public Task WhenAll(DateTime      ServerTimestamp,
+                            HTTPAPI       HTTPAPI,
+                            HTTPRequest   Request,
+                            HTTPResponse  Response,
+                            String        Error          = null,
+                            Exception     LastException  = null)
+        {
+
+            Task[] _invocationList;
+
+            lock (subscribers)
+            {
+                _invocationList = subscribers.
+                                        Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response, Error, LastException)).
                                         ToArray();
             }
 
-            return Task.WhenAll(tmpInvocationList);
+            return Task.WhenAll(_invocationList);
 
         }
 
+        #endregion
+
     }
+
+    #endregion
 
 
     /// <summary>
@@ -358,17 +971,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event called whenever a HTTP request came in.
         /// </summary>
-        public RequestLogEvent   RequestLog    = new RequestLogEvent();
+        public HTTPRequestLogEvent   RequestLog    = new HTTPRequestLogEvent();
 
         /// <summary>
         /// An event called whenever a HTTP request could successfully be processed.
         /// </summary>
-        public ResponseLogEvent  ResponseLog   = new ResponseLogEvent();
+        public HTTPResponseLogEvent  ResponseLog   = new HTTPResponseLogEvent();
 
         /// <summary>
         /// An event called whenever a HTTP request resulted in an error.
         /// </summary>
-        public ErrorLogEvent     ErrorLog      = new ErrorLogEvent();
+        public HTTPErrorLogEvent     ErrorLog      = new HTTPErrorLogEvent();
 
         #endregion
 
