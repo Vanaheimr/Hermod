@@ -925,8 +925,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Create a HTTP response for the exception...
 
-                Response = new HTTPResponseBuilder(Request,
-                                                   HTTPStatusCode.RequestTimeout)
+                Response = new HTTPResponse.Builder(Request,
+                                                    HTTPStatusCode.RequestTimeout)
                 {
 
                     ContentType  = HTTPContentType.JSON_UTF8,
@@ -955,8 +955,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 while (e.InnerException != null)
                     e = e.InnerException;
 
-                Response = new HTTPResponseBuilder(Request,
-                                                   HTTPStatusCode.BadRequest)
+                Response = new HTTPResponse.Builder(Request,
+                                                    HTTPStatusCode.BadRequest)
                 {
 
                     ContentType  = HTTPContentType.JSON_UTF8,

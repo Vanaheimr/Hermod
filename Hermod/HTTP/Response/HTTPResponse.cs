@@ -20,6 +20,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
@@ -69,6 +70,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
+
+
+        #region Reply(this HTTPRequest)
+
+        /// <summary>
+        /// Create a new HTTP response builder for the given request.
+        /// </summary>
+        /// <param name="HTTPRequest">A HTTP request.</param>
+        public static HTTPResponse.Builder Reply(this HTTPRequest HTTPRequest)
+
+            => new HTTPResponse.Builder(HTTPRequest);
+
+        #endregion
 
     }
 
@@ -180,7 +194,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         private HTTPResponse(HTTPRequest  Request,
                              TContent     Content)
 
-            : this(HTTPResponseBuilder.OK(Request), Content, false)
+            : this(Builder.OK(Request), Content, false)
 
         { }
 
@@ -191,7 +205,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPResponse(HTTPRequest  Request,
                             Exception    Exception)
 
-            : this(new HTTPResponseBuilder(Request) { HTTPStatusCode = HTTPStatusCode.BadRequest },
+            : this(new Builder(Request) { HTTPStatusCode = HTTPStatusCode.BadRequest },
                    default(TContent),
                    true,
                    Exception)
@@ -298,7 +312,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (static) GatewayTimeout
 
         public static HTTPResponse<TContent> GatewayTimeout(TContent Content)
-            => new HTTPResponse<TContent>(new HTTPResponseBuilder(null, HTTPStatusCode.GatewayTimeout), Content);
+            => new HTTPResponse<TContent>(new Builder(null, HTTPStatusCode.GatewayTimeout), Content);
 
         #endregion
 
@@ -618,7 +632,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    DefaultHTTPBodyReceiveBufferSize,
                    Request?.CancellationToken,
                    Request?.EventTrackingId,
-                   DateTime.UtcNow - Request.Timestamp,
+                   Request != null ? DateTime.UtcNow - Request.Timestamp : TimeSpan.Zero,
                    NumberOfRetry)
 
         {
@@ -657,7 +671,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    DefaultHTTPBodyReceiveBufferSize,
                    Request?.CancellationToken,
                    Request?.EventTrackingId,
-                   DateTime.UtcNow - Request.Timestamp)
+                   Request != null ? DateTime.UtcNow - Request.Timestamp : TimeSpan.Zero)
 
         { }
 
@@ -687,7 +701,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    HTTPBodyReceiveBufferSize,
                    Request?.CancellationToken,
                    Request?.EventTrackingId,
-                   DateTime.UtcNow - Request.Timestamp)
+                   Request != null ? DateTime.UtcNow - Request.Timestamp : TimeSpan.Zero)
 
         { }
 
@@ -781,7 +795,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     Header,
                                     Body.ToUTF8Bytes(),
                                     EventTrackingId:  EventTrackingId,
-                                    Runtime:          Timestamp - Request.Timestamp);
+                                    Runtime:          Request != null ? Timestamp - Request.Timestamp : TimeSpan.Zero);
 
         }
 
@@ -974,24 +988,103 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (static) BadRequest
+        #region (static) OK                (Request, Configurator = null)
 
-        public static HTTPResponse BadRequest
-            => new HTTPResponse(new HTTPResponseBuilder(null, HTTPStatusCode.BadRequest));
+        /// <summary>
+        /// Create a new 200-OK HTTP response and apply the given delegate.
+        /// </summary>
+        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+        public static HTTPResponse OK(HTTPRequest      Request,
+                                      Action<Builder>  Configurator = null)
+
+            => Builder.OK(Request, Configurator);
+
+
+        /// <summary>
+        /// Create a new 200-OK HTTP response and apply the given delegate.
+        /// </summary>
+        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+        public static HTTPResponse OK(HTTPRequest             Request,
+                                      Func<Builder, Builder>  Configurator)
+
+            => Builder.OK(Request, Configurator);
 
         #endregion
 
-        #region (static) ServiceUnavailable
+        #region (static) BadRequest        (Request, Configurator = null)
 
-        public static HTTPResponse ServiceUnavailable
-            => new HTTPResponse(new HTTPResponseBuilder(null, HTTPStatusCode.ServiceUnavailable));
+        /// <summary>
+        /// Create a new 400-BadRequest HTTP response and apply the given delegate.
+        /// </summary>
+        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+        public static HTTPResponse BadRequest(HTTPRequest      Request,
+                                              Action<Builder>  Configurator = null)
+
+            => Builder.BadRequest(Request, Configurator);
+
+
+        /// <summary>
+        /// Create a new 400-BadRequest HTTP response and apply the given delegate.
+        /// </summary>
+        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+        public static HTTPResponse BadRequest(HTTPRequest             Request,
+                                              Func<Builder, Builder>  Configurator)
+
+            => Builder.BadRequest(Request, Configurator);
 
         #endregion
 
-        #region (static) GatewayTimeout
+        #region (static) ServiceUnavailable(Request, Configurator = null)
 
-        public static HTTPResponse GatewayTimeout
-            => new HTTPResponse(new HTTPResponseBuilder(null, HTTPStatusCode.GatewayTimeout));
+        /// <summary>
+        /// Create a new 503-ServiceUnavailable HTTP response and apply the given delegate.
+        /// </summary>
+        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+        public static HTTPResponse ServiceUnavailable(HTTPRequest      Request,
+                                                      Action<Builder>  Configurator = null)
+
+            => Builder.ServiceUnavailable(Request, Configurator);
+
+
+        /// <summary>
+        /// Create a new 503-ServiceUnavailable HTTP response and apply the given delegate.
+        /// </summary>
+        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+        public static HTTPResponse ServiceUnavailable(HTTPRequest             Request,
+                                                      Func<Builder, Builder>  Configurator)
+
+            => Builder.ServiceUnavailable(Request, Configurator);
+
+        #endregion
+
+        #region (static) GatewayTimeout    (Request, Configurator = null)
+
+        /// <summary>
+        /// Create a new 504-GatewayTimeout HTTP response and apply the given delegate.
+        /// </summary>
+        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+        public static HTTPResponse GatewayTimeout(HTTPRequest      Request,
+                                                  Action<Builder>  Configurator = null)
+
+            => Builder.GatewayTimeout(Request, Configurator);
+
+
+        /// <summary>
+        /// Create a new 504-GatewayTimeout HTTP response and apply the given delegate.
+        /// </summary>
+        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+        public static HTTPResponse GatewayTimeout(HTTPRequest             Request,
+                                                  Func<Builder, Builder>  Configurator)
+
+            => Builder.GatewayTimeout(Request, Configurator);
 
         #endregion
 
@@ -1005,6 +1098,842 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public override String ToString()
         {
             return EntirePDU;
+        }
+
+        #endregion
+
+
+        #region (class) Builder
+
+        /// <summary>
+        /// A read-write HTTP response header.
+        /// </summary>
+        public class Builder : AHTTPPDUBuilder
+        {
+
+            #region Properties
+
+            /// <summary>
+            /// The correlated HTTP request.
+            /// </summary>
+            public HTTPRequest        HTTPRequest          { get; }
+
+            /// <summary>
+            /// The timestamp of the HTTP response.
+            /// </summary>
+            public DateTime           Timestamp            { get; }
+
+            /// <summary>
+            /// The cancellation token.
+            /// </summary>
+            public CancellationToken  CancellationToken    { get; set; }
+
+            /// <summary>
+            /// The runtime of the HTTP request/response pair.
+            /// </summary>
+            public TimeSpan?          Runtime              { get; }
+
+            /// <summary>
+            /// The entire HTTP header.
+            /// </summary>
+            public String             HTTPHeader
+
+                => HTTPStatusCode.HTTPResponseString + Environment.NewLine +
+                         ConstructedHTTPHeader       + Environment.NewLine +
+                         Environment.NewLine;
+
+            #endregion
+
+            #region Response header fields
+
+            #region Age
+
+            public UInt64? Age
+            {
+
+                get
+                {
+                    return GetHeaderField_UInt64(HTTPHeaderField.Age);
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPHeaderField.Age, value);
+                }
+
+            }
+
+            #endregion
+
+            #region Allow
+
+            public List<HTTPMethod> Allow
+            {
+
+                get
+                {
+                    return GetHeaderField<List<HTTPMethod>>(HTTPHeaderField.Age);
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPHeaderField.Allow, value);
+                }
+
+            }
+
+            #endregion
+
+            #region DAV
+
+            public String DAV
+            {
+
+                get
+                {
+                    return GetHeaderField(HTTPHeaderField.Age);
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPHeaderField.DAV, value);
+                }
+
+            }
+
+            #endregion
+
+            #region ETag
+
+            public String ETag
+            {
+
+                get
+                {
+                    return GetHeaderField(HTTPHeaderField.ETag);
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPHeaderField.ETag, value);
+                }
+
+            }
+
+            #endregion
+
+            #region Expires
+
+            public String Expires
+            {
+
+                get
+                {
+                    return GetHeaderField(HTTPHeaderField.Expires);
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPHeaderField.Expires, value);
+                }
+
+            }
+
+            #endregion
+
+            #region KeepAlive
+
+            public KeepAliveType KeepAlive
+            {
+
+                get
+                {
+                    return new KeepAliveType(GetHeaderField(HTTPHeaderField.KeepAlive));
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPHeaderField.KeepAlive, value);
+                }
+
+            }
+
+            #endregion
+
+            #region LastModified
+
+            public String LastModified
+            {
+
+                get
+                {
+                    return GetHeaderField(HTTPHeaderField.LastModified);
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPHeaderField.LastModified, value);
+                }
+
+            }
+
+            #endregion
+
+            #region Location
+
+            public HTTPURI Location
+            {
+
+                get
+                {
+                    return HTTPURI.Parse(GetHeaderField(HTTPHeaderField.Location));
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPHeaderField.Location, value);
+                }
+
+            }
+
+            #endregion
+
+            #region ProxyAuthenticate
+
+            public String ProxyAuthenticate
+            {
+
+                get
+                {
+                    return GetHeaderField(HTTPHeaderField.ProxyAuthenticate);
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPHeaderField.ProxyAuthenticate, value);
+                }
+
+            }
+
+            #endregion
+
+            #region RetryAfter
+
+            public String RetryAfter
+            {
+
+                get
+                {
+                    return GetHeaderField(HTTPHeaderField.RetryAfter);
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPHeaderField.RetryAfter, value);
+                }
+
+            }
+
+            #endregion
+
+            #region Server
+
+            public String Server
+            {
+
+                get
+                {
+                    return GetHeaderField(HTTPHeaderField.Server);
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPHeaderField.Server, value);
+                }
+
+            }
+
+            #endregion
+
+            #region SetCookie
+
+            public String SetCookie
+            {
+
+                get
+                {
+                    return GetHeaderField(HTTPHeaderField.SetCookie);
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPHeaderField.SetCookie, value);
+                }
+
+            }
+
+            #endregion
+
+            #region Vary
+
+            public String Vary
+            {
+
+                get
+                {
+                    return GetHeaderField(HTTPHeaderField.Vary);
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPHeaderField.Vary, value);
+                }
+
+            }
+
+            #endregion
+
+            #region WWWAuthenticate
+
+            public String WWWAuthenticate
+            {
+
+                get
+                {
+                    return GetHeaderField(HTTPHeaderField.WWWAuthenticate);
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPHeaderField.WWWAuthenticate, value);
+                }
+
+            }
+
+            #endregion
+
+            #endregion
+
+            #region Constructor(s)
+
+            /// <summary>
+            /// Create a new HTTP response.
+            /// </summary>
+            /// <param name="HTTPStatusCode">A HTTP status code</param>
+            public Builder(HTTPStatusCode  HTTPStatusCode = null)
+            {
+
+                this._HTTPStatusCode    = HTTPStatusCode;
+                this.Timestamp          = DateTime.UtcNow;
+                this.ProtocolName       = "HTTP";
+                this.ProtocolVersion    = new HTTPVersion(1, 1);
+                this.CancellationToken  = new CancellationTokenSource().Token;
+                base.EventTrackingId    = EventTracking_Id.New;
+                this.Runtime            = TimeSpan.Zero;
+
+            }
+
+            /// <summary>
+            /// Create a new HTTP response.
+            /// </summary>
+            /// <param name="HTTPRequest">The HTTP request for this response.</param>
+            /// <param name="HTTPStatusCode">A HTTP status code</param>
+            public Builder(HTTPRequest     HTTPRequest,
+                                       HTTPStatusCode  HTTPStatusCode = null)
+            {
+
+                this.HTTPRequest        = HTTPRequest;
+                this._HTTPStatusCode    = HTTPStatusCode;
+                this.Timestamp          = DateTime.UtcNow;
+                this.ProtocolName       = "HTTP";
+                this.ProtocolVersion    = new HTTPVersion(1, 1);
+                this.CancellationToken  = HTTPRequest?.CancellationToken ?? new CancellationTokenSource().Token;
+                base.EventTrackingId    = HTTPRequest?.EventTrackingId   ?? EventTracking_Id.New;
+                this.Runtime            = HTTPRequest != null
+                                              ? DateTime.UtcNow - HTTPRequest.Timestamp
+                                              : TimeSpan.Zero;
+
+            }
+
+            #endregion
+
+
+            #region Set(HeaderField, Value)
+
+            /// <summary>
+            /// Set a HTTP header field.
+            /// A field value of NULL will remove the field from the header.
+            /// </summary>
+            /// <param name="HeaderField">The header field.</param>
+            /// <param name="Value">The value. NULL will remove the field from the header.</param>
+            public Builder Set(HTTPHeaderField HeaderField, Object Value)
+            {
+
+                base.SetHeaderField(HeaderField, Value);
+
+                return this;
+
+            }
+
+            #endregion
+
+
+            #region (implicit operator) HTTPResponseBuilder => HTTPResponse
+
+            /// <summary>
+            /// An implicit conversion of a HTTPResponseBuilder into a HTTPResponse.
+            /// </summary>
+            /// <param name="HTTPResponseBuilder">A HTTP response builder.</param>
+            public static implicit operator HTTPResponse(Builder HTTPResponseBuilder)
+                => HTTPResponseBuilder.AsImmutable;
+
+            #endregion
+
+
+            #region Set non-http header fields
+
+            #region SetHTTPStatusCode(HTTPStatusCode)
+
+            /// <summary>
+            /// Set the HTTP status code.
+            /// </summary>
+            /// <param name="HTTPStatusCode">A HTTP status code.</param>
+            public Builder SetHTTPStatusCode(HTTPStatusCode HTTPStatusCode)
+            {
+                this.HTTPStatusCode = HTTPStatusCode;
+                return this;
+            }
+
+            #endregion
+
+            #region SetProtocolName(ProtocolName)
+
+            /// <summary>
+            /// Set the protocol name.
+            /// </summary>
+            /// <param name="ProtocolName">The protocol name.</param>
+            public Builder SetProtocolName(String ProtocolName)
+            {
+                this.ProtocolName = ProtocolName;
+                return this;
+            }
+
+            #endregion
+
+            #region SetProtocolVersion(ProtocolVersion)
+
+            /// <summary>
+            /// Set the protocol version.
+            /// </summary>
+            /// <param name="ProtocolVersion">The protocol version.</param>
+            public Builder SetProtocolVersion(HTTPVersion ProtocolVersion)
+            {
+                this.ProtocolVersion = ProtocolVersion;
+                return this;
+            }
+
+            #endregion
+
+            #region SetContent(...)
+
+            #region SetContent(ByteArray)
+
+            /// <summary>
+            /// The HTTP content/body.
+            /// </summary>
+            /// <param name="ByteArray">The HTTP content/body.</param>
+            public Builder SetContent(Byte[] ByteArray)
+            {
+                this.Content = ByteArray;
+                return this;
+            }
+
+            #endregion
+
+            #region SetContent(String)
+
+            /// <summary>
+            /// The HTTP content/body.
+            /// </summary>
+            /// <param name="String">The HTTP content/body.</param>
+            public Builder SetContent(String String)
+            {
+                this.Content = String.ToUTF8Bytes();
+                return this;
+            }
+
+            #endregion
+
+            #endregion
+
+            #region SetContentStream(ContentStream)
+
+            /// <summary>
+            /// The HTTP content/body as a stream.
+            /// </summary>
+            /// <param name="ContentStream">The HTTP content/body as a stream.</param>
+            public Builder SetContent(Stream ContentStream)
+            {
+                this.ContentStream = ContentStream;
+                return this;
+            }
+
+            #endregion
+
+            #endregion
+
+            #region Set general header fields
+
+            #region SetCacheControl(CacheControl)
+
+            /// <summary>
+            /// Set the HTTP CacheControl.
+            /// </summary>
+            /// <param name="CacheControl">CacheControl.</param>
+            public Builder SetCacheControl(String CacheControl)
+            {
+                this.CacheControl = CacheControl;
+                return this;
+            }
+
+            #endregion
+
+            #region SetConnection(Connection)
+
+            /// <summary>
+            /// Set the HTTP connection.
+            /// </summary>
+            /// <param name="Connection">A connection.</param>
+            public Builder SetConnection(String Connection)
+            {
+                this.Connection = Connection;
+                return this;
+            }
+
+            #endregion
+
+            #region SetContentEncoding(ContentEncoding)
+
+            /// <summary>
+            /// Set the HTTP Content-Encoding.
+            /// </summary>
+            /// <param name="ContentEncoding">The encoding of the HTTP content/body.</param>
+            public Builder SetContentEncoding(Encoding ContentEncoding)
+            {
+                this.ContentEncoding = ContentEncoding;
+                return this;
+            }
+
+            #endregion
+
+            #region SetContentLanguage(ContentLanguages)
+
+            /// <summary>
+            /// Set the HTTP Content-Languages.
+            /// </summary>
+            /// <param name="ContentLanguages">The languages of the HTTP content/body.</param>
+            public Builder SetContentLanguage(List<String> ContentLanguages)
+            {
+                this.ContentLanguage = ContentLanguages;
+                return this;
+            }
+
+            #endregion
+
+            #region SetContentLength(ContentLength)
+
+            /// <summary>
+            /// Set the HTTP Content-Length.
+            /// </summary>
+            /// <param name="ContentLength">The length of the HTTP content/body.</param>
+            public Builder SetContentLength(UInt64? ContentLength)
+            {
+                this.ContentLength = ContentLength;
+                return this;
+            }
+
+            #endregion
+
+            #region SetContentLocation(ContentLocation)
+
+            /// <summary>
+            /// Set the HTTP ContentLocation.
+            /// </summary>
+            /// <param name="ContentLocation">ContentLocation.</param>
+            public Builder SetContentLocation(String ContentLocation)
+            {
+                this.ContentLocation = ContentLocation;
+                return this;
+            }
+
+            #endregion
+
+            #region SetContentMD5(ContentMD5)
+
+            /// <summary>
+            /// Set the HTTP ContentMD5.
+            /// </summary>
+            /// <param name="ContentMD5">ContentMD5.</param>
+            public Builder SetContentMD5(String ContentMD5)
+            {
+                this.ContentMD5 = ContentMD5;
+                return this;
+            }
+
+            #endregion
+
+            #region SetContentRange(ContentRange)
+
+            /// <summary>
+            /// Set the HTTP ContentRange.
+            /// </summary>
+            /// <param name="ContentRange">ContentRange.</param>
+            public Builder SetContentRange(String ContentRange)
+            {
+                this.ContentRange = ContentRange;
+                return this;
+            }
+
+            #endregion
+
+            #region SetContentType(ContentType)
+
+            /// <summary>
+            /// Set the HTTP Content-Type.
+            /// </summary>
+            /// <param name="ContentType">The type of the HTTP content/body.</param>
+            public Builder SetContentType(HTTPContentType ContentType)
+            {
+                this.ContentType = ContentType;
+                return this;
+            }
+
+            #endregion
+
+            #region SetDate(Date)
+
+            /// <summary>
+            /// Set the HTTP Date.
+            /// </summary>
+            /// <param name="Date">DateTime.</param>
+            public Builder SetDate(DateTime Date)
+            {
+                this.Date = Date;
+                return this;
+            }
+
+            #endregion
+
+            #region SetVia(Via)
+
+            /// <summary>
+            /// Set the HTTP Via.
+            /// </summary>
+            /// <param name="Via">Via.</param>
+            public Builder SetVia(String Via)
+            {
+                this.Via = Via;
+                return this;
+            }
+
+            #endregion
+
+            #endregion
+
+
+            #region (static) OK                (Request, Configurator = null)
+
+            /// <summary>
+            /// Create a new 200-OK HTTP response and apply the given delegate.
+            /// </summary>
+            /// <param name="Request">A HTTP request.</param>
+            /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+            public static Builder OK(HTTPRequest      Request,
+                                     Action<Builder>  Configurator = null)
+            {
+
+                var response = new Builder(Request, HTTPStatusCode.OK);
+
+                Configurator?.Invoke(response);
+
+                return response;
+
+            }
+
+            /// <summary>
+            /// Create a new 200-OK HTTP response and apply the given delegate.
+            /// </summary>
+            /// <param name="Request">A HTTP request.</param>
+            /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+            public static Builder OK(HTTPRequest             Request,
+                                     Func<Builder, Builder>  Configurator)
+            {
+
+                var response = new Builder(Request, HTTPStatusCode.OK);
+
+                if (Configurator != null)
+                    return Configurator(response);
+
+                return response;
+
+            }
+
+            #endregion
+
+            #region (static) BadRequest        (Request, Configurator = null)
+
+            /// <summary>
+            /// Create a new 400-BadRequest HTTP response and apply the given delegate.
+            /// </summary>
+            /// <param name="Request">A HTTP request.</param>
+            /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+            public static Builder BadRequest(HTTPRequest      Request,
+                                             Action<Builder>  Configurator = null)
+            {
+
+                var response = new Builder(Request, HTTPStatusCode.BadRequest);
+
+                Configurator?.Invoke(response);
+
+                return response;
+
+            }
+
+            /// <summary>
+            /// Create a new 400-BadRequest HTTP response and apply the given delegate.
+            /// </summary>
+            /// <param name="Request">A HTTP request.</param>
+            /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+            public static Builder BadRequest(HTTPRequest             Request,
+                                             Func<Builder, Builder>  Configurator)
+            {
+
+                var response = new Builder(Request, HTTPStatusCode.BadRequest);
+
+                Configurator?.Invoke(response);
+
+                return response;
+
+            }
+
+            #endregion
+
+            #region (static) ServiceUnavailable(Request, Configurator = null)
+
+            /// <summary>
+            /// Create a new 503-ServiceUnavailable HTTP response and apply the given delegate.
+            /// </summary>
+            /// <param name="Request">A HTTP request.</param>
+            /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+            public static Builder ServiceUnavailable(HTTPRequest      Request,
+                                                     Action<Builder>  Configurator = null)
+            {
+
+                var response = new Builder(Request, HTTPStatusCode.ServiceUnavailable);
+
+                Configurator?.Invoke(response);
+
+                return response;
+
+            }
+
+            /// <summary>
+            /// Create a new 503-ServiceUnavailable HTTP response and apply the given delegate.
+            /// </summary>
+            /// <param name="Request">A HTTP request.</param>
+            /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+            public static Builder ServiceUnavailable(HTTPRequest             Request,
+                                                     Func<Builder, Builder>  Configurator)
+            {
+
+                var response = new Builder(Request, HTTPStatusCode.ServiceUnavailable);
+
+                Configurator?.Invoke(response);
+
+                return response;
+
+            }
+
+            #endregion
+
+            #region (static) GatewayTimeout    (Request, Configurator = null)
+
+            /// <summary>
+            /// Create a new 504-GatewayTimeout HTTP response and apply the given delegate.
+            /// </summary>
+            /// <param name="Request">A HTTP request.</param>
+            /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+            public static Builder GatewayTimeout(HTTPRequest      Request,
+                                                 Action<Builder>  Configurator = null)
+            {
+
+                var response = new Builder(Request, HTTPStatusCode.GatewayTimeout);
+
+                Configurator?.Invoke(response);
+
+                return response;
+
+            }
+
+            /// <summary>
+            /// Create a new 504-GatewayTimeout HTTP response and apply the given delegate.
+            /// </summary>
+            /// <param name="Request">A HTTP request.</param>
+            /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+            public static Builder GatewayTimeout(HTTPRequest             Request,
+                                                 Func<Builder, Builder>  Configurator)
+            {
+
+                var response = new Builder(Request, HTTPStatusCode.GatewayTimeout);
+
+                Configurator?.Invoke(response);
+
+                return response;
+
+            }
+
+            #endregion
+
+
+            #region PrepareImmutability()
+
+            /// <summary>
+            /// Prepares the immutability of an HTTP PDU, e.g. calculates
+            /// and set the Content-Length header.
+            /// </summary>
+            protected override void PrepareImmutability()
+            {
+                base.PrepareImmutability();
+            }
+
+            #endregion
+
+            #region AsImmutable
+
+            /// <summary>
+            /// Converts this HTTPResponseBuilder into an immutable HTTPResponse.
+            /// </summary>
+            public HTTPResponse AsImmutable
+            {
+                get
+                {
+
+                    PrepareImmutability();
+
+                    if (Content != null)
+                        return Parse(HTTPHeader, Content,       HTTPRequest);
+
+                    else if (ContentStream != null)
+                        return Parse(HTTPHeader, ContentStream, HTTPRequest);
+
+                    else
+                        return Parse(HTTPHeader, HTTPRequest);
+
+                }
+            }
+
+            #endregion
+
         }
 
         #endregion

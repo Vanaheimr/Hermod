@@ -25,6 +25,9 @@ using System.Threading.Tasks;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
+    public delegate Boolean TryParser<TResult>(String Input, out TResult arg);
+
+
     /// <summary>
     /// The delegate for the HTTP request log.
     /// </summary>

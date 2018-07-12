@@ -261,7 +261,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                   HTTPDelegate: Request => {
 
                                       return Task.FromResult(
-                                          new HTTPResponseBuilder(Request) {
+                                          new HTTPResponse.Builder(Request) {
 
                                               HTTPStatusCode  = HTTPStatusCode.BadGateway,
                                               ContentType     = HTTPContentType.TEXT_UTF8,
