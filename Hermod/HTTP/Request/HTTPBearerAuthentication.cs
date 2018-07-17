@@ -19,6 +19,7 @@
 
 using System;
 using System.Diagnostics;
+
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -27,23 +28,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// A HTTP basic authentication.
+    /// A HTTP Bearer authentication.
     /// </summary>
     [DebuggerDisplay("{DebugView}")]
-    public class HTTPBasicAuthentication : IHTTPAuthentication
+    public class HTTPBearerAuthentication : IHTTPAuthentication
     {
 
         #region Properties
 
         /// <summary>
-        /// The username.
+        /// The authentication token.
         /// </summary>
-        public String                   Username              { get; }
-
-        /// <summary>
-        /// The password.
-        /// </summary>
-        public String                   Password              { get; }
+        public String                   Token                 { get; }
 
         /// <summary>
         /// The type of the HTTP authentication.
@@ -52,59 +48,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
         public String HTTPText
-            => "Basic " + (Username + ":" + Password).ToBase64();
+            => "Bearer " + Token;
 
 
         /// <summary>
         /// Return a debug representation of this object.
         /// </summary>
         private String DebugView
-            => String.Concat("Basic '", Username, "', '", Password, "'");
+            => String.Concat("Bearer '", Token, "'");
 
         #endregion
 
         #region Constructor(s)
 
         /// <summary>
-        /// Create the credentials based on a base64 encoded string which comes from a HTTP header Authentication:
+        /// Create the credentials based on a string.
         /// </summary>
-        /// <param name="Username">The username.</param>
-        /// <param name="Password">The password.</param>
-        public HTTPBasicAuthentication(String  Username,
-                                       String  Password)
+        /// <param name="Token">The authentication token.</param>
+        public HTTPBearerAuthentication(String  Token)
         {
 
             #region Initial checks
 
-            if (Username.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(Username), "The given username must not be null or empty!");
-
-            if (Password.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(Password), "The given password must not be null or empty!");
+            if (Token?.Trim().IsNullOrEmpty() == true)
+                throw new ArgumentNullException(nameof(Token), "The given token must not be null or empty!");
 
             #endregion
 
-            this.HTTPCredentialType  = HTTPAuthenticationTypes.Basic;
-            this.Username            = Username;
-            this.Password            = Password;
+            this.HTTPCredentialType  = HTTPAuthenticationTypes.Bearer;
+            this.Token               = Token.Trim();
 
         }
 
         #endregion
 
 
-        #region (static) TryParse(Text, out BasicAuthentication)
+        #region (static) TryParse(Text, out BearerAuthentication)
 
         /// <summary>
         /// Try to parse the given text.
         /// </summary>
-        /// <param name="Text">A text representation of a HTTP basic authentication header.</param>
-        /// <param name="BasicAuthentication">The parsed HTTP basic authentication header.</param>
+        /// <param name="Text">A text representation of a HTTP Bearer authentication header.</param>
+        /// <param name="BearerAuthentication">The parsed HTTP Bearer authentication header.</param>
         /// <returns>true, when the parsing was successful, else false.</returns>
-        public static Boolean TryParse(String Text, out HTTPBasicAuthentication BasicAuthentication)
+        public static Boolean TryParse(String Text, out HTTPBearerAuthentication BearerAuthentication)
         {
 
-            BasicAuthentication = null;
+            BearerAuthentication = null;
 
             if (Text.IsNullOrEmpty())
                 return false;
@@ -115,15 +105,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return false;
 
             if (splitted.Length == 2 &&
-                String.Equals(splitted[0], "basic", StringComparison.OrdinalIgnoreCase))
+                String.Equals(splitted[0], "Bearer", StringComparison.OrdinalIgnoreCase))
             {
 
-                var usernamePassword = splitted[1].FromBase64().Split(new Char[] { ':' });
-
-                if (usernamePassword.IsNullOrEmpty())
+                if (splitted[1].IsNullOrEmpty())
                     return false;
 
-                BasicAuthentication = new HTTPBasicAuthentication(usernamePassword[0], usernamePassword[1]);
+                BearerAuthentication = new HTTPBearerAuthentication(splitted[1]);
                 return true;
 
             }
@@ -135,14 +123,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-
         #region (override) ToString()
 
         /// <summary>
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-            => "Basic " + (Username + ":" + Password).ToBase64();
+            => "Bearer " + Token;
 
         #endregion
 

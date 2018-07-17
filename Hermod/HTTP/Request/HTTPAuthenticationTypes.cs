@@ -42,6 +42,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         Basic,
 
         /// <summary>
+        /// Bearer token authentication required.
+        /// </summary>
+        Bearer,
+
+        /// <summary>
         /// Digest authentication required.
         /// </summary>
         Digest,

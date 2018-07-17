@@ -260,6 +260,136 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region GetResponseBodyAsUTF8String   (this Request, HTTPContentType)
+
+        public static String GetResponseBodyAsUTF8String(this HTTPResponse  Response,
+                                                         HTTPContentType    HTTPContentType,
+                                                         Boolean            AllowEmptyHTTPBody = false)
+        {
+
+            if (Response.ContentType != HTTPContentType)
+                return "";
+
+            if (!AllowEmptyHTTPBody)
+            {
+
+                if (Response.ContentLength == 0)
+                    return "";
+
+                if (!Response.TryReadHTTPBodyStream())
+                    return "";
+
+                if (Response.HTTPBody == null || Response.HTTPBody.Length == 0)
+                    return "";
+
+            }
+
+            var ResponseBodyString = Response.HTTPBody.ToUTF8String().Trim();
+
+            return ResponseBodyString.IsNullOrEmpty()
+                ? AllowEmptyHTTPBody
+                      ? ""
+                      : ResponseBodyString
+                : ResponseBodyString;
+
+        }
+
+        #endregion
+
+        #region TryParseJObjectRequestBody   (this Request, out JSON, out HTTPResponse, AllowEmptyHTTPBody = false, JSONLDContext = null)
+
+        public static Boolean TryParseJObjectResponseBody(this HTTPResponse  Response,
+                                                          out JObject        JSON,
+                                                          Boolean            AllowEmptyHTTPBody = false,
+                                                          String             JSONLDContext      = null)
+        {
+
+            #region AllowEmptyHTTPBody
+
+            if (Response.ContentLength == 0 && AllowEmptyHTTPBody)
+            {
+                JSON = new JObject();
+                return false;
+            }
+
+            #endregion
+
+            #region Get text body
+
+            var ResponseBodyString = Response.GetResponseBodyAsUTF8String(HTTPContentType.JSON_UTF8, AllowEmptyHTTPBody);
+
+            #endregion
+
+            #region Try to parse the JSON
+
+            try
+            {
+
+                JSON = JObject.Parse(ResponseBodyString);
+
+            }
+            catch (Exception e)
+            {
+                JSON = new JObject();
+                return false;
+            }
+
+            return true;
+
+            #endregion
+
+        }
+
+        #endregion
+
+        #region TryParseJArrayRequestBody    (this Request, out JSON, out HTTPResponse, AllowEmptyHTTPBody = false, JSONLDContext = null)
+
+        public static Boolean TryParseJObjectResponseBody(this HTTPResponse  Response,
+                                                          out JArray         JSON,
+                                                          Boolean            AllowEmptyHTTPBody = false,
+                                                          String             JSONLDContext      = null)
+        {
+
+            #region AllowEmptyHTTPBody
+
+            if (Response.ContentLength == 0 && AllowEmptyHTTPBody)
+            {
+                JSON = new JArray();
+                return false;
+            }
+
+            #endregion
+
+            #region Get text body
+
+            var ResponseBodyString = Response.GetResponseBodyAsUTF8String(HTTPContentType.JSON_UTF8, AllowEmptyHTTPBody);
+
+            #endregion
+
+            #region Try to parse the JSON
+
+            try
+            {
+
+                JSON = JArray.Parse(ResponseBodyString);
+
+            }
+            catch (Exception e)
+            {
+                JSON = new JArray();
+                return false;
+            }
+
+            return true;
+
+            #endregion
+
+        }
+
+        #endregion
+
+
+
 
         #region ParseXMLRequestBody(this Request, ContentType = null)
 
