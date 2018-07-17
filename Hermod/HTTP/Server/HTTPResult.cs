@@ -227,7 +227,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            var response = new HTTPResponseBuilder(HTTPRequest) {
+            var response = new HTTPResponse.Builder(HTTPRequest) {
                 Date            = DateTime.UtcNow,
                 HTTPStatusCode  = StatusCode,
                 CacheControl    = "no-cache",

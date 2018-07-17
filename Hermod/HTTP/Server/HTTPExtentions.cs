@@ -85,13 +85,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (Request.ContentLength == 0 && AllowEmptyHTTPBody)
             {
-
-                HTTPResponse = new HTTPResponseBuilder(Request) {
-                    HTTPStatusCode = HTTPStatusCode.OK,
-                };
-
+                HTTPResponse = HTTPResponse.OK(Request);
                 return false;
-
             }
 
             #endregion
@@ -131,13 +126,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (Request.ContentLength == 0 && AllowEmptyHTTPBody)
             {
-
-                HTTPResponse = new HTTPResponseBuilder(Request) {
-                    HTTPStatusCode = HTTPStatusCode.OK,
-                };
-
+                HTTPResponse = HTTPResponse.OK(Request);
                 return false;
-
             }
 
             #endregion
@@ -164,7 +154,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             catch (Exception e)
             {
 
-                HTTPResponse  = new HTTPResponseBuilder(Request) {
+                HTTPResponse  = new HTTPResponse.Builder(Request) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     ContentType     = HTTPContentType.JSON_UTF8,
                     Content         = JSONObject.Create(
@@ -204,13 +194,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (Request.ContentLength == 0 && AllowEmptyHTTPBody)
             {
-
-                HTTPResponse = new HTTPResponseBuilder(Request) {
-                    HTTPStatusCode = HTTPStatusCode.OK,
-                };
-
+                HTTPResponse = HTTPResponse.OK(Request);
                 return false;
-
             }
 
             #endregion
@@ -235,7 +220,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             catch (Exception e)
             {
 
-                HTTPResponse  = new HTTPResponseBuilder(Request) {
+                HTTPResponse  = new HTTPResponse.Builder(Request) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     ContentType     = HTTPContentType.JSON_UTF8,
                     Content         = JSONObject.Create(
@@ -421,11 +406,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
-        #region TryParseMultipartFormDataRequestBody(this Request, MimeMultipart, HTTPResponse)
+        #region TryParseMultipartFormDataRequestBody(this Request, MimeMultipart, Response)
 
         public static Boolean TryParseMultipartFormDataRequestBody(this HTTPRequest  Request,
                                                                    out Multipart     MimeMultipart,
-                                                                   out HTTPResponse  HTTPResponse)
+                                                                   out HTTPResponse  Response)
         {
 
             #region Initial checks
@@ -438,8 +423,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
 
                 MimeMultipart = null;
-                HTTPResponse  = HTTPResponse = new HTTPResponseBuilder(Request,
-                                                                       HTTPStatusCode.BadRequest);
+                Response      = HTTPResponse.BadRequest(Request);
 
                 return false;
 
@@ -452,7 +436,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             MimeMultipart = Multipart.Parse(Request.HTTPBody,
                                             Request.ContentType.MIMEBoundary);
-            HTTPResponse  = null;
+            Response  = null;
             return true;
 
         }
@@ -471,7 +455,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPResponse CreateBadRequest(HTTPRequest HTTPRequest, String Context, String ParameterName)
         {
 
-            return new HTTPResponseBuilder(HTTPRequest) {
+            return new HTTPResponse.Builder(HTTPRequest) {
                 HTTPStatusCode  = HTTPStatusCode.BadRequest,
                 ContentType     = HTTPContentType.JSON_UTF8,
                 Content         = new JObject(new JProperty("@context",    Context),
@@ -483,7 +467,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPResponse CreateBadRequest(HTTPRequest HTTPRequest, String Context, String ParameterName, String Value)
         {
 
-            return new HTTPResponseBuilder(HTTPRequest) {
+            return new HTTPResponse.Builder(HTTPRequest) {
                 HTTPStatusCode  = HTTPStatusCode.BadRequest,
                 ContentType     = HTTPContentType.JSON_UTF8,
                 Content         = new JObject(new JProperty("@context",    Context),
@@ -496,7 +480,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPResponse CreateNotFound(HTTPRequest HTTPRequest, String Context, String ParameterName, String Value)
         {
 
-            return new HTTPResponseBuilder(HTTPRequest) {
+            return new HTTPResponse.Builder(HTTPRequest) {
                 HTTPStatusCode  = HTTPStatusCode.NotFound,
                 ContentType     = HTTPContentType.JSON_UTF8,
                 Content         = new JObject(new JProperty("@context",    Context),
@@ -518,7 +502,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 I18N     = null;
 
-                Response = new HTTPResponseBuilder(HTTPRequest) {
+                Response = new HTTPResponse.Builder(HTTPRequest) {
                                HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                ContentType     = HTTPContentType.JSON_UTF8,
                                Content         = new JObject(new JProperty("description", "Invalid roaming network description!")).ToUTF8Bytes()
@@ -540,7 +524,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     I18N = null;
 
-                    Response = new HTTPResponseBuilder(HTTPRequest) {
+                    Response = new HTTPResponse.Builder(HTTPRequest) {
                                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                    ContentType     = HTTPContentType.JSON_UTF8,
                                    Content         = new JObject(new JProperty("description", "Unknown or invalid language definition '" + Description.Key + "'!")).ToUTF8Bytes()
@@ -557,7 +541,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     I18N = null;
 
-                    Response = new HTTPResponseBuilder(HTTPRequest) {
+                    Response = new HTTPResponse.Builder(HTTPRequest) {
                                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                    ContentType     = HTTPContentType.JSON_UTF8,
                                    Content         = new JObject(new JProperty("description", "Invalid description text!")).ToUTF8Bytes()

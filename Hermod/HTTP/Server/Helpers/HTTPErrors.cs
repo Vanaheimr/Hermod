@@ -174,11 +174,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            var x = new HTTPResponseBuilder(HTTPRequest) {
-                HTTPStatusCode = StatusCode,
-                CacheControl   = "no-cache",
-                Connection     = "close",
-                Content        = Content.ToUTF8Bytes()
+            var x = new HTTPResponse.Builder(HTTPRequest) {
+                HTTPStatusCode  = StatusCode,
+                CacheControl    = "no-cache",
+                Connection      = "close",
+                Content         = Content.ToUTF8Bytes()
             };
 
             return x;

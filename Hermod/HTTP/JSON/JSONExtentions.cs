@@ -34,7 +34,10 @@ using org.GraphDefined.Vanaheimr.Styx.Arrows;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
-    public static class JSONExt
+    /// <summary>
+    /// Extention methods to parse JSON.
+    /// </summary>
+    public static class JSONExtentions
     {
 
         #region Contains             (this JSON, PropertyName)
@@ -135,7 +138,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (ErrorResponse != null)
             {
 
-                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = DefaultServerName,
                     Date            = DateTime.UtcNow,
@@ -304,7 +307,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (ErrorResponse != null)
             {
 
-                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = DefaultServerName,
                     Date            = DateTime.UtcNow,
@@ -345,7 +348,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (ErrorResponse != null)
             {
 
-                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = DefaultServerName,
                     Date            = DateTime.UtcNow,
@@ -495,7 +498,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (ErrorResponse != null)
             {
 
-                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = DefaultServerName,
                     Date            = DateTime.UtcNow,
@@ -536,7 +539,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (ErrorResponse != null)
             {
 
-                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = DefaultServerName,
                     Date            = DateTime.UtcNow,
@@ -626,7 +629,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (ErrorResponse != null)
             {
 
-                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = DefaultServerName,
                     Date            = DateTime.UtcNow,
@@ -719,7 +722,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (ErrorResponse != null)
             {
 
-                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = DefaultServerName,
                     Date            = DateTime.UtcNow,
@@ -802,7 +805,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (ErrorResponse != null)
             {
 
-                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = DefaultServerName,
                     Date            = DateTime.UtcNow,
@@ -885,7 +888,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (ErrorResponse != null)
             {
 
-                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = DefaultServerName,
                     Date            = DateTime.UtcNow,
@@ -978,7 +981,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (ErrorResponse != null)
             {
 
-                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = DefaultServerName,
                     Date            = DateTime.UtcNow,
@@ -1084,7 +1087,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (ErrorResponse != null)
             {
 
-                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = DefaultServerName,
                     Date            = DateTime.UtcNow,
@@ -1172,7 +1175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (ErrorResponse != null)
             {
 
-                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = DefaultServerName,
                     Date            = DateTime.UtcNow,
@@ -1260,7 +1263,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (ErrorResponse != null)
             {
 
-                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = DefaultServerName,
                     Date            = DateTime.UtcNow,
@@ -1457,7 +1460,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 HTTPResponse = null;
 
             else
-                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                    Server          = DefaultServerName,
                                    Date            = DateTime.UtcNow,
@@ -1527,7 +1530,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 HTTPResponse = null;
 
             else
-                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                    Server          = DefaultServerName,
                                    Date            = DateTime.UtcNow,
@@ -1572,7 +1575,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 HTTPResponse = null;
 
             else
-                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                    Server          = DefaultServerName,
                                    Date            = DateTime.UtcNow,
@@ -1666,7 +1669,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 HTTPResponse = null;
 
             else
-                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                    Server          = DefaultServerName,
                                    Date            = DateTime.UtcNow,
@@ -1747,7 +1750,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 HTTPResponse = null;
 
             else
-                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                    Server          = DefaultServerName,
                                    Date            = DateTime.UtcNow,
@@ -1851,7 +1854,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 HTTPResponse = null;
 
             else
-                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                    Server          = DefaultServerName,
                                    Date            = DateTime.UtcNow,
@@ -1941,7 +1944,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 HTTPResponse = null;
 
             else
-                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                    Server          = DefaultServerName,
                                    Date            = DateTime.UtcNow,
@@ -2027,7 +2030,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 HTTPResponse = null;
 
             else
-                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                    Server          = DefaultServerName,
                                    Date            = DateTime.UtcNow,
@@ -2161,7 +2164,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 HTTPResponse = null;
 
             else
-                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                    Server          = DefaultServerName,
                                    Date            = DateTime.UtcNow,
@@ -2247,7 +2250,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 HTTPResponse = null;
 
             else
-                HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                    Server          = DefaultServerName,
                                    Date            = DateTime.UtcNow,

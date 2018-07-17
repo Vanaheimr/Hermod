@@ -50,11 +50,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            return new HTTPResponseBuilder(HTTPRequest) {
-                HTTPStatusCode = HTTPStatusCode.MovedPermanently,
-                CacheControl   = "no-cache",
-                Location       = Location,
-                Connection     = "close"
+            return new HTTPResponse.Builder(HTTPRequest) {
+                HTTPStatusCode  = HTTPStatusCode.MovedPermanently,
+                CacheControl    = "no-cache",
+                Location        = Location,
+                Connection      = "close"
             };
 
         }
@@ -79,11 +79,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            return new HTTPResponseBuilder(HTTPRequest) {
-                HTTPStatusCode = HTTPStatusCode.TemporaryRedirect,
-                CacheControl   = "no-cache",
-                Location       = Location,
-                Connection     = "close"
+            return new HTTPResponse.Builder(HTTPRequest) {
+                HTTPStatusCode  = HTTPStatusCode.TemporaryRedirect,
+                CacheControl    = "no-cache",
+                Location        = Location,
+                Connection      = "close"
             };
 
         }

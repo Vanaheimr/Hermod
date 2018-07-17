@@ -90,7 +90,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// All TCP ports this SOAP server listens on.
         /// </summary>
         public IEnumerable<IPPort> IPPorts
-            => SOAPServer.IPPorts;
+            => SOAPServer.HTTPServer.IPPorts;
 
         #endregion
 
@@ -219,18 +219,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             #region Initial checks
 
             if (URIPrefix.HasValue)
-                while (URIPrefix.Value.EndsWith("/", StringComparison.Ordinal))
+                while (URIPrefix.Value.EndsWith("/", StringComparison.Ordinal) && URIPrefix.Value.Length > 1)
                     URIPrefix = URIPrefix.Value.Substring(0, (Int32) URIPrefix.Value.Length - 1);
 
             #endregion
 
             this.SOAPServer  = SOAPServer ?? throw new ArgumentNullException(nameof(SOAPServer), "The given SOAP server must not be null!");
             this.URIPrefix   = URIPrefix ?? DefaultURIPrefix;
-            this.DNSClient   = SOAPServer.DNSClient;
+            this.DNSClient   = SOAPServer.HTTPServer.DNSClient;
 
-            SOAPServer.RequestLog   += (HTTPProcessor, ServerTimestamp, Request)                                 => RequestLog. WhenAll(HTTPProcessor, ServerTimestamp, Request);
-            SOAPServer.ResponseLog  += (HTTPProcessor, ServerTimestamp, Request, Response)                       => ResponseLog.WhenAll(HTTPProcessor, ServerTimestamp, Request, Response);
-            SOAPServer.ErrorLog     += (HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException) => ErrorLog.   WhenAll(HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException);
+            SOAPServer.HTTPServer.RequestLog   += (HTTPProcessor, ServerTimestamp, Request)                                 => RequestLog. WhenAll(HTTPProcessor, ServerTimestamp, Request);
+            SOAPServer.HTTPServer.ResponseLog  += (HTTPProcessor, ServerTimestamp, Request, Response)                       => ResponseLog.WhenAll(HTTPProcessor, ServerTimestamp, Request, Response);
+            SOAPServer.HTTPServer.ErrorLog     += (HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException) => ErrorLog.   WhenAll(HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException);
 
         }
 
@@ -244,51 +244,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         private void RegisterRootService()
         {
 
-            SOAPServer.AddMethodCallback(HTTPHostname.Any,
-                                         HTTPMethod.GET,
+            SOAPServer.HTTPServer.
+                AddMethodCallback(HTTPHostname.Any,
+                                  HTTPMethod.GET,
 
-                                         new HTTPURI[] {
-                                             HTTPURI.Parse("/"),
-                                             URIPrefix + "/"
-                                         },
+                                  new HTTPURI[] {
+                                      HTTPURI.Parse("/"),
+                                      URIPrefix + "/"
+                                  },
 
-                                         new HTTPContentType[] {
-                                             HTTPContentType.TEXT_UTF8,
-                                             HTTPContentType.HTML_UTF8
-                                         },
+                                  new HTTPContentType[] {
+                                      HTTPContentType.TEXT_UTF8,
+                                      HTTPContentType.HTML_UTF8
+                                  },
 
-                                         HTTPDelegate: Request => {
+                                  HTTPDelegate: Request => {
 
-                                             return Task.FromResult(
-                                                 new HTTPResponseBuilder(Request) {
+                                      return Task.FromResult(
+                                          new HTTPResponse.Builder(Request) {
 
-                                                     HTTPStatusCode  = HTTPStatusCode.BadGateway,
-                                                     ContentType     = HTTPContentType.TEXT_UTF8,
-                                                     Content         = ("Welcome at " + DefaultHTTPServerName + Environment.NewLine +
-                                                                        "This is a HTTP/SOAP/XML endpoint!" + Environment.NewLine + Environment.NewLine +
+                                              HTTPStatusCode  = HTTPStatusCode.BadGateway,
+                                              ContentType     = HTTPContentType.TEXT_UTF8,
+                                              Content         = ("Welcome at " + DefaultHTTPServerName + Environment.NewLine +
+                                                                 "This is a HTTP/SOAP/XML endpoint!" + Environment.NewLine + Environment.NewLine +
 
-                                                                        ((Request.HTTPBodyStream is SslStream)
-                                                                             ? (Request.HTTPBodyStream as SslStream)?.RemoteCertificate.Subject + Environment.NewLine +
-                                                                               (Request.HTTPBodyStream as SslStream)?.RemoteCertificate.Issuer  + Environment.NewLine +
-                                                                                Environment.NewLine
-                                                                             : "") +
+                                                                 ((Request.HTTPBodyStream is SslStream)
+                                                                      ? (Request.HTTPBodyStream as SslStream)?.RemoteCertificate.Subject + Environment.NewLine +
+                                                                        (Request.HTTPBodyStream as SslStream)?.RemoteCertificate.Issuer  + Environment.NewLine +
+                                                                         Environment.NewLine
+                                                                      : "") +
 
-                                                                        "Defined endpoints: " + Environment.NewLine + Environment.NewLine +
-                                                                        SOAPServer.
-                                                                            SOAPDispatchers.
-                                                                            Select(group => " - " + group.Key + Environment.NewLine +
-                                                                                            "   " + group.SelectMany(dispatcher => dispatcher.SOAPDispatches).
-                                                                                                          Select    (dispatch   => dispatch.  Description).
-                                                                                                          AggregateWith(", ")
-                                                                                  ).AggregateWith(Environment.NewLine + Environment.NewLine)
-                                                                       ).ToUTF8Bytes(),
-                                                     Connection      = "close"
+                                                                 "Defined endpoints: " + Environment.NewLine + Environment.NewLine +
+                                                                 SOAPServer.
+                                                                     SOAPDispatchers.
+                                                                     Select(group => " - " + group.Key + Environment.NewLine +
+                                                                                     "   " + group.SelectMany(dispatcher => dispatcher.SOAPDispatches).
+                                                                                                   Select    (dispatch   => dispatch.  Description).
+                                                                                                   AggregateWith(", ")
+                                                                           ).AggregateWith(Environment.NewLine + Environment.NewLine)
+                                                                ).ToUTF8Bytes(),
+                                              Connection      = "close"
 
-                                                 }.AsImmutable);
+                                          }.AsImmutable);
 
-                                         },
+                                  },
 
-                                         AllowReplacement: URIReplacement.Allow);
+                                  AllowReplacement: URIReplacement.Allow);
 
         }
 
@@ -302,7 +303,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// </summary>
         public virtual void Start()
         {
-            SOAPServer.Start();
+            SOAPServer.HTTPServer.Start();
         }
 
         #endregion
@@ -317,7 +318,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         public virtual void Shutdown(String   Message  = null,
                                      Boolean  Wait     = true)
         {
-            SOAPServer.Shutdown(Message, Wait);
+            SOAPServer.HTTPServer.Shutdown(Message, Wait);
         }
 
         #endregion

@@ -157,7 +157,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                                                              SOAPDispatch.SOAPHeader,
                                                                              SOAPDispatch.SOAPBody);
 
-                return new HTTPResponseBuilder(Request) {
+                return new HTTPResponse.Builder(Request) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     ContentType     = HTTPContentType.TEXT_UTF8,
                     Content         = "Invalid SOAP/XML processing!".ToUTF8Bytes(),
@@ -166,7 +166,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             }
 
-            return new HTTPResponseBuilder(Request) {
+            return new HTTPResponse.Builder(Request) {
                 HTTPStatusCode  = HTTPStatusCode.BadRequest,
                 ContentType     = HTTPContentType.TEXT_UTF8,
                 Content         = "Unknown SOAP/XML!".ToUTF8Bytes(),
@@ -185,7 +185,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="Request">A HTTP request.</param>
         public Task<HTTPResponse> EndpointTextInfo(HTTPRequest Request)
 
-            => Task.FromResult(new HTTPResponseBuilder(Request) {
+            => Task.FromResult(new HTTPResponse.Builder(Request) {
 
                 HTTPStatusCode  = HTTPStatusCode.OK,
                 ContentType     = HTTPContentType.TEXT_UTF8,

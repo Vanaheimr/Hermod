@@ -1286,7 +1286,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (LastException != null)
                 Content += LastException.Message + Environment.NewLine;
 
-            var _HTTPResponse = new HTTPResponseBuilder(HTTPRequest) {
+            var _HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                                     HTTPStatusCode  = HTTPStatusCode,
                                     Date            = Timestamp,
                                     Content         = Content.ToUTF8Bytes()
@@ -2447,7 +2447,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     DebugX.LogT("HTTP server request processing exception: " + e.Message);
 
-                    _HTTPResponse = new HTTPResponseBuilder(Request) {
+                    _HTTPResponse = new HTTPResponse.Builder(Request) {
                                         HTTPStatusCode  = HTTPStatusCode.InternalServerError,
                                         ContentType     = HTTPContentType.JSON_UTF8,
                                         Content         = JSONObject.Create(
@@ -2483,7 +2483,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            return _HTTPResponse ?? new HTTPResponseBuilder(Request) {
+            return _HTTPResponse ?? new HTTPResponse.Builder(Request) {
                                         HTTPStatusCode  = HTTPStatusCode.NotFound,
                                         Server          = Request.Host.ToString(),
                                         Date            = DateTime.UtcNow,
@@ -2627,7 +2627,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
                                return Task.FromResult(
-                                   new HTTPResponseBuilder(Request) {
+                                   new HTTPResponse.Builder(Request) {
                                        HTTPStatusCode  = HTTPStatusCode.OK,
                                        Server          = HTTPServer.DefaultHTTPServerName,
                                        ContentType     = HTTPContentType.EVENTSTREAM,

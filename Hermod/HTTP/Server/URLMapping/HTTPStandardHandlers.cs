@@ -54,7 +54,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              URITemplate:   URITemplate,
                                              HTTPDelegate:  async Request => {
 
-                                                 return new HTTPResponseBuilder(Request) {
+                                                 return new HTTPResponse.Builder(Request) {
 
                                                      HTTPStatusCode  = HTTPStatusCode.OK,
                                                      Server          = HTTPServer.DefaultServerName,
@@ -152,7 +152,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              var FileStream = ResourceAssembly.GetManifestResourceStream(ResourceFilename);
 
                                              if (FileStream != null)
-                                                 return new HTTPResponseBuilder(Request) {
+                                                 return new HTTPResponse.Builder(Request) {
                                                      HTTPStatusCode  = HTTPStatusCode.OK,
                                                      Server          = HTTPServer.DefaultServerName,
                                                      Date            = DateTime.UtcNow,
@@ -202,7 +202,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  }
 
                                                  if (ErrorStream != null)
-                                                     return new HTTPResponseBuilder(Request) {
+                                                     return new HTTPResponse.Builder(Request) {
                                                          HTTPStatusCode = HTTPStatusCode.NotFound,
                                                          ContentType    = ResponseContentType,
                                                          ContentStream  = ErrorStream,
@@ -215,7 +215,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  #region ...or send a default error page!
 
                                                  else
-                                                     return new HTTPResponseBuilder(Request) {
+                                                     return new HTTPResponse.Builder(Request) {
                                                          HTTPStatusCode  = HTTPStatusCode.NotFound,
                                                          Server          = HTTPServer.DefaultServerName,
                                                          Date            = DateTime.UtcNow,
@@ -274,7 +274,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (Request.Authorization          == null        ||
                         Request.Authorization.Username != HTTPLogin   ||
                         Request.Authorization.Password != HTTPPassword)
-                        return new HTTPResponseBuilder(Request) {
+                        return new HTTPResponse.Builder(Request) {
                             HTTPStatusCode   = HTTPStatusCode.Unauthorized,
                             Server           = HTTPServer.DefaultServerName,
                             Date             = DateTime.UtcNow,
@@ -327,7 +327,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #region Create HTTP Response
 
-                    return new HTTPResponseBuilder(Request) {
+                    return new HTTPResponse.Builder(Request) {
                         HTTPStatusCode  = HTTPStatusCode.OK,
                         Server          = HTTPServer.DefaultServerName,
                         Date            = DateTime.UtcNow,
@@ -383,7 +383,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     if (ErrorStream != null)
-                        return new HTTPResponseBuilder(Request) {
+                        return new HTTPResponse.Builder(Request) {
                             HTTPStatusCode  = HTTPStatusCode.NotFound,
                             Server          = HTTPServer.DefaultServerName,
                             Date            = DateTime.UtcNow,
@@ -398,7 +398,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     #region ...or send a default error page!
 
                     else
-                        return new HTTPResponseBuilder(Request) {
+                        return new HTTPResponse.Builder(Request) {
                             HTTPStatusCode  = HTTPStatusCode.NotFound,
                             Server          = HTTPServer.DefaultServerName,
                             Date            = DateTime.UtcNow,
@@ -500,7 +500,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  if (FileStream != null)
                                                  {
 
-                                                     return new HTTPResponseBuilder(Request) {
+                                                     return new HTTPResponse.Builder(Request) {
                                                          HTTPStatusCode  = HTTPStatusCode.OK,
                                                          Server          = HTTPServer.DefaultServerName,
                                                          Date            = DateTime.UtcNow,
@@ -514,7 +514,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              }
 
-                                             return new HTTPResponseBuilder(Request) {
+                                             return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
                                                  Server          = HTTPServer.DefaultServerName,
                                                  Date            = DateTime.UtcNow,
@@ -570,7 +570,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                 if (FileStream == null)
                                                     return Task.FromResult(
-                                                        new HTTPResponseBuilder(Request) {
+                                                        new HTTPResponse.Builder(Request) {
                                                             HTTPStatusCode  = HTTPStatusCode.NotFound,
                                                             Server          = HTTPServer.DefaultServerName,
                                                             Date            = DateTime.UtcNow,
@@ -607,7 +607,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                 #region Create HTTP Response
 
                                                 return Task.FromResult(
-                                                    new HTTPResponseBuilder(Request) {
+                                                    new HTTPResponse.Builder(Request) {
                                                         HTTPStatusCode  = HTTPStatusCode.OK,
                                                         Server          = HTTPServer.DefaultServerName,
                                                         Date            = DateTime.UtcNow,
@@ -628,7 +628,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             {
 
                                                 return Task.FromResult(
-                                                    new HTTPResponseBuilder(Request) {
+                                                    new HTTPResponse.Builder(Request) {
                                                         HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                         Server          = HTTPServer.DefaultServerName,
                                                         Date            = DateTime.UtcNow,
@@ -762,7 +762,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                      #region Create HTTP Response
 
-                                                     return new HTTPResponseBuilder(Request) {
+                                                     return new HTTPResponse.Builder(Request) {
                                                          HTTPStatusCode  = HTTPStatusCode.OK,
                                                          Server          = HTTPServer.DefaultServerName,
                                                          Date            = DateTime.UtcNow,
@@ -783,7 +783,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              {
                                              }
 
-                                             return new HTTPResponseBuilder(Request) {
+                                             return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
                                                  Server          = HTTPServer.DefaultServerName,
                                                  Date            = DateTime.UtcNow,
