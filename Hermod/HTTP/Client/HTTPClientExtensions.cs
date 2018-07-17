@@ -235,18 +235,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         // Additional methods
 
-        #region PATCH   (this HTTPClient, URI = "/")
+        #region PATCH   (this HTTPClient, URI = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP PATCH request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
         /// <param name="URI">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder PATCH(this HTTPClient  HTTPClient,
-                                                HTTPURI          URI)
+        public static HTTPRequest.Builder PATCH(this HTTPClient              HTTPClient,
+                                                HTTPURI                      URI,
+                                                Action<HTTPRequest.Builder>  BuilderAction = null)
 
-            => HTTPClient.CreateRequest(HTTPMethod.PATCH, URI);
+            => HTTPClient.CreateRequest(HTTPMethod.PATCH, URI, BuilderAction);
 
         #endregion
 
