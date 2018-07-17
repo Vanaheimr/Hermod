@@ -1268,12 +1268,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Authorization
 
-            public HTTPBasicAuthentication Authorization
+            public IHTTPAuthentication Authorization
             {
 
                 get
                 {
-                    return GetHeaderField<HTTPBasicAuthentication>(HTTPHeaderField.Authorization);
+
+                    var aa = GetHeaderField<String>(HTTPHeaderField.Authorization);
+
+                    if (HTTPBasicAuthentication. TryParse(aa, out HTTPBasicAuthentication  BasicAuth))
+                        return BasicAuth;
+
+                    if (HTTPBearerAuthentication.TryParse(aa, out HTTPBearerAuthentication BearerAuth))
+                        return BearerAuth;
+
+                    return null;
+
                 }
 
                 set
