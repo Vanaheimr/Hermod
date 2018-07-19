@@ -403,14 +403,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPMethod CHOWN         = new HTTPMethod("CHOWN");
 
         /// <summary>
-        /// Authenticate at the given resource, e.g. for login purposes.
+        /// Authenticate the given user/resource.
         /// </summary>
         public static readonly HTTPMethod AUTH          = new HTTPMethod("AUTH");
 
         /// <summary>
-        /// Deauthenticate at the given resource, e.g. for login purposes.
+        /// Deauthenticate the given user/resource.
         /// </summary>
         public static readonly HTTPMethod DEAUTH        = new HTTPMethod("DEAUTH");
+
+        /// <summary>
+        /// Impersonate (become/switch to) the given user/resource.
+        /// </summary>
+        public static readonly HTTPMethod IMPERSONATE   = new HTTPMethod("IMPERSONATE");
+
+        /// <summary>
+        /// Depersonate (switch back) from the given user/resource.
+        /// </summary>
+        public static readonly HTTPMethod DEPERSONATE   = new HTTPMethod("DEPERSONATE");
 
         /// <summary>
         /// Update a resource (a replacement for PUT)
