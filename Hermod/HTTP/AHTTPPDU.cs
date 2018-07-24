@@ -579,9 +579,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Value">The value of the requested header field.</param>
         /// <returns>True if the requested header exists; false otherwise.</returns>
         protected Boolean TryGetHeaderField(HTTPHeaderField HeaderField, out Object Value)
-        {
-            return _HeaderFields.TryGetValue(HeaderField.Name, out Value);
-        }
+
+            => _HeaderFields.TryGetValue(HeaderField.Name, out Value);
 
         #endregion
 

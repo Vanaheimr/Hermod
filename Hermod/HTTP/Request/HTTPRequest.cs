@@ -543,6 +543,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region DNT
+
+        /// <summary>
+        /// Do Not Track
+        /// </summary>
+        public Boolean DNT
+            => GetHeaderField(HTTPHeaderField.DNT) != "0";
+
+        #endregion
+
         #endregion
 
         #region Non-standard request header fields
@@ -593,13 +603,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (!TryGetHeaderField(HTTPHeaderField.X_Forwarded_For, out Object Value))
                     return null;
 
-                var list = (String) Value;
+                if (Value is String list)
+                {
+                    return list.Split(new Char[] { ',' }, StringSplitOptions.RemoveEmptyEntries).
+                                Select(_ => IPAddress.Parse(_.Trim()));
+                }
 
-                if (list == null)
-                    return null;
-
-                return list.Split(new Char[] { ',' }, StringSplitOptions.RemoveEmptyEntries).
-                            Select(_ => IPAddress.Parse(_.Trim()));
+                return null;
 
             }
 
@@ -640,6 +650,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 else
                     return APIKey.TryParse(Value.ToString());
+
+            }
+
+        }
+
+        #endregion
+
+        #region X-Portal
+
+        /// <summary>
+        /// This is a non-standard HTTP header to idicate that the intended
+        /// HTTP portal is calling. By this a special HTTP content type processing
+        /// might be implemented, which is different from the processing of other
+        /// HTTP client requests.
+        /// </summary>
+        /// <example>X-Portal: true</example>
+        public Boolean X_Portal
+        {
+
+            get
+            {
+
+                if (!TryGetHeaderField(HTTPHeaderField.X_Portal, out Object Value))
+                    return false;
+
+                if (Value is Boolean boolean)
+                    return boolean;
+
+                return Value is String text && text == "true";
 
             }
 

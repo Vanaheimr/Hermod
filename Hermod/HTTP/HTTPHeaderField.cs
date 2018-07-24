@@ -2115,6 +2115,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region DNT
+
+        /// <summary>
+        /// With Do Not Track: A user enables Do Not Track in her web browser.
+        /// She navigates a sequence of popular websites, many of which
+        /// incorporate content from a major advertising network.  The
+        /// advertising network delivers advertisements, but refrains from THIRD-
+        /// PARTY TRACKING of the user.
+        /// </summary>
+        /// <example>DNT: 1</example>
+        /// <seealso cref="https://tools.ietf.org/html/draft-mayer-do-not-track-00"/>
+        public static readonly HTTPHeaderField DNT = new HTTPHeaderField("DNT",
+                                                                         typeof(Boolean),
+                                                                         HeaderFieldType.Request,
+                                                                         RequestPathSemantic.EndToEnd);
+
+        #endregion
+
         #endregion
 
         #region Non-standard request header fields
@@ -2186,6 +2204,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                     typeof(String),
                                                                                     HeaderFieldType.Response,
                                                                                     RequestPathSemantic.EndToEnd);
+
+        #endregion
+
+        #region X-Portal
+
+        /// <summary>
+        /// This is a non-standard HTTP header to idicate that the intended
+        /// HTTP portal is calling. By this a special HTTP content type processing
+        /// might be implemented, which is different from the processing of other
+        /// HTTP client requests.
+        /// </summary>
+        /// <example>X-Portal: true</example>
+        public static readonly HTTPHeaderField X_Portal = new HTTPHeaderField("X-Portal",
+                                                                              typeof(Boolean),
+                                                                              HeaderFieldType.Request,
+                                                                              RequestPathSemantic.EndToEnd);
 
         #endregion
 
