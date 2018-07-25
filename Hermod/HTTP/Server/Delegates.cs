@@ -17,6 +17,7 @@
 
 #region Usings
 
+using Newtonsoft.Json.Linq;
 using System;
 using System.Threading.Tasks;
 
@@ -25,6 +26,8 @@ using System.Threading.Tasks;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
+
+    public delegate Boolean TryJObjectParser<TResult>(JObject Input, out TResult arg, out String ErrorResponse);
     public delegate Boolean TryParser<TResult>(String Input, out TResult arg);
 
 
