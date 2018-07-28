@@ -60,7 +60,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The internal identification of the HTTP event.
         /// </summary>
-        public HTTPEventSource_Id              EventIdentification    { get; }
+        public HTTPEventSource_Id              EventIdentification        { get; }
 
         /// <summary>
         /// Maximum number of cached events.
@@ -68,15 +68,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public UInt64  MaxNumberOfCachedEvents
             => QueueOfEvents.MaxNumberOfElements;
 
+        ///// <summary>
+        ///// Include this events within the HTTP SSE output.
+        ///// Can e.g. be used to filter events by HTTP users.
+        ///// </summary>
+        //public Func<HTTPEvent, Boolean>        IncludeFilterAtRuntime     { get; }
+
         /// <summary>
         /// The retry intervall of this HTTP event.
         /// </summary>
-        public TimeSpan                        RetryIntervall         { get; set; }
+        public TimeSpan                        RetryIntervall             { get; set; }
 
         /// <summary>
         /// The delegate to create a filename for storing and reloading events.
         /// </summary>
-        public Func<String, DateTime, String>  LogfileName            { get; }
+        public Func<String, DateTime, String>  LogfileName                { get; }
 
         #endregion
 
@@ -87,22 +93,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="EventIdentification">The internal identification of the HTTP event.</param>
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
+        /// <param name="IncludeFilterAtRuntime">Include this events within the HTTP SSE output. Can e.g. be used to filter events by HTTP users.</param>
         /// <param name="RetryIntervall">The retry intervall.</param>
         /// <param name="LogfileName">A delegate to create a filename for storing events.</param>
         /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
         public HTTPEventSource(HTTPEventSource_Id              EventIdentification,
                                UInt64                          MaxNumberOfCachedEvents     = 500,
+                               //Func<HTTPEvent, Boolean>        IncludeFilterAtRuntime      = null,
                                TimeSpan?                       RetryIntervall              = null,
                                Boolean                         EnableLogging               = true,
                                Func<String, DateTime, String>  LogfileName                 = null,
                                String                          LogfileReloadSearchPattern  = null)
         {
 
-            this.EventIdentification  = EventIdentification;
-            this.QueueOfEvents        = new TSQueue<HTTPEvent>(MaxNumberOfCachedEvents);
-            this.RetryIntervall       = RetryIntervall ?? TimeSpan.FromSeconds(30);
-            this.LogfileName          = LogfileName;
-            this.IdCounter            = 1;
+            this.EventIdentification     = EventIdentification;
+            this.QueueOfEvents           = new TSQueue<HTTPEvent>(MaxNumberOfCachedEvents);
+            //this.IncludeFilterAtRuntime  = IncludeFilterAtRuntime ?? (httpEvent => true);
+            this.RetryIntervall          = RetryIntervall ?? TimeSpan.FromSeconds(30);
+            this.LogfileName             = LogfileName;
+            this.IdCounter               = 1;
 
             if (EnableLogging)
             {
@@ -248,6 +257,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+
         #region SubmitTimestampedEvent(Timestamp, params Data)
 
         /// <summary>
@@ -285,6 +295,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                  )).ConfigureAwait(false);
 
         #endregion
+
 
 
         #region SubmitSubEvent(SubEvent, params Data)
@@ -338,6 +349,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
+
 
         #region SubmitTimestampedSubEvent(SubEvent, params Data)
 
@@ -471,14 +483,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Get a list of events filtered by the event id.
         /// </summary>
         /// <param name="LastEventId">The Last-Event-Id header value.</param>
-        public IEnumerable<HTTPEvent> GetAllEventsGreater(UInt64 LastEventId = 0)
+        public IEnumerable<HTTPEvent> GetAllEventsGreater(UInt64? LastEventId = 0)
         {
 
             lock (QueueOfEvents)
             {
 
                 return from    Events in QueueOfEvents
-                       where   Events.Id > LastEventId
+                       where   Events.Id > (LastEventId ?? 0)
                        orderby Events.Id
                        select  Events;
 

@@ -746,29 +746,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RetryIntervall">The retry intervall.</param>
         /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
         public HTTPEventSource AddEventSource(HTTPEventSource_Id              EventIdentification,
-                                              UInt32                          MaxNumberOfCachedEvents,
-                                              TimeSpan?                       RetryIntervall  = null,
-                                              Boolean                         EnableLogging   = true,
-                                              Func<String, DateTime, String>  LogfileName     = null)
+                                              UInt32                          MaxNumberOfCachedEvents     = 500,
+                                              TimeSpan?                       RetryIntervall              = null,
+                                              Boolean                         EnableLogging               = true,
+                                              String                          LogfilePrefix               = null,
+                                              Func<String, DateTime, String>  LogfileName                 = null,
+                                              String                          LogfileReloadSearchPattern  = null)
 
             => _HTTPServer.AddEventSource(EventIdentification,
                                           MaxNumberOfCachedEvents,
                                           RetryIntervall,
                                           EnableLogging,
-                                          LogfileName);
+                                          LogfilePrefix,
+                                          LogfileName,
+                                          LogfileReloadSearchPattern);
 
         #endregion
 
         #region AddEventSource(EventIdentification, URITemplate, MaxNumberOfCachedEvents = 500, RetryIntervall = null, EnableLogging = false, LogfileName = null, ...)
 
         /// <summary>
-        /// Add a method call back for the given URI template and
-        /// add a HTTP Sever Sent Events source.
+        /// Add a HTTP Sever Sent Events source and a method call back for the given URI template.
         /// </summary>
         /// <param name="EventIdentification">The unique identification of the event source.</param>
         /// <param name="URITemplate">The URI template.</param>
         /// 
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
+        /// <param name="IncludeFilterAtRuntime">Include this events within the HTTP SSE output. Can e.g. be used to filter events by HTTP users.</param>
         /// <param name="RetryIntervall">The retry intervall.</param>
         /// <param name="EnableLogging">Enables storing and reloading events </param>
         /// <param name="LogfilePrefix">A prefix for the log file names or locations.</param>
@@ -787,6 +791,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               HTTPURI                         URITemplate,
 
                                               UInt32                          MaxNumberOfCachedEvents     = 500,
+                                              Func<HTTPEvent, Boolean>        IncludeFilterAtRuntime      = null,
                                               TimeSpan?                       RetryIntervall              = null,
                                               Boolean                         EnableLogging               = true,
                                               String                          LogfilePrefix               = null,
@@ -806,6 +811,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           URITemplate,
 
                                           MaxNumberOfCachedEvents,
+                                          IncludeFilterAtRuntime,
                                           RetryIntervall,
                                           EnableLogging,
                                           LogfilePrefix,
@@ -824,76 +830,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region GetEventSource(EventSourceIdentification)
+        #region Get   (EventSourceIdentification)
 
         /// <summary>
         /// Return the event source identified by the given event source identification.
         /// </summary>
         /// <param name="EventSourceIdentification">A string to identify an event source.</param>
-        public HTTPEventSource GetEventSource(HTTPEventSource_Id EventSourceIdentification)
+        public HTTPEventSource Get(HTTPEventSource_Id EventSourceIdentification)
 
-            => _HTTPServer.GetEventSource(EventSourceIdentification);
-
-        #endregion
-
-        #region UseEventSource(EventSourceIdentification, Action)
-
-        /// <summary>
-        /// Call the given delegate for the event source identified
-        /// by the given event source identification.
-        /// </summary>
-        /// <param name="EventSourceIdentification">A string to identify an event source.</param>
-        /// <param name="Action">A delegate.</param>
-        public void UseEventSource(HTTPEventSource_Id       EventSourceIdentification,
-                                   Action<HTTPEventSource>  Action)
-
-            => _HTTPServer.UseEventSource(EventSourceIdentification,
-                                          Action);
+            => _HTTPServer.Get(EventSourceIdentification);
 
         #endregion
 
-        #region UseEventSource(EventSourceIdentification, DataSource, Action)
+        #region TryGet(EventSourceIdentification, EventSource)
 
         /// <summary>
-        /// Call the given delegate for the event source identified
-        /// by the given event source identification.
-        /// </summary>
-        /// <typeparam name="T">The type of the return values.</typeparam>
-        /// <param name="EventSourceIdentification">A string to identify an event source.</param>
-        /// <param name="DataSource">A enumeration of data.</param>
-        /// <param name="Action">A delegate.</param>
-        public void UseEventSource<T>(HTTPEventSource_Id          EventSourceIdentification,
-                                      IEnumerable<T>              DataSource,
-                                      Action<HTTPEventSource, T>  Action)
-
-            => _HTTPServer.UseEventSource(EventSourceIdentification,
-                                          DataSource,
-                                          Action);
-
-        #endregion
-
-        #region TryGetEventSource(EventSourceIdentification, EventSource)
-
-        /// <summary>
-        /// Return the event source identified by the given event source identification.
+        /// Try to return the event source identified by the given event source identification.
         /// </summary>
         /// <param name="EventSourceIdentification">A string to identify an event source.</param>
         /// <param name="EventSource">The event source.</param>
-        public Boolean TryGetEventSource(HTTPEventSource_Id EventSourceIdentification, out HTTPEventSource EventSource)
+        public Boolean TryGet(HTTPEventSource_Id EventSourceIdentification, out HTTPEventSource EventSource)
 
-            => _HTTPServer.TryGetEventSource(EventSourceIdentification, out EventSource);
+            => _HTTPServer.TryGet(EventSourceIdentification, out EventSource);
 
         #endregion
 
-        #region GetEventSources(IncludeEventSource = null)
+        #region EventSources(IncludeEventSource = null)
 
         /// <summary>
-        /// An enumeration of all event sources.
+        /// Return a filtered enumeration of all event sources.
         /// </summary>
         /// <param name="IncludeEventSource">An event source filter delegate.</param>
-        public IEnumerable<HTTPEventSource> GetEventSources(Func<HTTPEventSource, Boolean> IncludeEventSource = null)
+        public IEnumerable<HTTPEventSource> EventSources(Func<HTTPEventSource, Boolean> IncludeEventSource = null)
 
-            => _HTTPServer.GetEventSources(IncludeEventSource);
+            => _HTTPServer.EventSources(IncludeEventSource);
 
         #endregion
 
@@ -2510,10 +2480,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RetryIntervall">The retry intervall.</param>
         /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
         public HTTPEventSource AddEventSource(HTTPEventSource_Id              EventIdentification,
-                                              UInt32                          MaxNumberOfCachedEvents   = 500,
-                                              TimeSpan?                       RetryIntervall            = null,
-                                              Boolean                         EnableLogging             = true,
-                                              Func<String, DateTime, String>  LogfileName               = null)
+                                              UInt32                          MaxNumberOfCachedEvents     = 500,
+                                              TimeSpan?                       RetryIntervall              = null,
+                                              Boolean                         EnableLogging               = true,
+                                              String                          LogfilePrefix               = null,
+                                              Func<String, DateTime, String>  LogfileName                 = null,
+                                              String                          LogfileReloadSearchPattern  = null)
+
         {
 
             lock (_HostnameNodes)
@@ -2527,7 +2500,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                            MaxNumberOfCachedEvents,
                                                                            RetryIntervall,
                                                                            EnableLogging,
-                                                                           LogfileName));
+                                                                           EnableLogging || LogfileName != null
+                                                                               ? LogfileName ?? ((eventid, time) => String.Concat(LogfilePrefix ?? "",
+                                                                                                                                  eventid, "_",
+                                                                                                                                  time.Year, "-", time.Month.ToString("D2"),
+                                                                                                                                  ".log"))
+                                                                               : null,
+                                                                           LogfileReloadSearchPattern ?? String.Concat(LogfilePrefix ?? "", EventIdentification, "_*.log")));
 
             }
 
@@ -2538,13 +2517,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region AddEventSource(EventIdentification, URITemplate, MaxNumberOfCachedEvents = 500, RetryIntervall = null, LogfileName = null, ...)
 
         /// <summary>
-        /// Add a method call back for the given URI template and
-        /// add a HTTP Sever Sent Events source.
+        /// Add a HTTP Sever Sent Events source and a method call back for the given URI template.
         /// </summary>
         /// <param name="EventIdentification">The unique identification of the event source.</param>
         /// <param name="URITemplate">The URI template.</param>
         /// 
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
+        /// <param name="IncludeFilterAtRuntime">Include this events within the HTTP SSE output. Can e.g. be used to filter events by HTTP users.</param>
         /// <param name="RetryIntervall">The retry intervall.</param>
         /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
         /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
@@ -2561,6 +2540,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               HTTPURI                         URITemplate,
 
                                               UInt32                          MaxNumberOfCachedEvents     = 500,
+                                              Func<HTTPEvent, Boolean>        IncludeFilterAtRuntime      = null,
                                               TimeSpan?                       RetryIntervall              = null,
                                               Boolean                         EnableLogging               = true,
                                               String                          LogfilePrefix               = null,
@@ -2581,49 +2561,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             lock (_EventSources)
             {
 
-                #region Get or Create Event Source
+                var _EventSource = AddEventSource(EventIdentification,
+                                                  MaxNumberOfCachedEvents,
+                                                  RetryIntervall,
+                                                  EnableLogging,
+                                                  LogfilePrefix,
+                                                  LogfileName,
+                                                  LogfileReloadSearchPattern);
 
-                if (!_EventSources.TryGetValue(EventIdentification, out HTTPEventSource _HTTPEventSource))
-                {
-
-                    _HTTPEventSource = _EventSources.AddAndReturnValue(EventIdentification,
-                                                                       new HTTPEventSource(EventIdentification,
-                                                                                           MaxNumberOfCachedEvents,
-                                                                                           RetryIntervall,
-                                                                                           EnableLogging,
-                                                                                           EnableLogging || LogfileName != null
-                                                                                               ? LogfileName ?? ((eventid, time) => String.Concat(LogfilePrefix ?? "",
-                                                                                                                                                  eventid, "_",
-                                                                                                                                                  time.Year, "-", time.Month.ToString("D2"),
-                                                                                                                                                  ".log"))
-                                                                                               : null,
-                                                                                           LogfileReloadSearchPattern ?? String.Concat(LogfilePrefix ?? "", EventIdentification, "_*.log")));
-
-                }
-
-                #endregion
+                if (IncludeFilterAtRuntime == null)
+                    IncludeFilterAtRuntime = httpEvent => true;
 
                 AddHandler(Request => {
 
-                               var _LastEventId         = 0UL;
-                               var _EventSource         = Get(EventIdentification);
+                               //var _LastEventId         = 0UL;
+                               //var _EventSource         = Get(EventIdentification);
 
-                               if (Request.TryGet("Last-Event-ID", out ulong _Client_LastEventId))
-                                   _LastEventId         = _Client_LastEventId;
+                               //if (Request.TryGet("Last-Event-ID", out ulong _Client_LastEventId))
+                               //    _LastEventId         = _Client_LastEventId;
 
-                               var _HTTPEvents          = (from   _HTTPEvent
-                                                           in     _EventSource.GetAllEventsGreater(_LastEventId)
-                                                           where  _HTTPEvent != null
-                                                           select _HTTPEvent.ToString()).ToArray(); // For thread safety!
+                               //var _HTTPEvents          = (from   _HTTPEvent
+                               //                            in     _EventSource.GetAllEventsGreater(_LastEventId)
+                               //                            where  _HTTPEvent != null && IncludeFilterAtRuntime(_HTTPEvent)
+                               //                            select _HTTPEvent.ToString()).ToArray(); // For thread safety!
 
-                               // Transform HTTP events into an UTF8 string
-                               var _ResourceContent     = String.Empty;
+                               //// Transform HTTP events into an UTF8 string
+                               //var _ResourceContent     = String.Empty;
 
-                               if (_HTTPEvents.Length > 0)
-                                   _ResourceContent     = Environment.NewLine + _HTTPEvents.Aggregate((a, b) => a + Environment.NewLine + b) + Environment.NewLine;
+                               //if (_HTTPEvents.Length > 0)
+                               //    _ResourceContent     = Environment.NewLine + _HTTPEvents.Aggregate((a, b) => a + Environment.NewLine + b) + Environment.NewLine;
 
-                               else
-                                   _ResourceContent += Environment.NewLine + "retry: " + ((UInt32)_EventSource.RetryIntervall.TotalMilliseconds) + Environment.NewLine + Environment.NewLine;
+                               //else
+                               //    _ResourceContent += Environment.NewLine + "retry: " + ((UInt32)_EventSource.RetryIntervall.TotalMilliseconds) + Environment.NewLine + Environment.NewLine;
+
+                               var _HTTPEvents = _EventSource.GetAllEventsGreater(Request.GetHeaderField_UInt64("Last-Event-ID")).
+                                                  Where (IncludeFilterAtRuntime).
+                                                  Select(_event => _event.ToString()).
+                                                  AggregateWith(Environment.NewLine) +
+                                     Environment.NewLine;
+
+                               //             _ResourceContent += Environment.NewLine + "retry: " + ((UInt32)_EventSource.RetryIntervall.TotalMilliseconds) + Environment.NewLine + Environment.NewLine;
+
 
 
                                return Task.FromResult(
@@ -2634,7 +2612,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        CacheControl    = "no-cache",
                                        Connection      = "keep-alive",
                                        KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * _EventSource.RetryIntervall.TotalSeconds)),
-                                       Content         = _ResourceContent.ToUTF8Bytes()
+                                       Content         = _HTTPEvents.ToUTF8Bytes()
                                    }.AsImmutable);
 
                            },
@@ -2652,7 +2630,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                            DefaultErrorHandler);
 
-                return _HTTPEventSource;
+                return _EventSource;
 
             }
 
@@ -2703,103 +2681,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region GetEventSources(IncludeEventSource = null)
+        #region EventSources(IncludeEventSource = null)
 
         /// <summary>
-        /// An enumeration of all event sources.
+        /// Return a filtered enumeration of all event sources.
         /// </summary>
         /// <param name="IncludeEventSource">An event source filter delegate.</param>
-        public IEnumerable<HTTPEventSource> GetEventSources(Func<HTTPEventSource, Boolean> IncludeEventSource = null)
+        public IEnumerable<HTTPEventSource> EventSources(Func<HTTPEventSource, Boolean> IncludeEventSource = null)
         {
 
             lock (_HostnameNodes)
             {
 
                 if (IncludeEventSource == null)
-                    foreach (var EventSource in _EventSources.Values)
-                        yield return EventSource;
+                    IncludeEventSource = eventSource => true;
 
-                else
-                    foreach (var EventSource in _EventSources.Values)
-                        if (IncludeEventSource(EventSource))
-                            yield return EventSource;
+                return _EventSources.Values.Where(IncludeEventSource);
 
             }
 
         }
-
-        #endregion
-
-
-        #region GetEventSource(EventSourceIdentification)
-
-        /// <summary>
-        /// Return the event source identified by the given event source identification.
-        /// </summary>
-        /// <param name="EventSourceIdentification">A string to identify an event source.</param>
-        public HTTPEventSource GetEventSource(HTTPEventSource_Id EventSourceIdentification)
-            => Get(EventSourceIdentification);
-
-        #endregion
-
-        #region UseEventSource(EventSourceIdentification, Action)
-
-        /// <summary>
-        /// Call the given delegate for the event source identified
-        /// by the given event source identification.
-        /// </summary>
-        /// <param name="EventSourceIdentification">A string to identify an event source.</param>
-        /// <param name="Action">A delegate.</param>
-        public void UseEventSource(HTTPEventSource_Id       EventSourceIdentification,
-                                   Action<HTTPEventSource>  Action)
-        {
-
-            if (Action == null)
-                return;
-
-            if (TryGet(EventSourceIdentification, out HTTPEventSource EventSource))
-                Action(EventSource);
-
-        }
-
-        #endregion
-
-        #region UseEventSource(EventSourceIdentification, DataSource, Action)
-
-        /// <summary>
-        /// Call the given delegate for the event source identified
-        /// by the given event source identification.
-        /// </summary>
-        /// <typeparam name="T">The type of the return values.</typeparam>
-        /// <param name="EventSourceIdentification">A string to identify an event source.</param>
-        /// <param name="DataSource">A enumeration of data.</param>
-        /// <param name="Action">A delegate.</param>
-        public void UseEventSource<T>(HTTPEventSource_Id          EventSourceIdentification,
-                                      IEnumerable<T>              DataSource,
-                                      Action<HTTPEventSource, T>  Action)
-        {
-
-            if (DataSource?.Any() != true || Action == null)
-                return;
-
-            if (TryGet(EventSourceIdentification, out HTTPEventSource EventSource))
-                foreach (var Data in DataSource)
-                    Action(EventSource, Data);
-
-        }
-
-        #endregion
-
-        #region TryGetEventSource(EventSourceIdentification, EventSource)
-
-        /// <summary>
-        /// Return the event source identified by the given event source identification.
-        /// </summary>
-        /// <param name="EventSourceIdentification">A string to identify an event source.</param>
-        /// <param name="EventSource">The event source.</param>
-        public Boolean TryGetEventSource(HTTPEventSource_Id EventSourceIdentification, out HTTPEventSource EventSource)
-
-            => TryGet(EventSourceIdentification, out EventSource);
 
         #endregion
 

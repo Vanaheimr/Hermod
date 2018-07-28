@@ -596,9 +596,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean TryGet<T>(String Key, out T Value)
         {
 
-            Object _Object;
-
-            if (_HeaderFields.TryGetValue(Key, out _Object))
+            if (_HeaderFields.TryGetValue(Key, out Object _Object))
             {
 
                 if (_Object is T)
@@ -609,8 +607,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 else if (typeof(T).Equals(typeof(Int32)))
                 {
-                    Int32 _Int32;
-                    if (Int32.TryParse(_Object.ToString(), out _Int32))
+                    if (Int32.TryParse(_Object.ToString(), out Int32 _Int32))
                     {
                         Value = (T) (Object) _Int32;
                         SetHeaderField(Key, Value);
@@ -620,8 +617,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 else if (typeof(T).Equals(typeof(UInt32)))
                 {
-                    UInt32 _UInt32;
-                    if (UInt32.TryParse(_Object.ToString(), out _UInt32))
+                    if (UInt32.TryParse(_Object.ToString(), out UInt32 _UInt32))
                     {
                         Value = (T) (Object) _UInt32;
                         SetHeaderField(Key, Value);
@@ -631,8 +627,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 else if (typeof(T).Equals(typeof(Int64)))
                 {
-                    Int64 _Int64;
-                    if (Int64.TryParse(_Object.ToString(), out _Int64))
+                    if (Int64.TryParse(_Object.ToString(), out Int64 _Int64))
                     {
                         Value = (T) (Object) _Int64;
                         SetHeaderField(Key, Value);
@@ -642,8 +637,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 else if (typeof(T).Equals(typeof(UInt64)))
                 {
-                    UInt64 _UInt64;
-                    if (UInt64.TryParse(_Object.ToString(), out _UInt64))
+                    if (UInt64.TryParse(_Object.ToString(), out UInt64 _UInt64))
                     {
                         Value = (T) (Object) _UInt64;
                         SetHeaderField(Key, Value);
@@ -663,7 +657,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     {
                         Value = default(T);
                         return false;
-                    }                    
+                    }
                 }
 
             }
@@ -684,15 +678,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="FieldName">The name of the header field.</param>
         protected String GetHeaderField(String FieldName)
-        {
 
-            Object Value;
-            if (_HeaderFields.TryGetValue(FieldName, out Value))
-                return Value.ToString();
-
-            return String.Empty;
-
-        }
+            => _HeaderFields.TryGetValue(FieldName, out Object Value)
+                   ? Value?.ToString()
+                   : String.Empty;
 
         #endregion
 
@@ -704,16 +693,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <typeparam name="T">The expected type of the field value.</typeparam>
         /// <param name="FieldName">The name of the header field.</param>
         protected T GetHeaderField<T>(String FieldName)
-        {
 
-            Object Value;
-            if (_HeaderFields.TryGetValue(FieldName, out Value))
-                if (Value is T)
-                    return (T) Value;
-
-            return default(T);
-
-        }
+            => _HeaderFields.TryGetValue(FieldName, out Object Value) && Value is T value
+                   ? value
+                   : default(T);
 
         #endregion
 
@@ -724,14 +707,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HeaderField">The HTTP header field.</param>
         protected String GetHeaderField(HTTPHeaderField HeaderField)
-        {
 
-            if (_HeaderFields.TryGetValue(HeaderField.Name, out Object Value))
-                return Value.ToString();
-
-            return String.Empty;
-
-        }
+            => _HeaderFields.TryGetValue(HeaderField.Name, out Object Value)
+                   ? Value?.ToString()
+                   : String.Empty;
 
         #endregion
 
@@ -745,21 +724,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected T GetHeaderField<T>(HTTPHeaderField HeaderField)
         {
 
-            Object Value;
-            if (_HeaderFields.TryGetValue(HeaderField.Name, out Value))
+            if (_HeaderFields.TryGetValue(HeaderField.Name, out Object Value))
+            {
+
                 if (Value is String)
                 {
+
                     if (HeaderField.Type == typeof(String))
                         return (T) Value;
+
                     else
                     {
-                        Object Value2 = null;
-                        if (HeaderField.StringParser(Value.ToString(), out Value2))
+                        if (HeaderField.StringParser(Value.ToString(), out Object Value2))
                             return (T) Value2;
                     }
+
                 }
+
                 else
                     return (T) Value;
+
+            }
 
             return default(T);
 
@@ -767,24 +752,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected) GetHeaderField_Int64(FieldName)
+
+        #region GetHeaderField_Int64 (FieldName)
 
         /// <summary>
         /// Return the given HTTP header field.
         /// </summary>
         /// <param name="FieldName">The name of the header field.</param>
-        protected Int64? GetHeaderField_Int64(String FieldName)
+        public Int64? GetHeaderField_Int64(String FieldName)
         {
 
-            Object Value;
-            if (_HeaderFields.TryGetValue(FieldName, out Value))
+            if (_HeaderFields.TryGetValue(FieldName, out Object Value))
             {
 
-                if (Value is Int64?)
-                    return (Int64?) Value;
+                if (Value is Int64 value)
+                    return value;
 
-                Int64 Int64Value;
-                if (Int64.TryParse(Value.ToString(), out Int64Value))
+                if (Int64.TryParse(Value.ToString(), out Int64 Int64Value))
                     return Int64Value;
 
             }
@@ -795,25 +779,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected) GetHeaderField_UInt64(FieldName)
+        #region GetHeaderField_Int64 (HeaderField)
 
         /// <summary>
         /// Return the given HTTP header field.
         /// </summary>
-        /// <typeparam name="T">The expected type of the field value.</typeparam>
-        /// <param name="FieldName">The name of the header field.</param>
-        protected UInt64? GetHeaderField_UInt64(String FieldName)
+        /// <param name="HeaderField">The HTTP header field.</param>
+        public Int64? GetHeaderField_Int64(HTTPHeaderField HeaderField)
         {
 
-            Object Value;
-            if (_HeaderFields.TryGetValue(FieldName, out Value))
+            if (_HeaderFields.TryGetValue(HeaderField.Name, out Object Value))
             {
 
-                if (Value is UInt64?)
-                    return (UInt64?) Value;
+                if (Value is Int64 value)
+                    return value;
 
-                UInt64 UInt64Value;
-                if (UInt64.TryParse(Value.ToString(), out UInt64Value))
+                if (Int64.TryParse(Value.ToString(), out Int64 Int64Value))
+                    return Int64Value;
+
+            }
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region GetHeaderField_UInt64(FieldName)
+
+        /// <summary>
+        /// Return the given HTTP header field.
+        /// </summary>
+        /// <param name="FieldName">The name of the header field.</param>
+        public UInt64? GetHeaderField_UInt64(String FieldName)
+        {
+
+            if (_HeaderFields.TryGetValue(FieldName, out Object Value))
+            {
+
+                if (Value is UInt64 value)
+                    return value;
+
+                if (UInt64.TryParse(Value.ToString(), out UInt64 UInt64Value))
                     return UInt64Value;
 
             }
@@ -824,25 +831,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected) GetHeaderField_UInt64(HeaderField)
+        #region GetHeaderField_UInt64(HeaderField)
 
         /// <summary>
         /// Return the given HTTP header field.
         /// </summary>
-        /// <typeparam name="T">The expected type of the field value.</typeparam>
         /// <param name="HeaderField">The HTTP header field.</param>
-        protected UInt64? GetHeaderField_UInt64(HTTPHeaderField HeaderField)
+        public UInt64? GetHeaderField_UInt64(HTTPHeaderField HeaderField)
         {
 
-            Object Value;
-            if (_HeaderFields.TryGetValue(HeaderField.Name, out Value))
+            if (_HeaderFields.TryGetValue(HeaderField.Name, out Object Value))
             {
 
-                if (Value is UInt64?)
-                    return (UInt64?)Value;
+                if (Value is UInt64 value)
+                    return value;
 
-                UInt64 UInt64Value;
-                if (UInt64.TryParse(Value.ToString(), out UInt64Value))
+                if (UInt64.TryParse(Value.ToString(), out UInt64 UInt64Value))
                     return UInt64Value;
 
             }

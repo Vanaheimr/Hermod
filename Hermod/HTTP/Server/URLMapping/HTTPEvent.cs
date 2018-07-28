@@ -22,6 +22,8 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 
+using org.GraphDefined.Vanaheimr.Illias;
+
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
@@ -40,22 +42,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The identification of the event.
         /// </summary>
-        public UInt64               Id          { get; }
+        public UInt64               Id           { get; }
 
         /// <summary>
         /// The subevent identification of the event.
         /// </summary>
-        public String               Subevent    { get; }
+        public String               Subevent     { get; }
 
         /// <summary>
         /// The timestamp of the event.
         /// </summary>
-        public DateTime             Timestamp   { get; }
+        public DateTime             Timestamp    { get; }
 
         /// <summary>
         /// The attached data of the event.
         /// </summary>
-        public IEnumerable<String>  Data        { get; }
+        public IEnumerable<String>  Data         { get; }
 
         #endregion
 
@@ -139,8 +141,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.Id         = Id;
             this.Timestamp  = Timestamp;
-            this.Subevent   = Subevent;
-            this.Data       = Data;
+            this.Subevent   = Subevent?.Trim() ?? "";
+            this.Data       = Data             ?? new String[0];
 
         }
 
@@ -164,23 +166,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Object == null)
                 return false;
 
-            // Check if the given object is a HTTPEvent.
-            var HTTPEvent = Object as HTTPEvent;
-            if ((Object) HTTPEvent == null)
+            if (!(Object is HTTPEvent HTTPEvent))
                 return false;
 
-            return this.Equals(HTTPEvent);
+            return Equals(HTTPEvent);
 
         }
 
         #endregion
 
-        #region Equals(VertexId)
+        #region Equals(HTTPEvent)
 
         /// <summary>
-        /// Compares two HTTPEvents for equality.
+        /// Compares two HTTP events for equality.
         /// </summary>
-        /// <param name="HTTPEvent">A HTTPEvent to compare with.</param>
+        /// <param name="OtherHTTPEvent">A HTTP event to compare with.</param>
         /// <returns>True if both match; False otherwise.</returns>
         public Boolean Equals(HTTPEvent OtherHTTPEvent)
         {
@@ -210,10 +210,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Object == null)
                 throw new ArgumentNullException("The given object must not be null!");
 
-            // Check if the given object is a HTTPEvent.
-            var HTTPEvent = Object as HTTPEvent;
-            if ((Object) HTTPEvent == null)
-                throw new ArgumentException("The given object is not a HTTPEvent!");
+            if (!(Object is HTTPEvent HTTPEvent))
+                throw new ArgumentException("The given object is not a HTTP event!");
 
             return CompareTo(HTTPEvent);
 
@@ -231,7 +229,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             if ((Object) OtherHTTPEvent == null)
-                throw new ArgumentNullException("HTTPEvent", "The given HTTPEvent must not be null!");
+                throw new ArgumentNullException(nameof(OtherHTTPEvent), "The given HTTP event must not be null!");
 
             return Id.CompareTo(OtherHTTPEvent.Id);
 
@@ -249,7 +247,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
         {
-            return Subevent.GetHashCode() ^ Id.GetHashCode();
+            unchecked
+            {
+
+                return Id.      GetHashCode() * 3 ^
+                       Subevent.GetHashCode();
+
+            }
         }
 
         #endregion
@@ -260,18 +264,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Returns a text representation of this object.
         /// </summary>
         public override String ToString()
-        {
 
-            if (Subevent == null || Subevent.Trim() == "")
-                return String.Concat("id: ",     Id, Environment.NewLine,
-                                     "data: ",   Data.Aggregate((a, b) => { return a + Environment.NewLine + "data: " + b; }), Environment.NewLine);
-
-            else
-                return String.Concat("event: ",  Subevent, Environment.NewLine,
-                                     "id: ",     Id,       Environment.NewLine, 
-                                     "data: ",   Data.Aggregate((a, b) => { return a + Environment.NewLine + "data: " + b; }), Environment.NewLine);
-
-        }
+            => String.Concat(Subevent.IsNotNullOrEmpty()
+                                 ? "event: " + Subevent + Environment.NewLine
+                                 : "",
+                             "id: ",    Id,                                                                Environment.NewLine,
+                             "data: ",  Data.Aggregate((a, b) => a + Environment.NewLine + "data: " + b),  Environment.NewLine);
 
         #endregion
 

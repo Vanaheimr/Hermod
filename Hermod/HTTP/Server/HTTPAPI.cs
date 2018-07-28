@@ -908,32 +908,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Internal non-cryptographic random number generator.
         /// </summary>
-        protected static readonly Random                              _Random                        = new Random();
+        protected static readonly  Random   _Random                 = new Random();
 
         /// <summary>
         /// The default HTTP server name.
         /// </summary>
-        public  const             String                              DefaultHTTPServerName          = "GraphDefined HTTP API v0.8";
+        public  const              String   DefaultHTTPServerName   = "GraphDefined HTTP API v0.8";
 
         /// <summary>
         /// The default HTTP server port.
         /// </summary>
-        public  static readonly   IPPort                              DefaultHTTPServerPort          = IPPort.Parse(2002);
+        public  static readonly    IPPort   DefaultHTTPServerPort   = IPPort.Parse(2002);
 
         /// <summary>
         /// The default service name.
         /// </summary>
-        public  const             String                              DefaultServiceName             = "GraphDefined HTTP API";
+        public  const              String   DefaultServiceName      = "GraphDefined HTTP API";
 
         /// <summary>
         /// Default logfile name.
         /// </summary>
-        public  const             String                              DefaultLogfileName             = "HTTPAPI.log";
+        public  const              String   DefaultLogfileName      = "HTTPAPI.log";
 
         /// <summary>
         /// JSON whitespace regular expression...
         /// </summary>
-        public static readonly Regex JSONWhitespaceRegEx = new Regex(@"(\s)+", RegexOptions.IgnorePatternWhitespace);
+        public static readonly     Regex    JSONWhitespaceRegEx     = new Regex(@"(\s)+", RegexOptions.IgnorePatternWhitespace);
 
         #endregion
 
@@ -1017,6 +1017,142 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
+
+
+
+        #region HTTP Server Sent Events
+
+        #region AddEventSource(EventIdentification, MaxNumberOfCachedEvents = 500, RetryIntervall = null, LogfileName = null)
+
+        /// <summary>
+        /// Add a HTTP Sever Sent Events source.
+        /// </summary>
+        /// <param name="EventIdentification">The unique identification of the event source.</param>
+        /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
+        /// <param name="RetryIntervall">The retry intervall.</param>
+        /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
+        public HTTPEventSource AddEventSource(HTTPEventSource_Id              EventIdentification,
+                                              UInt32                          MaxNumberOfCachedEvents     = 500,
+                                              TimeSpan?                       RetryIntervall              = null,
+                                              Boolean                         EnableLogging               = true,
+                                              String                          LogfilePrefix               = null,
+                                              Func<String, DateTime, String>  LogfileName                 = null,
+                                              String                          LogfileReloadSearchPattern  = null)
+
+            => HTTPServer.AddEventSource(EventIdentification,
+                                         MaxNumberOfCachedEvents,
+                                         RetryIntervall,
+                                         EnableLogging,
+                                         LogfilePrefix,
+                                         LogfileName,
+                                         LogfileReloadSearchPattern);
+
+        #endregion
+
+        #region AddEventSource(EventIdentification, URITemplate, MaxNumberOfCachedEvents = 500, RetryIntervall = null, LogfileName = null, ...)
+
+        /// <summary>
+        /// Add a HTTP Sever Sent Events source and a method call back for the given URI template.
+        /// </summary>
+        /// <param name="EventIdentification">The unique identification of the event source.</param>
+        /// <param name="URITemplate">The URI template.</param>
+        /// 
+        /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
+        /// <param name="IncludeFilterAtRuntime">Include this events within the HTTP SSE output. Can e.g. be used to filter events by HTTP users.</param>
+        /// <param name="RetryIntervall">The retry intervall.</param>
+        /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
+        /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
+        /// 
+        /// <param name="Hostname">The HTTP host.</param>
+        /// <param name="HttpMethod">The HTTP method.</param>
+        /// <param name="HTTPContentType">The HTTP content type.</param>
+        /// 
+        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
+        /// 
+        /// <param name="DefaultErrorHandler">The default error handler.</param>
+        public HTTPEventSource AddEventSource(HTTPEventSource_Id              EventIdentification,
+                                              HTTPURI                         URITemplate,
+
+                                              UInt32                          MaxNumberOfCachedEvents     = 500,
+                                              Func<HTTPEvent, Boolean>        IncludeFilterAtRuntime      = null,
+                                              TimeSpan?                       RetryIntervall              = null,
+                                              Boolean                         EnableLogging               = true,
+                                              String                          LogfilePrefix               = null,
+                                              Func<String, DateTime, String>  LogfileName                 = null,
+                                              String                          LogfileReloadSearchPattern  = null,
+
+                                              HTTPHostname?                   Hostname                    = null,
+                                              HTTPMethod?                     HttpMethod                  = null,
+                                              HTTPContentType                 HTTPContentType             = null,
+
+                                              HTTPAuthentication              URIAuthentication           = null,
+                                              HTTPAuthentication              HTTPMethodAuthentication    = null,
+
+                                              HTTPDelegate                    DefaultErrorHandler         = null)
+
+            => HTTPServer.AddEventSource(EventIdentification,
+                                         URITemplate,
+
+                                         MaxNumberOfCachedEvents     = 500,
+                                         IncludeFilterAtRuntime      = null,
+                                         RetryIntervall              = null,
+                                         EnableLogging               = true,
+                                         LogfilePrefix               = null,
+                                         LogfileName                 = null,
+                                         LogfileReloadSearchPattern  = null,
+
+                                         Hostname                    = null,
+                                         HttpMethod                  = null,
+                                         HTTPContentType             = null,
+
+                                         URIAuthentication           = null,
+                                         HTTPMethodAuthentication    = null,
+
+                                         DefaultErrorHandler         = null);
+
+        #endregion
+
+
+        #region Get   (EventSourceIdentification)
+
+        /// <summary>
+        /// Return the event source identified by the given event source identification.
+        /// </summary>
+        /// <param name="EventSourceIdentification">A string to identify an event source.</param>
+        public HTTPEventSource Get(HTTPEventSource_Id EventSourceIdentification)
+
+            => HTTPServer.Get(EventSourceIdentification);
+
+        #endregion
+
+        #region TryGet(EventSourceIdentification, out EventSource)
+
+        /// <summary>
+        /// Return the event source identified by the given event source identification.
+        /// </summary>
+        /// <param name="EventSourceIdentification">A string to identify an event source.</param>
+        /// <param name="EventSource">The event source.</param>
+        public Boolean TryGet(HTTPEventSource_Id EventSourceIdentification, out HTTPEventSource EventSource)
+
+            => HTTPServer.TryGet(EventSourceIdentification, out EventSource);
+
+        #endregion
+
+        #region EventSources(IncludeEventSource = null)
+
+        /// <summary>
+        /// Return a filtered enumeration of all event sources.
+        /// </summary>
+        /// <param name="IncludeEventSource">An event source filter delegate.</param>
+        public IEnumerable<HTTPEventSource> EventSources(Func<HTTPEventSource, Boolean> IncludeEventSource = null)
+
+            => HTTPServer.EventSources(IncludeEventSource);
+
+        #endregion
+
+        #endregion
+
 
 
         #region Start()

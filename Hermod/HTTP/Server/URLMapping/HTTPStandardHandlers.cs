@@ -650,13 +650,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region RegisterWatchedFilesystemFolder(this HTTPServer, URITemplate, ResourcePath, DefaultFilename = "index.html")
 
-        private static void FileWasChanged(IHTTPServer source, HTTPEventSource_Id HTTPSSE_EventIdentification, String ChangeType, String FileName)
-        {
-            source.
-                GetEventSource(HTTPSSE_EventIdentification).
-                SubmitSubEvent(ChangeType,
-                               @"{ ""timestamp"": """ + DateTime.UtcNow.ToIso8601() +  @""", ""filename"": """ + FileName + @""" }");
-        }
+        private static Task FileWasChanged(IHTTPServer source, HTTPEventSource_Id HTTPSSE_EventIdentification, String ChangeType, String FileName)
+
+            => source.
+                      Get(HTTPSSE_EventIdentification).
+                      SubmitSubEvent(ChangeType,
+                                     @"{ ""timestamp"": """ + DateTime.UtcNow.ToIso8601() +  @""", ""filename"": """ + FileName + @""" }");
 
         private static void FileWasRenamed(object source, RenamedEventArgs e)
         {
