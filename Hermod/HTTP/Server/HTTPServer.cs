@@ -1464,15 +1464,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                             "\r\n\r\n").
                                                                             ToUTF8Bytes());
 
-                                        if (_HTTPResponse.HTTPBodyStream != null)
+                                        if (_HTTPResponse.HTTPBody?.Length > 0)
+                                            TCPConnection.WriteToResponseStream(_HTTPResponse.HTTPBody);
+
+                                        else
                                         {
                                             TCPConnection.WriteToResponseStream(_HTTPResponse.HTTPBodyStream);
                                             _HTTPResponse.HTTPBodyStream.Close();
                                             _HTTPResponse.HTTPBodyStream.Dispose();
                                         }
-
-                                        else
-                                            TCPConnection.WriteToResponseStream(_HTTPResponse.HTTPBody);
 
                                         if (_HTTPResponse.Connection.IndexOf("close", StringComparison.OrdinalIgnoreCase) >= 0)
                                             ServerClose = true;

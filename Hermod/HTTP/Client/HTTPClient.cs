@@ -618,6 +618,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #endregion
 
+
                 #region Read the HTTP header
 
                 var CurrentDataLength    = 0;
@@ -682,7 +683,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 if (HTTPHeaderBytes.Length == 0)
                     throw new ApplicationException("[" + DateTime.UtcNow.ToString() + "] Could not find the end of the HTTP protocol header!");
-
 
                 Response = HTTPResponse.Parse(HTTPHeaderBytes.ToUTF8String(),
                                               Request,
