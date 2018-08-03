@@ -1481,7 +1481,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                     #endregion
 
-                                    #region Call AccessLog delegate
+                                    #region Call ResponseLog delegate
 
                                     if ( HttpRequest  != null &&
                                         _HTTPResponse != null)
@@ -2202,10 +2202,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return the best matching method handler for the given parameters.
         /// </summary>
         internal Handlers GetHandlers(HTTPHostname                              Host,
-                                          HTTPURI                                   URI,
-                                          HTTPMethod?                               Method                       = null,
-                                          Func<HTTPContentType[], HTTPContentType>  HTTPContentTypeSelector      = null,
-                                          Action<IEnumerable<String>>               ParsedURIParametersDelegate  = null)
+                                      HTTPURI                                   URI,
+                                      HTTPMethod?                               Method                       = null,
+                                      Func<HTTPContentType[], HTTPContentType>  HTTPContentTypeSelector      = null,
+                                      Action<IEnumerable<String>>               ParsedURIParametersDelegate  = null)
         {
 
             URI                      = URI.IsNullOrEmpty()      ? HTTPURI.Parse("/") : URI;
