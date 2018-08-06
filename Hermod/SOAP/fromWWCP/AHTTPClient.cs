@@ -69,7 +69,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The remote TCP port to connect to.
         /// </summary>
-        public IPPort            HTTPPort                { get; }
+        public IPPort            RemotePort                { get; }
 
         public String            HTTPVirtualHost         { get; }
 
@@ -166,7 +166,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             this.ClientId                    = ClientId;
             this.Hostname                    = Hostname;
-            this.HTTPPort                    = HTTPPort           ?? IPPort.HTTP;
+            this.RemotePort                    = HTTPPort           ?? IPPort.HTTP;
 
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
             this.ClientCertificateSelector   = ClientCertificateSelector;

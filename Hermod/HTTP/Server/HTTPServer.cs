@@ -2320,11 +2320,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             return Handlers.FromMethodNode(_HTTPMethodNode);
 
                         // A single content type is defined...
-                        else if (_HTTPMethodNode.Count() == 1)
+                    //    else if (_HTTPMethodNode.Count() == 1)
                             return Handlers.FromContentTypeNode(_HTTPMethodNode.FirstOrDefault());
 
-                        else
-                            throw new ArgumentException(String.Concat(URI, " ", _HTTPMethodNode, " but multiple content type choices!"));
+                    //    else
+                    //        throw new ArgumentException(String.Concat(URI, " ", _HTTPMethodNode, " but multiple content type choices!"));
 
                     }
 

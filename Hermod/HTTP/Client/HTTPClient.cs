@@ -118,13 +118,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The IP port to connect to.
         /// </summary>
-        public IPPort           HTTPPort          { get; }
+        public IPPort           RemotePort          { get; }
 
         /// <summary>
         /// The IP socket to connect to.
         /// </summary>
         public IPSocket         RemoteSocket
-            => new IPSocket(RemoteIPAddress, HTTPPort);
+            => new IPSocket(RemoteIPAddress, RemotePort);
 
         /// <summary>
         /// The default server name.
@@ -235,7 +235,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.RemoteIPAddress             = RemoteIPAddress;
             this.Hostname                    = RemoteIPAddress.ToString();
-            this.HTTPPort                  = RemotePort     ?? IPPort.HTTP;
+            this.RemotePort                  = RemotePort     ?? IPPort.HTTP;
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
             this.LocalCertificateSelector    = LocalCertificateSelector;
             this.ClientCert                  = ClientCert;
@@ -286,7 +286,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Create a new HTTP client using the given optional parameters.
         /// </summary>
         /// <param name="RemoteHost">The remote hostname to connect to.</param>
-        /// <param name="HTTPPort">The remote HTTP port to connect to.</param>
+        /// <param name="RemotePort">The remote HTTP port to connect to.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="LocalCertificateSelector">Selects the local certificate used for authentication.</param>
         /// <param name="ClientCert">The TLS client certificate to use.</param>
@@ -294,7 +294,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public HTTPClient(String                               RemoteHost,
-                          IPPort?                              HTTPPort                     = null,
+                          IPPort?                              RemotePort                   = null,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
                           LocalCertificateSelectionCallback    LocalCertificateSelector     = null,
                           X509Certificate                      ClientCert                   = null,
@@ -304,7 +304,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             this.Hostname                    = RemoteHost;
-            this.HTTPPort                    = HTTPPort       ?? IPPort.HTTP;
+            this.RemotePort                  = RemotePort     ?? IPPort.HTTP;
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
             this.LocalCertificateSelector    = LocalCertificateSelector;
             this.ClientCert                  = ClientCert;
@@ -524,7 +524,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     _FinalIPEndPoint = new System.Net.IPEndPoint(new System.Net.IPAddress(RemoteIPAddress.GetBytes()),
-                                                                 HTTPPort.ToInt32());
+                                                                 RemotePort.ToInt32());
 
                     sw.Start();
 
@@ -1077,7 +1077,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <returns>A string representation of this object.</returns>
         public override String ToString()
         {
-            return String.Concat(this.GetType().Name, " ", RemoteIPAddress.ToString(), ":", HTTPPort);
+            return String.Concat(this.GetType().Name, " ", RemoteIPAddress.ToString(), ":", RemotePort);
         }
 
         #endregion

@@ -45,7 +45,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         //bool NoDelay { get; set; }
         RemoteCertificateValidationCallback RemoteCertificateValidator { get; }
         //IIPAddress  RemoteIPAddress    { get; }
-        IPPort      HTTPPort         { get; }
+        IPPort      RemotePort         { get; }
         //IPSocket    RemoteSocket       { get; }
         TimeSpan?   RequestTimeout     { get; }
         //byte TTL { get; set; }
