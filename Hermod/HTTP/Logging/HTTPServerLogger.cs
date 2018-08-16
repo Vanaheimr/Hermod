@@ -926,22 +926,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="SubscribeToEventDelegate">A delegate for subscribing to the linked event.</param>
         /// <param name="UnsubscribeFromEventDelegate">A delegate for subscribing from the linked event.</param>
         /// <param name="GroupTags">An array of log event groups the given log event name is part of.</param>
-        protected HTTPServerRequestLogger2 RegisterEvent2(String                     LogEventName,
-                                                        Action<HTTPRequestLogHandler>  SubscribeToEventDelegate,
-                                                        Action<HTTPRequestLogHandler>  UnsubscribeFromEventDelegate,
-                                                        params String[]            GroupTags)
+        protected HTTPServerRequestLogger2 RegisterEvent2(String                         LogEventName,
+                                                          Action<HTTPRequestLogHandler>  SubscribeToEventDelegate,
+                                                          Action<HTTPRequestLogHandler>  UnsubscribeFromEventDelegate,
+                                                          params String[]                GroupTags)
         {
 
             #region Initial checks
 
             if (LogEventName.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(LogEventName),                 "The given log event name must not be null or empty!");
+                throw new ArgumentNullException(nameof(LogEventName),                  "The given log event name must not be null or empty!");
 
             if (SubscribeToEventDelegate == null)
-                throw new ArgumentNullException(nameof(SubscribeToEventDelegate),     "The given delegate for subscribing to the linked HTTP API event must not be null!");
+                throw new ArgumentNullException(nameof(SubscribeToEventDelegate),      "The given delegate for subscribing to the linked HTTP API event must not be null!");
 
             if (UnsubscribeFromEventDelegate == null)
-                throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate), "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
+                throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate),  "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
 
             #endregion
 
@@ -1050,22 +1050,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="SubscribeToEventDelegate">A delegate for subscribing to the linked event.</param>
         /// <param name="UnsubscribeFromEventDelegate">A delegate for subscribing from the linked event.</param>
         /// <param name="GroupTags">An array of log event groups the given log event name is part of.</param>
-        protected HTTPServerResponseLogger2 RegisterEvent3(String                    LogEventName,
-                                                         Action<HTTPResponseLogHandler>  SubscribeToEventDelegate,
-                                                         Action<HTTPResponseLogHandler>  UnsubscribeFromEventDelegate,
-                                                         params String[]           GroupTags)
+        protected HTTPServerResponseLogger2 RegisterEvent2(String                          LogEventName,
+                                                           Action<HTTPResponseLogHandler>  SubscribeToEventDelegate,
+                                                           Action<HTTPResponseLogHandler>  UnsubscribeFromEventDelegate,
+                                                           params String[]                 GroupTags)
         {
 
             #region Initial checks
 
             if (LogEventName.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(LogEventName),                 "The given log event name must not be null or empty!");
+                throw new ArgumentNullException(nameof(LogEventName),                  "The given log event name must not be null or empty!");
 
             if (SubscribeToEventDelegate == null)
-                throw new ArgumentNullException(nameof(SubscribeToEventDelegate),     "The given delegate for subscribing to the linked HTTP API event must not be null!");
+                throw new ArgumentNullException(nameof(SubscribeToEventDelegate),      "The given delegate for subscribing to the linked HTTP API event must not be null!");
 
             if (UnsubscribeFromEventDelegate == null)
-                throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate), "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
+                throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate),  "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
 
             #endregion
 
@@ -1112,16 +1112,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var _Found = false;
 
-            if (_HTTPRequestLoggers. TryGetValue(LogEventName, out HTTPServerRequestLogger  _HTTPServerRequestLogger))
+            if (_HTTPRequestLoggers.  TryGetValue(LogEventName, out HTTPServerRequestLogger    _HTTPServerRequestLogger))
                 _Found |= _HTTPServerRequestLogger. Subscribe(LogTarget);
 
-            if (_HTTPRequestLoggers2.TryGetValue(LogEventName, out HTTPServerRequestLogger2 _HTTPServerRequestLogger2))
+            if (_HTTPRequestLoggers2. TryGetValue(LogEventName, out HTTPServerRequestLogger2   _HTTPServerRequestLogger2))
                 _Found |= _HTTPServerRequestLogger2.Subscribe(LogTarget);
 
-            if (_HTTPResponseLoggers.TryGetValue(LogEventName, out HTTPServerResponseLogger _HTTPServerResponseLogger))
+            if (_HTTPResponseLoggers. TryGetValue(LogEventName, out HTTPServerResponseLogger   _HTTPServerResponseLogger))
                 _Found |= _HTTPServerResponseLogger.Subscribe(LogTarget);
 
-            if (_HTTPResponseLoggers2.TryGetValue(LogEventName, out HTTPServerResponseLogger2 _HTTPServerResponseLogger2))
+            if (_HTTPResponseLoggers2.TryGetValue(LogEventName, out HTTPServerResponseLogger2  _HTTPServerResponseLogger2))
                 _Found |= _HTTPServerResponseLogger2.Subscribe(LogTarget);
 
             return _Found;
@@ -1138,16 +1138,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var _Found = false;
 
-            if (_HTTPRequestLoggers. TryGetValue(LogEventName, out HTTPServerRequestLogger  _HTTPServerRequestLogger))
+            if (_HTTPRequestLoggers.  TryGetValue(LogEventName, out HTTPServerRequestLogger    _HTTPServerRequestLogger))
                 _Found |= _HTTPServerRequestLogger. Unsubscribe(LogTarget);
 
-            if (_HTTPRequestLoggers2.TryGetValue(LogEventName, out HTTPServerRequestLogger2 _HTTPServerRequestLogger2))
+            if (_HTTPRequestLoggers2. TryGetValue(LogEventName, out HTTPServerRequestLogger2   _HTTPServerRequestLogger2))
                 _Found |= _HTTPServerRequestLogger2.Unsubscribe(LogTarget);
 
-            if (_HTTPResponseLoggers.TryGetValue(LogEventName, out HTTPServerResponseLogger _HTTPServerResponseLogger))
+            if (_HTTPResponseLoggers. TryGetValue(LogEventName, out HTTPServerResponseLogger   _HTTPServerResponseLogger))
                 _Found |= _HTTPServerResponseLogger.Unsubscribe(LogTarget);
 
-            if (_HTTPResponseLoggers2.TryGetValue(LogEventName, out HTTPServerResponseLogger2 _HTTPServerResponseLogger2))
+            if (_HTTPResponseLoggers2.TryGetValue(LogEventName, out HTTPServerResponseLogger2  _HTTPServerResponseLogger2))
                 _Found |= _HTTPServerResponseLogger2.Unsubscribe(LogTarget);
 
             return _Found;
