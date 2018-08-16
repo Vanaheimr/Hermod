@@ -41,7 +41,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Distributed
     /// An abstract entity.
     /// </summary>
     /// <typeparam name="TId">The type of the entity identification.</typeparam>
-    public abstract class ADistributedEntity<TId> : AEntity<TId>
+    public abstract class ADistributedEntity<TId> : ADistributedEntity<TId, String>
+        where TId : IId
+    {
+
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create a new abstract entity.
+        /// </summary>
+        /// <param name="Id">The unique entity identification.</param>
+        /// <param name="DataSource">The source of this information, e.g. an automatic importer.</param>
+        protected ADistributedEntity(TId     Id,
+                                     String  DataSource)
+
+            : base(Id,
+                   (DataSource ?? "").Trim())
+
+        { }
+
+        #endregion
+
+    }
+
+    /// <summary>
+    /// An abstract entity.
+    /// </summary>
+    /// <typeparam name="TId">The type of the entity identification.</typeparam>
+    /// <typeparam name="TDataSource">The type of the data source.</typeparam>
+    public abstract class ADistributedEntity<TId, TDataSource> : AEntity<TId, TDataSource>
         where TId : IId
     {
 
@@ -61,8 +89,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Distributed
         /// </summary>
         /// <param name="Id">The unique entity identification.</param>
         /// <param name="DataSource">The source of this information, e.g. an automatic importer.</param>
-        protected ADistributedEntity(TId     Id,
-                                     String  DataSource)
+        protected ADistributedEntity(TId          Id,
+                                     TDataSource  DataSource)
 
             : base(Id,
                    DataSource)
