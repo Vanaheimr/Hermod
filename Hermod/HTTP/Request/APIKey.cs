@@ -27,7 +27,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// An API key.
+    /// an API key.
     /// </summary>
     public struct APIKey : IId,
                            IEquatable<APIKey>,
@@ -75,9 +75,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (static) Random   (Size)
 
         /// <summary>
-        /// Parse the given string as An API key.
+        /// Create a random API key.
         /// </summary>
-        /// <param name="Size">A text representation of An API key.</param>
+        /// <param name="Size">The expected size of the API key.</param>
         public static APIKey Random(UInt16? Size = 64)
 
             => new APIKey(_random.RandomString(Size ?? 64));
@@ -87,9 +87,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (static) Parse   (Text)
 
         /// <summary>
-        /// Parse the given string as An API key.
+        /// Parse the given string as an API key.
         /// </summary>
-        /// <param name="Text">A text representation of An API key.</param>
+        /// <param name="Text">A text representation of an API key.</param>
         public static APIKey Parse(String Text)
         {
 
@@ -99,7 +99,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Text = Text.Trim();
 
             if (Text.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(Text), "The given text representation of An API key must not be null or empty!");
+                throw new ArgumentNullException(nameof(Text), "The given text representation of an API key must not be null or empty!");
 
             #endregion
 
@@ -112,9 +112,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (static) TryParse(Text)
 
         /// <summary>
-        /// Try to parse the given string as An API key.
+        /// Try to parse the given string as an API key.
         /// </summary>
-        /// <param name="Text">A text representation of An API key.</param>
+        /// <param name="Text">A text representation of an API key.</param>
         public static APIKey? TryParse(String Text)
         {
 
@@ -124,7 +124,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Text = Text.Trim();
 
             if (Text.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(Text), "The given text representation of An API key must not be null or empty!");
+                throw new ArgumentNullException(nameof(Text), "The given text representation of an API key must not be null or empty!");
 
             #endregion
 
@@ -140,9 +140,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (static) TryParse(Text, out APIKey)
 
         /// <summary>
-        /// Try to parse the given string as An API key.
+        /// Try to parse the given string as an API key.
         /// </summary>
-        /// <param name="Text">A text representation of An API key.</param>
+        /// <param name="Text">A text representation of an API key.</param>
         /// <param name="APIKey">The parsed API key.</param>
         public static Boolean TryParse(String Text, out APIKey APIKey)
         {
@@ -153,7 +153,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Text = Text.Trim();
 
             if (Text.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(Text), "The given text representation of An API key must not be null or empty!");
+                throw new ArgumentNullException(nameof(Text), "The given text representation of an API key must not be null or empty!");
 
             #endregion
 
@@ -193,7 +193,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="APIKey1">An API key.</param>
+        /// <param name="APIKey1">an API key.</param>
         /// <param name="APIKey2">Another API key.</param>
         /// <returns>true|false</returns>
         public static Boolean operator == (APIKey APIKey1, APIKey APIKey2)
@@ -218,7 +218,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="APIKey1">An API key.</param>
+        /// <param name="APIKey1">an API key.</param>
         /// <param name="APIKey2">Another API key.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (APIKey APIKey1, APIKey APIKey2)
@@ -231,7 +231,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="APIKey1">An API key.</param>
+        /// <param name="APIKey1">an API key.</param>
         /// <param name="APIKey2">Another API key.</param>
         /// <returns>true|false</returns>
         public static Boolean operator < (APIKey APIKey1, APIKey APIKey2)
@@ -251,7 +251,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="APIKey1">An API key.</param>
+        /// <param name="APIKey1">an API key.</param>
         /// <param name="APIKey2">Another API key.</param>
         /// <returns>true|false</returns>
         public static Boolean operator <= (APIKey APIKey1, APIKey APIKey2)
@@ -264,7 +264,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="APIKey1">An API key.</param>
+        /// <param name="APIKey1">an API key.</param>
         /// <param name="APIKey2">Another API key.</param>
         /// <returns>true|false</returns>
         public static Boolean operator > (APIKey APIKey1, APIKey APIKey2)
@@ -284,7 +284,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="APIKey1">An API key.</param>
+        /// <param name="APIKey1">an API key.</param>
         /// <param name="APIKey2">Another API key.</param>
         /// <returns>true|false</returns>
         public static Boolean operator >= (APIKey APIKey1, APIKey APIKey2)
@@ -367,7 +367,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two API keys for equality.
         /// </summary>
-        /// <param name="APIKey">An API key to compare with.</param>
+        /// <param name="APIKey">an API key to compare with.</param>
         /// <returns>True if both match; False otherwise.</returns>
         public Boolean Equals(APIKey APIKey)
         {

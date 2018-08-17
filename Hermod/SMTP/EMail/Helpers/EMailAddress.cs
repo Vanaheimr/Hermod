@@ -24,6 +24,8 @@ using System.Diagnostics;
 using Org.BouncyCastle.Bcpg.OpenPgp;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using Newtonsoft.Json.Linq;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -33,9 +35,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
     /// <summary>
     /// A e-mail address with owner name and optional cryptographic keys.
     /// </summary>
-    //[DebuggerDisplay("{DebugView}")]
     public class EMailAddress
     {
+
+        #region Data
+
+        /// <summary>
+        /// The JSON-LD context of the object.
+        /// </summary>
+        public const String JSONLDContext = "https://opendata.social/contexts/UsersAPI+json/EMailAddress";
+
+        #endregion
 
         #region Properties
 
@@ -341,6 +351,110 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                                     SimpleEMailAddressString:  EMailAddress,
                                     SecretKeyRing:             null,
                                     PublicKeyRing:             null);
+
+        }
+
+        #endregion
+
+
+        #region ToJSON(Embedded = true)
+
+        /// <summary>
+        /// Return a JSON representation of this object.
+        /// </summary>
+        public JObject ToJSON(Boolean Embedded = true)
+
+            => JSONObject.Create(
+
+                   !Embedded
+                       ? new JProperty("@context", JSONLDContext)
+                       : null,
+
+                   new JProperty("ownerName",  OwnerName),
+                   new JProperty("address",    Address.ToString()),
+
+                   SecretKeyRing != null
+                       ? new JProperty("secretKeyRing",  null)
+                       : null,
+
+                   PublicKeyRing != null
+                       ? new JProperty("publicKeyRing",  null)
+                       : null
+
+               );
+
+        #endregion
+
+        #region (static) TryParseJSON(JSONObject, ..., out EMailAddress, out ErrorResponse)
+
+        public static Boolean TryParseJSON(JObject           JSONObject,
+                                           out EMailAddress  EMailAddress,
+                                           out String        ErrorResponse)
+        {
+
+            try
+            {
+
+                EMailAddress = null;
+
+                #region Parse Context      [mandatory]
+
+                if (!JSONObject.ParseMandatory("@context",
+                                               "JSON-LinkedData context information",
+                                               out String Context,
+                                               out ErrorResponse))
+                {
+                    ErrorResponse = @"The JSON-LD ""@context"" information is missing!";
+                    return false;
+                }
+
+                if (Context != JSONLDContext)
+                {
+                    ErrorResponse = @"The given JSON-LD ""@context"" information '" + Context + "' is not supported!";
+                    return false;
+                }
+
+                #endregion
+
+                #region Parse OwnerName    [mandatory]
+
+                if (!JSONObject.ParseMandatory("ownerName",
+                                               "owner name",
+                                               out String OwnerName,
+                                               out ErrorResponse))
+                {
+                    return false;
+                }
+
+                #endregion
+
+                #region Parse Address      [mandatory]
+
+                if (!JSONObject.ParseMandatory("address",
+                                               "e-mail address",
+                                               out SimpleEMailAddress Address,
+                                               out ErrorResponse))
+                {
+                    return false;
+                }
+
+                #endregion
+
+                EMailAddress = new EMailAddress(OwnerName,
+                                                Address,
+                                                null,
+                                                null);
+
+                ErrorResponse = null;
+                return true;
+
+            }
+            catch (Exception e)
+            {
+                ErrorResponse  = e.Message;
+                EMailAddress   = null;
+                return false;
+            }
 
         }
 

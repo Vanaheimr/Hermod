@@ -117,13 +117,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Distributed
 
         #endregion
 
-        #region ToJSON(IncludeCryptoHash = true)
+        #region ToJSON(Embedded = false, IncludeCryptoHash = false)
 
         /// <summary>
         /// Return a JSON representation of this object.
         /// </summary>
+        /// <param name="Embedded">Whether this data is embedded into another data structure.</param>
         /// <param name="IncludeCryptoHash">Include the crypto hash value of this object.</param>
-        public abstract JObject ToJSON(Boolean IncludeCryptoHash = true);
+        public abstract JObject ToJSON(Boolean Embedded           = false,
+                                       Boolean IncludeCryptoHash  = false);
 
         #endregion
 
