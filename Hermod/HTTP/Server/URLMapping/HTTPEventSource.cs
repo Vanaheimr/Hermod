@@ -44,7 +44,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A HTTP event source.
     /// </summary>
-    public class HTTPEventSource : IEnumerable<HTTPEvent>
+    public class HTTPEventSource<THelper> : IHTTPEventSource,
+                                            IEnumerable<HTTPEvent>
     {
 
         #region Data
@@ -52,6 +53,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         private                 Int64               IdCounter;
         private        readonly TSQueue<HTTPEvent>  QueueOfEvents;
         private static readonly SemaphoreSlim       LogfileLock  = new SemaphoreSlim(1,1);
+
+
+        private readonly Func<String[], THelper> CreateHelper;
 
         #endregion
 
@@ -67,12 +71,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public UInt64  MaxNumberOfCachedEvents
             => QueueOfEvents.MaxNumberOfElements;
-
-        ///// <summary>
-        ///// Include this events within the HTTP SSE output.
-        ///// Can e.g. be used to filter events by HTTP users.
-        ///// </summary>
-        //public Func<HTTPEvent, Boolean>        IncludeFilterAtRuntime     { get; }
 
         /// <summary>
         /// The retry intervall of this HTTP event.
@@ -93,25 +91,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="EventIdentification">The internal identification of the HTTP event.</param>
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
-        /// <param name="IncludeFilterAtRuntime">Include this events within the HTTP SSE output. Can e.g. be used to filter events by HTTP users.</param>
         /// <param name="RetryIntervall">The retry intervall.</param>
         /// <param name="LogfileName">A delegate to create a filename for storing events.</param>
         /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
         public HTTPEventSource(HTTPEventSource_Id              EventIdentification,
                                UInt64                          MaxNumberOfCachedEvents     = 500,
-                               //Func<HTTPEvent, Boolean>        IncludeFilterAtRuntime      = null,
                                TimeSpan?                       RetryIntervall              = null,
+                               Func<String[], THelper>         CreateHelper                = null,
                                Boolean                         EnableLogging               = true,
                                Func<String, DateTime, String>  LogfileName                 = null,
                                String                          LogfileReloadSearchPattern  = null)
         {
 
-            this.EventIdentification     = EventIdentification;
-            this.QueueOfEvents           = new TSQueue<HTTPEvent>(MaxNumberOfCachedEvents);
-            //this.IncludeFilterAtRuntime  = IncludeFilterAtRuntime ?? (httpEvent => true);
-            this.RetryIntervall          = RetryIntervall ?? TimeSpan.FromSeconds(30);
-            this.LogfileName             = LogfileName;
-            this.IdCounter               = 1;
+            this.EventIdentification  = EventIdentification;
+            this.QueueOfEvents        = new TSQueue<HTTPEvent>(MaxNumberOfCachedEvents);
+            this.RetryIntervall       = RetryIntervall ?? TimeSpan.FromSeconds(30);
+            this.CreateHelper         = CreateHelper ?? (_ => default(THelper));
+            this.LogfileName          = LogfileName;
+            this.IdCounter            = 1;
 
             if (EnableLogging)
             {
@@ -138,7 +135,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              Select (line => line.Split((Char) 0x1E)).
                              ForEach(line => {
 
-                                                 if (line.Length == 3           &&
+                                                 if (line.Length >= 3           &&
+                                                     line.Length <= 4           &&
                                                      line[0].IsNotNullOrEmpty() &&
                                                      line[2].IsNotNullOrEmpty())
                                                  {
@@ -165,6 +163,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              QueueOfEvents.Push(new HTTPEvent(Id:         (UInt64) IdCounter++,
                                                                               Timestamp:  DateTime.Parse(line[0]).ToUniversalTime(),
                                                                               Subevent:   line[1],
+                                                                              Helper:     CreateHelper(line.Length == 4
+                                                                                                           ? line[3].Split((Char) 0x1F)
+                                                                                                           : line[2].Split((Char) 0x1F)),
                                                                               Data:       line[2].Split((Char) 0x1F))).
                                                            Wait();
 
@@ -313,12 +314,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (SubEvent.IsNullOrEmpty())
                 await QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
-                                         Data));
+                                                       CreateHelper != null ? CreateHelper(Data) : default(THelper),
+                                                       Data));
 
             else
                 await QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
-                                         SubEvent,
-                                         Data));
+                                                       SubEvent,
+                                                       CreateHelper != null ? CreateHelper(Data) : default(THelper),
+                                                       Data));
 
         }
 
@@ -337,14 +340,76 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (SubEvent.IsNotNullOrEmpty())
                 SubEvent = SubEvent.Trim().Replace(",", "");
 
+            var Data = new String[] { JSON2String(JSONObject) };
+
             if (SubEvent.IsNullOrEmpty())
                 await QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
-                                         JSON2String(JSONObject)));
+                                         CreateHelper != null ? CreateHelper(Data) : default(THelper),
+                                         Data));
 
             else
                 await QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
                                          SubEvent,
-                                         JSON2String(JSONObject)));
+                                         CreateHelper != null ? CreateHelper(Data) : default(THelper),
+                                         Data));
+
+        }
+
+        #endregion
+
+        #region SubmitSubEvent(SubEvent, HelperData, params Data)
+
+        /// <summary>
+        /// Submit a new event.
+        /// </summary>
+        /// <param name="SubEvent">A subevent identification.</param>
+        /// <param name="Data">The attached event data.</param>
+        public async Task SubmitSubEvent(String SubEvent, THelper HelperData, params String[] Data)
+        {
+
+            if (SubEvent.IsNotNullOrEmpty())
+                SubEvent = SubEvent.Trim().Replace(",", "");
+
+            if (SubEvent.IsNullOrEmpty())
+                await QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
+                                                       HelperData,
+                                                       Data));
+
+            else
+                await QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
+                                                       SubEvent,
+                                                       HelperData,
+                                                       Data));
+
+        }
+
+        #endregion
+
+        #region SubmitSubEvent(SubEvent, HelperData, JSONObject)
+
+        /// <summary>
+        /// Submit a new event.
+        /// </summary>
+        /// <param name="SubEvent">A subevent identification.</param>
+        /// <param name="JSONObject">The attached event data.</param>
+        public async Task SubmitSubEvent(String SubEvent, THelper HelperData, JObject JSONObject)
+        {
+
+            if (SubEvent.IsNotNullOrEmpty())
+                SubEvent = SubEvent.Trim().Replace(",", "");
+
+            var Data = new String[] { JSON2String(JSONObject) };
+
+            if (SubEvent.IsNullOrEmpty())
+                await QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
+                                         HelperData,
+                                         Data));
+
+            else
+                await QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
+                                         SubEvent,
+                                         HelperData,
+                                         Data));
 
         }
 
@@ -442,7 +507,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region SubmitTimestampedSubEvent(SubEvent, Timestamp, params Data)
+        #region SubmitTimestampedSubEvent(SubEvent, Timestamp, JSONObject)
 
         /// <summary>
         /// Submit a new subevent with a timestamp.

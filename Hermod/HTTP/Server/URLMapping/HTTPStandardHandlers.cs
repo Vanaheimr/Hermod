@@ -728,7 +728,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            HTTPServer.AddEventSource(HTTPSSE_EventIdentification, URITemplate: HTTPSSE_URITemplate);
+            HTTPServer.AddEventSource<String>(HTTPSSE_EventIdentification, URITemplate: HTTPSSE_URITemplate);
 
             HTTPServer.AddMethodCallback(Hostname,
                                          HTTPMethod.GET,

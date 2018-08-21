@@ -418,10 +418,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             {
 
                 if (From.Address.Value.IsNullOrEmpty() ||
-                    To.Count()                     < 1 ||
+                    !To.Any()                          ||
                     Subject.IsNullOrEmpty())
-
+                {
                     throw new Exception("Invalid email!");
+                }
 
                 return new EMail(this);
 

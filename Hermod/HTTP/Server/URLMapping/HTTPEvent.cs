@@ -59,11 +59,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public IEnumerable<String>  Data         { get; }
 
+
+        public Object               Helper       { get; }
+
         #endregion
 
         #region Constructor(s)
 
-        #region HTTPEvent(Id, Data)
+        #region HTTPEvent(Id, Helper, Data)
 
         /// <summary>
         /// Create a new HTTP event based on the given parameters.
@@ -71,18 +74,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Id">The id of the event.</param>
         /// <param name="Data">The attached data of the event.</param>
         public HTTPEvent(UInt64           Id,
+                         Object           Helper,
                          params String[]  Data)
 
             : this(Id,
                    DateTime.UtcNow,
                    String.Empty,
+                   Helper,
                    Data)
 
         { }
 
         #endregion
 
-        #region HTTPEvent(Id, Timestamp, Data)
+        #region HTTPEvent(Id, Timestamp, Helper, Data)
 
         /// <summary>
         /// Create a new HTTP event based on the given parameters.
@@ -92,18 +97,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Data">The attached data of the event.</param>
         public HTTPEvent(UInt64           Id,
                          DateTime         Timestamp,
+                         Object           Helper,
                          params String[]  Data)
 
             : this(Id,
                    Timestamp,
                    String.Empty,
+                   Helper,
                    Data)
 
         { }
 
         #endregion
 
-        #region HTTPEvent(Id, Subevent, Data)
+        #region HTTPEvent(Id, Subevent, Helper, Data)
 
         /// <summary>
         /// Create a new HTTP event based on the given parameters.
@@ -113,18 +120,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Data">The attached data of the event.</param>
         public HTTPEvent(UInt64           Id,
                          String           Subevent,
+                         Object           Helper,
                          params String[]  Data)
 
             : this(Id,
                    DateTime.UtcNow,
                    Subevent,
+                   Helper,
                    Data)
 
         { }
 
         #endregion
 
-        #region HTTPEvent(Id, Timestamp, Subevent, Data)
+        #region HTTPEvent(Id, Timestamp, Subevent, Helper, Data)
 
         /// <summary>
         /// Create a new HTTP event based on the given parameters.
@@ -136,12 +145,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPEvent(UInt64           Id,
                          DateTime         Timestamp,
                          String           Subevent,
+                         Object           Helper,
                          params String[]  Data)
         {
 
             this.Id         = Id;
             this.Timestamp  = Timestamp;
             this.Subevent   = Subevent?.Trim() ?? "";
+            this.Helper     = Helper;
             this.Data       = Data             ?? new String[0];
 
         }

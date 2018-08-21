@@ -50,31 +50,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         UInt64 NumberOfClients { get; }
 
 
-        void AddMethodCallback(HTTPHostname              Hostname,
-                               HTTPMethod                HTTPMethod,
-                               HTTPURI                   URITemplate,
-                               HTTPContentType           HTTPContentType             = null,
-                               HTTPAuthentication        URIAuthentication           = null,
-                               HTTPAuthentication        HTTPMethodAuthentication    = null,
-                               HTTPAuthentication        ContentTypeAuthentication   = null,
-                               HTTPRequestLogHandler   HTTPRequestLogger           = null,
-                               HTTPResponseLogHandler    HTTPResponseLogger          = null,
-                               HTTPDelegate              DefaultErrorHandler         = null,
-                               HTTPDelegate              HTTPDelegate                = null,
-                               URIReplacement            AllowReplacement            = URIReplacement.Fail);
+        void AddMethodCallback(HTTPHostname                  Hostname,
+                               HTTPMethod                    HTTPMethod,
+                               HTTPURI                       URITemplate,
+                               HTTPContentType               HTTPContentType             = null,
+                               HTTPAuthentication            URIAuthentication           = null,
+                               HTTPAuthentication            HTTPMethodAuthentication    = null,
+                               HTTPAuthentication            ContentTypeAuthentication   = null,
+                               HTTPRequestLogHandler         HTTPRequestLogger           = null,
+                               HTTPResponseLogHandler        HTTPResponseLogger          = null,
+                               HTTPDelegate                  DefaultErrorHandler         = null,
+                               HTTPDelegate                  HTTPDelegate                = null,
+                               URIReplacement                AllowReplacement            = URIReplacement.Fail);
 
-        void AddMethodCallback(HTTPHostname              Hostname,
-                               HTTPMethod                HTTPMethod,
-                               IEnumerable<HTTPURI>      URITemplates,
-                               HTTPContentType           HTTPContentType             = null,
-                               HTTPAuthentication        URIAuthentication           = null,
-                               HTTPAuthentication        HTTPMethodAuthentication    = null,
-                               HTTPAuthentication        ContentTypeAuthentication   = null,
-                               HTTPRequestLogHandler   HTTPRequestLogger           = null,
-                               HTTPResponseLogHandler    HTTPResponseLogger          = null,
-                               HTTPDelegate              DefaultErrorHandler         = null,
-                               HTTPDelegate              HTTPDelegate                = null,
-                               URIReplacement            AllowReplacement            = URIReplacement.Fail);
+        void AddMethodCallback(HTTPHostname                  Hostname,
+                               HTTPMethod                    HTTPMethod,
+                               IEnumerable<HTTPURI>          URITemplates,
+                               HTTPContentType               HTTPContentType             = null,
+                               HTTPAuthentication            URIAuthentication           = null,
+                               HTTPAuthentication            HTTPMethodAuthentication    = null,
+                               HTTPAuthentication            ContentTypeAuthentication   = null,
+                               HTTPRequestLogHandler         HTTPRequestLogger           = null,
+                               HTTPResponseLogHandler        HTTPResponseLogger          = null,
+                               HTTPDelegate                  DefaultErrorHandler         = null,
+                               HTTPDelegate                  HTTPDelegate                = null,
+                               URIReplacement                AllowReplacement            = URIReplacement.Fail);
 
         void AddMethodCallback(HTTPHostname                  Hostname,
                                HTTPMethod                    HTTPMethod,
@@ -83,7 +83,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPAuthentication            URIAuthentication           = null,
                                HTTPAuthentication            HTTPMethodAuthentication    = null,
                                HTTPAuthentication            ContentTypeAuthentication   = null,
-                               HTTPRequestLogHandler       HTTPRequestLogger           = null,
+                               HTTPRequestLogHandler         HTTPRequestLogger           = null,
                                HTTPResponseLogHandler        HTTPResponseLogger          = null,
                                HTTPDelegate                  DefaultErrorHandler         = null,
                                HTTPDelegate                  HTTPDelegate                = null,
@@ -96,7 +96,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPAuthentication            URIAuthentication           = null,
                                HTTPAuthentication            HTTPMethodAuthentication    = null,
                                HTTPAuthentication            ContentTypeAuthentication   = null,
-                               HTTPRequestLogHandler       HTTPRequestLogger           = null,
+                               HTTPRequestLogHandler         HTTPRequestLogger           = null,
                                HTTPResponseLogHandler        HTTPResponseLogger          = null,
                                HTTPDelegate                  DefaultErrorHandler         = null,
                                HTTPDelegate                  HTTPDelegate                = null,
@@ -120,13 +120,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
         /// <param name="RetryIntervall">The retry intervall.</param>
         /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
-        HTTPEventSource AddEventSource(HTTPEventSource_Id              EventIdentification,
-                                       UInt32                          MaxNumberOfCachedEvents     = 500,
-                                       TimeSpan?                       RetryIntervall              = null,
-                                       Boolean                         EnableLogging               = true,
-                                       String                          LogfilePrefix               = null,
-                                       Func<String, DateTime, String>  LogfileName                 = null,
-                                       String                          LogfileReloadSearchPattern  = null);
+        HTTPEventSource<THelper> AddEventSource<THelper>(HTTPEventSource_Id              EventIdentification,
+                                                         UInt32                          MaxNumberOfCachedEvents      = 500,
+                                                         TimeSpan?                       RetryIntervall               = null,
+                                                         Func<String[], THelper>         CreateHelper                 = null,
+                                                         Boolean                         EnableLogging                = true,
+                                                         String                          LogfilePrefix                = null,
+                                                         Func<String, DateTime, String>  LogfileName                  = null,
+                                                         String                          LogfileReloadSearchPattern   = null);
 
         /// <summary>
         /// Add a HTTP Sever Sent Events source and a method call back for the given URI template.
@@ -148,44 +149,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// 
         /// <param name="DefaultErrorHandler">The default error handler.</param>
-        HTTPEventSource AddEventSource(HTTPEventSource_Id              EventIdentification,
-                                       HTTPURI                         URITemplate,
+        HTTPEventSource<THelper> AddEventSource<THelper>(HTTPEventSource_Id              EventIdentification,
+                                                         HTTPURI                         URITemplate,
 
-                                       UInt32                          MaxNumberOfCachedEvents     = 500,
-                                       Func<HTTPEvent, Boolean>        IncludeFilterAtRuntime      = null,
-                                       TimeSpan?                       RetryIntervall              = null,
-                                       Boolean                         EnableLogging               = false,
-                                       String                          LogfilePrefix               = null,
-                                       Func<String, DateTime, String>  LogfileName                 = null,
-                                       String                          LogfileReloadSearchPattern  = null,
+                                                         UInt32                          MaxNumberOfCachedEvents      = 500,
+                                                         Func<HTTPEvent, Boolean>        IncludeFilterAtRuntime       = null,
+                                                         TimeSpan?                       RetryIntervall               = null,
+                                                         Func<String[], THelper>         CreateHelper                 = null,
+                                                         Boolean                         EnableLogging                = false,
+                                                         String                          LogfilePrefix                = null,
+                                                         Func<String, DateTime, String>  LogfileName                  = null,
+                                                         String                          LogfileReloadSearchPattern   = null,
 
-                                       HTTPHostname?                   Hostname                    = null,
-                                       HTTPMethod?                     HTTPMethod                  = null,
-                                       HTTPContentType                 HTTPContentType             = null,
+                                                         HTTPHostname?                   Hostname                     = null,
+                                                         HTTPMethod?                     HTTPMethod                   = null,
+                                                         HTTPContentType                 HTTPContentType              = null,
 
-                                       HTTPAuthentication              URIAuthentication           = null,
-                                       HTTPAuthentication              HTTPMethodAuthentication    = null,
+                                                         HTTPAuthentication              URIAuthentication            = null,
+                                                         HTTPAuthentication              HTTPMethodAuthentication     = null,
 
-                                       HTTPDelegate                    DefaultErrorHandler         = null);
+                                                         HTTPDelegate                    DefaultErrorHandler          = null);
 
         /// <summary>
         /// Return the event source identified by the given event source identification.
         /// </summary>
         /// <param name="EventSourceIdentification">A string to identify an event source.</param>
-        HTTPEventSource Get(HTTPEventSource_Id EventSourceIdentification);
+        IHTTPEventSource Get(HTTPEventSource_Id EventSourceIdentification);
 
         /// <summary>
         /// Try to return the event source identified by the given event source identification.
         /// </summary>
         /// <param name="EventSourceIdentification">A string to identify an event source.</param>
         /// <param name="EventSource">The event source.</param>
-        Boolean TryGet(HTTPEventSource_Id EventSourceIdentification, out HTTPEventSource EventSource);
+        Boolean TryGet(HTTPEventSource_Id EventSourceIdentification, out IHTTPEventSource EventSource);
 
         /// <summary>
         /// Return a filtered enumeration of all event sources.
         /// </summary>
         /// <param name="IncludeEventSource">An event source filter delegate.</param>
-        IEnumerable<HTTPEventSource> EventSources(Func<HTTPEventSource, Boolean> IncludeEventSource = null);
+        IEnumerable<IHTTPEventSource> EventSources(Func<IHTTPEventSource, Boolean> IncludeEventSource = null);
 
         #endregion
 

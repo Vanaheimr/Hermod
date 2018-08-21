@@ -131,6 +131,7 @@
     <Compile Include="HTTP\Server\URLMapping\HTTPEventSource.cs" />
     <Compile Include="HTTP\Server\URLMapping\HTTPMethodNode.cs" />
     <Compile Include="HTTP\Server\URLMapping\HTTPEventSource_Id.cs" />
+    <Compile Include="HTTP\Server\URLMapping\IHTTPEventSource.cs" />
     <Compile Include="HTTP\Server\URLMapping\URIReplacement.cs" />
     <Compile Include="HTTP\Server\URLMapping\URINode.cs" />
     <Compile Include="HTTP\HTTPSemantics.cs" />

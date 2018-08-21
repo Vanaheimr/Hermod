@@ -745,17 +745,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
         /// <param name="RetryIntervall">The retry intervall.</param>
         /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
-        public HTTPEventSource AddEventSource(HTTPEventSource_Id              EventIdentification,
-                                              UInt32                          MaxNumberOfCachedEvents     = 500,
-                                              TimeSpan?                       RetryIntervall              = null,
-                                              Boolean                         EnableLogging               = true,
-                                              String                          LogfilePrefix               = null,
-                                              Func<String, DateTime, String>  LogfileName                 = null,
-                                              String                          LogfileReloadSearchPattern  = null)
+        public HTTPEventSource<THelper> AddEventSource<THelper>(HTTPEventSource_Id              EventIdentification,
+                                                                UInt32                          MaxNumberOfCachedEvents      = 500,
+                                                                TimeSpan?                       RetryIntervall               = null,
+                                                                Func<String[], THelper>         CreateHelper                 = null,
+                                                                Boolean                         EnableLogging                = true,
+                                                                String                          LogfilePrefix                = null,
+                                                                Func<String, DateTime, String>  LogfileName                  = null,
+                                                                String                          LogfileReloadSearchPattern   = null)
 
             => _HTTPServer.AddEventSource(EventIdentification,
                                           MaxNumberOfCachedEvents,
                                           RetryIntervall,
+                                          CreateHelper,
                                           EnableLogging,
                                           LogfilePrefix,
                                           LogfileName,
@@ -787,25 +789,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// 
         /// <param name="DefaultErrorHandler">The default error handler.</param>
-        public HTTPEventSource AddEventSource(HTTPEventSource_Id              EventIdentification,
-                                              HTTPURI                         URITemplate,
+        public HTTPEventSource<THelper> AddEventSource<THelper>(HTTPEventSource_Id              EventIdentification,
+                                                                HTTPURI                         URITemplate,
 
-                                              UInt32                          MaxNumberOfCachedEvents     = 500,
-                                              Func<HTTPEvent, Boolean>        IncludeFilterAtRuntime      = null,
-                                              TimeSpan?                       RetryIntervall              = null,
-                                              Boolean                         EnableLogging               = true,
-                                              String                          LogfilePrefix               = null,
-                                              Func<String, DateTime, String>  LogfileName                 = null,
-                                              String                          LogfileReloadSearchPattern  = null,
+                                                                UInt32                          MaxNumberOfCachedEvents      = 500,
+                                                                Func<HTTPEvent, Boolean>        IncludeFilterAtRuntime       = null,
+                                                                TimeSpan?                       RetryIntervall               = null,
+                                                                Func<String[], THelper>         CreateHelper                 = null,
+                                                                Boolean                         EnableLogging                = true,
+                                                                String                          LogfilePrefix                = null,
+                                                                Func<String, DateTime, String>  LogfileName                  = null,
+                                                                String                          LogfileReloadSearchPattern   = null,
 
-                                              HTTPHostname?                   Hostname                    = null,
-                                              HTTPMethod?                     HTTPMethod                  = null,
-                                              HTTPContentType                 HTTPContentType             = null,
+                                                                HTTPHostname?                   Hostname                     = null,
+                                                                HTTPMethod?                     HTTPMethod                   = null,
+                                                                HTTPContentType                 HTTPContentType              = null,
 
-                                              HTTPAuthentication              URIAuthentication           = null,
-                                              HTTPAuthentication              HTTPMethodAuthentication    = null,
+                                                                HTTPAuthentication              URIAuthentication            = null,
+                                                                HTTPAuthentication              HTTPMethodAuthentication     = null,
 
-                                              HTTPDelegate                    DefaultErrorHandler         = null)
+                                                                HTTPDelegate                    DefaultErrorHandler          = null)
 
             => _HTTPServer.AddEventSource(EventIdentification,
                                           URITemplate,
@@ -813,6 +816,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           MaxNumberOfCachedEvents,
                                           IncludeFilterAtRuntime,
                                           RetryIntervall,
+                                          CreateHelper,
                                           EnableLogging,
                                           LogfilePrefix,
                                           LogfileName,
@@ -836,7 +840,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return the event source identified by the given event source identification.
         /// </summary>
         /// <param name="EventSourceIdentification">A string to identify an event source.</param>
-        public HTTPEventSource Get(HTTPEventSource_Id EventSourceIdentification)
+        public IHTTPEventSource Get(HTTPEventSource_Id EventSourceIdentification)
 
             => _HTTPServer.Get(EventSourceIdentification);
 
@@ -849,7 +853,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="EventSourceIdentification">A string to identify an event source.</param>
         /// <param name="EventSource">The event source.</param>
-        public Boolean TryGet(HTTPEventSource_Id EventSourceIdentification, out HTTPEventSource EventSource)
+        public Boolean TryGet(HTTPEventSource_Id EventSourceIdentification, out IHTTPEventSource EventSource)
 
             => _HTTPServer.TryGet(EventSourceIdentification, out EventSource);
 
@@ -861,7 +865,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a filtered enumeration of all event sources.
         /// </summary>
         /// <param name="IncludeEventSource">An event source filter delegate.</param>
-        public IEnumerable<HTTPEventSource> EventSources(Func<HTTPEventSource, Boolean> IncludeEventSource = null)
+        public IEnumerable<IHTTPEventSource> EventSources(Func<IHTTPEventSource, Boolean> IncludeEventSource = null)
 
             => _HTTPServer.EventSources(IncludeEventSource);
 
@@ -1011,8 +1015,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public static readonly  IPPort           DefaultHTTPServerPort  = IPPort.HTTP;
 
-        private readonly        Dictionary<HTTPHostname,       HostnameNode>     _HostnameNodes;
-        private readonly        Dictionary<HTTPEventSource_Id, HTTPEventSource>  _EventSources;
+        private readonly        Dictionary<HTTPHostname,       HostnameNode>      _HostnameNodes;
+        private readonly        Dictionary<HTTPEventSource_Id, IHTTPEventSource>  _EventSources;
 
         private const    UInt32 ReadTimeout           = 180000U;
 
@@ -1119,7 +1123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.DefaultServerName         = DefaultServerName;
             this._HostnameNodes            = new Dictionary<HTTPHostname,       HostnameNode>();
-            this._EventSources             = new Dictionary<HTTPEventSource_Id, HTTPEventSource>();
+            this._EventSources             = new Dictionary<HTTPEventSource_Id, IHTTPEventSource>();
 
             if (TCPPort != null)
                 this.AttachTCPPort(TCPPort ?? IPPort.HTTP);
@@ -2479,13 +2483,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
         /// <param name="RetryIntervall">The retry intervall.</param>
         /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
-        public HTTPEventSource AddEventSource(HTTPEventSource_Id              EventIdentification,
-                                              UInt32                          MaxNumberOfCachedEvents     = 500,
-                                              TimeSpan?                       RetryIntervall              = null,
-                                              Boolean                         EnableLogging               = true,
-                                              String                          LogfilePrefix               = null,
-                                              Func<String, DateTime, String>  LogfileName                 = null,
-                                              String                          LogfileReloadSearchPattern  = null)
+        public HTTPEventSource<THelper> AddEventSource<THelper>(HTTPEventSource_Id              EventIdentification,
+                                                                UInt32                          MaxNumberOfCachedEvents      = 500,
+                                                                TimeSpan?                       RetryIntervall               = null,
+                                                                Func<String[], THelper>         CreateHelper                 = null,
+                                                                Boolean                         EnableLogging                = true,
+                                                                String                          LogfilePrefix                = null,
+                                                                Func<String, DateTime, String>  LogfileName                  = null,
+                                                                String                          LogfileReloadSearchPattern   = null)
 
         {
 
@@ -2495,18 +2500,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (_EventSources.ContainsKey(EventIdentification))
                     throw new ArgumentException("Duplicate event identification!");
 
-                return _EventSources.AddAndReturnValue(EventIdentification,
-                                                       new HTTPEventSource(EventIdentification,
-                                                                           MaxNumberOfCachedEvents,
-                                                                           RetryIntervall,
-                                                                           EnableLogging,
-                                                                           EnableLogging || LogfileName != null
-                                                                               ? LogfileName ?? ((eventid, time) => String.Concat(LogfilePrefix ?? "",
-                                                                                                                                  eventid, "_",
-                                                                                                                                  time.Year, "-", time.Month.ToString("D2"),
-                                                                                                                                  ".log"))
-                                                                               : null,
-                                                                           LogfileReloadSearchPattern ?? String.Concat(LogfilePrefix ?? "", EventIdentification, "_*.log")));
+                var eventSource = new HTTPEventSource<THelper>(EventIdentification,
+                                                               MaxNumberOfCachedEvents,
+                                                               RetryIntervall,
+                                                               CreateHelper,
+                                                               EnableLogging,
+                                                               EnableLogging || LogfileName != null
+                                                                   ? LogfileName ?? ((eventid, time) => String.Concat(LogfilePrefix ?? "",
+                                                                                                                      eventid, "_",
+                                                                                                                      time.Year, "-", time.Month.ToString("D2"),
+                                                                                                                      ".log"))
+                                                                   : null,
+                                                               LogfileReloadSearchPattern ?? String.Concat(LogfilePrefix ?? "", EventIdentification, "_*.log"));
+
+                _EventSources.Add(EventIdentification,
+                                  eventSource);
+
+                return eventSource;
 
             }
 
@@ -2536,25 +2546,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// 
         /// <param name="DefaultErrorHandler">The default error handler.</param>
-        public HTTPEventSource AddEventSource(HTTPEventSource_Id              EventIdentification,
-                                              HTTPURI                         URITemplate,
+        public HTTPEventSource<THelper> AddEventSource<THelper>(HTTPEventSource_Id              EventIdentification,
+                                                                HTTPURI                         URITemplate,
 
-                                              UInt32                          MaxNumberOfCachedEvents     = 500,
-                                              Func<HTTPEvent, Boolean>        IncludeFilterAtRuntime      = null,
-                                              TimeSpan?                       RetryIntervall              = null,
-                                              Boolean                         EnableLogging               = true,
-                                              String                          LogfilePrefix               = null,
-                                              Func<String, DateTime, String>  LogfileName                 = null,
-                                              String                          LogfileReloadSearchPattern  = null,
+                                                                UInt32                          MaxNumberOfCachedEvents     = 500,
+                                                                Func<HTTPEvent, Boolean>        IncludeFilterAtRuntime      = null,
+                                                                TimeSpan?                       RetryIntervall              = null,
+                                                                Func<String[], THelper>         CreateHelper                = null,
+                                                                Boolean                         EnableLogging               = true,
+                                                                String                          LogfilePrefix               = null,
+                                                                Func<String, DateTime, String>  LogfileName                 = null,
+                                                                String                          LogfileReloadSearchPattern  = null,
 
-                                              HTTPHostname?                   Hostname                    = null,
-                                              HTTPMethod?                     HttpMethod                  = null,
-                                              HTTPContentType                 HTTPContentType             = null,
+                                                                HTTPHostname?                   Hostname                    = null,
+                                                                HTTPMethod?                     HttpMethod                  = null,
+                                                                HTTPContentType                 HTTPContentType             = null,
 
-                                              HTTPAuthentication              URIAuthentication           = null,
-                                              HTTPAuthentication              HTTPMethodAuthentication    = null,
+                                                                HTTPAuthentication              URIAuthentication           = null,
+                                                                HTTPAuthentication              HTTPMethodAuthentication    = null,
 
-                                              HTTPDelegate                    DefaultErrorHandler         = null)
+                                                                HTTPDelegate                    DefaultErrorHandler         = null)
 
         {
 
@@ -2564,6 +2575,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var _EventSource = AddEventSource(EventIdentification,
                                                   MaxNumberOfCachedEvents,
                                                   RetryIntervall,
+                                                  CreateHelper,
                                                   EnableLogging,
                                                   LogfilePrefix,
                                                   LogfileName,
@@ -2645,13 +2657,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return the event source identified by the given event source identification.
         /// </summary>
         /// <param name="EventSourceIdentification">A string to identify an event source.</param>
-        public HTTPEventSource Get(HTTPEventSource_Id EventSourceIdentification)
+        public IHTTPEventSource Get(HTTPEventSource_Id EventSourceIdentification)
         {
 
             lock (_EventSources)
             {
 
-                if (_EventSources.TryGetValue(EventSourceIdentification, out HTTPEventSource _HTTPEventSource))
+                if (_EventSources.TryGetValue(EventSourceIdentification, out IHTTPEventSource _HTTPEventSource))
                     return _HTTPEventSource;
 
                 return null;
@@ -2669,7 +2681,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="EventSourceIdentification">A string to identify an event source.</param>
         /// <param name="EventSource">The event source.</param>
-        public Boolean TryGet(HTTPEventSource_Id EventSourceIdentification, out HTTPEventSource EventSource)
+        public Boolean TryGet(HTTPEventSource_Id EventSourceIdentification, out IHTTPEventSource EventSource)
         {
 
             lock (_EventSources)
@@ -2687,7 +2699,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a filtered enumeration of all event sources.
         /// </summary>
         /// <param name="IncludeEventSource">An event source filter delegate.</param>
-        public IEnumerable<HTTPEventSource> EventSources(Func<HTTPEventSource, Boolean> IncludeEventSource = null)
+        public IEnumerable<IHTTPEventSource> EventSources(Func<IHTTPEventSource, Boolean> IncludeEventSource = null)
         {
 
             lock (_HostnameNodes)
