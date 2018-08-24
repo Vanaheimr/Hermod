@@ -119,7 +119,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 throw new ArgumentException("Too many DNSResourceRecordTypes!");
 
             this._DomainName        = DomainName;
-            this._TransactionId     = new Random(DateTime.UtcNow.Millisecond).Next(55555);
+            this._TransactionId     = new Random(DateTime.Now.Millisecond).Next(55555);
             this._RecursionDesired  = RecursionDesired;
             this.QueryClass         = DNSQueryClasses.IN;
 
