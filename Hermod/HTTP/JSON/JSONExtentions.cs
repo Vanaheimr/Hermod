@@ -1586,6 +1586,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
+        public static Boolean ParseOptional2(this JObject  JSON,
+                                             String        PropertyName,
+                                             out String    StringOut)
+        {
+
+            if (JSON == null ||
+                PropertyName.IsNullOrEmpty())
+            {
+                StringOut = String.Empty;
+                return false;
+            }
+
+            if (JSON.TryGetValue(PropertyName, out JToken _JToken))
+            {
+
+                StringOut = _JToken?.Value<String>();
+
+                if (StringOut != null)
+                    return true;
+
+                return false;
+
+            }
+
+            StringOut = null;
+            return false;
+
+        }
+
 
         #region ParseOptional       (this JSON, PropertyName, PropertyDescription,                                 out BooleanOut,         out ErrorResponse)
 

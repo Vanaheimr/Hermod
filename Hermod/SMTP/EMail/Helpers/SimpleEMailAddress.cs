@@ -132,9 +132,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public static SimpleEMailAddress? TryParse(String Text)
         {
 
-            SimpleEMailAddress _SimpleEMailAddress;
-
-            if (TryParse(Text, out _SimpleEMailAddress))
+            if (TryParse(Text, out SimpleEMailAddress _SimpleEMailAddress))
                 return _SimpleEMailAddress;
 
             return new SimpleEMailAddress?();
@@ -166,13 +164,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             try
             {
 
-                var MatchCollection = SimpleEMail_RegEx.Matches(Text.Trim().ToUpper());
+                var MatchCollection = SimpleEMail_RegEx.Matches(Text.Trim());
 
                 if (MatchCollection.Count == 1)
                 {
 
-                    EMailAddress = new SimpleEMailAddress(MatchCollection[0].Groups[0].Value,
-                                                          MatchCollection[0].Groups[1].Value);
+                    EMailAddress = new SimpleEMailAddress(MatchCollection[0].Groups[1].Value,
+                                                          MatchCollection[0].Groups[2].Value);
 
                     return true;
 

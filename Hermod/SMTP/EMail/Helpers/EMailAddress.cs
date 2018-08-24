@@ -389,7 +389,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         public static Boolean TryParseJSON(JObject           JSONObject,
                                            out EMailAddress  EMailAddress,
-                                           out String        ErrorResponse)
+                                           out String        ErrorResponse,
+                                           Boolean           IgnoreContext = false)
         {
 
             try
@@ -399,19 +400,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
                 #region Parse Context      [mandatory]
 
-                if (!JSONObject.ParseMandatory("@context",
-                                               "JSON-LinkedData context information",
-                                               out String Context,
-                                               out ErrorResponse))
+                if (IgnoreContext)
                 {
-                    ErrorResponse = @"The JSON-LD ""@context"" information is missing!";
-                    return false;
+
+                    if (JSONObject.ParseOptional2("@context",
+                                                   out String Context1))
+                    {
+                        if (Context1 != JSONLDContext)
+                        {
+                            ErrorResponse = @"The given JSON-LD ""@context"" information '" + Context1 + "' is not supported!";
+                            return false;
+                        }
+                    }
+
                 }
 
-                if (Context != JSONLDContext)
+                else
                 {
-                    ErrorResponse = @"The given JSON-LD ""@context"" information '" + Context + "' is not supported!";
-                    return false;
+                    if (!JSONObject.ParseMandatory("@context",
+                                                   "JSON-LinkedData context information",
+                                                   out String Context,
+                                                   out ErrorResponse))
+                    {
+                        ErrorResponse = @"The JSON-LD ""@context"" information is missing!";
+                        return false;
+                    }
+
+                    if (Context != JSONLDContext)
+                    {
+                        ErrorResponse = @"The given JSON-LD ""@context"" information '" + Context + "' is not supported!";
+                        return false;
+                    }
                 }
 
                 #endregion
@@ -432,6 +451,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
                 if (!JSONObject.ParseMandatory("address",
                                                "e-mail address",
+                                               SimpleEMailAddress.TryParse,
                                                out SimpleEMailAddress Address,
                                                out ErrorResponse))
                 {
