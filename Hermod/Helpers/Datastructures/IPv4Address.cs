@@ -28,10 +28,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
     /// <summary>
     /// An IPv4 address.
-    /// </summary>    
+    /// </summary>
     public struct IPv4Address : IIPAddress,
-                               IComparable<IPv4Address>,
-                               IEquatable<IPv4Address>
+                                IComparable<IPv4Address>,
+                                IEquatable<IPv4Address>
     {
 
         #region Data
