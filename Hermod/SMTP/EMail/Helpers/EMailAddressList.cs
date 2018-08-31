@@ -143,9 +143,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         #endregion
 
 
+        public static EMailAddressList Empty
+
+            => new EMailAddressList();
+
+
         public static EMailAddressList Create(params EMailAddress[] EMailAddressList)
 
             => new EMailAddressList(EMailAddressList);
+
 
         public static EMailAddressList Create(IEnumerable<EMailAddress> EMailAddressList)
 
