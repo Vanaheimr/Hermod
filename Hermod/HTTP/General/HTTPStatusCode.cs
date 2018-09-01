@@ -30,160 +30,76 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// http://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
     /// http://en.wikipedia.org/wiki/List_of_HTTP_status_codes
     /// </summary>
-    public class HTTPStatusCode : IEquatable<HTTPStatusCode>, IComparable<HTTPStatusCode>, IComparable
+    public class HTTPStatusCode : IEquatable<HTTPStatusCode>,
+                                  IComparable<HTTPStatusCode>,
+                                  IComparable
     {
 
         #region Properties
 
-        #region Code
-
         /// <summary>
         /// The code of this HTTP status code
         /// </summary>
-        public UInt32 Code { get; private set; }
-
-        #endregion
-
-        #region Name
+        public UInt32 Code          { get; }
 
         /// <summary>
         /// The name of this HTTP status code
         /// </summary>
-        public String Name { get; private set; }
-
-        #endregion
-
-        #region Description
+        public String Name          { get; }
 
         /// <summary>
         /// A description of this HTTP status code
         /// </summary>
-        public String Description { get; private set; }
-
-        #endregion
+        public String Description   { get; }
 
 
-        #region IsInformational
-
+        /// <summary>
+        /// Is informational.
+        /// </summary>
         public Boolean IsInformational
-        {
-            get
-            {
-                
-                if (Code >= 100 && Code < 200)
-                    return true;
+            => Code >= 100 && Code < 200;
 
-                return false;
-
-            }
-        }
-
-        #endregion
-
-        #region IsSuccessful
-
+        /// <summary>
+        /// Is successful.
+        /// </summary>
         public Boolean IsSuccessful
-        {
-            get
-            {
+            => Code >= 200 && Code < 300;
 
-                if (Code >= 200 && Code < 300)
-                    return true;
-
-                return false;
-
-            }
-        }
-
-        #endregion
-
-        #region IsRedirection
-
+        /// <summary>
+        /// Is redirection.
+        /// </summary>
         public Boolean IsRedirection
-        {
-            get
-            {
+            => Code >= 300 && Code < 400;
 
-                if (Code >= 300 && Code < 400)
-                    return true;
-
-                return false;
-
-            }
-        }
-
-        #endregion
-
-        #region IsClientError
-
+        /// <summary>
+        /// Is client error.
+        /// </summary>
         public Boolean IsClientError
-        {
-            get
-            {
+            => Code >= 400 && Code < 500;
 
-                if (Code >= 400 && Code < 500)
-                    return true;
-
-                return false;
-
-            }
-        }
-
-        #endregion
-
-        #region IsServerError
-
+        /// <summary>
+        /// Is server error.
+        /// </summary>
         public Boolean IsServerError
-        {
-            get
-            {
-
-                if (Code >= 500 && Code < 600)
-                    return true;
-
-                return false;
-
-            }
-        }
-
-        #endregion
+            => Code >= 500 && Code < 600;
 
 
-        #region SimpleString
 
         /// <summary>
         /// SimpleString.
         /// </summary>
         public String SimpleString
-        {
-            get
-            {
-                return String.Concat(Code, " ", Name);
-            }
-        }
-
-        #endregion
-
-        #region HTTPResponseString
+            => String.Concat(Code, " ", Name);
 
         /// <summary>
         /// Create a status code line from a HTTPStatusCode.
         /// </summary>
         public String HTTPResponseString
-        {
-            get
-            {
-                return String.Concat("HTTP/1.1 ", Code, " ", Name);
-            }
-        }
-
-        #endregion
+            => String.Concat("HTTP/1.1 ", Code, " ", Name);
 
         #endregion
 
         #region Constructor(s)
-
-        #region HTTPStatusCode(Code, Name, Description = null)
 
         /// <summary>
         /// Creates a new HTTP status coded based on a code, name and an optional description.
@@ -191,14 +107,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Code">The code of the HTTP status code</param>
         /// <param name="Name">The name of the HTTP status code</param>
         /// <param name="Description">An optional description of the HTTP status code</param>
-        public HTTPStatusCode(UInt32 Code, String Name, String Description = null)
+        public HTTPStatusCode(UInt32  Code,
+                              String  Name,
+                              String  Description = null)
         {
-            this.Code        = Code;
-            this.Name        = Name;
-            this.Description = Description;
-        }
 
-        #endregion
+            this.Code         = Code;
+            this.Name         = Name;
+            this.Description  = Description;
+
+        }
 
         #endregion
 
@@ -861,8 +779,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region Tools
-
         #region ParseInt(myCode)
 
         /// <summary>
@@ -900,9 +816,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPStatusCode ParseString(String myCode)
         {
 
-            UInt32 _Code;
-
-            if (UInt32.TryParse(myCode, out _Code))
+            if (UInt32.TryParse(myCode, out UInt32 _Code))
             {
 
                 var myHTTPStatusCode = (from   _FieldInfo in typeof(HTTPStatusCode).GetFields()
@@ -960,9 +874,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean TryParseString(String myCode, out HTTPStatusCode myHTTPStatusCode)
         {
 
-            UInt32 _Code;
-
-            if (UInt32.TryParse(myCode, out _Code))
+            if (UInt32.TryParse(myCode, out UInt32 _Code))
             {
 
                 myHTTPStatusCode = (from   _FieldInfo in typeof(HTTPStatusCode).GetFields()
@@ -983,8 +895,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #endregion
-
 
         #region Operator overloading
 
@@ -998,7 +908,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return true;
 
             // If one is null, but not both, return false.
-            if (((Object) myHTTPStatusCode1 == null) || ((Object) myHTTPStatusCode2 == null))
+            if ((myHTTPStatusCode1 is null) || (myHTTPStatusCode2 is null))
                 return false;
 
             return myHTTPStatusCode1.Equals(myHTTPStatusCode2);
@@ -1010,9 +920,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Operator != (myHTTPStatusCode1, myHTTPStatusCode2)
 
         public static Boolean operator != (HTTPStatusCode myHTTPStatusCode1, HTTPStatusCode myHTTPStatusCode2)
-        {
-            return !(myHTTPStatusCode1 == myHTTPStatusCode2);
-        }
+            => !(myHTTPStatusCode1 == myHTTPStatusCode2);
 
         #endregion
 
@@ -1022,11 +930,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             // Check if myHTTPStatusCode1 is null
-            if ((Object) myHTTPStatusCode1 == null)
+            if (myHTTPStatusCode1 is null)
                 throw new ArgumentNullException("Parameter myHTTPStatusCode1 must not be null!");
 
             // Check if myHTTPStatusCode2 is null
-            if ((Object) myHTTPStatusCode2 == null)
+            if (myHTTPStatusCode2 is null)
                 throw new ArgumentNullException("Parameter myHTTPStatusCode2 must not be null!");
 
             return myHTTPStatusCode1.CompareTo(myHTTPStatusCode2) < 0;
@@ -1041,11 +949,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             // Check if myHTTPStatusCode1 is null
-            if ((Object) myHTTPStatusCode1 == null)
+            if (myHTTPStatusCode1 is null)
                 throw new ArgumentNullException("Parameter myHTTPStatusCode1 must not be null!");
 
             // Check if myHTTPStatusCode2 is null
-            if ((Object) myHTTPStatusCode2 == null)
+            if (myHTTPStatusCode2 is null)
                 throw new ArgumentNullException("Parameter myHTTPStatusCode2 must not be null!");
 
             return myHTTPStatusCode1.CompareTo(myHTTPStatusCode2) > 0;
@@ -1057,18 +965,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Operator <= (myHTTPStatusCode1, myHTTPStatusCode2)
 
         public static Boolean operator <= (HTTPStatusCode myHTTPStatusCode1, HTTPStatusCode myHTTPStatusCode2)
-        {
-            return !(myHTTPStatusCode1 > myHTTPStatusCode2);
-        }
+            => !(myHTTPStatusCode1 > myHTTPStatusCode2);
 
         #endregion
 
         #region Operator >= (myHTTPStatusCode1, myHTTPStatusCode2)
 
         public static Boolean operator >= (HTTPStatusCode myHTTPStatusCode1, HTTPStatusCode myHTTPStatusCode2)
-        {
-            return !(myHTTPStatusCode1 < myHTTPStatusCode2);
-        }
+            => !(myHTTPStatusCode1 < myHTTPStatusCode2);
 
         #endregion
 
@@ -1088,9 +992,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Object == null)
                 throw new ArgumentNullException("The given object must not be null!");
 
-            // Check if the given object is an HTTPStatusCode.
-            var HTTPStatusCode = Object as HTTPStatusCode;
-            if ((Object) HTTPStatusCode == null)
+            if (!(Object is HTTPStatusCode HTTPStatusCode))
                 throw new ArgumentException("The given object is not a HTTPStatusCode!");
 
             return CompareTo(HTTPStatusCode);
@@ -1108,7 +1010,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Int32 CompareTo(HTTPStatusCode HTTPStatusCode)
         {
 
-            if ((Object) HTTPStatusCode == null)
+            if (HTTPStatusCode is null)
                 throw new ArgumentNullException("The given HTTPStatusCode must not be null!");
 
             return Code.CompareTo(HTTPStatusCode.Code);
@@ -1134,12 +1036,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Object == null)
                 return false;
 
-            // Check if the given object is an HTTPStatusCode.
-            var HTTPStatusCode = Object as HTTPStatusCode;
-            if ((Object) HTTPStatusCode == null)
+            if (!(Object is HTTPStatusCode HTTPStatusCode))
                 return false;
 
-            return this.Equals(HTTPStatusCode);
+            return Equals(HTTPStatusCode);
 
         }
 
@@ -1155,7 +1055,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean Equals(HTTPStatusCode HTTPStatusCode)
         {
 
-            if ((Object) HTTPStatusCode == null)
+            if (HTTPStatusCode is null)
                 return false;
 
             return Code == HTTPStatusCode.Code;
@@ -1173,9 +1073,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
-        {
-            return Code.GetHashCode();
-        }
+            => Code.GetHashCode();
 
         #endregion
 
@@ -1185,9 +1083,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-        {
-            return String.Format("{0} - {1}", Code, Name);
-        }
+            => String.Format("{0} - {1}", Code, Name);
 
         #endregion
 

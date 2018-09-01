@@ -164,6 +164,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => InternalId.IndexOf(value);
 
 
+        public int LastIndexOf(char value, int startIndex, int count)
+            => InternalId.LastIndexOf(value, startIndex, count);
+
+        public int LastIndexOf(char value, int startIndex)
+            => InternalId.LastIndexOf(value, startIndex);
+
+        public int LastIndexOf(String value)
+            => InternalId.LastIndexOf(value);
+
+        public int LastIndexOf(String value, int startIndex)
+            => InternalId.LastIndexOf(value, startIndex);
+
+        public int LastIndexOf(String value, int startIndex, int count)
+            => InternalId.LastIndexOf(value, startIndex, count);
+
+        public int LastIndexOf(String value, StringComparison comparisonType)
+            => InternalId.LastIndexOf(value, comparisonType);
+
+        public int LastIndexOf(String value, int startIndex, StringComparison comparisonType)
+            => InternalId.LastIndexOf(value, startIndex, comparisonType);
+
+        public int LastIndexOf(char value)
+            => InternalId.LastIndexOf(value);
+
+
         public bool StartsWith(String value, StringComparison comparisonType)
             => InternalId.StartsWith(value, comparisonType);
 
