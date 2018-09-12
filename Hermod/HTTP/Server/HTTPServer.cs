@@ -1471,7 +1471,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         if (_HTTPResponse.HTTPBody?.Length > 0)
                                             TCPConnection.WriteToResponseStream(_HTTPResponse.HTTPBody);
 
-                                        else
+                                        else if (_HTTPResponse.HTTPBodyStream != null)
                                         {
                                             TCPConnection.WriteToResponseStream(_HTTPResponse.HTTPBodyStream);
                                             _HTTPResponse.HTTPBodyStream.Close();
