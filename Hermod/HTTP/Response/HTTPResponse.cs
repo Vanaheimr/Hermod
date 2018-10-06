@@ -1063,6 +1063,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region (static) FailedDependency  (Request, Configurator = null)
+
+        /// <summary>
+        /// Create a new 424-FailedDependency HTTP response and apply the given delegate.
+        /// </summary>
+        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+        public static Builder FailedDependency(HTTPRequest      Request,
+                                               Action<Builder>  Configurator  = null)
+
+            => Builder.ServiceUnavailable(Request, Configurator);
+
+        /// <summary>
+        /// Create a new 424-FailedDependency HTTP response and apply the given delegate.
+        /// </summary>
+        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+        public static Builder FailedDependency(HTTPRequest             Request,
+                                               Func<Builder, Builder>  Configurator)
+
+            => Builder.ServiceUnavailable(Request, Configurator);
+
+        #endregion
+
         #region (static) GatewayTimeout    (Request, Configurator = null)
 
         /// <summary>
@@ -1439,7 +1463,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <param name="HTTPRequest">The HTTP request for this response.</param>
             /// <param name="HTTPStatusCode">A HTTP status code</param>
             public Builder(HTTPRequest     HTTPRequest,
-                                       HTTPStatusCode  HTTPStatusCode = null)
+                           HTTPStatusCode  HTTPStatusCode = null)
             {
 
                 this.HTTPRequest        = HTTPRequest;
@@ -1847,6 +1871,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
 
                 var response = new Builder(Request, HTTPStatusCode.ServiceUnavailable);
+
+                Configurator?.Invoke(response);
+
+                return response;
+
+            }
+
+            #endregion
+
+            #region (static) FailedDependency  (Request, Configurator = null)
+
+            /// <summary>
+            /// Create a new 424-FailedDependency HTTP response and apply the given delegate.
+            /// </summary>
+            /// <param name="Request">A HTTP request.</param>
+            /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+            public static Builder FailedDependency(HTTPRequest      Request,
+                                                   Action<Builder>  Configurator = null)
+            {
+
+                var response = new Builder(Request, HTTPStatusCode.FailedDependency);
+
+                Configurator?.Invoke(response);
+
+                return response;
+
+            }
+
+            /// <summary>
+            /// Create a new 424-FailedDependency HTTP response and apply the given delegate.
+            /// </summary>
+            /// <param name="Request">A HTTP request.</param>
+            /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+            public static Builder FailedDependency(HTTPRequest             Request,
+                                                   Func<Builder, Builder>  Configurator)
+            {
+
+                var response = new Builder(Request, HTTPStatusCode.FailedDependency);
 
                 Configurator?.Invoke(response);
 

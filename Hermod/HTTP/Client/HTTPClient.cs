@@ -709,7 +709,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     do
                     {
 
-                        while (TCPStream.DataAvailable && _StillToRead > 0)
+                        while (//TCPStream.DataAvailable &&  <= Does not work as expected!
+                               _StillToRead > 0)
                         {
 
                             CurrentDataLength = HTTPStream.Read(_Buffer, 0, Math.Min(_Buffer.Length, _StillToRead));
