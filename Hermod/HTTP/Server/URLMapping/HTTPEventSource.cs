@@ -163,9 +163,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              QueueOfEvents.Push(new HTTPEvent(Id:         (UInt64) IdCounter++,
                                                                               Timestamp:  DateTime.Parse(line[0]).ToUniversalTime(),
                                                                               Subevent:   line[1],
-                                                                              Helper:     CreateHelper(line.Length == 4
-                                                                                                           ? line[3].Split((Char) 0x1F)
-                                                                                                           : line[2].Split((Char) 0x1F)),
+                                                                              Helper:     this.CreateHelper(line.Length == 4
+                                                                                                                ? line[3].Split((Char) 0x1F)
+                                                                                                                : line[2].Split((Char) 0x1F)),
                                                                               Data:       line[2].Split((Char) 0x1F))).
                                                            Wait();
 
