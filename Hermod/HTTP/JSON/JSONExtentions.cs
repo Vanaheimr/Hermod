@@ -757,13 +757,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region ParseMandatory<TEnum>(this JSON, PropertyName, PropertyDescription,                               out EnumValue,              out ErrorResponse)
+        #region ParseMandatoryEnum<TEnum>(this JSON, PropertyName, PropertyDescription,                               out EnumValue,              out ErrorResponse)
 
-        public static Boolean ParseMandatory<TEnum>(this JObject  JSON,
-                                                    String        PropertyName,
-                                                    String        PropertyDescription,
-                                                    out TEnum     EnumValue,
-                                                    out String    ErrorResponse)
+        public static Boolean ParseMandatoryEnum<TEnum>(this JObject  JSON,
+                                                        String        PropertyName,
+                                                        String        PropertyDescription,
+                                                        out TEnum     EnumValue,
+                                                        out String    ErrorResponse)
 
              where TEnum : struct
 
@@ -803,21 +803,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ParseMandatory<TEnum>(this JSON, PropertyName, PropertyDescription, DefaultServerName,            out EnumValue, HTTPRequest, out HTTPResponse)
+        #region ParseMandatoryEnum<TEnum>(this JSON, PropertyName, PropertyDescription, DefaultServerName,            out EnumValue, HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseMandatory<TEnum>(this JObject      JSON,
-                                                    String            PropertyName,
-                                                    String            PropertyDescription,
-                                                    String            DefaultServerName,
-                                                    out TEnum         EnumValue,
-                                                    HTTPRequest       HTTPRequest,
-                                                    out HTTPResponse  HTTPResponse)
+        public static Boolean ParseMandatoryEnum<TEnum>(this JObject      JSON,
+                                                        String            PropertyName,
+                                                        String            PropertyDescription,
+                                                        String            DefaultServerName,
+                                                        out TEnum         EnumValue,
+                                                        HTTPRequest       HTTPRequest,
+                                                        out HTTPResponse  HTTPResponse)
 
              where TEnum : struct
 
         {
 
-            var success = JSON.ParseMandatory(PropertyName,
+            var success = JSON.ParseMandatoryEnum(PropertyName,
                                               PropertyDescription,
                                               out EnumValue,
                                               out String ErrorResponse);
