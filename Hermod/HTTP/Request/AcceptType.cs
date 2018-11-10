@@ -122,7 +122,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                                              null,
                                                                                                              null));
 
-            this.Quality              = Quality.IsNotNullOrEmpty() ? Double.Parse(Quality.Substring(2)) : 1.0;
+            this.Quality              = Quality.IsNotNullOrEmpty() ? Double.Parse(Quality.Substring(2), CultureInfo.InvariantCulture) : 1.0;
 
         }
 
