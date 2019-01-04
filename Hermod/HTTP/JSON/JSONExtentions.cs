@@ -103,6 +103,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             try
             {
 
+                if (JSONToken.ToString() == "{}")
+                {
+                    Text           = null;
+                    ErrorResponse  = null;
+                    return true;
+                }
+
                 Text = JSONToken?.Value<String>();
 
             }
