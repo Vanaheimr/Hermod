@@ -335,7 +335,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             if ((Object) SimpleEMailAddress == null)
                 throw new ArgumentNullException();
 
-            return String.Compare(Value, SimpleEMailAddress.Value, StringComparison.Ordinal);
+            return String.Compare(Value, SimpleEMailAddress.Value, StringComparison.OrdinalIgnoreCase);
 
         }
 
@@ -380,7 +380,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             if ((Object) SimpleEMailAddress == null)
                 return false;
 
-            return Value.Equals(SimpleEMailAddress.Value);
+            return Value.ToLower().Equals(SimpleEMailAddress.Value.ToLower());
 
         }
 
@@ -395,7 +395,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// </summary>
         /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
-            => Value.GetHashCode();
+            => Value.ToLower().GetHashCode();
 
         #endregion
 
