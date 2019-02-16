@@ -53,17 +53,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The media main type.
         /// </summary>
-        public String MediaMainType   { get; }
+        public String  MediaMainType    { get; }
 
         /// <summary>
         /// The media sub type.
         /// </summary>
-        public String MediaSubType    { get; }
+        public String  MediaSubType     { get; }
 
         /// <summary>
         /// The (optional) character set.
         /// </summary>
-        public String CharSet    { get; }
+        public String  CharSet          { get; }
 
 
         private readonly String[] _FileExtentions;
@@ -77,12 +77,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The (optional) MIME boundary.
         /// </summary>
-        public String MIMEBoundary { get; }
+        public String  MIMEBoundary     { get; }
 
         /// <summary>
         /// The (optional) (SOAP) action.
         /// </summary>
-        public String Action { get; }
+        public String  Action           { get; }
 
 
         #region DebugView
@@ -243,7 +243,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
 
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 HTTPContentType = null;
                 return false;
