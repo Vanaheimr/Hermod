@@ -2915,15 +2915,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region ParseOptionalHashSet(this JSON, PropertyName, PropertyDescription, DefaultServerName, Parser, out HashSet,    HTTPRequest, out HTTPResponse)
 
-        #region ParseOptional       (this JSON, PropertyName, PropertyDescription,                            out JSONArray,               out ErrorResponse)
+        public static Boolean ParseOptionalHashSet<T>(this JObject      JSON,
+                                                      String            PropertyName,
+                                                      String            PropertyDescription,
+                                                      String            DefaultServerName,
+                                                      TryParser<T>      Parser,
+                                                      out HashSet<T>    HashSet,
+                                                      HTTPRequest       HTTPRequest,
+                                                      out HTTPResponse  HTTPResponse)
+        {
 
-        public static Boolean ParseOptionalArray<T>(this JObject    JSON,
-                                                    String          PropertyName,
-                                                    String          PropertyDescription,
-                                                    TryParser<T>    Parser,
-                                                    out HashSet<T>  HashSet,
-                                                    out String      ErrorResponse)
+            var result = ParseOptionalHashSet(JSON,
+                                            PropertyName,
+                                            PropertyDescription,
+                                            Parser,
+                                            out HashSet,
+                                            out String ErrorResponse);
+
+            if (ErrorResponse == null)
+                HTTPResponse = null;
+
+            else
+                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
+                                   HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                   Server          = DefaultServerName,
+                                   Date            = DateTime.UtcNow,
+                                   ContentType     = HTTPContentType.JSON_UTF8,
+                                   Content         = JSONObject.Create(
+                                                         new JProperty("description", ErrorResponse)
+                                                     ).ToUTF8Bytes()
+                               };
+
+            return result;
+
+        }
+
+        #endregion
+
+        #region ParseOptionalHashSet(this JSON, PropertyName, PropertyDescription,                    Parser, out HashSet,                 out ErrorResponse)
+
+        public static Boolean ParseOptionalHashSet<T>(this JObject    JSON,
+                                                      String          PropertyName,
+                                                      String          PropertyDescription,
+                                                      TryParser<T>    Parser,
+                                                      out HashSet<T>  HashSet,
+                                                      out String      ErrorResponse)
 
         {
 
@@ -2938,36 +2976,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (JSON.TryGetValue(PropertyName, out JToken JSONToken) && JSONToken != null)
             {
 
-                var JSONArray = JSONToken as JArray;
-
-                if (JSONArray == null)
+                if (!(JSONToken is JArray JSONArray))
                 {
                     ErrorResponse = "The given property '" + PropertyName + "' is not a valid JSON array!";
                     return false;
                 }
 
+                var item = "";
                 HashSet = new HashSet<T>();
 
-                foreach (var item in JSONArray)
+                foreach (var element in JSONArray)
                 {
 
-                    if (item == null)
+                    if (element == null)
                     {
                         ErrorResponse = "A given value within the array is null!";
                         return true;
                     }
 
-                    var text = item.Value<String>();
-                    if (text != null)
-                        text = text.Trim();
+                    item = element.Value<String>();
+                    if (item != null)
+                        item = item.Trim();
 
-                    if (text.IsNullOrEmpty())
+                    if (item.IsNullOrEmpty())
                     {
                         ErrorResponse = "A given value within the array is null or empty!";
                         return true;
                     }
 
-                    if (Parser(text, out T itemT))
+                    if (Parser(item, out T itemT))
                         HashSet.Add(itemT);
 
                 }
