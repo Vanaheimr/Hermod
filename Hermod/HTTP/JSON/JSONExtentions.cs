@@ -2915,6 +2915,77 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+
+        #region ParseOptional       (this JSON, PropertyName, PropertyDescription,                            out JSONArray,               out ErrorResponse)
+
+        public static Boolean ParseOptionalArray<T>(this JObject    JSON,
+                                                    String          PropertyName,
+                                                    String          PropertyDescription,
+                                                    TryParser<T>    Parser,
+                                                    out HashSet<T>  HashSet,
+                                                    out String      ErrorResponse)
+
+        {
+
+            HashSet = null;
+
+            if (JSON == null)
+            {
+                ErrorResponse = "The given JSON object must not be null!";
+                return true;
+            }
+
+            if (JSON.TryGetValue(PropertyName, out JToken JSONToken) && JSONToken != null)
+            {
+
+                var JSONArray = JSONToken as JArray;
+
+                if (JSONArray == null)
+                {
+                    ErrorResponse = "The given property '" + PropertyName + "' is not a valid JSON array!";
+                    return false;
+                }
+
+                HashSet = new HashSet<T>();
+
+                foreach (var item in JSONArray)
+                {
+
+                    if (item == null)
+                    {
+                        ErrorResponse = "A given value within the array is null!";
+                        return true;
+                    }
+
+                    var text = item.Value<String>();
+                    if (text != null)
+                        text = text.Trim();
+
+                    if (text.IsNullOrEmpty())
+                    {
+                        ErrorResponse = "A given value within the array is null or empty!";
+                        return true;
+                    }
+
+                    if (Parser(text, out T itemT))
+                        HashSet.Add(itemT);
+
+                }
+
+                ErrorResponse = null;
+                return true;
+
+            }
+
+            ErrorResponse = null;
+            HashSet       = null;
+            return true;
+
+        }
+
+        #endregion
+
+
         #region GetOptional(this JSON, Key)
 
         public static String GetOptional(this JObject  JSON,
