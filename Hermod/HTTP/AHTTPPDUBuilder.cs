@@ -559,12 +559,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             get
             {
-                return GetHeaderField_UInt64(HTTPHeaderField.AccessControlAllowHeaders);
+                return GetHeaderField_UInt64(HTTPHeaderField.AccessControlMaxAge);
             }
 
             set
             {
-                SetHeaderField(HTTPHeaderField.AccessControlAllowHeaders, value);
+                SetHeaderField(HTTPHeaderField.AccessControlMaxAge, value);
             }
 
         }
