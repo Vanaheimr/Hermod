@@ -552,6 +552,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Access-Control-Max-Age
+
+        public UInt64? AccessControlMaxAge
+        {
+
+            get
+            {
+                return GetHeaderField_UInt64(HTTPHeaderField.AccessControlAllowHeaders);
+            }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.AccessControlAllowHeaders, value);
+            }
+
+        }
+
+        #endregion
+
         #endregion
 
         #region X_ExpectedTotalNumberOfItems
