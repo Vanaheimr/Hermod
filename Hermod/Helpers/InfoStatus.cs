@@ -60,9 +60,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         }
 
-        public static JToken Switch2(this InfoStatus  Status,
-                                     Func<JToken>     WhenShowIdOnly,
-                                     Func<JToken>     WhenExpand)
+
+        public static JContainer Switch(this InfoStatus   Status,
+                                        Func<JContainer>  WhenShowIdOnly,
+                                        Func<JContainer>  WhenExpand)
         {
 
             switch (Status)
@@ -80,6 +81,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             }
 
         }
+
+        public static JToken Switch(this InfoStatus  Status,
+                                    Func<JToken>     WhenShowIdOnly,
+                                    Func<JToken>     WhenExpand)
+        {
+
+            switch (Status)
+            {
+
+                case InfoStatus.ShowIdOnly:
+                    return WhenShowIdOnly();
+
+                case InfoStatus.Expand:
+                    return WhenExpand();
+
+                default:
+                    return null;
+
+            }
+
+        }
+
+
+        // -------------------------------------------------------------------------
+
 
         public static JToken Switch<T>(this InfoStatus  Status,
                                        T                Element,
