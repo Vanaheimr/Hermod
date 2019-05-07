@@ -2275,21 +2275,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (JSON.TryGetValue(PropertyName, out JToken JSONToken) && JSONToken != null)
             {
 
-                var StringValue = JSON[PropertyName]?.Value<String>().Trim();
+                var JSONValue = JSON[PropertyName];
 
-                //if ((JSONToken as JObject)?.Count == 0)
-                //{
-                //    ErrorResponse = null;
-                //    return true;
-                //}
+                if (JSONValue == null)
+                {
+                    ErrorResponse = null;
+                    return true;
+                }
 
-                //if ((JSONToken as JArray)?.Count == 0)
-                //{
-                //    ErrorResponse = null;
-                //    return true;
-                //}
+                if ((JSONToken as JObject)?.Count == 0)
+                {
+                    ErrorResponse = null;
+                    return true;
+                }
 
-                if (!Parser(StringValue, out TStruct TValue))
+                if ((JSONToken as JArray)?.Count == 0)
+                {
+                    ErrorResponse = null;
+                    return true;
+                }
+
+                if (!Parser(JSONValue.ToString().Trim(), out TStruct TValue))
                 {
                     ErrorResponse =  "Unknown " + PropertyDescription + "!";
                     Value         = new TStruct?();
