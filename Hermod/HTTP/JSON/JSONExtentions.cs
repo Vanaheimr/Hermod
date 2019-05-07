@@ -2584,7 +2584,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (JSON == null)
             {
-                Value         = default(TEnum);
+                Value         = null;
                 ErrorResponse = "The given JSON object must not be null!";
                 return false;
             }
@@ -2597,14 +2597,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (JSONValue == null)
                 {
                     ErrorResponse  = "Unknown " + PropertyDescription + "!";
-                    Value          = default(TEnum);
+                    Value          = null;
                     return true;
                 }
 
                 if (!Enum.TryParse(JSONValue, true, out TEnum _Value))
                 {
                     ErrorResponse  = "Invalid " + PropertyDescription + "!";
-                    Value          = default(TEnum);
+                    Value          = null;
                     return true;
                 }
 
@@ -2614,7 +2614,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            Value          = default(TEnum);
+            Value          = null;
             ErrorResponse  = null;
             return false;
 
