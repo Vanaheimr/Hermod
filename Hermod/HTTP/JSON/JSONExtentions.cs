@@ -2262,6 +2262,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
+
+
             Value = new TStruct?();
 
             if (JSON == null)
@@ -2273,26 +2275,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (JSON.TryGetValue(PropertyName, out JToken JSONToken) && JSONToken != null)
             {
 
-                if ((JSONToken as JObject)?.Count == 0)
-                {
-                    ErrorResponse = null;
-                    return true;
-                }
+                var StringValue = JSON[PropertyName]?.Value<String>().Trim();
 
-                if ((JSONToken as JArray)?.Count == 0)
-                {
-                    ErrorResponse = null;
-                    return true;
-                }
+                //if ((JSONToken as JObject)?.Count == 0)
+                //{
+                //    ErrorResponse = null;
+                //    return true;
+                //}
 
-                if (!Parser(JSONToken.ToString(), out TStruct _Value))
+                //if ((JSONToken as JArray)?.Count == 0)
+                //{
+                //    ErrorResponse = null;
+                //    return true;
+                //}
+
+                if (!Parser(StringValue, out TStruct TValue))
                 {
                     ErrorResponse =  "Unknown " + PropertyDescription + "!";
                     Value         = new TStruct?();
                     return false;
                 }
 
-                Value = new TStruct?(_Value);
+                Value = new TStruct?(TValue);
 
             }
 
