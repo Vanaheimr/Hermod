@@ -27,8 +27,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
 
-    public delegate Boolean TryJObjectParser<TResult>(JObject Input, out TResult arg, out String ErrorResponse);
-    public delegate Boolean TryParser<TResult>(String Input, out TResult arg);
+    public delegate Boolean TryParser        <TResult>(String  Input, out TResult arg);
+    public delegate Boolean TryJObjectParser <TResult>(JObject Input, out TResult arg, out String ErrorResponse);
 
 
     /// <summary>
