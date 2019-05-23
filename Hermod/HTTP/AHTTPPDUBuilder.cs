@@ -431,6 +431,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Content-Disposition
+
+        public String ContentDisposition
+        {
+
+            get
+            {
+                return GetHeaderField(HTTPHeaderField.ContentDisposition);
+            }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.ContentDisposition, value);
+            }
+
+        }
+
+        #endregion
+
         #region Date
 
         /// <summary>
