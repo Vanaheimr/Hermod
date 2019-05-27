@@ -121,6 +121,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        public static readonly HTTPStatusCode ClientError = new HTTPStatusCode(
+                                              0,
+                                              "ClientError",
+                                              "Indicates that the client can not process or send this request.");
+
         #region 1xx Informational
 
         /*

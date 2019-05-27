@@ -82,7 +82,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
         /// <param name="UserAgent">The HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
-        public JSONClient(String                               Hostname,
+        public JSONClient(HTTPHostname                         Hostname,
                           String                               HTTPVirtualHost,
                           HTTPURI                              URIPrefix,
                           IPPort?                              HTTPSPort                    = null,
@@ -162,7 +162,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
             #endregion
 
             var _RequestBuilder = this.POST(URIPrefix);
-            _RequestBuilder.Host               = HTTPVirtualHost;
+            _RequestBuilder.Host               = HTTPHostname.Parse(HTTPVirtualHost);
             _RequestBuilder.Content            = JSONRequest.ToUTF8Bytes();
             _RequestBuilder.ContentType        = HTTPContentType.JSON_UTF8;
             _RequestBuilder.UserAgent          = UserAgent;

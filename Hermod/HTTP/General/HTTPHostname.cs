@@ -313,6 +313,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Operator == (Hostname1, Hostname2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="Hostname1">A HTTPHostname.</param>
+        /// <param name="Hostname2">Another HTTPHostname.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator == (HTTPHostname Hostname1, String Hostname2)
+        {
+
+            // If both are null, or both are same instance, return true.
+            if (Object.ReferenceEquals(Hostname1, Hostname2))
+                return true;
+
+            // If one is null, but not both, return false.
+            if (((Object) Hostname1 == null) || ((Object) Hostname2 == null))
+                return false;
+
+            return Hostname1.Name.Equals(Hostname2);
+
+        }
+
+        #endregion
+
         #region Operator != (Hostname1, Hostname2)
 
         /// <summary>
@@ -322,6 +347,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Hostname2">Another HTTPHostname.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (HTTPHostname Hostname1, HTTPHostname Hostname2)
+        {
+            return !(Hostname1 == Hostname2);
+        }
+
+        #endregion
+
+        #region Operator != (Hostname1, Hostname2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="Hostname1">A HTTPHostname.</param>
+        /// <param name="Hostname2">Another HTTPHostname.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator != (HTTPHostname Hostname1, String Hostname2)
         {
             return !(Hostname1 == Hostname2);
         }
@@ -510,7 +550,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-            => Name + ":" + (Port.HasValue ? Port.Value.ToString() : "*");
+            => Name + (Port.HasValue ? ":" + Port.Value.ToString() : "");
 
         #endregion
 

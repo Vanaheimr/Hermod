@@ -106,7 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         /// <param name="UserAgent">The HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
-        public SOAPClient(String                               Hostname,
+        public SOAPClient(HTTPHostname                         Hostname,
                           String                               HTTPVirtualHost,
                           HTTPURI                              URIPrefix,
                           IPPort?                              HTTPSPort                    = null,
@@ -195,7 +195,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
 
             var _RequestBuilder = new HTTPRequest.Builder(this) {
                                       HTTPMethod         = HTTPMethod.POST,
-                                      Host               = HTTPVirtualHost,
+                                      Host               = HTTPHostname.Parse(HTTPVirtualHost),
                                       URI                = URIPrefix,
                                       Content            = QueryXML.ToUTF8Bytes(),
                                       ContentType        = ContentType ?? HTTPContentType.XMLTEXT_UTF8,
@@ -372,7 +372,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         /// <param name="UserAgent">The HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
-        public SOAPClient(String                               Hostname,
+        public SOAPClient(HTTPHostname                         Hostname,
                           String                               HTTPVirtualHost,
                           HTTPURI                              URIPrefix,
                           IPPort?                              HTTPPort                     = null,
@@ -461,7 +461,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
 
             var _RequestBuilder = new HTTPRequest.Builder(this) {
                                       HTTPMethod     = HTTPMethod.POST,
-                                      Host           = HTTPVirtualHost,
+                                      Host           = HTTPHostname.Parse(HTTPVirtualHost),
                                       URI            = URIPrefix,
                                       Content        = QueryXML.ToUTF8Bytes(),
                                       ContentType    = ContentType ?? new HTTPContentType("application",

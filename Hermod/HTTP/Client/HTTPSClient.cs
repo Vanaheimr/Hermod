@@ -133,7 +133,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="UserAgent">The HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
-        public HTTPSClient(String                               RemoteHost,
+        public HTTPSClient(HTTPHostname                         RemoteHost,
                            RemoteCertificateValidationCallback  RemoteCertificateValidator,
                            LocalCertificateSelectionCallback    LocalCertificateSelector   = null,
                            X509Certificate                      ClientCert                 = null,
