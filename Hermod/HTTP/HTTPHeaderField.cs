@@ -402,6 +402,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region ContentDisposition
+
+        /// <summary>
+        /// The Content-Disposition response header field is used to convey
+        /// additional information about how to process the response payload, and
+        /// also can be used to attach additional metadata, such as the filename
+        /// to use when saving the response payload locally.
+        /// </summary>
+        /// <example>Content-Disposition: attachment; filename="filename.jpg"</example>
+        /// <seealso cref="https://tools.ietf.org/html/rfc6266"/>
+        public static readonly HTTPHeaderField ContentDisposition = new HTTPHeaderField("Content-Disposition",
+                                                                                        typeof(String),
+                                                                                        HeaderFieldType.General,
+                                                                                        RequestPathSemantic.EndToEnd);
+
+        #endregion
+
         #region Date
 
         /// <summary>

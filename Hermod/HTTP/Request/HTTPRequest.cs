@@ -809,6 +809,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // rfc 2616 - 3.2.2
             // If the port is empty or not given, port 80 is assumed.
             var    HostHeader  = _HeaderFields[HTTPHeaderField.Host.Name].ToString().
+                                     Replace(":*", "").
                                      Split(_ColonSeparator, StringSplitOptions.RemoveEmptyEntries).
                                      Select(v => v.Trim()).
                                      ToArray();
@@ -1412,12 +1413,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Host
 
-            public String Host
+            public HTTPHostname Host
             {
 
                 get
                 {
-                    return GetHeaderField(HTTPHeaderField.Host);
+                    return HTTPHostname.Parse(GetHeaderField(HTTPHeaderField.Host));
                 }
 
                 set
@@ -1749,6 +1750,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 set
                 {
                     SetHeaderField(HTTPHeaderField.Cookie, value);
+                }
+
+            }
+
+            #endregion
+
+            #region API_Key
+
+            public String API_Key
+            {
+
+                get
+                {
+                    return GetHeaderField(HTTPHeaderField.API_Key);
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPHeaderField.API_Key, value);
                 }
 
             }
@@ -2251,7 +2271,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// Set the HTTP Host header field.
             /// </summary>
             /// <param name="Host">Host.</param>
-            public Builder SetHost(String Host)
+            public Builder SetHost(HTTPHostname Host)
             {
                 this.Host = Host;
                 return this;
@@ -2612,7 +2632,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
         #endregion
-
 
     }
 

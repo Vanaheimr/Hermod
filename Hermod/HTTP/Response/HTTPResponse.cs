@@ -1139,6 +1139,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region (static) ClientError       (Request, Configurator = null)
+
+        /// <summary>
+        /// Create a new 0-ClientError HTTP response and apply the given delegate.
+        /// </summary>
+        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+        public static HTTPResponse ClientError(HTTPRequest      Request,
+                                               Action<Builder>  Configurator = null)
+
+            => Builder.ClientError(Request, Configurator);
+
+        /// <summary>
+        /// Create a new 0-ClientError HTTP response and apply the given delegate.
+        /// </summary>
+        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+        public static HTTPResponse ClientError(HTTPRequest             Request,
+                                               Func<Builder, Builder>  Configurator)
+
+            => Builder.ClientError(Request, Configurator);
+
+        #endregion
+
 
         #region (override) ToString()
 
@@ -1788,6 +1812,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
             #endregion
+
+            #endregion
+
+
+            #region (static) ClientError       (Request, Configurator = null)
+
+            /// <summary>
+            /// Create a new 0-ClientError HTTP response and apply the given delegate.
+            /// </summary>
+            /// <param name="Request">A HTTP request.</param>
+            /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+            public static Builder ClientError(HTTPRequest      Request,
+                                              Action<Builder>  Configurator = null)
+            {
+
+                var response = new Builder(Request, HTTPStatusCode.ClientError);
+
+                Configurator?.Invoke(response);
+
+                return response;
+
+            }
+
+            /// <summary>
+            /// Create a new 0-ClientError HTTP response and apply the given delegate.
+            /// </summary>
+            /// <param name="Request">A HTTP request.</param>
+            /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+            public static Builder ClientError(HTTPRequest             Request,
+                                              Func<Builder, Builder>  Configurator)
+            {
+
+                var response = new Builder(Request, HTTPStatusCode.ClientError);
+
+                Configurator?.Invoke(response);
+
+                return response;
+
+            }
 
             #endregion
 
