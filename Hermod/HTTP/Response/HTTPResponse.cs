@@ -802,18 +802,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (static) LoadHTTPResponseLogfiles_old(FilePath, FilePattern, FromTimestamp = null, ToTimestamp = null)
+        #region (static) LoadHTTPResponseLogfiles_old(FilePath, FilePattern, SearchOption = TopDirectoryOnly, FromTimestamp = null, ToTimestamp = null)
 
-        public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfiles_old(String     FilePath,
-                                                                             String     FilePattern,
-                                                                             DateTime?  FromTimestamp  = null,
-                                                                             DateTime?  ToTimestamp    = null)
+        public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfiles_old(String        FilePath,
+                                                                             String        FilePattern,
+                                                                             DateTime?     FromTimestamp  = null,
+                                                                             DateTime?     ToTimestamp    = null)
+
+            => LoadHTTPResponseLogfiles_old(FilePath,
+                                            FilePattern,
+                                            SearchOption.TopDirectoryOnly,
+                                            FromTimestamp,
+                                            ToTimestamp);
+
+
+        public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfiles_old(String        FilePath,
+                                                                             String        FilePattern,
+                                                                             SearchOption  SearchOption   = SearchOption.TopDirectoryOnly,
+                                                                             DateTime?     FromTimestamp  = null,
+                                                                             DateTime?     ToTimestamp    = null)
         {
 
             var _responses  = new ConcurrentBag<HTTPResponse>();
 
-            Parallel.ForEach(Directory.EnumerateFiles(Directory.GetCurrentDirectory() + Path.DirectorySeparatorChar + FilePath,
-                                                      FilePattern),
+            Parallel.ForEach(Directory.EnumerateFiles(FilePath,
+                                                      FilePattern,
+                                                      SearchOption),
+                             new ParallelOptions() { MaxDegreeOfParallelism = 1 },
                              file => {
 
                 var _request            = new List<String>();
@@ -890,6 +905,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
         #region (static) LoadHTTPResponseLogfiles(FilePath, FilePattern, SearchOption = TopDirectoryOnly, FromTimestamp = null, ToTimestamp = null)
+
+        public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfiles(String        FilePath,
+                                                                         String        FilePattern,
+                                                                         DateTime?     FromTimestamp  = null,
+                                                                         DateTime?     ToTimestamp    = null)
+
+            => LoadHTTPResponseLogfiles(FilePath,
+                                        FilePattern,
+                                        SearchOption.TopDirectoryOnly,
+                                        FromTimestamp,
+                                        ToTimestamp);
+
 
         public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfiles(String        FilePath,
                                                                          String        FilePattern,
