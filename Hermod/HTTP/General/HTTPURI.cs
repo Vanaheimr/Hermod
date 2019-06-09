@@ -21,6 +21,7 @@ using org.GraphDefined.Vanaheimr.Illias;
 using System;
 using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 #endregion
 
@@ -42,9 +43,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         private readonly String  InternalId;
 
+        /// <summary>
+        /// The regular expression for parsing a HTTP URI.
+        /// </summary>
+        public static readonly Regex URI_RegEx  = new Regex(@"^https:\/\/.+$",
+                                                            RegexOptions.IgnorePatternWhitespace);
+
         #endregion
 
         #region Properties
+
+        /// <summary>
+        /// The HTTP hostname part of the HTTP URI.
+        /// </summary>
+        public HTTPHostname  Hostname   { get; }
 
         /// <summary>
         /// The length of the HTTP uniform resource identifier.
@@ -62,7 +74,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URI">The uniform resource identifier.</param>
         private HTTPURI(String URI)
         {
-            this.InternalId = URI;
+
+            #region Initial checks
+
+            if (!URI_RegEx.IsMatch(URI))
+                throw new ArgumentException("the given URI '" + URI + "' is invalid!", nameof(URI));
+
+            #endregion
+
+            this.InternalId  = URI;
+            this.Hostname    = HTTPHostname.Parse(URI.Substring(URI.IndexOf("://"), URI.IndexOfAny(new Char[] { '/', ':' }, URI.IndexOf("://") + 3 )));
+
         }
 
         #endregion
@@ -120,8 +142,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (!Text.StartsWith("/"))
                 Text = "/" + Text;
 
-            URI = new HTTPURI(Text);
-            return true;
+            if (!URI_RegEx.IsMatch(Text))
+            {
+                URI = new HTTPURI(Text);
+                return true;
+            }
+
+            URI = default(HTTPURI);
+            return false;
 
         }
 

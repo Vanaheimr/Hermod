@@ -111,6 +111,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPHostname     Hostname            { get; }
 
         /// <summary>
+        /// The virtual hostname which the HTTPClient sends.
+        /// </summary>
+        public HTTPHostname?    VirtualHostname     { get; }
+
+        /// <summary>
         /// The IP Address to connect to.
         /// </summary>
         public IIPAddress       RemoteIPAddress     { get; private set; }
@@ -286,6 +291,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Create a new HTTP client using the given optional parameters.
         /// </summary>
         /// <param name="RemoteHost">The remote hostname to connect to.</param>
+        /// <param name="VirtualHostname">The virtual hostname which the HTTPClient sends.</param>
         /// <param name="RemotePort">The remote HTTP port to connect to.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="LocalCertificateSelector">Selects the local certificate used for authentication.</param>
@@ -295,6 +301,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DNSClient">An optional DNS client.</param>
         public HTTPClient(HTTPHostname                         RemoteHost,
                           IPPort?                              RemotePort                   = null,
+                          HTTPHostname?                        VirtualHostname              = null,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
                           LocalCertificateSelectionCallback    LocalCertificateSelector     = null,
                           X509Certificate                      ClientCert                   = null,
@@ -304,13 +311,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             this.Hostname                    = RemoteHost;
-            this.RemotePort                  = RemotePort     ?? IPPort.HTTP;
+            this.VirtualHostname             = VirtualHostname;
+            this.RemotePort                  = RemotePort      ?? IPPort.HTTP;
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
             this.LocalCertificateSelector    = LocalCertificateSelector;
             this.ClientCert                  = ClientCert;
-            this.UserAgent                   = UserAgent      ?? DefaultUserAgent;
-            this.RequestTimeout              = RequestTimeout ?? DefaultRequestTimeout;
-            this.DNSClient                   = DNSClient      ?? new DNSClient();
+            this.UserAgent                   = UserAgent       ?? DefaultUserAgent;
+            this.RequestTimeout              = RequestTimeout  ?? DefaultRequestTimeout;
+            this.DNSClient                   = DNSClient       ?? new DNSClient();
 
         }
 
@@ -337,7 +345,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //Host = Host.Substring(Math.Max(URI.IndexOf("/"), Host.Length));
 
             var Builder     = new HTTPRequest.Builder(this) {
-                Host        = Hostname,
+                Host        = VirtualHostname ?? Hostname,
                 HTTPMethod  = HTTPMethod,
                 URI         = URI
             };

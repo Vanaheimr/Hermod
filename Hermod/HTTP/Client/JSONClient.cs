@@ -57,14 +57,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
         #region Properties
 
         /// <summary>
-        /// The HTTP virtual host to use.
-        /// </summary>
-        public String   HTTPVirtualHost   { get; }
-
-        /// <summary>
         /// The URI-prefix of the HTTP/JSON service.
         /// </summary>
-        public HTTPURI  URIPrefix         { get; }
+        public HTTPURI  URIPrefix   { get; }
 
         #endregion
 
@@ -74,7 +69,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
         /// Create a new specialized HTTP client for the JavaScript Object Notation (JSON).
         /// </summary>
         /// <param name="Hostname">The hostname of the remote HTTP/JSON service.</param>
-        /// <param name="HTTPVirtualHost">The HTTP virtual host to use.</param>
+        /// <param name="VirtualHostname">The HTTP virtual host to use.</param>
         /// <param name="URIPrefix">The URI-prefix of the HTTP/JSON service.</param>
         /// <param name="HTTPSPort">The HTTP port of the remote HTTP/JSON service.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
@@ -83,8 +78,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public JSONClient(HTTPHostname                         Hostname,
-                          String                               HTTPVirtualHost,
                           HTTPURI                              URIPrefix,
+                          HTTPHostname?                        VirtualHostname              = null,
                           IPPort?                              HTTPSPort                    = null,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
                           LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
@@ -94,6 +89,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
 
             : base(Hostname,
                    HTTPSPort      ?? IPPort.HTTPS,
+                   VirtualHostname,
                    RemoteCertificateValidator,
                    ClientCertificateSelector,
                    null,
@@ -103,8 +99,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
 
         {
 
-            this.HTTPVirtualHost  = HTTPVirtualHost;
-            this.URIPrefix        = URIPrefix;
+            this.URIPrefix = URIPrefix.IsNotNullOrEmpty() ? URIPrefix : HTTPURI.Parse("/");
 
         }
 
@@ -162,11 +157,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
             #endregion
 
             var _RequestBuilder = this.POST(URIPrefix);
-            _RequestBuilder.Host               = HTTPHostname.Parse(HTTPVirtualHost);
+            _RequestBuilder.Host               = VirtualHostname ?? Hostname;
             _RequestBuilder.Content            = JSONRequest.ToUTF8Bytes();
             _RequestBuilder.ContentType        = HTTPContentType.JSON_UTF8;
             _RequestBuilder.UserAgent          = UserAgent;
-            _RequestBuilder.FakeURIPrefix      = "https://" + HTTPVirtualHost;
+            _RequestBuilder.FakeURIPrefix      = "https://" + (VirtualHostname ?? Hostname);
 
             HTTPRequestBuilder?.Invoke(_RequestBuilder);
 

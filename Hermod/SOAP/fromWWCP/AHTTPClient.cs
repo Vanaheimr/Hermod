@@ -64,14 +64,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// </summary>
         public String            ClientId                { get; }
 
-        public String            Hostname                { get; }
+        public HTTPHostname      Hostname                { get; }
 
         /// <summary>
         /// The remote TCP port to connect to.
         /// </summary>
-        public IPPort            RemotePort                { get; }
+        public IPPort            RemotePort              { get; }
 
-        public String            HTTPVirtualHost         { get; }
+        public HTTPHostname?     VirtualHostname         { get; }
 
         public String            UserAgent               { get; }
 
@@ -143,11 +143,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="MaxNumberOfRetries">The default number of maximum transmission retries.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public AHTTPClient(String                               ClientId,
-                           String                               Hostname,
+                           HTTPHostname                         Hostname,
                            IPPort?                              HTTPPort                    = null,
                            RemoteCertificateValidationCallback  RemoteCertificateValidator  = null,
                            LocalCertificateSelectionCallback    ClientCertificateSelector   = null,
-                           String                               HTTPVirtualHost             = null,
+                           HTTPHostname?                        HTTPVirtualHost             = null,
                            String                               UserAgent                   = DefaultHTTPUserAgent,
                            TimeSpan?                            RequestTimeout              = null,
                            Byte?                                MaxNumberOfRetries          = DefaultMaxNumberOfRetries,
@@ -159,21 +159,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             if (ClientId.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(ClientId),  "The given client identification must not be null or empty!");
 
-            if (Hostname.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(Hostname),  "The given parameter must not be null or empty!");
-
             #endregion
 
             this.ClientId                    = ClientId;
             this.Hostname                    = Hostname;
-            this.RemotePort                    = HTTPPort           ?? IPPort.HTTP;
+            this.RemotePort                  = HTTPPort           ?? IPPort.HTTP;
 
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
             this.ClientCertificateSelector   = ClientCertificateSelector;
 
-            this.HTTPVirtualHost             = HTTPVirtualHost.IsNotNullOrEmpty()
-                                                   ? HTTPVirtualHost
-                                                   : Hostname;
+            this.VirtualHostname             = HTTPVirtualHost    ?? Hostname;
 
             this.UserAgent                   = UserAgent.WhenNullOrEmpty(DefaultHTTPUserAgent);
             this.RequestTimeout              = RequestTimeout     ?? DefaultRequestTimeout;

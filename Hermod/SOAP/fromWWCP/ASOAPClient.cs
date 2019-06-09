@@ -98,11 +98,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="MaxNumberOfRetries">The default number of maximum transmission retries.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         protected ASOAPClient(String                               ClientId,
-                              String                               Hostname,
+                              HTTPHostname                         Hostname,
                               IPPort                               RemotePort,
                               RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
                               LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
-                              String                               HTTPVirtualHost              = null,
+                              HTTPHostname?                        HTTPVirtualHost              = null,
                               HTTPURI?                             URIPrefix                    = null,
                               Tuple<String, String>                WSSLoginPassword             = null,
                               String                               UserAgent                    = DefaultHTTPUserAgent,

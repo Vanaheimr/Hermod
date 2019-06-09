@@ -130,6 +130,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LocalCertificateSelector">Selects the local certificate used for authentication.</param>
         /// <param name="ClientCert">The TLS client certificate to use.</param>
         /// <param name="RemotePort">An optional remote IP port to connect to [default: 443].</param>
+        /// <param name="VirtualHostname">The virtual hostname which the HTTPClient sends.</param>
         /// <param name="UserAgent">The HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
@@ -138,12 +139,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            LocalCertificateSelectionCallback    LocalCertificateSelector   = null,
                            X509Certificate                      ClientCert                 = null,
                            IPPort?                              RemotePort                 = null,
+                           HTTPHostname?                        VirtualHostname            = null,
                            String                               UserAgent                  = DefaultUserAgent,
                            TimeSpan?                            RequestTimeout             = null,
                            DNSClient                            DNSClient                  = null)
 
             : base(RemoteHost,
                    RemotePort                 ?? DefaultHTTPSPort,
+                   VirtualHostname,
                    RemoteCertificateValidator ?? throw new ArgumentNullException(nameof(RemoteCertificateValidator), "The given delegate for verifiying the remote SSL/TLS certificate must not be null!"),
                    LocalCertificateSelector,
                    ClientCert,
