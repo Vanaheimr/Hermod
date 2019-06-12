@@ -144,12 +144,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             //if (!URI_RegEx.IsMatch(Text))
             //{
-            //    URI = new HTTPURI(Text);
-            //    return true;
+                URI = new HTTPURI(Text);
+                return true;
             //}
 
-            URI = default(HTTPURI);
-            return false;
+            //URI = default(HTTPURI);
+            //return false;
 
         }
 
