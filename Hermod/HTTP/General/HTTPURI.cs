@@ -142,11 +142,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (!Text.StartsWith("/"))
                 Text = "/" + Text;
 
-            if (!URI_RegEx.IsMatch(Text))
-            {
-                URI = new HTTPURI(Text);
-                return true;
-            }
+            //if (!URI_RegEx.IsMatch(Text))
+            //{
+            //    URI = new HTTPURI(Text);
+            //    return true;
+            //}
 
             URI = default(HTTPURI);
             return false;
