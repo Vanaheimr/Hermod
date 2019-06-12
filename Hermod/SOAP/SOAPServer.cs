@@ -47,7 +47,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// </summary>
         public static readonly HTTPContentType DefaultSOAPContentType = HTTPContentType.SOAPXML_UTF8;
 
-        private readonly Dictionary<HTTPURI, SOAPDispatcher> _SOAPDispatchers;
+        private readonly Dictionary<HTTPPath, SOAPDispatcher> _SOAPDispatchers;
 
         #endregion
 
@@ -66,7 +66,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// All registered SOAP dispatchers.
         /// </summary>
-        public ILookup<HTTPURI, SOAPDispatcher> SOAPDispatchers
+        public ILookup<HTTPPath, SOAPDispatcher> SOAPDispatchers
             => _SOAPDispatchers.ToLookup(_ => _.Key, _ => _.Value);
 
         #endregion
@@ -136,7 +136,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                                     false);
 
             this.SOAPContentType   = SOAPContentType ?? DefaultSOAPContentType;
-            this._SOAPDispatchers  = new Dictionary<HTTPURI, SOAPDispatcher>();
+            this._SOAPDispatchers  = new Dictionary<HTTPPath, SOAPDispatcher>();
 
             if (Autostart)
                 HTTPServer.Start();
@@ -159,7 +159,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             this.HTTPServer        = HTTPServer;
             this.SOAPContentType   = SOAPContentType ?? DefaultSOAPContentType;
-            this._SOAPDispatchers  = new Dictionary<HTTPURI, SOAPDispatcher>();
+            this._SOAPDispatchers  = new Dictionary<HTTPPath, SOAPDispatcher>();
 
         }
 
@@ -179,7 +179,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="SOAPMatch">A delegate to check whether this dispatcher matches the given XML.</param>
         /// <param name="SOAPBodyDelegate">A delegate to process a matching SOAP request.</param>
         public void RegisterSOAPDelegate(HTTPHostname      Hostname,
-                                         HTTPURI           URITemplate,
+                                         HTTPPath           URITemplate,
                                          String            Description,
                                          SOAPMatch         SOAPMatch,
                                          SOAPBodyDelegate  SOAPBodyDelegate)
@@ -240,7 +240,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="SOAPMatch">A delegate to check whether this dispatcher matches the given XML.</param>
         /// <param name="SOAPHeaderAndBodyDelegate">A delegate to process a matching SOAP request.</param>
         public void RegisterSOAPDelegate(HTTPHostname               Hostname,
-                                         HTTPURI                    URITemplate,
+                                         HTTPPath                    URITemplate,
                                          String                     Description,
                                          SOAPMatch                  SOAPMatch,
                                          SOAPHeaderAndBodyDelegate  SOAPHeaderAndBodyDelegate)

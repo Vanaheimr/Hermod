@@ -29,11 +29,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// A HTTP uniform resource identifier.
+    /// The path of a HTTP path.
     /// </summary>
-    public struct HTTPURI : IEquatable<HTTPURI>,
-                            IComparable<HTTPURI>,
-                            IComparable
+    public struct HTTPPath : IEquatable<HTTPPath>,
+                             IComparable<HTTPPath>,
+                             IComparable
     {
 
         #region Data
@@ -59,7 +59,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         //public HTTPHostname  Hostname   { get; }
 
         /// <summary>
-        /// The length of the HTTP uniform resource identifier.
+        /// The length of the HTTP path.
         /// </summary>
         public UInt32 Length
             => (UInt32) InternalId.Length;
@@ -69,10 +69,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Constructor(s)
 
         /// <summary>
-        /// Create a new HTTP uniform resource identifier
+        /// Create a new HTTP path
         /// </summary>
         /// <param name="URI">The uniform resource identifier.</param>
-        private HTTPURI(String URI)
+        private HTTPPath(String URI)
         {
 
             #region Initial checks
@@ -93,16 +93,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Parse   (Text)
 
         /// <summary>
-        /// Parse the given text representation of a HTTP uniform resource identifier.
+        /// Parse the given text representation of a HTTP path.
         /// </summary>
-        /// <param name="Text">A text representation of a HTTP uniform resource identifier.</param>
-        public static HTTPURI Parse(String Text)
+        /// <param name="Text">A text representation of a HTTP path.</param>
+        public static HTTPPath Parse(String Text)
         {
 
-            if (TryParse(Text, out HTTPURI HTTPURI))
-                return HTTPURI;
+            if (TryParse(Text, out HTTPPath HTTPPath))
+                return HTTPPath;
 
-            throw new ArgumentException("The given string could not be parsed as a HTTP uniform resource identifier!", nameof(Text));
+            throw new ArgumentException("The given string could not be parsed as a HTTP path!", nameof(Text));
 
         }
 
@@ -111,16 +111,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region TryParse(Text)
 
         /// <summary>
-        /// Try to parse the given text representation of a HTTP uniform resource identifier.
+        /// Try to parse the given text representation of a HTTP path.
         /// </summary>
-        /// <param name="Text">A text representation of a HTTP uniform resource identifier.</param>
-        public static HTTPURI? TryParse(String Text)
+        /// <param name="Text">A text representation of a HTTP path.</param>
+        public static HTTPPath? TryParse(String Text)
         {
 
-            if (TryParse(Text, out HTTPURI URI))
+            if (TryParse(Text, out HTTPPath URI))
                 return URI;
 
-            return new HTTPURI?();
+            return new HTTPPath?();
 
         }
 
@@ -129,11 +129,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region TryParse(Text, out URI)
 
         /// <summary>
-        /// Try to parse the given text representation of a HTTP uniform resource identifier.
+        /// Try to parse the given text representation of a HTTP path.
         /// </summary>
-        /// <param name="Text">A text representation of a HTTP uniform resource identifier.</param>
-        /// <param name="URI">The parsed HTTP uniform resource identifier.</param>
-        public static Boolean TryParse(String Text, out HTTPURI URI)
+        /// <param name="Text">A text representation of a HTTP path.</param>
+        /// <param name="URI">The parsed HTTP path.</param>
+        public static Boolean TryParse(String Text, out HTTPPath URI)
         {
 
             if (Text != null)
@@ -144,11 +144,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             //if (!URI_RegEx.IsMatch(Text))
             //{
-                URI = new HTTPURI(Text);
+                URI = new HTTPPath(Text);
                 return true;
             //}
 
-            //URI = default(HTTPURI);
+            //URI = default(HTTPPath);
             //return false;
 
         }
@@ -160,10 +160,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => InternalId.Contains(Text);
 
 
-        public HTTPURI Substring(Int32 StartIndex)
+        public HTTPPath Substring(Int32 StartIndex)
             => Parse(InternalId.Substring(StartIndex));
 
-        public HTTPURI Substring(Int32 StartIndex, Int32 EndIndex)
+        public HTTPPath Substring(Int32 StartIndex, Int32 EndIndex)
             => Parse(InternalId.Substring(StartIndex, EndIndex));
 
 
@@ -226,7 +226,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public bool StartsWith(String value)
             => InternalId.StartsWith(value);
 
-        public bool StartsWith(HTTPURI value)
+        public bool StartsWith(HTTPPath value)
             => InternalId.StartsWith(value.ToString());
 
 
@@ -239,7 +239,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public bool EndsWith(String value, bool ignoreCase, CultureInfo culture)
             => InternalId.EndsWith(value, ignoreCase, culture);
 
-        public bool EndsWith(HTTPURI value)
+        public bool EndsWith(HTTPPath value)
             => InternalId.EndsWith(value.ToString());
 
 
@@ -259,182 +259,182 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Operator overloading
 
-        #region Operator == (HTTPURI1, HTTPURI2)
+        #region Operator == (HTTPPath1, HTTPPath2)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPURI1">A HTTP uniform resource identifier.</param>
-        /// <param name="HTTPURI2">Another HTTP uniform resource identifier.</param>
+        /// <param name="HTTPPath1">A HTTP path.</param>
+        /// <param name="HTTPPath2">Another HTTP path.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (HTTPURI HTTPURI1, HTTPURI HTTPURI2)
+        public static Boolean operator == (HTTPPath HTTPPath1, HTTPPath HTTPPath2)
         {
 
             // If both are null, or both are same instance, return true.
-            if (Object.ReferenceEquals(HTTPURI1, HTTPURI2))
+            if (Object.ReferenceEquals(HTTPPath1, HTTPPath2))
                 return true;
 
             // If one is null, but not both, return false.
-            if (((Object) HTTPURI1 == null) || ((Object) HTTPURI2 == null))
+            if (((Object) HTTPPath1 == null) || ((Object) HTTPPath2 == null))
                 return false;
 
-            return HTTPURI1.Equals(HTTPURI2);
+            return HTTPPath1.Equals(HTTPPath2);
 
         }
 
         #endregion
 
-        #region Operator == (HTTPURI1, Text)
+        #region Operator == (HTTPPath1, Text)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPURI1">A HTTP uniform resource identifier.</param>
-        /// <param name="Text">Another HTTP uniform resource identifier.</param>
+        /// <param name="HTTPPath1">A HTTP path.</param>
+        /// <param name="Text">Another HTTP path.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (HTTPURI HTTPURI1, String Text)
+        public static Boolean operator == (HTTPPath HTTPPath1, String Text)
         {
 
             // If both are null, or both are same instance, return true.
-            if (Object.ReferenceEquals(HTTPURI1, Text))
+            if (Object.ReferenceEquals(HTTPPath1, Text))
                 return true;
 
             // If one is null, but not both, return false.
-            if (((Object) HTTPURI1 == null) || ((Object) Text == null))
+            if (((Object) HTTPPath1 == null) || ((Object) Text == null))
                 return false;
 
-            return HTTPURI1.Equals(Text);
+            return HTTPPath1.Equals(Text);
 
         }
 
         #endregion
 
-        #region Operator != (HTTPURI1, HTTPURI2)
+        #region Operator != (HTTPPath1, HTTPPath2)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPURI1">A HTTP uniform resource identifier.</param>
-        /// <param name="HTTPURI2">Another HTTP uniform resource identifier.</param>
+        /// <param name="HTTPPath1">A HTTP path.</param>
+        /// <param name="HTTPPath2">Another HTTP path.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator != (HTTPURI HTTPURI1, HTTPURI HTTPURI2)
-            => !(HTTPURI1 == HTTPURI2);
+        public static Boolean operator != (HTTPPath HTTPPath1, HTTPPath HTTPPath2)
+            => !(HTTPPath1 == HTTPPath2);
 
         #endregion
 
-        #region Operator != (HTTPURI1, Text)
+        #region Operator != (HTTPPath1, Text)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPURI1">A HTTP uniform resource identifier.</param>
-        /// <param name="Text">Another HTTP uniform resource identifier.</param>
+        /// <param name="HTTPPath1">A HTTP path.</param>
+        /// <param name="Text">Another HTTP path.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator != (HTTPURI HTTPURI1, String Text)
-            => !(HTTPURI1 == Text);
+        public static Boolean operator != (HTTPPath HTTPPath1, String Text)
+            => !(HTTPPath1 == Text);
 
         #endregion
 
-        #region Operator <  (HTTPURI1, HTTPURI2)
+        #region Operator <  (HTTPPath1, HTTPPath2)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPURI1">A HTTP uniform resource identifier.</param>
-        /// <param name="HTTPURI2">Another HTTP uniform resource identifier.</param>
+        /// <param name="HTTPPath1">A HTTP path.</param>
+        /// <param name="HTTPPath2">Another HTTP path.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator < (HTTPURI HTTPURI1, HTTPURI HTTPURI2)
+        public static Boolean operator < (HTTPPath HTTPPath1, HTTPPath HTTPPath2)
         {
 
-            if ((Object) HTTPURI1 == null)
-                throw new ArgumentNullException(nameof(HTTPURI1), "The given HTTPURI1 must not be null!");
+            if ((Object) HTTPPath1 == null)
+                throw new ArgumentNullException(nameof(HTTPPath1), "The given HTTPPath1 must not be null!");
 
-            return HTTPURI1.CompareTo(HTTPURI2) < 0;
+            return HTTPPath1.CompareTo(HTTPPath2) < 0;
 
         }
 
         #endregion
 
-        #region Operator <= (HTTPURI1, HTTPURI2)
+        #region Operator <= (HTTPPath1, HTTPPath2)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPURI1">A HTTP uniform resource identifier.</param>
-        /// <param name="HTTPURI2">Another HTTP uniform resource identifier.</param>
+        /// <param name="HTTPPath1">A HTTP path.</param>
+        /// <param name="HTTPPath2">Another HTTP path.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator <= (HTTPURI HTTPURI1, HTTPURI HTTPURI2)
-            => !(HTTPURI1 > HTTPURI2);
+        public static Boolean operator <= (HTTPPath HTTPPath1, HTTPPath HTTPPath2)
+            => !(HTTPPath1 > HTTPPath2);
 
         #endregion
 
-        #region Operator >  (HTTPURI1, HTTPURI2)
+        #region Operator >  (HTTPPath1, HTTPPath2)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPURI1">A HTTP uniform resource identifier.</param>
-        /// <param name="HTTPURI2">Another HTTP uniform resource identifier.</param>
+        /// <param name="HTTPPath1">A HTTP path.</param>
+        /// <param name="HTTPPath2">Another HTTP path.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator > (HTTPURI HTTPURI1, HTTPURI HTTPURI2)
+        public static Boolean operator > (HTTPPath HTTPPath1, HTTPPath HTTPPath2)
         {
 
-            if ((Object) HTTPURI1 == null)
-                throw new ArgumentNullException(nameof(HTTPURI1), "The given HTTPURI1 must not be null!");
+            if ((Object) HTTPPath1 == null)
+                throw new ArgumentNullException(nameof(HTTPPath1), "The given HTTPPath1 must not be null!");
 
-            return HTTPURI1.CompareTo(HTTPURI2) > 0;
+            return HTTPPath1.CompareTo(HTTPPath2) > 0;
 
         }
 
         #endregion
 
-        #region Operator >= (HTTPURI1, HTTPURI2)
+        #region Operator >= (HTTPPath1, HTTPPath2)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPURI1">A HTTP uniform resource identifier.</param>
-        /// <param name="HTTPURI2">Another HTTP uniform resource identifier.</param>
+        /// <param name="HTTPPath1">A HTTP path.</param>
+        /// <param name="HTTPPath2">Another HTTP path.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator >= (HTTPURI HTTPURI1, HTTPURI HTTPURI2)
-            => !(HTTPURI1 < HTTPURI2);
+        public static Boolean operator >= (HTTPPath HTTPPath1, HTTPPath HTTPPath2)
+            => !(HTTPPath1 < HTTPPath2);
 
         #endregion
 
 
-        #region Operator + (HTTPURI1, Text)
+        #region Operator + (HTTPPath1, Text)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPURI1">A HTTP uniform resource identifier.</param>
-        /// <param name="Text">Another HTTP uniform resource identifier.</param>
+        /// <param name="HTTPPath1">A HTTP path.</param>
+        /// <param name="Text">Another HTTP path.</param>
         /// <returns>true|false</returns>
-        public static HTTPURI operator + (HTTPURI HTTPURI1, String Text)
-            => HTTPURI1.EndsWith("/") && Text.StartsWith("/")
-                   ? Parse(HTTPURI1.ToString() + Text.Substring(1))
-                   : Parse(HTTPURI1.ToString() + Text);
+        public static HTTPPath operator + (HTTPPath HTTPPath1, String Text)
+            => HTTPPath1.EndsWith("/") && Text.StartsWith("/")
+                   ? Parse(HTTPPath1.ToString() + Text.Substring(1))
+                   : Parse(HTTPPath1.ToString() + Text);
 
         #endregion
 
-        #region Operator + (HTTPURI1, HTTPURI2)
+        #region Operator + (HTTPPath1, HTTPPath2)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPURI1">A HTTP uniform resource identifier.</param>
-        /// <param name="HTTPURI2">Another HTTP uniform resource identifier.</param>
+        /// <param name="HTTPPath1">A HTTP path.</param>
+        /// <param name="HTTPPath2">Another HTTP path.</param>
         /// <returns>true|false</returns>
-        public static HTTPURI operator + (HTTPURI HTTPURI1, HTTPURI HTTPURI2)
-            => HTTPURI1.EndsWith("/") && HTTPURI2.StartsWith("/")
-                   ? Parse(HTTPURI1.ToString() + HTTPURI2.Substring(1))
-                   : Parse(HTTPURI1.ToString() + HTTPURI2);
+        public static HTTPPath operator + (HTTPPath HTTPPath1, HTTPPath HTTPPath2)
+            => HTTPPath1.EndsWith("/") && HTTPPath2.StartsWith("/")
+                   ? Parse(HTTPPath1.ToString() + HTTPPath2.Substring(1))
+                   : Parse(HTTPPath1.ToString() + HTTPPath2);
 
         #endregion
 
         #endregion
 
-        #region IComparable<HTTPURI> Members
+        #region IComparable<HTTPPath> Members
 
         #region CompareTo(Object)
 
@@ -448,31 +448,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Object == null)
                 throw new ArgumentNullException("The given object must not be null!");
 
-            if (Object is HTTPURI)
-                return CompareTo((HTTPURI) Object);
+            if (Object is HTTPPath)
+                return CompareTo((HTTPPath) Object);
 
             if (Object is String)
                 return InternalId.CompareTo((String) Object);
 
-            throw new ArgumentException("The given object is neither a HTTP uniform resource identifier, nor its text representation!");
+            throw new ArgumentException("The given object is neither a HTTP path, nor its text representation!");
 
         }
 
         #endregion
 
-        #region CompareTo(HTTPURI)
+        #region CompareTo(HTTPPath)
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPURI">An object to compare with.</param>
-        public Int32 CompareTo(HTTPURI HTTPURI)
+        /// <param name="HTTPPath">An object to compare with.</param>
+        public Int32 CompareTo(HTTPPath HTTPPath)
         {
 
-            if ((Object) HTTPURI == null)
-                throw new ArgumentNullException("The given HTTP uniform resource identifier must not be null!");
+            if ((Object) HTTPPath == null)
+                throw new ArgumentNullException("The given HTTP path must not be null!");
 
-            return InternalId.CompareTo(HTTPURI.InternalId);
+            return InternalId.CompareTo(HTTPPath.InternalId);
 
         }
 
@@ -480,7 +480,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region IEquatable<HTTPURI> Members
+        #region IEquatable<HTTPPath> Members
 
         #region Equals(Object)
 
@@ -495,8 +495,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Object == null)
                 return false;
 
-            if (Object is HTTPURI)
-                return Equals((HTTPURI) Object);
+            if (Object is HTTPPath)
+                return Equals((HTTPPath) Object);
 
             if (Object is String)
                 return InternalId.Equals((String) Object);
@@ -507,20 +507,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Equals(HTTPURI)
+        #region Equals(HTTPPath)
 
         /// <summary>
-        /// Compares two HTTPURIs for equality.
+        /// Compares two HTTPPaths for equality.
         /// </summary>
-        /// <param name="HTTPURI">A HTTPURI to compare with.</param>
+        /// <param name="HTTPPath">A HTTPPath to compare with.</param>
         /// <returns>True if both match; False otherwise.</returns>
-        public Boolean Equals(HTTPURI HTTPURI)
+        public Boolean Equals(HTTPPath HTTPPath)
         {
 
-            if ((Object) HTTPURI == null || InternalId == null)
+            if ((Object) HTTPPath == null || InternalId == null)
                 return false;
 
-            return InternalId.Equals(HTTPURI.InternalId);
+            return InternalId.Equals(HTTPPath.InternalId);
 
         }
 

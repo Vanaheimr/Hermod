@@ -41,7 +41,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The default URI prefix.
         /// </summary>
-        protected static readonly HTTPURI DefaultURIPrefix  = HTTPURI.Parse("/");
+        protected static readonly HTTPPath DefaultURIPrefix  = HTTPPath.Parse("/");
 
         #endregion
 
@@ -50,7 +50,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The default URI prefix.
         /// </summary>
-        public HTTPURI                URIPrefix          { get; }
+        public HTTPPath                URIPrefix          { get; }
 
         /// <summary>
         /// The WebService-Security username/password.
@@ -103,7 +103,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                               RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
                               LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
                               HTTPHostname?                        HTTPVirtualHost              = null,
-                              HTTPURI?                             URIPrefix                    = null,
+                              HTTPPath?                             URIPrefix                    = null,
                               Tuple<String, String>                WSSLoginPassword             = null,
                               String                               UserAgent                    = DefaultHTTPUserAgent,
                               TimeSpan?                            RequestTimeout               = null,

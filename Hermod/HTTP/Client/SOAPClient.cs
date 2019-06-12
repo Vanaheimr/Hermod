@@ -83,7 +83,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         /// <summary>
         /// The URI-prefix of the HTTP/SOAP service.
         /// </summary>
-        public HTTPURI       URIPrefix         { get; }
+        public HTTPPath       URIPrefix         { get; }
 
         #endregion
 
@@ -102,7 +102,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public SOAPClient(HTTPHostname                         Hostname,
-                          HTTPURI                              URIPrefix,
+                          HTTPPath                              URIPrefix,
                           HTTPHostname?                        VirtualHostname              = null,
                           IPPort?                              HTTPSPort                    = null,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
@@ -123,7 +123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
 
         {
 
-            this.URIPrefix  = URIPrefix.IsNotNullOrEmpty() ? URIPrefix : HTTPURI.Parse("/");
+            this.URIPrefix  = URIPrefix.IsNotNullOrEmpty() ? URIPrefix : HTTPPath.Parse("/");
 
         }
 
@@ -344,7 +344,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         /// <summary>
         /// The URI-prefix of the HTTP/SOAP service.
         /// </summary>
-        public HTTPURI  URIPrefix   { get; }
+        public HTTPPath  URIPrefix   { get; }
 
         #endregion
 
@@ -363,7 +363,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public SOAPClient(HTTPHostname                         Hostname,
-                          HTTPURI                              URIPrefix,
+                          HTTPPath                              URIPrefix,
                           HTTPHostname?                        VirtualHostname              = null,
                           IPPort?                              HTTPPort                     = null,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
@@ -384,7 +384,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
 
         {
 
-            this.URIPrefix = URIPrefix.IsNotNullOrEmpty() ? URIPrefix : HTTPURI.Parse("/");
+            this.URIPrefix = URIPrefix.IsNotNullOrEmpty() ? URIPrefix : HTTPPath.Parse("/");
 
         }
 

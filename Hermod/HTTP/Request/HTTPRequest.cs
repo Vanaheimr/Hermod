@@ -89,7 +89,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The minimal URI (this means e.g. without the query string).
         /// </summary>
-        public HTTPURI     URI                { get; }
+        public HTTPPath     URI                { get; }
 
         #endregion
 
@@ -751,7 +751,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var RawUrl      = _HTTPMethodHeader[1];
             var _ParsedURL  = RawUrl.Split(_URLSeparator, 2, StringSplitOptions.None);
-            this.URI        = HTTPURI.Parse(HttpUtility.UrlDecode(_ParsedURL[0]));
+            this.URI        = HTTPPath.Parse(HttpUtility.UrlDecode(_ParsedURL[0]));
 
             //if (URI.StartsWith("http", StringComparison.Ordinal) || URI.StartsWith("https", StringComparison.Ordinal))
             if (URI.Contains("://"))
@@ -761,7 +761,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
             if (URI == "" || URI == null)
-                URI = HTTPURI.Parse("/");
+                URI = HTTPPath.Parse("/");
 
             // Parse QueryString after '?'
             if (RawUrl.IndexOf('?') > -1 && _ParsedURL[1].IsNeitherNullNorEmpty())
@@ -1184,12 +1184,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region URI
 
-            private HTTPURI _URI;
+            private HTTPPath _URI;
 
             /// <summary>
             /// The minimal URL (this means e.g. without the query string).
             /// </summary>
-            public HTTPURI URI
+            public HTTPPath URI
             {
 
                 get
@@ -1793,7 +1793,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 this.HTTPStatusCode   = HTTPStatusCode.OK;
                 this.HTTPMethod       = HTTPMethod.GET;
-                this.URI              = HTTPURI.Parse("/");
+                this.URI              = HTTPPath.Parse("/");
                 this.QueryString     = QueryString.New;
                 SetHeaderField(HTTPHeaderField.Accept, new AcceptTypes());
                 this.ProtocolName     = "HTTP";
@@ -1850,7 +1850,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// Set the HTTP method.
             /// </summary>
             /// <param name="URI">The new URI.</param>
-            public Builder SetURI(HTTPURI URI)
+            public Builder SetURI(HTTPPath URI)
             {
                 this.URI = URI;
                 return this;

@@ -47,7 +47,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The URI template of this SOAP endpoint.
         /// </summary>
-        public HTTPURI                    URITemplate        { get; }
+        public HTTPPath                    URITemplate        { get; }
 
         /// <summary>
         /// The HTTP content type the SOAP/XML request will be send.
@@ -69,7 +69,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// </summary>
         /// <param name="URITemplate">The URI template of the SOAP dispatcher.</param>
         /// <param name="SOAPContentType">The HTTP content type the SOAP/XML request will be send.</param>
-        public SOAPDispatcher(HTTPURI          URITemplate,
+        public SOAPDispatcher(HTTPPath          URITemplate,
                               HTTPContentType  SOAPContentType)
         {
 

@@ -337,7 +337,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A new HTTPRequest object.</returns>
         public HTTPRequest.Builder CreateRequest(HTTPMethod                   HTTPMethod,
-                                                 HTTPURI                      URI,
+                                                 HTTPPath                      URI,
                                                  Action<HTTPRequest.Builder>  BuilderAction  = null)
         {
 

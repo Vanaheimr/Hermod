@@ -952,7 +952,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The URI prefix of this HTTP API.
         /// </summary>
-        public HTTPURI       URIPrefix      { get; }
+        public HTTPPath       URIPrefix      { get; }
 
         /// <summary>
         /// The name of the Open Data API service.
@@ -996,14 +996,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ServiceName">A service name.</param>
         public HTTPAPI(HTTPServer     HTTPServer,
                        HTTPHostname?  HTTPHostname   = null,
-                       HTTPURI?       URIPrefix      = null,
+                       HTTPPath?       URIPrefix      = null,
                        String         ServiceName    = DefaultServiceName)
 
         {
 
             this.HTTPServer                   = HTTPServer   ?? throw new ArgumentNullException(nameof(HTTPServer), "HTTPServer!");
             this.Hostname                     = HTTPHostname ?? HTTP.HTTPHostname.Any;
-            this.URIPrefix                    = URIPrefix    ?? HTTPURI.Parse("/");
+            this.URIPrefix                    = URIPrefix    ?? HTTPPath.Parse("/");
 
             this.ServiceName                  = ServiceName.IsNotNullOrEmpty() ? ServiceName  : "HTTPAPI";
 
@@ -1074,7 +1074,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         public HTTPEventSource<THelper> AddEventSource<THelper>(HTTPEventSource_Id              EventIdentification,
-                                                                HTTPURI                         URITemplate,
+                                                                HTTPPath                         URITemplate,
 
                                                                 UInt32                          MaxNumberOfCachedEvents      = 500,
                                                                 Func<HTTPEvent, Boolean>        IncludeFilterAtRuntime       = null,

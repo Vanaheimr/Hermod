@@ -59,7 +59,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
         /// <summary>
         /// The URI-prefix of the HTTP/JSON service.
         /// </summary>
-        public HTTPURI  URIPrefix   { get; }
+        public HTTPPath  URIPrefix   { get; }
 
         #endregion
 
@@ -78,7 +78,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public JSONClient(HTTPHostname                         Hostname,
-                          HTTPURI                              URIPrefix,
+                          HTTPPath                              URIPrefix,
                           HTTPHostname?                        VirtualHostname              = null,
                           IPPort?                              HTTPSPort                    = null,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
@@ -99,7 +99,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
 
         {
 
-            this.URIPrefix = URIPrefix.IsNotNullOrEmpty() ? URIPrefix : HTTPURI.Parse("/");
+            this.URIPrefix = URIPrefix.IsNotNullOrEmpty() ? URIPrefix : HTTPPath.Parse("/");
 
         }
 
