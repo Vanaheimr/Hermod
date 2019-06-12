@@ -77,8 +77,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Initial checks
 
-            if (!URI_RegEx.IsMatch(URI))
-                throw new ArgumentException("the given URI '" + URI + "' is invalid!", nameof(URI));
+            //if (!URI_RegEx.IsMatch(URI))
+            //    throw new ArgumentException("the given URI '" + URI + "' is invalid!", nameof(URI));
 
             #endregion
 
