@@ -46,8 +46,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The regular expression for parsing a HTTP URI.
         /// </summary>
-        public static readonly Regex URI_RegEx  = new Regex(@"^https:\/\/.+$",
-                                                            RegexOptions.IgnorePatternWhitespace);
+        //public static readonly Regex URI_RegEx  = new Regex(@"^https:\/\/.+$",
+        //                                                    RegexOptions.IgnorePatternWhitespace);
 
         #endregion
 
@@ -56,7 +56,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The HTTP hostname part of the HTTP URI.
         /// </summary>
-        public HTTPHostname  Hostname   { get; }
+        //public HTTPHostname  Hostname   { get; }
 
         /// <summary>
         /// The length of the HTTP uniform resource identifier.
@@ -83,7 +83,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #endregion
 
             this.InternalId  = URI;
-            this.Hostname    = HTTPHostname.Parse(URI.Substring(URI.IndexOf("://"), URI.IndexOfAny(new Char[] { '/', ':' }, URI.IndexOf("://") + 3 )));
+            //this.Hostname    = HTTPHostname.Parse(URI.Substring(URI.IndexOf("://"), URI.IndexOfAny(new Char[] { '/', ':' }, URI.IndexOf("://") + 3 )));
 
         }
 
