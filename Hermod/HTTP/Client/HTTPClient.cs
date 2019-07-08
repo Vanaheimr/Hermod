@@ -458,13 +458,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 var HTTPHeaderBytes = new Byte[0];
                 var HTTPBodyBytes   = new Byte[0];
-                var sw = new Stopwatch();
+                var sw              = new Stopwatch();
 
                 if (!RequestTimeout.HasValue)
-                    RequestTimeout = Request.Timeout;
-
-                if (!RequestTimeout.HasValue)
-                    RequestTimeout = TimeSpan.FromSeconds(60);
+                    RequestTimeout = Request.Timeout ?? this.RequestTimeout ?? TimeSpan.FromSeconds(60);
 
                 #endregion
 
