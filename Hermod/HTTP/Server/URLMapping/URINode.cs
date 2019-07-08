@@ -50,7 +50,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The URL template for this service.
         /// </summary>
-        public HTTPURI                                   URITemplate            { get; }
+        public HTTPPath                                   URITemplate            { get; }
 
         /// <summary>
         /// The URI regex for this service.
@@ -119,7 +119,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="URITemplate">The URI template for this service.</param>
         /// <param name="URIAuthentication">This and all subordinated nodes demand an explicit URI authentication.</param>
-        internal URINode(HTTPURI             URITemplate,
+        internal URINode(HTTPPath             URITemplate,
                          HTTPAuthentication  URIAuthentication  = null)
 
         {

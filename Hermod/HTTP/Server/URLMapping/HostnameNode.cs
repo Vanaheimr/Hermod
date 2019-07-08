@@ -40,7 +40,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// A mapping from URIs to URINodes.
         /// </summary>
-        private readonly Dictionary<HTTPURI, URINode> _URINodes;
+        private readonly Dictionary<HTTPPath, URINode> _URINodes;
 
         #endregion
 
@@ -55,7 +55,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return all defined URIs.
         /// </summary>
-        public IEnumerable<HTTPURI> URIs
+        public IEnumerable<HTTPPath> URIs
             => _URINodes.Keys;
 
         /// <summary>
@@ -105,7 +105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            this._URINodes  = new Dictionary<HTTPURI, URINode>();
+            this._URINodes  = new Dictionary<HTTPPath, URINode>();
 
         }
 
@@ -116,7 +116,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public void AddHandler(HTTPDelegate              HTTPDelegate,
 
-                               HTTPURI?                  URITemplate                 = null,
+                               HTTPPath?                  URITemplate                 = null,
                                HTTPMethod?               Method                      = null,
                                HTTPContentType           HTTPContentType             = null,
 
@@ -136,7 +136,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
 
                 if (!URITemplate.HasValue)
-                    URITemplate = HTTPURI.Parse("/");
+                    URITemplate = HTTPPath.Parse("/");
 
                 if (!_URINodes.TryGetValue(URITemplate.Value, out URINode _URINode))
                 {
@@ -174,7 +174,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Determines whether the given URI template is defined.
         /// </summary>
         /// <param name="URITemplate">An URI template.</param>
-        public Boolean Contains(HTTPURI URITemplate)
+        public Boolean Contains(HTTPPath URITemplate)
 
             => _URINodes.ContainsKey(URITemplate);
 
@@ -186,7 +186,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return the URI node for the given URI template.
         /// </summary>
         /// <param name="URITemplate">An URI template.</param>
-        public URINode Get(HTTPURI URITemplate)
+        public URINode Get(HTTPPath URITemplate)
         {
 
             if (_URINodes.TryGetValue(URITemplate, out URINode uriNode))
@@ -205,7 +205,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="URITemplate">An URI template.</param>
         /// <param name="URINode">The attached URI node.</param>
-        public Boolean TryGet(HTTPURI URITemplate, out URINode URINode)
+        public Boolean TryGet(HTTPPath URITemplate, out URINode URINode)
 
             => _URINodes.TryGetValue(URITemplate, out URINode);
 

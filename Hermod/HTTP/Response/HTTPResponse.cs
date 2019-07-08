@@ -802,18 +802,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (static) LoadHTTPResponseLogfiles_old(FilePath, FilePattern, FromTimestamp = null, ToTimestamp = null)
+        #region (static) LoadHTTPResponseLogfiles_old(FilePath, FilePattern, SearchOption = TopDirectoryOnly, FromTimestamp = null, ToTimestamp = null)
 
-        public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfiles_old(String     FilePath,
-                                                                             String     FilePattern,
-                                                                             DateTime?  FromTimestamp  = null,
-                                                                             DateTime?  ToTimestamp    = null)
+        public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfiles_old(String        FilePath,
+                                                                             String        FilePattern,
+                                                                             DateTime?     FromTimestamp  = null,
+                                                                             DateTime?     ToTimestamp    = null)
+
+            => LoadHTTPResponseLogfiles_old(FilePath,
+                                            FilePattern,
+                                            SearchOption.TopDirectoryOnly,
+                                            FromTimestamp,
+                                            ToTimestamp);
+
+
+        public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfiles_old(String        FilePath,
+                                                                             String        FilePattern,
+                                                                             SearchOption  SearchOption   = SearchOption.TopDirectoryOnly,
+                                                                             DateTime?     FromTimestamp  = null,
+                                                                             DateTime?     ToTimestamp    = null)
         {
 
             var _responses  = new ConcurrentBag<HTTPResponse>();
 
-            Parallel.ForEach(Directory.EnumerateFiles(Directory.GetCurrentDirectory() + Path.DirectorySeparatorChar + FilePath,
-                                                      FilePattern),
+            Parallel.ForEach(Directory.EnumerateFiles(FilePath,
+                                                      FilePattern,
+                                                      SearchOption),
+                             new ParallelOptions() { MaxDegreeOfParallelism = 1 },
                              file => {
 
                 var _request            = new List<String>();
@@ -890,6 +905,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
         #region (static) LoadHTTPResponseLogfiles(FilePath, FilePattern, SearchOption = TopDirectoryOnly, FromTimestamp = null, ToTimestamp = null)
+
+        public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfiles(String        FilePath,
+                                                                         String        FilePattern,
+                                                                         DateTime?     FromTimestamp  = null,
+                                                                         DateTime?     ToTimestamp    = null)
+
+            => LoadHTTPResponseLogfiles(FilePath,
+                                        FilePattern,
+                                        SearchOption.TopDirectoryOnly,
+                                        FromTimestamp,
+                                        ToTimestamp);
+
 
         public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfiles(String        FilePath,
                                                                          String        FilePattern,
@@ -1112,6 +1139,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region (static) ClientError       (Request, Configurator = null)
+
+        /// <summary>
+        /// Create a new 0-ClientError HTTP response and apply the given delegate.
+        /// </summary>
+        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+        public static HTTPResponse ClientError(HTTPRequest      Request,
+                                               Action<Builder>  Configurator = null)
+
+            => Builder.ClientError(Request, Configurator);
+
+        /// <summary>
+        /// Create a new 0-ClientError HTTP response and apply the given delegate.
+        /// </summary>
+        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+        public static HTTPResponse ClientError(HTTPRequest             Request,
+                                               Func<Builder, Builder>  Configurator)
+
+            => Builder.ClientError(Request, Configurator);
+
+        #endregion
+
 
         #region (override) ToString()
 
@@ -1305,12 +1356,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Location
 
-            public HTTPURI Location
+            public HTTPPath Location
             {
 
                 get
                 {
-                    return HTTPURI.Parse(GetHeaderField(HTTPHeaderField.Location));
+                    return HTTPPath.Parse(GetHeaderField(HTTPHeaderField.Location));
                 }
 
                 set
@@ -1761,6 +1812,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
             #endregion
+
+            #endregion
+
+
+            #region (static) ClientError       (Request, Configurator = null)
+
+            /// <summary>
+            /// Create a new 0-ClientError HTTP response and apply the given delegate.
+            /// </summary>
+            /// <param name="Request">A HTTP request.</param>
+            /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+            public static Builder ClientError(HTTPRequest      Request,
+                                              Action<Builder>  Configurator = null)
+            {
+
+                var response = new Builder(Request, HTTPStatusCode.ClientError);
+
+                Configurator?.Invoke(response);
+
+                return response;
+
+            }
+
+            /// <summary>
+            /// Create a new 0-ClientError HTTP response and apply the given delegate.
+            /// </summary>
+            /// <param name="Request">A HTTP request.</param>
+            /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+            public static Builder ClientError(HTTPRequest             Request,
+                                              Func<Builder, Builder>  Configurator)
+            {
+
+                var response = new Builder(Request, HTTPStatusCode.ClientError);
+
+                Configurator?.Invoke(response);
+
+                return response;
+
+            }
 
             #endregion
 

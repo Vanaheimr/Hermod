@@ -446,9 +446,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URITarget">The target URI of the redirect.</param>
         public void Redirect(HTTPHostname     Hostname,
                              HTTPMethod       HTTPMethod,
-                             HTTPURI          URITemplate,
+                             HTTPPath          URITemplate,
                              HTTPContentType  HTTPContentType,
-                             HTTPURI          URITarget)
+                             HTTPPath          URITarget)
 
         {
 
@@ -472,9 +472,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPContentType">The HTTP content type.</param>
         /// <param name="URITarget">The target URI of the redirect.</param>
         public void Redirect(HTTPMethod       HTTPMethod,
-                             HTTPURI          URITemplate,
+                             HTTPPath          URITemplate,
                              HTTPContentType  HTTPContentType,
-                             HTTPURI          URITarget)
+                             HTTPPath          URITarget)
 
         {
 
@@ -506,7 +506,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPDelegate">The method to call.</param>
         public void AddMethodCallback(HTTPHostname            Hostname,
                                       HTTPMethod              HTTPMethod,
-                                      HTTPURI                 URITemplate,
+                                      HTTPPath                 URITemplate,
                                       HTTPContentType         HTTPContentType             = null,
                                       HTTPAuthentication      URIAuthentication           = null,
                                       HTTPAuthentication      HTTPMethodAuthentication    = null,
@@ -554,7 +554,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPDelegate">The method to call.</param>
         public void AddMethodCallback(HTTPHostname            Hostname,
                                       HTTPMethod              HTTPMethod,
-                                      IEnumerable<HTTPURI>    URITemplates,
+                                      IEnumerable<HTTPPath>    URITemplates,
                                       HTTPContentType         HTTPContentType             = null,
                                       HTTPAuthentication      URIAuthentication           = null,
                                       HTTPAuthentication      HTTPMethodAuthentication    = null,
@@ -602,7 +602,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPDelegate">The method to call.</param>
         public void AddMethodCallback(HTTPHostname                  Hostname,
                                       HTTPMethod                    HTTPMethod,
-                                      HTTPURI                       URITemplate,
+                                      HTTPPath                       URITemplate,
                                       IEnumerable<HTTPContentType>  HTTPContentTypes,
                                       HTTPAuthentication            URIAuthentication           = null,
                                       HTTPAuthentication            HTTPMethodAuthentication    = null,
@@ -650,7 +650,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPDelegate">The method to call.</param>
         public void AddMethodCallback(HTTPHostname                  Hostname,
                                       HTTPMethod                    HTTPMethod,
-                                      IEnumerable<HTTPURI>          URITemplates,
+                                      IEnumerable<HTTPPath>          URITemplates,
                                       IEnumerable<HTTPContentType>  HTTPContentTypes,
                                       HTTPAuthentication            URIAuthentication           = null,
                                       HTTPAuthentication            HTTPMethodAuthentication    = null,
@@ -687,7 +687,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Call the best matching method handler for the given HTTP request.
         /// </summary>
         protected HTTPServer.Handlers GetHandlers(HTTPHostname                              Host,
-                                                  HTTPURI                                   URI,
+                                                  HTTPPath                                   URI,
                                                   HTTPMethod?                               HTTPMethod                   = null,
                                                   Func<HTTPContentType[], HTTPContentType>  HTTPContentTypeSelector      = null,
                                                   Action<IEnumerable<String>>               ParsedURIParametersDelegate  = null)
@@ -790,7 +790,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         public HTTPEventSource<THelper> AddEventSource<THelper>(HTTPEventSource_Id              EventIdentification,
-                                                                HTTPURI                         URITemplate,
+                                                                HTTPPath                         URITemplate,
 
                                                                 UInt32                          MaxNumberOfCachedEvents      = 500,
                                                                 Func<HTTPEvent, Boolean>        IncludeFilterAtRuntime       = null,
@@ -1717,15 +1717,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URITarget">The target URI of the redirect.</param>
         public void Redirect(HTTPHostname     Hostname,
                              HTTPMethod       HTTPMethod,
-                             HTTPURI          URITemplate,
+                             HTTPPath          URITemplate,
                              HTTPContentType  HTTPContentType,
-                             HTTPURI          URITarget)
+                             HTTPPath          URITarget)
 
         {
 
             AddHandler(req => InvokeHandler(new HTTPRequest.Builder(req).SetURI(URITarget)),
                        Hostname,
-                       (URITemplate.IsNotNullOrEmpty()) ? URITemplate     : HTTPURI.Parse("/"),
+                       (URITemplate.IsNotNullOrEmpty()) ? URITemplate     : HTTPPath.Parse("/"),
                        HTTPMethod,
                        HTTPContentType ?? HTTPContentType.HTML_UTF8,
                        null,
@@ -1747,15 +1747,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPContentType">The HTTP content type.</param>
         /// <param name="URITarget">The target URI of the redirect.</param>
         public void Redirect(HTTPMethod       HTTPMethod,
-                             HTTPURI          URITemplate,
+                             HTTPPath          URITemplate,
                              HTTPContentType  HTTPContentType,
-                             HTTPURI          URITarget)
+                             HTTPPath          URITarget)
 
         {
 
             AddHandler(req => InvokeHandler(new HTTPRequest.Builder(req).SetURI(URITarget)),
                        HTTPHostname.Any,
-                       (URITemplate.IsNotNullOrEmpty()) ? URITemplate     : HTTPURI.Parse("/"),
+                       (URITemplate.IsNotNullOrEmpty()) ? URITemplate     : HTTPPath.Parse("/"),
                        HTTPMethod,
                        HTTPContentType ?? HTTPContentType.HTML_UTF8,
                        null,
@@ -1787,7 +1787,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         internal void AddHandler(HTTPDelegate              HTTPDelegate,
 
                                  HTTPHostname?             Hostname                    = null,
-                                 HTTPURI?                  URITemplate                 = null,
+                                 HTTPPath?                  URITemplate                 = null,
                                  HTTPMethod?               HTTPMethod                  = null,
                                  HTTPContentType           HTTPContentType             = null,
 
@@ -1861,7 +1861,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPDelegate">The method to call.</param>
         public void AddMethodCallback(HTTPHostname              Hostname,
                                       HTTPMethod                HTTPMethod,
-                                      HTTPURI                   URITemplate,
+                                      HTTPPath                   URITemplate,
                                       HTTPContentType           HTTPContentType             = null,
                                       HTTPAuthentication        URIAuthentication           = null,
                                       HTTPAuthentication        HTTPMethodAuthentication    = null,
@@ -1926,7 +1926,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPDelegate">The method to call.</param>
         public void AddMethodCallback(HTTPHostname              Hostname,
                                       HTTPMethod                HTTPMethod,
-                                      IEnumerable<HTTPURI>      URITemplates,
+                                      IEnumerable<HTTPPath>      URITemplates,
                                       HTTPContentType           HTTPContentType             = null,
                                       HTTPAuthentication        URIAuthentication           = null,
                                       HTTPAuthentication        HTTPMethodAuthentication    = null,
@@ -1991,7 +1991,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPDelegate">The method to call.</param>
         public void AddMethodCallback(HTTPHostname                  Hostname,
                                       HTTPMethod                    HTTPMethod,
-                                      HTTPURI                       URITemplate,
+                                      HTTPPath                       URITemplate,
                                       IEnumerable<HTTPContentType>  HTTPContentTypes,
                                       HTTPAuthentication            URIAuthentication           = null,
                                       HTTPAuthentication            HTTPMethodAuthentication    = null,
@@ -2059,7 +2059,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPDelegate">The method to call.</param>
         public void AddMethodCallback(HTTPHostname                  Hostname,
                                       HTTPMethod                    HTTPMethod,
-                                      IEnumerable<HTTPURI>          URITemplates,
+                                      IEnumerable<HTTPPath>          URITemplates,
                                       IEnumerable<HTTPContentType>  HTTPContentTypes,
                                       HTTPAuthentication            URIAuthentication           = null,
                                       HTTPAuthentication            HTTPMethodAuthentication    = null,
@@ -2129,7 +2129,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         internal void ReplaceHandler(HTTPDelegate              HTTPDelegate,
 
                                      HTTPHostname?             Hostname                    = null,
-                                     HTTPURI?                  URITemplate                 = null,
+                                     HTTPPath?                  URITemplate                 = null,
                                      HTTPMethod?               HTTPMethod                  = null,
                                      HTTPContentType           HTTPContentType             = null,
 
@@ -2193,7 +2193,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         internal Handlers GetHandlers(HTTPRequest Request)
 
             => GetHandlers(Request.Host,
-                           Request.URI.IsNullOrEmpty() ? HTTPURI.Parse("/") : Request.URI,
+                           Request.URI.IsNullOrEmpty() ? HTTPPath.Parse("/") : Request.URI,
                            Request.HTTPMethod,
                            AvailableContentTypes => Request.Accept.BestMatchingContentType(AvailableContentTypes),
                            ParsedURIParameters   => Request.ParsedURIParameters = ParsedURIParameters.ToArray());
@@ -2206,13 +2206,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return the best matching method handler for the given parameters.
         /// </summary>
         internal Handlers GetHandlers(HTTPHostname                              Host,
-                                      HTTPURI                                   URI,
+                                      HTTPPath                                   URI,
                                       HTTPMethod?                               Method                       = null,
                                       Func<HTTPContentType[], HTTPContentType>  HTTPContentTypeSelector      = null,
                                       Action<IEnumerable<String>>               ParsedURIParametersDelegate  = null)
         {
 
-            URI                      = URI.IsNullOrEmpty()      ? HTTPURI.Parse("/") : URI;
+            URI                      = URI.IsNullOrEmpty()      ? HTTPPath.Parse("/") : URI;
             var httpMethod           = Method                  ?? HTTPMethod.GET;
             HTTPContentTypeSelector  = HTTPContentTypeSelector ?? (v => HTTPContentType.HTML_UTF8);
 
@@ -2547,7 +2547,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         public HTTPEventSource<THelper> AddEventSource<THelper>(HTTPEventSource_Id              EventIdentification,
-                                                                HTTPURI                         URITemplate,
+                                                                HTTPPath                         URITemplate,
 
                                                                 UInt32                          MaxNumberOfCachedEvents     = 500,
                                                                 Func<HTTPEvent, Boolean>        IncludeFilterAtRuntime      = null,

@@ -17,6 +17,8 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Illias;
 using System;
 using System.IO;
 using System.Linq;
@@ -268,6 +270,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         }
 
+        /// <summary>
+        /// Parsed the given string representation into a new IPv4Address.
+        /// </summary>
+        /// <param name="IPv4AddressString">An IPv4Address string representation.</param>
+        public static IPv4Address Parse(HTTPHostname IPv4AddressString)
+        {
+
+            if (IPv4AddressString.Name.IsNotNullOrEmpty())
+                return Parse(IPv4AddressString.Name);
+
+            throw new FormatException("The given string '" + IPv4AddressString + "' is not a valid IPv4Address!");
+
+        }
+
         #endregion
 
         #region TryParse(IPv4AddressString, out IPv4Address)
@@ -304,6 +320,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             IPv4Address = new IPv4Address(ipv4AddressArray);
 
             return true;
+
+        }
+
+        /// <summary>
+        /// Parsed the given string representation into a new IPv4Address.
+        /// </summary>
+        /// <param name="IPv4AddressString">An IPv4Address string representation.</param>
+        /// <param name="IPv4Address">The parsed IPv4 address.</param>
+        public static Boolean TryParse(HTTPHostname IPv4AddressString, out IPv4Address IPv4Address)
+        {
+
+            if (IPv4AddressString.Name.IsNotNullOrEmpty())
+                return TryParse(IPv4AddressString.Name, out IPv4Address);
+
+            IPv4Address = default(IPv4Address);
+            return false;
 
         }
 

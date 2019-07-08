@@ -89,7 +89,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The minimal URI (this means e.g. without the query string).
         /// </summary>
-        public HTTPURI     URI                { get; }
+        public HTTPPath     URI                { get; }
 
         #endregion
 
@@ -751,7 +751,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var RawUrl      = _HTTPMethodHeader[1];
             var _ParsedURL  = RawUrl.Split(_URLSeparator, 2, StringSplitOptions.None);
-            this.URI        = HTTPURI.Parse(HttpUtility.UrlDecode(_ParsedURL[0]));
+            this.URI        = HTTPPath.Parse(HttpUtility.UrlDecode(_ParsedURL[0]));
 
             //if (URI.StartsWith("http", StringComparison.Ordinal) || URI.StartsWith("https", StringComparison.Ordinal))
             if (URI.Contains("://"))
@@ -761,7 +761,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
             if (URI == "" || URI == null)
-                URI = HTTPURI.Parse("/");
+                URI = HTTPPath.Parse("/");
 
             // Parse QueryString after '?'
             if (RawUrl.IndexOf('?') > -1 && _ParsedURL[1].IsNeitherNullNorEmpty())
@@ -809,6 +809,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // rfc 2616 - 3.2.2
             // If the port is empty or not given, port 80 is assumed.
             var    HostHeader  = _HeaderFields[HTTPHeaderField.Host.Name].ToString().
+                                     Replace(":*", "").
                                      Split(_ColonSeparator, StringSplitOptions.RemoveEmptyEntries).
                                      Select(v => v.Trim()).
                                      ToArray();
@@ -1183,12 +1184,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region URI
 
-            private HTTPURI _URI;
+            private HTTPPath _URI;
 
             /// <summary>
             /// The minimal URL (this means e.g. without the query string).
             /// </summary>
-            public HTTPURI URI
+            public HTTPPath URI
             {
 
                 get
@@ -1412,12 +1413,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Host
 
-            public String Host
+            public HTTPHostname Host
             {
 
                 get
                 {
-                    return GetHeaderField(HTTPHeaderField.Host);
+                    return HTTPHostname.Parse(GetHeaderField(HTTPHeaderField.Host));
                 }
 
                 set
@@ -1755,6 +1756,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
+            #region API_Key
+
+            public String API_Key
+            {
+
+                get
+                {
+                    return GetHeaderField(HTTPHeaderField.API_Key);
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPHeaderField.API_Key, value);
+                }
+
+            }
+
+            #endregion
+
             #endregion
 
             #endregion
@@ -1773,7 +1793,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 this.HTTPStatusCode   = HTTPStatusCode.OK;
                 this.HTTPMethod       = HTTPMethod.GET;
-                this.URI              = HTTPURI.Parse("/");
+                this.URI              = HTTPPath.Parse("/");
                 this.QueryString     = QueryString.New;
                 SetHeaderField(HTTPHeaderField.Accept, new AcceptTypes());
                 this.ProtocolName     = "HTTP";
@@ -1830,7 +1850,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// Set the HTTP method.
             /// </summary>
             /// <param name="URI">The new URI.</param>
-            public Builder SetURI(HTTPURI URI)
+            public Builder SetURI(HTTPPath URI)
             {
                 this.URI = URI;
                 return this;
@@ -2251,7 +2271,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// Set the HTTP Host header field.
             /// </summary>
             /// <param name="Host">Host.</param>
-            public Builder SetHost(String Host)
+            public Builder SetHost(HTTPHostname Host)
             {
                 this.Host = Host;
                 return this;
@@ -2612,7 +2632,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
         #endregion
-
 
     }
 

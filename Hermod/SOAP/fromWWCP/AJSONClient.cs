@@ -19,13 +19,12 @@
 
 using System;
 using System.Net.Security;
-using System.Security.Cryptography.X509Certificates;
 
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -72,11 +71,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="MaxNumberOfRetries">The default number of maximum transmission retries.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public AJSONClient(String                               ClientId,
-                           String                               Hostname,
+                           HTTPHostname                         Hostname,
                            IPPort                               RemotePort,
                            RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
                            LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
-                           String                               HTTPVirtualHost              = null,
+                           HTTPHostname?                        HTTPVirtualHost              = null,
                            String                               UserAgent                    = DefaultHTTPUserAgent,
                            TimeSpan?                            RequestTimeout               = null,
                            Byte?                                MaxNumberOfRetries           = DefaultMaxNumberOfRetries,

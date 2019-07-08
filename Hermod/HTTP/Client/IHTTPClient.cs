@@ -35,10 +35,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public interface IHTTPClient : IDisposable
     {
 
+        /// <summary>
+        /// The virtual hostname which the HTTPClient sends.
+        /// </summary>
+        HTTPHostname   Hostname             { get; }
+
+        /// <summary>
+        /// The virtual hostname which the HTTPClient sends.
+        /// </summary>
+        HTTPHostname?  VirtualHostname      { get; }
+
         //int Available { get; }
         //X509Certificate ClientCert { get; }
         //bool Connected { get; }
-        
+
         //string Hostname { get; }
         //LingerOption LingerState { get; set; }
         //LocalCertificateSelectionCallback LocalCertificateSelector { get; }

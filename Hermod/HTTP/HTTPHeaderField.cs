@@ -402,6 +402,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region ContentDisposition
+
+        /// <summary>
+        /// The Content-Disposition response header field is used to convey
+        /// additional information about how to process the response payload, and
+        /// also can be used to attach additional metadata, such as the filename
+        /// to use when saving the response payload locally.
+        /// </summary>
+        /// <example>Content-Disposition: attachment; filename="filename.jpg"</example>
+        /// <seealso cref="https://tools.ietf.org/html/rfc6266"/>
+        public static readonly HTTPHeaderField ContentDisposition = new HTTPHeaderField("Content-Disposition",
+                                                                                        typeof(String),
+                                                                                        HeaderFieldType.General,
+                                                                                        RequestPathSemantic.EndToEnd);
+
+        #endregion
+
         #region Date
 
         /// <summary>
@@ -2746,6 +2763,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                                typeof(String),
                                                                                                HeaderFieldType.Response,
                                                                                                RequestPathSemantic.EndToEnd);
+
+        #endregion
+
+        #region Access-Control-Max-Age
+
+        /// <summary>
+        /// The Access-Control-Max-Age response header indicates how long the results
+        /// of a preflight request (that is the information contained in the
+        /// Access-Control-Allow-Methods and Access-Control-Allow-Headers headers)
+        /// can be cached.
+        /// </summary>
+        /// <example>Access-Control-Max-Age: delta-seconds</example>
+        /// <seealso cref="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Max-Age"/>
+        public static readonly HTTPHeaderField AccessControlMaxAge = new HTTPHeaderField("Access-Control-Max-Age",
+                                                                                         typeof(Int64),
+                                                                                         HeaderFieldType.Response,
+                                                                                         RequestPathSemantic.EndToEnd);
 
         #endregion
 

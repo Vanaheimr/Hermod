@@ -46,7 +46,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public static void RegisterRAWRequestHandler(this HTTPServer  HTTPServer,
                                                      HTTPHostname     Hostname,
-                                                     HTTPURI          URITemplate,
+                                                     HTTPPath          URITemplate,
                                                      HTTPMethod?      Method = null)
 
             => HTTPServer?.AddMethodCallback(Hostname,
@@ -85,8 +85,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public static void RegisterMovedTemporarilyHandler(this HTTPServer  HTTPServer,
                                                            HTTPHostname     Hostname,
-                                                           HTTPURI          URITemplate,
-                                                           HTTPURI          URITarget)
+                                                           HTTPPath          URITemplate,
+                                                           HTTPPath          URITarget)
         {
 
             HTTPServer.AddMethodCallback(Hostname,
@@ -113,7 +113,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CacheControl">Set the HTTP cache control response header.</param>
         public static void RegisterResourcesFile(this IHTTPServer  HTTPServer,
                                                  HTTPHostname      Hostname,
-                                                 HTTPURI           URITemplate,
+                                                 HTTPPath           URITemplate,
                                                  Assembly          ResourceAssembly,
                                                  String            ResourceFilename,
                                                  HTTPContentType   ResponseContentType  = null,
@@ -251,7 +251,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPPassword">An optional password for HTTP basic authentication.</param>
         public static void RegisterResourcesFolder(this IHTTPServer  HTTPServer,
                                                    HTTPHostname      Hostname,
-                                                   HTTPURI           URITemplate,
+                                                   HTTPPath           URITemplate,
                                                    String            ResourcePath,
                                                    Assembly          ResourceAssembly  = null,
                                                    String            DefaultFilename   = "index.html",
@@ -450,7 +450,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CacheControl">Set the HTTP cache control response header.</param>
         public static void RegisterFilesystemFile(this IHTTPServer         HTTPServer,
                                                   HTTPHostname             Hostname,
-                                                  HTTPURI                  URITemplate,
+                                                  HTTPPath                  URITemplate,
                                                   Func<String[], String>   ResourceFilenameBuilder,
                                                   String                   DefaultFile          = null,
                                                   HTTPContentType          ResponseContentType  = null,
@@ -542,7 +542,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DefaultFilename">The default file to load.</param>
         public static void RegisterFilesystemFolder(this IHTTPServer         HTTPServer,
                                                     HTTPHostname             Hostname,
-                                                    HTTPURI                  URITemplate,
+                                                    HTTPPath                  URITemplate,
                                                     Func<String[], String>   ResourcePath,
                                                     String                   DefaultFilename  = "index.html")
         {
@@ -675,10 +675,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URITemplate">An URI template.</param>
         /// <param name="DefaultFilename">The default file to load.</param>
         public static void RegisterWatchedFileSystemFolder(this IHTTPServer    HTTPServer,
-                                                           HTTPURI             URITemplate,
+                                                           HTTPPath             URITemplate,
                                                            String              FileSystemLocation,
                                                            HTTPEventSource_Id  HTTPSSE_EventIdentification,
-                                                           HTTPURI             HTTPSSE_URITemplate,
+                                                           HTTPPath             HTTPSSE_URITemplate,
                                                            String              DefaultFilename  = "index.html")
         {
 
@@ -700,10 +700,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DefaultFilename">The default file to load.</param>
         public static void RegisterWatchedFileSystemFolder(this IHTTPServer        HTTPServer,
                                                            HTTPHostname            Hostname,
-                                                           HTTPURI                 URITemplate,
+                                                           HTTPPath                 URITemplate,
                                                            String                  FileSystemLocation,
                                                            HTTPEventSource_Id      HTTPSSE_EventIdentification,
-                                                           HTTPURI                 HTTPSSE_URITemplate,
+                                                           HTTPPath                 HTTPSSE_URITemplate,
                                                  //          Func<String[], String>  ResourcePath,
                                                            String                  DefaultFilename  = "index.html")
         {

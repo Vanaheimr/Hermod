@@ -18,6 +18,21 @@
 #region Usings
 
 using System;
+using System.Linq;
+using System.Collections.Generic;
+
+using Newtonsoft.Json.Linq;
+
+using Org.BouncyCastle.Bcpg.OpenPgp;
+
+using org.GraphDefined.Vanaheimr.Aegir;
+using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod;
+using org.GraphDefined.Vanaheimr.Hermod.Mail;
+using org.GraphDefined.Vanaheimr.Hermod.Distributed;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Styx.Arrows;
+using org.GraphDefined.Vanaheimr.BouncyCastle;
 
 #endregion
 
@@ -25,143 +40,97 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
     /// <summary>
-    /// A cryptographical signature.
+    /// An Open Data signature.
     /// </summary>
-    public class Signature : IEquatable<Signature>
+    public class Signature
     {
+
+        #region Data
+
+        /// <summary>
+        /// The JSON-LD context of the object.
+        /// </summary>
+        public const String JSONLDContext  = "https://opendata.social/contexts/PostingsAPI+json/PostingSignature";
+
+        #endregion
 
         #region Properties
 
         /// <summary>
-        /// The value of the cryptographical signature as text.
+        /// The input format of the data to sign.
         /// </summary>
-        public String SignatureText { get; }
+        [Mandatory]
+        public String          InputFormat           { get; }
+
+        /// <summary>
+        /// The crypto algorithm used to calculate the signature.
+        /// </summary>
+        [Mandatory]
+        public String          Algorithm             { get; }
+
+        /// <summary>
+        /// The output format of the signature.
+        /// </summary>
+        [Mandatory]
+        public String          OutputFormat          { get; }
+
+        /// <summary>
+        /// The value of the signature.
+        /// </summary>
+        [Mandatory]
+        public String          Value                 { get; }
 
         #endregion
 
         #region Constructor(s)
 
         /// <summary>
-        /// Create a new cryptographical signature.
+        /// Create a new Open Data signature.
         /// </summary>
-        /// <param name="SignatureText">The value of the signature as text.</param>
-        public Signature(String SignatureText)
+        /// <param name="InputFormat">The input format of the data to sign.</param>
+        /// <param name="Algorithm">The crypto algorithm used to calculate the signature.</param>
+        /// <param name="OutputFormat">The output format of the signature.</param>
+        /// <param name="Value">The value of the signature.</param>
+        public Signature(String  InputFormat,
+                         String  Algorithm,
+                         String  OutputFormat,
+                         String  Value)
         {
 
-            this.SignatureText = SignatureText;
+            this.InputFormat   = InputFormat;
+            this.Algorithm     = Algorithm;
+            this.OutputFormat  = OutputFormat;
+            this.Value         = Value;
 
         }
 
         #endregion
 
 
-        #region Operator overloading
 
-        #region Operator == (Signature1, Signature2)
-
-        /// <summary>
-        /// Compares two signatures for equality.
-        /// </summary>
-        /// <param name="Signature1">A signature.</param>
-        /// <param name="Signature2">Another signature.</param>
-        /// <returns>True if both match; False otherwise.</returns>
-        public static Boolean operator == (Signature Signature1, Signature Signature2)
-        {
-
-            // If both are null, or both are same instance, return true.
-            if (Object.ReferenceEquals(Signature1, Signature2))
-                return true;
-
-            // If one is null, but not both, return false.
-            if (((Object) Signature1 == null) || ((Object) Signature2 == null))
-                return false;
-
-            return Signature1.Equals(Signature2);
-
-        }
-
-        #endregion
-
-        #region Operator != (Signature1, Signature2)
+        #region ToJSON(Embedded = false)
 
         /// <summary>
-        /// Compares two signatures for inequality.
+        /// Return a JSON representation of this object.
         /// </summary>
-        /// <param name="Signature1">A signature.</param>
-        /// <param name="Signature2">Another signature.</param>
-        /// <returns>False if both match; True otherwise.</returns>
-        public static Boolean operator != (Signature Signature1, Signature Signature2)
+        /// <param name="Embedded">Whether this data is embedded into another data structure.</param>
+        public JObject ToJSON(Boolean Embedded = false)
 
-            => !(Signature1 == Signature2);
+            => JSONObject.Create(
 
-        #endregion
+                   !Embedded
+                       ? new JProperty("@context",  JSONLDContext)
+                       : null,
 
-        #endregion
+                   new JProperty("inputFormat",   InputFormat),
+                   new JProperty("algorithm",     Algorithm),
+                   new JProperty("outputFormat",  OutputFormat),
+                   new JProperty("value",         Value)
 
-        #region IEquatable<Signature> Members
-
-        #region Equals(Object)
-
-        /// <summary>
-        /// Compares two instances of this object.
-        /// </summary>
-        /// <param name="Object">An object to compare with.</param>
-        /// <returns>true|false</returns>
-        public override Boolean Equals(Object Object)
-        {
-
-            if (Object == null)
-                return false;
-
-            // Check if the given object is a signature.
-            var Signature = Object as Signature;
-            if ((Object) Signature == null)
-                return false;
-
-            return this.Equals(Signature);
-
-        }
+               );
 
         #endregion
 
-        #region Equals(Signature)
-
-        /// <summary>
-        /// Compares two signatures for equality.
-        /// </summary>
-        /// <param name="Signature">A signature to compare with.</param>
-        /// <returns>True if both match; False otherwise.</returns>
-        public Boolean Equals(Signature Signature)
-        {
-
-            if ((Object) Signature == null)
-                return false;
-
-            return SignatureText.Equals(Signature.SignatureText);
-
-        }
-
-        #endregion
-
-        #endregion
-
-        #region GetHashCode()
-
-        /// <summary>
-        /// Return the HashCode of this object.
-        /// </summary>
-        /// <returns>The HashCode of this object.</returns>
-        public override Int32 GetHashCode()
-        {
-            unchecked
-            {
-
-                return SignatureText.GetHashCode();
-
-            }
-        }
-
-        #endregion
 
         #region (override) ToString()
 
@@ -170,7 +139,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public override String ToString()
 
-            => SignatureText;
+            => String.Concat(InputFormat,  ":",
+                             Algorithm,    ":",
+                             OutputFormat, ":",
+                             Value);
 
         #endregion
 

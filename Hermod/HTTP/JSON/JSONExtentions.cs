@@ -1819,6 +1819,100 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region ParseMandatory       (this JSON, PropertyName, PropertyDescription,                          out StringArray,                 out ErrorResponse)
+
+        public static Boolean ParseMandatory(this JObject             JSON,
+                                             String                   PropertyName,
+                                             String                   PropertyDescription,
+                                             out IEnumerable<String>  StringArray,
+                                             out String               ErrorResponse)
+        {
+
+            StringArray = null;
+
+            if (JSON == null)
+            {
+                ErrorResponse = "Invalid JSON provided!";
+                return false;
+            }
+
+            if (PropertyName.IsNullOrEmpty() || PropertyName.Trim().IsNullOrEmpty())
+            {
+                ErrorResponse = "Invalid JSON property name provided!";
+                return false;
+            }
+
+            if (!JSON.TryGetValue(PropertyName, out JToken JSONToken))
+            {
+                ErrorResponse = "Missing property '" + PropertyName + "'!";
+                return false;
+            }
+
+            try
+            {
+
+                if (!(JSONToken is JArray JArray))
+                {
+                    ErrorResponse = "Invalid " + PropertyDescription ?? PropertyName + "!";
+                    return false;
+                }
+
+                StringArray = JArray.SafeSelect(item => item.Value<String>()).ToArray();
+
+            }
+            catch (Exception)
+            {
+                ErrorResponse = "Invalid " + PropertyDescription ?? PropertyName + "!";
+                return false;
+            }
+
+            ErrorResponse = null;
+            return true;
+
+        }
+
+        #endregion
+
+        #region ParseMandatory       (this JSON, PropertyName, PropertyDescription, DefaultServerName,       out StringArray,    HTTPRequest, out HTTPResponse)
+
+        public static Boolean ParseMandatory(this JObject             JSON,
+                                             String                   PropertyName,
+                                             String                   PropertyDescription,
+                                             String                   DefaultServerName,
+                                             out IEnumerable<String>  StringArray,
+                                             HTTPRequest              HTTPRequest,
+                                             out HTTPResponse         HTTPResponse)
+        {
+
+            var success = JSON.ParseMandatory(PropertyName,
+                                              PropertyDescription,
+                                              out StringArray,
+                                              out String ErrorResponse);
+
+            if (ErrorResponse != null)
+            {
+
+                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
+                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                    Server          = DefaultServerName,
+                    Date            = DateTime.UtcNow,
+                    ContentType     = HTTPContentType.JSON_UTF8,
+                    Content         = JSONObject.Create(
+                                          new JProperty("description", ErrorResponse)
+                                      ).ToUTF8Bytes()
+                };
+
+                return false;
+
+            }
+
+            HTTPResponse = null;
+            return success;
+
+        }
+
+        #endregion
+
 
         // Mandatory multiple values...
 
@@ -2168,6 +2262,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
+
+
             Value = new TStruct?();
 
             if (JSON == null)
@@ -2178,6 +2274,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (JSON.TryGetValue(PropertyName, out JToken JSONToken) && JSONToken != null)
             {
+
+                var JSONValue = JSON[PropertyName];
+
+                if (JSONValue == null)
+                {
+                    ErrorResponse = null;
+                    return true;
+                }
 
                 if ((JSONToken as JObject)?.Count == 0)
                 {
@@ -2191,14 +2295,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     return true;
                 }
 
-                if (!Parser(JSONToken.ToString(), out TStruct _Value))
+                if (!Parser(JSONValue.ToString().Trim(), out TStruct TValue))
                 {
                     ErrorResponse =  "Unknown " + PropertyDescription + "!";
                     Value         = new TStruct?();
                     return false;
                 }
 
-                Value = new TStruct?(_Value);
+                Value = new TStruct?(TValue);
 
             }
 
@@ -2490,7 +2594,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (JSON == null)
             {
-                Value         = default(TEnum);
+                Value         = null;
                 ErrorResponse = "The given JSON object must not be null!";
                 return false;
             }
@@ -2503,14 +2607,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (JSONValue == null)
                 {
                     ErrorResponse  = "Unknown " + PropertyDescription + "!";
-                    Value          = default(TEnum);
+                    Value          = null;
                     return true;
                 }
 
                 if (!Enum.TryParse(JSONValue, true, out TEnum _Value))
                 {
                     ErrorResponse  = "Invalid " + PropertyDescription + "!";
-                    Value          = default(TEnum);
+                    Value          = null;
                     return true;
                 }
 
@@ -2520,7 +2624,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            Value          = default(TEnum);
+            Value          = null;
             ErrorResponse  = null;
             return false;
 

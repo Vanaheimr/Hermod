@@ -41,7 +41,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The default URI prefix.
         /// </summary>
-        protected static readonly HTTPURI DefaultURIPrefix  = HTTPURI.Parse("/");
+        protected static readonly HTTPPath DefaultURIPrefix  = HTTPPath.Parse("/");
 
         #endregion
 
@@ -50,7 +50,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The default URI prefix.
         /// </summary>
-        public HTTPURI                URIPrefix          { get; }
+        public HTTPPath                URIPrefix          { get; }
 
         /// <summary>
         /// The WebService-Security username/password.
@@ -98,12 +98,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="MaxNumberOfRetries">The default number of maximum transmission retries.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         protected ASOAPClient(String                               ClientId,
-                              String                               Hostname,
+                              HTTPHostname                         Hostname,
                               IPPort                               RemotePort,
                               RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
                               LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
-                              String                               HTTPVirtualHost              = null,
-                              HTTPURI?                             URIPrefix                    = null,
+                              HTTPHostname?                        HTTPVirtualHost              = null,
+                              HTTPPath?                             URIPrefix                    = null,
                               Tuple<String, String>                WSSLoginPassword             = null,
                               String                               UserAgent                    = DefaultHTTPUserAgent,
                               TimeSpan?                            RequestTimeout               = null,

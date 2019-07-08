@@ -52,7 +52,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         void AddMethodCallback(HTTPHostname                  Hostname,
                                HTTPMethod                    HTTPMethod,
-                               HTTPURI                       URITemplate,
+                               HTTPPath                       URITemplate,
                                HTTPContentType               HTTPContentType             = null,
                                HTTPAuthentication            URIAuthentication           = null,
                                HTTPAuthentication            HTTPMethodAuthentication    = null,
@@ -65,7 +65,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         void AddMethodCallback(HTTPHostname                  Hostname,
                                HTTPMethod                    HTTPMethod,
-                               IEnumerable<HTTPURI>          URITemplates,
+                               IEnumerable<HTTPPath>          URITemplates,
                                HTTPContentType               HTTPContentType             = null,
                                HTTPAuthentication            URIAuthentication           = null,
                                HTTPAuthentication            HTTPMethodAuthentication    = null,
@@ -78,7 +78,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         void AddMethodCallback(HTTPHostname                  Hostname,
                                HTTPMethod                    HTTPMethod,
-                               HTTPURI                       URITemplate,
+                               HTTPPath                       URITemplate,
                                IEnumerable<HTTPContentType>  HTTPContentTypes,
                                HTTPAuthentication            URIAuthentication           = null,
                                HTTPAuthentication            HTTPMethodAuthentication    = null,
@@ -91,7 +91,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         void AddMethodCallback(HTTPHostname                  Hostname,
                                HTTPMethod                    HTTPMethod,
-                               IEnumerable<HTTPURI>          URITemplates,
+                               IEnumerable<HTTPPath>          URITemplates,
                                IEnumerable<HTTPContentType>  HTTPContentTypes,
                                HTTPAuthentication            URIAuthentication           = null,
                                HTTPAuthentication            HTTPMethodAuthentication    = null,
@@ -150,7 +150,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         HTTPEventSource<THelper> AddEventSource<THelper>(HTTPEventSource_Id              EventIdentification,
-                                                         HTTPURI                         URITemplate,
+                                                         HTTPPath                         URITemplate,
 
                                                          UInt32                          MaxNumberOfCachedEvents      = 500,
                                                          Func<HTTPEvent, Boolean>        IncludeFilterAtRuntime       = null,
@@ -192,8 +192,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        void Redirect(HTTPHostname Hostname, HTTPMethod HTTPMethod, HTTPURI URITemplate, HTTPContentType HTTPContentType, HTTPURI URITarget);
-        void Redirect(HTTPMethod HTTPMethod, HTTPURI URITemplate, HTTPContentType HTTPContentType, HTTPURI URITarget);
+        void Redirect(HTTPHostname Hostname, HTTPMethod HTTPMethod, HTTPPath URITemplate, HTTPContentType HTTPContentType, HTTPPath URITarget);
+        void Redirect(HTTPMethod HTTPMethod, HTTPPath URITemplate, HTTPContentType HTTPContentType, HTTPPath URITarget);
 
         void AddFilter(HTTPFilter1Delegate Filter);
         void AddFilter(HTTPFilter2Delegate Filter);

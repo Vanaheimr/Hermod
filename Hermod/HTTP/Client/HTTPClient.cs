@@ -108,7 +108,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The Hostname to which the HTTPClient connects.
         /// </summary>
-        public String           Hostname            { get; }
+        public HTTPHostname     Hostname            { get; }
+
+        /// <summary>
+        /// The virtual hostname which the HTTPClient sends.
+        /// </summary>
+        public HTTPHostname?    VirtualHostname     { get; }
 
         /// <summary>
         /// The IP Address to connect to.
@@ -234,7 +239,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             this.RemoteIPAddress             = RemoteIPAddress;
-            this.Hostname                    = RemoteIPAddress.ToString();
+            this.Hostname                    = HTTPHostname.Parse(RemoteIPAddress.ToString());
             this.RemotePort                  = RemotePort     ?? IPPort.HTTP;
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
             this.LocalCertificateSelector    = LocalCertificateSelector;
@@ -286,6 +291,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Create a new HTTP client using the given optional parameters.
         /// </summary>
         /// <param name="RemoteHost">The remote hostname to connect to.</param>
+        /// <param name="VirtualHostname">The virtual hostname which the HTTPClient sends.</param>
         /// <param name="RemotePort">The remote HTTP port to connect to.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="LocalCertificateSelector">Selects the local certificate used for authentication.</param>
@@ -293,8 +299,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="UserAgent">The HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
-        public HTTPClient(String                               RemoteHost,
+        public HTTPClient(HTTPHostname                         RemoteHost,
                           IPPort?                              RemotePort                   = null,
+                          HTTPHostname?                        VirtualHostname              = null,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
                           LocalCertificateSelectionCallback    LocalCertificateSelector     = null,
                           X509Certificate                      ClientCert                   = null,
@@ -304,13 +311,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             this.Hostname                    = RemoteHost;
-            this.RemotePort                  = RemotePort     ?? IPPort.HTTP;
+            this.VirtualHostname             = VirtualHostname;
+            this.RemotePort                  = RemotePort      ?? IPPort.HTTP;
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
             this.LocalCertificateSelector    = LocalCertificateSelector;
             this.ClientCert                  = ClientCert;
-            this.UserAgent                   = UserAgent      ?? DefaultUserAgent;
-            this.RequestTimeout              = RequestTimeout ?? DefaultRequestTimeout;
-            this.DNSClient                   = DNSClient      ?? new DNSClient();
+            this.UserAgent                   = UserAgent       ?? DefaultUserAgent;
+            this.RequestTimeout              = RequestTimeout  ?? DefaultRequestTimeout;
+            this.DNSClient                   = DNSClient       ?? new DNSClient();
 
         }
 
@@ -329,7 +337,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A new HTTPRequest object.</returns>
         public HTTPRequest.Builder CreateRequest(HTTPMethod                   HTTPMethod,
-                                                 HTTPURI                      URI,
+                                                 HTTPPath                      URI,
                                                  Action<HTTPRequest.Builder>  BuilderAction  = null)
         {
 
@@ -337,7 +345,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //Host = Host.Substring(Math.Max(URI.IndexOf("/"), Host.Length));
 
             var Builder     = new HTTPRequest.Builder(this) {
-                Host        = Hostname,
+                Host        = VirtualHostname ?? Hostname,
                 HTTPMethod  = HTTPMethod,
                 URI         = URI
             };
@@ -476,15 +484,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (RemoteIPAddress == null)
                     {
 
-                        if (Hostname.Trim() == "127.0.0.1" || Hostname.Trim() == "localhost")
+                        if (Hostname == "127.0.0.1" || Hostname == "localhost")
                             RemoteIPAddress = IPv4Address.Localhost;
 
-                        else if (Hostname.Trim() == "::1" || Hostname.Trim() == "localhost6")
+                        else if (Hostname == "::1" || Hostname == "localhost6")
                             RemoteIPAddress = IPv6Address.Localhost;
 
                         // Hostname is an IPv4 address...
-                        else if (IPv4AddressRegExpr.IsMatch(Hostname))
-                            RemoteIPAddress = IPv4Address.Parse(Hostname);
+                        else if (IPv4AddressRegExpr.IsMatch(Hostname.Name))
+                            RemoteIPAddress = IPv4Address.Parse(Hostname.Name);
 
                         #region DNS lookup...
 
@@ -492,11 +500,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         {
 
                             var IPv4AddressLookupTask  = DNSClient.
-                                                             Query<A>(Hostname).
+                                                             Query<A>(Hostname.Name).
                                                              ContinueWith(query => query.Result.Select(ARecord    => ARecord.IPv4Address));
 
                             var IPv6AddressLookupTask  = DNSClient.
-                                                             Query<AAAA>(Hostname).
+                                                             Query<AAAA>(Hostname.Name).
                                                              ContinueWith(query => query.Result.Select(AAAARecord => AAAARecord.IPv6Address));
 
                             await Task.WhenAll(IPv4AddressLookupTask,
@@ -570,7 +578,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (RemoteCertificateValidator != null)
                 {
                     HTTPStream = TLSStream;
-                    await TLSStream.AuthenticateAsClientAsync(Hostname);//, new X509CertificateCollection(new X509Certificate[] { ClientCert }), SslProtocols.Default, true);
+                    await TLSStream.AuthenticateAsClientAsync(Hostname.Name);//, new X509CertificateCollection(new X509Certificate[] { ClientCert }), SslProtocols.Default, true);
                 }
 
                 else

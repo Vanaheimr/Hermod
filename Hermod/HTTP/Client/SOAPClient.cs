@@ -81,14 +81,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         #region Properties
 
         /// <summary>
-        /// The HTTP virtual host to use.
-        /// </summary>
-        public String   HTTPVirtualHost   { get; }
-
-        /// <summary>
         /// The URI-prefix of the HTTP/SOAP service.
         /// </summary>
-        public HTTPURI  URIPrefix         { get; }
+        public HTTPPath       URIPrefix         { get; }
 
         #endregion
 
@@ -98,7 +93,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         /// Create a new specialized HTTP client for the Simple Object Access Protocol (SOAP) v1.1.
         /// </summary>
         /// <param name="Hostname">The hostname of the remote HTTP/SOAP service.</param>
-        /// <param name="HTTPVirtualHost">The HTTP virtual host to use.</param>
+        /// <param name="VirtualHostname">The HTTP virtual host to use.</param>
         /// <param name="URIPrefix">The URI-prefix of the HTTP/SOAP service.</param>
         /// <param name="HTTPSPort">The HTTPS port of the remote HTTP/SOAP service.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
@@ -106,9 +101,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         /// <param name="UserAgent">The HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
-        public SOAPClient(String                               Hostname,
-                          String                               HTTPVirtualHost,
-                          HTTPURI                              URIPrefix,
+        public SOAPClient(HTTPHostname                         Hostname,
+                          HTTPPath                              URIPrefix,
+                          HTTPHostname?                        VirtualHostname              = null,
                           IPPort?                              HTTPSPort                    = null,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
                           LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
@@ -118,6 +113,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
 
             : base(Hostname,
                    HTTPSPort      ?? IPPort.HTTPS,
+                   VirtualHostname,
                    RemoteCertificateValidator,
                    ClientCertificateSelector,
                    null,
@@ -127,8 +123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
 
         {
 
-            this.HTTPVirtualHost  = HTTPVirtualHost;
-            this.URIPrefix        = URIPrefix.IsNotNullOrEmpty() ? URIPrefix : HTTPURI.Parse("/");
+            this.URIPrefix  = URIPrefix.IsNotNullOrEmpty() ? URIPrefix : HTTPPath.Parse("/");
 
         }
 
@@ -195,13 +190,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
 
             var _RequestBuilder = new HTTPRequest.Builder(this) {
                                       HTTPMethod         = HTTPMethod.POST,
-                                      Host               = HTTPVirtualHost,
+                                      Host               = VirtualHostname ?? Hostname,
                                       URI                = URIPrefix,
                                       Content            = QueryXML.ToUTF8Bytes(),
                                       ContentType        = ContentType ?? HTTPContentType.XMLTEXT_UTF8,
                                       UserAgent          = UserAgent,
-                                      FakeURIPrefix      = "https://" + HTTPVirtualHost
-                                  };
+                                      FakeURIPrefix      = "https://" + (VirtualHostname ?? Hostname)
+            };
 
             // Always send a Content-Length header, even when it's value is zero
             _RequestBuilder.SetContentLength(0);
@@ -347,14 +342,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         #region Properties
 
         /// <summary>
-        /// The HTTP virtual host to use.
-        /// </summary>
-        public String  HTTPVirtualHost   { get; }
-
-        /// <summary>
         /// The URI-prefix of the HTTP/SOAP service.
         /// </summary>
-        public HTTPURI URIPrefix         { get; }
+        public HTTPPath  URIPrefix   { get; }
 
         #endregion
 
@@ -365,16 +355,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         /// </summary>
         /// <param name="Hostname">The hostname of the remote HTTP/SOAP service.</param>
         /// <param name="HTTPPort">The HTTP port of the remote HTTP/SOAP service.</param>
-        /// <param name="HTTPVirtualHost">The HTTP virtual host to use.</param>
+        /// <param name="VirtualHostname">The HTTP virtual host to use.</param>
         /// <param name="URIPrefix">The URI-prefix of the HTTP/SOAP service.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="UserAgent">The HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
-        public SOAPClient(String                               Hostname,
-                          String                               HTTPVirtualHost,
-                          HTTPURI                              URIPrefix,
+        public SOAPClient(HTTPHostname                         Hostname,
+                          HTTPPath                              URIPrefix,
+                          HTTPHostname?                        VirtualHostname              = null,
                           IPPort?                              HTTPPort                     = null,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
                           LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
@@ -384,6 +374,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
 
             : base(Hostname,
                    HTTPPort       ?? IPPort.HTTP,
+                   VirtualHostname,
                    RemoteCertificateValidator,
                    ClientCertificateSelector,
                    null,
@@ -393,8 +384,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
 
         {
 
-            this.HTTPVirtualHost  = HTTPVirtualHost;
-            this.URIPrefix        = URIPrefix.IsNotNullOrEmpty() ? URIPrefix : HTTPURI.Parse("/");
+            this.URIPrefix = URIPrefix.IsNotNullOrEmpty() ? URIPrefix : HTTPPath.Parse("/");
 
         }
 
@@ -461,7 +451,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
 
             var _RequestBuilder = new HTTPRequest.Builder(this) {
                                       HTTPMethod     = HTTPMethod.POST,
-                                      Host           = HTTPVirtualHost,
+                                      Host           = VirtualHostname ?? Hostname,
                                       URI            = URIPrefix,
                                       Content        = QueryXML.ToUTF8Bytes(),
                                       ContentType    = ContentType ?? new HTTPContentType("application",
@@ -470,7 +460,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                                                                                           SOAPAction,
                                                                                           null),
                                       UserAgent      = UserAgent,
-                                      FakeURIPrefix  = "https://" + HTTPVirtualHost
+                                      FakeURIPrefix  = "https://" + (VirtualHostname ?? Hostname)
                                   };
 
             // Always send a Content-Length header, even when it's value is zero
