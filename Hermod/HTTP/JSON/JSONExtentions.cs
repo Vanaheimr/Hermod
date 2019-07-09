@@ -1112,6 +1112,89 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region ParseMandatory       (this JSON, PropertyName, PropertyDescription,                               out Decimal,                out ErrorResponse)
+
+        public static Boolean ParseMandatory(this JObject  JSON,
+                                             String        PropertyName,
+                                             String        PropertyDescription,
+                                             out Decimal   DecimalValue,
+                                             out String    ErrorResponse)
+        {
+
+            DecimalValue = default(Decimal);
+
+            if (JSON == null)
+            {
+                ErrorResponse = "Invalid JSON provided!";
+                return false;
+            }
+
+            if (PropertyName.IsNullOrEmpty() || PropertyName.Trim().IsNullOrEmpty())
+            {
+                ErrorResponse = "Invalid JSON property name provided!";
+                return false;
+            }
+
+            if (!JSON.TryGetValue(PropertyName, out JToken JSONToken))
+            {
+                ErrorResponse = "Missing JSON property '" + PropertyName + "'!";
+                return false;
+            }
+
+            if (JSONToken == null ||
+                !Decimal.TryParse(JSONToken.Value<String>(), out DecimalValue))
+            {
+                ErrorResponse = "Invalid " + PropertyDescription ?? PropertyName + "!";
+                return false;
+            }
+
+            ErrorResponse = null;
+            return true;
+
+        }
+
+        #endregion
+
+        #region ParseMandatory       (this JSON, PropertyName, PropertyDescription, DefaultServerName,            out Decimal,   HTTPRequest, out HTTPResponse)
+
+        public static Boolean ParseMandatory(this JObject      JSON,
+                                             String            PropertyName,
+                                             String            PropertyDescription,
+                                             String            DefaultServerName,
+                                             out Decimal       DecimalValue,
+                                             HTTPRequest       HTTPRequest,
+                                             out HTTPResponse  HTTPResponse)
+        {
+
+            var success = JSON.ParseMandatory(PropertyName,
+                                              PropertyDescription,
+                                              out DecimalValue,
+                                              out String ErrorResponse);
+
+            if (ErrorResponse != null)
+            {
+
+                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
+                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                    Server          = DefaultServerName,
+                    Date            = DateTime.UtcNow,
+                    ContentType     = HTTPContentType.JSON_UTF8,
+                    Content         = JSONObject.Create(
+                                          new JProperty("description", ErrorResponse)
+                                      ).ToUTF8Bytes()
+                };
+
+                return false;
+
+            }
+
+            HTTPResponse = null;
+            return success;
+
+        }
+
+        #endregion
+
         #region ParseMandatory       (this JSON, PropertyName, PropertyDescription,                               out Byte,                   out ErrorResponse)
 
         public static Boolean ParseMandatory(this JObject  JSON,
