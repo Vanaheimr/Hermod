@@ -976,7 +976,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
             if (JSONToken == null ||
-                !Single.TryParse(JSONToken.Value<String>(), out SingleValue))
+                !Single.TryParse(JSONToken.Value<String>(), NumberStyles.Any, CultureInfo.InvariantCulture, out SingleValue))
             {
                 ErrorResponse = "Invalid " + PropertyDescription ?? PropertyName + "!";
                 return false;
@@ -1059,7 +1059,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
             if (JSONToken == null ||
-                !Double.TryParse(JSONToken.Value<String>(), out DoubleValue))
+                !Double.TryParse(JSONToken.Value<String>(), NumberStyles.Any, CultureInfo.InvariantCulture, out DoubleValue))
             {
                 ErrorResponse = "Invalid " + PropertyDescription ?? PropertyName + "!";
                 return false;
