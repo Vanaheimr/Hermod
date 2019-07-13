@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2018, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2019, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,12 +18,9 @@
 #region Usings
 
 using System;
-using System.Xml.Linq;
 using System.Net.Security;
-using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
@@ -43,17 +40,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The default HTTP user agent.
         /// </summary>
-        public const           String    DefaultHTTPUserAgent        = "GraphDefined HTTP Client";
+        public const           String    DefaultHTTPUserAgent            = "GraphDefined HTTP Client";
 
         /// <summary>
         /// The default timeout for upstream queries.
         /// </summary>
-        public static readonly TimeSpan  DefaultRequestTimeout       = TimeSpan.FromSeconds(180);
+        public static readonly TimeSpan  DefaultRequestTimeout           = TimeSpan.FromSeconds(180);
+
+        /// <summary>
+        /// The default delay between transmission retries.
+        /// </summary>
+        public static readonly TimeSpan  DefaultTransmissionRetryDelay   = TimeSpan.FromSeconds(20);
 
         /// <summary>
         /// The default number of maximum transmission retries.
         /// </summary>
-        public const           Byte      DefaultMaxNumberOfRetries   = 3;
+        public const           Byte      DefaultMaxNumberOfRetries       = 3;
 
         #endregion
 
@@ -62,33 +64,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// A unqiue identification of this client.
         /// </summary>
-        public String            ClientId                { get; }
+        public String            ClientId                 { get; }
 
-        public HTTPHostname      Hostname                { get; }
+        /// <summary>
+        /// The HTTP hostname to connect to.
+        /// </summary>
+        public HTTPHostname      Hostname                 { get; }
 
         /// <summary>
         /// The remote TCP port to connect to.
         /// </summary>
-        public IPPort            RemotePort              { get; }
+        public IPPort            RemotePort               { get; }
 
-        public HTTPHostname?     VirtualHostname         { get; }
+        /// <summary>
+        /// The virtual HTTP hostname to connect to.
+        /// </summary>
+        public HTTPHostname?     VirtualHostname          { get; }
 
-        public String            UserAgent               { get; }
+        /// <summary>
+        /// The HTTO user agent to use.
+        /// </summary>
+        public String            UserAgent                { get; }
 
         /// <summary>
         /// The timeout for upstream requests.
         /// </summary>
-        public TimeSpan?         RequestTimeout          { get; }
+        public TimeSpan?         RequestTimeout           { get; }
+
+        /// <summary>
+        /// The delay between transmission retries.
+        /// </summary>
+        public TimeSpan?         TransmissionRetryDelay   { get; }
 
         /// <summary>
         /// The maximum number of retries when communicationg with the remote OICP service.
         /// </summary>
-        public Byte?             MaxNumberOfRetries      { get; }
+        public Byte?             MaxNumberOfRetries       { get; }
 
         /// <summary>
         /// The DNS client defines which DNS servers to use.
         /// </summary>
-        public DNSClient         DNSClient               { get; }
+        public DNSClient         DNSClient                { get; }
 
         //   public X509Certificate2  ServerCert              { get; }
 
@@ -139,6 +155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="HTTPVirtualHost">An optional HTTP virtual host name to use.</param>
         /// <param name="UserAgent">An optional HTTP user agent to use.</param>
+        /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
         /// <param name="RequestTimeout">An optional timeout for HTTP requests.</param>
         /// <param name="MaxNumberOfRetries">The default number of maximum transmission retries.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
@@ -150,6 +167,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                            HTTPHostname?                        HTTPVirtualHost             = null,
                            String                               UserAgent                   = DefaultHTTPUserAgent,
                            TimeSpan?                            RequestTimeout              = null,
+                           TimeSpan?                            TransmissionRetryDelay      = null,
                            Byte?                                MaxNumberOfRetries          = DefaultMaxNumberOfRetries,
                            DNSClient                            DNSClient                   = null)
         {
@@ -163,17 +181,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             this.ClientId                    = ClientId;
             this.Hostname                    = Hostname;
-            this.RemotePort                  = HTTPPort           ?? IPPort.HTTP;
+            this.RemotePort                  = HTTPPort               ?? IPPort.HTTP;
 
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
             this.ClientCertificateSelector   = ClientCertificateSelector;
 
-            this.VirtualHostname             = HTTPVirtualHost    ?? Hostname;
+            this.VirtualHostname             = HTTPVirtualHost        ?? Hostname;
 
             this.UserAgent                   = UserAgent.WhenNullOrEmpty(DefaultHTTPUserAgent);
-            this.RequestTimeout              = RequestTimeout     ?? DefaultRequestTimeout;
-            this.MaxNumberOfRetries          = MaxNumberOfRetries ?? DefaultMaxNumberOfRetries;
-            this.DNSClient                   = DNSClient          ?? new DNSClient();
+            this.RequestTimeout              = RequestTimeout         ?? DefaultRequestTimeout;
+            this.TransmissionRetryDelay      = TransmissionRetryDelay ?? DefaultTransmissionRetryDelay;
+            this.MaxNumberOfRetries          = MaxNumberOfRetries     ?? DefaultMaxNumberOfRetries;
+            this.DNSClient                   = DNSClient              ?? new DNSClient();
 
         }
 

@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2018, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2019, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -68,6 +68,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="HTTPVirtualHost">An optional HTTP virtual host name to use.</param>
         /// <param name="UserAgent">An optional HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional timeout for upstream queries.</param>
+        /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
         /// <param name="MaxNumberOfRetries">The default number of maximum transmission retries.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public AJSONClient(String                               ClientId,
@@ -78,6 +79,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                            HTTPHostname?                        HTTPVirtualHost              = null,
                            String                               UserAgent                    = DefaultHTTPUserAgent,
                            TimeSpan?                            RequestTimeout               = null,
+                           TimeSpan?                            TransmissionRetryDelay       = null,
                            Byte?                                MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
                            DNSClient                            DNSClient                    = null)
 
@@ -89,6 +91,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                    HTTPVirtualHost,
                    UserAgent,
                    RequestTimeout,
+                   TransmissionRetryDelay,
                    MaxNumberOfRetries,
                    DNSClient)
 

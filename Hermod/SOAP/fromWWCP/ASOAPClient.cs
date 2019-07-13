@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2018, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2019, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -50,7 +50,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The default URI prefix.
         /// </summary>
-        public HTTPPath                URIPrefix          { get; }
+        public HTTPPath               URIPrefix          { get; }
 
         /// <summary>
         /// The WebService-Security username/password.
@@ -95,6 +95,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="WSSLoginPassword">The WebService-Security username/password.</param>
         /// <param name="UserAgent">An optional HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional timeout for upstream queries.</param>
+        /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
         /// <param name="MaxNumberOfRetries">The default number of maximum transmission retries.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         protected ASOAPClient(String                               ClientId,
@@ -103,10 +104,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                               RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
                               LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
                               HTTPHostname?                        HTTPVirtualHost              = null,
-                              HTTPPath?                             URIPrefix                    = null,
+                              HTTPPath?                            URIPrefix                    = null,
                               Tuple<String, String>                WSSLoginPassword             = null,
                               String                               UserAgent                    = DefaultHTTPUserAgent,
                               TimeSpan?                            RequestTimeout               = null,
+                              TimeSpan?                            TransmissionRetryDelay       = null,
                               Byte?                                MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
                               DNSClient                            DNSClient                    = null)
 
@@ -118,6 +120,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                    HTTPVirtualHost,
                    UserAgent,
                    RequestTimeout,
+                   TransmissionRetryDelay,
                    MaxNumberOfRetries,
                    DNSClient)
 
