@@ -21,6 +21,7 @@ using System;
 using System.Web;
 using System.Linq;
 using System.Text;
+using System.Globalization;
 using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -774,7 +775,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region GetSingle(ParameterName)
+        #region GetSingle (ParameterName)
 
         public Single? GetSingle(String  ParameterName)
         {
@@ -782,7 +783,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
                 Values       != null                                            &&
                 Values.Count  > 0                                               &&
-                Single.TryParse(Values.LastOrDefault(), out Single Number))
+                Single.TryParse(Values.LastOrDefault(), NumberStyles.Any, CultureInfo.InvariantCulture, out Single Number))
             {
                 return Number;
             }
@@ -793,7 +794,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region GetSingle(ParameterName, DefaultValue)
+        #region GetSingle (ParameterName, DefaultValue)
 
         public Single GetSingle(String  ParameterName,
                                 Single  DefaultValue)
@@ -802,7 +803,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
                 Values       != null                                            &&
                 Values.Count  > 0                                               &&
-                Single.TryParse(Values.Last(), out Single Number))
+                Single.TryParse(Values.Last(), NumberStyles.Any, CultureInfo.InvariantCulture, out Single Number))
             {
                 return Number;
             }
@@ -813,7 +814,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region GetDouble(ParameterName)
+        #region GetDouble (ParameterName)
 
         public Double? GetDouble(String  ParameterName)
         {
@@ -821,7 +822,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
                 Values       != null                                            &&
                 Values.Count  > 0                                               &&
-                Double.TryParse(Values.LastOrDefault(), out Double Number))
+                Double.TryParse(Values.LastOrDefault(), NumberStyles.Any, CultureInfo.InvariantCulture, out Double Number))
             {
                 return Number;
             }
@@ -832,7 +833,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region GetDouble(ParameterName, DefaultValue)
+        #region GetDouble (ParameterName, DefaultValue)
 
         public Double GetDouble(String  ParameterName,
                                 Double  DefaultValue)
@@ -841,7 +842,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
                 Values       != null                                            &&
                 Values.Count  > 0                                               &&
-                Double.TryParse(Values.Last(), out Double Number))
+                Double.TryParse(Values.Last(), NumberStyles.Any, CultureInfo.InvariantCulture, out Double Number))
+            {
+                return Number;
+            }
+
+            return DefaultValue;
+
+        }
+
+        #endregion
+
+        #region GetDecimal(ParameterName)
+
+        public Decimal? GetDecimal(String  ParameterName)
+        {
+
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values       != null                                            &&
+                Values.Count  > 0                                               &&
+                Decimal.TryParse(Values.LastOrDefault(), NumberStyles.Any, CultureInfo.InvariantCulture, out Decimal Number))
+            {
+                return Number;
+            }
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region GetDecimal(ParameterName, DefaultValue)
+
+        public Decimal GetDecimal(String   ParameterName,
+                                  Decimal  DefaultValue)
+        {
+
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values       != null                                            &&
+                Values.Count  > 0                                               &&
+                Decimal.TryParse(Values.Last(), NumberStyles.Any, CultureInfo.InvariantCulture, out Decimal Number))
             {
                 return Number;
             }
