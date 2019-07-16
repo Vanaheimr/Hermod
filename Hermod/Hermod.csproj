@@ -89,13 +89,13 @@
     <Compile Include="HTTP\General\HTTPPath.cs" />
     <Compile Include="HTTP\General\HTTPVersion.cs" />
     <Compile Include="HTTP\HTTPHeaderField.cs" />
+    <Compile Include="HTTP\JSON\JSONExtentions.cs" />
     <Compile Include="HTTP\Logging\HTTPClientLogger.cs" />
     <Compile Include="HTTP\Logging\HTTPServerLogger.cs" />
     <Compile Include="HTTP\Request\APIKey.cs" />
     <Compile Include="HTTP\Request\HTTPBearerAuthentication.cs" />
     <Compile Include="HTTP\Request\IHTTPAuthentication.cs" />
     <Compile Include="HTTP\Server\IHTTPServer.cs" />
-    <Compile Include="HTTP\JSON\JSONExtentions.cs" />
     <Compile Include="HTTP\Logging\HTTPLoggerExtentions.cs" />
     <Compile Include="HTTP\Logging\AHTTPLogger.cs" />
     <Compile Include="HTTP\Logging\LogTargets.cs" />
@@ -255,6 +255,7 @@
       <Name>Styx</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

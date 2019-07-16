@@ -403,8 +403,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                 if (IgnoreContext)
                 {
 
-                    if (JSONObject.ParseOptional2("@context",
-                                                   out String Context1))
+                    if (JSONObject.ParseOptional("@context",
+                                                 out String Context1,
+                                                 out ErrorResponse))
                     {
                         if (Context1 != JSONLDContext)
                         {
