@@ -942,7 +942,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseOptionalStruct<TStruct?>(this JSON, PropertyName, PropertyDescription, DefaultServerName, Parser, out Value, HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseOptionalStruct<TStruct>(this JObject        JSON,
+        public static Boolean ParseOptionalStruct2<TStruct>(this JObject        JSON,
                                                            String              PropertyName,
                                                            String              PropertyDescription,
                                                            String              DefaultServerName,
