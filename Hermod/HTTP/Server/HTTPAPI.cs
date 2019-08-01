@@ -930,11 +930,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public  const              String   DefaultLogfileName      = "HTTPAPI.log";
 
-        /// <summary>
-        /// JSON whitespace regular expression...
-        /// </summary>
-        public static readonly     Regex    JSONWhitespaceRegEx     = new Regex(@"(\s)+", RegexOptions.IgnorePatternWhitespace);
-
         #endregion
 
         #region Properties
