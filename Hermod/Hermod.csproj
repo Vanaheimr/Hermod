@@ -54,6 +54,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CounterValues.cs" />
     <Compile Include="DNS\IPTransport.cs" />
     <Compile Include="Entities\ADistributedEntities.cs" />
     <Compile Include="GlobalSuppressions.cs" />
