@@ -116,11 +116,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var Charset               = Array.Find(SplittedAcceptString, part => part.StartsWith("charset=", StringComparison.OrdinalIgnoreCase));
             var Quality               = Array.Find(SplittedAcceptString, part => part.StartsWith("q=",       StringComparison.OrdinalIgnoreCase));
 
-            this.ContentType          = HTTPContentType.ForMediaType(AcceptString, () => new HTTPContentType(MediaTypes[0],
-                                                                                                             MediaTypes[1],
-                                                                                                             Charset.IsNotNullOrEmpty() ? Charset.Substring(8) : null,
-                                                                                                             null,
-                                                                                                             null));
+            if (MediaTypes.Length == 1)
+            {
+                this.ContentType          = HTTPContentType.ALL;
+            }
+            else if(MediaTypes.Length == 2)
+            {
+                this.ContentType          = HTTPContentType.ForMediaType(AcceptString, () => new HTTPContentType(MediaTypes[0],
+                                                                                                                 MediaTypes[1],
+                                                                                                                 Charset.IsNotNullOrEmpty() ? Charset.Substring(8) : null,
+                                                                                                                 null,
+                                                                                                                 null));
+            }
 
             this.Quality              = Quality.IsNotNullOrEmpty() ? Double.Parse(Quality.Substring(2), CultureInfo.InvariantCulture) : 1.0;
 

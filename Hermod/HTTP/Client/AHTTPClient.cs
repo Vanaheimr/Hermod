@@ -56,7 +56,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The default delay between transmission retries.
         /// </summary>
-        public static readonly TimeSpan  DefaultTransmissionRetryDelay   = TimeSpan.FromSeconds(20);
+        public static readonly TimeSpan  DefaultTransmissionRetryDelay   = TimeSpan.FromSeconds(2);
 
         /// <summary>
         /// The default number of maximum transmission retries.
@@ -196,7 +196,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.UserAgent                   = UserAgent.WhenNullOrEmpty(DefaultHTTPUserAgent);
             this.RequestTimeout              = RequestTimeout         ?? DefaultRequestTimeout;
-            this.TransmissionRetryDelay      = TransmissionRetryDelay ?? (retryCounter => DefaultTransmissionRetryDelay);
+            this.TransmissionRetryDelay      = TransmissionRetryDelay ?? (retryCounter => TimeSpan.FromSeconds(retryCounter * retryCounter * DefaultTransmissionRetryDelay.TotalSeconds));
             this.MaxNumberOfRetries          = MaxNumberOfRetries     ?? DefaultMaxNumberOfRetries;
             this.DNSClient                   = DNSClient              ?? new DNSClient();
 
