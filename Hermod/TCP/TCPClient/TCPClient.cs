@@ -80,108 +80,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region Properties
 
-        #region RemoteHost
+        public String RemoteHost { get; }
 
-        private String _RemoteHost;
+        public String ServiceName { get; }
 
-        public String RemoteHost
-        {
-            get
-            {
-                return _RemoteHost;
-            }
-        }
-
-        #endregion
-
-        #region ServiceName
-
-        private String _ServiceName;
-
-        public String ServiceName
-        {
-            get
-            {
-                return _ServiceName;
-            }
-        }
-
-        #endregion
-
-        #region RemotePort
-
-        private IPPort _RemotePort;
-
-        public IPPort RemotePort
-        {
-            get
-            {
-                return _RemotePort;
-            }
-        }
-
-        #endregion
+        public IPPort RemotePort { get; }
 
 
-        #region UseIPv4
+        public Boolean UseIPv4 { get; }
 
-        private readonly Boolean _UseIPv4;
+        public Boolean UseIPv6 { get; }
 
-        public Boolean UseIPv4
-        {
-            get
-            {
-                return _UseIPv4;
-            }
-        }
+        public Boolean PreferIPv6 { get; }
 
-        #endregion
-
-        #region UseIPv6
-
-        private readonly Boolean _UseIPv6;
-
-        public Boolean UseIPv6
-        {
-            get
-            {
-                return _UseIPv6;
-            }
-        }
-
-        #endregion
-
-        #region PreferIPv6
-
-        private readonly Boolean _PreferIPv6;
-
-        public Boolean PreferIPv6
-        {
-            get
-            {
-                return _PreferIPv6;
-            }
-        }
-
-        #endregion
-
-        #region UseTLS
-
-        private TLSUsage _UseTLS;
-
-        public TLSUsage UseTLS
-        {
-            get
-            {
-                return _UseTLS;
-            }
-        }
-
-        #endregion
+        public TLSUsage UseTLS { get; }
 
         #region ConnectionTimeout
 
-        public TimeSpan _ConnectionTimeout;
+        private TimeSpan _ConnectionTimeout;
 
         public TimeSpan ConnectionTimeout
         {
@@ -218,82 +134,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
-        #region CancellationToken
-
         public CancellationToken? CancellationToken { get; private set; }
 
-        #endregion
+        public Socket TCPSocket { get; private set; }
 
+        public Stream Stream { get; private set; }
 
-        #region TCPSocket
+        public NetworkStream TCPStream { get; private set; }
 
-        private Socket _TCPSocket;
+        public SslStream TLSStream { get; private set; }
 
-        public Socket TCPSocket
-        {
-            get
-            {
-                return _TCPSocket;
-            }
-        }
-
-        #endregion
-
-        #region Stream
-
-        private Stream _Stream;
-
-        public Stream Stream
-        {
-            get
-            {
-                return _Stream;
-            }
-        }
-
-        #endregion
-
-        #region TCPStream
-
-        private NetworkStream _TCPStream;
-
-        public NetworkStream TCPStream
-        {
-            get
-            {
-                return _TCPStream;
-            }
-        }
-
-        #endregion
-
-        #region TLSStream
-
-        private SslStream _TLSStream;
-
-        public SslStream TLSStream
-        {
-            get
-            {
-                return _TLSStream;
-            }
-        }
-
-        #endregion
-
-        #region TLSClientCertificates
-
-        private readonly X509CertificateCollection _TLSClientCertificates;
-
-        public X509CertificateCollection TLSClientCertificates
-        {
-            get
-            {
-                return _TLSClientCertificates;
-            }
-        }
-
-        #endregion
+        public X509CertificateCollection TLSClientCertificates { get; }
 
         #endregion
 
@@ -343,20 +194,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                          Boolean    AutoConnect        = false)
         {
 
-            this._RemoteHost         = DNSName;
-            this._ServiceName        = ServiceName;
-            this._UseIPv4            = UseIPv4;
-            this._UseIPv6            = UseIPv6;
-            this._PreferIPv6         = PreferIPv6;
-
-            this._ConnectionTimeout  = (ConnectionTimeout.HasValue)
-                                           ? ConnectionTimeout.Value
-                                           : TimeSpan.FromSeconds(60);
-
-            this._DNSClient          = (DNSClient != null)
-                                           ? DNSClient
-                                           : new DNSClient(SearchForIPv4DNSServers: _UseIPv4,
-                                                           SearchForIPv6DNSServers: _UseIPv6);
+            this.RemoteHost         = DNSName;
+            this.ServiceName        = ServiceName;
+            this.UseIPv4            = UseIPv4;
+            this.UseIPv6            = UseIPv6;
+            this.PreferIPv6         = PreferIPv6;
+            this._ConnectionTimeout  = ConnectionTimeout ?? TimeSpan.FromSeconds(60);
+            this._DNSClient          = DNSClient         ?? new DNSClient(SearchForIPv4DNSServers: this.UseIPv4,
+                                                                          SearchForIPv6DNSServers: this.UseIPv6);
 
             if (AutoConnect)
                 Connect();
@@ -396,24 +241,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         {
 
-            this._RemoteHost                = RemoteHost;
-            this._RemotePort                = RemotePort;
+            this.RemoteHost                = RemoteHost;
+            this.RemotePort                = RemotePort;
             this.CancellationToken          = CancellationToken != null ? CancellationToken : new CancellationToken();
-            this._UseIPv4                   = UseIPv4;
-            this._UseIPv6                   = UseIPv6;
-            this._PreferIPv6                = PreferIPv6;
-            this._UseTLS                    = UseTLS;
-            this.ValidateServerCertificate  = ValidateServerCertificate != null
-                                                  ? ValidateServerCertificate
-                                                  : (TCPClient, Certificate, CertificateChain, PolicyErrors) => false;
-
-            this._ConnectionTimeout         = (ConnectionTimeout.HasValue)
-                                                  ? ConnectionTimeout.Value
-                                                  : TimeSpan.FromSeconds(60);
-
-            this._DNSClient                 = (DNSClient == null)
-                                                  ? new DNSClient(SearchForIPv6DNSServers: true)
-                                                  : DNSClient;
+            this.UseIPv4                   = UseIPv4;
+            this.UseIPv6                   = UseIPv6;
+            this.PreferIPv6                = PreferIPv6;
+            this.UseTLS                    = UseTLS;
+            this.ValidateServerCertificate  = ValidateServerCertificate ?? ((TCPClient, Certificate, CertificateChain, PolicyErrors) => false);
+            this._ConnectionTimeout         = ConnectionTimeout         ?? TimeSpan.FromSeconds(60);
+            this._DNSClient                 = DNSClient                 ?? new DNSClient(SearchForIPv6DNSServers: true);
 
             if (AutoConnect)
                 Connect();
@@ -493,10 +330,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             try
             {
 
-                if (_TCPStream != null)
+                if (TCPStream != null)
                 {
-                    _TCPStream.Close();
-                    _TCPStream = null;
+                    TCPStream.Close();
+                    TCPStream = null;
                 }
 
             }
@@ -506,25 +343,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             try
             {
 
-                if (_TLSStream != null)
+                if (TLSStream != null)
                 {
-                    _TLSStream.Close();
-                    _TLSStream = null;
+                    TLSStream.Close();
+                    TLSStream = null;
                 }
 
             }
             catch (Exception)
             { }
 
-            _Stream = null;
+            Stream = null;
 
             try
             {
 
-                if (_TCPSocket != null)
+                if (TCPSocket != null)
                 {
-                    _TCPSocket.Close();
-                    _TCPSocket = null;
+                    TCPSocket.Close();
+                    TCPSocket = null;
                 }
 
             }
@@ -536,9 +373,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             try
             {
 
-                _TCPSocket = CreateAndConnectTCPSocket(CurrentIPSocket.IPAddress, CurrentIPSocket.Port);
-                _TCPStream = new NetworkStream(_TCPSocket, true);
-                _Stream    = _TCPStream;
+                TCPSocket = CreateAndConnectTCPSocket(CurrentIPSocket.IPAddress, CurrentIPSocket.Port);
+                TCPStream = new NetworkStream(TCPSocket, true);
+                Stream    = TCPStream;
 
                 if (UseTLS == TLSUsage.TLSSocket)
                     EnableTLS();
@@ -546,16 +383,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             }
             catch (Exception e)
             {
-                _Stream     = null;
-                _TCPStream  = null;
-                _TLSStream  = null;
-                _TCPSocket  = null;
+                Stream     = null;
+                TCPStream  = null;
+                TLSStream  = null;
+                TCPSocket  = null;
                 return false;
             }
 
-            var ConnectedLocal = Connected;
-            if (ConnectedLocal != null)
-                ConnectedLocal(this, RemoteHost, CurrentIPSocket);
+            Connected?.Invoke(this, RemoteHost, CurrentIPSocket);
 
             return true;
 
@@ -615,9 +450,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             try
             {
-               _TLSStream  = new SslStream(Stream, false, _ValidateRemoteCertificate);
-               _TLSStream.AuthenticateAsClient(RemoteHost, TLSClientCertificates, DefaultSslProtocols, true);
-               _Stream     = _TLSStream;
+               TLSStream  = new SslStream(Stream, false, _ValidateRemoteCertificate);
+               TLSStream.AuthenticateAsClient(RemoteHost, TLSClientCertificates, DefaultSslProtocols, true);
+               Stream     = TLSStream;
             }
 
             catch (Exception e)
