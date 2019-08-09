@@ -46,6 +46,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Properties
 
         /// <summary>
+        /// Indicates whether this identification is null or empty.
+        /// </summary>
+        public Boolean IsNullOrEmpty
+            => InternalName.IsNullOrEmpty();
+
+        /// <summary>
         /// The length of the HTTP cookie name.
         /// </summary>
         public UInt64 Length

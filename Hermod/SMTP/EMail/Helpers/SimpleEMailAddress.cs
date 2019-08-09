@@ -58,6 +58,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public String  Domain   { get; }
 
         /// <summary>
+        /// Indicates whether this e-mail address is null or empty.
+        /// </summary>
+        public Boolean IsNullOrEmpty
+            => User.IsNullOrEmpty() || Domain.IsNullOrEmpty();
+
+        /// <summary>
+        /// The length of the tag identification.
+        /// </summary>
+        public UInt64 Length
+            => (UInt64) (User.Length + 1 + Domain.Length);
+
+        /// <summary>
         /// The string value of a simple e-mail address.
         /// </summary>
         public String  Value
