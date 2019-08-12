@@ -653,9 +653,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         private static Task FileWasChanged(IHTTPServer source, HTTPEventSource_Id HTTPSSE_EventIdentification, String ChangeType, String FileName)
 
             => source.
-                      Get(HTTPSSE_EventIdentification).
-                      SubmitSubEvent(ChangeType,
-                                     @"{ ""timestamp"": """ + DateTime.UtcNow.ToIso8601() +  @""", ""filename"": """ + FileName + @""" }");
+                   Get<String>(HTTPSSE_EventIdentification).
+                   SubmitEvent(ChangeType,
+                               @"{ ""timestamp"": """ + DateTime.UtcNow.ToIso8601() +  @""", ""filename"": """ + FileName + @""" }");
 
         private static void FileWasRenamed(object source, RenamedEventArgs e)
         {

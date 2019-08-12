@@ -19,8 +19,6 @@
 #region Usings
 
 using System;
-using System.Linq;
-using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -32,9 +30,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A single HTTP event.
     /// </summary>
-    public class HTTPEvent : IEquatable<HTTPEvent>,
-                             IComparable<HTTPEvent>,
-                             IComparable
+    public class HTTPEvent<T> : IEquatable<HTTPEvent<T>>,
+                                IComparable<HTTPEvent<T>>,
+                                IComparable
     {
 
         #region Properties
@@ -42,52 +40,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The identification of the event.
         /// </summary>
-        public UInt64               Id           { get; }
+        public UInt64    Id                { get; }
 
         /// <summary>
         /// The subevent identification of the event.
         /// </summary>
-        public String               Subevent     { get; }
+        public String    Subevent          { get; }
 
         /// <summary>
         /// The timestamp of the event.
         /// </summary>
-        public DateTime             Timestamp    { get; }
+        public DateTime  Timestamp         { get; }
 
         /// <summary>
         /// The attached data of the event.
         /// </summary>
-        public IEnumerable<String>  Data         { get; }
+        public T         Data              { get; }
 
-
-        public Object               Helper       { get; }
+        /// <summary>
+        /// A text-representation of the attached data of the event.
+        /// </summary>
+        public String    SerializedData    { get; }
 
         #endregion
 
         #region Constructor(s)
 
-        #region HTTPEvent(Id, Helper, Data)
+        #region HTTPEvent(Id,                      Data, SerializedData)
 
         /// <summary>
         /// Create a new HTTP event based on the given parameters.
         /// </summary>
         /// <param name="Id">The id of the event.</param>
         /// <param name="Data">The attached data of the event.</param>
-        public HTTPEvent(UInt64           Id,
-                         Object           Helper,
-                         params String[]  Data)
+        /// <param name="SerializedData">A text-representation of the attached data of the event.</param>
+        public HTTPEvent(UInt64  Id,
+                         T       Data,
+                         String  SerializedData)
 
             : this(Id,
                    DateTime.UtcNow,
                    String.Empty,
-                   Helper,
-                   Data)
+                   Data,
+                   SerializedData)
 
         { }
 
         #endregion
 
-        #region HTTPEvent(Id, Timestamp, Helper, Data)
+        #region HTTPEvent(Id, Timestamp,           Data, SerializedData)
 
         /// <summary>
         /// Create a new HTTP event based on the given parameters.
@@ -95,22 +96,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Id">The id of the event.</param>
         /// <param name="Timestamp">The timestamp of the event.</param>
         /// <param name="Data">The attached data of the event.</param>
-        public HTTPEvent(UInt64           Id,
-                         DateTime         Timestamp,
-                         Object           Helper,
-                         params String[]  Data)
+        /// <param name="SerializedData">A text-representation of the attached data of the event.</param>
+        public HTTPEvent(UInt64    Id,
+                         DateTime  Timestamp,
+                         T         Data,
+                         String    SerializedData)
 
             : this(Id,
                    Timestamp,
                    String.Empty,
-                   Helper,
-                   Data)
+                   Data,
+                   SerializedData)
 
         { }
 
         #endregion
 
-        #region HTTPEvent(Id, Subevent, Helper, Data)
+        #region HTTPEvent(Id,            Subevent, Data, SerializedData)
 
         /// <summary>
         /// Create a new HTTP event based on the given parameters.
@@ -118,22 +120,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Id">The id of the event.</param>
         /// <param name="Subevent">The subevent.</param>
         /// <param name="Data">The attached data of the event.</param>
-        public HTTPEvent(UInt64           Id,
-                         String           Subevent,
-                         Object           Helper,
-                         params String[]  Data)
+        /// <param name="SerializedData">A text-representation of the attached data of the event.</param>
+        public HTTPEvent(UInt64  Id,
+                         String  Subevent,
+                         T       Data,
+                         String  SerializedData)
 
             : this(Id,
                    DateTime.UtcNow,
                    Subevent,
-                   Helper,
-                   Data)
+                   Data,
+                   SerializedData)
 
         { }
 
         #endregion
 
-        #region HTTPEvent(Id, Timestamp, Subevent, Helper, Data)
+        #region HTTPEvent(Id, Timestamp, Subevent, Data, SerializedData)
 
         /// <summary>
         /// Create a new HTTP event based on the given parameters.
@@ -142,18 +145,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the event.</param>
         /// <param name="Subevent">The subevent.</param>
         /// <param name="Data">The attached data of the event.</param>
-        public HTTPEvent(UInt64           Id,
-                         DateTime         Timestamp,
-                         String           Subevent,
-                         Object           Helper,
-                         params String[]  Data)
+        /// <param name="SerializedData">A text-representation of the attached data of the event.</param>
+        public HTTPEvent(UInt64    Id,
+                         DateTime  Timestamp,
+                         String    Subevent,
+                         T         Data,
+                         String    SerializedData)
         {
 
-            this.Id         = Id;
-            this.Timestamp  = Timestamp;
-            this.Subevent   = Subevent?.Trim() ?? "";
-            this.Helper     = Helper;
-            this.Data       = Data             ?? new String[0];
+            this.Id              = Id;
+            this.Timestamp       = Timestamp;
+            this.Subevent        = Subevent?.Trim() ?? "";
+            this.Data            = Data;
+            this.SerializedData  = SerializedData;
 
         }
 
@@ -161,6 +165,114 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+
+        #region Operator overloading
+
+        #region Operator == (HTTPEvent1, HTTPEvent2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPEvent1">A HTTP event.</param>
+        /// <param name="HTTPEvent2">Another HTTP event.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator == (HTTPEvent<T> HTTPEvent1, HTTPEvent<T> HTTPEvent2)
+        {
+
+            // If both are null, or both are same instance, return true.
+            if (Object.ReferenceEquals(HTTPEvent1, HTTPEvent2))
+                return true;
+
+            // If one is null, but not both, return false.
+            if (((Object) HTTPEvent1 == null) || ((Object) HTTPEvent2 == null))
+                return false;
+
+            return HTTPEvent1.Equals(HTTPEvent2);
+
+        }
+
+        #endregion
+
+        #region Operator != (HTTPEvent1, HTTPEvent2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPEvent1">A HTTP event.</param>
+        /// <param name="HTTPEvent2">Another HTTP event.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator != (HTTPEvent<T> HTTPEvent1, HTTPEvent<T> HTTPEvent2)
+            => !(HTTPEvent1 == HTTPEvent2);
+
+        #endregion
+
+        #region Operator <  (HTTPEvent1, HTTPEvent2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPEvent1">A HTTP event.</param>
+        /// <param name="HTTPEvent2">Another HTTP event.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator < (HTTPEvent<T> HTTPEvent1, HTTPEvent<T> HTTPEvent2)
+        {
+
+            if ((Object) HTTPEvent1 == null)
+                throw new ArgumentNullException(nameof(HTTPEvent1), "The given HTTPEvent1 must not be null!");
+
+            return HTTPEvent1.CompareTo(HTTPEvent2) < 0;
+
+        }
+
+        #endregion
+
+        #region Operator <= (HTTPEvent1, HTTPEvent2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPEvent1">A HTTP event.</param>
+        /// <param name="HTTPEvent2">Another HTTP event.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator <= (HTTPEvent<T> HTTPEvent1, HTTPEvent<T> HTTPEvent2)
+            => !(HTTPEvent1 > HTTPEvent2);
+
+        #endregion
+
+        #region Operator >  (HTTPEvent1, HTTPEvent2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPEvent1">A HTTP event.</param>
+        /// <param name="HTTPEvent2">Another HTTP event.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator > (HTTPEvent<T> HTTPEvent1, HTTPEvent<T> HTTPEvent2)
+        {
+
+            if ((Object) HTTPEvent1 == null)
+                throw new ArgumentNullException(nameof(HTTPEvent1), "The given HTTPEvent1 must not be null!");
+
+            return HTTPEvent1.CompareTo(HTTPEvent2) > 0;
+
+        }
+
+        #endregion
+
+        #region Operator >= (HTTPEvent1, HTTPEvent2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPEvent1">A HTTP event.</param>
+        /// <param name="HTTPEvent2">Another HTTP event.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator >= (HTTPEvent<T> HTTPEvent1, HTTPEvent<T> HTTPEvent2)
+            => !(HTTPEvent1 < HTTPEvent2);
+
+        #endregion
+
+        #endregion
 
         #region IEquatable<HTTPEvent> Members
 
@@ -174,10 +286,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public override Boolean Equals(Object Object)
         {
 
-            if (Object == null)
+            if (Object is null)
                 return false;
 
-            if (!(Object is HTTPEvent HTTPEvent))
+            if (!(Object is HTTPEvent<T> HTTPEvent))
                 return false;
 
             return Equals(HTTPEvent);
@@ -191,15 +303,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP events for equality.
         /// </summary>
-        /// <param name="OtherHTTPEvent">A HTTP event to compare with.</param>
+        /// <param name="HTTPEvent">A HTTP event to compare with.</param>
         /// <returns>True if both match; False otherwise.</returns>
-        public Boolean Equals(HTTPEvent OtherHTTPEvent)
+        public Boolean Equals(HTTPEvent<T> HTTPEvent)
         {
 
-            if ((Object) OtherHTTPEvent == null)
+            if (HTTPEvent is null)
                 return false;
 
-            return Id.Equals(OtherHTTPEvent.Id);
+            return Id.Equals(HTTPEvent.Id);
 
         }
 
@@ -218,10 +330,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Int32 CompareTo(Object Object)
         {
 
-            if (Object == null)
+            if (Object is null)
                 throw new ArgumentNullException("The given object must not be null!");
 
-            if (!(Object is HTTPEvent HTTPEvent))
+            if (!(Object is HTTPEvent<T> HTTPEvent))
                 throw new ArgumentException("The given object is not a HTTP event!");
 
             return CompareTo(HTTPEvent);
@@ -235,14 +347,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="OtherHTTPEvent">Another HTTP event.</param>
-        public Int32 CompareTo(HTTPEvent OtherHTTPEvent)
+        /// <param name="HTTPEvent">Another HTTP event.</param>
+        public Int32 CompareTo(HTTPEvent<T> HTTPEvent)
         {
 
-            if ((Object) OtherHTTPEvent == null)
-                throw new ArgumentNullException(nameof(OtherHTTPEvent), "The given HTTP event must not be null!");
+            if (HTTPEvent is null)
+                throw new ArgumentNullException(nameof(HTTPEvent), "The given HTTP event must not be null!");
 
-            return Id.CompareTo(OtherHTTPEvent.Id);
+            return Id.CompareTo(HTTPEvent.Id);
 
         }
 
@@ -279,8 +391,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => String.Concat(Subevent.IsNotNullOrEmpty()
                                  ? "event: " + Subevent + Environment.NewLine
                                  : "",
-                             "id: ",    Id,                                                                Environment.NewLine,
-                             "data: ",  Data.Aggregate((a, b) => a + Environment.NewLine + "data: " + b),  Environment.NewLine);
+                             "id: ",   Id,              Environment.NewLine,
+                             "data: ", SerializedData,  Environment.NewLine);
 
         #endregion
 

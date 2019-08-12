@@ -44,18 +44,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A HTTP event source.
     /// </summary>
-    public class HTTPEventSource<THelper> : IHTTPEventSource,
-                                            IEnumerable<HTTPEvent>
+    public class HTTPEventSource<T> : IHTTPEventSource<T>,
+                                      IEnumerable<HTTPEvent<T>>
     {
 
         #region Data
 
-        private                 Int64               IdCounter;
-        private        readonly TSQueue<HTTPEvent>  QueueOfEvents;
-        private static readonly SemaphoreSlim       LogfileLock  = new SemaphoreSlim(1,1);
+        private                 Int64                  IdCounter;
+        private        readonly TSQueue<HTTPEvent<T>>  QueueOfEvents;
+        private static readonly SemaphoreSlim          LogfileLock  = new SemaphoreSlim(1,1);
 
-
-        private readonly Func<String[], THelper> CreateHelper;
+        private        readonly Func<T, String>        DataSerializer;
+        private        readonly Func<String, T>        DataDeserializer;
 
         #endregion
 
@@ -92,21 +92,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="EventIdentification">The internal identification of the HTTP event.</param>
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
         /// <param name="RetryIntervall">The retry intervall.</param>
+        /// <param name="DataSerializer">A delegate to serialize the stored events.</param>
+        /// <param name="DataDeserializer">A delegate to deserialize stored events.</param>
+        /// <param name="EnableLogging">Whether to enable event logging.</param>
         /// <param name="LogfileName">A delegate to create a filename for storing events.</param>
         /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
         public HTTPEventSource(HTTPEventSource_Id              EventIdentification,
                                UInt64                          MaxNumberOfCachedEvents     = 500,
                                TimeSpan?                       RetryIntervall              = null,
-                               Func<String[], THelper>         CreateHelper                = null,
+                               Func<T, String>                 DataSerializer              = null,
+                               Func<String, T>                 DataDeserializer            = null,
                                Boolean                         EnableLogging               = true,
                                Func<String, DateTime, String>  LogfileName                 = null,
                                String                          LogfileReloadSearchPattern  = null)
         {
 
             this.EventIdentification  = EventIdentification;
-            this.QueueOfEvents        = new TSQueue<HTTPEvent>(MaxNumberOfCachedEvents);
+            this.QueueOfEvents        = new TSQueue<HTTPEvent<T>>(MaxNumberOfCachedEvents);
             this.RetryIntervall       = RetryIntervall ?? TimeSpan.FromSeconds(30);
-            this.CreateHelper         = CreateHelper ?? (_ => default(THelper));
+            this.DataSerializer       = DataSerializer ?? (data => data.ToString());
             this.LogfileName          = LogfileName;
             this.IdCounter            = 1;
 
@@ -160,13 +164,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          try
                                          {
 
-                                             QueueOfEvents.Push(new HTTPEvent(Id:         (UInt64) IdCounter++,
-                                                                              Timestamp:  DateTime.Parse(line[0]).ToUniversalTime(),
-                                                                              Subevent:   line[1],
-                                                                              Helper:     this.CreateHelper(line.Length == 4
-                                                                                                                ? line[3].Split((Char) 0x1F)
-                                                                                                                : line[2].Split((Char) 0x1F)),
-                                                                              Data:       line[2].Split((Char) 0x1F))).
+                                             QueueOfEvents.Push(new HTTPEvent<T>(Id:              (UInt64) IdCounter++,
+                                                                                 Timestamp:       DateTime.Parse(line[0]).ToUniversalTime(),
+                                                                                 Subevent:        line[1],
+                                                                                 Data:            DataDeserializer(line[2]), //line[2].Split((Char) 0x1F),
+                                                                                 SerializedData:  line[2])).                 //this.DataSerializer(line.Length == 4
+                                                                                                                             //                 ? line[3].Split((Char) 0x1F)
+                                                                                                                             //                 : line[2].Split((Char) 0x1F)))).
                                                            Wait();
 
                                          }
@@ -200,9 +204,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                   DateTime.UtcNow)))
                             {
 
-                                await logfile.WriteLineAsync(String.Concat(Value.Timestamp.ToIso8601(), (Char) 0x1E,
-                                                                           Value.Subevent,              (Char) 0x1E,
-                                                                           Value.Data.AggregateWith(    (Char) 0x1F))).
+                                await logfile.WriteLineAsync(String.Concat(Value.Timestamp.ToIso8601(),
+                                                                           (Char) 0x1E,
+                                                                           Value.Subevent,
+                                                                           (Char) 0x1E,
+                                                                           Value.SerializedData)).
                                               ConfigureAwait(false);
 
                             }
@@ -226,253 +232,67 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        private String JSON2String(JObject JSONObject)
-            => JSONObject.ToString().Replace("\r\n", "").Replace("\n", "");
-
-
-        #region SubmitEvent(params Data)
+        #region SubmitEvent(Data)
 
         /// <summary>
         /// Submit a new event.
         /// </summary>
         /// <param name="Data">The attached event data.</param>
-        public async Task SubmitEvent(params String[] Data)
+        public async Task SubmitEvent(T Data)
 
-            => await QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
-                                                      Data)).
+            => await QueueOfEvents.Push(new HTTPEvent<T>((UInt64) Interlocked.Increment(ref IdCounter),
+                                                         Data,
+                                                         DataSerializer(Data))).
                                    ConfigureAwait(false);
 
         #endregion
 
-        #region SubmitEvent(JSONObject)
+        #region SubmitEvent(Timestamp, Data)
 
         /// <summary>
-        /// Submit a new event.
+        /// Submit a new subevent with a timestamp.
         /// </summary>
-        /// <param name="JSONObject">The attached event data.</param>
-        public async Task SubmitEvent(JObject JSONObject)
+        /// <param name="Timestamp">The timestamp of the event.</param>
+        /// <param name="Data">The attached event data.</param>
+        public async Task SubmitEvent(DateTime Timestamp, T Data)
 
-            => await QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
-                                                      JSON2String(JSONObject))).
+            => await QueueOfEvents.Push(new HTTPEvent<T>((UInt64) Interlocked.Increment(ref IdCounter),
+                                                         Timestamp,
+                                                         Data,
+                                                         DataSerializer(Data))).
                                    ConfigureAwait(false);
 
         #endregion
 
-
-        #region SubmitTimestampedEvent(Timestamp, params Data)
-
-        /// <summary>
-        /// Submit a new subevent with a timestamp.
-        /// </summary>
-        /// <param name="Timestamp">The timestamp of the event.</param>
-        /// <param name="Data">The attached event data.</param>
-        public async Task SubmitTimestampedEvent(DateTime Timestamp, params String[] Data)
-
-            => await SubmitEvent(JSON2String(
-                                     new JObject(
-                                         new JProperty("Timestamp",  Timestamp),
-                                         new JProperty("Message",    Data?.Length > 0
-                                                                         ? Data.Aggregate((a, b) => a.Trim() + " " + b.Trim())
-                                                                         : "")
-                                     )
-                                 )).ConfigureAwait(false);
-
-        #endregion
-
-        #region SubmitTimestampedEvent(Timestamp, JSONObject)
-
-        /// <summary>
-        /// Submit a new subevent with a timestamp.
-        /// </summary>
-        /// <param name="Timestamp">The timestamp of the event.</param>
-        /// <param name="JSONObject">The attached event data.</param>
-        public async Task SubmitTimestampedEvent(DateTime Timestamp, JObject JSONObject)
-
-            => await SubmitEvent(JSON2String(
-                                      new JObject(
-                                          new JProperty("Timestamp",  Timestamp),
-                                          new JProperty("Message",    JSONObject)
-                                      )
-                                 )).ConfigureAwait(false);
-
-        #endregion
-
-
-
-        #region SubmitSubEvent(SubEvent, params Data)
+        #region SubmitEvent(SubEvent, Data)
 
         /// <summary>
         /// Submit a new event.
         /// </summary>
         /// <param name="SubEvent">A subevent identification.</param>
         /// <param name="Data">The attached event data.</param>
-        public async Task SubmitSubEvent(String SubEvent, params String[] Data)
+        public async Task SubmitEvent(String SubEvent, T Data)
         {
 
             if (SubEvent.IsNotNullOrEmpty())
                 SubEvent = SubEvent.Trim().Replace(",", "");
 
             if (SubEvent.IsNullOrEmpty())
-                await QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
-                                                       CreateHelper != null ? CreateHelper(Data) : default(THelper),
-                                                       Data));
+                await QueueOfEvents.Push(new HTTPEvent<T>((UInt64) Interlocked.Increment(ref IdCounter),
+                                                          Data,
+                                                          DataSerializer(Data)));
 
             else
-                await QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
-                                                       SubEvent,
-                                                       CreateHelper != null ? CreateHelper(Data) : default(THelper),
-                                                       Data));
+                await QueueOfEvents.Push(new HTTPEvent<T>((UInt64) Interlocked.Increment(ref IdCounter),
+                                                          SubEvent,
+                                                          Data,
+                                                          DataSerializer(Data)));
 
         }
 
         #endregion
 
-        #region SubmitSubEvent(SubEvent, JSONObject)
-
-        /// <summary>
-        /// Submit a new event.
-        /// </summary>
-        /// <param name="SubEvent">A subevent identification.</param>
-        /// <param name="JSONObject">The attached event data.</param>
-        public async Task SubmitSubEvent(String SubEvent, JObject JSONObject)
-        {
-
-            if (SubEvent.IsNotNullOrEmpty())
-                SubEvent = SubEvent.Trim().Replace(",", "");
-
-            var Data = new String[] { JSON2String(JSONObject) };
-
-            if (SubEvent.IsNullOrEmpty())
-                await QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
-                                         CreateHelper != null ? CreateHelper(Data) : default(THelper),
-                                         Data));
-
-            else
-                await QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
-                                         SubEvent,
-                                         CreateHelper != null ? CreateHelper(Data) : default(THelper),
-                                         Data));
-
-        }
-
-        #endregion
-
-        #region SubmitSubEvent(SubEvent, HelperData, params Data)
-
-        /// <summary>
-        /// Submit a new event.
-        /// </summary>
-        /// <param name="SubEvent">A subevent identification.</param>
-        /// <param name="Data">The attached event data.</param>
-        public async Task SubmitSubEvent(String SubEvent, THelper HelperData, params String[] Data)
-        {
-
-            if (SubEvent.IsNotNullOrEmpty())
-                SubEvent = SubEvent.Trim().Replace(",", "");
-
-            if (SubEvent.IsNullOrEmpty())
-                await QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
-                                                       HelperData,
-                                                       Data));
-
-            else
-                await QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
-                                                       SubEvent,
-                                                       HelperData,
-                                                       Data));
-
-        }
-
-        #endregion
-
-        #region SubmitSubEvent(SubEvent, HelperData, JSONObject)
-
-        /// <summary>
-        /// Submit a new event.
-        /// </summary>
-        /// <param name="SubEvent">A subevent identification.</param>
-        /// <param name="JSONObject">The attached event data.</param>
-        public async Task SubmitSubEvent(String SubEvent, THelper HelperData, JObject JSONObject)
-        {
-
-            if (SubEvent.IsNotNullOrEmpty())
-                SubEvent = SubEvent.Trim().Replace(",", "");
-
-            var Data = new String[] { JSON2String(JSONObject) };
-
-            if (SubEvent.IsNullOrEmpty())
-                await QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
-                                         HelperData,
-                                         Data));
-
-            else
-                await QueueOfEvents.Push(new HTTPEvent((UInt64) Interlocked.Increment(ref IdCounter),
-                                         SubEvent,
-                                         HelperData,
-                                         Data));
-
-        }
-
-        #endregion
-
-
-        #region SubmitTimestampedSubEvent(SubEvent, params Data)
-
-        /// <summary>
-        /// Submit a new subevent, using the current time as timestamp.
-        /// </summary>
-        /// <param name="SubEvent">A subevent identification.</param>
-        /// <param name="Data">The attached event data.</param>
-        public async Task SubmitSubEventWithTimestamp(String SubEvent, params String[] Data)
-        {
-
-            if (SubEvent.IsNotNullOrEmpty())
-                SubEvent = SubEvent.Trim().Replace(",", "");
-
-            if (SubEvent.IsNullOrEmpty())
-                await SubmitTimestampedEvent(DateTime.UtcNow,
-                                             Data).
-                          ConfigureAwait(false);
-
-            else
-                await SubmitTimestampedSubEvent(SubEvent,
-                                                DateTime.UtcNow,
-                                                Data).
-                          ConfigureAwait(false);
-
-        }
-
-        #endregion
-
-        #region SubmitTimestampedSubEvent(SubEvent, JSONObject)
-
-        /// <summary>
-        /// Submit a new subevent, using the current time as timestamp.
-        /// </summary>
-        /// <param name="SubEvent">A subevent identification.</param>
-        /// <param name="JSONObject">The attached event data.</param>
-        public async Task SubmitSubEventWithTimestamp(String SubEvent, JObject JSONObject)
-        {
-
-            if (SubEvent.IsNotNullOrEmpty())
-                SubEvent = SubEvent.Trim().Replace(",", "");
-
-            if (SubEvent.IsNullOrEmpty())
-                await SubmitTimestampedEvent(DateTime.UtcNow,
-                                             JSONObject).
-                          ConfigureAwait(false);
-
-            else
-                await SubmitTimestampedSubEvent(SubEvent,
-                                                DateTime.UtcNow,
-                                                JSONObject).
-                          ConfigureAwait(false);
-
-        }
-
-        #endregion
-
-        #region SubmitTimestampedSubEvent(SubEvent, Timestamp, params Data)
+        #region SubmitEvent(SubEvent, Timestamp, Data)
 
         /// <summary>
         /// Submit a new subevent with a timestamp.
@@ -480,62 +300,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="SubEvent">A subevent identification.</param>
         /// <param name="Timestamp">The timestamp of the event.</param>
         /// <param name="Data">The attached event data.</param>
-        public async Task SubmitTimestampedSubEvent(String           SubEvent,
-                                                    DateTime         Timestamp,
-                                                    params String[]  Data)
+        public async Task SubmitEvent(String    SubEvent,
+                                      DateTime  Timestamp,
+                                      T         Data)
         {
 
             if (SubEvent.IsNotNullOrEmpty())
                 SubEvent = SubEvent.Trim().Replace(",", "");
 
             if (SubEvent.IsNullOrEmpty())
-                await SubmitTimestampedEvent(Timestamp, Data).
+                await SubmitEvent(Timestamp, Data).
                           ConfigureAwait(false);
 
             else
-                await SubmitSubEvent(SubEvent,
-                                     JSON2String(
-                                         new JObject(
-                                             new JProperty("Timestamp",  Timestamp),
-                                             new JProperty("Message",    Data?.Length > 0
-                                                                             ? Data.Aggregate((a, b) => a.Trim() + " " + b.Trim())
-                                                                             : "")
-                                         ))
-                                     ).ConfigureAwait(false);
-
-        }
-
-        #endregion
-
-        #region SubmitTimestampedSubEvent(SubEvent, Timestamp, JSONObject)
-
-        /// <summary>
-        /// Submit a new subevent with a timestamp.
-        /// </summary>
-        /// <param name="SubEvent">A subevent identification.</param>
-        /// <param name="Timestamp">The timestamp of the event.</param>
-        /// <param name="JSONObject">The attached event data.</param>
-        public async Task SubmitTimestampedSubEvent(String    SubEvent,
-                                                    DateTime  Timestamp,
-                                                    JObject   JSONObject)
-        {
-
-            if (SubEvent.IsNotNullOrEmpty())
-                SubEvent = SubEvent.Trim().Replace(",", "");
-
-            if (SubEvent.IsNullOrEmpty())
-                await SubmitTimestampedEvent(Timestamp,
-                                             JSON2String(JSONObject)).
-                          ConfigureAwait(false);
-
-            else
-                await SubmitSubEvent(SubEvent,
-                                     JSON2String(
-                                         new JObject(
-                                             new JProperty("Timestamp",  Timestamp),
-                                             new JProperty("Message",    JSONObject)
-                                         ))
-                                     ).ConfigureAwait(false);
+                await QueueOfEvents.Push(new HTTPEvent<T>((UInt64) Interlocked.Increment(ref IdCounter),
+                                                          Timestamp,
+                                                          Data,
+                                                          DataSerializer(Data))).
+                                    ConfigureAwait(false);
 
         }
 
@@ -548,7 +330,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Get a list of events filtered by the event id.
         /// </summary>
         /// <param name="LastEventId">The Last-Event-Id header value.</param>
-        public IEnumerable<HTTPEvent> GetAllEventsGreater(UInt64? LastEventId = 0)
+        public IEnumerable<HTTPEvent<T>> GetAllEventsGreater(UInt64? LastEventId = 0)
         {
 
             lock (QueueOfEvents)
@@ -571,7 +353,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Get a list of events filtered by a minimal timestamp.
         /// </summary>
         /// <param name="Timestamp">The earlierst timestamp of the events.</param>
-        public IEnumerable<HTTPEvent> GetAllEventsSince(DateTime Timestamp)
+        public IEnumerable<HTTPEvent<T>> GetAllEventsSince(DateTime Timestamp)
         {
 
             lock (QueueOfEvents)
@@ -591,7 +373,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region IEnumerable Members
 
-        public IEnumerator<HTTPEvent> GetEnumerator()
+        public IEnumerator<HTTPEvent<T>> GetEnumerator()
             => QueueOfEvents.GetEnumerator();
 
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
