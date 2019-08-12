@@ -387,12 +387,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Returns a text representation of this object.
         /// </summary>
         public override String ToString()
-
-            => String.Concat(Subevent.IsNotNullOrEmpty()
-                                 ? "event: " + Subevent + Environment.NewLine
-                                 : "",
-                             "id: ",   Id,              Environment.NewLine,
-                             "data: ", SerializedData,  Environment.NewLine);
+            => SerializedData;
 
         #endregion
 

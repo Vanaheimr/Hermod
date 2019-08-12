@@ -167,10 +167,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              QueueOfEvents.Push(new HTTPEvent<T>(Id:              (UInt64) IdCounter++,
                                                                                  Timestamp:       DateTime.Parse(line[0]).ToUniversalTime(),
                                                                                  Subevent:        line[1],
-                                                                                 Data:            DataDeserializer(line[2]), //line[2].Split((Char) 0x1F),
-                                                                                 SerializedData:  line[2])).                 //this.DataSerializer(line.Length == 4
-                                                                                                                             //                 ? line[3].Split((Char) 0x1F)
-                                                                                                                             //                 : line[2].Split((Char) 0x1F)))).
+                                                                                 Data:            DataDeserializer(line[2]),
+                                                                                 SerializedData:  String.Concat(line[1].IsNotNullOrEmpty()
+                                                                                                      ? "event: " + line[1] + Environment.NewLine
+                                                                                                      : "",
+                                                                                                  "id: ",   IdCounter,        Environment.NewLine,
+                                                                                                  "data: ", line[2],          Environment.NewLine))).
                                                            Wait();
 
                                          }
@@ -193,7 +195,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     // Note: Do not attach this event handler before the data
                     //       is reread from the logfiles above!
-                    QueueOfEvents.OnAdded += async (Sender, Value) => {
+                    QueueOfEvents.OnAdded += async (Sender, httpEvent) => {
 
                         await LogfileLock.WaitAsync();
 
@@ -204,11 +206,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                   DateTime.UtcNow)))
                             {
 
-                                await logfile.WriteLineAsync(String.Concat(Value.Timestamp.ToIso8601(),
+                                await logfile.WriteLineAsync(String.Concat(httpEvent.Timestamp.ToIso8601(),
                                                                            (Char) 0x1E,
-                                                                           Value.Subevent,
+                                                                           httpEvent.Subevent,
                                                                            (Char) 0x1E,
-                                                                           Value.SerializedData)).
+                                                                           DataSerializer(httpEvent.Data))).
                                               ConfigureAwait(false);
 
                             }
