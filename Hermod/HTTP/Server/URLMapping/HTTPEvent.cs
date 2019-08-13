@@ -20,8 +20,6 @@
 
 using System;
 
-using org.GraphDefined.Vanaheimr.Illias;
-
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
@@ -78,6 +76,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Id">The id of the event.</param>
         /// <param name="Data">The attached data of the event.</param>
+        /// <param name="SerializedHeader">The HTTP SSE header of the attached data of the event.</param>
         /// <param name="SerializedData">A text-representation of the attached data of the event.</param>
         public HTTPEvent(UInt64  Id,
                          T       Data,
@@ -103,6 +102,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Id">The id of the event.</param>
         /// <param name="Timestamp">The timestamp of the event.</param>
         /// <param name="Data">The attached data of the event.</param>
+        /// <param name="SerializedHeader">The HTTP SSE header of the attached data of the event.</param>
         /// <param name="SerializedData">A text-representation of the attached data of the event.</param>
         public HTTPEvent(UInt64    Id,
                          DateTime  Timestamp,
@@ -129,6 +129,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Id">The id of the event.</param>
         /// <param name="Subevent">The subevent.</param>
         /// <param name="Data">The attached data of the event.</param>
+        /// <param name="SerializedHeader">The HTTP SSE header of the attached data of the event.</param>
         /// <param name="SerializedData">A text-representation of the attached data of the event.</param>
         public HTTPEvent(UInt64  Id,
                          String  Subevent,
@@ -156,6 +157,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the event.</param>
         /// <param name="Subevent">The subevent.</param>
         /// <param name="Data">The attached data of the event.</param>
+        /// <param name="SerializedHeader">The HTTP SSE header of the attached data of the event.</param>
         /// <param name="SerializedData">A text-representation of the attached data of the event.</param>
         public HTTPEvent(UInt64    Id,
                          DateTime  Timestamp,

@@ -25,8 +25,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 
-using Newtonsoft.Json.Linq;
-
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Illias.Collections;
 
@@ -297,6 +295,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             await QueueOfEvents.Push(new HTTPEvent<T>((UInt64) Interlocked.Increment(ref IdCounter),
                                                       Timestamp,
+                                                      SubEvent,
                                                       Data,
                                                       String.Concat(SubEvent.IsNotNullOrEmpty()
                                                                         ? "event: " + SubEvent + Environment.NewLine
