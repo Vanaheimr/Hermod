@@ -40,27 +40,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The identification of the event.
         /// </summary>
-        public UInt64    Id                { get; }
+        public UInt64    Id                  { get; }
 
         /// <summary>
         /// The subevent identification of the event.
         /// </summary>
-        public String    Subevent          { get; }
+        public String    Subevent            { get; }
 
         /// <summary>
         /// The timestamp of the event.
         /// </summary>
-        public DateTime  Timestamp         { get; }
+        public DateTime  Timestamp           { get; }
 
         /// <summary>
         /// The attached data of the event.
         /// </summary>
-        public T         Data              { get; }
+        public T         Data                { get; }
 
         /// <summary>
         /// A text-representation of the attached data of the event.
         /// </summary>
-        public String    SerializedData    { get; }
+        public String    SerializedHeader    { get; }
+
+        /// <summary>
+        /// A text-representation of the attached data of the event.
+        /// </summary>
+        public String    SerializedData      { get; }
 
         #endregion
 
@@ -76,12 +81,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="SerializedData">A text-representation of the attached data of the event.</param>
         public HTTPEvent(UInt64  Id,
                          T       Data,
+                         String  SerializedHeader,
                          String  SerializedData)
 
             : this(Id,
                    DateTime.UtcNow,
                    String.Empty,
                    Data,
+                   SerializedHeader,
                    SerializedData)
 
         { }
@@ -100,12 +107,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPEvent(UInt64    Id,
                          DateTime  Timestamp,
                          T         Data,
+                         String    SerializedHeader,
                          String    SerializedData)
 
             : this(Id,
                    Timestamp,
                    String.Empty,
                    Data,
+                   SerializedHeader,
                    SerializedData)
 
         { }
@@ -124,12 +133,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPEvent(UInt64  Id,
                          String  Subevent,
                          T       Data,
+                         String  SerializedHeader,
                          String  SerializedData)
 
             : this(Id,
                    DateTime.UtcNow,
                    Subevent,
                    Data,
+                   SerializedHeader,
                    SerializedData)
 
         { }
@@ -150,14 +161,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                          DateTime  Timestamp,
                          String    Subevent,
                          T         Data,
+                         String    SerializedHeader,
                          String    SerializedData)
         {
 
-            this.Id              = Id;
-            this.Timestamp       = Timestamp;
-            this.Subevent        = Subevent?.Trim() ?? "";
-            this.Data            = Data;
-            this.SerializedData  = SerializedData;
+            this.Id                = Id;
+            this.Timestamp         = Timestamp;
+            this.Subevent          = Subevent?.Trim() ?? "";
+            this.Data              = Data;
+            this.SerializedHeader  = SerializedHeader;
+            this.SerializedData    = SerializedData;
 
         }
 

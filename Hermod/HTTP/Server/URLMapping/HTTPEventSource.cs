@@ -44,8 +44,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A HTTP event source.
     /// </summary>
-    public class HTTPEventSource<T> : IHTTPEventSource<T>,
-                                      IEnumerable<HTTPEvent<T>>
+    public class HTTPEventSource<T> : IHTTPEventSource<T>
     {
 
         #region Data
@@ -111,6 +110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.QueueOfEvents        = new TSQueue<HTTPEvent<T>>(MaxNumberOfCachedEvents);
             this.RetryIntervall       = RetryIntervall ?? TimeSpan.FromSeconds(30);
             this.DataSerializer       = DataSerializer ?? (data => data.ToString());
+            this.DataDeserializer     = DataDeserializer;
             this.LogfileName          = LogfileName;
             this.IdCounter            = 1;
 
@@ -164,15 +164,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          try
                                          {
 
-                                             QueueOfEvents.Push(new HTTPEvent<T>(Id:              (UInt64) IdCounter++,
-                                                                                 Timestamp:       DateTime.Parse(line[0]).ToUniversalTime(),
-                                                                                 Subevent:        line[1],
-                                                                                 Data:            DataDeserializer(line[2]),
-                                                                                 SerializedData:  String.Concat(line[1].IsNotNullOrEmpty()
-                                                                                                      ? "event: " + line[1] + Environment.NewLine
-                                                                                                      : "",
-                                                                                                  "id: ",   IdCounter,        Environment.NewLine,
-                                                                                                  "data: ", line[2],          Environment.NewLine))).
+                                             QueueOfEvents.Push(new HTTPEvent<T>(Id:                (UInt64) IdCounter++,
+                                                                                 Timestamp:         DateTime.Parse(line[0]).ToUniversalTime(),
+                                                                                 Subevent:          line[1],
+                                                                                 Data:              DataDeserializer(line[2]),
+                                                                                 SerializedHeader:  String.Concat(line[1].IsNotNullOrEmpty()
+                                                                                                                      ? "event: " + line[1] + Environment.NewLine
+                                                                                                                      : "",
+                                                                                                                  "id: ",   IdCounter,        Environment.NewLine,
+                                                                                                                  "data: "),
+                                                                                 SerializedData:    line[2])).
                                                            Wait();
 
                                          }
@@ -234,63 +235,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region SubmitEvent(Data)
+        #region SubmitEvent(                     Data)
 
         /// <summary>
         /// Submit a new event.
         /// </summary>
         /// <param name="Data">The attached event data.</param>
-        public async Task SubmitEvent(T Data)
+        public Task SubmitEvent(T Data)
 
-            => await QueueOfEvents.Push(new HTTPEvent<T>((UInt64) Interlocked.Increment(ref IdCounter),
-                                                         Data,
-                                                         DataSerializer(Data))).
-                                   ConfigureAwait(false);
+            => SubmitEvent(String.Empty,
+                           DateTime.UtcNow,
+                           Data);
 
         #endregion
 
-        #region SubmitEvent(Timestamp, Data)
+        #region SubmitEvent(          Timestamp, Data)
 
         /// <summary>
         /// Submit a new subevent with a timestamp.
         /// </summary>
         /// <param name="Timestamp">The timestamp of the event.</param>
         /// <param name="Data">The attached event data.</param>
-        public async Task SubmitEvent(DateTime Timestamp, T Data)
+        public Task SubmitEvent(DateTime Timestamp, T Data)
 
-            => await QueueOfEvents.Push(new HTTPEvent<T>((UInt64) Interlocked.Increment(ref IdCounter),
-                                                         Timestamp,
-                                                         Data,
-                                                         DataSerializer(Data))).
-                                   ConfigureAwait(false);
+            => SubmitEvent(String.Empty,
+                           Timestamp,
+                           Data);
 
         #endregion
 
-        #region SubmitEvent(SubEvent, Data)
+        #region SubmitEvent(SubEvent,            Data)
 
         /// <summary>
         /// Submit a new event.
         /// </summary>
         /// <param name="SubEvent">A subevent identification.</param>
         /// <param name="Data">The attached event data.</param>
-        public async Task SubmitEvent(String SubEvent, T Data)
-        {
+        public Task SubmitEvent(String SubEvent, T Data)
 
-            if (SubEvent.IsNotNullOrEmpty())
-                SubEvent = SubEvent.Trim().Replace(",", "");
-
-            if (SubEvent.IsNullOrEmpty())
-                await QueueOfEvents.Push(new HTTPEvent<T>((UInt64) Interlocked.Increment(ref IdCounter),
-                                                          Data,
-                                                          DataSerializer(Data)));
-
-            else
-                await QueueOfEvents.Push(new HTTPEvent<T>((UInt64) Interlocked.Increment(ref IdCounter),
-                                                          SubEvent,
-                                                          Data,
-                                                          DataSerializer(Data)));
-
-        }
+            => SubmitEvent(SubEvent,
+                           DateTime.UtcNow,
+                           Data);
 
         #endregion
 
@@ -310,16 +295,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (SubEvent.IsNotNullOrEmpty())
                 SubEvent = SubEvent.Trim().Replace(",", "");
 
-            if (SubEvent.IsNullOrEmpty())
-                await SubmitEvent(Timestamp, Data).
-                          ConfigureAwait(false);
-
-            else
-                await QueueOfEvents.Push(new HTTPEvent<T>((UInt64) Interlocked.Increment(ref IdCounter),
-                                                          Timestamp,
-                                                          Data,
-                                                          DataSerializer(Data))).
-                                    ConfigureAwait(false);
+            await QueueOfEvents.Push(new HTTPEvent<T>((UInt64) Interlocked.Increment(ref IdCounter),
+                                                      Timestamp,
+                                                      Data,
+                                                      String.Concat(SubEvent.IsNotNullOrEmpty()
+                                                                        ? "event: " + SubEvent + Environment.NewLine
+                                                                        : "",
+                                                                    "id: ",   IdCounter,         Environment.NewLine,
+                                                                    "data: "),
+                                                      DataSerializer(Data))).
+                                ConfigureAwait(false);
 
         }
 
@@ -373,7 +358,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region IEnumerable Members
+        #region IEnumerable<HTTPEvent<T>> Members
 
         public IEnumerator<HTTPEvent<T>> GetEnumerator()
             => QueueOfEvents.GetEnumerator();

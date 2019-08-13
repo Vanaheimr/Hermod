@@ -39,7 +39,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
     }
 
-    public interface IHTTPEventSource<T> : IHTTPEventSource
+    public interface IHTTPEventSource<T> : IHTTPEventSource, IEnumerable<HTTPEvent<T>>
     {
 
         Task SubmitEvent(                                     T Data);
