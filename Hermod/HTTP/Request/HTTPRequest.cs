@@ -983,7 +983,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             Parallel.ForEach(Directory.EnumerateFiles(Directory.GetCurrentDirectory() + Path.DirectorySeparatorChar + FilePath,
                                                       FilePattern,
-                                                      SearchOption.TopDirectoryOnly),
+                                                      SearchOption.TopDirectoryOnly).
+                                       OrderByDescending(file => file),
                              new ParallelOptions() { MaxDegreeOfParallelism = 1 },
                              file => {
 

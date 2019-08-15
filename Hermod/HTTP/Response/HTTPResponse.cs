@@ -856,7 +856,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             Parallel.ForEach(Directory.EnumerateFiles(FilePath,
                                                       FilePattern,
-                                                      SearchOption),
+                                                      SearchOption).
+                                       OrderByDescending(file => file),
                              new ParallelOptions() { MaxDegreeOfParallelism = 1 },
                              file => {
 
@@ -958,7 +959,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             Parallel.ForEach(Directory.EnumerateFiles(FilePath,
                                                       FilePattern,
-                                                      SearchOption),
+                                                      SearchOption).
+                                       OrderByDescending(file => file),
                              new ParallelOptions() { MaxDegreeOfParallelism = 1 },
                              file => {
 
