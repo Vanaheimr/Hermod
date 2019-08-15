@@ -945,17 +945,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPHostname  Hostname       { get; }
 
         /// <summary>
-        /// The URI prefix of this HTTP API.
-        /// </summary>
-        public HTTPPath       URIPrefix      { get; }
-
-        /// <summary>
-        /// The name of the Open Data API service.
+        /// The name of the HTTP API service.
         /// </summary>
         public String        ServiceName    { get; }
 
         /// <summary>
-        /// The unqiue identification of this system instance.
+        /// The abse URL of the HTTP API service.
+        /// </summary>
+        public String        BaseURL        { get; }
+
+        /// <summary>
+        /// The URL prefix of this HTTP API.
+        /// </summary>
+        public HTTPPath      URLPathPrefix      { get; }
+
+        /// <summary>
+        /// The unqiue identification of this HTTP API instance.
         /// </summary>
         public System_Id     SystemId       { get; }
 
@@ -987,22 +992,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPServer">A HTTP server.</param>
         /// <param name="HTTPHostname">A HTTP hostname.</param>
-        /// <param name="URIPrefix">An URI prefix.</param>
-        /// <param name="ServiceName">A service name.</param>
+        /// <param name="ServiceName">The name of the HTTP API service.</param>
+        /// <param name="BaseURL">The base URL of the HTTP API service.</param>
+        /// <param name="URLPathPrefix">The URL path prefix.</param>
         public HTTPAPI(HTTPServer     HTTPServer,
-                       HTTPHostname?  HTTPHostname   = null,
-                       HTTPPath?       URIPrefix      = null,
-                       String         ServiceName    = DefaultServiceName)
+                       HTTPHostname?  HTTPHostname    = null,
+                       String         ServiceName     = DefaultServiceName,
+                       String         BaseURL         = "",
+                       HTTPPath?      URLPathPrefix   = null)
 
         {
 
-            this.HTTPServer                   = HTTPServer   ?? throw new ArgumentNullException(nameof(HTTPServer), "HTTPServer!");
-            this.Hostname                     = HTTPHostname ?? HTTP.HTTPHostname.Any;
-            this.URIPrefix                    = URIPrefix    ?? HTTPPath.Parse("/");
-
-            this.ServiceName                  = ServiceName.IsNotNullOrEmpty() ? ServiceName  : "HTTPAPI";
+            this.HTTPServer                   = HTTPServer    ?? throw new ArgumentNullException(nameof(HTTPServer), "HTTPServer!");
+            this.Hostname                     = HTTPHostname  ?? HTTP.HTTPHostname.Any;
+            this.ServiceName                  = ServiceName.IsNotNullOrEmpty() ? ServiceName : "HTTPAPI";
+            this.BaseURL                      = BaseURL       ?? "";
+            this.URLPathPrefix                = URLPathPrefix ?? HTTPPath.Parse("/");
 
             this.SystemId                     = System_Id.Parse(Environment.MachineName.Replace("/", "") + "/" + HTTPServer.DefaultHTTPServerPort);
+
+            if (this.BaseURL.IsNullOrEmpty())
+                this.BaseURL = "https://opendata.social/";
+
+            if (!this.BaseURL.EndsWith("/"))
+                this.BaseURL += "/";
 
             // Link HTTP events...
             HTTPServer.RequestLog   += (HTTPProcessor, ServerTimestamp, Request)                                 => RequestLog. WhenAll(HTTPProcessor, ServerTimestamp, Request);
