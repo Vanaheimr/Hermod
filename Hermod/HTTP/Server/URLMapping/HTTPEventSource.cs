@@ -128,6 +128,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                           Reverse())
                     {
 
+                        DebugX.LogT("Reloading: HTTP SSE logfile: " + logfilename);
+
                         File.ReadAllLines(logfilename).
                              Reverse().
                              Where  (line => line.IsNotNullOrEmpty() &&
