@@ -125,7 +125,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     foreach (var logfilename in Directory.EnumerateFiles(Directory.GetCurrentDirectory(),
                                                                          LogfileReloadSearchPattern,
                                                                          SearchOption.TopDirectoryOnly).
-                                                          Reverse())
+                                                          OrderByDescending(file => file))
                     {
 
                         DebugX.LogT("Reloading: HTTP SSE logfile: " + logfilename);
