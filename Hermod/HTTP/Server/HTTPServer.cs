@@ -1630,7 +1630,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 else
                 {
 
-                    DebugX.Log("HTTPProcessor: " + ioe.Message);
+                    DebugX.Log("HTTPServer IO exception: " + Environment.NewLine + ioe);
 
                     //if (OnError != null)
                     //    OnError(this, DateTime.UtcNow, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), ioe, MemoryStream);
@@ -1642,7 +1642,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             catch (Exception e)
             {
 
-                DebugX.Log("HTTPProcessor: " + e.Message);
+                DebugX.Log("HTTPServer exception: " + Environment.NewLine + ioe);
 
                 //if (OnError != null)
                 //    OnError(this, DateTime.UtcNow, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), e, MemoryStream);
