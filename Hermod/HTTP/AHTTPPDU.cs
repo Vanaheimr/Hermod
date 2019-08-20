@@ -426,7 +426,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region AHTTPPDU()
+        #region (protected) AHTTPPDU()
 
         /// <summary>
         /// Creates a new HTTP header.
@@ -443,7 +443,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region AHTTPPDU(Timestamp, HTTPSource, LocalSocket, HTTPHeader, HTTPBody = null, HTTPBodyStream = null, CancellationToken = null, EventTrackingId = null)
+        #region (protected) AHTTPPDU(HTTPPDU)
+
+        /// <summary>
+        /// Creates a new HTTP header.
+        /// </summary>
+        /// <param name="HTTPPDU">Another HTTP PDU.</param>
+        protected AHTTPPDU(AHTTPPDU  HTTPPDU)
+            : this()
+        {
+
+            this.Timestamp                  = HTTPPDU?.Timestamp         ?? DateTime.UtcNow;
+            this.HTTPSource                 = HTTPPDU.HTTPSource;
+            this.LocalSocket                = HTTPPDU.LocalSocket;
+            this.RawHTTPHeader              = HTTPPDU?.RawHTTPHeader;
+            this.RawPDU                     = HTTPPDU?.RawPDU;
+            this._HTTPBody                  = HTTPPDU?.HTTPBody;
+            this._HTTPBodyStream            = HTTPPDU?.HTTPBodyStream;
+            this.HTTPBodyReceiveBufferSize  = DefaultHTTPBodyReceiveBufferSize;
+            this.CancellationToken          = HTTPPDU?.CancellationToken ?? new CancellationTokenSource().Token;
+            this.EventTrackingId            = HTTPPDU?.EventTrackingId;
+
+            this.FirstPDULine               = HTTPPDU?.FirstPDULine;
+
+            if (HTTPPDU._HeaderFields != null)
+                foreach (var field in HTTPPDU._HeaderFields)
+                    _HeaderFields.Add(field.Key, field.Value);
+
+            if (HTTPPDU._HeaderFields2 != null)
+                foreach (var field in HTTPPDU._HeaderFields2)
+                    _HeaderFields2.Add(field.Key, field.Value);
+
+        }
+
+        #endregion
+
+        #region (protected) AHTTPPDU(Timestamp, HTTPSource, LocalSocket, HTTPHeader, HTTPBody = null, HTTPBodyStream = null, CancellationToken = null, EventTrackingId = null)
 
         /// <summary>
         /// Creates a new HTTP header.
@@ -515,41 +550,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
             #endregion
-
-        }
-
-        #endregion
-
-        #region AHTTPPDU(HTTPPDU)
-
-        /// <summary>
-        /// Creates a new HTTP header.
-        /// </summary>
-        /// <param name="HTTPPDU">Another HTTP PDU.</param>
-        protected AHTTPPDU(AHTTPPDU  HTTPPDU)
-            : this()
-        {
-
-            this.Timestamp                  = HTTPPDU?.Timestamp         ?? DateTime.UtcNow;
-            this.HTTPSource                 = HTTPPDU.HTTPSource;
-            this.LocalSocket                = HTTPPDU.LocalSocket;
-            this.RawHTTPHeader              = HTTPPDU?.RawHTTPHeader;
-            this.RawPDU                     = HTTPPDU?.RawPDU;
-            this._HTTPBody                  = HTTPPDU?.HTTPBody;
-            this._HTTPBodyStream            = HTTPPDU?.HTTPBodyStream;
-            this.HTTPBodyReceiveBufferSize  = DefaultHTTPBodyReceiveBufferSize;
-            this.CancellationToken          = HTTPPDU?.CancellationToken ?? new CancellationTokenSource().Token;
-            this.EventTrackingId            = HTTPPDU?.EventTrackingId;
-
-            this.FirstPDULine               = HTTPPDU?.FirstPDULine;
-
-            if (HTTPPDU._HeaderFields != null)
-                foreach (var field in HTTPPDU._HeaderFields)
-                    _HeaderFields.Add(field.Key, field.Value);
-
-            if (HTTPPDU._HeaderFields2 != null)
-                foreach (var field in HTTPPDU._HeaderFields2)
-                    _HeaderFields2.Add(field.Key, field.Value);
 
         }
 

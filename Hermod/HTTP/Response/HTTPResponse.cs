@@ -899,9 +899,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 (  ToTimestamp == null || ResponseTimestamp <    ToTimestamp.Value))
                             {
 
-                                _responses.Add(Parse(_response,
-                                                     Timestamp: ResponseTimestamp,
-                                                     Request:   HTTPRequest.Parse(_request, Timestamp: RequestTimestamp)));
+                                if (HTTPRequest.TryParse(_request, out HTTPRequest parsedHTTPRequest, Timestamp: RequestTimestamp))
+                                {
+
+                                    _responses.Add(Parse(_response,
+                                                         Timestamp: ResponseTimestamp,
+                                                         Request:   parsedHTTPRequest));
+
+                                }
+
+                                else
+                                    DebugX.LogT("Could not parse reloaded HTTP request!");
 
                             }
 
@@ -989,14 +997,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         else if (line == RequestMarker)//">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------")
                         {
-                            copy = "request";
-                            relativelinenumber = 0;
+                            copy                = "request";
+                            relativelinenumber  = 0;
                         }
 
                         else if (line == ResponseMarker)// "<<<<<<--Response----<<<<<<------<<<<<<------<<<<<<------<<<<<<------<<<<<<------")
                         {
-                            copy = "response";
-                            relativelinenumber = 0;
+                            copy                = "response";
+                            relativelinenumber  = 0;
                         }
 
                         else if (line == EndMarker)// "--------------------------------------------------------------------------------")
@@ -1006,13 +1014,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 (  ToTimestamp == null || ResponseTimestamp <    ToTimestamp.Value))
                             {
 
-                                _responses.Add(Parse(_response,
-                                                     ResponseTimestamp,
-                                                     HTTPSource,
-                                                     Request: HTTPRequest.Parse(_request.Skip(1),
-                                                                                RequestTimestamp,
-                                                                                HTTPSource,
-                                                                                EventTrackingId: EventTracking_Id.Parse(_request[0]))));
+                                if (HTTPRequest.TryParse(_request.Skip(1),
+                                                         out HTTPRequest parsedHTTPRequest,
+                                                         RequestTimestamp,
+                                                         HTTPSource,
+                                                         EventTrackingId: EventTracking_Id.Parse(_request[0])))
+                                {
+
+                                    _responses.Add(Parse(_response,
+                                                         ResponseTimestamp,
+                                                         HTTPSource,
+                                                         Request: parsedHTTPRequest));
+
+                                }
+
+                                else
+                                    DebugX.LogT("Could not parse reloaded HTTP request!");
 
                             }
 
@@ -1033,6 +1050,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
                     catch (Exception e)
                     {
+                        DebugX.LogT("Could not parse reloaded HTTP response: " + e.Message);
                     }
 
                 }

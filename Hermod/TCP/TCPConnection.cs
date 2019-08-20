@@ -382,8 +382,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             }
 
-            var WaitingTimeMS = 0;
-            var Value         = -1;
+            var WaitingTimeMS  = 0;
+            var Value          = -1;
 
 
             //if (TCPClientConnection.Client.Poll(1, SelectMode.SelectRead) &&

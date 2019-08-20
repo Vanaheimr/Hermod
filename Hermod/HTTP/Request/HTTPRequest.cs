@@ -35,150 +35,68 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// A read-only HTTP request header.
+    /// A HTTP request.
     /// </summary>
     public class HTTPRequest : AHTTPPDU
     {
 
-        #region HTTPServer
+        #region Properties
 
         /// <summary>
         /// The HTTP server of this request.
         /// </summary>
-        public HTTPServer  HTTPServer    { get; }
-
-        #endregion
-
-        #region First PDU line
-
-        #region HTTPMethod
-
-        /// <summary>
-        /// The HTTP method.
-        /// </summary>
-        public HTTPMethod   HTTPMethod         { get; }
-
-        #endregion
-
-        #region FakeURIPrefix
-
-        private String _FakeURIPrefix;
+        public HTTPServer       HTTPServer                  { get; }
 
         /// <summary>
         /// Add this prefix to the URI before sending the request.
         /// </summary>
-        public String FakeURIPrefix
-        {
-
-            get
-            {
-                return _FakeURIPrefix;
-            }
-
-            internal set
-            {
-                _FakeURIPrefix = value;
-            }
-
-        }
-
-        #endregion
-
-        #region URI
-
-        /// <summary>
-        /// The minimal URI (this means e.g. without the query string).
-        /// </summary>
-        public HTTPPath     URI                { get; }
-
-        #endregion
-
-        #region ParsedURIParameters
-
-        private String[] _ParsedURIParameters;
-
-        /// <summary>
-        /// The parsed URI parameters of the best matching URI template.
-        /// Set by the HTTP server.
-        /// </summary>
-        public String[] ParsedURIParameters
-        {
-
-            get
-            {
-                return _ParsedURIParameters;
-            }
-
-            internal set
-            {
-                if (value != null)
-                    _ParsedURIParameters = value;
-            }
-
-        }
-
-        #endregion
-
-        #region QueryString
-
-        /// <summary>
-        /// The HTTP query string.
-        /// </summary>
-        public QueryString  QueryString        { get; }
-
-        #endregion
-
-        #region BestMatchingAcceptType
-
-        private HTTPContentType _BestMatchingAcceptType;
+        public String           FakeURIPrefix               { get; internal set; }
 
         /// <summary>
         /// The best matching accept type.
         /// Set by the HTTP server.
         /// </summary>
-        public HTTPContentType BestMatchingAcceptType
-        {
-
-            get
-            {
-                return _BestMatchingAcceptType;
-            }
-
-            internal set
-            {
-                if (value != null)
-                    _BestMatchingAcceptType = value;
-            }
-
-        }
+        public HTTPContentType  BestMatchingAcceptType      { get; internal set; }
 
         #endregion
 
-        #region ProtocolName
+        #region First request header line
+
+        /// <summary>
+        /// The HTTP method.
+        /// </summary>
+        public HTTPMethod   HTTPMethod              { get; }
+
+        /// <summary>
+        /// The minimal URI (this means e.g. without the query string).
+        /// </summary>
+        public HTTPPath     URI                     { get; }
+
+        /// <summary>
+        /// The parsed URI parameters of the best matching URI template.
+        /// Set by the HTTP server.
+        /// </summary>
+        public String[]     ParsedURIParameters     { get; internal set; }
+
+        /// <summary>
+        /// The HTTP query string.
+        /// </summary>
+        public QueryString  QueryString             { get; }
 
         /// <summary>
         /// The HTTP protocol name field.
         /// </summary>
-        public String       ProtocolName       { get; }
-
-        #endregion
-
-        #region ProtocolVersion
+        public String       ProtocolName            { get; }
 
         /// <summary>
         /// The HTTP protocol version.
         /// </summary>
-        public HTTPVersion  ProtocolVersion    { get; }
-
-        #endregion
-
-
-        #region EntireRequestHeader
+        public HTTPVersion  ProtocolVersion         { get; }
 
         /// <summary>
-        /// Construct the entire HTTP header.
+        /// Construct the entire HTTP request header.
         /// </summary>
-        public String EntireRequestHeader
+        public String       EntireRequestHeader
 
             => String.Concat(HTTPMethod, " ",
                              FakeURIPrefix, URI, QueryString, " ",
@@ -188,9 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #endregion
-
-        #region Standard request header fields
+        #region Standard     request header fields
 
         #region Accept
 
@@ -617,19 +533,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        //#region HTTPSource
-
-        ///// <summary>
-        ///// Intermediary HTTP proxies might include this field to
-        ///// indicate the real IP address of the HTTP client.
-        ///// </summary>
-        ///// <example>X-Forwarded-For: 95.91.73.30</example>
-        //public HTTPSource HTTPSource
-        //           => new HTTPSource(this.HTTPSource,
-        //                             this.X_Forwarded_For);
-
-        //#endregion
-
         #region API-Key
 
         /// <summary>
@@ -688,10 +591,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-
         #region Constructor(s)
 
-        #region (private)  HTTPRequest(Timestamp, RemoteSocket, LocalSocket, HTTPServer, HTTPHeader, HTTPBody = null, HTTPBodyStream = null, CancellationToken = null, EventTrackingId = null)
+        #region (internal) HTTPRequest(Timestamp, RemoteSocket, LocalSocket, HTTPServer, HTTPHeader, HTTPBody = null, HTTPBodyStream = null, CancellationToken = null, EventTrackingId = null)
 
         /// <summary>
         /// Create a new http request header based on the given string representation.
@@ -699,23 +601,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
         /// <param name="LocalSocket">The local TCP/IP socket.</param>
-        /// <param name="HTTPServer">The HTTP server of the request.</param>
+        /// <param name="HTTPServer">The HTTP server who has received this request.</param>
         /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
         /// <param name="HTTPBody">The HTTP body as an array of bytes.</param>
         /// <param name="HTTPBodyStream">The HTTP body as an stream of bytes.</param>
+        /// 
         /// <param name="HTTPBodyReceiveBufferSize">The size of the HTTP body receive buffer.</param>
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
-        private HTTPRequest(DateTime            Timestamp,
-                            HTTPSource          RemoteSocket,
-                            IPSocket            LocalSocket,
-                            HTTPServer          HTTPServer,
-                            String              HTTPHeader,
-                            Byte[]              HTTPBody                    = null,
-                            Stream              HTTPBodyStream              = null,
-                            UInt32              HTTPBodyReceiveBufferSize   = DefaultHTTPBodyReceiveBufferSize,
-                            CancellationToken?  CancellationToken           = null,
-                            EventTracking_Id    EventTrackingId             = null)
+        internal HTTPRequest(DateTime            Timestamp,
+                             HTTPSource          RemoteSocket,
+                             IPSocket            LocalSocket,
+                             HTTPServer          HTTPServer,
+
+                             String              HTTPHeader,
+                             Byte[]              HTTPBody                    = null,
+                             Stream              HTTPBodyStream              = null,
+
+                             UInt32              HTTPBodyReceiveBufferSize   = DefaultHTTPBodyReceiveBufferSize,
+                             CancellationToken?  CancellationToken           = null,
+                             EventTracking_Id    EventTrackingId             = null)
 
             : base(Timestamp,
                    RemoteSocket,
@@ -843,120 +748,386 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region HTTPRequest(Timestamp, HTTPServer, CancellationToken, EventTrackingId, HTTPSource, LocalSocket, HTTPHeader, HTTPBodyStream)
+        #endregion
+
+
+        #region (static) TryParse(Text,        out Request, Timestamp = null, HTTPSource = null, LocalSocket = null, HTTPServer = null, ...)
 
         /// <summary>
-        /// Create a new http request based on the given string representation of a HTTP header and a HTTP body stream.
+        /// Parse the given text as a HTTP request.
         /// </summary>
-        /// <param name="Timestamp">The timestamp of the request.</param>
-        /// <param name="HTTPServer">The HTTP server of the request.</param>
+        /// <param name="Text">A text representation of a HTTP request.</param>
+        /// <param name="Request">The parsed HTTP request.</param>
+        /// 
+        /// <param name="Timestamp">The optional timestamp of the request.</param>
+        /// <param name="HTTPSource">The optional remote TCP socket of the request.</param>
+        /// <param name="LocalSocket">The optional local TCP socket of the request.</param>
+        /// <param name="HTTPServer">The optional HTTP server who has received this request.</param>
+        /// 
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
-        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
-        /// <param name="HTTPSource">The remote TCP/IP socket.</param>
-        /// <param name="LocalSocket">The local TCP/IP socket.</param>
-        /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
-        /// <param name="HTTPBodyStream">The HTTP body as an stream of bytes.</param>
-        /// <param name="HTTPBodyReceiveBufferSize">The size of the HTTP body receive buffer.</param>
-        public HTTPRequest(DateTime           Timestamp,
-                           HTTPServer         HTTPServer,
-                           CancellationToken  CancellationToken,
-                           EventTracking_Id   EventTrackingId,
-                           HTTPSource         HTTPSource,
-                           IPSocket           LocalSocket,
-                           String             HTTPHeader,
-                           Stream             HTTPBodyStream,
-                           UInt32             HTTPBodyReceiveBufferSize  = DefaultHTTPBodyReceiveBufferSize)
+        /// <param name="EventTrackingId">The optional event tracking identification of the request.</param>
+        public static Boolean TryParse(String            Text,
+                                       out HTTPRequest   Request,
 
-            : this(Timestamp,
-                   HTTPSource,
-                   LocalSocket,
-                   HTTPServer,
-                   HTTPHeader,
-                   null,
-                   HTTPBodyStream,
-                   HTTPBodyReceiveBufferSize,
-                   CancellationToken,
-                   EventTrackingId)
+                                       DateTime?            Timestamp           = null,
+                                       HTTPSource?          HTTPSource          = null,
+                                       IPSocket?            LocalSocket         = null,
+                                       HTTPServer           HTTPServer          = null,
 
+                                       CancellationToken?   CancellationToken   = null,
+                                       EventTracking_Id     EventTrackingId     = null)
         {
 
-            // HTTP/1.0 might come without any host header
-            if (!_HeaderFields.ContainsKey("Host"))
-                _HeaderFields.Add("Host", "*");
+            if (Text.IsNeitherNullNorEmpty())
+            {
+
+                try
+                {
+
+                    String Header       = null;
+                    Byte[] Body         = null;
+                    var    EndOfHeader  = Text.IndexOf("\r\n\r\n");
+
+                    if (EndOfHeader == -1)
+                        Header  = Text;
+
+                    else
+                    {
+
+                        Header  = Text.Substring(0, EndOfHeader + 2);
+
+                        if (EndOfHeader + 4 < Text.Length)
+                            Body  = Text.Substring(EndOfHeader + 4).ToUTF8Bytes();
+
+                    }
+
+
+                    Request = new HTTPRequest(Timestamp   ?? DateTime.UtcNow,
+                                              HTTPSource  ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
+                                              LocalSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
+                                              HTTPServer,
+
+                                              Header,
+                                              Body,
+
+                                              CancellationToken:  CancellationToken,
+                                              EventTrackingId:    EventTrackingId);
+
+                    return true;
+
+                }
+                catch (Exception e)
+                {
+                    DebugX.LogT("Could not parse HTTP request: " + e.Message);
+                }
+
+            }
+
+            Request = null;
+            return false;
 
         }
 
         #endregion
 
-        #region HTTPRequest(HTTPHeader)
+        #region (static) TryParse(Text,  Body, out Request, Timestamp = null, HTTPSource = null, LocalSocket = null, HTTPServer = null, ...)
 
         /// <summary>
-        /// Create a new http request header based on the given string representation.
+        /// Parse the given text as a HTTP request.
         /// </summary>
-        /// <param name="HTTPHeader">The string representation of a HTTP header.</param>
-        public HTTPRequest(String HTTPHeader)
-
-            : this(DateTime.UtcNow,
-                   new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
-                   IPSocket.LocalhostV4(IPPort.HTTPS),
-                   null,
-                   HTTPHeader)
-
-        { }
-
-        #endregion
-
-        #region HTTPRequest(HTTPHeader, HTTPBody)
-
-        /// <summary>
-        /// Create a new http request header based on the given string representation.
-        /// </summary>
-        /// <param name="HTTPHeader">The string representation of a HTTP header.</param>
-        /// <param name="HTTPBody">The HTTP body as an array of bytes.</param>
-        public HTTPRequest(String  HTTPHeader,
-                           Byte[]  HTTPBody)
-
-            : this(DateTime.UtcNow,
-                   new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
-                   IPSocket.LocalhostV4(IPPort.HTTPS),
-                   null,
-                   HTTPHeader,
-                   HTTPBody)
-
-        { }
-
-        #endregion
-
-        #region HTTPRequest(HTTPHeader, HTTPBodyStream)
-
-        /// <summary>
-        /// Create a new http request header based on the given string representation.
-        /// </summary>
-        /// <param name="HTTPHeader">The string representation of a HTTP header.</param>
-        /// <param name="HTTPBodyStream">The HTTP body as an stream of bytes.</param>
-        /// <param name="HTTPBodyReceiveBufferSize">The size of the HTTP body receive buffer.</param>
+        /// <param name="Text">A text representation of a HTTP request.</param>
+        /// <param name="Body">The body of the HTTP request.</param>
+        /// <param name="Request">The parsed HTTP request.</param>
+        /// 
+        /// <param name="Timestamp">The optional timestamp of the request.</param>
+        /// <param name="HTTPSource">The optional remote TCP socket of the request.</param>
+        /// <param name="LocalSocket">The optional local TCP socket of the request.</param>
+        /// <param name="HTTPServer">The optional HTTP server who has received this request.</param>
+        /// 
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
-        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
-        public HTTPRequest(String              HTTPHeader,
-                           Stream              HTTPBodyStream,
-                           UInt32              HTTPBodyReceiveBufferSize  = DefaultHTTPBodyReceiveBufferSize,
-                           CancellationToken?  CancellationToken          = null,
-                           EventTracking_Id    EventTrackingId            = null)
+        /// <param name="EventTrackingId">The optional event tracking identification of the request.</param>
+        public static Boolean TryParse(String               Text,
+                                       Byte[]               Body,
+                                       out HTTPRequest      Request,
 
-            : this(DateTime.UtcNow,
-                   new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
-                   IPSocket.LocalhostV4(IPPort.HTTPS),
-                   null,
-                   HTTPHeader,
-                   null,
-                   HTTPBodyStream,
-                   HTTPBodyReceiveBufferSize,
-                   CancellationToken,
-                   EventTrackingId)
+                                       DateTime?            Timestamp           = null,
+                                       HTTPSource?          HTTPSource          = null,
+                                       IPSocket?            LocalSocket         = null,
+                                       HTTPServer           HTTPServer          = null,
 
-        { }
+                                       CancellationToken?   CancellationToken   = null,
+                                       EventTracking_Id     EventTrackingId     = null)
+        {
+
+            if (Text.IsNeitherNullNorEmpty())
+            {
+
+                try
+                {
+
+                    var EndOfHeader = Text.IndexOf("\r\n\r\n");
+
+                    Request = new HTTPRequest(Timestamp   ?? DateTime.UtcNow,
+                                              HTTPSource  ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
+                                              LocalSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
+                                              HTTPServer,
+
+                                              EndOfHeader == -1 ? Text : Text.Substring(0, EndOfHeader + 2),
+                                              Body,
+
+                                              CancellationToken:  CancellationToken,
+                                              EventTrackingId:    EventTrackingId);
+
+                    return true;
+
+                }
+                catch (Exception e)
+                {
+                    DebugX.LogT("Could not parse HTTP request: " + e.Message);
+                }
+
+            }
+
+            Request = null;
+            return false;
+
+        }
+
+
+        /// <summary>
+        /// Parse the given text as a HTTP request.
+        /// </summary>
+        /// <param name="Text">A text representation of a HTTP request.</param>
+        /// <param name="Body">The body of the HTTP request.</param>
+        /// <param name="Request">The parsed HTTP request.</param>
+        /// 
+        /// <param name="Timestamp">The optional timestamp of the request.</param>
+        /// <param name="HTTPSource">The optional remote TCP socket of the request.</param>
+        /// <param name="LocalSocket">The optional local TCP socket of the request.</param>
+        /// <param name="HTTPServer">The optional HTTP server who has received this request.</param>
+        /// 
+        /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
+        /// <param name="EventTrackingId">The optional event tracking identification of the request.</param>
+        public static Boolean TryParse(String               Text,
+                                       Stream               Body,
+                                       out HTTPRequest      Request,
+
+                                       DateTime?            Timestamp           = null,
+                                       HTTPSource?          HTTPSource          = null,
+                                       IPSocket?            LocalSocket         = null,
+                                       HTTPServer           HTTPServer          = null,
+
+                                       CancellationToken?   CancellationToken   = null,
+                                       EventTracking_Id     EventTrackingId     = null)
+        {
+
+            if (Text.IsNeitherNullNorEmpty())
+            {
+
+                try
+                {
+
+                    var EndOfHeader = Text.IndexOf("\r\n\r\n");
+
+                    Request = new HTTPRequest(Timestamp   ?? DateTime.UtcNow,
+                                              HTTPSource  ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
+                                              LocalSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
+                                              HTTPServer,
+
+                                              EndOfHeader == -1 ? Text : Text.Substring(0, EndOfHeader + 2),
+                                              null,
+                                              Body,
+
+                                              EventTrackingId:  EventTrackingId);
+
+                    return true;
+
+                }
+                catch (Exception e)
+                {
+                    DebugX.LogT("Could not parse HTTP request: " + e.Message);
+                }
+
+            }
+
+            Request = null;
+            return false;
+
+        }
 
         #endregion
+
+        #region (static) TryParse(Lines,       out Request, Timestamp = null, HTTPSource = null, LocalSocket = null, HTTPServer = null, ...)
+
+        /// <summary>
+        /// Parse the given text as a HTTP request.
+        /// </summary>
+        /// <param name="Lines">The lines of the text representation of a HTTP request.</param>
+        /// <param name="Request">The parsed HTTP request.</param>
+        /// 
+        /// <param name="Timestamp">The optional timestamp of the request.</param>
+        /// <param name="HTTPSource">The optional remote TCP socket of the request.</param>
+        /// <param name="LocalSocket">The optional local TCp socket of the request.</param>
+        /// <param name="HTTPServer">The optional HTTP server who has received this request.</param>
+        /// 
+        /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
+        /// <param name="EventTrackingId">The optional event tracking identification of the request.</param>
+        public static Boolean TryParse(IEnumerable<String>  Lines,
+                                       out HTTPRequest      Request,
+
+                                       DateTime?            Timestamp           = null,
+                                       HTTPSource?          HTTPSource          = null,
+                                       IPSocket?            LocalSocket         = null,
+                                       HTTPServer           HTTPServer          = null,
+
+                                       CancellationToken?   CancellationToken   = null,
+                                       EventTracking_Id     EventTrackingId     = null)
+        {
+
+            if (Lines.SafeAny())
+            {
+                try
+                {
+
+                    Request = new HTTPRequest(Timestamp   ?? DateTime.UtcNow,
+                                              HTTPSource  ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
+                                              LocalSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
+                                              HTTPServer,
+
+                                              Lines.TakeWhile(line => line != "").        AggregateWith("\r\n"),
+                                              Lines.SkipWhile(line => line != "").Skip(1).AggregateWith("\r\n").ToUTF8Bytes(),
+
+                                              CancellationToken:  CancellationToken,
+                                              EventTrackingId:    EventTrackingId);
+
+                    return true;
+
+                }
+                catch (Exception e)
+                {
+                    DebugX.LogT("Could not parse HTTP request lines: " + e.Message);
+                }
+            }
+
+            Request = null;
+            return false;
+
+        }
+
+        #endregion
+
+        #region (static) TryParse(Lines, Body, out Request, Timestamp = null, HTTPSource = null, LocalSocket = null, HTTPServer = null, ...)
+
+        /// <summary>
+        /// Parse the given text as a HTTP request.
+        /// </summary>
+        /// <param name="Lines">The lines of the text representation of a HTTP request.</param>
+        /// <param name="Body">The body of the HTTP request.</param>
+        /// <param name="Request">The parsed HTTP request.</param>
+        /// 
+        /// <param name="Timestamp">The optional timestamp of the request.</param>
+        /// <param name="HTTPSource">The optional remote TCP socket of the request.</param>
+        /// <param name="LocalSocket">The optional local TCp socket of the request.</param>
+        /// <param name="HTTPServer">The optional HTTP server who has received this request.</param>
+        /// 
+        /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
+        /// <param name="EventTrackingId">The optional event tracking identification of the request.</param>
+        public static Boolean TryParse(IEnumerable<String>  Lines,
+                                       Byte[]               Body,
+                                       out HTTPRequest      Request,
+
+                                       DateTime?            Timestamp           = null,
+                                       HTTPSource?          HTTPSource          = null,
+                                       IPSocket?            LocalSocket         = null,
+                                       HTTPServer           HTTPServer          = null,
+
+                                       CancellationToken?   CancellationToken   = null,
+                                       EventTracking_Id     EventTrackingId     = null)
+        {
+
+            if (Lines.SafeAny())
+            {
+                try
+                {
+
+                    Request = new HTTPRequest(Timestamp   ?? DateTime.UtcNow,
+                                              HTTPSource  ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
+                                              LocalSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
+                                              HTTPServer,
+
+                                              Lines.TakeWhile(line => line != "").AggregateWith("\r\n"),
+                                              Body,
+
+                                              CancellationToken:  CancellationToken,
+                                              EventTrackingId:    EventTrackingId);
+
+                    return true;
+
+                }
+                catch (Exception e)
+                {
+                    DebugX.LogT("Could not parse HTTP request lines: " + e.Message);
+                }
+            }
+
+            Request = null;
+            return false;
+
+        }
+
+
+        /// <summary>
+        /// Parse the given text as a HTTP request.
+        /// </summary>
+        /// <param name="Lines">The lines of the text representation of a HTTP request.</param>
+        /// <param name="Body">The body of the HTTP request.</param>
+        /// <param name="Request">The parsed HTTP request.</param>
+        /// 
+        /// <param name="Timestamp">The optional timestamp of the request.</param>
+        /// <param name="HTTPSource">The optional remote TCP socket of the request.</param>
+        /// <param name="LocalSocket">The optional local TCp socket of the request.</param>
+        /// <param name="HTTPServer">The optional HTTP server who has received this request.</param>
+        /// <param name="EventTrackingId">The optional event tracking identification of the request.</param>
+        public static Boolean TryParse(IEnumerable<String>  Lines,
+                                       Stream               Body,
+                                       out HTTPRequest      Request,
+
+                                       DateTime?            Timestamp        = null,
+                                       HTTPSource?          HTTPSource       = null,
+                                       IPSocket?            LocalSocket      = null,
+                                       HTTPServer           HTTPServer       = null,
+                                       EventTracking_Id     EventTrackingId  = null)
+        {
+
+            if (Lines.SafeAny())
+            {
+                try
+                {
+
+                    Request = new HTTPRequest(Timestamp   ?? DateTime.UtcNow,
+                                              HTTPSource  ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
+                                              LocalSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
+                                              HTTPServer,
+
+                                              Lines.TakeWhile(line => line != "").AggregateWith("\r\n"),
+                                              null,
+                                              Body,
+
+                                              EventTrackingId:  EventTrackingId);
+
+                    return true;
+
+                }
+                catch (Exception e)
+                {
+                    DebugX.LogT("Could not parse HTTP request lines: " + e.Message);
+                }
+            }
+
+            Request = null;
+            return false;
+
+        }
 
         #endregion
 
@@ -970,6 +1141,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             => new HTTPRequest<TContent>(this,
                                          ContentConverter(HTTPBodyAsUTF8String));
+
 
         #region (static) LoadHTTPRequestLogfiles_old(FilePath, FilePattern, FromTimestamp = null, ToTimestamp = null)
 
@@ -1015,8 +1187,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 (  ToTimestamp == null || RequestTimestamp <    ToTimestamp.Value))
                             {
 
-                                _requests.Add(Parse(_request,
-                                                    Timestamp: RequestTimestamp));
+                                if (TryParse(_request,
+                                             out HTTPRequest  parsedHTTPRequest,
+                                             Timestamp:       RequestTimestamp))
+                                {
+                                    _requests.Add(parsedHTTPRequest);
+                                }
+
+                                else
+                                    DebugX.LogT("Could not parse reloaded HTTP request!");
 
                             }
 
@@ -1031,8 +1210,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         relativelinenumber++;
 
                     }
-                    catch (Exception)
+                    catch (Exception e)
                     {
+                        DebugX.LogT("Could not parse reloaded HTTP request: " + e.Message);
                     }
 
                 }
@@ -1040,73 +1220,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             });
 
             return _requests.OrderBy(request => request.Timestamp);
-
-        }
-
-        #endregion
-
-
-
-        #region (static) Parse(Text, Timestamp = null, HTTPSource = null, LocalSocket = null, EventTrackingId = null)
-
-        /// <summary>
-        /// Parse the given text as a HTTP request.
-        /// </summary>
-        /// <param name="Text">A text representation of a HTTP request.</param>
-        /// <param name="Timestamp">The optional timestamp of the request.</param>
-        /// <param name="HTTPSource">The optional remote TCP socket of the request.</param>
-        /// <param name="LocalSocket">The optional local TCp socket of the request.</param>
-        /// <param name="EventTrackingId">The optional event tracking identification of the request.</param>
-        public static HTTPRequest Parse(String            Text,
-                                        DateTime?         Timestamp        = null,
-                                        HTTPSource?       HTTPSource       = null,
-                                        IPSocket?         LocalSocket      = null,
-                                        EventTracking_Id  EventTrackingId  = null)
-        {
-
-            var EndOfHeader  = Text.IndexOf("\r\n\r\n");
-            var Header       = Text.Substring(0, EndOfHeader + 2);
-            var Body         = Text.Substring(EndOfHeader + 4);
-
-            return new HTTPRequest(Timestamp   ?? DateTime.UtcNow,
-                                   HTTPSource  ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
-                                   LocalSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
-                                   null,
-                                   Header,
-                                   Body.ToUTF8Bytes(),
-                                   EventTrackingId: EventTrackingId);
-
-        }
-
-        #endregion
-
-        #region (static) Parse(Text, Timestamp = null, HTTPSource = null, LocalSocket = null, EventTrackingId = null)
-
-        /// <summary>
-        /// Parse the given text as a HTTP request.
-        /// </summary>
-        /// <param name="Text">A text representation of a HTTP request.</param>
-        /// <param name="Timestamp">The optional timestamp of the request.</param>
-        /// <param name="HTTPSource">The optional remote TCP socket of the request.</param>
-        /// <param name="LocalSocket">The optional local TCp socket of the request.</param>
-        /// <param name="EventTrackingId">The optional event tracking identification of the request.</param>
-        public static HTTPRequest Parse(IEnumerable<String>  Text,
-                                        DateTime?            Timestamp        = null,
-                                        HTTPSource?          HTTPSource       = null,
-                                        IPSocket?            LocalSocket      = null,
-                                        EventTracking_Id     EventTrackingId  = null)
-        {
-
-            var Header = Text.TakeWhile(line => line != "").        AggregateWith("\r\n");
-            var Body   = Text.SkipWhile(line => line != "").Skip(1).AggregateWith("\r\n");
-
-            return new HTTPRequest(Timestamp   ?? DateTime.UtcNow,
-                                   HTTPSource  ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
-                                   LocalSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
-                                   null,
-                                   Header,
-                                   Body.ToUTF8Bytes(),
-                                   EventTrackingId: EventTrackingId);
 
         }
 
@@ -1138,6 +1251,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             private readonly HTTPClient _HTTPClient;
 
             #region Non-http header fields
+
+            /// <summary>
+            /// The related HTTP server.
+            /// </summary>
+            public HTTPServer HTTPServer { get; set; }
 
             #region EntireRequestHeader
 
@@ -1795,7 +1913,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 this.HTTPStatusCode   = HTTPStatusCode.OK;
                 this.HTTPMethod       = HTTPMethod.GET;
                 this.URI              = HTTPPath.Parse("/");
-                this.QueryString     = QueryString.New;
+                this.QueryString      = QueryString.New;
                 SetHeaderField(HTTPHeaderField.Accept, new AcceptTypes());
                 this.ProtocolName     = "HTTP";
                 this.ProtocolVersion  = new HTTPVersion(1, 1);
@@ -1804,43 +1922,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region HTTPRequestBuilder(OtherHTTPRequest)
+            #region HTTPRequestBuilder(Request)
 
             /// <summary>
             /// Create a new HTTP request.
             /// </summary>
-            public Builder(HTTPRequest OtherHTTPRequest)
+            public Builder(HTTPRequest Request)
             {
 
              //   this.HTTPStatusCode   = OtherHTTPRequest.HTTPStatusCode;
-                this.HTTPMethod       = OtherHTTPRequest.HTTPMethod;
-                this.URI              = OtherHTTPRequest.URI;
-                this.QueryString     = OtherHTTPRequest.QueryString;
-                SetHeaderField(HTTPHeaderField.Accept, new AcceptTypes(OtherHTTPRequest.Accept.ToArray()));
-                this.ProtocolName     = OtherHTTPRequest.ProtocolName;
-                this.ProtocolVersion  = OtherHTTPRequest.ProtocolVersion;
+                this.HTTPServer       = Request.HTTPServer;
+                this.HTTPMethod       = Request.HTTPMethod;
+                this.URI              = Request.URI;
+                this.QueryString      = Request.QueryString;
+                SetHeaderField(HTTPHeaderField.Accept, new AcceptTypes(Request.Accept.ToArray()));
+                this.ProtocolName     = Request.ProtocolName;
+                this.ProtocolVersion  = Request.ProtocolVersion;
 
-                this.Content          = OtherHTTPRequest.HTTPBody;
-                this.ContentStream    = OtherHTTPRequest.HTTPBodyStream;
+                this.Content          = Request.HTTPBody;
+                this.ContentStream    = Request.HTTPBodyStream;
 
-                foreach (var kvp in OtherHTTPRequest)
+                foreach (var kvp in Request)
                     Set(kvp.Key, kvp.Value);
 
             }
 
             #endregion
-
-            #endregion
-
-
-            #region (operator) HTTPRequestBuilder => HTTPRequestHeader
-
-            /// <summary>
-            /// An implicit conversion from a HTTPRequestBuilder into a HTTPRequest.
-            /// </summary>
-            /// <param name="Builder">An HTTP request builder.</param>
-            public static implicit operator HTTPRequest(Builder Builder)
-                => Builder.AsImmutable;
 
             #endregion
 
@@ -1965,7 +2072,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region Set general header fields
+            #region Set general  header fields
 
             #region SetCacheControl(CacheControl)
 
@@ -2123,7 +2230,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region Set request header fields
+            #region Set request  header fields
 
             #region AddAccept(AcceptType)
 
@@ -2548,6 +2655,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
+
+            #region (operator) HTTPRequestBuilder => HTTPRequest
+
+            /// <summary>
+            /// An implicit conversion from a HTTP request builder into a HTTP request.
+            /// </summary>
+            /// <param name="Builder">An HTTP request builder.</param>
+            public static implicit operator HTTPRequest(Builder Builder)
+                => Builder.AsImmutable;
+
+            #endregion
+
             #region AsImmutable
 
             /// <summary>
@@ -2560,8 +2679,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     PrepareImmutability();
 
-                    return new HTTPRequest(EntireRequestHeader, Content) {
+                    return new HTTPRequest(DateTime.UtcNow,
+                                           new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
+                                           IPSocket.LocalhostV4(IPPort.HTTPS),
+                                           HTTPServer,
+
+                                           EntireRequestHeader,
+                                           Content) {
+
                         FakeURIPrefix = FakeURIPrefix
+
                     };
 
                 }
@@ -2579,9 +2706,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     #region HTTPRequest<TContent>
 
     /// <summary>
-    /// A helper class to transport HTTP data and its metadata.
+    /// A generic HTTP request.
     /// </summary>
-    /// <typeparam name="TContent">The type of the parsed data.</typeparam>
+    /// <typeparam name="TContent">The type of the HTTP body data.</typeparam>
     public class HTTPRequest<TContent> : HTTPRequest
     {
 
@@ -2606,15 +2733,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An error during parsing.
         /// </summary>
-        public Boolean HasErrors
+        public Boolean    HasErrors
             => Exception != null && !_IsFault;
 
         #endregion
 
         #region Constructor(s)
 
-        #region HTTPRequest(Request, Content, IsFault = false, Exception = null)
-
+        /// <summary>
+        /// Create a new generic HTTP request.
+        /// </summary>
+        /// <param name="Request">The non-generic HTTP request.</param>
+        /// <param name="Content">The generic HTTP body data.</param>
+        /// <param name="IsFault">Whether there is an error.</param>
+        /// <param name="Exception">An optional exception.</param>
         public HTTPRequest(HTTPRequest  Request,
                            TContent     Content,
                            Boolean      IsFault    = false,
@@ -2629,8 +2761,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.Exception  = Exception;
 
         }
-
-        #endregion
 
         #endregion
 

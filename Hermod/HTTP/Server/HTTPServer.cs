@@ -1437,22 +1437,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     try
                                     {
 
-                                        HttpRequest = new HTTPRequest(RequestTimestamp,
-                                                                      this,
-                                                                      CTS.Token,
-                                                                      EventTracking_Id.New,
-                                                                      new HTTPSource(TCPConnection.RemoteSocket),
-                                                                      TCPConnection.LocalSocket,
-                                                                      HTTPHeaderString.Trim(),
-                                                                      TCPConnection.SSLStream != null
-                                                                          ? (Stream) TCPConnection.SSLStream
-                                                                          : (Stream) TCPConnection.NetworkStream);
+                                        HttpRequest = new HTTPRequest(Timestamp:          RequestTimestamp,
+                                                                      RemoteSocket:       new HTTPSource(TCPConnection.RemoteSocket),
+                                                                      LocalSocket:        TCPConnection.LocalSocket,
+                                                                      HTTPServer:         this,
+
+                                                                      HTTPHeader:         HTTPHeaderString.Trim(),
+                                                                      HTTPBody:           null,
+                                                                      HTTPBodyStream:     TCPConnection.SSLStream != null
+                                                                                              ? (Stream) TCPConnection.SSLStream
+                                                                                              : (Stream) TCPConnection.NetworkStream,
+
+                                                                      CancellationToken:  CTS.Token,
+                                                                      EventTrackingId:    EventTracking_Id.New);
 
                                     }
                                     catch (Exception e)
                                     {
 
-                                        DebugX.Log(nameof(HTTPServer) + " while trying to parse the HTTP header: " + e.Message);
+                                        DebugX.Log("Exception in " + nameof(HTTPServer) + " while trying to parse the HTTP header: " + e.Message);
 
                                         NotifyErrors(null,
                                                      TCPConnection,
@@ -1465,10 +1468,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                     #endregion
 
-                                    #region Call RequestLog delegate
-
                                     if (HttpRequest != null)
                                     {
+
+                                        #region Call RequestLog delegate
 
                                         try
                                         {
@@ -1483,18 +1486,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             DebugX.LogT(nameof(HTTPServer) + " request log => " + e.Message);
                                         }
 
-                                    }
+                                        #endregion
 
-                                    #endregion
+                                        #region Invoke HTTP handler
 
-                                    #region Invoke HTTP handler
-
-                                    HTTPResponse _HTTPResponse = null;
-
-                                    //var OnNotificationLocal = OnNotification;
-                                    //if (OnNotificationLocal != null &&
-                                    if (HttpRequest         != null)
-                                    {
+                                        HTTPResponse _HTTPResponse = null;
 
                                         // ToDo: How to read request body by application code?!
                                         //_HTTPResponse = OnNotification("TCPConnectionId",
@@ -1505,6 +1501,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         {
 
                                             _HTTPResponse = InvokeHandler(HttpRequest).Result;
+
+                                            if (_HTTPResponse == null)
+                                                DebugX.Log(nameof(HTTPServer) + ": HTTP response is null!");
 
                                         }
                                         catch (Exception e)
@@ -1526,9 +1525,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                             if (TCPConnection == null)
                                                 DebugX.Log(nameof(HTTPServer) + " TCPConnection is null!");
-
-                                            if (_HTTPResponse == null)
-                                                DebugX.Log(nameof(HTTPServer) + " HTTP response is null!");
 
                                             if (_HTTPResponse.RawHTTPHeader.IsNullOrEmpty())
                                                 DebugX.Log(nameof(HTTPServer) + " HTTP response header is null or empty!");
@@ -1577,15 +1573,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             ServerClose = true;
                                         }
 
-                                    }
+                                        #endregion
 
-                                    #endregion
-
-                                    #region Call ResponseLog delegate
-
-                                    if ( HttpRequest  != null &&
-                                        _HTTPResponse != null)
-                                    {
+                                        #region Call ResponseLog delegate
 
                                         try
                                         {
@@ -1601,36 +1591,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             DebugX.LogT(nameof(HTTPServer) + " response log => " + e.Message);
                                         }
 
-                                    }
+                                        #endregion
 
-                                    #endregion
+                                        #region if HTTP Status Code == 4xx | 5xx => Call ErrorLog delegate
 
-                                    #region if HTTP Status Code == 4xx | 5xx => Call ErrorLog delegate
-
-                                    if ( HttpRequest  != null &&
-                                        _HTTPResponse != null &&
-                                        _HTTPResponse.HTTPStatusCode.Code >  400 &&
-                                        _HTTPResponse.HTTPStatusCode.Code <= 599)
-                                    {
-
-                                        try
+                                        if ( HttpRequest  != null &&
+                                            _HTTPResponse != null &&
+                                            _HTTPResponse.HTTPStatusCode.Code >  400 &&
+                                            _HTTPResponse.HTTPStatusCode.Code <= 599)
                                         {
 
-                                            ErrorLog?.WhenAll(RequestTimestamp,
-                                                              this as Object as HTTPAPI,
-                                                              HttpRequest,
-                                                              _HTTPResponse,
-                                                              _HTTPResponse.HTTPStatusCode.ToString());
+                                            try
+                                            {
+
+                                                ErrorLog?.WhenAll(RequestTimestamp,
+                                                                  this as Object as HTTPAPI,
+                                                                  HttpRequest,
+                                                                  _HTTPResponse,
+                                                                  _HTTPResponse.HTTPStatusCode.ToString());
+
+                                            }
+                                            catch (Exception e)
+                                            {
+                                                DebugX.LogT(nameof(HTTPServer) + " => " + e.Message);
+                                            }
 
                                         }
-                                        catch (Exception e)
-                                        {
-                                            DebugX.LogT(nameof(HTTPServer) + " => " + e.Message);
-                                        }
+
+                                        #endregion
 
                                     }
-
-                                    #endregion
 
                                 }
 
