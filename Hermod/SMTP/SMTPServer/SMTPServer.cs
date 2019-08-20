@@ -19,9 +19,9 @@
 
 using System;
 using System.Threading;
-using System.Reflection;
+using System.Net.Security;
 using System.Collections.Generic;
-using System.Security.Cryptography.X509Certificates;
+using System.Security.Authentication;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
@@ -29,8 +29,6 @@ using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Mail;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using System.Security.Authentication;
-using System.Net.Security;
 
 #endregion
 
@@ -408,7 +406,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// </summary>
         /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
         /// <param name="EMail">The incoming request.</param>
-        /// <param name="HTTPResponse">The outgoing response.</param>
+        /// <param name="SMTPCommand">The SMTP command.</param>
+        /// <param name="Response">The outgoing response.</param>
         /// <param name="Error">The occured error.</param>
         /// <param name="LastException">The last occured exception.</param>
         public void LogError(DateTime              ServerTimestamp,
@@ -418,12 +417,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                              String                Error          = null,
                              Exception             LastException  = null)
         {
-
-            var ErrorLogLocal = ErrorLog;
-
-            if (ErrorLogLocal != null)
-                ErrorLogLocal(this, ServerTimestamp, SMTPCommand, EMail, Response, Error, LastException);
-
+            ErrorLog?.Invoke(this, ServerTimestamp, SMTPCommand, EMail, Response, Error, LastException);
         }
 
         #endregion

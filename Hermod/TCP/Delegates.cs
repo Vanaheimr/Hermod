@@ -27,15 +27,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
     /// <summary>
     /// TCP socket attached delegate.
     /// </summary>
-    /// <param name="Sender">The sender of this event.</param>
+    /// <param name="TCPServer">The sender of this event.</param>
     /// <param name="Timestamp">The timestamp of the TCP socket attached event.</param>
     /// <param name="TCPSocket">The new TCP socket.</param>
+    /// <param name="Message">An optional message.</param>
     public delegate void TCPSocketAttachedHandler(ATCPServers TCPServer, DateTime Timestamp, IPSocket TCPSocket, String Message = null);
 
     /// <summary>
     /// New connection delegate.
     /// </summary>
-    /// <param name="Sender">The sender of this event.</param>
+    /// <param name="TCPServer">The sender of this event.</param>
     /// <param name="Timestamp">The timestamp of the new TCP connection event.</param>
     /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
     /// <param name="ConnectionId">The identification of this connection.</param>
@@ -55,7 +56,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
     /// <summary>
     /// TCP socket detached delegate.
     /// </summary>
-    /// <param name="Sender">The sender of this event.</param>
+    /// <param name="TCPServer">The sender of this event.</param>
     /// <param name="Timestamp">The timestamp of the TCP socket detached event.</param>
     /// <param name="TCPSocket">The TCP socket.</param>
     public delegate void TCPSocketDetachedHandler(ATCPServers TCPServer, DateTime Timestamp, IPSocket TCPSocket, String Message = null);

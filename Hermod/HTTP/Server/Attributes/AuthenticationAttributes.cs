@@ -142,7 +142,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Optional authentication possible.
         /// </summary>
         /// <param name="AuthenticationType">The authentication type(s).</param>
-        /// <param name="Realm">The HTTP realm.</param>
         public OptionalAuthenticationAttribute(HTTPAuthenticationTypes AuthenticationType)
             : base(AuthenticationType)
         { }

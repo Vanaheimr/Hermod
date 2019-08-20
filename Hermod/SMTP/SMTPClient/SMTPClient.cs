@@ -710,7 +710,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                             {
 
                                 // MAIL FROM:<test@example.com>
-                                /// 250 2.1.0 Ok
+                                // 250 2.1.0 Ok
                                 var MailFromCommand = "MAIL FROM: <" + MailFrom.Address.ToString() + ">";
 
                                 if      (Capabilities.HasFlag(SmtpCapabilities.EightBitMime))
@@ -729,7 +729,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                             #region RCPT TO(s):
 
                             // RCPT TO:<user@example.com>
-                            /// 250 2.1.5 Ok
+                            // 250 2.1.5 Ok
                             EMailEnvelop.RcptTo.ForEach(Rcpt => {
 
                                 var _RcptToResponse = SendCommandAndWait("RCPT TO: <" + Rcpt.Address.ToString() + ">");
@@ -765,7 +765,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                             // The encoded MIME text lines must not be longer than 76 characters!
 
-                            /// 354 End data with <CR><LF>.<CR><LF>
+                            // 354 End data with <CR><LF>.<CR><LF>
                             var _DataResponse = SendCommandAndWait("DATA");
                             if (_DataResponse.StatusCode != SMTPStatusCode.StartMailInput)
                                 throw new SMTPClientException("SMTP DATA command error: " + _DataResponse.ToString());
@@ -804,8 +804,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                             #region End-of-DATA
 
-                            /// .
-                            /// 250 2.0.0 Ok: queued as 83398728027
+                            // .
+                            // 250 2.0.0 Ok: queued as 83398728027
                             var _FinishedResponse = SendCommandAndWait(".");
                             if (_FinishedResponse.StatusCode != SMTPStatusCode.Ok)
                                 throw new SMTPClientException("SMTP DATA '.' command error: " + _FinishedResponse.ToString());
@@ -814,8 +814,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                             #region QUIT
 
-                            /// QUIT
-                            /// 221 2.0.0 Bye
+                            // QUIT
+                            // 221 2.0.0 Bye
                             var _QuitResponse     = SendCommandAndWait("QUIT");
                             if (_QuitResponse.StatusCode != SMTPStatusCode.ServiceClosingTransmissionChannel)
                                 throw new SMTPClientException("SMTP QUIT command error: " + _QuitResponse.ToString());

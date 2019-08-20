@@ -60,8 +60,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     /// </summary>
     /// <param name="SMTPProcessor">The sending SMTP processor.</param>
     /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
+    /// <param name="SMTPCommand">The SMTP command.</param>
     /// <param name="EMail">The incoming e-mail.</param>
-    /// <param name="SMTPResponse">The outgoing response.</param>
+    /// <param name="Response">The outgoing response.</param>
     /// <param name="Error">The occured error.</param>
     /// <param name="LastException">The last occured exception.</param>
     internal delegate void InternalErrorLogHandler (SMTPConnection SMTPProcessor, DateTime ServerTimestamp, String SMTPCommand, EMail EMail, SMTPExtendedResponse Response, String Error = null, Exception LastException = null);
@@ -71,8 +72,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     /// </summary>
     /// <param name="SMTPServer">The sending SMTP server.</param>
     /// <param name="ServerTimestamp">The timestamp of the incoming request.</param>
+    /// <param name="SMTPCommand">The SMTP command.</param>
     /// <param name="EMail">The incoming e-mail.</param>
-    /// <param name="SMTPResponse">The outgoing response.</param>
+    /// <param name="Response">The outgoing response.</param>
     /// <param name="Error">The occured error.</param>
     /// <param name="LastException">The last occured exception.</param>
     public delegate void SMTPErrorLogHandler(SMTPServer SMTPServer, DateTime ServerTimestamp, String SMTPCommand, EMail EMail, SMTPExtendedResponse Response, String Error = null, Exception LastException = null);

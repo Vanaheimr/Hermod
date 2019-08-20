@@ -117,12 +117,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Int32 CompareTo(Object Object)
         {
 
-            if (Object == null)
+            if (Object is null)
                 throw new ArgumentNullException("The given object must not be null!");
 
-            // Check if the given object is an KeepAliveType.
-            var KeepAliveType = Object as KeepAliveType;
-            if ((Object) KeepAliveType == null)
+            if (!(Object is KeepAliveType KeepAliveType))
                 throw new ArgumentException("The given object is not a KeepAliveType!");
 
             return CompareTo(KeepAliveType);
@@ -136,11 +134,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPStatusCode">An object to compare with.</param>
+        /// <param name="KeepAliveType">An object to compare with.</param>
         public Int32 CompareTo(KeepAliveType KeepAliveType)
         {
 
-            if ((Object) KeepAliveType == null)
+            if (KeepAliveType is null)
                 throw new ArgumentNullException("The given KeepAliveType must not be null!");
 
             if (Timeout == KeepAliveType.Timeout)
@@ -166,15 +164,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public override Boolean Equals(Object Object)
         {
 
-            if (Object == null)
+            if (Object is null)
                 return false;
 
-            // Check if the given object is an KeepAliveType.
-            var KeepAliveType = Object as KeepAliveType;
-            if ((Object) KeepAliveType == null)
+            if (!(Object is KeepAliveType KeepAliveType))
                 return false;
 
-            return this.Equals(KeepAliveType);
+            return Equals(KeepAliveType);
 
         }
 
@@ -189,8 +185,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <returns>True if both match; False otherwise.</returns>
         public Boolean Equals(KeepAliveType KeepAliveType)
         {
-            
-            if ((Object) KeepAliveType == null)
+
+            if (KeepAliveType is null)
                 return false;
 
             if (!Timeout.Equals(KeepAliveType.Timeout))

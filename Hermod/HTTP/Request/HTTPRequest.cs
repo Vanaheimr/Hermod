@@ -1132,15 +1132,71 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        public HTTPRequest<TContent> ConvertContent<TContent>(Func<Byte[], TContent> ContentConverter)
+        #region ConvertContent<TResult>(ContentConverter, OnException = null)
 
-            => new HTTPRequest<TContent>(this,
-                                         ContentConverter(HTTPBody));
+        /// <summary>
+        /// Convert the content of the HTTP response body via the given
+        /// content converter delegate.
+        /// </summary>
+        /// <typeparam name="TResult">The type of the converted HTTP response body content.</typeparam>
+        /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
+        /// <param name="OnException">A delegate to call whenever an exception during the conversion occures.</param>
+        public HTTPRequest<TResult> ConvertContent<TResult>(Func<String, OnExceptionDelegate, TResult>  ContentConverter,
+                                                            OnExceptionDelegate                         OnException  = null)
+        {
 
-        public HTTPRequest<TContent> ConvertContent<TContent>(Func<String, TContent> ContentConverter)
+            if (ContentConverter == null)
+                throw new ArgumentNullException(nameof(ContentConverter), "The given content converter delegate must not be null!");
 
-            => new HTTPRequest<TContent>(this,
-                                         ContentConverter(HTTPBodyAsUTF8String));
+            return new HTTPRequest<TResult>(this,
+                                            ContentConverter(HTTPBodyAsUTF8String,
+                                                             OnException));
+
+        }
+
+
+        /// <summary>
+        /// Convert the content of the HTTP response body via the given
+        /// content converter delegate.
+        /// </summary>
+        /// <typeparam name="TResult">The type of the converted HTTP response body content.</typeparam>
+        /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
+        /// <param name="OnException">A delegate to call whenever an exception during the conversion occures.</param>
+        public HTTPRequest<TResult> ConvertContent<TResult>(Func<Byte[], OnExceptionDelegate, TResult>  ContentConverter,
+                                                            OnExceptionDelegate                         OnException  = null)
+        {
+
+            if (ContentConverter == null)
+                throw new ArgumentNullException(nameof(ContentConverter), "The given content converter delegate must not be null!");
+
+            return new HTTPRequest<TResult>(this,
+                                            ContentConverter(HTTPBody,
+                                                             OnException));
+
+        }
+
+
+        /// <summary>
+        /// Convert the content of the HTTP response body via the given
+        /// content converter delegate.
+        /// </summary>
+        /// <typeparam name="TResult">The type of the converted HTTP response body content.</typeparam>
+        /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
+        /// <param name="OnException">A delegate to call whenever an exception during the conversion occures.</param>
+        public HTTPRequest<TResult> ConvertContent<TResult>(Func<Stream, OnExceptionDelegate, TResult>  ContentConverter,
+                                                            OnExceptionDelegate                         OnException  = null)
+        {
+
+            if (ContentConverter == null)
+                throw new ArgumentNullException(nameof(ContentConverter), "The given content converter delegate must not be null!");
+
+            return new HTTPRequest<TResult>(this,
+                                            ContentConverter(HTTPBodyStream,
+                                                             OnException));
+
+        }
+
+        #endregion
 
 
         #region (static) LoadHTTPRequestLogfiles_old(FilePath, FilePattern, FromTimestamp = null, ToTimestamp = null)
@@ -2061,7 +2117,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// The HTTP content/body as a stream.
             /// </summary>
-            /// <param name="Stream">The HTTP content/body as a stream.</param>
+            /// <param name="ContentStream">The HTTP content/body as a stream.</param>
             public Builder SetContent(Stream ContentStream)
             {
                 this.ContentStream = ContentStream;
@@ -2763,6 +2819,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
+
+
+        #region ConvertContent<TResult>(ContentConverter, OnException = null)
+
+        /// <summary>
+        /// Convert the content of the HTTP response body via the given
+        /// content converter delegate.
+        /// </summary>
+        /// <typeparam name="TResult">The type of the converted HTTP response body content.</typeparam>
+        /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
+        /// <param name="OnException">A delegate to call whenever an exception during the conversion occures.</param>
+        public HTTPRequest<TResult> ConvertContent<TResult>(Func<TContent, OnExceptionDelegate, TResult>  ContentConverter,
+                                                            OnExceptionDelegate                           OnException  = null)
+        {
+
+            if (ContentConverter == null)
+                throw new ArgumentNullException(nameof(ContentConverter), "The given content converter delegate must not be null!");
+
+            return new HTTPRequest<TResult>(this,
+                                            ContentConverter(Content,
+                                                             OnException));
+
+        }
+
+        #endregion
+
 
     }
 

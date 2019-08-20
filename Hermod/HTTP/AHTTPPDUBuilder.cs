@@ -975,7 +975,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return the given HTTP header field.
         /// </summary>
-        /// <typeparam name="T">The expected type of the field value.</typeparam>
         /// <param name="HeaderField">The HTTP header field.</param>
         protected UInt64? GetHeaderField_UInt64(HTTPHeaderField HeaderField)
         {

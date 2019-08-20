@@ -43,20 +43,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         private readonly String  InternalId;
 
-        /// <summary>
-        /// The regular expression for parsing a HTTP URI.
-        /// </summary>
-        //public static readonly Regex URI_RegEx  = new Regex(@"^https:\/\/.+$",
-        //                                                    RegexOptions.IgnorePatternWhitespace);
-
         #endregion
 
         #region Properties
-
-        /// <summary>
-        /// The HTTP hostname part of the HTTP URI.
-        /// </summary>
-        //public HTTPHostname  Hostname   { get; }
 
         /// <summary>
         /// The length of the HTTP path.

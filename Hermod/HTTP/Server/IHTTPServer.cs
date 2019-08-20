@@ -53,10 +53,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
         /// <summary>
-        /// Add a HTTP Sever Sent Events source and a method call back for the given URI template.
+        /// Add a HTTP Sever Sent Events source and a method call back for the given URL template.
         /// </summary>
         /// <param name="EventIdentification">The unique identification of the event source.</param>
-        /// <param name="URITemplate">The URI template.</param>
+        /// <param name="URLTemplate">The URL template.</param>
         /// 
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
         /// <param name="IncludeFilterAtRuntime">Include this events within the HTTP SSE output. Can e.g. be used to filter events by HTTP users.</param>
@@ -76,7 +76,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         public static HTTPEventSource<JObject> AddJSONEventSource(this IHTTPServer                   HTTPServer,
                                                                   HTTPEventSource_Id                 EventIdentification,
-                                                                  HTTPPath                           URITemplate,
+                                                                  HTTPPath                           URLTemplate,
 
                                                                   UInt32                             MaxNumberOfCachedEvents      = 500,
                                                                   Func<HTTPEvent<JObject>, Boolean>  IncludeFilterAtRuntime       = null,
@@ -96,7 +96,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                   HTTPDelegate                       DefaultErrorHandler          = null)
 
             => HTTPServer.AddEventSource(EventIdentification,
-                                         URITemplate,
+                                         URLTemplate,
 
                                          MaxNumberOfCachedEvents,
                                          IncludeFilterAtRuntime,
@@ -162,7 +162,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         void AddMethodCallback(HTTPHostname                  Hostname,
                                HTTPMethod                    HTTPMethod,
-                               HTTPPath                       URITemplate,
+                               HTTPPath                      URLTemplate,
                                HTTPContentType               HTTPContentType             = null,
                                HTTPAuthentication            URIAuthentication           = null,
                                HTTPAuthentication            HTTPMethodAuthentication    = null,
@@ -175,7 +175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         void AddMethodCallback(HTTPHostname                  Hostname,
                                HTTPMethod                    HTTPMethod,
-                               IEnumerable<HTTPPath>          URITemplates,
+                               IEnumerable<HTTPPath>         URLTemplates,
                                HTTPContentType               HTTPContentType             = null,
                                HTTPAuthentication            URIAuthentication           = null,
                                HTTPAuthentication            HTTPMethodAuthentication    = null,
@@ -188,7 +188,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         void AddMethodCallback(HTTPHostname                  Hostname,
                                HTTPMethod                    HTTPMethod,
-                               HTTPPath                       URITemplate,
+                               HTTPPath                      URLTemplate,
                                IEnumerable<HTTPContentType>  HTTPContentTypes,
                                HTTPAuthentication            URIAuthentication           = null,
                                HTTPAuthentication            HTTPMethodAuthentication    = null,
@@ -201,7 +201,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         void AddMethodCallback(HTTPHostname                  Hostname,
                                HTTPMethod                    HTTPMethod,
-                               IEnumerable<HTTPPath>          URITemplates,
+                               IEnumerable<HTTPPath>         URLTemplates,
                                IEnumerable<HTTPContentType>  HTTPContentTypes,
                                HTTPAuthentication            URIAuthentication           = null,
                                HTTPAuthentication            HTTPMethodAuthentication    = null,
@@ -246,10 +246,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      String                          LogfileReloadSearchPattern   = null);
 
         /// <summary>
-        /// Add a HTTP Sever Sent Events source and a method call back for the given URI template.
+        /// Add a HTTP Sever Sent Events source and a method call back for the given URL template.
         /// </summary>
         /// <param name="EventIdentification">The unique identification of the event source.</param>
-        /// <param name="URITemplate">The URI template.</param>
+        /// <param name="URLTemplate">The URL template.</param>
         /// 
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
         /// <param name="IncludeFilterAtRuntime">Include this events within the HTTP SSE output. Can e.g. be used to filter events by HTTP users.</param>
@@ -270,7 +270,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         HTTPEventSource<TData> AddEventSource<TData>(HTTPEventSource_Id               EventIdentification,
-                                                     HTTPPath                         URITemplate,
+                                                     HTTPPath                         URLTemplate,
 
                                                      UInt32                           MaxNumberOfCachedEvents      = 500,
                                                      Func<HTTPEvent<TData>, Boolean>  IncludeFilterAtRuntime       = null,
@@ -335,8 +335,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        void Redirect(HTTPHostname Hostname, HTTPMethod HTTPMethod, HTTPPath URITemplate, HTTPContentType HTTPContentType, HTTPPath URITarget);
-        void Redirect(HTTPMethod HTTPMethod, HTTPPath URITemplate, HTTPContentType HTTPContentType, HTTPPath URITarget);
+        void Redirect(HTTPHostname Hostname, HTTPMethod HTTPMethod, HTTPPath URLTemplate, HTTPContentType HTTPContentType, HTTPPath URITarget);
+        void Redirect(HTTPMethod HTTPMethod, HTTPPath URLTemplate, HTTPContentType HTTPContentType, HTTPPath URITarget);
 
         void AddFilter(HTTPFilter1Delegate Filter);
         void AddFilter(HTTPFilter2Delegate Filter);

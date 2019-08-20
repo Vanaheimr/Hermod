@@ -104,7 +104,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Multicast
         /// Accepts a message of type S from a sender for further processing
         /// and delivery to the subscribers.
         /// </summary>
-        /// <param name="Sender">The sender of the message.</param>
         /// <param name="MessageIn">The message.</param>
         public override void ProcessArrow(TIn MessageIn)
         {

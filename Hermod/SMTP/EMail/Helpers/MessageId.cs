@@ -116,7 +116,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <summary>
         /// Parse an e-mail message identification from a string.
         /// </summary>
-        /// <param name="MessageId">A string representation of an e-mail message identification.</param>
+        /// <param name="MessageIdString">A string representation of an e-mail message identification.</param>
         public static MessageId Parse(String MessageIdString)
         {
 

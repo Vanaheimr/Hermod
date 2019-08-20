@@ -1,4 +1,4 @@
-﻿///*
+﻿//*
 // * Copyright (c) 2010-2019, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
 // * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
 // *
