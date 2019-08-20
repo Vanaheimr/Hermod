@@ -2460,6 +2460,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public async Task<HTTPResponse> InvokeHandler(HTTPRequest Request)
         {
 
+            #region Process HTTP filters...
+
             HTTPResponse _HTTPResponse = null;
 
             foreach (var _HTTPFilter in _HTTPFilters)
@@ -2471,6 +2473,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     return _HTTPResponse;
 
             }
+
+            #endregion
+
+            #region Process HTTP rewrites...
 
             foreach (var _HTTPRewrite in _HTTPRewrites)
             {
@@ -2485,10 +2491,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
+            #endregion
+
+
             var HTTPHandlers = GetHandlers(Request);
 
             if (HTTPHandlers != null)
             {
+
+                #region HTTP request logger
 
                 if (HTTPHandlers.HTTPRequestLogger != null)
                 {
@@ -2505,6 +2516,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         DebugX.LogT("HTTP server request logger exception: " + e.Message);
                     }
                 }
+
+                #endregion
 
                 try
                 {
@@ -2532,6 +2545,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 }
 
+                if (_HTTPResponse == null)
+                    _HTTPResponse = new HTTPResponse.Builder(Request) {
+                                        HTTPStatusCode  = HTTPStatusCode.NotFound,
+                                        Server          = Request.Host.ToString(),
+                                        Date            = DateTime.UtcNow,
+                                        ContentType     = HTTPContentType.TEXT_UTF8,
+                                        Content         = "Error 404 - Not Found!".ToUTF8Bytes(),
+                                        Connection      = "close"
+                                    };
+
+                #region HTTP response logger
+
                 if (HTTPHandlers.HTTPResponseLogger != null)
                 {
                     try
@@ -2549,7 +2574,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
                 }
 
-                return _HTTPResponse;
+                #endregion
 
             }
 
@@ -2558,7 +2583,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         Server          = Request.Host.ToString(),
                                         Date            = DateTime.UtcNow,
                                         ContentType     = HTTPContentType.TEXT_UTF8,
-                                        Content         = "Error 404 - Not Found!".ToUTF8Bytes(),
+                                        Content         = "Error 404 - No HTTP handler found!".ToUTF8Bytes(),
                                         Connection      = "close"
                                     };
 
