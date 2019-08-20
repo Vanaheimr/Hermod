@@ -1506,27 +1506,63 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                             _HTTPResponse = InvokeHandler(HttpRequest).Result;
 
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            DebugX.Log(nameof(HTTPServer) + " while invoking request: " + Environment.NewLine + e);
+                                            ServerClose = true;
+                                        }
+
+                                        try
+                                        {
+
                                             TCPConnection.WriteToResponseStream((_HTTPResponse.RawHTTPHeader.Trim() +
                                                                                 "\r\n\r\n").
                                                                                 ToUTF8Bytes());
 
-                                            if (_HTTPResponse.HTTPBody?.Length > 0)
-                                                TCPConnection.WriteToResponseStream(_HTTPResponse.HTTPBody);
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            DebugX.Log(nameof(HTTPServer) + " writing response header: " + Environment.NewLine + e);
+                                            ServerClose = true;
+                                        }
 
-                                            else if (_HTTPResponse.HTTPBodyStream != null)
+                                        if (_HTTPResponse.HTTPBody?.Length > 0)
+                                        {
+                                            try
+                                            {
+                                                TCPConnection.WriteToResponseStream(_HTTPResponse.HTTPBody);
+                                            }
+                                            catch (Exception e)
+                                            {
+                                                DebugX.Log(nameof(HTTPServer) + " writing response body: " + Environment.NewLine + e);
+                                                ServerClose = true;
+                                            }
+                                        }
+
+                                        else if (_HTTPResponse.HTTPBodyStream != null)
+                                        {
+                                            try
                                             {
                                                 TCPConnection.WriteToResponseStream(_HTTPResponse.HTTPBodyStream);
                                                 _HTTPResponse.HTTPBodyStream.Close();
                                                 _HTTPResponse.HTTPBodyStream.Dispose();
                                             }
+                                            catch (Exception e)
+                                            {
+                                                DebugX.Log(nameof(HTTPServer) + " writing response body stream: " + Environment.NewLine + e);
+                                                ServerClose = true;
+                                            }
+                                        }
 
+                                        try
+                                        {
                                             if (_HTTPResponse.Connection.IndexOf("close", StringComparison.OrdinalIgnoreCase) >= 0)
                                                 ServerClose = true;
-
                                         }
                                         catch (Exception e)
                                         {
-                                            DebugX.Log(nameof(HTTPServer) + " exception: " + Environment.NewLine + e);
+                                            DebugX.Log(nameof(HTTPServer) + " closing the connection: " + Environment.NewLine + e);
                                             ServerClose = true;
                                         }
 
