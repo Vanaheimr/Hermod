@@ -678,16 +678,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ByteArray">An array of bytes.</param>
         public void WriteToResponseStream(Byte[] ByteArray)
         {
+
             if (ByteArray != null && IsConnected)
             {
 
                 if (SSLStream != null)
                     SSLStream.    Write(ByteArray, 0, ByteArray.Length);
 
-                else
+                else if (NetworkStream != null)
                     NetworkStream.Write(ByteArray, 0, ByteArray.Length);
 
+                else
+                    DebugX.LogT(nameof(TCPConnection) + " SSLStream and NetworkStream are both null!");
+
             }
+
+            else if (!IsConnected)
+                DebugX.LogT(nameof(TCPConnection) + " could not write to response stream: Not connected!");
+
+            else
+                DebugX.LogT(nameof(TCPConnection) + " could not write to response stream: Byte array is null!");
+
         }
 
         #endregion

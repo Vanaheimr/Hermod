@@ -1452,7 +1452,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     catch (Exception e)
                                     {
 
-                                        DebugX.Log("HTTPProcessor (Try to parse the HTTP header): " + e.Message);
+                                        DebugX.Log(nameof(HTTPServer) + " while trying to parse the HTTP header: " + e.Message);
 
                                         NotifyErrors(null,
                                                      TCPConnection,
@@ -1480,7 +1480,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         }
                                         catch (Exception e)
                                         {
-                                            DebugX.LogT(nameof(HTTPServer) + " => " + e.Message);
+                                            DebugX.LogT(nameof(HTTPServer) + " request log => " + e.Message);
                                         }
 
                                     }
@@ -1526,7 +1526,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         }
                                         catch (Exception e)
                                         {
-                                            DebugX.Log("HTTPServer exception: " + Environment.NewLine + e);
+                                            DebugX.Log(nameof(HTTPServer) + " exception: " + Environment.NewLine + e);
                                             ServerClose = true;
                                         }
 
@@ -1551,7 +1551,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         }
                                         catch (Exception e)
                                         {
-                                            DebugX.LogT(nameof(HTTPServer) + " => " + e.Message);
+                                            DebugX.LogT(nameof(HTTPServer) + " response log => " + e.Message);
                                         }
 
                                     }
