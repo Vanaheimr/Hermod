@@ -1523,8 +1523,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         }
                                         catch (Exception e)
                                         {
+
+                                            if (TCPConnection == null)
+                                                DebugX.Log(nameof(HTTPServer) + " TCPConnection is null!");
+
+                                            if (_HTTPResponse == null)
+                                                DebugX.Log(nameof(HTTPServer) + " HTTP response is null!");
+
+                                            if (_HTTPResponse.RawHTTPHeader.IsNullOrEmpty())
+                                                DebugX.Log(nameof(HTTPServer) + " HTTP response header is null or empty!");
+
                                             DebugX.Log(nameof(HTTPServer) + " writing response header: " + Environment.NewLine + e);
                                             ServerClose = true;
+
                                         }
 
                                         if (_HTTPResponse.HTTPBody?.Length > 0)
