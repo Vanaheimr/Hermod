@@ -471,6 +471,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
+            if (HTTPHeader.IsNullOrEmpty())
+                throw new ArgumentNullException(nameof(HTTPHeader), "The given HTTP response header must not be null or empty!");
+
             this.Timestamp                  = Timestamp;
             this.HTTPSource                 = HTTPSource;
             this.LocalSocket                = LocalSocket;
