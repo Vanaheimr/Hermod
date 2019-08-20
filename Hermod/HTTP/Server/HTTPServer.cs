@@ -1639,7 +1639,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            catch (Exception e)
+            catch (Exception ioe)
             {
 
                 DebugX.Log("HTTPServer exception: " + Environment.NewLine + ioe);
