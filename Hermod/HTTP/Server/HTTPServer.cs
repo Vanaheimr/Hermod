@@ -1501,24 +1501,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         //                               RequestTimestamp,
                                         //                               HttpRequest).Result;
 
-                                        _HTTPResponse = InvokeHandler(HttpRequest).Result;
-
-                                        TCPConnection.WriteToResponseStream((_HTTPResponse.RawHTTPHeader.Trim() +
-                                                                            "\r\n\r\n").
-                                                                            ToUTF8Bytes());
-
-                                        if (_HTTPResponse.HTTPBody?.Length > 0)
-                                            TCPConnection.WriteToResponseStream(_HTTPResponse.HTTPBody);
-
-                                        else if (_HTTPResponse.HTTPBodyStream != null)
+                                        try
                                         {
-                                            TCPConnection.WriteToResponseStream(_HTTPResponse.HTTPBodyStream);
-                                            _HTTPResponse.HTTPBodyStream.Close();
-                                            _HTTPResponse.HTTPBodyStream.Dispose();
-                                        }
 
-                                        if (_HTTPResponse.Connection.IndexOf("close", StringComparison.OrdinalIgnoreCase) >= 0)
+                                            _HTTPResponse = InvokeHandler(HttpRequest).Result;
+
+                                            TCPConnection.WriteToResponseStream((_HTTPResponse.RawHTTPHeader.Trim() +
+                                                                                "\r\n\r\n").
+                                                                                ToUTF8Bytes());
+
+                                            if (_HTTPResponse.HTTPBody?.Length > 0)
+                                                TCPConnection.WriteToResponseStream(_HTTPResponse.HTTPBody);
+
+                                            else if (_HTTPResponse.HTTPBodyStream != null)
+                                            {
+                                                TCPConnection.WriteToResponseStream(_HTTPResponse.HTTPBodyStream);
+                                                _HTTPResponse.HTTPBodyStream.Close();
+                                                _HTTPResponse.HTTPBodyStream.Dispose();
+                                            }
+
+                                            if (_HTTPResponse.Connection.IndexOf("close", StringComparison.OrdinalIgnoreCase) >= 0)
+                                                ServerClose = true;
+
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            DebugX.Log("HTTPServer exception: " + Environment.NewLine + e);
                                             ServerClose = true;
+                                        }
 
                                     }
 
