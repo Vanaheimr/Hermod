@@ -47,6 +47,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
+        /// <summary>
+        /// ASCII unit/cell separator
+        /// </summary>
+        protected const Char US = (Char) 0x1F;
+
+        /// <summary>
+        /// ASCII record/row separator
+        /// </summary>
+        protected const Char RS = (Char) 0x1E;
+
+        /// <summary>
+        /// ASCII group separator
+        /// </summary>
+        protected const Char GS = (Char) 0x1D;
+
         private                 Int64                  IdCounter;
         private        readonly TSQueue<HTTPEvent<T>>  QueueOfEvents;
         private static readonly SemaphoreSlim          LogfileLock  = new SemaphoreSlim(1,1);
@@ -136,7 +151,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             !line.StartsWith("//")   &&
                                             !line.StartsWith("#")).
                              Take   ((Int64) MaxNumberOfCachedEvents - HTTPSSEs.Count).
-                             Select (line => line.Split((Char) 0x1E)).
+                             Select (line => line.Split(RS)).
                              ForEach(line => {
 
                                                  if (line.Length >= 3           &&
@@ -208,9 +223,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             {
 
                                 await logfile.WriteLineAsync(String.Concat(httpEvent.Timestamp.ToIso8601(),
-                                                                           (Char) 0x1E,
+                                                                           RS,
                                                                            httpEvent.Subevent,
-                                                                           (Char) 0x1E,
+                                                                           RS,
                                                                            DataSerializer(httpEvent.Data))).
                                               ConfigureAwait(false);
 

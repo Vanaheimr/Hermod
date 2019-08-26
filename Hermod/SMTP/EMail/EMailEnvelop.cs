@@ -15,6 +15,12 @@
  * limitations under the License.
  */
 
+#region Usings
+
+using org.GraphDefined.Vanaheimr.Illias;
+
+#endregion
+
 namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 {
 
@@ -29,122 +35,83 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <summary>
         /// The remote socket of the incoming SMTP connection.
         /// </summary>
-        public IPSocket?         RemoteSocket   { get; }
+        public IPSocket?         RemoteSocket       { get; }
 
         /// <summary>
         /// The sender(s) of the e-mail.
         /// </summary>
-        public EMailAddressList  MailFrom       { get; }
+        public EMailAddressList  MailFrom           { get; }
 
         /// <summary>
         /// The receiver(s) of the e-mail.
         /// </summary>
-        public EMailAddressList  RcptTo         { get; }
-
-        //#region MailText
-
-        //protected readonly IEnumerable<String> _MailText;
-
-        ///// <summary>
-        ///// The embedded e-mail as text.
-        ///// </summary>
-        //public IEnumerable<String> MailText
-        //{
-        //    get
-        //    {
-        //        return _MailText;
-        //    }
-        //}
-
-        //#endregion
-
-        //#region MailHeader
-
-        ///// <summary>
-        ///// The embedded e-mail header as text.
-        ///// </summary>
-        //public IEnumerable<String> MailHeader
-        //{
-        //    get
-        //    {
-
-        //        return _MailText != null
-        //            ? _MailText.TakeWhile(line => line.IsNotNullOrEmpty())
-        //            : new String[] { "" };
-
-        //    }
-        //}
-
-        //#endregion
-
-        //#region MailBody
-
-        ///// <summary>
-        ///// The embedded e-mail body as text.
-        ///// </summary>
-        //public IEnumerable<String> MailBody
-        //{
-        //    get
-        //    {
-
-        //        // Skip the mail header and skip the newline after the mail header...
-        //        return _MailText != null
-        //            ? _MailText.SkipWhile(line => line.IsNotNullOrEmpty()).Skip(1)
-        //            : new String[] { "" };
-
-        //    }
-        //}
-
-        //#endregion
+        public EMailAddressList  RcptTo             { get; }
 
         /// <summary>
         /// The embedded e-mail.
         /// </summary>
-        public EMail             Mail           { get; }
+        public EMail             Mail               { get; }
+
+        /// <summary>
+        /// The event tracking identification of this e-mail.
+        /// </summary>
+        public EventTracking_Id  EventTrackingId    { get; }
 
         #endregion
 
         #region Constructor(s)
 
-        #region EMailEnvelop(MailBuilder)
+        #region EMailEnvelop(MailBuilder, EventTrackingId = null)
 
         /// <summary>
         /// Create a new e-mail envelop based on the given
         /// e-mail builder data.
         /// </summary>
         /// <param name="MailBuilder">An e-mail builder.</param>
-        public EMailEnvelop(AbstractEMailBuilder MailBuilder)
+        /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
+        public EMailEnvelop(AbstractEMailBuilder MailBuilder,
+                            EventTracking_Id     EventTrackingId  = null)
         {
 
             MailBuilder.EncodeBodyparts();
 
-                             // ToDo: Deep cloning!
-            this.MailFrom  = EMailAddressList.Create(MailBuilder.From);
-            this.RcptTo    = EMailAddressList.Create(MailBuilder.To);
-            this.Mail      = new EMail(MailBuilder);
+                                    // ToDo: Deep cloning!
+            this.MailFrom         = EMailAddressList.Create(MailBuilder.From);
+            this.RcptTo           = EMailAddressList.Create(MailBuilder.To);
+            this.Mail             = new EMail(MailBuilder);
+            this.EventTrackingId  = EventTrackingId ??
+                                    (MailBuilder.MessageId.HasValue
+                                         ? EventTracking_Id.Parse(MailBuilder.MessageId.ToString())
+                                         : EventTracking_Id.New);
 
         }
 
         #endregion
 
-        #region EMailEnvelop(EMail)
+        #region EMailEnvelop(EMail,       EventTrackingId = null)
 
         /// <summary>
         /// Create a new e-mail envelop based on the given e-mail.
         /// </summary>
         /// <param name="EMail">An e-mail.</param>
-        public EMailEnvelop(EMail EMail)
+        /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
+        public EMailEnvelop(EMail             EMail,
+                            EventTracking_Id  EventTrackingId  = null)
         {
 
-            this.MailFrom  = EMailAddressList.Create(EMail.From);
-            this.RcptTo    = EMailAddressList.Create(EMail.To);
-            this.Mail      = EMail;
+            this.MailFrom         = EMailAddressList.Create(EMail.From);
+            this.RcptTo           = EMailAddressList.Create(EMail.To);
+            this.Mail             = EMail;
+            this.EventTrackingId  = EventTrackingId ??
+                                    (EMail.MessageId.HasValue
+                                         ? EventTracking_Id.Parse(EMail.MessageId.ToString())
+                                         : EventTracking_Id.New);
 
         }
 
         #endregion
 
-        #region EMailEnvelop(MailFrom, RcptTo, EMail, RemoteSocket = null)
+        #region EMailEnvelop(MailFrom, RcptTo, EMail,       RemoteSocket = null, EventTrackingId = null)
 
         /// <summary>
         /// Create a new e-mail envelop based on the given sender
@@ -154,22 +121,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="RcptTo">The receiver(s) of the e-mail.</param>
         /// <param name="EMail">An e-mail.</param>
         /// <param name="RemoteSocket">The remote socket of the incoming SMTP connection.</param>
+        /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
         public EMailEnvelop(EMailAddressList  MailFrom,
                             EMailAddressList  RcptTo,
                             EMail             EMail,
-                            IPSocket?         RemoteSocket  = null)
+                            IPSocket?         RemoteSocket     = null,
+                            EventTracking_Id  EventTrackingId  = null)
         {
 
-            this.MailFrom      = MailFrom;
-            this.RcptTo        = RcptTo;
-            this.Mail          = EMail;
-            this.RemoteSocket  = RemoteSocket;
+            this.MailFrom         = MailFrom;
+            this.RcptTo           = RcptTo;
+            this.Mail             = EMail;
+            this.RemoteSocket     = RemoteSocket;
+            this.EventTrackingId  = EventTrackingId ??
+                                    (EMail.MessageId.HasValue
+                                         ? EventTracking_Id.Parse(EMail.MessageId.ToString())
+                                         : EventTracking_Id.New);
 
         }
 
         #endregion
 
-        #region EMailEnvelop(MailFrom, RcptTo, MailBuilder, RemoteSocket = null)
+        #region EMailEnvelop(MailFrom, RcptTo, MailBuilder, RemoteSocket = null, EventTrackingId = null)
 
         /// <summary>
         /// Create a new e-mail envelop based on the given sender
@@ -179,16 +152,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="RcptTo">The receiver(s) of the e-mail.</param>
         /// <param name="MailBuilder">An e-mail builder.</param>
         /// <param name="RemoteSocket">The remote socket of the incoming SMTP connection.</param>
+        /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
         public EMailEnvelop(EMailAddressList      MailFrom,
                             EMailAddressList      RcptTo,
                             AbstractEMailBuilder  MailBuilder,
-                            IPSocket?             RemoteSocket  = null)
+                            IPSocket?             RemoteSocket     = null,
+                            EventTracking_Id      EventTrackingId  = null)
         {
 
-            this.RemoteSocket  = RemoteSocket;
-            this.MailFrom      = MailFrom;
-            this.RcptTo        = RcptTo;
-            this.Mail          = new EMail(MailBuilder);
+            this.RemoteSocket     = RemoteSocket;
+            this.MailFrom         = MailFrom;
+            this.RcptTo           = RcptTo;
+            this.Mail             = new EMail(MailBuilder);
+            this.EventTrackingId  = EventTrackingId ??
+                                    (MailBuilder.MessageId.HasValue
+                                         ? EventTracking_Id.Parse(MailBuilder.MessageId.ToString())
+                                         : EventTracking_Id.New);
 
         }
 

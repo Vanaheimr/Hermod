@@ -906,6 +906,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Data
 
         /// <summary>
+        /// ASCII unit/cell separator
+        /// </summary>
+        protected const Char US = (Char) 0x1F;
+
+        /// <summary>
+        /// ASCII record/row separator
+        /// </summary>
+        protected const Char RS = (Char) 0x1E;
+
+        /// <summary>
+        /// ASCII group separator
+        /// </summary>
+        protected const Char GS = (Char) 0x1D;
+
+        /// <summary>
         /// Internal non-cryptographic random number generator.
         /// </summary>
         protected static readonly  Random   _Random                 = new Random(DateTime.Now.Millisecond);

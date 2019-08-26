@@ -130,11 +130,11 @@
     <Compile Include="HTTP\Server\HTTPAPI.cs" />
     <Compile Include="HTTP\Server\URLMapping\ContentTypeNode.cs" />
     <Compile Include="HTTP\Server\URLMapping\HostnameNode.cs" />
-    <Compile Include="HTTP\Server\URLMapping\HTTPEvent.cs" />
-    <Compile Include="HTTP\Server\URLMapping\HTTPEventSource.cs" />
+    <Compile Include="HTTP\ServerSentEvents\HTTPEvent.cs" />
+    <Compile Include="HTTP\ServerSentEvents\HTTPEventSource.cs" />
     <Compile Include="HTTP\Server\URLMapping\HTTPMethodNode.cs" />
-    <Compile Include="HTTP\Server\URLMapping\HTTPEventSource_Id.cs" />
-    <Compile Include="HTTP\Server\URLMapping\IHTTPEventSource.cs" />
+    <Compile Include="HTTP\ServerSentEvents\HTTPEventSource_Id.cs" />
+    <Compile Include="HTTP\ServerSentEvents\IHTTPEventSource.cs" />
     <Compile Include="HTTP\Server\URLMapping\URIReplacement.cs" />
     <Compile Include="HTTP\Server\URLMapping\URINode.cs" />
     <Compile Include="HTTP\HTTPSemantics.cs" />
@@ -155,7 +155,7 @@
     <Compile Include="SMTP\EMail\Helpers\EMailSecurityException.cs" />
     <Compile Include="SMTP\EMail\Helpers\MailContentTypes.cs" />
     <Compile Include="SMTP\EMail\Helpers\ListId.cs" />
-    <Compile Include="SMTP\EMail\Helpers\MessageId.cs" />
+    <Compile Include="SMTP\EMail\Helpers\Message_Id.cs" />
     <Compile Include="SMTP\EMail\Helpers\MailContentType.cs" />
     <Compile Include="SMTP\EMail\Helpers\SimpleEMailAddress.cs" />
     <Compile Include="SMTP\EMail\HTMLEMailBuilder.cs" />

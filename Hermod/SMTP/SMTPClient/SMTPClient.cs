@@ -37,7 +37,7 @@ using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
-    public static class Ext2
+    public static class SMTPClientExtentions
     {
 
         #region CRAM_MD5(Token, Login, Password)
@@ -148,6 +148,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         private static readonly Random                       _Random     = new Random(DateTime.Now.Millisecond);
         private static readonly SHA256CryptoServiceProvider  _SHAHasher  = new SHA256CryptoServiceProvider();
 
+        private static readonly SemaphoreSlim SendEMailSemaphore = new SemaphoreSlim(1, 1);
+
         #endregion
 
         #region Properties
@@ -215,6 +217,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         public SmtpCapabilities Capabilities;
 
+        public delegate Task OnSendEMailRequestDelegate (DateTime                        LogTimestamp,
+                                                         SMTPClient                      Sender,
+                                                         EventTracking_Id                EventTrackingId,
+                                                         EMailEnvelop                    EMailEnvelop,
+                                                         TimeSpan?                       RequestTimeout);
+
+        public event OnSendEMailRequestDelegate OnSendEMailRequest;
+
+
+        public delegate Task OnSendEMailResponseDelegate(DateTime                        LogTimestamp,
+                                                         SMTPClient                      Sender,
+                                                         EventTracking_Id                EventTrackingId,
+                                                         EMailEnvelop                    EMailEnvelop,
+                                                         TimeSpan?                       RequestTimeout,
+                                                         MailSentStatus                  Result,
+                                                         TimeSpan                        Runtime);
+
+        public event OnSendEMailResponseDelegate OnSendEMailResponse;
+
         #endregion
 
         #region Constructor(s)
@@ -277,11 +298,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #region (private) GenerateMessageId(Mail, DomainPart = null)
 
-        private MessageId GenerateMessageId(EMail Mail, String DomainPart = null)
+        private Message_Id GenerateMessageId(EMail Mail, String DomainPart = null)
         {
 
-            if (DomainPart.IsNullOrEmpty())
-                DomainPart = base.RemoteHost;
+            if (DomainPart != null)
+                DomainPart = DomainPart.Trim();
 
             var RandomBytes  = new Byte[16];
             _Random.NextBytes(RandomBytes);
@@ -292,7 +313,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                      Concat(Mail.Date.   ToString().ToUTF8Bytes()).
                                                      ToArray());
 
-            return MessageId.Parse(HashedBytes.ToHexString().Substring(0, 24) + "@" + DomainPart);
+            return Message_Id.Parse(HashedBytes.ToHexString().Substring(0, 24),
+                                    DomainPart.IsNeitherNullNorEmpty() ? DomainPart : RemoteHost);
 
         }
 
@@ -313,7 +335,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #endregion
 
-        #region (private) ReadSMTPResponse()
+        #region (private)   ReadSMTPResponse()
 
         private SMTPExtendedResponse ReadSMTPResponse()
         {
@@ -344,9 +366,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                  ToArray();
 
                 var scode = SMTPStatusCode.SyntaxError;
-                UInt16 _scode;
 
-                if (UInt16.TryParse(aa, out _scode))
+                if (UInt16.TryParse(aa, out ushort _scode))
                     scode = (SMTPStatusCode)_scode;
 
                 if (more)
@@ -386,9 +407,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         #endregion
 
 
-        #region (protected) SendCommandAndWait(Command)
+        #region (protected) SendCommandAndWaitForResponse (Command)
 
-        protected SMTPExtendedResponse SendCommandAndWait(String Command)
+        protected SMTPExtendedResponse SendCommandAndWaitForResponse(String Command)
         {
 
             SendCommand(Command);
@@ -400,9 +421,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #endregion
 
-        #region (protected) SendCommandAndWaits(Command)
+        #region (protected) SendCommandAndWaitForResponses(Command)
 
-        protected IEnumerable<SMTPExtendedResponse> SendCommandAndWaits(String Command)
+        protected IEnumerable<SMTPExtendedResponse> SendCommandAndWaitForResponses(String Command)
         {
 
             SendCommand(Command);
@@ -415,430 +436,513 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         #endregion
 
 
-        #region Send(EMail, NumberOfRetries = 3, AutoStart = true)
+        #region Send(EMail,        NumberOfRetries = 3, RequestTimeout = null)
 
-        public Task<MailSentStatus> Send(EMail    EMail,
-                                         Byte     NumberOfRetries  = 3,
-                                         Boolean  AutoStart        = true)
+        public Task<MailSentStatus> Send(EMail      EMail,
+                                         Byte       NumberOfRetries  = 3,
+                                         TimeSpan?  RequestTimeout   = null)
 
-            => Send(new EMailEnvelop(EMail),
-                    NumberOfRetries,
-                    AutoStart);
+        {
+
+            #region Initial checks
+
+            if (EMail == null)
+                throw new ArgumentNullException(nameof(EMail), "The given e-mail must not be null!");
+
+            #endregion
+
+            return Send(new EMailEnvelop(EMail),
+                        NumberOfRetries,
+                        RequestTimeout);
+
+        }
 
         #endregion
 
-        #region Send(EMailEnvelop, NumberOfRetries = 3, AutoStart = true)
+        #region Send(EMailEnvelop, NumberOfRetries = 3, RequestTimeout = null)
 
-        public Task<MailSentStatus> Send(EMailEnvelop  EMailEnvelop,
-                                         Byte          NumberOfRetries  = 3,
-                                         Boolean       AutoStart        = true)
+        public async Task<MailSentStatus> Send(EMailEnvelop  EMailEnvelop,
+                                               Byte          NumberOfRetries  = 3,
+                                               TimeSpan?     RequestTimeout   = null)
         {
 
-            var SendMailTask = new Task<MailSentStatus>(() => {
+            #region Initial checks
 
-                lock (Lock) {
+            if (EMailEnvelop == null)
+                throw new ArgumentNullException(nameof(EMailEnvelop), "The given e-mail envelop must not be null!");
 
-                switch (Connect())
+            MailSentStatus result = MailSentStatus.failed;
+
+            #endregion
+
+            #region Send OnSendEMailRequest event
+
+            var StartTime = DateTime.UtcNow;
+
+            try
+            {
+
+                if (OnSendEMailRequest != null)
+                    await Task.WhenAll(OnSendEMailRequest.GetInvocationList().
+                                        Cast<OnSendEMailRequestDelegate>().
+                                        Select(e => e(StartTime,
+                                                        this,
+                                                        EMailEnvelop.EventTrackingId,
+                                                        EMailEnvelop,
+                                                        RequestTimeout))).
+                                        ConfigureAwait(false);
+
+            }
+            catch (Exception e)
+            {
+                e.Log(nameof(SMTPClient) + "." + nameof(OnSendEMailRequest));
+            }
+
+            #endregion
+
+
+            var success = await SendEMailSemaphore.WaitAsync(TimeSpan.FromSeconds(60));
+
+            if (success)
+            {
+                try
                 {
 
-                    case TCPConnectResult.InvalidDomainName:
-                        return MailSentStatus.failed;
+                    switch (Connect())
+                    {
 
-                    case TCPConnectResult.NoIPAddressFound:
-                        return MailSentStatus.failed;
+                        case TCPConnectResult.InvalidDomainName:
+                            result = MailSentStatus.failed;
+                            break;
 
-                    case TCPConnectResult.UnknownError:
-                        return MailSentStatus.failed;
+                        case TCPConnectResult.NoIPAddressFound:
+                            result = MailSentStatus.failed;
+                            break;
 
-                    case TCPConnectResult.Ok:
+                        case TCPConnectResult.UnknownError:
+                            result = MailSentStatus.failed;
+                            break;
 
-                        // 220 mail.ahzf.de ESMTP Postfix (Debian/GNU)
-                        var LoginResponse = this.ReadSMTPResponse();
-                        if (LoginResponse.StatusCode != SMTPStatusCode.ServiceReady)
-                            throw new SMTPClientException("SMTP login error: " + LoginResponse.ToString());
+                        case TCPConnectResult.Ok:
 
-                        switch (LoginResponse.StatusCode)
-                        {
+                            // 220 mail.ahzf.de ESMTP Postfix (Debian/GNU)
+                            var LoginResponse = ReadSMTPResponse();
 
-                            case SMTPStatusCode.ServiceReady:
-
-                            #region Send EHLO
-
-                            var EHLOResponses = SendCommandAndWaits("EHLO " + LocalDomain);
-
-                            // 250-mail.ahzf.de
-                            // 250-PIPELINING
-                            // 250-SIZE 30720000
-                            // 250-VRFY
-                            // 250-ETRN
-                            // 250-STARTTLS
-                            // 250-AUTH LOGIN DIGEST-MD5 PLAIN CRAM-MD5
-                            // 250-AUTH=LOGIN DIGEST-MD5 PLAIN CRAM-MD5
-                            // 250-ENHANCEDSTATUSCODES
-                            // 250-8BITMIME
-                            // 250 DSN
-
-                            if (EHLOResponses.Any(v => v.StatusCode != SMTPStatusCode.Ok))
+                            switch (LoginResponse.StatusCode)
                             {
 
-                                var Error = EHLOResponses.Where(v => v.StatusCode != SMTPStatusCode.Ok).
-                                                          FirstOrDefault();
+                                case SMTPStatusCode.ServiceReady:
 
-                                if (Error.StatusCode != SMTPStatusCode.Ok)
-                                    throw new SMTPClientException("SMTP EHLO command error: " + Error.ToString());
+                                    #region Send EHLO
 
-                            }
+                                    var EHLOResponses = SendCommandAndWaitForResponses("EHLO " + LocalDomain);
 
-                            #endregion
+                                    // 250-mail.ahzf.de
+                                    // 250-PIPELINING
+                                    // 250-SIZE 30720000
+                                    // 250-VRFY
+                                    // 250-ETRN
+                                    // 250-STARTTLS
+                                    // 250-AUTH LOGIN DIGEST-MD5 PLAIN CRAM-MD5
+                                    // 250-AUTH=LOGIN DIGEST-MD5 PLAIN CRAM-MD5
+                                    // 250-ENHANCEDSTATUSCODES
+                                    // 250-8BITMIME
+                                    // 250 DSN
 
-                            #region Check for STARTTLS
-
-                            if (UseTLS == TLSUsage.STARTTLS)
-                            {
-
-                                if (EHLOResponses.Any(v => v.Response == "STARTTLS"))
-                                {
-
-                                    var StartTLSResponse = SendCommandAndWait("STARTTLS");
-
-                                    if (StartTLSResponse.StatusCode == SMTPStatusCode.ServiceReady)
-                                        EnableTLS();
-
-                                }
-
-                                else
-                                    throw new Exception("TLS is not supported by the SMTP server!");
-
-                                // Send EHLO again in order to get the new list of supported extensions!
-                                EHLOResponses = SendCommandAndWaits("EHLO " + LocalDomain);
-
-                            }
-
-                            #endregion
-
-                            #region Analyze EHLO responses and set SMTP capabilities
-
-                            // 250-mail.ahzf.de
-                            // 250-PIPELINING
-                            // 250-SIZE 30720000
-                            // 250-VRFY
-                            // 250-ETRN
-                            // 250-STARTTLS
-                            // 250-AUTH LOGIN DIGEST-MD5 PLAIN CRAM-MD5
-                            // 250-AUTH=LOGIN DIGEST-MD5 PLAIN CRAM-MD5
-                            // 250-ENHANCEDSTATUSCODES
-                            // 250-8BITMIME
-                            // 250 DSN
-
-                            var MailServerName = EHLOResponses.FirstOrDefault();
-
-                            EHLOResponses.Skip(1).ForEach(v => {
-
-                                #region PIPELINING
-
-                                if      (v.Response == "PIPELINING")
-                                    Capabilities |= SmtpCapabilities.Pipelining;
-
-                                #endregion
-
-                                #region SIZE
-
-                                else if (v.Response.StartsWith("SIZE "))
-                                {
-
-                                    Capabilities |= SmtpCapabilities.Size;
-
-                                    if (!UInt64.TryParse(v.Response.Substring(5), out _MaxMailSize))
-                                        throw new Exception("Invalid SIZE capability!");
-
-                                }
-
-                                #endregion
-
-                             //   else if (v.Response == "VRFY")
-                             //       Capabilities |= SmtpCapabilities.;
-
-                             //   else if (v.Response == "ETRN")
-                             //       Capabilities |= SmtpCapabilities.;
-
-                                #region STARTTLS
-
-                                if (v.Response == "STARTTLS")
-                                    Capabilities |= SmtpCapabilities.StartTLS;
-
-                                #endregion
-
-                                #region AUTH
-
-                                else if (v.Response.StartsWith("AUTH "))
-                                {
-
-                                    Capabilities |= SmtpCapabilities.Authentication;
-
-                                    SMTPAuthMethods ParsedAuthMethod;
-                                    var AuthType            = v.Response.Substring(4, 1);
-                                    var AuthMethods         = v.Response.Substring(5).Split(' ');
-
-                                    // GMail: "AUTH LOGIN PLAIN XOAUTH XOAUTH2 PLAIN-CLIENTTOKEN"
-                                    foreach (var AuthMethod in AuthMethods)
+                                    if (EHLOResponses.Any(v => v.StatusCode != SMTPStatusCode.Ok))
                                     {
 
-                                        if (Enum.TryParse<SMTPAuthMethods>(AuthMethod.Replace('-', '_'), true, out ParsedAuthMethod))
-                                        {
-                                            if (AuthType == " ")
-                                                _AuthMethods |= ParsedAuthMethod;
-                                        }
-                                        else
-                                            _UnknownAuthMethods.Add(AuthMethod);
+                                        var Error = EHLOResponses.Where(v => v.StatusCode != SMTPStatusCode.Ok).
+                                                                    FirstOrDefault();
+
+                                        if (Error.StatusCode != SMTPStatusCode.Ok)
+                                            throw new SMTPClientException("SMTP EHLO command error: " + Error.ToString());
 
                                     }
 
-                                }
+                                    #endregion
 
-                                #endregion
+                                    #region Check for STARTTLS
 
-                                #region ENHANCEDSTATUSCODES
+                                    if (UseTLS == TLSUsage.STARTTLS)
+                                    {
 
-                                if (v.Response == "ENHANCEDSTATUSCODES")
-                                    Capabilities |= SmtpCapabilities.EnhancedStatusCodes;
+                                        if (EHLOResponses.Any(v => v.Response == "STARTTLS"))
+                                        {
 
-                                #endregion
+                                            var StartTLSResponse = SendCommandAndWaitForResponse("STARTTLS");
 
-                                #region 8BITMIME
+                                            if (StartTLSResponse.StatusCode == SMTPStatusCode.ServiceReady)
+                                                EnableTLS();
 
-                                if (v.Response == "8BITMIME")
-                                    Capabilities |= SmtpCapabilities.EightBitMime;
+                                        }
 
-                                #endregion
+                                        else
+                                            throw new Exception("TLS is not supported by the SMTP server!");
 
-                                #region DSN
+                                        // Send EHLO again in order to get the new list of supported extensions!
+                                        EHLOResponses = SendCommandAndWaitForResponses("EHLO " + LocalDomain);
 
-                                if (v.Response == "DSN")
-                                    Capabilities |= SmtpCapabilities.Dsn;
+                                    }
 
-                                #endregion
+                                    #endregion
 
-                                #region BINARYMIME
+                                    #region Analyze EHLO responses and set SMTP capabilities
 
-                                if (v.Response == "BINARYMIME")
-                                    Capabilities |= SmtpCapabilities.BinaryMime;
+                                    // 250-mail.ahzf.de
+                                    // 250-PIPELINING
+                                    // 250-SIZE 30720000
+                                    // 250-VRFY
+                                    // 250-ETRN
+                                    // 250-STARTTLS
+                                    // 250-AUTH LOGIN DIGEST-MD5 PLAIN CRAM-MD5
+                                    // 250-AUTH=LOGIN DIGEST-MD5 PLAIN CRAM-MD5
+                                    // 250-ENHANCEDSTATUSCODES
+                                    // 250-8BITMIME
+                                    // 250 DSN
 
-                                #endregion
+                                    var MailServerName = EHLOResponses.FirstOrDefault();
 
-                                #region CHUNKING
+                                    EHLOResponses.Skip(1).ForEach(v =>
+                                    {
 
-                                if (v.Response == "CHUNKING")
-                                    Capabilities |= SmtpCapabilities.Chunking;
+                                        #region PIPELINING
 
-                                #endregion
+                                        if (v.Response == "PIPELINING")
+                                            Capabilities |= SmtpCapabilities.Pipelining;
 
-                                #region UTF8
+                                        #endregion
 
-                                if (v.Response == "UTF8")
-                                    Capabilities |= SmtpCapabilities.UTF8;
+                                        #region SIZE
 
-                                #endregion
+                                        else if (v.Response.StartsWith("SIZE "))
+                                        {
 
-                            });
+                                            Capabilities |= SmtpCapabilities.Size;
 
-                            #endregion
+                                            if (!UInt64.TryParse(v.Response.Substring(5), out _MaxMailSize))
+                                                throw new Exception("Invalid SIZE capability!");
 
-                            #region Auth PLAIN...
+                                        }
 
-                            if (_AuthMethods.HasFlag(SMTPAuthMethods.PLAIN))
-                            {
+                                        #endregion
 
-                                var AuthPLAINResponse  = SendCommandAndWait("AUTH PLAIN " +
-                                                                            Convert.ToBase64String(ByteZero.
-                                                                                                   Concat(Login.   ToUTF8Bytes()).
-                                                                                                   Concat(ByteZero).
-                                                                                                   Concat(Password.ToUTF8Bytes()).
-                                                                                                   ToArray()));
+                                        //   else if (v.Response == "VRFY")
+                                        //       Capabilities |= SmtpCapabilities.;
+
+                                        //   else if (v.Response == "ETRN")
+                                        //       Capabilities |= SmtpCapabilities.;
+
+                                        #region STARTTLS
+
+                                        if (v.Response == "STARTTLS")
+                                            Capabilities |= SmtpCapabilities.StartTLS;
+
+                                        #endregion
+
+                                        #region AUTH
+
+                                        else if (v.Response.StartsWith("AUTH "))
+                                        {
+
+                                            Capabilities |= SmtpCapabilities.Authentication;
+
+                                            var AuthType    = v.Response.Substring(4, 1);
+                                            var AuthMethods = v.Response.Substring(5).Split(' ');
+
+                                            // GMail: "AUTH LOGIN PLAIN XOAUTH XOAUTH2 PLAIN-CLIENTTOKEN"
+                                            foreach (var AuthMethod in AuthMethods)
+                                            {
+
+                                                if (Enum.TryParse(AuthMethod.Replace('-', '_'), true, out SMTPAuthMethods ParsedAuthMethod))
+                                                {
+                                                    if (AuthType == " ")
+                                                        _AuthMethods |= ParsedAuthMethod;
+                                                }
+                                                else
+                                                    _UnknownAuthMethods.Add(AuthMethod);
+
+                                            }
+
+                                        }
+
+                                        #endregion
+
+                                        #region ENHANCEDSTATUSCODES
+
+                                        if (v.Response == "ENHANCEDSTATUSCODES")
+                                            Capabilities |= SmtpCapabilities.EnhancedStatusCodes;
+
+                                        #endregion
+
+                                        #region 8BITMIME
+
+                                        if (v.Response == "8BITMIME")
+                                            Capabilities |= SmtpCapabilities.EightBitMime;
+
+                                        #endregion
+
+                                        #region DSN
+
+                                        if (v.Response == "DSN")
+                                            Capabilities |= SmtpCapabilities.Dsn;
+
+                                        #endregion
+
+                                        #region BINARYMIME
+
+                                        if (v.Response == "BINARYMIME")
+                                            Capabilities |= SmtpCapabilities.BinaryMime;
+
+                                        #endregion
+
+                                        #region CHUNKING
+
+                                        if (v.Response == "CHUNKING")
+                                            Capabilities |= SmtpCapabilities.Chunking;
+
+                                        #endregion
+
+                                        #region UTF8
+
+                                        if (v.Response == "UTF8")
+                                            Capabilities |= SmtpCapabilities.UTF8;
+
+                                        #endregion
+
+                                    });
+
+                                    #endregion
+
+                                    #region Auth PLAIN...
+
+                                    if (_AuthMethods.HasFlag(SMTPAuthMethods.PLAIN))
+                                    {
+
+                                        var response = SendCommandAndWaitForResponse("AUTH PLAIN " +
+                                                                                     Convert.ToBase64String(ByteZero.
+                                                                                                            Concat(Login.ToUTF8Bytes()).
+                                                                                                            Concat(ByteZero).
+                                                                                                            Concat(Password.ToUTF8Bytes()).
+                                                                                                            ToArray()));
+
+                                        DebugX.Log("SMTP Auth PLAIN response: " + response.ToString());
+
+                                    }
+
+                                    #endregion
+
+                                    #region ...or Auth LOGIN...
+
+                                    else if (_AuthMethods.HasFlag(SMTPAuthMethods.LOGIN))
+                                    {
+
+                                        var response1 = SendCommandAndWaitForResponse("AUTH LOGIN");
+                                        var response2 = SendCommandAndWaitForResponse(Convert.ToBase64String(Login.   ToUTF8Bytes()));
+                                        var response3 = SendCommandAndWaitForResponse(Convert.ToBase64String(Password.ToUTF8Bytes()));
+
+                                        DebugX.Log(String.Concat("SMTP Auth LOGIN responses: ", response1.ToString(), ", ", response2.ToString(), ", ", response3.ToString()));
+
+                                    }
+
+                                    #endregion
+
+                                    #region ...or AUTH CRAM-MD5
+
+                                    else if (_AuthMethods.HasFlag(SMTPAuthMethods.CRAM_MD5))
+                                    {
+
+                                        var AuthCRAMMD5Response = SendCommandAndWaitForResponse("AUTH CRAM-MD5");
+
+                                        if (AuthCRAMMD5Response.StatusCode == SMTPStatusCode.AuthenticationChallenge)
+                                        {
+
+                                            var response = SendCommandAndWaitForResponse(
+                                                               Convert.ToBase64String(
+                                                                   SMTPClientExtentions.CRAM_MD5(Convert.FromBase64String(AuthCRAMMD5Response.Response).ToUTF8String(),
+                                                                                                 Login,
+                                                                                                 Password)));
+
+                                            DebugX.Log("SMTP Auth CRAM-MD5 response: " + response.ToString());
+
+                                        }
+
+                                    }
+
+                                    #endregion
+
+                                    #region MAIL FROM:
+
+                                    foreach (var MailFrom in EMailEnvelop.MailFrom)
+                                    {
+
+                                        // MAIL FROM:<test@example.com>
+                                        // 250 2.1.0 Ok
+                                        var MailFromCommand = "MAIL FROM: <" + MailFrom.Address.ToString() + ">";
+
+                                        if (Capabilities.HasFlag(SmtpCapabilities.EightBitMime))
+                                            MailFromCommand += " BODY=8BITMIME";
+                                        else if (Capabilities.HasFlag(SmtpCapabilities.BinaryMime))
+                                            MailFromCommand += " BODY=BINARYMIME";
+
+                                        var _MailFromResponse = SendCommandAndWaitForResponse(MailFromCommand);
+                                        if (_MailFromResponse.StatusCode != SMTPStatusCode.Ok)
+                                            throw new SMTPClientException("SMTP MAIL FROM command error: " + _MailFromResponse.ToString());
+
+                                    }
+
+                                    #endregion
+
+                                    #region RCPT TO(s):
+
+                                    // RCPT TO:<user@example.com>
+                                    // 250 2.1.5 Ok
+                                    EMailEnvelop.RcptTo.ForEach(Rcpt =>
+                                    {
+
+                                        var _RcptToResponse = SendCommandAndWaitForResponse("RCPT TO: <" + Rcpt.Address.ToString() + ">");
+
+                                        switch (_RcptToResponse.StatusCode)
+                                        {
+
+                                            case SMTPStatusCode.UserNotLocalWillForward:
+                                            case SMTPStatusCode.Ok:
+                                                break;
+
+                                            case SMTPStatusCode.UserNotLocalTryAlternatePath:
+                                            case SMTPStatusCode.MailboxNameNotAllowed:
+                                            case SMTPStatusCode.MailboxUnavailable:
+                                            case SMTPStatusCode.MailboxBusy:
+                                            //    throw new SmtpCommandException(SmtpErrorCode.RecipientNotAccepted, _RcptToResponse.StatusCode, mailbox, _RcptToResponse.Response);
+
+                                            case SMTPStatusCode.AuthenticationRequired:
+                                                throw new UnauthorizedAccessException(_RcptToResponse.Response);
+
+                                                //default:
+                                                //    throw new SmtpCommandException(SmtpErrorCode.UnexpectedStatusCode, _RcptToResponse.StatusCode, _RcptToResponse.Response);
+
+                                        }
+
+                                        //Debug.WriteLine(_RcptToResponse);
+
+                                    });
+
+                                    #endregion
+
+                                    #region Mail DATA
+
+                                    // The encoded MIME text lines must not be longer than 76 characters!
+
+                                    // 354 End data with <CR><LF>.<CR><LF>
+                                    var _DataResponse = SendCommandAndWaitForResponse("DATA");
+                                    if (_DataResponse.StatusCode != SMTPStatusCode.StartMailInput)
+                                        throw new SMTPClientException("SMTP DATA command error: " + _DataResponse.ToString());
+
+                                    // Send e-mail headers...
+                                    if (EMailEnvelop.Mail != null)
+                                    {
+
+                                        EMailEnvelop.Mail.
+                                                        Header.
+                                                        Select(header => header.Key + ": " + header.Value).
+                                                        ForEach(line => SendCommand(line));
+
+                                        //SendCommand("Message-Id: <" + (EMailEnvelop.Mail.MessageId != null
+                                        //                                    ? EMailEnvelop.Mail.MessageId.ToString()
+                                        //                                    : GenerateMessageId(EMailEnvelop.Mail, RemoteHost).ToString()) + ">");
+
+                                        SendCommand("");
+
+                                        // Send e-mail body(parts)...
+                                        //if (EMailEnvelop.Mail.MailBody != null)
+                                        //{
+                                        EMailEnvelop.Mail.Body.ToText(false).ForEach(line => SendCommand(line));
+                                        SendCommand("");
+                                        //}
+
+                                    }
+
+                                    else if (EMailEnvelop.Mail.ToText != null)
+                                    {
+                                        EMailEnvelop.Mail.ToText.ForEach(line => SendCommand(line));
+                                        SendCommand("");
+                                    }
+
+                                    #endregion
+
+                                    #region End-of-DATA
+
+                                    // .
+                                    // 250 2.0.0 Ok: queued as 83398728027
+                                    var _FinishedResponse = SendCommandAndWaitForResponse(".");
+                                    if (_FinishedResponse.StatusCode != SMTPStatusCode.Ok)
+                                        throw new SMTPClientException("SMTP DATA '.' command error: " + _FinishedResponse.ToString());
+
+                                    #endregion
+
+                                    #region QUIT
+
+                                    // QUIT
+                                    // 221 2.0.0 Bye
+                                    var _QuitResponse = SendCommandAndWaitForResponse("QUIT");
+                                    if (_QuitResponse.StatusCode != SMTPStatusCode.ServiceClosingTransmissionChannel)
+                                        throw new SMTPClientException("SMTP QUIT command error: " + _QuitResponse.ToString());
+
+                                    #endregion
+
+                                    result = MailSentStatus.ok;
+
+                                    break;
+
+                                default:
+                                    result = MailSentStatus.InvalidLogin;
+                                    break;
 
                             }
-
-                            #endregion
-
-                            #region ...or Auth LOGIN...
-
-                            else if (_AuthMethods.HasFlag(SMTPAuthMethods.LOGIN))
-                            {
-
-                                var AuthLOGIN1Response  = SendCommandAndWait("AUTH LOGIN");
-                                var AuthLOGIN2Response  = SendCommandAndWait(Convert.ToBase64String(Login.   ToUTF8Bytes()));
-                                var AuthLOGIN3Response  = SendCommandAndWait(Convert.ToBase64String(Password.ToUTF8Bytes()));
-
-                            }
-
-                            #endregion
-
-                            #region ...or AUTH CRAM-MD5
-
-                            else if (_AuthMethods.HasFlag(SMTPAuthMethods.CRAM_MD5))
-                            {
-
-                                var AuthCRAMMD5Response = SendCommandAndWait("AUTH CRAM-MD5");
-
-                                if (AuthCRAMMD5Response.StatusCode == SMTPStatusCode.AuthenticationChallenge)
-                                {
-
-                                    var aa = Ext2.CRAM_MD5("<1896.697170952@postoffice.reston.mci.net>",
-                                                           "tim", "tanstaaftanstaaf");
-                                    var a2 = Convert.ToBase64String(aa) == "dGltIGI5MTNhNjAyYzdlZGE3YTQ5NWI0ZTZlNzMzNGQzODkw";
-
-
-                                    var bb = Ext2.CRAM_MD5("<17893.1320679123@tesseract.susam.in>",
-                                                           "alice", "wonderland");
-                                    var b2 = Convert.ToBase64String(bb) == "YWxpY2UgNjRiMmE0M2MxZjZlZDY4MDZhOTgwOTE0ZTIzZTc1ZjA=";
-
-                                    var cc = Ext2.CRAM_MD5("<1529645438.10349126@mail.ahzf.de>", "ahzf", "ahzf2305!");
-
-                                    var zz = Ext2.CRAM_MD5(Convert.FromBase64String(AuthCRAMMD5Response.Response).ToUTF8String(),
-                                                           Login, Password);
-
-                                    var AuthPLAINResponse = SendCommandAndWait(Convert.ToBase64String(zz));
-
-                                }
-
-                            }
-
-                            #endregion
-
-                            #region MAIL FROM:
-
-                            foreach (var MailFrom in EMailEnvelop.MailFrom)
-                            {
-
-                                // MAIL FROM:<test@example.com>
-                                // 250 2.1.0 Ok
-                                var MailFromCommand = "MAIL FROM: <" + MailFrom.Address.ToString() + ">";
-
-                                if      (Capabilities.HasFlag(SmtpCapabilities.EightBitMime))
-                                    MailFromCommand += " BODY=8BITMIME";
-                                else if (Capabilities.HasFlag(SmtpCapabilities.BinaryMime))
-                                    MailFromCommand += " BODY=BINARYMIME";
-
-                                var _MailFromResponse = SendCommandAndWait(MailFromCommand);
-                                if (_MailFromResponse.StatusCode != SMTPStatusCode.Ok)
-                                    throw new SMTPClientException("SMTP MAIL FROM command error: " + _MailFromResponse.ToString());
-
-                            }
-
-                            #endregion
-
-                            #region RCPT TO(s):
-
-                            // RCPT TO:<user@example.com>
-                            // 250 2.1.5 Ok
-                            EMailEnvelop.RcptTo.ForEach(Rcpt => {
-
-                                var _RcptToResponse = SendCommandAndWait("RCPT TO: <" + Rcpt.Address.ToString() + ">");
-
-                                switch (_RcptToResponse.StatusCode)
-                                {
-
-                                    case SMTPStatusCode.UserNotLocalWillForward:
-                                    case SMTPStatusCode.Ok:
-                                        break;
-
-                                    case SMTPStatusCode.UserNotLocalTryAlternatePath:
-                                    case SMTPStatusCode.MailboxNameNotAllowed:
-                                    case SMTPStatusCode.MailboxUnavailable:
-                                    case SMTPStatusCode.MailboxBusy:
-                                    //    throw new SmtpCommandException(SmtpErrorCode.RecipientNotAccepted, _RcptToResponse.StatusCode, mailbox, _RcptToResponse.Response);
-
-                                    case SMTPStatusCode.AuthenticationRequired:
-                                        throw new UnauthorizedAccessException(_RcptToResponse.Response);
-
-                                    //default:
-                                    //    throw new SmtpCommandException(SmtpErrorCode.UnexpectedStatusCode, _RcptToResponse.StatusCode, _RcptToResponse.Response);
-
-                                }
-
-                                //Debug.WriteLine(_RcptToResponse);
-
-                            });
-
-                            #endregion
-
-                            #region Mail DATA
-
-                            // The encoded MIME text lines must not be longer than 76 characters!
-
-                            // 354 End data with <CR><LF>.<CR><LF>
-                            var _DataResponse = SendCommandAndWait("DATA");
-                            if (_DataResponse.StatusCode != SMTPStatusCode.StartMailInput)
-                                throw new SMTPClientException("SMTP DATA command error: " + _DataResponse.ToString());
-
-                            // Send e-mail headers...
-                            if (EMailEnvelop.Mail != null)
-                            {
-
-                                EMailEnvelop.Mail.
-                                             Header.
-                                             Select(header => header.Key + ": " + header.Value).
-                                             ForEach(line => SendCommand(line));
-
-                                //SendCommand("Message-Id: <" + (EMailEnvelop.Mail.MessageId != null
-                                //                                    ? EMailEnvelop.Mail.MessageId.ToString()
-                                //                                    : GenerateMessageId(EMailEnvelop.Mail, RemoteHost).ToString()) + ">");
-
-                                SendCommand("");
-
-                                // Send e-mail body(parts)...
-                                //if (EMailEnvelop.Mail.MailBody != null)
-                                //{
-                                    EMailEnvelop.Mail.Body.ToText(false).ForEach(line => SendCommand(line));
-                                    SendCommand("");
-                                //}
-
-                            }
-
-                            else if (EMailEnvelop.Mail.ToText != null)
-                            {
-                                EMailEnvelop.Mail.ToText.ForEach(line => SendCommand(line));
-                                SendCommand("");
-                            }
-
-                            #endregion
-
-                            #region End-of-DATA
-
-                            // .
-                            // 250 2.0.0 Ok: queued as 83398728027
-                            var _FinishedResponse = SendCommandAndWait(".");
-                            if (_FinishedResponse.StatusCode != SMTPStatusCode.Ok)
-                                throw new SMTPClientException("SMTP DATA '.' command error: " + _FinishedResponse.ToString());
-
-                            #endregion
-
-                            #region QUIT
-
-                            // QUIT
-                            // 221 2.0.0 Bye
-                            var _QuitResponse     = SendCommandAndWait("QUIT");
-                            if (_QuitResponse.StatusCode != SMTPStatusCode.ServiceClosingTransmissionChannel)
-                                throw new SMTPClientException("SMTP QUIT command error: " + _QuitResponse.ToString());
-
-                            #endregion
 
                             break;
 
-                        }
+                    }
 
-                        return MailSentStatus.ok;
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                }
+                finally
+                {
+                    SendEMailSemaphore.Release();
+                }
+            }
 
-                    default:
-                        return MailSentStatus.failed;
+            #region Send OnSendEMailResponse event
 
-                }}
+            var Endtime = DateTime.UtcNow;
 
-            });
+            try
+            {
 
-            if (AutoStart)
-                SendMailTask.Start();
+                if (OnSendEMailResponse != null)
+                    await Task.WhenAll(OnSendEMailResponse.GetInvocationList().
+                                       Cast<OnSendEMailResponseDelegate>().
+                                       Select(e => e(Endtime,
+                                                     this,
+                                                     EMailEnvelop.EventTrackingId,
+                                                     EMailEnvelop,
+                                                     RequestTimeout,
+                                                     result,
+                                                     Endtime - StartTime))).
+                                       ConfigureAwait(false);
 
-            return SendMailTask;
+            }
+            catch (Exception e)
+            {
+                e.Log(nameof(SMTPClient) + "." + nameof(OnSendEMailResponse));
+            }
+
+            #endregion
+
+            return result;
 
         }
 
@@ -849,7 +953,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         public void Dispose()
         {
-            throw new NotImplementedException();
+            
         }
 
         #endregion

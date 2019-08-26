@@ -563,7 +563,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                             if (_MessageId == null)
                                             {
-                                                _MessageId = MessageId.Parse(Guid.NewGuid().ToString() + "@" + _DefaultServerName);
+                                                _MessageId = Message_Id.Parse(Guid.NewGuid().ToString() + "@" + _DefaultServerName);
                                                 IncomingMail = EMail.Parse(new String[] { "Message-Id: " + _MessageId + Environment.NewLine }.Concat(MailText));
                                             }
 

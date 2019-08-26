@@ -34,97 +34,76 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
     public class EMail
     {
 
+        #region Properties
+
         #region Well-known e-mail headers
 
         /// <summary>
         /// The sender of the e-mail.
         /// </summary>
-        public readonly EMailAddress        From;
+        public EMailAddress        From         { get; }
 
         /// <summary>
         /// The receivers of the e-mail.
         /// </summary>
-        public readonly EMailAddressList    To;
+        public EMailAddressList    To           { get; }
 
         /// <summary>
         /// Additional receivers of the e-mail.
         /// </summary>
-        public readonly EMailAddressList    Cc;
+        public EMailAddressList    Cc           { get; }
 
         /// <summary>
         /// Hidden receivers of the e-mail.
         /// </summary>
-        public readonly EMailAddressList    Bcc;
+        public EMailAddressList    Bcc          { get; }
 
         /// <summary>
         /// The receivers of any reply on this e-mail.
         /// </summary>
-        public readonly EMailAddressList    ReplyTo;
+        public EMailAddressList    ReplyTo      { get; }
 
         /// <summary>
         /// The subject of the e-mail.
         /// </summary>
-        public readonly String              Subject;
+        public String              Subject      { get; }
 
         /// <summary>
         /// The sending timestamp of the e-mail.
         /// </summary>
-        public readonly DateTime            Date;
+        public DateTime            Date         { get; }
 
         /// <summary>
         /// The unique message identification of the e-mail.
         /// </summary>
-        public readonly MessageId           MessageId;
+        public Message_Id?         MessageId    { get; }
 
         #endregion
 
-        #region Properties
-
-        #region Header
-
+        // As the order of the headers is important,
+        // do not replace this list by a dictionary!
         private readonly List<KeyValuePair<String, String>> _Header;
 
         /// <summary>
         /// The E-Mail header as enumeration of strings.
         /// </summary>
-        public IEnumerable<KeyValuePair<String, String>> Header
-        {
-            get
-            {
-                return _Header;
-            }
-        }
+        public IEnumerable<KeyValuePair<String, String>>  Header
+            => _Header;
 
-        #endregion
-
-        #region Body
 
         /// <summary>
         /// The e-mail body.
         /// </summary>
-        public readonly EMailBodypart Body;
-
-        #endregion
-
-        #region ToText
+        public EMailBodypart                              Body      { get; }
 
         /// <summary>
         /// Return a string representation of this e-mail.
         /// </summary>
-        public IEnumerable<String> ToText
-        {
-            get
-            {
-
-                return _Header.
-                            Select(line => line.Key + ": " + line.Value).
-                            Concat(new String[] { "" }).
-                            Concat(Body.ToText(false));
-
-            }
-        }
-
-        #endregion
+        public IEnumerable<String>                        ToText
+            => _Header.
+                   Select(line => line.Key + ": " + line.Value).
+                   Concat(new String[] { "" }).
+                   Concat(Body.ToText(false));
 
         #endregion
 
@@ -150,7 +129,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                     case "replyto":    this.ReplyTo    = EMailAddressList.Parse(KVP.Value); break;
                     case "subject":    this.Subject    =                        KVP.Value ; break;
                     case "date":       this.Date       = DateTime.        Parse(KVP.Value); break;
-                    case "message-id": this.MessageId  = MessageId.       Parse(KVP.Value); break;
+                    case "message-id": this.MessageId  = Message_Id.      Parse(KVP.Value); break;
 
                 }
 
@@ -211,6 +190,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         #endregion
 
 
+        #region (static) Parse(MailText)
+
+        /// <summary>
+        /// Parse an e-mail from the given enumeration of strings.
+        /// </summary>
+        /// <param name="MailText">An enumeration of strings.</param>
+        public static EMail Parse(IEnumerable<String> MailText)
+            => new EMail(MailText);
+
+        #endregion
+
+
         #region GetEMailHeader(Key)
 
         /// <summary>
@@ -229,19 +220,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             return String.Empty;
 
-        }
-
-        #endregion
-
-        #region (static) Parse(MailText)
-
-        /// <summary>
-        /// Parse an e-mail from the given enumeration of strings.
-        /// </summary>
-        /// <param name="MailText">An enumeration of strings.</param>
-        public static EMail Parse(IEnumerable<String> MailText)
-        {
-            return new EMail(MailText);
         }
 
         #endregion

@@ -21,7 +21,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     public enum MailSentStatus
     {
         ok,
-        failed
+        InvalidLogin,
+        failed,
     }
 
 }

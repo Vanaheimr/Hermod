@@ -307,32 +307,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #region MessageId
 
-        private MessageId _MessageId;
-
         /// <summary>
         /// The unique message identification of the e-mail.
         /// </summary>
-        public MessageId MessageId
-        {
-
-            get
-            {
-                return _MessageId;
-            }
-
-            set
-            {
-                if (value != null)
-                    _MessageId = value;
-            }
-
-        }
+        public Message_Id? MessageId    { get; }
 
         #endregion
 
-        private readonly MessageId _Reference;
+        private readonly Message_Id _Reference;
 
-        private readonly List<MessageId> _References;
+        private readonly List<Message_Id> _References;
 
         #region SecurityLevel
 
@@ -450,7 +434,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             this._Bcc                   = EMailAddressListBuilder.Empty;
             this._Subject               = "";
             this. Date                  = DateTime.UtcNow;
-            this._References            = new List<MessageId>();
+            this._References            = new List<Message_Id>();
             this._Attachments           = new List<EMailBodypart>();
 
             this.SecurityLevel          = EMailSecurity.auto;
