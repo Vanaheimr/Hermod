@@ -217,6 +217,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         public SmtpCapabilities Capabilities;
 
+        #endregion
+
+        #region Events
+
         public delegate Task OnSendEMailRequestDelegate (DateTime                        LogTimestamp,
                                                          SMTPClient                      Sender,
                                                          EventTracking_Id                EventTrackingId,
