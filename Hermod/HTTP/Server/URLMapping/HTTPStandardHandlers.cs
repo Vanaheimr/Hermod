@@ -416,19 +416,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ~/map
             HTTPServer.AddMethodCallback(Hostname,
                                          HTTPMethod.GET,
-                                         URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? URLTemplate.Substring(0, (Int32) URLTemplate.Length) : URLTemplate,
+                                         URLTemplate.EndsWith("/", StringComparison.InvariantCulture)
+                                             ? URLTemplate.Substring(0, (Int32) URLTemplate.Length)
+                                             : URLTemplate,
+                                         HTTPContentType.ALL,
                                          HTTPDelegate: GetEmbeddedResources);
 
             // ~/map/
             HTTPServer.AddMethodCallback(Hostname,
                                          HTTPMethod.GET,
                                          URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? "" : "/"),
+                                         HTTPContentType.ALL,
                                          HTTPDelegate: GetEmbeddedResources);
 
             // ~/map/file.name
             HTTPServer.AddMethodCallback(Hostname,
                                          HTTPMethod.GET,
                                          URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? "{ResourceName}" : "/{ResourceName}"),
+                                         HTTPContentType.ALL,
                                          HTTPDelegate: GetEmbeddedResources);
 
         }
