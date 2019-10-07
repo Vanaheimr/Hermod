@@ -179,7 +179,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="SOAPMatch">A delegate to check whether this dispatcher matches the given XML.</param>
         /// <param name="SOAPBodyDelegate">A delegate to process a matching SOAP request.</param>
         public void RegisterSOAPDelegate(HTTPHostname      Hostname,
-                                         HTTPPath           URITemplate,
+                                         HTTPPath          URITemplate,
                                          String            Description,
                                          SOAPMatch         SOAPMatch,
                                          SOAPBodyDelegate  SOAPBodyDelegate)

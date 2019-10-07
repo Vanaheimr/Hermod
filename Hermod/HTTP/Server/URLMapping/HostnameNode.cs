@@ -116,7 +116,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public void AddHandler(HTTPDelegate              HTTPDelegate,
 
-                               HTTPPath?                  URITemplate                 = null,
+                               HTTPPath?                 URITemplate                 = null,
                                HTTPMethod?               Method                      = null,
                                HTTPContentType           HTTPContentType             = null,
 
@@ -124,7 +124,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPAuthentication        HTTPMethodAuthentication    = null,
                                HTTPAuthentication        ContentTypeAuthentication   = null,
 
-                               HTTPRequestLogHandler   HTTPRequestLogger           = null,
+                               HTTPRequestLogHandler     HTTPRequestLogger           = null,
                                HTTPResponseLogHandler    HTTPResponseLogger          = null,
 
                                HTTPDelegate              DefaultErrorHandler         = null,
