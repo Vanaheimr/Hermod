@@ -545,7 +545,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The runtime of the HTTP request/response pair.
         /// </summary>
-        public TimeSpan? Runtime            { get; }
+        public TimeSpan Runtime
+
+            => HTTPRequest != null
+                   ? Timestamp - HTTPRequest.Timestamp
+                   : TimeSpan.Zero;
 
         /// <summary>
         /// The number of retransmissions of this request.
@@ -606,7 +610,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new Exception("Invalid HTTP response!");
 
             this.HTTPStatusCode   = HTTPStatusCode.ParseString(_StatusCodeLine[1]);
-            this.Runtime          = Runtime ?? DateTime.UtcNow - HTTPRequest.Timestamp;
             this.NumberOfRetries  = NumberOfRetries;
 
         }
@@ -628,7 +631,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.HTTPRequest     = Response?.HTTPRequest;
             this.HTTPStatusCode  = Response?.HTTPStatusCode;
-            this.Runtime         = Response.Runtime;
 
         }
 
