@@ -2704,34 +2704,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 AddHandler(Request => {
 
-                               //var _LastEventId         = 0UL;
-                               //var _EventSource         = Get(EventIdentification);
-
-                               //if (Request.TryGet("Last-Event-ID", out ulong _Client_LastEventId))
-                               //    _LastEventId         = _Client_LastEventId;
-
-                               //var _HTTPEvents          = (from   _HTTPEvent
-                               //                            in     _EventSource.GetAllEventsGreater(_LastEventId)
-                               //                            where  _HTTPEvent != null && IncludeFilterAtRuntime(_HTTPEvent)
-                               //                            select _HTTPEvent.ToString()).ToArray(); // For thread safety!
-
-                               //// Transform HTTP events into an UTF8 string
-                               //var _ResourceContent     = String.Empty;
-
-                               //if (_HTTPEvents.Length > 0)
-                               //    _ResourceContent     = Environment.NewLine + _HTTPEvents.Aggregate((a, b) => a + Environment.NewLine + b) + Environment.NewLine;
-
-                               //else
-                               //    _ResourceContent += Environment.NewLine + "retry: " + ((UInt32)_EventSource.RetryIntervall.TotalMilliseconds) + Environment.NewLine + Environment.NewLine;
-
-                               var _HTTPEvents = _EventSource.GetAllEventsGreater(Request.GetHeaderField_UInt64("Last-Event-ID")).
-                                                  Where (IncludeFilterAtRuntime).
-                                                  Select(_event => _event.ToString()).
-                                                  AggregateWith(Environment.NewLine) +
-                                     Environment.NewLine;
-
-                               //             _ResourceContent += Environment.NewLine + "retry: " + ((UInt32)_EventSource.RetryIntervall.TotalMilliseconds) + Environment.NewLine + Environment.NewLine;
-
+                              var _HTTPEvents = _EventSource.GetAllEventsGreater(Request.GetHeaderField_UInt64("Last-Event-ID")).
+                                                             Where(IncludeFilterAtRuntime).
+                                                             Aggregate(new StringBuilder(),
+                                                                       (stringBuilder, httpEvent) => stringBuilder.Append    (httpEvent.SerializedHeader).
+                                                                                                                   AppendLine(httpEvent.SerializedData).
+                                                                                                                   AppendLine()).
+                                                             Append(Environment.NewLine).
+                                                             Append("retry: ").Append((UInt32) _EventSource.RetryIntervall.TotalMilliseconds).
+                                                             Append(Environment.NewLine).
+                                                             Append(Environment.NewLine).
+                                                             ToString();
 
 
                                return Task.FromResult(
