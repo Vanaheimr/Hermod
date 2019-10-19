@@ -925,20 +925,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         protected static readonly  Random   _Random                 = new Random(DateTime.Now.Millisecond);
 
-        /// <summary>
-        /// The default HTTP server name.
-        /// </summary>
-        public  const              String   DefaultHTTPServerName   = "GraphDefined HTTP API v0.8";
+        ///// <summary>
+        ///// The default HTTP server name.
+        ///// </summary>
+        //public  const              String   DefaultHTTPServerName   = "GraphDefined HTTP API v0.8";
 
         /// <summary>
         /// The default HTTP server port.
         /// </summary>
         public  static readonly    IPPort   DefaultHTTPServerPort   = IPPort.Parse(2002);
-
-        /// <summary>
-        /// The default service name.
-        /// </summary>
-        public  const              String   DefaultServiceName      = "GraphDefined HTTP API";
 
         /// <summary>
         /// Default logfile name.
@@ -1012,7 +1007,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLPathPrefix">The URL path prefix.</param>
         public HTTPAPI(HTTPServer     HTTPServer,
                        HTTPHostname?  HTTPHostname    = null,
-                       String         ServiceName     = DefaultServiceName,
+                       String         ServiceName     = "GraphDefined HTTP API",
                        String         BaseURL         = "",
                        HTTPPath?      URLPathPrefix   = null)
 

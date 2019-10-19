@@ -129,7 +129,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public void AddHandler(HTTPDelegate              RequestHandler,
                                HTTPContentType           HTTPContentType             = null,
                                HTTPAuthentication        ContentTypeAuthentication   = null,
-                               HTTPRequestLogHandler   HTTPRequestLogger           = null,
+                               HTTPRequestLogHandler     HTTPRequestLogger           = null,
                                HTTPResponseLogHandler    HTTPResponseLogger          = null,
                                HTTPDelegate              DefaultErrorHandler         = null,
                                URIReplacement            AllowReplacement            = URIReplacement.Fail)

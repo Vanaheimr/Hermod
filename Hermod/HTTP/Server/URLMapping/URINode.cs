@@ -148,19 +148,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddHandler(...)
 
-        public void AddHandler(HTTPDelegate              HTTPDelegate,
+        public void AddHandler(HTTPDelegate            HTTPDelegate,
 
-                               HTTPMethod                HTTPMethod,
-                               HTTPContentType           HTTPContentType             = null,
+                               HTTPMethod              HTTPMethod,
+                               HTTPContentType         HTTPContentType             = null,
 
-                               HTTPAuthentication        HTTPMethodAuthentication    = null,
-                               HTTPAuthentication        ContentTypeAuthentication   = null,
+                               HTTPAuthentication      HTTPMethodAuthentication    = null,
+                               HTTPAuthentication      ContentTypeAuthentication   = null,
 
                                HTTPRequestLogHandler   HTTPRequestLogger           = null,
-                               HTTPResponseLogHandler    HTTPResponseLogger          = null,
+                               HTTPResponseLogHandler  HTTPResponseLogger          = null,
 
-                               HTTPDelegate              DefaultErrorHandler         = null,
-                               URIReplacement            AllowReplacement            = URIReplacement.Fail)
+                               HTTPDelegate            DefaultErrorHandler         = null,
+                               URIReplacement          AllowReplacement            = URIReplacement.Fail)
 
         {
 
