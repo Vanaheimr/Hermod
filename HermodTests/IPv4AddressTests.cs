@@ -59,7 +59,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         /// IPv4Address string parsing test.
         /// </summary>
         [Test]
-        [ExpectedException(typeof(FormatException))]
+        //[ExpectedException(typeof(FormatException))]
         public void ParseIPv4String_002()
         {
             IPv4Address.Parse("141.24.12");
@@ -73,7 +73,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         /// IPv4Address string parsing test.
         /// </summary>
         [Test]
-        [ExpectedException(typeof(FormatException))]
+        //[ExpectedException(typeof(FormatException))]
         public void ParseIPv4String_003()
         {
             IPv4Address.Parse("300.24.12.2");
@@ -87,7 +87,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         /// IPv4Address string parsing test.
         /// </summary>
         [Test]
-        [ExpectedException(typeof(FormatException))]
+        //[ExpectedException(typeof(FormatException))]
         public void ParseIPv4String_004()
         {
             IPv4Address.Parse("141.300.12.2");
@@ -101,7 +101,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         /// IPv4Address string parsing test.
         /// </summary>
         [Test]
-        [ExpectedException(typeof(FormatException))]
+        //[ExpectedException(typeof(FormatException))]
         public void ParseIPv4String_005()
         {
             IPv4Address.Parse("141.24.300.2");
@@ -115,7 +115,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         /// IPv4Address string parsing test.
         /// </summary>
         [Test]
-        [ExpectedException(typeof(FormatException))]
+        //[ExpectedException(typeof(FormatException))]
         public void ParseIPv4String_006()
         {
             IPv4Address.Parse("141.24.12.300");
@@ -156,7 +156,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         /// IPv4Address byte array parsing test.
         /// </summary>
         [Test]
-        [ExpectedException(typeof(FormatException))]
+        //[ExpectedException(typeof(FormatException))]
         public void ParseIPv4ByteArray_003()
         {
             new IPv4Address(new Byte[2]);

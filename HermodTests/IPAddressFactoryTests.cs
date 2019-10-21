@@ -61,7 +61,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         /// IPAddressFactory byte array parsing test.
         /// </summary>
         [Test]
-        [ExpectedException(typeof(FormatException))]
+        //[ExpectedException(typeof(FormatException))]
         public void ParseTooShortByteArray()
         {
             IPAddressHelper.Build(new Byte[] { 10, 0, 0 });
