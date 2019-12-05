@@ -21,7 +21,6 @@ using System;
 using System.Text;
 using System.Linq;
 using System.Security.Cryptography;
-using System.Text.RegularExpressions;
 
 using Newtonsoft.Json.Linq;
 
@@ -32,10 +31,10 @@ using org.GraphDefined.Vanaheimr.Illias;
 namespace org.GraphDefined.Vanaheimr.Hermod.Distributed
 {
 
-    public static class ADistributedEntity
-    {
-        public static readonly Regex JSONWhitespaceRegEx = new Regex(@"(\s)+", RegexOptions.IgnorePatternWhitespace);
-    }
+    //public static class ADistributedEntity
+    //{
+    //    public static readonly Regex JSONWhitespaceRegEx = new Regex(@"(\s)+", RegexOptions.IgnorePatternWhitespace);
+    //}
 
     /// <summary>
     /// An abstract entity.
@@ -105,13 +104,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Distributed
         /// <summary>
         /// Calculate the hash value of this object.
         /// </summary>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0063:Use simple 'using' statement", Justification = "<Pending>")]
         public void CalcHash()
         {
 
-            CurrentCryptoHash = "json:sha256:" +
-                          new SHA256Managed().ComputeHash(Encoding.Unicode.GetBytes(ADistributedEntity.JSONWhitespaceRegEx.Replace(ToJSON(IncludeCryptoHash: false).ToString(), " "))).
-                                              Select(value => String.Format("{0:x2}", value)).
-                                              Aggregate();
+            using (var SHA256 = new SHA256Managed())
+            {
+
+                CurrentCryptoHash = "json:sha256:" +
+                                        SHA256.ComputeHash(Encoding.Unicode.GetBytes(
+                                                               ToJSON  (IncludeCryptoHash: false).
+                                                               ToString(Newtonsoft.Json.Formatting.None)
+                                                           )).
+                                               Select(value => String.Format("{0:x2}", value)).
+                                               Aggregate();
+
+            }
 
         }
 
