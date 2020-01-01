@@ -1189,7 +1189,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            var result = JSON.ParseOptional(PropertyName,
+            var result = JSON.ParseOptionalEnum(PropertyName,
                                             PropertyDescription,
                                             out EnumValue,
                                             out String ErrorResponse);
