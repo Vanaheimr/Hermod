@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("GraphDefined GmbH")]
 [assembly: AssemblyProduct("Hermod")]
-[assembly: AssemblyCopyright("Copyright © 2010-2014 GraphDefined GmbH")]
+[assembly: AssemblyCopyright("Copyright © 2010-2020 GraphDefined GmbH")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
