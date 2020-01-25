@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2019, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2020, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,7 +22,6 @@ using System.Text;
 using System.Linq;
 using System.Threading;
 using System.Net.Sockets;
-using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Security.Cryptography;
@@ -475,7 +474,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             if (EMailEnvelop == null)
                 throw new ArgumentNullException(nameof(EMailEnvelop), "The given e-mail envelop must not be null!");
 
-            MailSentStatus result = MailSentStatus.failed;
+            var result = MailSentStatus.failed;
 
             #endregion
 
