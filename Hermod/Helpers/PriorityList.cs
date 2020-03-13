@@ -126,21 +126,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             #region Initial checks
 
             if (DefaultResult == null)
-                return default(T2);
+                return default;
 
             if (Work == null || VerifyResult == null)
                 return DefaultResult(TimeSpan.Zero);
 
-            Task     WorkDone;
+            Task<T2> WorkDone;
             Task<T2> Result;
 
             #endregion
 
-            var TimeoutTask  = Task.Run(() => System.Threading.Thread.Sleep(Timeout));
             var StartTime    = DateTime.UtcNow;
+
             var ToDoList     = _SortedList.
-                                   Select(service => Work(service)).Concat(new Task[] { TimeoutTask }).
+                                   Select(service => Work(service)).
                                    ToList();
+
+            var TimeoutTask  = Task.Run(() => {
+                                                  System.Threading.Thread.Sleep(Timeout);
+                                                  return DefaultResult(Timeout) ?? default;
+                                              });
+
+            ToDoList.Add(TimeoutTask);
 
             do
             {
@@ -163,7 +170,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         Result = WorkDone as Task<T2>;
 
                         if (Result != null &&
-                            !EqualityComparer<T2>.Default.Equals(Result.Result, default(T2)) &&
+                            !EqualityComparer<T2>.Default.Equals(Result.Result, default) &&
                             VerifyResult(Result.Result))
                         {
                             return Result.Result;
