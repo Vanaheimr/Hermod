@@ -311,9 +311,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             _Random.NextBytes(RandomBytes);
 
             var HashedBytes = _SHAHasher.ComputeHash(RandomBytes.
-                                                     Concat(Mail.From.   ToString().ToUTF8Bytes()).
-                                                     Concat(Mail.Subject.           ToUTF8Bytes()).
-                                                     Concat(Mail.Date.   ToString().ToUTF8Bytes()).
+                                                     Concat(Mail.From.   ToString(). ToUTF8Bytes()).
+                                                     Concat(Mail.Subject.            ToUTF8Bytes()).
+                                                     Concat(Mail.Date.   ToIso8601().ToUTF8Bytes()).
                                                      ToArray());
 
             return Message_Id.Parse(HashedBytes.ToHexString().Substring(0, 24),

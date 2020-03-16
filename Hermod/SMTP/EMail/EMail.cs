@@ -34,8 +34,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
     public class EMail
     {
 
-        #region Properties
-
         #region Well-known e-mail headers
 
         /// <summary>
@@ -79,6 +77,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public Message_Id?         MessageId    { get; }
 
         #endregion
+
+        #region Properties
 
         // As the order of the headers is important,
         // do not replace this list by a dictionary!
