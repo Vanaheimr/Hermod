@@ -138,32 +138,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// on the System.Net.Sockets.NetworkStream to be read.
         /// </summary>
         public Boolean DataAvailable
-        {
-            get
-            {
-                return this.NetworkStream.DataAvailable;
-            }
-        }
+
+            => this.NetworkStream?.DataAvailable == true;
 
         #endregion
 
         #region ReadTimeout
 
+        private Int32 readTimeoutMS;
+
         /// <summary>
-        /// Gets or sets the amount of time, in milliseconds, that a read operation
+        /// Gets or sets the amount of time, that a read operation
         /// blocks waiting for data. On default the read operation does not time out.
         /// </summary>
-        public Int32 ReadTimeout
+        public TimeSpan ReadTimeout
         {
 
             get
             {
-                return this.NetworkStream.ReadTimeout;
+                return TimeSpan.FromMilliseconds(readTimeoutMS);
             }
 
             set
             {
-                this.NetworkStream.ReadTimeout = value;
+
+                this.readTimeoutMS              = (Int32) value.TotalMilliseconds;
+                this.NetworkStream.ReadTimeout  = readTimeoutMS;
+
+                if (SSLStream != null)
+                    SSLStream.ReadTimeout       = readTimeoutMS;
+
             }
 
         }
@@ -249,7 +253,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                              ServerCertificateSelectorDelegate    ServerCertificateSelector    = null,
                              RemoteCertificateValidationCallback  ClientCertificateValidator   = null,
                              LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
-                             SslProtocols                         AllowedTLSProtocols          = SslProtocols.Tls12)
+                             SslProtocols                         AllowedTLSProtocols          = SslProtocols.Tls12,
+                             TimeSpan?                            ReadTimeout                  = null,
+                             TimeSpan?                            WriteTimeout                 = null)
 
             : base(new IPSocket(new IPv4Address((         TCPClient.Client.LocalEndPoint  as IPEndPoint)?.Address),
                                 IPPort.Parse   ((UInt16) (TCPClient.Client.LocalEndPoint  as IPEndPoint)?.Port)),
@@ -267,6 +273,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                                                       base.RemoteSocket);
             this._IsClosed            = false;
             this.NetworkStream        = TCPClient.GetStream();
+
+            if (ReadTimeout.HasValue)
+            {
+                this.readTimeoutMS              = (Int32) ReadTimeout.Value.TotalMilliseconds;
+                this.NetworkStream.ReadTimeout  = (Int32) ReadTimeout.Value.TotalMilliseconds;
+            }
+
+            if (WriteTimeout.HasValue)
+            {
+                //this.readTimeoutMS              = (Int32) ReadTimeout.Value.TotalMilliseconds;
+                this.NetworkStream.WriteTimeout  = (Int32) WriteTimeout.Value.TotalMilliseconds;
+            }
+
             this.ServerCertificate    = ServerCertificateSelector?.Invoke(TCPServer, TCPClient);
 
             if (ServerCertificate != null)
@@ -527,28 +546,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
-        #region ReadLine(MaxLength = 65535, Encoding = null, SleepingTimeMS = 5, MaxInitialWaitingTimeMS = 500)
+        #region ReadLine(MaxLength = 65535, Encoding = null, SleepingTimeMS = null, MaxInitialWaitingTimeMS = null, ReadTimeout = null)
 
         /// <summary>
         /// Read a line from the TCP connection.
         /// </summary>
         /// <param name="MaxLength">The maximal length of the string.</param>
         /// <param name="Encoding">The character encoding of the string (default: UTF8).</param>
-        /// <param name="SleepingTimeMS">When no data is currently available wait at least this amount of time [milliseconds].</param>
-        /// <param name="MaxInitialWaitingTimeMS">When no data is currently available wait at most this amount of time [milliseconds].</param>
-        public String ReadLine(Int32 MaxLength = 65535, Encoding Encoding = null, UInt16 SleepingTimeMS = 5, UInt32 MaxInitialWaitingTimeMS = 500)
+        /// <param name="SleepingTime">When no data is currently available wait at least this amount of time [5ms].</param>
+        /// <param name="MaxInitialWaitingTime">When no data is currently available wait at most this amount of time [500ms].</param>
+        /// <param name="__ReadTimeout">The read timeout [20sec].</param>
+        public String ReadLine(Int32      MaxLength               = 65535,
+                               Encoding   Encoding                = null,
+                               TimeSpan?  SleepingTime            = null,
+                               TimeSpan?  MaxInitialWaitingTime   = null,
+                               TimeSpan?  __ReadTimeout             = null)
         {
 
             if (!NetworkStream.CanRead)
                 return String.Empty;
 
-            var WaitingTimeMS = 0;
+            if (!SleepingTime.HasValue)
+                SleepingTime = TimeSpan.FromMilliseconds(5);
 
-            while (!NetworkStream.DataAvailable && (WaitingTimeMS < MaxInitialWaitingTimeMS))
+            if (__ReadTimeout.HasValue)
             {
-                Thread.Sleep(SleepingTimeMS);
-                WaitingTimeMS += SleepingTimeMS;
+
+                NetworkStream.ReadTimeout  = (Int32) __ReadTimeout.Value.TotalMilliseconds;
+
+                if (SSLStream != null)
+                    SSLStream.ReadTimeout  = (Int32) __ReadTimeout.Value.TotalMilliseconds;
+
             }
+
+            var sleepingTimeMS           = (Int32) SleepingTime.Value.TotalMilliseconds;
+            var maxInitialWaitingTimeMS  = (Int32) MaxInitialWaitingTime.Value.TotalMilliseconds;
+            var totalWaitingTime         = 0;
+
+            while (!NetworkStream.DataAvailable && (totalWaitingTime < maxInitialWaitingTimeMS))
+            {
+                Thread.Sleep(sleepingTimeMS);
+                totalWaitingTime += sleepingTimeMS;
+            }
+
+            var Started = DateTime.UtcNow;
 
             if (NetworkStream.DataAvailable)
             {
@@ -557,44 +598,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 var ByteArray  = new Byte[MaxLength];
                 var Position   = 0;
 
-                // Do not stop (on slow connections)
-                //  before a valid EOL was found!
-                while (true)
+                try
                 {
 
-                    ByteValue = SSLStream != null
-                                    ? SSLStream.    ReadByte()
-                                    : NetworkStream.ReadByte();
-
-                    #region Nothing or a '\r' or a '\n' was read!
-
-                    // Nothing was read!
-                    if (ByteValue == -1)
+                    // Do not stop (on slow connections)
+                    //  before a valid EOL was found!
+                    do
                     {
-                        Thread.Sleep(SleepingTimeMS);
-                        continue;
-                    }
 
-                    // Last time a '\r' was read, thus this might be the '\n' of it!
-                    if (SkipNextN && ByteValue == '\n')
-                    {
-                        SkipNextN = false;
-                        continue;
-                    }
+                        ByteValue = SSLStream != null
+                                        ? SSLStream.ReadByte()
+                                        : NetworkStream.ReadByte();
 
-                    if (ByteValue == '\r')
-                    {
-                        SkipNextN = true;
-                        break;
-                    }
+                        #region Nothing or a '\r' or a '\n' was read!
 
-                    if (ByteValue == '\n' ||
-                        Position  == MaxLength)
-                        break;
+                        // Nothing was read!
+                        if (ByteValue == -1)
+                        {
+                            Thread.Sleep(sleepingTimeMS);
+                            continue;
+                        }
 
-                    #endregion
+                        // Last time a '\r' was read, thus this might be the '\n' of it!
+                        if (SkipNextN && ByteValue == '\n')
+                        {
+                            SkipNextN = false;
+                            continue;
+                        }
 
-                    ByteArray[Position++] = (Byte) ByteValue;
+                        if (ByteValue == '\r')
+                        {
+                            SkipNextN = true;
+                            break;
+                        }
+
+                        if (ByteValue == '\n' ||
+                            Position == MaxLength)
+                            break;
+
+                        #endregion
+
+                        ByteArray[Position++] = (Byte) ByteValue;
+
+                    } while (DateTime.UtcNow - Started < ReadTimeout);
+
+                }
+                catch (Exception e)
+                {
 
                 }
 

@@ -21,6 +21,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
     public enum TCPConnectResult
     {
         Ok,
+        InvalidRemoteHost,
         InvalidDomainName,
         NoIPAddressFound,
         UnknownError

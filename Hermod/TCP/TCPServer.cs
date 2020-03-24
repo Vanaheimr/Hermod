@@ -620,7 +620,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                                                                    ServerCertificateSelector:   ServerCertificateSelector,
                                                                                    ClientCertificateValidator:  ClientCertificateValidator,
                                                                                    ClientCertificateSelector:   ClientCertificateSelector,
-                                                                                   AllowedTLSProtocols:         AllowedTLSProtocols)
+                                                                                   AllowedTLSProtocols:         AllowedTLSProtocols,
+                                                                                   ReadTimeout:                 ConnectionTimeout,
+                                                                                   WriteTimeout:                ConnectionTimeout)
                                                        );
 
                                 #region Copy ExceptionOccured event handlers

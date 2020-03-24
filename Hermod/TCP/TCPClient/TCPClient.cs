@@ -80,6 +80,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region Properties
 
+        public IIPAddress IPAddress { get; }
+
         public String RemoteHost { get; }
 
         public String ServiceName { get; }
@@ -170,6 +172,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region Constructor(s)
 
+        #region TCPClient(IPAddress, AutoConnect = false)
+
+        /// <summary>
+        /// Create a new TCPClient connecting to a remote service using an IP address.
+        /// </summary>
+        /// <param name="ConnectionTimeout">The timeout connecting to the remote service.</param>
+        /// <param name="AutoConnect">Connect to the TCP service automatically on startup. Default is false.</param>
+        public TCPClient(IIPAddress                         IPAddress,
+                         IPPort                             RemotePort,
+                         TLSUsage                           UseTLS                      = TLSUsage.STARTTLS,
+                         ValidateRemoteCertificateDelegate  ValidateServerCertificate   = null,
+                         TimeSpan?                          ConnectionTimeout           = null,
+                         Boolean                            AutoConnect                 = false)
+        {
+
+            this.IPAddress                  = IPAddress;
+            this.RemotePort                 = RemotePort;
+            this.UseTLS                     = UseTLS;
+            this.ValidateServerCertificate  = ValidateServerCertificate;
+            this._ConnectionTimeout         = ConnectionTimeout ?? TimeSpan.FromSeconds(60);
+            this._DNSClient                 = DNSClient         ?? new DNSClient(SearchForIPv4DNSServers: this.UseIPv4,
+                                                                                 SearchForIPv6DNSServers: this.UseIPv6);
+
+            if (AutoConnect)
+                Connect();
+
+        }
+
+        #endregion
+
         #region TCPClient(DNSName = null, ServiceName = "", ConnectionTimeout = null, DNSClient = null, AutoConnect = false)
 
         /// <summary>
@@ -183,25 +215,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ConnectionTimeout">The timeout connecting to the remote service.</param>
         /// <param name="DNSClient">An optional DNS client used to resolve DNS names.</param>
         /// <param name="AutoConnect">Connect to the TCP service automatically on startup. Default is false.</param>
-        public TCPClient(String     DNSName            = "",
-                         String     ServiceName        = "",
-                         Boolean    UseIPv4            = true,
-                         Boolean    UseIPv6            = false,
-                         Boolean    PreferIPv6         = false,
-                         Boolean    UseTLS             = false,
-                         TimeSpan?  ConnectionTimeout  = null,
-                         DNSClient  DNSClient          = null,
-                         Boolean    AutoConnect        = false)
+        public TCPClient(String                             DNSName                     = "",
+                         String                             ServiceName                 = "",
+                         Boolean                            UseIPv4                     = true,
+                         Boolean                            UseIPv6                     = false,
+                         Boolean                            PreferIPv6                  = false,
+                         TLSUsage                           UseTLS                      = TLSUsage.STARTTLS,
+                         ValidateRemoteCertificateDelegate  ValidateServerCertificate   = null,
+                         TimeSpan?                          ConnectionTimeout           = null,
+                         DNSClient                          DNSClient                   = null,
+                         Boolean                            AutoConnect                 = false)
         {
 
-            this.RemoteHost         = DNSName;
-            this.ServiceName        = ServiceName;
-            this.UseIPv4            = UseIPv4;
-            this.UseIPv6            = UseIPv6;
-            this.PreferIPv6         = PreferIPv6;
-            this._ConnectionTimeout  = ConnectionTimeout ?? TimeSpan.FromSeconds(60);
-            this._DNSClient          = DNSClient         ?? new DNSClient(SearchForIPv4DNSServers: this.UseIPv4,
-                                                                          SearchForIPv6DNSServers: this.UseIPv6);
+            this.RemoteHost                 = DNSName;
+            this.ServiceName                = ServiceName;
+            this.UseIPv4                    = UseIPv4;
+            this.UseIPv6                    = UseIPv6;
+            this.PreferIPv6                 = PreferIPv6;
+            this.UseTLS                     = UseTLS;
+            this.ValidateServerCertificate  = ValidateServerCertificate;
+            this._ConnectionTimeout         = ConnectionTimeout ?? TimeSpan.FromSeconds(60);
+            this._DNSClient                 = DNSClient         ?? new DNSClient(SearchForIPv4DNSServers: this.UseIPv4,
+                                                                                 SearchForIPv6DNSServers: this.UseIPv6);
 
             if (AutoConnect)
                 Connect();
@@ -237,17 +272,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                          DNSClient                          DNSClient                   = null,
                          Boolean                            AutoConnect                 = false,
                          CancellationToken?                 CancellationToken           = null)
-
-
         {
 
-            this.RemoteHost                = RemoteHost;
-            this.RemotePort                = RemotePort;
+            this.RemoteHost                 = RemoteHost;
+            this.RemotePort                 = RemotePort;
             this.CancellationToken          = CancellationToken != null ? CancellationToken : new CancellationToken();
-            this.UseIPv4                   = UseIPv4;
-            this.UseIPv6                   = UseIPv6;
-            this.PreferIPv6                = PreferIPv6;
-            this.UseTLS                    = UseTLS;
+            this.UseIPv4                    = UseIPv4;
+            this.UseIPv6                    = UseIPv6;
+            this.PreferIPv6                 = PreferIPv6;
+            this.UseTLS                     = UseTLS;
             this.ValidateServerCertificate  = ValidateServerCertificate ?? ((TCPClient, Certificate, CertificateChain, PolicyErrors) => false);
             this._ConnectionTimeout         = ConnectionTimeout         ?? TimeSpan.FromSeconds(60);
             this._DNSClient                 = DNSClient                 ?? new DNSClient(SearchForIPv6DNSServers: true);
@@ -268,10 +301,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         {
 
             if      (IPv4Address.TryParse(RemoteHost, out IPv4Address ipv4address))
-                IPSocketList = new List<IPSocket>() { new IPSocket(ipv4address, this.RemotePort) };
+                IPSocketList = new List<IPSocket>() { new IPSocket(ipv4address, RemotePort) };
 
             else if (IPv6Address.TryParse(RemoteHost, out IPv6Address ipv6address))
-                IPSocketList = new List<IPSocket>() { new IPSocket(ipv6address, this.RemotePort) };
+                IPSocketList = new List<IPSocket>() { new IPSocket(ipv6address, RemotePort) };
 
             else
             {
@@ -405,10 +438,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             // if already connected => return!
 
-            if (RemoteHost == null &&
+            if (IPAddress  == null &&
+                RemoteHost == null &&
                 RemoteHost == String.Empty)
             {
-                return TCPConnectResult.InvalidDomainName;
+                return TCPConnectResult.InvalidRemoteHost;
             }
 
             var retry = 0;
@@ -416,8 +450,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             do
             {
 
-                if (IPSocketList == null)
+                if (IPAddress == null && IPSocketList == null)
                     QueryDNS();
+                else
+                {
+                    IPSocketList           = new List<IPSocket>() { new IPSocket(IPAddress, RemotePort) };
+                    IPSocketListEnumerator = IPSocketList.GetEnumerator();
+                }
 
                 if (IPSocketList.Count == 0)
                     return TCPConnectResult.NoIPAddressFound;
