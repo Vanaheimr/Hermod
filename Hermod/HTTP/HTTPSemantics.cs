@@ -33,7 +33,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Logfile...
         /// </summary>
-        public const String LogEvents = "/LogEvents";
+        public static readonly HTTPEventSource_Id LogEvents = HTTPEventSource_Id.Parse("/LogEvents");
 
         // ---------------------------------------------------------------------------------
 
