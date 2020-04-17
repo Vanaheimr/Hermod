@@ -1318,15 +1318,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var ResourceStream = assembly.Item2.GetManifestResourceStream(assembly.Item1 + ResourceName);
                 if (ResourceStream != null)
                 {
+
                     ResourceStream.Seek(3, SeekOrigin.Begin);
                     ResourceStream.CopyTo(HTMLStream);
-                }
 
-                return HTMLTemplate.Replace("<%= content %>", HTMLStream.ToArray().ToUTF8String());
+                    return HTMLTemplate.Replace("<%= content %>", HTMLStream.ToArray().ToUTF8String());
+
+                }
 
             }
 
-            return HTMLTemplate;
+            return String.Empty;
 
         }
 
