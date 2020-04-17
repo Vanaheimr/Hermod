@@ -24,6 +24,8 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Reflection;
+using System.IO;
 
 #endregion
 
@@ -947,32 +949,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The HTTP server of the API.
         /// </summary>
-        public HTTPServer    HTTPServer     { get; }
+        public HTTPServer    HTTPServer       { get; }
 
         /// <summary>
         /// The HTTP hostname for all URIs within this API.
         /// </summary>
-        public HTTPHostname  Hostname       { get; }
+        public HTTPHostname  Hostname         { get; }
 
         /// <summary>
         /// The name of the HTTP API service.
         /// </summary>
-        public String        ServiceName    { get; }
+        public String        ServiceName      { get; }
 
         /// <summary>
         /// The abse URL of the HTTP API service.
         /// </summary>
-        public String        BaseURL        { get; }
+        public String        BaseURL          { get; }
 
         /// <summary>
         /// The URL prefix of this HTTP API.
         /// </summary>
-        public HTTPPath      URLPathPrefix      { get; }
+        public HTTPPath      URLPathPrefix    { get; }
 
         /// <summary>
         /// The unqiue identification of this HTTP API instance.
         /// </summary>
-        public System_Id     SystemId       { get; }
+        public System_Id     SystemId         { get; }
+
+        /// <summary>
+        /// An optional HTML template.
+        /// </summary>
+        public String        HTMLTemplate     { get; protected set; }
 
         #endregion
 
@@ -1005,11 +1012,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ServiceName">The name of the HTTP API service.</param>
         /// <param name="BaseURL">The base URL of the HTTP API service.</param>
         /// <param name="URLPathPrefix">The URL path prefix.</param>
+        /// <param name="HTMLTemplate">An optional HTML template.</param>
         public HTTPAPI(HTTPServer     HTTPServer,
                        HTTPHostname?  HTTPHostname    = null,
                        String         ServiceName     = "GraphDefined HTTP API",
                        String         BaseURL         = "",
-                       HTTPPath?      URLPathPrefix   = null)
+                       HTTPPath?      URLPathPrefix   = null,
+                       String         HTMLTemplate    = null)
 
         {
 
@@ -1018,6 +1027,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.ServiceName    = ServiceName.IsNotNullOrEmpty() ? ServiceName : "HTTPAPI";
             this.BaseURL        = BaseURL       ?? "";
             this.URLPathPrefix  = URLPathPrefix ?? HTTPPath.Parse("/");
+            this.HTMLTemplate   = HTMLTemplate  ?? "";
 
             this.SystemId       = System_Id.Parse(Environment.MachineName.Replace("/", "") + "/" + HTTPServer.DefaultHTTPServerPort);
 
@@ -1216,6 +1226,109 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+
+        #region (protected) GetResourceStream      (ResourceAssembly, ResourceName)
+
+        protected Stream GetResourceStream(Assembly  ResourceAssembly,
+                                           String    ResourceName)
+
+            => ResourceAssembly?.GetManifestResourceStream(ResourceName);
+
+        #endregion
+
+        #region (protected) GetResourceMemoryStream(ResourceAssembly, ResourceName)
+
+        protected MemoryStream GetResourceMemoryStream(Assembly  ResourceAssembly,
+                                                       String    ResourceName)
+        {
+
+            try
+            {
+
+                var OutputStream    = new MemoryStream();
+                var ResourceStream  = ResourceAssembly.GetManifestResourceStream(ResourceName);
+
+                if (ResourceStream != null)
+                {
+                    ResourceStream.CopyTo(OutputStream);
+                    OutputStream.Seek(0, SeekOrigin.Begin);
+                }
+
+                return OutputStream;
+
+            }
+            catch (Exception)
+            {
+                return new MemoryStream();
+            }
+
+        }
+
+        #endregion
+
+        #region (protected) GetResourceString      (ResourceAssembly, ResourceName)
+
+        protected String GetResourceString(Assembly  ResourceAssembly,
+                                           String    ResourceName)
+
+            => GetResourceMemoryStream(ResourceAssembly,
+                                       ResourceName)?.ToUTF8String() ?? String.Empty;
+
+        #endregion
+
+        #region (protected) GetResourceBytes       (ResourceAssembly, ResourceName)
+        protected Byte[] GetResourceBytes(Assembly  ResourceAssembly,
+                                          String    ResourceName)
+        {
+
+            try
+            {
+
+                var OutputStream   = new MemoryStream();
+                var TemplateStream = ResourceAssembly.GetManifestResourceStream(ResourceName);
+
+                if (TemplateStream != null)
+                {
+                    TemplateStream.Seek(0, SeekOrigin.Begin);
+                    TemplateStream.CopyTo(OutputStream);
+                }
+
+                return OutputStream.ToArray();
+
+            }
+            catch (Exception)
+            {
+                return new Byte[0];
+            }
+
+        }
+
+        #endregion
+
+
+        protected String MixWithHTMLTemplate(String                            ResourceName,
+                                             params Tuple<String, Assembly>[]  ResourceAssemblies)
+        {
+
+            var HTMLStream = new MemoryStream();
+
+            foreach (var assembly in ResourceAssemblies)
+            {
+
+                var ResourceStream = assembly.Item2.GetManifestResourceStream(assembly.Item1 + ResourceName);
+                if (ResourceStream != null)
+                {
+                    ResourceStream.Seek(3, SeekOrigin.Begin);
+                    ResourceStream.CopyTo(HTMLStream);
+                }
+
+                return HTMLTemplate.Replace("<%= content %>", HTMLStream.ToArray().ToUTF8String());
+
+            }
+
+            return HTMLTemplate;
+
+        }
 
 
         #region Start()
