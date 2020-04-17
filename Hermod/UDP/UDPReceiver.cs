@@ -727,14 +727,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
             }
             catch (Exception e)
             {
-                var OnErrorLocal = OnExceptionOccured;
-                if (OnErrorLocal != null)
-                    OnErrorLocal(this, DateTime.UtcNow, e);
+
+                OnExceptionOccured?.Invoke(this,
+                                           DateTime.UtcNow,
+                                           e);
+
             }
 
-            var OnStartedLocal = OnStarted;
-            if (OnStartedLocal != null)
-                OnStartedLocal(this, DateTime.UtcNow);
+            OnStarted?.Invoke(this,
+                              DateTime.UtcNow);
 
         }
 

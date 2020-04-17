@@ -688,9 +688,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         protected void SendStarted(Object Sender, DateTime Timestamp, String Message = null)
         {
 
-            var OnStartedLocal = OnStarted;
-            if (OnStartedLocal != null)
-                OnStartedLocal(Sender, Timestamp, Message);
+            OnStarted?.Invoke(Sender,
+                              Timestamp,
+                              Message);
 
         }
 
@@ -700,7 +700,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         protected void SendTCPSocketAttached(DateTime Timestamp, IPSocket TCPSocket, String Message = null)
         {
-            OnTCPSocketAttached?.Invoke(this, Timestamp, TCPSocket, Message);
+
+            OnTCPSocketAttached?.Invoke(this,
+                                        Timestamp,
+                                        TCPSocket,
+                                        Message);
+
         }
 
         #endregion
@@ -733,7 +738,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                             ConnectionClosedBy  ClosedBy)
         {
 
-            OnConnectionClosed?.Invoke(TCPServer, ServerTimestamp, RemoteSocket, ConnectionId, ClosedBy);
+            OnConnectionClosed?.Invoke(TCPServer,
+                                       ServerTimestamp,
+                                       RemoteSocket,
+                                       ConnectionId,
+                                       ClosedBy);
 
         }
 
@@ -744,9 +753,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         protected void SendTCPSocketDetached(DateTime Timestamp, IPSocket TCPSocket, String Message = null)
         {
 
-            var OnTCPSocketDetachedLocal = OnTCPSocketDetached;
-            if (OnTCPSocketDetachedLocal != null)
-                OnTCPSocketDetachedLocal(this, Timestamp, TCPSocket, Message);
+            OnTCPSocketDetached?.Invoke(this,
+                                        Timestamp,
+                                        TCPSocket,
+                                        Message);
 
         }
 
@@ -757,9 +767,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         protected void SendCompleted(Object Sender, DateTime Timestamp, String Message = null)
         {
 
-            var OnCompletedLocal = OnCompleted;
-            if (OnCompletedLocal != null)
-                OnCompletedLocal(Sender, Timestamp, Message);
+            OnCompleted?.Invoke(Sender,
+                                Timestamp,
+                                Message);
 
         }
 
@@ -770,9 +780,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         protected void SendExceptionOccured(Object Sender, DateTime Timestamp, Exception Exception)
         {
 
-            var OnExceptionOccuredLocal = OnExceptionOccured;
-            if (OnExceptionOccuredLocal != null)
-                OnExceptionOccuredLocal(Sender, Timestamp, Exception);
+            OnExceptionOccured?.Invoke(Sender,
+                                       Timestamp,
+                                       Exception);
 
         }
 
