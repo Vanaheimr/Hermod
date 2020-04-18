@@ -116,7 +116,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public void AddHandler(HTTPDelegate              HTTPDelegate,
 
-                               HTTPPath?                 URITemplate                 = null,
+                               HTTPPath?                 URLTemplate                 = null,
                                HTTPMethod?               Method                      = null,
                                HTTPContentType           HTTPContentType             = null,
 
@@ -135,14 +135,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             lock (_URINodes)
             {
 
-                if (!URITemplate.HasValue)
-                    URITemplate = HTTPPath.Parse("/");
+                if (!URLTemplate.HasValue)
+                    URLTemplate = HTTPPath.Parse("/");
 
-                if (!_URINodes.TryGetValue(URITemplate.Value, out URINode _URINode))
+                if (!_URINodes.TryGetValue(URLTemplate.Value, out URINode _URINode))
                 {
 
-                    _URINode = _URINodes.AddAndReturnValue(URITemplate.Value,
-                                                           new URINode(URITemplate.Value,
+                    _URINode = _URINodes.AddAndReturnValue(URLTemplate.Value,
+                                                           new URINode(URLTemplate.Value,
                                                                        URIAuthentication));
 
                 }

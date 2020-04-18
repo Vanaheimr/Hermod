@@ -1873,7 +1873,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         internal void AddHandler(HTTPDelegate              HTTPDelegate,
 
                                  HTTPHostname?             Hostname                    = null,
-                                 HTTPPath?                  URLTemplate                 = null,
+                                 HTTPPath?                 URLTemplate                 = null,
                                  HTTPMethod?               HTTPMethod                  = null,
                                  HTTPContentType           HTTPContentType             = null,
 
@@ -1947,7 +1947,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPDelegate">The method to call.</param>
         public void AddMethodCallback(HTTPHostname              Hostname,
                                       HTTPMethod                HTTPMethod,
-                                      HTTPPath                   URLTemplate,
+                                      HTTPPath                  URLTemplate,
                                       HTTPContentType           HTTPContentType             = null,
                                       HTTPAuthentication        URIAuthentication           = null,
                                       HTTPAuthentication        HTTPMethodAuthentication    = null,
