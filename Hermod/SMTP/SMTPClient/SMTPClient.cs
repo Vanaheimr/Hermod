@@ -489,10 +489,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     await Task.WhenAll(OnSendEMailRequest.GetInvocationList().
                                         Cast<OnSendEMailRequestDelegate>().
                                         Select(e => e(StartTime,
-                                                        this,
-                                                        EMailEnvelop.EventTrackingId,
-                                                        EMailEnvelop,
-                                                        RequestTimeout))).
+                                                      this,
+                                                      EMailEnvelop.EventTrackingId,
+                                                      EMailEnvelop,
+                                                      RequestTimeout))).
                                         ConfigureAwait(false);
 
             }
@@ -504,7 +504,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             #endregion
 
 
-            var success = await SendEMailSemaphore.WaitAsync(TimeSpan.FromSeconds(60));
+            var success = await SendEMailSemaphore.WaitAsync(RequestTimeout ?? TimeSpan.FromSeconds(60));
 
             if (success)
             {
@@ -514,16 +514,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     switch (Connect())
                     {
 
+                        case TCPConnectResult.InvalidRemoteHost:
+                            result = MailSentStatus.InvalidRemoteHost;
+                            break;
+
                         case TCPConnectResult.InvalidDomainName:
-                            result = MailSentStatus.failed;
+                            result = MailSentStatus.InvalidDomainName;
                             break;
 
                         case TCPConnectResult.NoIPAddressFound:
-                            result = MailSentStatus.failed;
+                            result = MailSentStatus.NoIPAddressFound;
                             break;
 
                         case TCPConnectResult.UnknownError:
-                            result = MailSentStatus.failed;
+                            result = MailSentStatus.UnknownError;
                             break;
 
                         case TCPConnectResult.Ok:
@@ -911,6 +915,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 catch (Exception e)
                 {
                     Console.WriteLine(e.Message);
+                    result = MailSentStatus.ExceptionOccured;
                 }
                 finally
                 {

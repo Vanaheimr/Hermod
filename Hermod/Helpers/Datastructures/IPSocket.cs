@@ -18,11 +18,9 @@
 #region Usings
 
 using System;
-using System.Text;
-using System.Collections;
-using System.Collections.Generic;
-using System.Runtime.Serialization;
+using System.Diagnostics;
 using System.Net;
+
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -43,12 +41,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The IP address of this IP socket.
         /// </summary>
-        public IIPAddress  IPAddress   { get; }
+        public IIPAddress  IPAddress    { get; }
 
         /// <summary>
         /// The port of this IP socket.
         /// </summary>
-        public IPPort      Port        { get; }
+        public IPPort      Port         { get; }
 
         #endregion
 
@@ -64,6 +62,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public IPSocket(IIPAddress  IPAddress,
                         IPPort      Port)
         {
+
+            if (IPAddress == null)
+            {
+
+                StackTrace stackTrace = new StackTrace();           // get call stack
+                StackFrame[] stackFrames = stackTrace.GetFrames();  // get method calls (frames)
+
+                // write call stack method names
+                foreach (StackFrame stackFrame in stackFrames)
+                {
+                    Console.WriteLine(stackFrame.GetMethod().Name);   // write method name
+                }
+
+                DebugX.LogT(stackTrace.ToString());
+
+            }
+
             this.IPAddress  = IPAddress ?? throw new ArgumentNullException(nameof(IPAddress), "The given IP address must not be null!");
             this.Port       = Port;
         }

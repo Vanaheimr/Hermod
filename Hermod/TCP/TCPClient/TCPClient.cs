@@ -29,6 +29,9 @@ using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using System.Diagnostics;
+using System.Threading.Tasks;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -64,11 +67,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region Data
 
-        private           A[]                    _CachedIPv4Addresses;
-        private           AAAA[]                 _CachedIPv6Addresses;
-        private           List<IPSocket>         IPSocketList;
-        private           IEnumerator<IPSocket>  IPSocketListEnumerator;
-        private           IPSocket               CurrentIPSocket;
+        private readonly List<IPSocket>         _IPSocketList;
 
 #if __MonoCS__
         public const SslProtocols DefaultSslProtocols = SslProtocols.Tls;
@@ -80,22 +79,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region Properties
 
-        public IIPAddress IPAddress { get; }
+        public String                     RemoteHost               { get; }
 
-        public String RemoteHost { get; }
+        public String                     ServiceName              { get; }
 
-        public String ServiceName { get; }
+        public IPPort                     RemotePort               { get; }
 
-        public IPPort RemotePort { get; }
+        public IEnumerable<IPSocket>      IPSocketList
+            => _IPSocketList;
 
+        public IPSocket                   CurrentIPSocket          { get; private set; }
 
-        public Boolean UseIPv4 { get; }
+        public Boolean                    UseIPv4                  { get; }
 
-        public Boolean UseIPv6 { get; }
+        public Boolean                    UseIPv6                  { get; }
 
-        public Boolean PreferIPv6 { get; }
+        public Boolean                    PreferIPv6               { get; }
 
-        public TLSUsage UseTLS { get; }
+        public TLSUsage                   UseTLS                   { get; }
 
         #region ConnectionTimeout
 
@@ -124,29 +125,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         private readonly DNSClient _DNSClient;
 
         /// <summary>
-        /// The default server name.
+        /// The default DNS server.
         /// </summary>
         public virtual DNSClient DNSClient
-        {
-            get
-            {
-                return _DNSClient;
-            }
-        }
+            => _DNSClient;
 
         #endregion
 
-        public CancellationToken? CancellationToken { get; private set; }
+        public CancellationToken?         CancellationToken        { get; private set; }
 
-        public Socket TCPSocket { get; private set; }
+        public Socket                     TCPSocket                { get; private set; }
 
-        public Stream Stream { get; private set; }
+        public Stream                     Stream                   { get; private set; }
 
-        public NetworkStream TCPStream { get; private set; }
+        public NetworkStream              TCPStream                { get; private set; }
 
-        public SslStream TLSStream { get; private set; }
+        public SslStream                  TLSStream                { get; private set; }
 
-        public X509CertificateCollection TLSClientCertificates { get; }
+        public X509CertificateCollection  TLSClientCertificates    { get; }
 
         #endregion
 
@@ -187,13 +183,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                          Boolean                            AutoConnect                 = false)
         {
 
-            this.IPAddress                  = IPAddress;
+            //this.IPAddress                  = IPAddress;
             this.RemotePort                 = RemotePort;
             this.UseTLS                     = UseTLS;
             this.ValidateServerCertificate  = ValidateServerCertificate;
             this._ConnectionTimeout         = ConnectionTimeout ?? TimeSpan.FromSeconds(60);
             this._DNSClient                 = DNSClient         ?? new DNSClient(SearchForIPv4DNSServers: this.UseIPv4,
                                                                                  SearchForIPv6DNSServers: this.UseIPv6);
+
+            this._IPSocketList               = new List<IPSocket>() {
+                                                   new IPSocket(IPAddress, RemotePort)
+                                               };
 
             if (AutoConnect)
                 Connect();
@@ -207,7 +207,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// Create a new TCPClient connecting to a remote service using DNS SRV records.
         /// </summary>
-        /// <param name="DNSName">The optional DNS name of the remote service to connect to.</param>
+        /// <param name="RemoteHost">The optional DNS name of the remote service to connect to.</param>
         /// <param name="ServiceName">The optional DNS SRV service name of the remote service to connect to.</param>
         /// <param name="UseIPv4">Whether to use IPv4 as networking protocol.</param>
         /// <param name="UseIPv6">Whether to use IPv6 as networking protocol.</param>
@@ -215,8 +215,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ConnectionTimeout">The timeout connecting to the remote service.</param>
         /// <param name="DNSClient">An optional DNS client used to resolve DNS names.</param>
         /// <param name="AutoConnect">Connect to the TCP service automatically on startup. Default is false.</param>
-        public TCPClient(String                             DNSName                     = "",
-                         String                             ServiceName                 = "",
+        public TCPClient(String                             RemoteHost,
+                         String                             ServiceName,
                          Boolean                            UseIPv4                     = true,
                          Boolean                            UseIPv6                     = false,
                          Boolean                            PreferIPv6                  = false,
@@ -227,8 +227,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                          Boolean                            AutoConnect                 = false)
         {
 
-            this.RemoteHost                 = DNSName;
-            this.ServiceName                = ServiceName;
+            this.RemoteHost                 = RemoteHost?.Trim();
+            if (this.RemoteHost.IsNullOrWhiteSpace())
+                throw new ArgumentNullException(nameof(RemoteHost),  "The given remote host must not be null or empty!");
+
+            this.ServiceName                = ServiceName?.Trim();
+            if (this.ServiceName.IsNullOrWhiteSpace())
+                throw new ArgumentNullException(nameof(ServiceName), "The given service name must not be null or empty!");
+
             this.UseIPv4                    = UseIPv4;
             this.UseIPv6                    = UseIPv6;
             this.PreferIPv6                 = PreferIPv6;
@@ -237,6 +243,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             this._ConnectionTimeout         = ConnectionTimeout ?? TimeSpan.FromSeconds(60);
             this._DNSClient                 = DNSClient         ?? new DNSClient(SearchForIPv4DNSServers: this.UseIPv4,
                                                                                  SearchForIPv6DNSServers: this.UseIPv6);
+
+            this._IPSocketList              = new List<IPSocket>();
+
+            if (IPv4Address.TryParse(this.RemoteHost, out IPv4Address ipv4address))
+                _IPSocketList.Add(new IPSocket(ipv4address, RemotePort));
+
+            if (IPv6Address.TryParse(this.RemoteHost, out IPv6Address ipv6address))
+                _IPSocketList.Add(new IPSocket(ipv6address, RemotePort));
 
             if (AutoConnect)
                 Connect();
@@ -274,7 +288,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                          CancellationToken?                 CancellationToken           = null)
         {
 
-            this.RemoteHost                 = RemoteHost;
+            this.RemoteHost                 = RemoteHost?.Trim();
+            if (this.RemoteHost.IsNullOrWhiteSpace())
+                throw new ArgumentNullException(nameof(RemoteHost),  "The given remote host must not be null or empty!");
+
             this.RemotePort                 = RemotePort;
             this.CancellationToken          = CancellationToken != null ? CancellationToken : new CancellationToken();
             this.UseIPv4                    = UseIPv4;
@@ -284,6 +301,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             this.ValidateServerCertificate  = ValidateServerCertificate ?? ((TCPClient, Certificate, CertificateChain, PolicyErrors) => false);
             this._ConnectionTimeout         = ConnectionTimeout         ?? TimeSpan.FromSeconds(60);
             this._DNSClient                 = DNSClient                 ?? new DNSClient(SearchForIPv6DNSServers: true);
+
+            this._IPSocketList              = new List<IPSocket>();
+
+            if (IPv4Address.TryParse(RemoteHost, out IPv4Address ipv4address))
+                _IPSocketList.Add(new IPSocket(ipv4address, RemotePort));
+
+            if (IPv6Address.TryParse(RemoteHost, out IPv6Address ipv6address))
+                _IPSocketList.Add(new IPSocket(ipv6address, RemotePort));
 
             if (AutoConnect)
                 Connect();
@@ -297,33 +322,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region (private) QueryDNS()
 
-        private void QueryDNS()
+        private async Task QueryDNS()
         {
 
-            if      (IPv4Address.TryParse(RemoteHost, out IPv4Address ipv4address))
-                IPSocketList = new List<IPSocket>() { new IPSocket(ipv4address, RemotePort) };
+            foreach (var socket in (await _DNSClient.Query<A   >(RemoteHost)).SafeSelect(ARecord => new IPSocket(ARecord.IPv4Address, RemotePort)))
+                _IPSocketList.Add(socket);
 
-            else if (IPv6Address.TryParse(RemoteHost, out IPv6Address ipv6address))
-                IPSocketList = new List<IPSocket>() { new IPSocket(ipv6address, RemotePort) };
-
-            else
-            {
-
-                var IPv4Task = _DNSClient.Query<A>(RemoteHost);
-                IPv4Task.Wait();
-                _CachedIPv4Addresses = IPv4Task.Result.ToArray();
-
-                var IPv6Task = _DNSClient.Query<AAAA>(RemoteHost);
-                IPv6Task.Wait();
-                _CachedIPv6Addresses = IPv6Task.Result.ToArray();
-
-                IPSocketList            = (_CachedIPv4Addresses.Select(ARecord    => new IPSocket(ARecord.   IPv4Address, this.RemotePort)).Concat(
-                                           _CachedIPv6Addresses.Select(AAAARecord => new IPSocket(AAAARecord.IPv6Address, this.RemotePort)))).
-                                           ToList();
-
-            }
-
-            IPSocketListEnumerator = IPSocketList.GetEnumerator();
+            foreach (var socket in (await _DNSClient.Query<AAAA>(RemoteHost)).SafeSelect(ARecord => new IPSocket(ARecord.IPv6Address, RemotePort)))
+                _IPSocketList.Add(socket);
 
         }
 
@@ -334,7 +340,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         private Socket CreateAndConnectTCPSocket(IIPAddress ipAddress, IPPort Port)
         {
 
-            Socket tcpSocket = null;
+            Socket tcpSocket;
 
             if      (ipAddress is IPv4Address)
                 tcpSocket = new Socket(AddressFamily.InterNetwork,   SocketType.Stream, ProtocolType.Tcp);
@@ -406,9 +412,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             try
             {
 
-                TCPSocket = CreateAndConnectTCPSocket(CurrentIPSocket.IPAddress, CurrentIPSocket.Port);
-                TCPStream = new NetworkStream(TCPSocket, true);
-                Stream    = TCPStream;
+                TCPSocket  = CreateAndConnectTCPSocket(CurrentIPSocket.IPAddress, CurrentIPSocket.Port);
+                TCPStream  = new NetworkStream(TCPSocket, true);
+                Stream     = TCPStream;
 
                 if (UseTLS == TLSUsage.TLSSocket)
                     EnableTLS();
@@ -416,14 +422,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             }
             catch (Exception e)
             {
+
+                Debug.WriteLine("TCP client reconnect failed!" + Environment.NewLine +
+                                e.Message);
+
                 Stream     = null;
                 TCPStream  = null;
                 TLSStream  = null;
                 TCPSocket  = null;
+
                 return false;
+
             }
 
-            Connected?.Invoke(this, RemoteHost, CurrentIPSocket);
+            Connected?.Invoke(this,
+                              RemoteHost,
+                              CurrentIPSocket);
 
             return true;
 
@@ -438,42 +452,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             // if already connected => return!
 
-            if (IPAddress  == null &&
-                RemoteHost == null &&
-                RemoteHost == String.Empty)
-            {
-                return TCPConnectResult.InvalidRemoteHost;
-            }
-
             var retry = 0;
 
             do
             {
 
-                if (IPAddress == null && IPSocketList == null)
-                    QueryDNS();
-                else
-                {
-                    IPSocketList           = new List<IPSocket>() { new IPSocket(IPAddress, RemotePort) };
-                    IPSocketListEnumerator = IPSocketList.GetEnumerator();
-                }
+                if (_IPSocketList.Count == 0)
+                    QueryDNS().Wait();
 
-                if (IPSocketList.Count == 0)
+                if (_IPSocketList.Count == 0)
                     return TCPConnectResult.NoIPAddressFound;
 
                 // Get next IP socket in ordered list...
-                while (IPSocketListEnumerator.MoveNext())
+                foreach (var ipSocket in _IPSocketList)
                 {
 
-                    CurrentIPSocket = IPSocketListEnumerator.Current;
+                    CurrentIPSocket = ipSocket;
 
                     if (Reconnect())
                         return TCPConnectResult.Ok;
 
                 }
 
-                IPSocketList = null;
                 retry++;
+                Thread.Sleep(5000);
 
             } while (retry < 2);
 
@@ -489,14 +491,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             try
             {
-               TLSStream  = new SslStream(Stream, false, _ValidateRemoteCertificate);
-               TLSStream.AuthenticateAsClient(RemoteHost, TLSClientCertificates, DefaultSslProtocols, true);
-               Stream     = TLSStream;
+
+                TLSStream  = new SslStream(Stream, false, _ValidateRemoteCertificate);
+                TLSStream.AuthenticateAsClient(RemoteHost, TLSClientCertificates, DefaultSslProtocols, true);
+                Stream     = TLSStream;
+
             }
 
             catch (Exception e)
             {
-                Console.WriteLine("EnableTLS() failed!");
+                DebugX.LogT("EnableTLS() failed!");
             }
 
         }

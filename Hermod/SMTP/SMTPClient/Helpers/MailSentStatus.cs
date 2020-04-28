@@ -23,6 +23,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         ok,
         InvalidLogin,
         failed,
+        InvalidDomainName,
+        InvalidRemoteHost,
+        NoIPAddressFound,
+        UnknownError,
+        ExceptionOccured
     }
 
 }
