@@ -373,7 +373,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             #region Initial checks
 
-            if (DomainName.IsNullOrEmpty())
+            if (DomainName.IsNullOrEmpty() || !DNSServers.Any())
                 return new DNSInfo(Origin:               new IPSocket(IPv4Address.Localhost, IPPort.DNS),
                                    QueryId:              0,
                                    IsAuthorativeAnswer:  false,
@@ -387,6 +387,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             if (ResourceRecordTypes.Length == 0)
                 ResourceRecordTypes = new UInt16[1] { 255 };
+
+            Task<DNSInfo> FirstReply = null;
 
             #endregion
 
@@ -472,49 +474,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             #endregion
 
 
-            try
+            if (AllDNSServerRequests.Count > 0)
             {
 
-                Task<DNSInfo> FirstReply = null;
-
-                do
+                try
                 {
 
-                    // Return first/fastest reply
-                    FirstReply = Task.WhenAny(AllDNSServerRequests).Result;
+                    do
+                    {
 
-                    AllDNSServerRequests.Remove(FirstReply);
+                        // Return first/fastest reply
+                        FirstReply = Task.WhenAny(AllDNSServerRequests).Result;
+
+                        AllDNSServerRequests.Remove(FirstReply);
+
+                        // Cache first good response...
+                        if (FirstReply.Result?.ResponseCode == DNSResponseCodes.NoError)
+                        {
+                            AddToCache(DomainName, FirstReply.Result);
+                            break;
+                        }
+
+                    }
+                    while (AllDNSServerRequests.Count > 0);
 
                 }
-                while (FirstReply.Result.ResponseCode != DNSResponseCodes.NoError || AllDNSServerRequests.Count > 0);
+                catch (Exception e)
+                {
 
-                // Cache first good response...
-                if (FirstReply.Result.ResponseCode == DNSResponseCodes.NoError)
-                    AddToCache(DomainName, FirstReply.Result);
+                    while (e.InnerException != null)
+                        e = e.InnerException;
 
-                return FirstReply.Result;
+                    Debug.WriteLine("[" + DateTime.UtcNow + "] DNS exception " + e.Message);
 
-            }
-            catch (Exception e)
-            {
-
-                while (e.InnerException != null)
-                    e = e.InnerException;
-
-                Debug.WriteLine("[" + DateTime.UtcNow + "] DNS exception " + e.Message);
+                }
 
             }
 
-            return new DNSInfo(Origin:               new IPSocket(IPv4Address.Localhost, IPPort.DNS),
-                               QueryId:              0,
-                               IsAuthorativeAnswer:  false,
-                               IsTruncated:          false,
-                               RecursionDesired:     true,
-                               RecursionAvailable:   false,
-                               ResponseCode:         DNSResponseCodes.NameError,
-                               Answers:              new ADNSResourceRecord[0],
-                               Authorities:          new ADNSResourceRecord[0],
-                               AdditionalRecords:    new ADNSResourceRecord[0]);
+            return FirstReply?.Result ??
+                       new DNSInfo(Origin:               new IPSocket(IPv4Address.Localhost, IPPort.DNS),
+                                   QueryId:              0,
+                                   IsAuthorativeAnswer:  false,
+                                   IsTruncated:          false,
+                                   RecursionDesired:     true,
+                                   RecursionAvailable:   false,
+                                   ResponseCode:         DNSResponseCodes.NameError,
+                                   Answers:              new ADNSResourceRecord[0],
+                                   Authorities:          new ADNSResourceRecord[0],
+                                   AdditionalRecords:    new ADNSResourceRecord[0]);
 
         }
 
