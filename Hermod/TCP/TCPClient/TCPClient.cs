@@ -19,49 +19,58 @@
 
 using System;
 using System.IO;
-using System.Net;
-using System.Linq;
 using System.Threading;
 using System.Net.Sockets;
 using System.Net.Security;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
-using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using System.Diagnostics;
-using System.Threading.Tasks;
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 {
 
-    public static class Ext
+    /// <summary>
+    /// Extention methods for sockets.
+    /// </summary>
+    public static class SocketExtentions
     {
 
-        public static void Poll(this Socket socket, SelectMode mode, CancellationToken cancellationToken)
+        #region Poll(this Socket, Mode, CancellationToken)
+
+        public static void Poll(this Socket        Socket,
+                                SelectMode         Mode,
+                                CancellationToken  CancellationToken)
         {
 
-            if (!cancellationToken.CanBeCanceled)
+            if (!CancellationToken.CanBeCanceled)
                 return;
 
-            if (socket != null)
+            if (Socket != null)
             {
                 do
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
-                } while (!socket.Poll(1000, mode));
+                    CancellationToken.ThrowIfCancellationRequested();
+                } while (!Socket.Poll(1000, Mode));
             }
 
             else
-                cancellationToken.ThrowIfCancellationRequested();
+                CancellationToken.ThrowIfCancellationRequested();
 
         }
 
+        #endregion
+
     }
 
+    /// <summary>
+    /// A TCP client.
+    /// </summary>
     public class TCPClient
     {
 
@@ -359,92 +368,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
-        #region (private) Reconnect()
-
-        private Boolean Reconnect()
-        {
-
-            #region Close previous streams and sockets...
-
-            try
-            {
-
-                if (TCPStream != null)
-                {
-                    TCPStream.Close();
-                    TCPStream = null;
-                }
-
-            }
-            catch (Exception)
-            { }
-
-            try
-            {
-
-                if (TLSStream != null)
-                {
-                    TLSStream.Close();
-                    TLSStream = null;
-                }
-
-            }
-            catch (Exception)
-            { }
-
-            Stream = null;
-
-            try
-            {
-
-                if (TCPSocket != null)
-                {
-                    TCPSocket.Close();
-                    TCPSocket = null;
-                }
-
-            }
-            catch (Exception)
-            { }
-
-            #endregion
-
-            try
-            {
-
-                TCPSocket  = CreateAndConnectTCPSocket(CurrentIPSocket.IPAddress, CurrentIPSocket.Port);
-                TCPStream  = new NetworkStream(TCPSocket, true);
-                Stream     = TCPStream;
-
-                if (UseTLS == TLSUsage.TLSSocket)
-                    EnableTLS();
-
-            }
-            catch (Exception e)
-            {
-
-                Debug.WriteLine("TCP client reconnect failed!" + Environment.NewLine +
-                                e.Message);
-
-                Stream     = null;
-                TCPStream  = null;
-                TLSStream  = null;
-                TCPSocket  = null;
-
-                return false;
-
-            }
-
-            Connected?.Invoke(this,
-                              RemoteHost,
-                              CurrentIPSocket);
-
-            return true;
-
-        }
-
-        #endregion
-
         #region Connect()
 
         public TCPConnectResult Connect()
@@ -452,29 +375,106 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             // if already connected => return!
 
-            var retry = 0;
+            // If an ip address was given, this list will be pre-populated!
+            var UseDNS  = _IPSocketList.Count == 0;
+            var retry   = 0;
 
             do
             {
 
-                if (_IPSocketList.Count == 0)
+                if (UseDNS)
                     QueryDNS().Wait();
 
                 if (_IPSocketList.Count == 0)
                     return TCPConnectResult.NoIPAddressFound;
 
-                // Get next IP socket in ordered list...
                 foreach (var ipSocket in _IPSocketList)
                 {
 
                     CurrentIPSocket = ipSocket;
 
-                    if (Reconnect())
+                    #region Close previous streams and sockets...
+
+                    try
+                    {
+
+                        if (TCPStream != null)
+                        {
+                            TCPStream.Close();
+                            TCPStream = null;
+                        }
+
+                    }
+                    catch (Exception)
+                    { }
+
+                    try
+                    {
+
+                        if (TLSStream != null)
+                        {
+                            TLSStream.Close();
+                            TLSStream = null;
+                        }
+
+                    }
+                    catch (Exception)
+                    { }
+
+                    Stream = null;
+
+                    try
+                    {
+
+                        if (TCPSocket != null)
+                        {
+                            TCPSocket.Close();
+                            TCPSocket = null;
+                        }
+
+                    }
+                    catch (Exception)
+                    { }
+
+                    #endregion
+
+                    try
+                    {
+
+                        TCPSocket  = CreateAndConnectTCPSocket(CurrentIPSocket.IPAddress, CurrentIPSocket.Port);
+                        TCPStream  = new NetworkStream(TCPSocket, true);
+                        Stream     = TCPStream;
+
+                        if (UseTLS == TLSUsage.TLSSocket)
+                            EnableTLS();
+
+                        Connected?.Invoke(this,
+                                          RemoteHost,
+                                          CurrentIPSocket);
+
                         return TCPConnectResult.Ok;
+
+                    }
+                    catch (Exception e)
+                    {
+
+                        DebugX.LogT("TCP client reconnect failed!" + Environment.NewLine +
+                                    e.Message);
+
+                        Stream     = null;
+                        TCPStream  = null;
+                        TLSStream  = null;
+                        TCPSocket  = null;
+
+                    }
 
                 }
 
                 retry++;
+
+                if (UseDNS)
+                    _IPSocketList.Clear();
+
                 Thread.Sleep(5000);
 
             } while (retry < 2);
@@ -486,13 +486,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         #endregion
 
 
+        #region (protected) EnableTLS()
+
         protected void EnableTLS()
         {
 
             try
             {
 
-                TLSStream  = new SslStream(Stream, false, _ValidateRemoteCertificate);
+                TLSStream  = new SslStream(Stream, false, ValidateRemoteCertificate);
                 TLSStream.AuthenticateAsClient(RemoteHost, TLSClientCertificates, DefaultSslProtocols, true);
                 Stream     = TLSStream;
 
@@ -500,21 +502,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             catch (Exception e)
             {
-                DebugX.LogT("EnableTLS() failed!");
+                DebugX.LogT("EnableTLS() failed!" + Environment.NewLine +
+                            e.Message);
             }
 
         }
 
-        private Boolean _ValidateRemoteCertificate(Object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors errors)
+        #endregion
+
+        #region (private) ValidateRemoteCertificate(Sender, Certificate, Chain, Errors)
+        private Boolean ValidateRemoteCertificate(Object           Sender,
+                                                  X509Certificate  Certificate,
+                                                  X509Chain        Chain,
+                                                  SslPolicyErrors  Errors)
         {
 
             var ValidateRemoteCertificateLocal = ValidateServerCertificate;
             if (ValidateRemoteCertificateLocal != null)
-                return ValidateRemoteCertificateLocal(this, certificate, chain, errors);
+                return ValidateRemoteCertificateLocal(this, Certificate, Chain, Errors);
 
             return false;
 
         }
+
+        #endregion
 
 
         #region Disconnect()
@@ -525,7 +536,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         }
 
         #endregion
-
 
     }
 
