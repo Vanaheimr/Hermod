@@ -540,16 +540,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (RemoteIPAddress.IsIPv4)
                         TCPSocket = new Socket(AddressFamily.InterNetwork,
-                                              SocketType.Stream,
-                                              ProtocolType.Tcp);
+                                               SocketType.Stream,
+                                               ProtocolType.Tcp);
 
                     else if (RemoteIPAddress.IsIPv6)
                         TCPSocket = new Socket(AddressFamily.InterNetworkV6,
-                                              SocketType.Stream,
-                                              ProtocolType.Tcp);
+                                               SocketType.Stream,
+                                               ProtocolType.Tcp);
 
+                    TCPSocket.SendTimeout    = (Int32) RequestTimeout.Value.TotalMilliseconds;
+                    TCPSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
                     TCPSocket.Connect(_FinalIPEndPoint);
-                    TCPSocket.ReceiveTimeout = (Int32)RequestTimeout.Value.TotalMilliseconds;
+                    TCPSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
 
                 }
 
