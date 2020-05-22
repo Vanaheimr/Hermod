@@ -18,26 +18,29 @@
 #region Usings
 
 using System;
-using System.Linq;
-using System.Xml.Linq;
 using System.Threading;
 using System.Net.Security;
 using System.Threading.Tasks;
 
+using Newtonsoft.Json.Linq;
+
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using System.Security.Cryptography.X509Certificates;
-using Newtonsoft.Json.Linq;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.JSON
 {
 
-    public delegate T CustomJSONParserDelegate<T>(JObject JSON, T Data);
+    public delegate T        CustomJObjectParserDelegate<T>    (JObject JSON,            T       Data);
 
-    public delegate JObject CustomJSONSerializerDelegate<T>(T ResponseBuilder, JObject JSON);
+    public delegate T        CustomJArrayParserDelegate<T>     (JArray  JSON,            T       Data);
+
+    public delegate JObject  CustomJObjectSerializerDelegate<T>(T       ResponseBuilder, JObject JSON);
+
+    public delegate JArray   CustomJArraySerializerDelegate<T> (T       ResponseBuilder, JArray  JSON);
+
 
     /// <summary>
     /// A specialized HTTP client for JSON transport.

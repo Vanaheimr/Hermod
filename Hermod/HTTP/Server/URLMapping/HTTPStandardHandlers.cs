@@ -113,7 +113,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CacheControl">Set the HTTP cache control response header.</param>
         public static void RegisterResourcesFile(this IHTTPServer  HTTPServer,
                                                  HTTPHostname      Hostname,
-                                                 HTTPPath           URLTemplate,
+                                                 HTTPPath          URLTemplate,
                                                  Assembly          ResourceAssembly,
                                                  String            ResourceFilename,
                                                  HTTPContentType   ResponseContentType  = null,
@@ -251,7 +251,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPPassword">An optional password for HTTP basic authentication.</param>
         public static void RegisterResourcesFolder(this IHTTPServer  HTTPServer,
                                                    HTTPHostname      Hostname,
-                                                   HTTPPath           URLTemplate,
+                                                   HTTPPath          URLTemplate,
                                                    String            ResourcePath,
                                                    Assembly          ResourceAssembly  = null,
                                                    String            DefaultFilename   = "index.html",
@@ -422,12 +422,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          HTTPContentType.ALL,
                                          HTTPDelegate: GetEmbeddedResources);
 
-            // ~/map/
-            HTTPServer.AddMethodCallback(Hostname,
-                                         HTTPMethod.GET,
-                                         URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? "" : "/"),
-                                         HTTPContentType.ALL,
-                                         HTTPDelegate: GetEmbeddedResources);
+            //// ~/map/
+            //HTTPServer.AddMethodCallback(Hostname,
+            //                             HTTPMethod.GET,
+            //                             URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? "" : "/"),
+            //                             HTTPContentType.ALL,
+            //                             HTTPDelegate: GetEmbeddedResources);
 
             // ~/map/file.name
             HTTPServer.AddMethodCallback(Hostname,
