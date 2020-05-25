@@ -21,9 +21,9 @@ using System;
 using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using System.Threading.Tasks;
 
 #endregion
 
@@ -390,25 +390,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Return a status enumerator.
         /// </summary>
         public IEnumerator<Timestamped<T>> GetEnumerator()
-        {
 
-            return _StatusSchedule.
-                       OrderByDescending(status => status.Timestamp).
-                       GetEnumerator();
-
-        }
+            => _StatusSchedule.
+                   OrderByDescending(status => status.Timestamp).
+                   GetEnumerator();
 
         /// <summary>
         /// Return a status enumerator.
         /// </summary>
         IEnumerator IEnumerable.GetEnumerator()
-        {
 
-            return _StatusSchedule.
-                       OrderByDescending(status => status.Timestamp).
-                       GetEnumerator();
-
-        }
+            => _StatusSchedule.
+                   OrderByDescending(status => status.Timestamp).
+                   GetEnumerator();
 
         #endregion
 
@@ -418,6 +412,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
+
             => CurrentStatus.ToString();
 
         #endregion

@@ -955,9 +955,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (FilterDelegate != null &&
                 TryGetString(ParameterName, out String Value) &&
-                DateTime.TryParse(Value, out DateTime _Timestamp))
+                DateTime.TryParse(Value, out DateTime timestamp))
             {
-                return item => FilterDelegate(item, DateTime.SpecifyKind(_Timestamp, DateTimeKind.Utc));
+                return item => FilterDelegate(item, DateTime.SpecifyKind(timestamp, DateTimeKind.Utc));
             }
 
             return _ => true;
