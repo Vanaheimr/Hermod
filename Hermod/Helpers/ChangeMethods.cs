@@ -18,10 +18,20 @@
 namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
+    /// <summary>
+    /// Change methods.
+    /// </summary>
     public enum ChangeMethods
     {
 
+        /// <summary>
+        /// Insert
+        /// </summary>
         Insert,
+
+        /// <summary>
+        /// Replace
+        /// </summary>
         Replace
 
     }

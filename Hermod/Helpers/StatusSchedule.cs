@@ -278,7 +278,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     _StatusSchedule.Clear();
                     _StatusSchedule.AddRange(NewStatusSchedule.
                                                  OrderByDescending(v => v.Timestamp).
-                                                 Take((Int32) MaxStatusHistorySize));
+                                                 Take(MaxStatusHistorySize));
 
                     // Will call the change-events.
                     CheckCurrentStatus();
@@ -293,15 +293,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region Insert(StatusList, ChangeMethod = Replace)
+        #region Insert (StatusList)
 
         /// <summary>
         /// Insert the given enumeration of status entries.
         /// </summary>
         /// <param name="StatusList">An enumeration of status entries.</param>
-        /// <param name="ChangeMethod">A change method.</param>
-        public StatusSchedule<T> Insert(IEnumerable<Timestamped<T>>  StatusList,
-                                        ChangeMethods                ChangeMethod  = ChangeMethods.Replace)
+        public StatusSchedule<T> Insert(IEnumerable<Timestamped<T>> StatusList)
         {
 
             lock (_StatusSchedule)
@@ -309,28 +307,76 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                 var _OldStatus = _CurrentStatus;
 
-                switch (ChangeMethod)
-                {
-
-                    case ChangeMethods.Insert:
-                        break;
-
-                    case ChangeMethods.Replace:
-                        _StatusSchedule.Clear();
-                        break;
-
-                }
-
-                _StatusSchedule.AddRange(StatusList);
-
                 // Remove any old status having the same timestamp!
-                var NewStatusSchedule = _StatusSchedule.
+                var NewStatusSchedule = StatusList.
                                             GroupBy(status => status.Timestamp).
                                             Select (group  => group.
                                                                   OrderByDescending(status => status.Timestamp).
                                                                   First()).
                                             OrderByDescending(v => v.Timestamp).
-                                            Take((Int32) MaxStatusHistorySize).
+                                            Take(MaxStatusHistorySize).
+                                            ToArray();
+
+                _StatusSchedule.AddRange(NewStatusSchedule);
+
+                CheckCurrentStatus(_OldStatus);
+
+            }
+
+            return this;
+
+        }
+
+        #endregion
+
+        #region Set    (StatusList, ChangeMethod = Replace)
+
+        /// <summary>
+        /// Set the given enumeration of status entries.
+        /// </summary>
+        /// <param name="StatusList">An enumeration of status entries.</param>
+        /// <param name="ChangeMethod">A change method.</param>
+        public StatusSchedule<T> Set(IEnumerable<Timestamped<T>>  StatusList,
+                                     ChangeMethods                ChangeMethod  = ChangeMethods.Replace)
+        {
+
+            switch (ChangeMethod)
+            {
+
+                case ChangeMethods.Insert:
+                    return Insert(StatusList);
+
+                default:
+                    return Replace(StatusList);
+
+            }
+
+        }
+
+        #endregion
+
+        #region Replace(StatusList)
+
+        /// <summary>
+        /// Insert the given enumeration of status entries.
+        /// </summary>
+        /// <param name="StatusList">An enumeration of status entries.</param>
+        public StatusSchedule<T> Replace(IEnumerable<Timestamped<T>> StatusList)
+        {
+
+            lock (_StatusSchedule)
+            {
+
+                var _OldStatus = _CurrentStatus;
+
+                // Remove any status having the same timestamp!
+                var NewStatusSchedule = StatusList.
+                                            GroupBy(status => status.Timestamp).
+                                            Select (group  => group.
+                                                                  OrderByDescending(status => status.Timestamp).
+                                                                  First()).
+                                            OrderByDescending(v => v.Timestamp).
+                                            Take(MaxStatusHistorySize).
                                             ToArray();
 
                 _StatusSchedule.Clear();
