@@ -139,7 +139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.Write(LogEventName);
                 Console.ForegroundColor = ConsoleColor.Gray;
-                Console.Write(String.Concat(" from ", (Request.HTTPSource != null ? Request.HTTPSource.ToString() : "<local>"), " => "));
+                Console.Write(String.Concat(" from ", Request.HTTPSource != null ? Request.HTTPSource.ToString() : "<local>", " => "));
 
                 if (Response.HTTPStatusCode == HTTPStatusCode.OK ||
                     Response.HTTPStatusCode == HTTPStatusCode.Created)
