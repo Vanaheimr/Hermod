@@ -106,7 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region WhenFirst(Work, VerifyResult, Timeout, DefaultResult)
+        #region WhenFirst(Work, VerifyResult, Timeout, OnException, DefaultResult)
 
         /// <summary>
         /// Run every service in priority order and wait until all services are done.
@@ -119,6 +119,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public async Task<T2> WhenFirst<T2>(Func<T, Task<T2>>   Work,
                                             Func<T2, Boolean>   VerifyResult,
                                             TimeSpan            Timeout,
+                                            Action<Exception>   OnException,
                                             Func<TimeSpan, T2>  DefaultResult)
 
         {
@@ -156,8 +157,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 {
 
                     // Remove all faulted tasks from a previous run of the loop
-                    foreach (var faults in ToDoList.Where(_ => _.Status == TaskStatus.Faulted).ToArray())
-                        ToDoList.Remove(faults);
+                    foreach (var errorTask in ToDoList.Where(_ => _.Status == TaskStatus.Faulted).ToArray())
+                    {
+
+                        ToDoList.Remove(errorTask);
+
+                        foreach (var exception in errorTask.Exception.InnerExceptions)
+                        {
+                            OnException?.Invoke(exception);
+                            DebugX.LogT(exception.Message);
+                        }
+
+                    }
 
                     WorkDone = await Task.WhenAny(ToDoList).
                                           ConfigureAwait(false);
