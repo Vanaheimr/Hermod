@@ -480,7 +480,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region GetBoolean   (ParameterName, DefaultValue = false)
+        #region GetBoolean   (ParameterName, DefaultValue)
 
         /// <summary>
         /// Get a Boolean, or the given default value.
@@ -488,7 +488,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ParameterName">The name of the HTTP query paramerter.</param>
         /// <param name="DefaultValue">The default value.</param>
         public Boolean GetBoolean(String  ParameterName,
-                                  Boolean DefaultValue  = false)
+                                  Boolean DefaultValue)
         {
 
             if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
@@ -916,6 +916,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region TryGetDateTime(ParameterName)
+
+        /// <summary>
+        /// Try to get a timestamp from a HTTP query parameter.
+        /// </summary>
+        /// <param name="ParameterName">The name of the query parameter.</param>
+        public DateTime? TryGetDateTime(String ParameterName)
+        {
+
+            if (TryGetString(ParameterName, out String Value) &&
+                DateTime.TryParse(Value, out DateTime timestamp))
+            {
+                return DateTime.SpecifyKind(timestamp, DateTimeKind.Utc);
+            }
+
+            return null;
+
+        }
+
+        #endregion
+
         #region TryGetDateTime(ParameterName, out Timestamp)
 
         /// <summary>
@@ -928,13 +949,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             if (TryGetString(ParameterName, out String Value) &&
-                DateTime.TryParse(Value, out DateTime _Timestamp))
+                DateTime.TryParse(Value, out DateTime timestamp))
             {
-                Timestamp = DateTime.SpecifyKind(_Timestamp, DateTimeKind.Utc);
+                Timestamp = DateTime.SpecifyKind(timestamp, DateTimeKind.Utc);
                 return true;
             }
 
-            Timestamp = default(DateTime);
+            Timestamp = default;
             return false;
 
         }
