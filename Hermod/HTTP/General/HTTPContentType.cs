@@ -151,6 +151,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPContentType TEXT_UTF8            = new HTTPContentType("text", "plain",                             "utf-8", null, null, "txt");
         public static readonly HTTPContentType HTML_UTF8            = new HTTPContentType("text", "html",                              "utf-8", null, null, "htm", "html");
         public static readonly HTTPContentType CSS_UTF8             = new HTTPContentType("text", "css",                               "utf-8", null, null, "css");
+        public static readonly HTTPContentType CSV_Text_UTF8        = new HTTPContentType("text", "csv",                               "utf-8", null, null, "css");
         public static readonly HTTPContentType JAVASCRIPT_UTF8      = new HTTPContentType("text", "javascript",                        "utf-8", null, null, "js");
         public static readonly HTTPContentType XMLTEXT_UTF8         = new HTTPContentType("text", "xml",                               "utf-8", null, null, "xml");
         public static readonly HTTPContentType MARKDOWN_UTF8        = new HTTPContentType("text", "markdown",                          "utf-8", null, null, "md");
@@ -165,7 +166,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPContentType GRAPHML_UTF8         = new HTTPContentType("application", "graphml+xml",                "utf-8", null, null, "graphml");
         public static readonly HTTPContentType SWF                  = new HTTPContentType("application", "x-shockwave-flash",          null,    null, null, "swf");
         public static readonly HTTPContentType PDF                  = new HTTPContentType("application", "pdf",                        "utf-8", null, null, "pdf");
-        public static readonly HTTPContentType CSV                  = new HTTPContentType("application", "csv",                        "utf-8", null, null, "csv");
+        public static readonly HTTPContentType CSV_App_UTF8         = new HTTPContentType("application", "csv",                        "utf-8", null, null, "csv");
         public static readonly HTTPContentType SIG                  = new HTTPContentType("application", "pgp-signature",              "utf-8", null, null, "sig");
 
         public static readonly HTTPContentType GIF                  = new HTTPContentType("image", "gif",                              null,    null, null, "gif");
