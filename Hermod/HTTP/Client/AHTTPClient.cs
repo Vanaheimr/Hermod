@@ -22,7 +22,6 @@ using System.Net.Security;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -47,6 +46,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The default HTTP user agent.
         /// </summary>
         public const           String    DefaultHTTPUserAgent            = "GraphDefined HTTP Client";
+
+        /// <summary>
+        /// The default remote TCP port to connect to.
+        /// </summary>
+        public static readonly IPPort    DefaultRemotePort               = IPPort.HTTP;
 
         /// <summary>
         /// The default timeout for upstream queries.
@@ -187,7 +191,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.ClientId                    = ClientId;
             this.Hostname                    = Hostname;
-            this.RemotePort                  = HTTPPort               ?? IPPort.HTTP;
+            this.RemotePort                  = HTTPPort               ?? DefaultRemotePort;
 
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
             this.ClientCertificateSelector   = ClientCertificateSelector;

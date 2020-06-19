@@ -285,7 +285,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                 String               PropertyName,
                                                 String               PropertyDescription,
                                                 String               DefaultServerName,
-                                                TryJObjectParser<T>  TryParser,
+                                                TryJObjectParser2<T>  TryParser,
                                                 out T?               Value,
                                                 HTTPRequest          HTTPRequest,
                                                 out HTTPResponse     HTTPResponse)
@@ -1069,7 +1069,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                String               PropertyName,
                                                String               PropertyDescription,
                                                String               DefaultServerName,
-                                               TryJObjectParser<T>  TryJObjectParser,
+                                               TryJObjectParser2<T>  TryJObjectParser,
                                                out T                Value,
                                                HTTPRequest          HTTPRequest,
                                                out HTTPResponse     HTTPResponse)
@@ -1103,7 +1103,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                String               PropertyName,
                                                String               PropertyDescription,
                                                String               DefaultServerName,
-                                               TryJObjectParser<T>  TryParser,
+                                               TryJObjectParser2<T>  TryParser,
                                                out T?               Value,
                                                HTTPRequest          HTTPRequest,
                                                out HTTPResponse     HTTPResponse)

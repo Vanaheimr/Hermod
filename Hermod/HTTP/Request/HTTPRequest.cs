@@ -50,7 +50,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Add this prefix to the URI before sending the request.
         /// </summary>
-        public String           FakeURIPrefix               { get; internal set; }
+        public String           FakeURLPrefix               { get; internal set; }
 
         /// <summary>
         /// The best matching accept type.
@@ -99,7 +99,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public String       EntireRequestHeader
 
             => String.Concat(HTTPMethod, " ",
-                             FakeURIPrefix, URI, QueryString, " ",
+                             FakeURLPrefix, URI, QueryString, " ",
                              ProtocolName, "/", ProtocolVersion, "\r\n",
 
                              ConstructedHTTPHeader);
@@ -1351,9 +1351,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region FakeURIPrefix
+            #region FakeURLPrefix
 
-            public String FakeURIPrefix { get; set; }
+            public String FakeURLPrefix { get; set; }
 
             #endregion
 
@@ -2743,7 +2743,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                            EntireRequestHeader,
                                            Content) {
 
-                        FakeURIPrefix = FakeURIPrefix
+                        FakeURLPrefix = FakeURLPrefix
 
                     };
 

@@ -62,7 +62,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
         /// <summary>
         /// The URI-prefix of the HTTP/JSON service.
         /// </summary>
-        public HTTPPath  URIPrefix   { get; }
+        public HTTPPath  URLPrefix   { get; }
 
         #endregion
 
@@ -73,7 +73,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
         /// </summary>
         /// <param name="Hostname">The hostname of the remote HTTP/JSON service.</param>
         /// <param name="VirtualHostname">The HTTP virtual host to use.</param>
-        /// <param name="URIPrefix">The URI-prefix of the HTTP/JSON service.</param>
+        /// <param name="URLPrefix">The URI-prefix of the HTTP/JSON service.</param>
         /// <param name="HTTPSPort">The HTTP port of the remote HTTP/JSON service.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
@@ -81,7 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public JSONClient(HTTPHostname                         Hostname,
-                          HTTPPath                              URIPrefix,
+                          HTTPPath                              URLPrefix,
                           HTTPHostname?                        VirtualHostname              = null,
                           IPPort?                              HTTPSPort                    = null,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
@@ -102,7 +102,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
 
         {
 
-            this.URIPrefix = URIPrefix.IsNotNullOrEmpty() ? URIPrefix : HTTPPath.Parse("/");
+            this.URLPrefix = URLPrefix.IsNotNullOrEmpty() ? URLPrefix : HTTPPath.Parse("/");
 
         }
 
@@ -159,12 +159,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
 
             #endregion
 
-            var _RequestBuilder = this.POST(URIPrefix);
+            var _RequestBuilder = this.POST(URLPrefix);
             _RequestBuilder.Host               = VirtualHostname ?? Hostname;
             _RequestBuilder.Content            = JSONRequest.ToUTF8Bytes();
             _RequestBuilder.ContentType        = HTTPContentType.JSON_UTF8;
             _RequestBuilder.UserAgent          = UserAgent;
-            _RequestBuilder.FakeURIPrefix      = "https://" + (VirtualHostname ?? Hostname);
+            _RequestBuilder.FakeURLPrefix      = "https://" + (VirtualHostname ?? Hostname);
 
             HTTPRequestBuilder?.Invoke(_RequestBuilder);
 

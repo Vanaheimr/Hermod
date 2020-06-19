@@ -53,9 +53,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         public static readonly IPPort           DefaultHTTPServerPort   = IPPort.HTTPS;
 
         /// <summary>
-        /// The default HTTP/SOAP/XML server URI prefix.
+        /// The default HTTP/SOAP/XML server URL prefix.
         /// </summary>
-        public static readonly HTTPPath          DefaultURIPrefix        = HTTPPath.Parse("/");
+        public static readonly HTTPPath         DefaultURLPrefix        = HTTPPath.Parse("/");
 
         /// <summary>
         /// The default HTTP/SOAP/XML content type.
@@ -77,9 +77,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         public SOAPServer  SOAPServer   { get; }
 
         /// <summary>
-        /// The common URI prefix for this HTTP/SOAP service.
+        /// The common URL prefix for this HTTP/SOAP service.
         /// </summary>
-        public HTTPPath     URIPrefix    { get; }
+        public HTTPPath    URLPrefix    { get; }
 
         /// <summary>
         /// The DNS client used by this server.
@@ -115,21 +115,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         #region Constructor(s)
 
-        #region ASOAPServer(HTTPServerName, TCPPort = default, URIPrefix = default, SOAPContentType = default, DNSClient = null, RegisterHTTPRootService = true, AutoStart = false)
+        #region ASOAPServer(HTTPServerName, TCPPort = default, URLPrefix = default, SOAPContentType = default, DNSClient = null, RegisterHTTPRootService = true, AutoStart = false)
 
         /// <summary>
         /// Initialize a new HTTP server for the HTTP/SOAP/XML Server API using IPAddress.Any.
         /// </summary>
         /// <param name="HTTPServerName">An optional identification string for the HTTP server.</param>
         /// <param name="TCPPort">An optional TCP port for the HTTP server.</param>
-        /// <param name="URIPrefix">An optional prefix for the HTTP URIs.</param>
+        /// <param name="URLPrefix">An optional prefix for the HTTP URIs.</param>
         /// <param name="SOAPContentType">The HTTP content type for SOAP messages.</param>
         /// <param name="DNSClient">An optional DNS client to use.</param>
         /// <param name="RegisterHTTPRootService">Register HTTP root services for sending a notice to clients connecting via HTML or plain text.</param>
         /// <param name="AutoStart">Start the server immediately.</param>
         protected ASOAPServer(String            HTTPServerName            = DefaultHTTPServerName,
                               IPPort?           TCPPort                   = null,
-                              HTTPPath?          URIPrefix                 = null,
+                              HTTPPath?         URLPrefix                 = null,
                               HTTPContentType   SOAPContentType           = null,
                               Boolean           RegisterHTTPRootService   = true,
                               DNSClient         DNSClient                 = null,
@@ -140,7 +140,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                   SOAPContentType:    SOAPContentType ?? DefaultContentType,
                                   DNSClient:          DNSClient,
                                   Autostart:          false),
-                   URIPrefix)
+                   URLPrefix)
 
         {
 
@@ -154,7 +154,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         #endregion
 
-        #region ASOAPServer(HTTPServerName, TCPPort = default, URIPrefix = default, SOAPContentType = default, DNSClient = null, RegisterHTTPRootService = true, AutoStart = false)
+        #region ASOAPServer(HTTPServerName, TCPPort = default, URLPrefix = default, SOAPContentType = default, DNSClient = null, RegisterHTTPRootService = true, AutoStart = false)
 
         /// <summary>
         /// Initialize a new HTTP server for the HTTP/SOAP/XML Server API using IPAddress.Any.
@@ -165,7 +165,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
         /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
         /// <param name="AllowedTLSProtocols">The SSL/TLS protocol(s) allowed for this connection.</param>
-        /// <param name="URIPrefix">An optional prefix for the HTTP URIs.</param>
+        /// <param name="URLPrefix">An optional prefix for the HTTP URIs.</param>
         /// <param name="SOAPContentType">The HTTP content type for SOAP messages.</param>
         /// <param name="DNSClient">An optional DNS client to use.</param>
         /// <param name="RegisterHTTPRootService">Register HTTP root services for sending a notice to clients connecting via HTML or plain text.</param>
@@ -176,7 +176,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                               RemoteCertificateValidationCallback  ClientCertificateValidator   = null,
                               LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
                               SslProtocols                         AllowedTLSProtocols          = SslProtocols.Tls12,
-                              HTTPPath?                             URIPrefix                    = null,
+                              HTTPPath?                            URLPrefix                    = null,
                               HTTPContentType                      SOAPContentType              = null,
                               Boolean                              RegisterHTTPRootService      = true,
                               DNSClient                            DNSClient                    = null,
@@ -191,7 +191,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                   AllowedTLSProtocols:         AllowedTLSProtocols,
                                   DNSClient:                   DNSClient,
                                   Autostart:                   false),
-                   URIPrefix)
+                   URLPrefix)
 
         {
 
@@ -205,27 +205,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         #endregion
 
-        #region ASOAPServer(SOAPServer, URIPrefix = default, RegisterHTTPRootService = false)
+        #region ASOAPServer(SOAPServer, URLPrefix = default, RegisterHTTPRootService = false)
 
         /// <summary>
         /// Use the given HTTP server for the HTTP/SOAP/XML Server API.
         /// </summary>
         /// <param name="SOAPServer">A SOAP server.</param>
-        /// <param name="URIPrefix">An optional URI prefix for the SOAP URI templates.</param>
+        /// <param name="URLPrefix">An optional URL prefix for the SOAP URI templates.</param>
         protected ASOAPServer(SOAPServer  SOAPServer,
-                              HTTPPath?    URIPrefix = null)
+                              HTTPPath?   URLPrefix = null)
         {
 
             #region Initial checks
 
-            if (URIPrefix.HasValue)
-                while (URIPrefix.Value.EndsWith("/", StringComparison.Ordinal) && URIPrefix.Value.Length > 1)
-                    URIPrefix = URIPrefix.Value.Substring(0, (Int32) URIPrefix.Value.Length - 1);
+            if (URLPrefix.HasValue)
+                while (URLPrefix.Value.EndsWith("/", StringComparison.Ordinal) && URLPrefix.Value.Length > 1)
+                    URLPrefix = URLPrefix.Value.Substring(0, (Int32) URLPrefix.Value.Length - 1);
 
             #endregion
 
             this.SOAPServer  = SOAPServer ?? throw new ArgumentNullException(nameof(SOAPServer), "The given SOAP server must not be null!");
-            this.URIPrefix   = URIPrefix ?? DefaultURIPrefix;
+            this.URLPrefix   = URLPrefix ?? DefaultURLPrefix;
             this.DNSClient   = SOAPServer.HTTPServer.DNSClient;
 
             SOAPServer.HTTPServer.RequestLog   += (HTTPProcessor, ServerTimestamp, Request)                                 => RequestLog. WhenAll(HTTPProcessor, ServerTimestamp, Request);
@@ -250,7 +250,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
                                   new HTTPPath[] {
                                       HTTPPath.Parse("/"),
-                                      URIPrefix + "/"
+                                      URLPrefix + "/"
                                   },
 
                                   new HTTPContentType[] {

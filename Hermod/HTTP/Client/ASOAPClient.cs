@@ -39,23 +39,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         #region Data
 
         /// <summary>
-        /// The default URI prefix.
+        /// The default URL prefix.
         /// </summary>
-        protected static readonly HTTPPath DefaultURIPrefix  = HTTPPath.Parse("/");
+        protected static readonly HTTPPath  DefaultURLPrefix    = HTTPPath.Parse("/");
+
+        /// <summary>
+        /// The default remote TCP port to connect to.
+        /// </summary>
+        public new static readonly IPPort   DefaultRemotePort   = IPPort.HTTPS;
 
         #endregion
 
         #region Properties
 
         /// <summary>
-        /// The default URI prefix.
+        /// The default URL prefix.
         /// </summary>
-        public HTTPPath               URIPrefix          { get; }
+        public HTTPPath               URLPrefix           { get; }
 
         /// <summary>
         /// The WebService-Security username/password.
         /// </summary>
-        public Tuple<String, String>  WSSLoginPassword   { get; }
+        public Tuple<String, String>  WSSLoginPassword    { get; }
 
         #endregion
 
@@ -91,7 +96,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="HTTPVirtualHost">An optional HTTP virtual host name to use.</param>
-        /// <param name="URIPrefix">An default URI prefix.</param>
+        /// <param name="URLPrefix">An default URL prefix.</param>
         /// <param name="WSSLoginPassword">The WebService-Security username/password.</param>
         /// <param name="UserAgent">An optional HTTP user agent to use.</param>
         /// <param name="RequestTimeout">An optional timeout for upstream queries.</param>
@@ -104,7 +109,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                               RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
                               LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
                               HTTPHostname?                        HTTPVirtualHost              = null,
-                              HTTPPath?                            URIPrefix                    = null,
+                              HTTPPath?                            URLPrefix                    = null,
                               Tuple<String, String>                WSSLoginPassword             = null,
                               String                               UserAgent                    = DefaultHTTPUserAgent,
                               TimeSpan?                            RequestTimeout               = null,
@@ -126,7 +131,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         {
 
-            this.URIPrefix         = URIPrefix ?? DefaultURIPrefix;
+            this.URLPrefix         = URLPrefix ?? DefaultURLPrefix;
             this.WSSLoginPassword  = WSSLoginPassword;
 
         }
