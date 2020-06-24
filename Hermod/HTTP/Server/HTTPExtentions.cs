@@ -382,7 +382,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                 HTTPContentType   ContentType = null)
         {
 
-            var RequestBodyString = Request.GetRequestBodyAsUTF8String(ContentType != null ? ContentType : HTTPContentType.XMLTEXT_UTF8);
+            var RequestBodyString = Request.GetRequestBodyAsUTF8String(ContentType ?? HTTPContentType.XMLTEXT_UTF8);
             if (RequestBodyString.HasErrors)
                 return new HTTPResult<XDocument>(RequestBodyString.Error);
 
