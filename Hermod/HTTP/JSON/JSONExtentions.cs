@@ -294,11 +294,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            var success = JSON.ParseMandatory(PropertyName,
-                                              PropertyDescription,
-                                              TryParser,
-                                              out Value,
-                                              out String ErrorResponse);
+            var success = JSON.ParseMandatoryJSON(PropertyName,
+                                                  PropertyDescription,
+                                                  TryParser,
+                                                  out Value,
+                                                  out String ErrorResponse);
 
             if (ErrorResponse != null)
             {
@@ -1075,7 +1075,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                out HTTPResponse     HTTPResponse)
         {
 
-            var result = JSON.ParseOptional(PropertyName,
+            var result = JSON.ParseOptionalJSON(PropertyName,
                                             PropertyDescription,
                                             TryJObjectParser,
                                             out Value,
@@ -1112,11 +1112,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            var result = JSON.ParseMandatory(PropertyName,
-                                             PropertyDescription,
-                                             TryParser,
-                                             out Value,
-                                             out String ErrorResponse);
+            var result = JSON.ParseMandatoryJSON(PropertyName,
+                                                 PropertyDescription,
+                                                 TryParser,
+                                                 out Value,
+                                                 out String ErrorResponse);
 
             if (ErrorResponse == null)
                 HTTPResponse = null;

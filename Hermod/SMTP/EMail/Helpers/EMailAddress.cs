@@ -404,6 +404,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                 {
 
                     if (JSONObject.ParseOptional("@context",
+                                                 "JSON-LinkedData context information",
                                                  out String Context1,
                                                  out ErrorResponse))
                     {

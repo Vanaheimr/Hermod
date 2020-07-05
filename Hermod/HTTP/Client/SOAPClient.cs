@@ -344,7 +344,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         /// <summary>
         /// The URI-prefix of the HTTP/SOAP service.
         /// </summary>
-        public HTTPPath  URLPrefix   { get; }
+        public HTTPPath  URLPrefix           { get; }
+
+        public Boolean   UseFakeURLPrefix    { get; }
 
         #endregion
 
@@ -363,12 +365,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public SOAPClient(HTTPHostname                         Hostname,
-                          HTTPPath                              URLPrefix,
+                          HTTPPath                             URLPrefix,
                           HTTPHostname?                        VirtualHostname              = null,
                           IPPort?                              HTTPPort                     = null,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
                           LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
                           String                               UserAgent                    = DefaultUserAgent,
+                          Boolean                              UseFakeURLPrefix             = true,
                           TimeSpan?                            RequestTimeout               = null,
                           DNSClient                            DNSClient                    = null)
 
@@ -384,7 +387,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
 
         {
 
-            this.URLPrefix = URLPrefix.IsNotNullOrEmpty() ? URLPrefix : HTTPPath.Parse("/");
+            this.URLPrefix         = URLPrefix.IsNotNullOrEmpty() ? URLPrefix : HTTPPath.Parse("/");
+            this.UseFakeURLPrefix  = UseFakeURLPrefix;
 
         }
 
@@ -460,7 +464,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                                                                                           SOAPAction,
                                                                                           null),
                                       UserAgent      = UserAgent,
-                                      FakeURLPrefix  = "https://" + (VirtualHostname ?? Hostname)
+                                      FakeURLPrefix  = UseFakeURLPrefix ? "https://" + (VirtualHostname ?? Hostname) : null
                                   };
 
             // Always send a Content-Length header, even when it's value is zero
@@ -471,7 +475,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
             var HttpResponse = await Execute(_RequestBuilder,
                                              RequestLogDelegate,
                                              ResponseLogDelegate,
-                                             CancellationToken.HasValue ? CancellationToken.Value : new CancellationTokenSource().Token,
+                                             CancellationToken ?? new CancellationTokenSource().Token,
                                              EventTrackingId,
                                              RequestTimeout ?? DefaultRequestTimeout,
                                              NumberOfRetry);
