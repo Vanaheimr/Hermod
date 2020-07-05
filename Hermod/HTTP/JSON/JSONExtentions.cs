@@ -35,21 +35,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public static class JSONExtentions
     {
 
-        #region ParseMandatory       (this JSON, PropertyName, PropertyDescription, DefaultServerName,            out Text,      HTTPRequest, out HTTPResponse)
+        #region ParseMandatoryText   (this JSON, PropertyName, PropertyDescription, DefaultServerName,            out Text,      HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseMandatory(this JObject      JSON,
-                                             String            PropertyName,
-                                             String            PropertyDescription,
-                                             String            DefaultServerName,
-                                             out String        Text,
-                                             HTTPRequest       HTTPRequest,
-                                             out HTTPResponse  HTTPResponse)
+        public static Boolean ParseMandatoryText(this JObject      JSON,
+                                                 String            PropertyName,
+                                                 String            PropertyDescription,
+                                                 String            DefaultServerName,
+                                                 out String        Text,
+                                                 HTTPRequest       HTTPRequest,
+                                                 out HTTPResponse  HTTPResponse)
         {
 
-            var success = JSON.ParseMandatory(PropertyName,
-                                              PropertyDescription,
-                                              out Text,
-                                              out String ErrorResponse);
+            var success = JSON.ParseMandatoryText(PropertyName,
+                                                  PropertyDescription,
+                                                  out Text,
+                                                  out String ErrorResponse);
 
             if (ErrorResponse != null)
             {
@@ -77,84 +77,84 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseMandatory<T>    (this JSON, PropertyName, PropertyDescription, DefaultServerName, Mapper,    out Value,     HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseMandatory<T>(this JObject      JSON,
-                                                String            PropertyName,
-                                                String            PropertyDescription,
-                                                String            DefaultServerName,
-                                                Func<String, T>   Mapper,
-                                                out T             Value,
-                                                HTTPRequest       HTTPRequest,
-                                                out HTTPResponse  HTTPResponse)
-        {
+        //public static Boolean ParseMandatory<T>(this JObject      JSON,
+        //                                        String            PropertyName,
+        //                                        String            PropertyDescription,
+        //                                        String            DefaultServerName,
+        //                                        Func<String, T>   Mapper,
+        //                                        out T             Value,
+        //                                        HTTPRequest       HTTPRequest,
+        //                                        out HTTPResponse  HTTPResponse)
+        //{
 
-            var success = JSON.ParseMandatory(PropertyName,
-                                              PropertyDescription,
-                                              Mapper,
-                                              out Value,
-                                              out String ErrorResponse);
+        //    var success = JSON.ParseMandatory(PropertyName,
+        //                                      PropertyDescription,
+        //                                      Mapper,
+        //                                      out Value,
+        //                                      out String ErrorResponse);
 
-            if (ErrorResponse != null)
-            {
+        //    if (ErrorResponse != null)
+        //    {
 
-                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
-                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = DefaultServerName,
-                    Date            = DateTime.UtcNow,
-                    ContentType     = HTTPContentType.JSON_UTF8,
-                    Content         = JSONObject.Create(
-                                          new JProperty("description", ErrorResponse)
-                                      ).ToUTF8Bytes()
-                };
+        //        HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
+        //            HTTPStatusCode  = HTTPStatusCode.BadRequest,
+        //            Server          = DefaultServerName,
+        //            Date            = DateTime.UtcNow,
+        //            ContentType     = HTTPContentType.JSON_UTF8,
+        //            Content         = JSONObject.Create(
+        //                                  new JProperty("description", ErrorResponse)
+        //                              ).ToUTF8Bytes()
+        //        };
 
-                return false;
+        //        return false;
 
-            }
+        //    }
 
-            HTTPResponse = null;
-            return success;
+        //    HTTPResponse = null;
+        //    return success;
 
-        }
+        //}
 
-        public static Boolean ParseMandatory<T>(this JObject      JSON,
-                                                String            PropertyName,
-                                                String            PropertyDescription,
-                                                String            DefaultServerName,
-                                                Func<String, T>   Mapper,
-                                                out T?            Value,
-                                                HTTPRequest       HTTPRequest,
-                                                out HTTPResponse  HTTPResponse)
+        //public static Boolean ParseMandatory<T>(this JObject      JSON,
+        //                                        String            PropertyName,
+        //                                        String            PropertyDescription,
+        //                                        String            DefaultServerName,
+        //                                        Func<String, T>   Mapper,
+        //                                        out T?            Value,
+        //                                        HTTPRequest       HTTPRequest,
+        //                                        out HTTPResponse  HTTPResponse)
 
-            where T : struct
+        //    where T : struct
 
-        {
+        //{
 
-            var success = JSON.ParseMandatory(PropertyName,
-                                              PropertyDescription,
-                                              Mapper,
-                                              out Value,
-                                              out String ErrorResponse);
+        //    var success = JSON.ParseMandatory(PropertyName,
+        //                                      PropertyDescription,
+        //                                      Mapper,
+        //                                      out Value,
+        //                                      out String ErrorResponse);
 
-            if (ErrorResponse != null)
-            {
+        //    if (ErrorResponse != null)
+        //    {
 
-                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
-                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = DefaultServerName,
-                    Date            = DateTime.UtcNow,
-                    ContentType     = HTTPContentType.JSON_UTF8,
-                    Content         = JSONObject.Create(
-                                          new JProperty("description", ErrorResponse)
-                                      ).ToUTF8Bytes()
-                };
+        //        HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
+        //            HTTPStatusCode  = HTTPStatusCode.BadRequest,
+        //            Server          = DefaultServerName,
+        //            Date            = DateTime.UtcNow,
+        //            ContentType     = HTTPContentType.JSON_UTF8,
+        //            Content         = JSONObject.Create(
+        //                                  new JProperty("description", ErrorResponse)
+        //                              ).ToUTF8Bytes()
+        //        };
 
-                return false;
+        //        return false;
 
-            }
+        //    }
 
-            HTTPResponse = null;
-            return success;
+        //    HTTPResponse = null;
+        //    return success;
 
-        }
+        //}
 
         #endregion
 
@@ -198,66 +198,66 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
-        public static Boolean ParseMandatory<T>(this JObject      JSON,
-                                                String            PropertyName,
-                                                String            PropertyDescription,
-                                                String            DefaultServerName,
-                                                TryParser<T>      TryParser,
-                                                out T?            Value,
-                                                HTTPRequest       HTTPRequest,
-                                                out HTTPResponse  HTTPResponse)
+        //public static Boolean ParseMandatory<T>(this JObject      JSON,
+        //                                        String            PropertyName,
+        //                                        String            PropertyDescription,
+        //                                        String            DefaultServerName,
+        //                                        TryParser<T>      TryParser,
+        //                                        out T?            Value,
+        //                                        HTTPRequest       HTTPRequest,
+        //                                        out HTTPResponse  HTTPResponse)
 
-            where T : struct
+        //    where T : struct
 
-        {
+        //{
 
-            var success = JSON.ParseMandatory(PropertyName,
-                                              PropertyDescription,
-                                              TryParser,
-                                              out Value,
-                                              out String ErrorResponse);
+        //    var success = JSON.ParseMandatory(PropertyName,
+        //                                      PropertyDescription,
+        //                                      TryParser,
+        //                                      out Value,
+        //                                      out String ErrorResponse);
 
-            if (ErrorResponse != null)
-            {
+        //    if (ErrorResponse != null)
+        //    {
 
-                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
-                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = DefaultServerName,
-                    Date            = DateTime.UtcNow,
-                    ContentType     = HTTPContentType.JSON_UTF8,
-                    Content         = JSONObject.Create(
-                                          new JProperty("description", ErrorResponse)
-                                      ).ToUTF8Bytes()
-                };
+        //        HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
+        //            HTTPStatusCode  = HTTPStatusCode.BadRequest,
+        //            Server          = DefaultServerName,
+        //            Date            = DateTime.UtcNow,
+        //            ContentType     = HTTPContentType.JSON_UTF8,
+        //            Content         = JSONObject.Create(
+        //                                  new JProperty("description", ErrorResponse)
+        //                              ).ToUTF8Bytes()
+        //        };
 
-                return false;
+        //        return false;
 
-            }
+        //    }
 
-            HTTPResponse = null;
-            return success;
+        //    HTTPResponse = null;
+        //    return success;
 
-        }
+        //}
 
         #endregion
 
-        #region ParseMandatory<T>    (this JSON, PropertyName, PropertyDescription, DefaultServerName, TryJObjectParser, out Value,     HTTPRequest, out HTTPResponse)
+        #region ParseMandatoryJSON<T>(this JSON, PropertyName, PropertyDescription, DefaultServerName, TryJObjectParser, out Value,     HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseMandatory<T>(this JObject         JSON,
-                                                String               PropertyName,
-                                                String               PropertyDescription,
-                                                String               DefaultServerName,
-                                                TryJObjectParser<T>  TryJObjectParser,
-                                                out T                Value,
-                                                HTTPRequest          HTTPRequest,
-                                                out HTTPResponse     HTTPResponse)
+        public static Boolean ParseMandatoryJSON<T>(this JObject         JSON,
+                                                    String               PropertyName,
+                                                    String               PropertyDescription,
+                                                    String               DefaultServerName,
+                                                    TryJObjectParser<T>  TryJObjectParser,
+                                                    out T                Value,
+                                                    HTTPRequest          HTTPRequest,
+                                                    out HTTPResponse     HTTPResponse)
         {
 
-            var success = JSON.ParseMandatory(PropertyName,
-                                              PropertyDescription,
-                                              TryJObjectParser,
-                                              out Value,
-                                              out String ErrorResponse);
+            var success = JSON.ParseMandatoryJSON(PropertyName,
+                                                  PropertyDescription,
+                                                  TryJObjectParser,
+                                                  out Value,
+                                                  out String ErrorResponse);
 
             if (ErrorResponse != null)
             {
@@ -281,14 +281,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
-        public static Boolean ParseMandatory<T>(this JObject         JSON,
-                                                String               PropertyName,
-                                                String               PropertyDescription,
-                                                String               DefaultServerName,
-                                                TryJObjectParser2<T>  TryParser,
-                                                out T?               Value,
-                                                HTTPRequest          HTTPRequest,
-                                                out HTTPResponse     HTTPResponse)
+        public static Boolean ParseMandatoryJSON<T>(this JObject         JSON,
+                                                    String               PropertyName,
+                                                    String               PropertyDescription,
+                                                    String               DefaultServerName,
+                                                    TryJObjectParser2<T>  TryParser,
+                                                    out T?               Value,
+                                                    HTTPRequest          HTTPRequest,
+                                                    out HTTPResponse     HTTPResponse)
 
             where T : struct
 

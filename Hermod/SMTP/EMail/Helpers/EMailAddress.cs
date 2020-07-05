@@ -418,10 +418,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
                 else
                 {
-                    if (!JSONObject.ParseMandatory("@context",
-                                                   "JSON-LinkedData context information",
-                                                   out String Context,
-                                                   out ErrorResponse))
+                    if (!JSONObject.ParseMandatoryText("@context",
+                                                       "JSON-LinkedData context information",
+                                                       out String Context,
+                                                       out ErrorResponse))
                     {
                         ErrorResponse = @"The JSON-LD ""@context"" information is missing!";
                         return false;
@@ -438,10 +438,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
                 #region Parse OwnerName    [mandatory]
 
-                if (!JSONObject.ParseMandatory("ownerName",
-                                               "owner name",
-                                               out String OwnerName,
-                                               out ErrorResponse))
+                if (!JSONObject.ParseMandatoryText("ownerName",
+                                                   "owner name",
+                                                   out String OwnerName,
+                                                   out ErrorResponse))
                 {
                     return false;
                 }
