@@ -246,6 +246,8 @@
     <Compile Include="Warden\WardenCheck.cs" />
     <Compile Include="Warden\WardenExtentions.cs" />
     <Compile Include="Warden\WardenProperties.cs" />
+    <Compile Include="WebSocket\WebSocketFrame.cs" />
+    <Compile Include="WebSocket\WebSocketServer.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\BouncyCastle\crypto\crypto.csproj">
