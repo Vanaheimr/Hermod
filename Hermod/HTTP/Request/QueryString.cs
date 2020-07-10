@@ -357,6 +357,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region GetChar      (ParameterName, DefaultValue)
+
+        public Char GetChar(String  ParameterName,
+                            Char    DefaultValue)
+        {
+
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values       != null                                            &&
+                Values.Count  > 0)
+            {
+                return Values.Last()[0];
+            }
+
+            return DefaultValue;
+
+        }
+
+        #endregion
+
         #region GetString    (ParameterName, DefaultValue = null)
 
         public String GetString(String  ParameterName,
