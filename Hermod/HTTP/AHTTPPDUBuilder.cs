@@ -89,12 +89,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             get
             {
 
-                return (from   _KeyValuePair in HeaderFields
-                        where  _KeyValuePair.Key   != null
-                        where  _KeyValuePair.Value != null
-                        where  !String.IsNullOrEmpty(_KeyValuePair.Value.ToString())
-                        select _KeyValuePair.Key + ": " + _KeyValuePair.Value).
-                        AggregateOrDefault((a, b) => a + Environment.NewLine + b, String.Empty);
+                var HTTPHeader = new List<String>();
+
+                foreach (var kvp in HeaderFields)
+                {
+                    if (kvp.Value != null)
+                    {
+
+                        switch (kvp.Value)
+                        {
+
+                            case String text:
+                                HTTPHeader.Add(kvp.Key + ": " + text);
+                                break;
+
+                            case String[] texts:
+                                foreach (var text in texts)
+                                    HTTPHeader.Add(kvp.Key + ": " + text);
+                                break;
+
+                            default:
+                                HTTPHeader.Add(kvp.Key + ": " + kvp.Value);
+                                break;
+
+                        }
+
+                    }
+                }
+
+                //return (from   _KeyValuePair in HeaderFields
+                //        where  _KeyValuePair.Key   != null
+                //        where  _KeyValuePair.Value != null
+                //        where  !String.IsNullOrEmpty(_KeyValuePair.Value.ToString())
+                //        select _KeyValuePair.Key + ": " + _KeyValuePair.Value).
+                return HTTPHeader.AggregateOrDefault((a, b) => a + Environment.NewLine + b, String.Empty);
 
             }
         }
@@ -654,21 +682,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region AHTTPPDUBuilder()
-
         /// <summary>
         /// Create a new HTTP header builder.
         /// </summary>
         public AHTTPPDUBuilder()
         {
-
             this.HeaderFields  = new Dictionary<String, Object>(StringComparer.OrdinalIgnoreCase);
-
             this.Date          = DateTime.UtcNow;
-
         }
-
-        #endregion
 
         #endregion
 
@@ -912,6 +933,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region (protected) GetHeaderFields(HeaderField)
+
+        /// <summary>
+        /// Return the values of the given HTTP header field.
+        /// </summary>
+        /// <param name="HeaderField">The HTTP header field.</param>
+        protected String[] GetHeaderFields(HTTPHeaderField HeaderField)
+        {
+
+            if (HeaderFields.TryGetValue(HeaderField.Name, out Object Value))
+            {
+
+                if (Value is String Text)
+                    return new String[] { Text };
+
+                if (Value is String[] Texts)
+                    return Texts;
+
+                return new String[] { Value.ToString() };
+
+            }
+
+            return null;
+
+        }
+
+        #endregion
+
         #region (protected) GetHeaderField<T>(HeaderField)
 
         /// <summary>
@@ -922,23 +971,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected T GetHeaderField<T>(HTTPHeaderField HeaderField)
         {
 
-            Object Value;
-            if (HeaderFields.TryGetValue(HeaderField.Name, out Value))
+            if (HeaderFields.TryGetValue(HeaderField.Name, out Object Value))
+            {
+
                 if (Value is String)
                 {
+
                     if (HeaderField.Type == typeof(String))
                         return (T) Value;
-                    else
-                    {
-                        Object Value2 = null;
-                        if (HeaderField.StringParser(Value.ToString(), out Value2))
-                            return (T) Value2;
-                    }
+
+                    else if (HeaderField.StringParser(Value.ToString(), out Object Value2))
+                        return (T) Value2;
+
                 }
+
                 else
                     return (T) Value;
 
-            return default(T);
+            }
+
+            return default;
 
         }
 
@@ -1011,8 +1063,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Value != null)
             {
 
+                FieldName = FieldName.Trim();
+
                 if (HeaderFields.ContainsKey(FieldName))
                     HeaderFields[FieldName] = Value;
+
                 else
                     HeaderFields.Add(FieldName, Value);
 
@@ -1063,8 +1118,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="FieldName">The name of the header field.</param>
         protected void RemoveHeaderField(String FieldName)
         {
+
+            FieldName = FieldName?.Trim();
+
             if (HeaderFields.ContainsKey(FieldName))
                 HeaderFields.Remove(FieldName);
+
         }
 
         #endregion

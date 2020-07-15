@@ -518,7 +518,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.HTTPBodyReceiveBufferSize  = HTTPBodyReceiveBufferSize < MaxHTTPBodyReceiveBufferSize
                                                   ? HTTPBodyReceiveBufferSize
                                                   : DefaultHTTPBodyReceiveBufferSize;
-            this.CancellationToken          = CancellationToken.HasValue ? CancellationToken.Value : new CancellationTokenSource().Token;
+            this.CancellationToken          = CancellationToken ?? new CancellationTokenSource().Token;
             this.EventTrackingId            = EventTrackingId;
 
             #region Process first line...
@@ -533,19 +533,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region ...process all other header lines
 
-            String[] KeyValuePair = null;
-
             foreach (var Line in AllLines.Skip(1))
             {
 
-                KeyValuePair = Line.Split(_ColonSeparator, 2, StringSplitOptions.RemoveEmptyEntries);
+                var keyValuePair = Line.Split(_ColonSeparator, 2);
 
                 // Not valid for every HTTP header... but at least for most...
-                if (KeyValuePair.Length == 1)
-                    _HeaderFields.Add(KeyValuePair[0].Trim(), String.Empty);
+                if (keyValuePair.Length == 1)
+                    _HeaderFields.Add(keyValuePair[0].Trim(), String.Empty);
 
                 else // KeyValuePair.Length == 2
-                    _HeaderFields.Add(KeyValuePair[0].Trim(), KeyValuePair[1].Trim());
+                {
+
+                    var key = keyValuePair[0]?.Trim();
+
+                    if (key.IsNotNullOrEmpty())
+                    {
+
+                        if (!_HeaderFields.ContainsKey(key))
+                            _HeaderFields.Add(key, keyValuePair[1]?.Trim());
+
+                        else
+                        {
+
+                            if (_HeaderFields[key] is String existingValue)
+                                _HeaderFields[key] = new String[] { existingValue, keyValuePair[1]?.Trim() };
+
+                            else if (_HeaderFields[key] is String[] existingValues)
+                                _HeaderFields[key] = existingValues.Append(keyValuePair[1]?.Trim()).ToArray();
+
+                        }
+
+                    }
+
+                }
 
             }
 

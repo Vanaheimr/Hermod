@@ -120,13 +120,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return false;
             }
 
-            if (!HTTPCookieName.TryParse(Text.Split('=').FirstOrDefault(), out HTTPCookieName _CookieName))
+            if (!HTTPCookieName.TryParse(Text.Split('=').FirstOrDefault(), out HTTPCookieName cookieName))
             {
                 HTTPCookie = null;
                 return false;
             }
 
-            HTTPCookie = new HTTPCookie(_CookieName,
+            HTTPCookie = new HTTPCookie(cookieName,
                                         Text.Trim().DoubleSplit(':', '='));
 
             return true;

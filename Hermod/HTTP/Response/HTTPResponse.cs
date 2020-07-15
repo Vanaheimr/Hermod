@@ -1500,6 +1500,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
+            #region SetCookies
+
+            public String[] SetCookies
+            {
+
+                get
+                {
+                    return GetHeaderFields(HTTPHeaderField.SetCookie);
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPHeaderField.SetCookie, value);
+                }
+
+            }
+
+            #endregion
+
             #region Vary
 
             public String Vary
