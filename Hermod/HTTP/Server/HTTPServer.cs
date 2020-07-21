@@ -1503,13 +1503,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             _HTTPResponse = InvokeHandler(HttpRequest).Result;
 
                                             if (_HTTPResponse == null)
+                                            {
+
                                                 DebugX.Log(nameof(HTTPServer) + ": HTTP response is null!");
+
+                                                _HTTPResponse = new HTTPResponse.Builder(HttpRequest) {
+                                                                    HTTPStatusCode  = HTTPStatusCode.InternalServerError,
+                                                                    ContentType     = HTTPContentType.JSON_UTF8,
+                                                                    Content         = new JObject(
+                                                                                          new JProperty("description", "HTTP response is null!")
+                                                                                      ).ToUTF8Bytes(),
+                                                                    CacheControl    = "private",
+                                                                    Connection      = "close"
+                                                                };
+
+                                                ServerClose = true;
+
+                                            }
 
                                         }
                                         catch (Exception e)
                                         {
+
                                             DebugX.Log(nameof(HTTPServer) + " while invoking request: " + Environment.NewLine + e);
+
+                                            var exception = e.InnerException ?? e;
+
+                                            _HTTPResponse = new HTTPResponse.Builder(HttpRequest) {
+                                                                HTTPStatusCode  = HTTPStatusCode.InternalServerError,
+                                                                ContentType     = HTTPContentType.JSON_UTF8,
+                                                                Content         = new JObject(
+                                                                                      new JProperty("exception",   exception.Message),
+                                                                                      new JProperty("stacktrace",  exception.StackTrace)
+                                                                                  ).ToUTF8Bytes(),
+                                                                CacheControl    = "private",
+                                                                Connection      = "close"
+                                                            };
+
                                             ServerClose = true;
+
                                         }
 
                                         try
