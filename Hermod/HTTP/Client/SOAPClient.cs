@@ -188,28 +188,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
 
             #endregion
 
-            var _RequestBuilder = new HTTPRequest.Builder(this) {
-                                      HTTPMethod         = HTTPMethod.POST,
-                                      Host               = VirtualHostname ?? Hostname,
-                                      URI                = URLPrefix,
-                                      Content            = QueryXML.ToUTF8Bytes(),
-                                      ContentType        = ContentType ?? HTTPContentType.XMLTEXT_UTF8,
-                                      UserAgent          = UserAgent,
-                                      FakeURLPrefix      = "https://" + (VirtualHostname ?? Hostname)
-            };
+            var requestBuilder = new HTTPRequest.Builder(this) {
+                                     HTTPMethod         = HTTPMethod.POST,
+                                     Host               = VirtualHostname ?? Hostname,
+                                     URI                = URLPrefix,
+                                     Accept             = new AcceptTypes(HTTPContentType.XMLTEXT_UTF8),
+                                     Content            = QueryXML.ToUTF8Bytes(),
+                                     ContentType        = ContentType ?? HTTPContentType.XMLTEXT_UTF8,
+                                     UserAgent          = UserAgent
+                                    // FakeURLPrefix      = "https://" + (VirtualHostname ?? Hostname)
+                                 };
 
             // Always send a Content-Length header, even when it's value is zero
-            _RequestBuilder.SetContentLength(0);
+            requestBuilder.SetContentLength(0);
 
-            _RequestBuilder.Set("SOAPAction", @"""" + SOAPAction + @"""");
+            requestBuilder.Set("SOAPAction", @"""" + SOAPAction + @"""");
 
 
-            HTTPRequestBuilder?.Invoke(_RequestBuilder);
+            HTTPRequestBuilder?.Invoke(requestBuilder);
 
-            var HttpResponse = await Execute(_RequestBuilder,
+            var HttpResponse = await Execute(requestBuilder,
                                              RequestLogDelegate,
                                              ResponseLogDelegate,
-                                             CancellationToken.HasValue ? CancellationToken.Value : new CancellationTokenSource().Token,
+                                             CancellationToken ?? new CancellationTokenSource().Token,
                                              EventTrackingId,
                                              RequestTimeout ?? DefaultRequestTimeout,
                                              NumberOfRetry);

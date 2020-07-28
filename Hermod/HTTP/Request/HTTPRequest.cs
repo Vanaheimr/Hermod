@@ -1323,7 +1323,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region HTTPRequestLine
 
             public String HTTPRequestLine
-                => String.Concat(HTTPMethod, " ", _URI, QueryString, " ", ProtocolName, "/", ProtocolVersion);
+                => String.Concat(HTTPMethod, " ", FakeURLPrefix, _URI, QueryString, " ", ProtocolName, "/", ProtocolVersion);
 
             #endregion
 
@@ -1397,10 +1397,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             public AcceptTypes Accept
             {
+
                 get
                 {
                     return GetHeaderField<AcceptTypes>(HTTPHeaderField.Accept);
                 }
+
+                set
+                {
+                    SetHeaderField(HTTPHeaderField.Accept, value);
+                }
+
             }
 
             #endregion
