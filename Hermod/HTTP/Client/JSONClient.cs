@@ -164,7 +164,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
             _RequestBuilder.Content            = JSONRequest.ToUTF8Bytes();
             _RequestBuilder.ContentType        = HTTPContentType.JSON_UTF8;
             _RequestBuilder.UserAgent          = UserAgent;
-            _RequestBuilder.FakeURLPrefix      = "https://" + (VirtualHostname ?? Hostname);
+            //_RequestBuilder.FakeURLPrefix      = "https://" + (VirtualHostname ?? Hostname);
 
             HTTPRequestBuilder?.Invoke(_RequestBuilder);
 
