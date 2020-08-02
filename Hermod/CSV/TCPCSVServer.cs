@@ -100,6 +100,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
         /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
         /// <param name="AllowedTLSProtocols">The SSL/TLS protocol(s) allowed for this connection.</param>
+        /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// <param name="ServiceBanner">Service banner.</param>
         /// <param name="SplitCharacters">An array of delimiters to split the incoming CSV line into individual elements.</param>
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
@@ -117,6 +118,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                             RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
                             LocalCertificateSelectionCallback    ClientCertificateSelector          = null,
                             SslProtocols                         AllowedTLSProtocols                = SslProtocols.Tls12,
+                            String                               ServiceName                        = null,
                             String                               ServiceBanner                      = __DefaultServiceBanner,
                             IEnumerable<Char>                    SplitCharacters                    = null,
                             String                               ServerThreadName                   = null,
@@ -136,6 +138,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                    ClientCertificateValidator,
                    ClientCertificateSelector,
                    AllowedTLSProtocols,
+                   ServiceName,
                    ServiceBanner,
                    SplitCharacters,
                    ServerThreadName,
@@ -160,6 +163,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// </summary>
         /// <param name="IIPAddress">The listening IP address(es)</param>
         /// <param name="Port">The listening port</param>
+        /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
         /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
         /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
@@ -182,6 +186,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                             RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
                             LocalCertificateSelectionCallback    ClientCertificateSelector          = null,
                             SslProtocols                         AllowedTLSProtocols                = SslProtocols.Tls12,
+                            String                               ServiceName                        = null,
                             String                               ServiceBanner                      = __DefaultServiceBanner,
                             IEnumerable<Char>                    SplitCharacters                    = null,
                             String                               ServerThreadName                   = null,
@@ -201,6 +206,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                    ClientCertificateValidator,
                    ClientCertificateSelector,
                    AllowedTLSProtocols,
+                   ServiceName,
                    ServiceBanner,
                    ServerThreadName,
                    ServerThreadPriority,
@@ -242,6 +248,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
         /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
         /// <param name="AllowedTLSProtocols">The SSL/TLS protocol(s) allowed for this connection.</param>
+        /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// <param name="ServiceBanner">Service banner.</param>
         /// <param name="SplitCharacters">An enumeration of delimiters to split the incoming CSV line into individual elements.</param>
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
@@ -259,6 +266,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                             RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
                             LocalCertificateSelectionCallback    ClientCertificateSelector          = null,
                             SslProtocols                         AllowedTLSProtocols                = SslProtocols.Tls12,
+                            String                               ServiceName                        = null,
                             String                               ServiceBanner                      = __DefaultServiceBanner,
                             IEnumerable<Char>                    SplitCharacters                    = null,
                             String                               ServerThreadName                   = null,
@@ -278,6 +286,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                    ClientCertificateValidator,
                    ClientCertificateSelector,
                    AllowedTLSProtocols,
+                   ServiceName,
                    ServiceBanner,
                    SplitCharacters,
                    ServerThreadName,

@@ -122,6 +122,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// </summary>
         /// <param name="HTTPServerName">An optional identification string for the HTTP server.</param>
         /// <param name="TCPPort">An optional TCP port for the HTTP server.</param>
+        /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
+        /// 
         /// <param name="URLPrefix">An optional prefix for the HTTP URIs.</param>
         /// <param name="SOAPContentType">The HTTP content type for SOAP messages.</param>
         /// <param name="DNSClient">An optional DNS client to use.</param>
@@ -129,6 +131,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="AutoStart">Start the server immediately.</param>
         protected ASOAPServer(String            HTTPServerName            = DefaultHTTPServerName,
                               IPPort?           TCPPort                   = null,
+                              String            ServiceName               = null,
+
                               HTTPPath?         URLPrefix                 = null,
                               HTTPContentType   SOAPContentType           = null,
                               Boolean           RegisterHTTPRootService   = true,
@@ -137,6 +141,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             : this(new SOAPServer(TCPPort:            TCPPort ?? DefaultHTTPServerPort,
                                   DefaultServerName:  HTTPServerName,
+                                  ServiceName:        ServiceName,
+
                                   SOAPContentType:    SOAPContentType ?? DefaultContentType,
                                   DNSClient:          DNSClient,
                                   Autostart:          false),
@@ -161,6 +167,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// </summary>
         /// <param name="HTTPServerName">An optional identification string for the HTTP server.</param>
         /// <param name="TCPPort">An optional TCP port for the HTTP server.</param>
+        /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
+        /// 
         /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
         /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
         /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
@@ -172,6 +180,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="AutoStart">Start the server immediately.</param>
         protected ASOAPServer(String                               HTTPServerName               = DefaultHTTPServerName,
                               IPPort?                              TCPPort                      = null,
+                              String                               ServiceName                  = null,
+
                               ServerCertificateSelectorDelegate    ServerCertificateSelector    = null,
                               RemoteCertificateValidationCallback  ClientCertificateValidator   = null,
                               LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
@@ -184,6 +194,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             : this(new SOAPServer(TCPPort:                     TCPPort ?? DefaultHTTPServerPort,
                                   DefaultServerName:           HTTPServerName,
+                                  ServiceName:                 ServiceName,
+
                                   SOAPContentType:             SOAPContentType ?? DefaultContentType,
                                   ServerCertificateSelector:   ServerCertificateSelector,
                                   ClientCertificateValidator:  ClientCertificateValidator,

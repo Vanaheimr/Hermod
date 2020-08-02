@@ -80,6 +80,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// </summary>
         /// <param name="TCPPort">An IP port to listen on.</param>
         /// <param name="DefaultServerName">The default HTTP servername, used whenever no HTTP Host-header had been given.</param>
+        /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
+        /// 
         /// <param name="SOAPContentType">The default HTTP content type used for all SOAP requests/responses.</param>
         /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
         /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
@@ -98,6 +100,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
         public SOAPServer(IPPort                               TCPPort,
                           String                               DefaultServerName                  = HTTPServer.DefaultHTTPServerName,
+                          String                               ServiceName                        = null,
+
                           HTTPContentType                      SOAPContentType                    = null,
                           ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
                           RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
@@ -111,7 +115,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                           ConnectionThreadsPriorityBuilder     ConnectionThreadsPriorityBuilder   = null,
                           Boolean                              ConnectionThreadsAreBackground     = true,
                           TimeSpan?                            ConnectionTimeout                  = null,
-                          UInt32                               MaxClientConnections               = TCPServer.__DefaultMaxClientConnections,
+                          UInt32?                              MaxClientConnections               = null,
                           DNSClient                            DNSClient                          = null,
                           Boolean                              Autostart                          = false)
 
@@ -119,6 +123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             this.HTTPServer        = new HTTPServer(TCPPort,
                                                     DefaultServerName,
+                                                    ServiceName,
                                                     ServerCertificateSelector,
                                                     ClientCertificateValidator,
                                                     ClientCertificateSelector,

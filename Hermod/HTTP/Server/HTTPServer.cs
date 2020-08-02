@@ -154,6 +154,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="TCPPort">The TCP port to listen on.</param>
         /// <param name="DefaultServerName">The default HTTP servername, used whenever no HTTP Host-header had been given.</param>
+        /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// 
         /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
         /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
@@ -174,6 +175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
         public HTTPServer(IPPort?                              TCPPort                            = null,
                           String                               DefaultServerName                  = HTTPServer.DefaultHTTPServerName,
+                          String                               ServiceName                        = null,
 
                           ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
                           RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
@@ -195,6 +197,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             : this(new HTTPServer(TCPPort,
                                   DefaultServerName,
+                                  ServiceName,
                                   ServerCertificateSelector,
                                   ClientCertificateValidator,
                                   ClientCertificateSelector,
@@ -1102,6 +1105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="TCPPort">The TCP port to listen on.</param>
         /// <param name="DefaultServerName">The default HTTP servername, used whenever no HTTP Host-header had been given.</param>
+        /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// 
         /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
         /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
@@ -1122,6 +1126,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
         public HTTPServer(IPPort?                              TCPPort                            = null,
                           String                               DefaultServerName                  = DefaultHTTPServerName,
+                          String                               ServiceName                        = null,
 
                           ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
                           RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
@@ -1136,12 +1141,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           ConnectionThreadsPriorityBuilder     ConnectionThreadsPriorityBuilder   = null,
                           Boolean                              ConnectionThreadsAreBackground     = true,
                           TimeSpan?                            ConnectionTimeout                  = null,
-                          UInt32                               MaxClientConnections               = TCPServer.__DefaultMaxClientConnections,
+                          UInt32?                              MaxClientConnections               = null,
 
                           DNSClient                            DNSClient                          = null,
                           Boolean                              Autostart                          = false)
 
-            : base(DefaultServerName,
+            : base(ServiceName,
+                   DefaultServerName,
                    ServerCertificateSelector,
                    ClientCertificateValidator,
                    ClientCertificateSelector,
@@ -1160,9 +1166,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this.DefaultServerName         = DefaultServerName;
-            this._HostnameNodes            = new Dictionary<HTTPHostname,       HostnameNode>();
-            this._EventSources             = new Dictionary<HTTPEventSource_Id, IHTTPEventSource>();
+            this.DefaultServerName  = DefaultServerName;
+            this._HostnameNodes     = new Dictionary<HTTPHostname,       HostnameNode>();
+            this._EventSources      = new Dictionary<HTTPEventSource_Id, IHTTPEventSource>();
 
             if (TCPPort != null)
                 this.AttachTCPPort(TCPPort ?? IPPort.HTTP);

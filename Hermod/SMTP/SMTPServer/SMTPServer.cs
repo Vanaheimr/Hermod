@@ -187,6 +187,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// </summary>
         /// <param name="TCPPort"></param>
         /// <param name="DefaultServerName">The default SMTP servername.</param>
+        /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
         /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
         /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
@@ -205,6 +206,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <param name="Autostart">Start the SMTP server thread immediately (default: no).</param>
         public SMTPServer(IPPort?                              TCPPort                            = null,
                           String                               DefaultServerName                  = __DefaultServerName,
+                          String                               ServiceName                        = null,
+
                           ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
                           RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
                           LocalCertificateSelectionCallback    ClientCertificateSelector          = null,
@@ -218,11 +221,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                           ConnectionThreadsPriorityBuilder     ConnectionThreadsPriorityBuilder   = null,
                           Boolean                              ConnectionThreadsAreBackground     = true,
                           TimeSpan?                            ConnectionTimeout                  = null,
-                          UInt32                               MaxClientConnections               = TCPServer.__DefaultMaxClientConnections,
+                          UInt32?                              MaxClientConnections               = null,
                           DNSClient                            DNSClient                          = null,
                           Boolean                              Autostart                          = false)
 
-            : base(DefaultServerName,
+            : base(ServiceName,
+                   DefaultServerName,
                    ServerCertificateSelector,
                    ClientCertificateValidator,
                    ClientCertificateSelector,
