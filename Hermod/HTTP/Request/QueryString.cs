@@ -395,21 +395,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region GetStrings   (ParameterName, ToLowerCase = false)
+        #region GetStrings   (ParameterName)
 
-        public IEnumerable<String> GetStrings(String   ParameterName,
-                                              Boolean  ToLowerCase = false)
+        public IEnumerable<String> GetStrings(String  ParameterName)
         {
 
-            Func<String, String> ToLower  = ToLowerCase ? ToLower = s => s.ToLower() : ToLower = s => s;
-
             if (_Dictionary.TryGetValue(ParameterName, out List<String> Value) &&
-                Value != null &&
-                Value.Count > 0)
+                Value       != null &&
+                Value.Count  > 0)
             {
 
-                return Value.SelectMany(item => item.Split(new Char[] { ',' }, StringSplitOptions.RemoveEmptyEntries).
-                                                     Select(s => ToLower(s)));
+                return Value.SelectMany(item => item.Split(new Char[] { ',' }, StringSplitOptions.RemoveEmptyEntries)).
+                             Select    (item => item.Trim());
 
             }
 
