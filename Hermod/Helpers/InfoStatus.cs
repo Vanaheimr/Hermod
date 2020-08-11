@@ -29,7 +29,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     public enum InfoStatus
     {
 
-        Expand,
+        Expanded,
+        Short,
         ShowIdOnly,
         Hidden
 
@@ -39,9 +40,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     public static class InfoStatusExtentions
     {
 
+        public static InfoStatus Parse(String Text)
+        {
+            switch (Text?.ToLower())
+            {
+
+                case "expanded":
+                    return InfoStatus.Expanded;
+
+                case "short":
+                    return InfoStatus.Short;
+
+                case "hidden":
+                    return InfoStatus.Hidden;
+
+                default:
+                    return InfoStatus.ShowIdOnly;
+
+            }
+        }
+
+
         public static JProperty Switch(this InfoStatus  Status,
                                        Func<JProperty>  WhenShowIdOnly,
-                                       Func<JProperty>  WhenExpand)
+                                       Func<JProperty>  WhenExpanded)
         {
 
             switch (Status)
@@ -50,8 +72,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 case InfoStatus.ShowIdOnly:
                     return WhenShowIdOnly();
 
-                case InfoStatus.Expand:
-                    return WhenExpand();
+                case InfoStatus.Expanded:
+                    return WhenExpanded();
 
                 default:
                     return null;
@@ -63,7 +85,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public static JContainer Switch(this InfoStatus   Status,
                                         Func<JContainer>  WhenShowIdOnly,
-                                        Func<JContainer>  WhenExpand)
+                                        Func<JContainer>  WhenExpanded)
         {
 
             switch (Status)
@@ -72,8 +94,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 case InfoStatus.ShowIdOnly:
                     return WhenShowIdOnly();
 
-                case InfoStatus.Expand:
-                    return WhenExpand();
+                case InfoStatus.Expanded:
+                    return WhenExpanded();
 
                 default:
                     return null;
@@ -84,7 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public static JToken Switch(this InfoStatus  Status,
                                     Func<JToken>     WhenShowIdOnly,
-                                    Func<JToken>     WhenExpand)
+                                    Func<JToken>     WhenExpanded)
         {
 
             switch (Status)
@@ -93,8 +115,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 case InfoStatus.ShowIdOnly:
                     return WhenShowIdOnly();
 
-                case InfoStatus.Expand:
-                    return WhenExpand();
+                case InfoStatus.Expanded:
+                    return WhenExpanded();
 
                 default:
                     return null;
@@ -110,7 +132,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static JToken Switch<T>(this InfoStatus  Status,
                                        T                Element,
                                        Func<T, JToken>  WhenShowIdOnly,
-                                       Func<T, JToken>  WhenExpand)
+                                       Func<T, JToken>  WhenExpanded)
         {
 
             switch (Status)
@@ -119,8 +141,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 case InfoStatus.ShowIdOnly:
                     return WhenShowIdOnly(Element);
 
-                case InfoStatus.Expand:
-                    return WhenExpand(Element);
+                case InfoStatus.Expanded:
+                    return WhenExpanded(Element);
 
                 default:
                     return null;
