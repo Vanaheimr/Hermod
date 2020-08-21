@@ -139,7 +139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                               DNSClient         DNSClient                 = null,
                               Boolean           AutoStart                 = false)
 
-            : this(new SOAPServer(TCPPort:            TCPPort ?? DefaultHTTPServerPort,
+            : this(new SOAPServer(TCPPort:            TCPPort         ?? DefaultHTTPServerPort,
                                   DefaultServerName:  HTTPServerName,
                                   ServiceName:        ServiceName,
 
