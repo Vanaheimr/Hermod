@@ -29,9 +29,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// The unique name of a HTTP cookie.
     /// </summary>
-    public struct HTTPCookieName : IId,
-                                   IEquatable<HTTPCookieName>,
-                                   IComparable<HTTPCookieName>
+    public struct HTTPCookieName : IId<HTTPCookieName>
     {
 
         #region Data
@@ -39,7 +37,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The internal name.
         /// </summary>
-        private readonly String  InternalName;
+        private readonly String InternalName;
 
         #endregion
 
@@ -49,22 +47,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Indicates whether this identification is null or empty.
         /// </summary>
         public Boolean IsNullOrEmpty
+
             => InternalName.IsNullOrEmpty();
 
         /// <summary>
         /// The length of the HTTP cookie name.
         /// </summary>
         public UInt64 Length
-            => (UInt64) InternalName.Length;
+
+            => (UInt64) (InternalName?.Length ?? 0);
 
         #endregion
 
         #region Constructor(s)
 
         /// <summary>
-        /// Create a new HTTP cookie name based on the given string.
+        /// Create a new HTTP cookie name based on the given text.
         /// </summary>
-        /// <param name="Name">The string representation of the HTTP cookie name.</param>
+        /// <param name="Name">The text representation of the HTTP cookie name.</param>
         private HTTPCookieName(String Name)
         {
             this.InternalName = Name;
@@ -82,20 +82,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPCookieName Parse(String Text)
         {
 
-            #region Initial checks
-
-            if (Text != null)
-                Text = Text.Trim();
+            if (TryParse(Text, out HTTPCookieName httpCookieName))
+                return httpCookieName;
 
             if (Text.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(Text), "The given text representation of a HTTP cookie name must not be null or empty!");
 
-            #endregion
-
-            if (TryParse(Text, out HTTPCookieName _HTTPCookieName))
-                return _HTTPCookieName;
-
-            throw new ArgumentException("The given text '" + Text + "' is not a valid text representation of a HTTP cookie!");
+            throw new ArgumentException("The given text representation of a HTTP cookie name is invalid!", nameof(Text));
 
         }
 
@@ -110,20 +103,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPCookieName? TryParse(String Text)
         {
 
-            #region Initial checks
+            if (TryParse(Text, out HTTPCookieName httpCookieName))
+                return httpCookieName;
 
-            if (Text != null)
-                Text = Text.Trim();
-
-            if (Text.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(Text), "The given text representation of a HTTP cookie name must not be null or empty!");
-
-            #endregion
-
-            if (TryParse(Text, out HTTPCookieName _HTTPCookieName))
-                return _HTTPCookieName;
-
-            return new HTTPCookieName?();
+            return null;
 
         }
 
@@ -139,26 +122,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean TryParse(String Text, out HTTPCookieName HTTPCookieName)
         {
 
-            #region Initial checks
-
-            if (Text != null)
-                Text = Text.Trim();
-
-            if (Text.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(Text), "The given text representation of a HTTP cookie name must not be null or empty!");
-
-            #endregion
-
-            try
+            if (Text.IsNotNullOrEmpty())
             {
-                HTTPCookieName = new HTTPCookieName(Text);
-                return true;
+                try
+                {
+                    HTTPCookieName = new HTTPCookieName(Text.Trim());
+                    return true;
+                }
+                catch (Exception)
+                { }
             }
-            catch (Exception)
-            {
-                HTTPCookieName = default(HTTPCookieName);
-                return false;
-            }
+
+            HTTPCookieName = default;
+            return false;
 
         }
 
@@ -172,7 +148,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public HTTPCookieName Clone
             => new HTTPCookieName(
-                   new String(InternalName.ToCharArray())
+                   new String(InternalName?.ToCharArray())
                );
 
         #endregion
@@ -188,20 +164,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPCookieName1">A HTTP cookie name.</param>
         /// <param name="HTTPCookieName2">Another HTTP cookie name.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (HTTPCookieName HTTPCookieName1, HTTPCookieName HTTPCookieName2)
-        {
+        public static Boolean operator == (HTTPCookieName HTTPCookieName1,
+                                           HTTPCookieName HTTPCookieName2)
 
-            // If both are null, or both are same instance, return true.
-            if (Object.ReferenceEquals(HTTPCookieName1, HTTPCookieName2))
-                return true;
-
-            // If one is null, but not both, return false.
-            if (((Object) HTTPCookieName1 == null) || ((Object) HTTPCookieName2 == null))
-                return false;
-
-            return HTTPCookieName1.Equals(HTTPCookieName2);
-
-        }
+            => HTTPCookieName1.Equals(HTTPCookieName2);
 
         #endregion
 
@@ -213,7 +179,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPCookieName1">A HTTP cookie name.</param>
         /// <param name="HTTPCookieName2">Another HTTP cookie name.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator != (HTTPCookieName HTTPCookieName1, HTTPCookieName HTTPCookieName2)
+        public static Boolean operator != (HTTPCookieName HTTPCookieName1,
+                                           HTTPCookieName HTTPCookieName2)
+
             => !(HTTPCookieName1 == HTTPCookieName2);
 
         #endregion
@@ -226,15 +194,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPCookieName1">A HTTP cookie name.</param>
         /// <param name="HTTPCookieName2">Another HTTP cookie name.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator < (HTTPCookieName HTTPCookieName1, HTTPCookieName HTTPCookieName2)
-        {
+        public static Boolean operator < (HTTPCookieName HTTPCookieName1,
+                                          HTTPCookieName HTTPCookieName2)
 
-            if ((Object) HTTPCookieName1 == null)
-                throw new ArgumentNullException(nameof(HTTPCookieName1), "The given HTTPCookieName1 must not be null!");
-
-            return HTTPCookieName1.CompareTo(HTTPCookieName2) < 0;
-
-        }
+            => HTTPCookieName1.CompareTo(HTTPCookieName2) < 0;
 
         #endregion
 
@@ -246,7 +209,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPCookieName1">A HTTP cookie name.</param>
         /// <param name="HTTPCookieName2">Another HTTP cookie name.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator <= (HTTPCookieName HTTPCookieName1, HTTPCookieName HTTPCookieName2)
+        public static Boolean operator <= (HTTPCookieName HTTPCookieName1,
+                                           HTTPCookieName HTTPCookieName2)
+
             => !(HTTPCookieName1 > HTTPCookieName2);
 
         #endregion
@@ -259,15 +224,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPCookieName1">A HTTP cookie name.</param>
         /// <param name="HTTPCookieName2">Another HTTP cookie name.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator > (HTTPCookieName HTTPCookieName1, HTTPCookieName HTTPCookieName2)
-        {
+        public static Boolean operator > (HTTPCookieName HTTPCookieName1,
+                                          HTTPCookieName HTTPCookieName2)
 
-            if ((Object) HTTPCookieName1 == null)
-                throw new ArgumentNullException(nameof(HTTPCookieName1), "The given HTTPCookieName1 must not be null!");
-
-            return HTTPCookieName1.CompareTo(HTTPCookieName2) > 0;
-
-        }
+            => HTTPCookieName1.CompareTo(HTTPCookieName2) > 0;
 
         #endregion
 
@@ -279,8 +239,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPCookieName1">A HTTP cookie name.</param>
         /// <param name="HTTPCookieName2">Another HTTP cookie name.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator >= (HTTPCookieName HTTPCookieName1, HTTPCookieName HTTPCookieName2)
+        public static Boolean operator >= (HTTPCookieName HTTPCookieName1,
+                                           HTTPCookieName HTTPCookieName2)
+
             => !(HTTPCookieName1 < HTTPCookieName2);
+
+        #endregion
+
+
+        #region Operator +  (HTTPCookieName1, HTTPCookieName2)
+
+        /// <summary>
+        /// Combines two HTTP cookies names.
+        /// </summary>
+        /// <param name="HTTPCookieName1">A HTTP cookie name.</param>
+        /// <param name="HTTPCookieName2">Another HTTP cookie name.</param>
+        /// <returns>true|false</returns>
+        public static HTTPCookieName operator + (HTTPCookieName HTTPCookieName1,
+                                                 HTTPCookieName HTTPCookieName2)
+
+            => Parse(HTTPCookieName1.InternalName + HTTPCookieName2.InternalName);
+
+        #endregion
+
+        #region Operator +  (HTTPCookieName1, Text)
+
+        /// <summary>
+        /// Combines a HTTP cookies name with a text.
+        /// </summary>
+        /// <param name="HTTPCookieName">A HTTP cookie name.</param>
+        /// <param name="Text">A text.</param>
+        /// <returns>true|false</returns>
+        public static HTTPCookieName operator + (HTTPCookieName HTTPCookieName,
+                                                 String         Text)
+
+            => Parse(HTTPCookieName.InternalName + Text);
+
+        #endregion
+
+        #region Operator +  (HTTPCookieName1, Text)
+
+        /// <summary>
+        /// Combines a HTTP cookies name with a text.
+        /// </summary>
+        /// <param name="Text">A text.</param>
+        /// <param name="HTTPCookieName">A HTTP cookie name.</param>
+        /// <returns>true|false</returns>
+        public static HTTPCookieName operator + (String         Text,
+                                                 HTTPCookieName HTTPCookieName)
+
+            => Parse(Text + HTTPCookieName.InternalName);
 
         #endregion
 
@@ -297,14 +305,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Int32 CompareTo(Object Object)
         {
 
-            if (Object == null)
-                throw new ArgumentNullException(nameof(Object), "The given object must not be null!");
+            if (Object is HTTPCookieName httpCookieName)
+                return CompareTo(httpCookieName);
 
-            if (!(Object is HTTPCookieName))
-                throw new ArgumentException("The given object is not a HTTP cookie name!",
-                                            nameof(Object));
-
-            return CompareTo((HTTPCookieName) Object);
+            throw new ArgumentException("The given object is not a HTTP cookie name!",
+                                        nameof(Object));
 
         }
 
@@ -317,14 +322,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPCookieName">An object to compare with.</param>
         public Int32 CompareTo(HTTPCookieName HTTPCookieName)
-        {
 
-            if ((Object) HTTPCookieName == null)
-                throw new ArgumentNullException(nameof(HTTPCookieName),  "The given HTTP cookie name must not be null!");
-
-            return String.Compare(InternalName, HTTPCookieName.InternalName, StringComparison.Ordinal);
-
-        }
+            => String.Compare(InternalName,
+                              HTTPCookieName.InternalName,
+                              StringComparison.Ordinal);
 
         #endregion
 
@@ -342,13 +343,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public override Boolean Equals(Object Object)
         {
 
-            if (Object == null)
-                return false;
+            if (Object is HTTPCookieName httpCookieName)
+                return Equals(httpCookieName);
 
-            if (!(Object is HTTPCookieName))
-                return false;
-
-            return Equals((HTTPCookieName) Object);
+            return false;
 
         }
 
@@ -359,17 +357,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP cookie names for equality.
         /// </summary>
-        /// <param name="HTTPCookieName">An HTTP cookie name to compare with.</param>
+        /// <param name="HTTPCookieName">A HTTP cookie name to compare with.</param>
         /// <returns>True if both match; False otherwise.</returns>
         public Boolean Equals(HTTPCookieName HTTPCookieName)
-        {
 
-            if ((Object) HTTPCookieName == null)
-                return false;
-
-            return InternalName.Equals(HTTPCookieName.InternalName);
-
-        }
+            => String.Equals(InternalName,
+                             HTTPCookieName.InternalName,
+                             StringComparison.Ordinal);
 
         #endregion
 
@@ -382,7 +376,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
-            => InternalName.GetHashCode();
+
+            => InternalName?.ToLower().GetHashCode() ?? 0;
 
         #endregion
 
@@ -392,7 +387,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-            => InternalName;
+
+            => InternalName ?? "";
 
         #endregion
 
