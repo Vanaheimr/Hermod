@@ -67,17 +67,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Token">The authentication token.</param>
         public HTTPBearerAuthentication(String  Token)
         {
-
-            #region Initial checks
-
-            if (Token?.Trim().IsNullOrEmpty() == true)
-                throw new ArgumentNullException(nameof(Token), "The given token must not be null or empty!");
-
-            #endregion
-
             this.HTTPCredentialType  = HTTPAuthenticationTypes.Bearer;
-            this.Token               = Token.Trim();
-
+            this.Token               = Token?.Trim() ?? throw new ArgumentNullException(nameof(Token), "The given token must not be null or empty!");
         }
 
         #endregion

@@ -90,10 +90,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             #region Initial checks
 
-            if (User.IsNullOrEmpty() || User.Trim().IsNullOrEmpty())
+            if (User.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(User),    "The given user part of an email address must not be null or empty!");
 
-            if (Domain.IsNullOrEmpty() || Domain.Trim().IsNullOrEmpty())
+            if (Domain.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(Domain),  "The given domain part of an email address must not be null or empty!");
 
             #endregion

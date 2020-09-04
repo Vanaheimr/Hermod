@@ -1306,7 +1306,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return false;
             }
 
-            if (PropertyName.IsNullOrEmpty() || PropertyName.Trim().IsNullOrEmpty())
+            if (PropertyName.IsNullOrEmpty())
             {
                 ErrorResponse = "Invalid JSON property name provided!";
                 return true;

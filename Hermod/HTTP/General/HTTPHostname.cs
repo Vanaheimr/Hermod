@@ -225,7 +225,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return true;
             }
 
-            if (Parts.Length == 2)// || Parts[0].IsNullOrEmpty() || Parts[0].Trim().IsNullOrEmpty())
+            if (Parts.Length == 2)// || Parts[0].IsNullOrEmpty())
             {
 
                 if (Parts[1] != null)
