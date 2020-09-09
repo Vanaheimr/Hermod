@@ -29,7 +29,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// The unique name of a HTTP cookie.
     /// </summary>
-    public struct HTTPCookieName : IId<HTTPCookieName>
+    public readonly struct HTTPCookieName : IId<HTTPCookieName>
     {
 
         #region Data
