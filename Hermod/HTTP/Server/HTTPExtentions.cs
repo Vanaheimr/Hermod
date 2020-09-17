@@ -159,7 +159,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     ContentType     = HTTPContentType.JSON_UTF8,
                     Content         = JSONObject.Create(
                                           JSONLDContext.IsNotNullOrEmpty()
-                                              ? new JProperty("context",  JSONLDContext)
+                                              ? new JProperty("context",  JSONLDContext.ToString())
                                               : null,
                                           new JProperty("description",  "Invalid JSON Object request body!"),
                                           new JProperty("hint",         e.Message)
@@ -225,7 +225,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     ContentType     = HTTPContentType.JSON_UTF8,
                     Content         = JSONObject.Create(
                                           JSONLDContext.IsNotNullOrEmpty()
-                                              ? new JProperty("context",  JSONLDContext)
+                                              ? new JProperty("context",  JSONLDContext.ToString())
                                               : null,
                                           new JProperty("description",  "Invalid JSON request body!"),
                                           new JProperty("hint",         e.Message)

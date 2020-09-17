@@ -367,7 +367,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             => JSONObject.Create(
 
                    !Embedded
-                       ? new JProperty("@context", JSONLDContext)
+                       ? new JProperty("@context", JSONLDContext.ToString())
                        : null,
 
                    new JProperty("ownerName",  OwnerName),

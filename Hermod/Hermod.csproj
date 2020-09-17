@@ -57,7 +57,6 @@
   <ItemGroup>
     <Compile Include="CounterValues.cs" />
     <Compile Include="DNS\IPTransport.cs" />
-    <Compile Include="Entities\ADistributedEntities.cs" />
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="Helpers\ChangeMethods.cs" />
     <Compile Include="Helpers\ICustomDataBuilder.cs" />

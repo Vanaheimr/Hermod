@@ -33,13 +33,13 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 namespace org.GraphDefined.Vanaheimr.Hermod.JSON
 {
 
-    public delegate T        CustomJObjectParserDelegate<T>    (JObject JSON,            T       Data);
+    public delegate T        CustomJObjectParserDelegate<T>    (JObject JSON,       T       DataObject);
 
-    public delegate T        CustomJArrayParserDelegate<T>     (JArray  JSON,            T       Data);
+    public delegate T        CustomJArrayParserDelegate<T>     (JArray  JSON,       T       DataObject);
 
-    public delegate JObject  CustomJObjectSerializerDelegate<T>(T       ResponseBuilder, JObject JSON);
+    public delegate JObject  CustomJObjectSerializerDelegate<T>(T       DataObject, JObject JSON);
 
-    public delegate JArray   CustomJArraySerializerDelegate<T> (T       ResponseBuilder, JArray  JSON);
+    public delegate JArray   CustomJArraySerializerDelegate<T> (T       DataObject, JArray  JSON);
 
 
     /// <summary>
