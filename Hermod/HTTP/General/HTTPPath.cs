@@ -31,9 +31,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// The path of a HTTP path.
     /// </summary>
-    public struct HTTPPath : IEquatable<HTTPPath>,
-                             IComparable<HTTPPath>,
-                             IComparable
+    public readonly struct HTTPPath : IEquatable<HTTPPath>,
+                                      IComparable<HTTPPath>,
+                                      IComparable
     {
 
         #region Data

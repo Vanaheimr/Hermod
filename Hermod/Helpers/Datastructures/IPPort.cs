@@ -27,9 +27,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <summary>
     /// An IP port.
     /// </summary>
-    public struct IPPort : IEquatable<IPPort>,
-                           IComparable<IPPort>,
-                           IComparable
+    public readonly struct IPPort : IEquatable<IPPort>,
+                                    IComparable<IPPort>,
+                                    IComparable
     {
 
         #region Data
