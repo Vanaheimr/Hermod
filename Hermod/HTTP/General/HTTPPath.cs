@@ -400,6 +400,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Text">Another HTTP path.</param>
         /// <returns>true|false</returns>
         public static HTTPPath operator + (HTTPPath HTTPPath1, String Text)
+
             => HTTPPath1.EndsWith("/") && Text.StartsWith("/")
                    ? Parse(HTTPPath1.ToString() + Text.Substring(1))
                    : Parse(HTTPPath1.ToString() + Text);

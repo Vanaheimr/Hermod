@@ -26,6 +26,7 @@ using System.Text.RegularExpressions;
 using org.GraphDefined.Vanaheimr.Illias;
 using System.Reflection;
 using System.IO;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
@@ -922,25 +923,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         protected const Char GS = (Char) 0x1D;
 
+
+
         /// <summary>
         /// Internal non-cryptographic random number generator.
         /// </summary>
-        protected static readonly  Random   _Random                 = new Random(DateTime.Now.Millisecond);
+        protected static readonly  Random    _Random                   = new Random(DateTime.Now.Millisecond);
 
-        ///// <summary>
-        ///// The default HTTP server name.
-        ///// </summary>
-        //public  const              String   DefaultHTTPServerName   = "GraphDefined HTTP API v0.8";
+        /// <summary>
+        /// The default HTTP server name.
+        /// </summary>
+        public const               String    DefaultHTTPServerName     = "GraphDefined OCPI HTTP API v0.1";
+
+        /// <summary>
+        /// The default HTTP service name.
+        /// </summary>
+        public  const              String    DefaultHTTPServiceName    = "GraphDefined HTTP API v1.0";
 
         /// <summary>
         /// The default HTTP server port.
         /// </summary>
-        public  static readonly    IPPort   DefaultHTTPServerPort   = IPPort.Parse(2002);
+        public  static readonly    IPPort    DefaultHTTPServerPort     = IPPort.Parse(2002);
+
+        /// <summary>
+        /// The default HTTP URL path prefix.
+        /// </summary>
+        public  static readonly    HTTPPath  DefaultURLPathPrefix      = HTTPPath.Parse("/");
 
         /// <summary>
         /// Default logfile name.
         /// </summary>
-        public  const              String   DefaultLogfileName      = "HTTPAPI.log";
+        public  const              String    DefaultLogfileName        = "HTTPAPI.log";
 
         #endregion
 
@@ -949,37 +962,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The HTTP server of the API.
         /// </summary>
-        public HTTPServer    HTTPServer       { get; }
+        public HTTPServer    HTTPServer         { get; }
 
         /// <summary>
         /// The HTTP hostname for all URIs within this API.
         /// </summary>
-        public HTTPHostname  Hostname         { get; }
+        public HTTPHostname  Hostname           { get; }
 
         /// <summary>
         /// The name of the HTTP API service.
         /// </summary>
-        public String        ServiceName      { get; }
+        public String        ServiceName        { get; }
 
         /// <summary>
-        /// The abse URL of the HTTP API service.
+        /// The offical URL/DNS name of this service, e.g. for sending e-mails.
         /// </summary>
-        public String        BaseURL          { get; }
+        public String        ExternalDNSName    { get; }
 
         /// <summary>
         /// The URL prefix of this HTTP API.
         /// </summary>
-        public HTTPPath      URLPathPrefix    { get; }
+        public HTTPPath      URLPathPrefix      { get; }
 
         /// <summary>
         /// The unqiue identification of this HTTP API instance.
         /// </summary>
-        public System_Id     SystemId         { get; }
+        public System_Id     SystemId           { get; }
 
         /// <summary>
         /// An optional HTML template.
         /// </summary>
-        public String        HTMLTemplate     { get; protected set; }
+        public String        HTMLTemplate       { get; protected set; }
 
         #endregion
 
@@ -1004,38 +1017,66 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
+        #region CommonAPI(HTTPHostname = null, ...)
+
+        /// <summary>
+        /// Create a new HTTP API.
+        /// </summary>
+        /// <param name="HTTPHostname">An optional HTTP hostname.</param>
+        /// <param name="HTTPServerPort">An optional HTTP TCP port.</param>
+        /// <param name="HTTPServerName">An optional HTTP server name.</param>
+        /// <param name="ExternalDNSName">The offical URL/DNS name of this service, e.g. for sending e-mails.</param>
+        /// <param name="URLPathPrefix">An optional HTTP URL path prefix.</param>
+        /// <param name="ServiceName">An optional HTTP service name.</param>
+        /// <param name="DNSClient">An optional DNS client.</param>
+        public HTTPAPI(HTTPHostname?   HTTPHostname      = null,
+                       IPPort?         HTTPServerPort    = null,
+                       String          HTTPServerName    = DefaultHTTPServerName,
+                       String          ExternalDNSName   = null,
+                       HTTPPath?       URLPathPrefix     = null,
+                       String          ServiceName       = DefaultHTTPServiceName,
+                       DNSClient       DNSClient         = null)
+
+            : this(new HTTPServer(TCPPort:           HTTPServerPort ?? DefaultHTTPServerPort,
+                                  DefaultServerName: HTTPServerName ?? DefaultHTTPServerName,
+                                  DNSClient:         DNSClient),
+                   HTTPHostname,
+                   ExternalDNSName,
+                   URLPathPrefix ?? DefaultURLPathPrefix,
+                   ServiceName   ?? DefaultHTTPServiceName)
+
+        { }
+
+        #endregion
+
+        #region CommonAPI(HTTPServer, HTTPHostname = null, ...)
+
         /// <summary>
         /// Create a new HTTP API.
         /// </summary>
         /// <param name="HTTPServer">A HTTP server.</param>
-        /// <param name="HTTPHostname">A HTTP hostname.</param>
-        /// <param name="ServiceName">The name of the HTTP API service.</param>
-        /// <param name="BaseURL">The base URL of the HTTP API service.</param>
-        /// <param name="URLPathPrefix">The URL path prefix.</param>
+        /// <param name="HTTPHostname">An optional HTTP hostname.</param>
+        /// <param name="ExternalDNSName">The offical URL/DNS name of this service, e.g. for sending e-mails.</param>
+        /// <param name="URLPathPrefix">An optional URL path prefix.</param>
+        /// <param name="ServiceName">An optional name of the HTTP API service.</param>
         /// <param name="HTMLTemplate">An optional HTML template.</param>
         public HTTPAPI(HTTPServer     HTTPServer,
-                       HTTPHostname?  HTTPHostname    = null,
-                       String         ServiceName     = "GraphDefined HTTP API",
-                       String         BaseURL         = "",
-                       HTTPPath?      URLPathPrefix   = null,
-                       String         HTMLTemplate    = null)
+                       HTTPHostname?  HTTPHostname      = null,
+                       String         ExternalDNSName   = "",
+                       HTTPPath?      URLPathPrefix     = null,
+                       String         ServiceName       = DefaultHTTPServiceName,
+                       String         HTMLTemplate      = null)
 
         {
 
-            this.HTTPServer     = HTTPServer    ?? throw new ArgumentNullException(nameof(HTTPServer), "The given HTTP server must not be null!");
-            this.Hostname       = HTTPHostname  ?? HTTP.HTTPHostname.Any;
-            this.ServiceName    = ServiceName.IsNotNullOrEmpty() ? ServiceName : "HTTPAPI";
-            this.BaseURL        = BaseURL       ?? "";
-            this.URLPathPrefix  = URLPathPrefix ?? HTTPPath.Parse("/");
-            this.HTMLTemplate   = HTMLTemplate  ?? "";
+            this.HTTPServer       = HTTPServer    ?? throw new ArgumentNullException(nameof(HTTPServer), "The given HTTP server must not be null!");
+            this.Hostname         = HTTPHostname  ?? HTTP.HTTPHostname.Any;
+            this.ExternalDNSName  = ExternalDNSName       ?? "";
+            this.URLPathPrefix    = URLPathPrefix ?? DefaultURLPathPrefix;
+            this.ServiceName      = ServiceName   ?? DefaultHTTPServiceName;
+            this.HTMLTemplate     = HTMLTemplate  ?? "";
 
-            this.SystemId       = System_Id.Parse(Environment.MachineName.Replace("/", "") + "/" + HTTPServer.DefaultHTTPServerPort);
-
-            if (this.BaseURL.IsNullOrEmpty())
-                this.BaseURL    = "https://opendata.social/";
-
-            if (!this.BaseURL.EndsWith("/"))
-                this.BaseURL += "/";
+            this.SystemId         = System_Id.Parse(Environment.MachineName.Replace("/", "") + "/" + HTTPServer.DefaultHTTPServerPort);
 
             // Link HTTP events...
             HTTPServer.RequestLog   += (HTTPProcessor, ServerTimestamp, Request)                                 => RequestLog. WhenAll(HTTPProcessor, ServerTimestamp, Request);
@@ -1043,6 +1084,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             HTTPServer.ErrorLog     += (HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException) => ErrorLog.   WhenAll(HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException);
 
         }
+
+        #endregion
 
         #endregion
 

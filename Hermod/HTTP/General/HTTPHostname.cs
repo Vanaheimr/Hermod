@@ -29,8 +29,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// The unique identification of a HTTP hostname.
     /// </summary>
-    public struct HTTPHostname : IEquatable<HTTPHostname>,
-                                 IComparable<HTTPHostname>
+    public readonly struct HTTPHostname : IEquatable<HTTPHostname>,
+                                          IComparable<HTTPHostname>
 
     {
 
