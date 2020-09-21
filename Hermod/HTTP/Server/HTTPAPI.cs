@@ -1022,7 +1022,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this.HTTPServer     = HTTPServer    ?? throw new ArgumentNullException(nameof(HTTPServer), "HTTPServer!");
+            this.HTTPServer     = HTTPServer    ?? throw new ArgumentNullException(nameof(HTTPServer), "The given HTTP server must not be null!");
             this.Hostname       = HTTPHostname  ?? HTTP.HTTPHostname.Any;
             this.ServiceName    = ServiceName.IsNotNullOrEmpty() ? ServiceName : "HTTPAPI";
             this.BaseURL        = BaseURL       ?? "";
