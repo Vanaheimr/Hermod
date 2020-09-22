@@ -1371,7 +1371,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            return String.Empty;
+            return null;
 
         }
 
