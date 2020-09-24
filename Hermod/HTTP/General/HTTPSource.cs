@@ -31,9 +31,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A HTTP source.
     /// </summary>
-    public struct HTTPSource : IEquatable<HTTPSource>,
-                               IComparable<HTTPSource>,
-                               IComparable
+    public readonly struct HTTPSource : IEquatable<HTTPSource>,
+                                        IComparable<HTTPSource>,
+                                        IComparable
     {
 
         #region Properties
