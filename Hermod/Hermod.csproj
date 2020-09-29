@@ -94,6 +94,7 @@
     <Compile Include="HTTP\Logging\HTTPClientLogger.cs" />
     <Compile Include="HTTP\Logging\HTTPServerLogger.cs" />
     <Compile Include="HTTP\Request\APIKey.cs" />
+    <Compile Include="HTTP\Request\HTTPTokenAuthentication.cs" />
     <Compile Include="HTTP\Request\HTTPBearerAuthentication.cs" />
     <Compile Include="HTTP\Request\IHTTPAuthentication.cs" />
     <Compile Include="HTTP\Server\IHTTPServer.cs" />
