@@ -99,7 +99,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="SecretKeyRing">The secret key ring for an e-mail address.</param>
         /// <param name="PublicKeyRing">The public key ring for an e-mail address.</param>
         public EMailAddress(SimpleEMailAddress  SimpleEMailAddress,
-                            PgpSecretKeyRing    SecretKeyRing   = null,
+                            PgpSecretKeyRing    SecretKeyRing,
                             PgpPublicKeyRing    PublicKeyRing   = null)
         {
 
@@ -121,7 +121,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="SecretKeyRing">The secret key ring for an e-mail address.</param>
         /// <param name="PublicKeyRing">The public key ring for an e-mail address.</param>
         public EMailAddress(String            SimpleEMailAddressString,
-                            PgpSecretKeyRing  SecretKeyRing   = null,
+                            PgpSecretKeyRing  SecretKeyRing,
                             PgpPublicKeyRing  PublicKeyRing   = null)
         {
 
@@ -145,7 +145,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="PublicKeyRing">The public key ring for an e-mail address.</param>
         public EMailAddress(String              OwnerName,
                             SimpleEMailAddress  SimpleEMailAddress,
-                            PgpSecretKeyRing    SecretKeyRing   = null,
+                            PgpSecretKeyRing    SecretKeyRing,
                             PgpPublicKeyRing    PublicKeyRing   = null)
 
         {
@@ -180,7 +180,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="PublicKeyRing">The secret key ring for an e-mail address.</param>
         public EMailAddress(String            OwnerName,
                             String            SimpleEMailAddressString,
-                            PgpSecretKeyRing  SecretKeyRing   = null,
+                            PgpSecretKeyRing  SecretKeyRing,
                             PgpPublicKeyRing  PublicKeyRing   = null)
 
             : this(OwnerName,
