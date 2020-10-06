@@ -1192,6 +1192,68 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region CreateMultiEnumFilter(ParameterName, Parser)
+
+        public Func<TId, Boolean> CreateMultiFilter<TId>(String         ParameterName,
+                                                         TryParser<TId> TryParser)
+        {
+
+            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values != null &&
+                Values.Count > 0)
+            {
+
+                var Includes = new List<TId>();
+                var Excludes = new List<TId>();
+
+                foreach (var Value in Values)
+                {
+
+                    if (TryParser(Value.StartsWith("!", StringComparison.Ordinal)
+                                      ? Value.Substring(1)
+                                      : Value,
+                                  out TId ValueT))
+                    {
+
+                        if (Value.StartsWith("!", StringComparison.Ordinal))
+                            Excludes.Add(ValueT);
+
+                        else
+                            Includes.Add(ValueT);
+
+                    }
+
+                }
+
+                if (Includes.Count == 0 && Excludes.Count == 0)
+                {
+                    return item => true;
+                }
+
+                else if (Includes.Count > 0 && Excludes.Count == 0)
+                {
+                    return item => Includes.Contains(item);
+                }
+
+                else if (Includes.Count == 0 && Excludes.Count > 0)
+                {
+                    return item => !Excludes.Contains(item);
+                }
+
+                else
+                {
+                    return item =>  Includes.Contains(item) &&
+                                   !Excludes.Contains(item);
+                }
+
+            }
+
+            return item => true;
+
+        }
+
+        #endregion
+
 
         #region GetEnumerator()
 
