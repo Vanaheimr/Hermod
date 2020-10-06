@@ -47,7 +47,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
         public String HTTPText
-            => "Token " + (Token.ToBase64());
+            => "Token " + Token;
 
 
         /// <summary>
@@ -75,7 +75,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #endregion
 
             this.HTTPCredentialType  = HTTPAuthenticationTypes.Basic;
-            this.Token = Token;
+            this.Token               = Token;
 
         }
 
@@ -88,12 +88,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Try to parse the given text.
         /// </summary>
         /// <param name="Text">A text representation of a HTTP basic authentication header.</param>
-        /// <param name="BasicAuthentication">The parsed HTTP basic authentication header.</param>
+        /// <param name="TokenAuthentication">The parsed HTTP basic authentication header.</param>
         /// <returns>true, when the parsing was successful, else false.</returns>
-        public static Boolean TryParse(String Text, out HTTPBasicAuthentication BasicAuthentication)
+        public static Boolean TryParse(String Text, out HTTPTokenAuthentication TokenAuthentication)
         {
 
-            BasicAuthentication = null;
+            TokenAuthentication = null;
 
             if (Text.IsNullOrEmpty())
                 return false;
@@ -104,15 +104,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return false;
 
             if (splitted.Length == 2 &&
-                String.Equals(splitted[0], "basic", StringComparison.OrdinalIgnoreCase))
+                String.Equals(splitted[0], "token", StringComparison.OrdinalIgnoreCase))
             {
 
-                var usernamePassword = splitted[1].FromBase64().Split(new Char[] { ':' });
-
-                if (usernamePassword.IsNullOrEmpty())
+                if (splitted[1].IsNullOrEmpty())
                     return false;
 
-                BasicAuthentication = new HTTPBasicAuthentication(usernamePassword[0], usernamePassword[1]);
+                TokenAuthentication = new HTTPTokenAuthentication(splitted[1]);
                 return true;
 
             }
@@ -131,7 +129,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-            => "Token " + (Token.ToBase64());
+            => "Token " + Token;
 
         #endregion
 

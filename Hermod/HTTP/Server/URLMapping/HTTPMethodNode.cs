@@ -54,7 +54,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Whether this HTTP method node HTTP handler can be replaced/overwritten.
         /// </summary>
-        public URIReplacement                                AllowReplacement            { get; }
+        public URLReplacement                                AllowReplacement            { get; }
 
         /// <summary>
         /// A HTTP request logger.
@@ -132,7 +132,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPRequestLogHandler     HTTPRequestLogger           = null,
                                HTTPResponseLogHandler    HTTPResponseLogger          = null,
                                HTTPDelegate              DefaultErrorHandler         = null,
-                               URIReplacement            AllowReplacement            = URIReplacement.Fail)
+                               URLReplacement            AllowReplacement            = URLReplacement.Fail)
 
         {
 
@@ -143,7 +143,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (HTTPContentType == null)
                 {
 
-                    if (this.RequestHandler == null || AllowReplacement == URIReplacement.Allow)
+                    if (this.RequestHandler == null || AllowReplacement == URLReplacement.Allow)
                     {
 
                         this.HTTPRequestLogger    = HTTPRequestLogger;
@@ -166,7 +166,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (_ContentTypeNodes.TryGetValue(HTTPContentType, out ContentTypeNode _ContentTypeNode))
                     {
 
-                        if (_ContentTypeNode.AllowReplacement == URIReplacement.Allow)
+                        if (_ContentTypeNode.AllowReplacement == URLReplacement.Allow)
                         {
 
                             _ContentTypeNodes[HTTPContentType] = new ContentTypeNode(HTTPContentType,
@@ -179,7 +179,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         }
 
-                        else if (_ContentTypeNode.AllowReplacement == URIReplacement.Ignore)
+                        else if (_ContentTypeNode.AllowReplacement == URLReplacement.Ignore)
                         {
                         }
 

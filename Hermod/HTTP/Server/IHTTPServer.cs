@@ -171,7 +171,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPResponseLogHandler        HTTPResponseLogger          = null,
                                HTTPDelegate                  DefaultErrorHandler         = null,
                                HTTPDelegate                  HTTPDelegate                = null,
-                               URIReplacement                AllowReplacement            = URIReplacement.Fail);
+                               URLReplacement                AllowReplacement            = URLReplacement.Fail);
 
         void AddMethodCallback(HTTPHostname                  Hostname,
                                HTTPMethod                    HTTPMethod,
@@ -184,7 +184,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPResponseLogHandler        HTTPResponseLogger          = null,
                                HTTPDelegate                  DefaultErrorHandler         = null,
                                HTTPDelegate                  HTTPDelegate                = null,
-                               URIReplacement                AllowReplacement            = URIReplacement.Fail);
+                               URLReplacement                AllowReplacement            = URLReplacement.Fail);
 
         void AddMethodCallback(HTTPHostname                  Hostname,
                                HTTPMethod                    HTTPMethod,
@@ -197,7 +197,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPResponseLogHandler        HTTPResponseLogger          = null,
                                HTTPDelegate                  DefaultErrorHandler         = null,
                                HTTPDelegate                  HTTPDelegate                = null,
-                               URIReplacement                AllowReplacement            = URIReplacement.Fail);
+                               URLReplacement                AllowReplacement            = URLReplacement.Fail);
 
         void AddMethodCallback(HTTPHostname                  Hostname,
                                HTTPMethod                    HTTPMethod,
@@ -210,7 +210,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPResponseLogHandler        HTTPResponseLogger          = null,
                                HTTPDelegate                  DefaultErrorHandler         = null,
                                HTTPDelegate                  HTTPDelegate                = null,
-                               URIReplacement                AllowReplacement            = URIReplacement.Fail);
+                               URLReplacement                AllowReplacement            = URLReplacement.Fail);
 
         IHTTPServer AttachTCPPort(IPPort Port);
         IHTTPServer AttachTCPPorts(params IPPort[] Ports);

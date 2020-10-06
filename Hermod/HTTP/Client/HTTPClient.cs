@@ -327,27 +327,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region CreateRequest(HTTPMethod, URI, BuilderAction = null)
+        #region CreateRequest(HTTPMethod, URL, BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP request.
         /// </summary>
         /// <param name="HTTPMethod">A HTTP method.</param>
-        /// <param name="URI">An URI.</param>
+        /// <param name="URL">An URL.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A new HTTPRequest object.</returns>
         public HTTPRequest.Builder CreateRequest(HTTPMethod                   HTTPMethod,
-                                                 HTTPPath                      URI,
+                                                 HTTPPath                     URL,
                                                  Action<HTTPRequest.Builder>  BuilderAction  = null)
         {
 
-            //var Host = URI.Substring(Math.Max(URI.IndexOf("://"), 0));
-            //Host = Host.Substring(Math.Max(URI.IndexOf("/"), Host.Length));
+            //var Host = URL.Substring(Math.Max(URL.IndexOf("://"), 0));
+            //Host = Host.Substring(Math.Max(URL.IndexOf("/"), Host.Length));
 
             var Builder     = new HTTPRequest.Builder(this) {
                 Host        = VirtualHostname ?? Hostname,
                 HTTPMethod  = HTTPMethod,
-                URI         = URI
+                URL         = URL
             };
 
             if (BuilderAction != null)
@@ -432,7 +432,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Call the optional HTTP request log delegate
 
-            //DebugX.LogT("HTTPClient pre-logging (" + Request.URI + ")...");
+            //DebugX.LogT("HTTPClient pre-logging (" + Request.URL + ")...");
 
             try
             {
@@ -451,7 +451,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 e.Log(nameof(HTTPClient) + "." + nameof(RequestLogDelegate));
             }
 
-            //DebugX.LogT("HTTPClient post-logging (" + Request.URI + ")...");
+            //DebugX.LogT("HTTPClient post-logging (" + Request.URL + ")...");
 
             #endregion
 
@@ -602,7 +602,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (RequestBodyLength > 0)
                     HTTPStream.Write(Request.HTTPBody, 0, RequestBodyLength);
 
-                //DebugX.LogT("HTTPClient (" + Request.HTTPMethod + " " + Request.URI + ") sent request of " + Request.EntirePDU.Length + " bytes at " + sw.ElapsedMilliseconds + "ms!");
+                //DebugX.LogT("HTTPClient (" + Request.HTTPMethod + " " + Request.URL + ") sent request of " + Request.EntirePDU.Length + " bytes at " + sw.ElapsedMilliseconds + "ms!");
 
                 var _InternalHTTPStream  = new MemoryStream();
 
@@ -621,7 +621,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 }
 
-                //DebugX.LogT("HTTPClient (" + Request.HTTPMethod + " " + Request.URI + ") got first response after " + sw.ElapsedMilliseconds + "ms!");
+                //DebugX.LogT("HTTPClient (" + Request.HTTPMethod + " " + Request.URL + ") got first response after " + sw.ElapsedMilliseconds + "ms!");
 
                 #endregion
 

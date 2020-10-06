@@ -48,7 +48,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPServer       HTTPServer                  { get; }
 
         /// <summary>
-        /// Add this prefix to the URI before sending the request.
+        /// Add this prefix to the URL before sending the request.
         /// </summary>
         public String           FakeURLPrefix               { get; internal set; }
 
@@ -68,15 +68,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPMethod   HTTPMethod              { get; }
 
         /// <summary>
-        /// The minimal URI (this means e.g. without the query string).
+        /// The minimal URL (this means e.g. without the query string).
         /// </summary>
-        public HTTPPath     URI                     { get; }
+        public HTTPPath     URL                     { get; }
 
         /// <summary>
-        /// The parsed URI parameters of the best matching URI template.
+        /// The parsed URL parameters of the best matching URL template.
         /// Set by the HTTP server.
         /// </summary>
-        public String[]     ParsedURIParameters     { get; internal set; }
+        public String[]     ParsedURLParameters     { get; internal set; }
 
         /// <summary>
         /// The HTTP query string.
@@ -99,7 +99,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public String       EntireRequestHeader
 
             => String.Concat(HTTPMethod, " ",
-                             FakeURLPrefix, URI, QueryString, " ",
+                             FakeURLPrefix, URL, QueryString, " ",
                              ProtocolName, "/", ProtocolVersion, "\r\n",
 
                              ConstructedHTTPHeader);
@@ -196,12 +196,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The HTTP basic authentication.
         /// </summary>
-        public HTTPBasicAuthentication Authorization
+        public IHTTPAuthentication Authorization
         {
             get
             {
 
-                var _Authorization = GetHeaderField<HTTPBasicAuthentication>("Authorization");
+                //var _Authorization = GetHeaderField<HTTPBasicAuthentication>("Authorization");
+                var _Authorization = GetHeaderField<IHTTPAuthentication>("Authorization");
                 if (_Authorization != null)
                     return _Authorization;
 
@@ -210,10 +211,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (_AuthString == null)
                     return null;
 
-                if (HTTPBasicAuthentication.TryParse(_AuthString, out _Authorization))
-                    SetHeaderField("Authorization", _Authorization);
+                var splitted = _AuthString.Split(new Char[] { ' ' });
 
-                return _Authorization;
+                if (splitted.IsNullOrEmpty())
+                    return null;
+
+                if (splitted.Length == 2)
+                {
+
+                    if (String.Equals(splitted[0], "basic", StringComparison.OrdinalIgnoreCase))
+                    {
+
+                        if (HTTPBasicAuthentication.TryParse(_AuthString, out HTTPBasicAuthentication basicAuthentication))
+                            SetHeaderField("Authorization", basicAuthentication);
+
+                        return basicAuthentication;
+
+                    }
+
+                    if (String.Equals(splitted[0], "token", StringComparison.OrdinalIgnoreCase))
+                    {
+
+                        if (HTTPTokenAuthentication.TryParse(_AuthString, out HTTPTokenAuthentication tokenAuthentication))
+                            SetHeaderField("Authorization", tokenAuthentication);
+
+                        return tokenAuthentication;
+
+                    }
+
+                }
+
+                return null;
 
             }
         }
@@ -656,17 +684,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var RawUrl      = _HTTPMethodHeader[1];
             var _ParsedURL  = RawUrl.Split(_URLSeparator, 2, StringSplitOptions.None);
-            this.URI        = HTTPPath.Parse(HttpUtility.UrlDecode(_ParsedURL[0]));
+            this.URL        = HTTPPath.Parse(HttpUtility.UrlDecode(_ParsedURL[0]));
 
-            //if (URI.StartsWith("http", StringComparison.Ordinal) || URI.StartsWith("https", StringComparison.Ordinal))
-            if (URI.Contains("://"))
+            //if (URL.StartsWith("http", StringComparison.Ordinal) || URL.StartsWith("https", StringComparison.Ordinal))
+            if (URL.Contains("://"))
             {
-                URI = URI.Substring(URI.IndexOf("://", StringComparison.Ordinal) + 3);
-                URI = URI.Substring(URI.IndexOf("/",   StringComparison.Ordinal));
+                URL = URL.Substring(URL.IndexOf("://", StringComparison.Ordinal) + 3);
+                URL = URL.Substring(URL.IndexOf("/",   StringComparison.Ordinal));
             }
 
-            if (URI == "" || URI == null)
-                URI = HTTPPath.Parse("/");
+            if (URL == "" || URL == null)
+                URL = HTTPPath.Parse("/");
 
             // Parse QueryString after '?'
             if (RawUrl.IndexOf('?') > -1 && _ParsedURL[1].IsNeitherNullNorEmpty())
@@ -702,9 +730,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // status code to any HTTP/1.1 request message which lacks a Host header field.
 
             // rfc 2616 - Section 5.2 The Resource Identified by a Request
-            // 1. If Request-URI is an absoluteURI, the host is part of the Request-URI.
+            // 1. If Request-URL is an absoluteURL, the host is part of the Request-URL.
             //    Any Host header field value in the request MUST be ignored.
-            // 2. If the Request-URI is not an absoluteURI, and the request includes a
+            // 2. If the Request-URL is not an absoluteURL, and the request includes a
             //    Host header field, the host is determined by the Host header field value.
             // 3. If the host as determined by rule 1 or 2 is not a valid host on the server,
             //    the response MUST be a 400 (Bad Request) error message. (Not valid for proxies?!)
@@ -1323,7 +1351,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region HTTPRequestLine
 
             public String HTTPRequestLine
-                => String.Concat(HTTPMethod, " ", FakeURLPrefix, _URI, QueryString, " ", ProtocolName, "/", ProtocolVersion);
+                => String.Concat(HTTPMethod, " ", FakeURLPrefix, _URL, QueryString, " ", ProtocolName, "/", ProtocolVersion);
 
             #endregion
 
@@ -1357,24 +1385,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region URI
+            #region URL
 
-            private HTTPPath _URI;
+            private HTTPPath _URL;
 
             /// <summary>
             /// The minimal URL (this means e.g. without the query string).
             /// </summary>
-            public HTTPPath URI
+            public HTTPPath URL
             {
 
                 get
                 {
-                    return _URI;
+                    return _URL;
                 }
 
                 set
                 {
-                    SetProperty(ref _URI, value, "URI");
+                    SetProperty(ref _URL, value, "URL");
                 }
 
             }
@@ -1975,7 +2003,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 this.HTTPStatusCode   = HTTPStatusCode.OK;
                 this.HTTPMethod       = HTTPMethod.GET;
-                this.URI              = HTTPPath.Parse("/");
+                this.URL              = HTTPPath.Parse("/");
                 this.QueryString      = QueryString.New;
                 SetHeaderField(HTTPHeaderField.Accept, new AcceptTypes());
                 this.ProtocolName     = "HTTP";
@@ -1996,7 +2024,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
              //   this.HTTPStatusCode   = OtherHTTPRequest.HTTPStatusCode;
                 this.HTTPServer       = Request.HTTPServer;
                 this.HTTPMethod       = Request.HTTPMethod;
-                this.URI              = Request.URI;
+                this.URL              = Request.URL;
                 this.QueryString      = Request.QueryString;
                 SetHeaderField(HTTPHeaderField.Accept, new AcceptTypes(Request.Accept.ToArray()));
                 this.ProtocolName     = Request.ProtocolName;
@@ -2015,15 +2043,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #endregion
 
 
-            #region SetURI(URI)
+            #region SetURL(URL)
 
             /// <summary>
-            /// Set the HTTP method.
+            /// Set the HTTP URL.
             /// </summary>
-            /// <param name="URI">The new URI.</param>
-            public Builder SetURI(HTTPPath URI)
+            /// <param name="URL">The new URL.</param>
+            public Builder SetURL(HTTPPath URL)
             {
-                this.URI = URI;
+                this.URL = URL;
                 return this;
             }
 

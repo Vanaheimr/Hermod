@@ -81,7 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         #region Properties
 
         /// <summary>
-        /// The URI-prefix of the HTTP/SOAP service.
+        /// The URL-prefix of the HTTP/SOAP service.
         /// </summary>
         public HTTPPath       URLPrefix         { get; }
 
@@ -94,7 +94,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         /// </summary>
         /// <param name="Hostname">The hostname of the remote HTTP/SOAP service.</param>
         /// <param name="VirtualHostname">The HTTP virtual host to use.</param>
-        /// <param name="URLPrefix">The URI-prefix of the HTTP/SOAP service.</param>
+        /// <param name="URLPrefix">The URL-prefix of the HTTP/SOAP service.</param>
         /// <param name="HTTPSPort">The HTTPS port of the remote HTTP/SOAP service.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
@@ -191,7 +191,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
             var requestBuilder = new HTTPRequest.Builder(this) {
                                      HTTPMethod         = HTTPMethod.POST,
                                      Host               = VirtualHostname ?? Hostname,
-                                     URI                = URLPrefix,
+                                     URL                = URLPrefix,
                                      Accept             = new AcceptTypes(HTTPContentType.XMLTEXT_UTF8),
                                      Content            = QueryXML.ToUTF8Bytes(),
                                      ContentType        = ContentType ?? HTTPContentType.XMLTEXT_UTF8,
@@ -343,7 +343,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         #region Properties
 
         /// <summary>
-        /// The URI-prefix of the HTTP/SOAP service.
+        /// The URL-prefix of the HTTP/SOAP service.
         /// </summary>
         public HTTPPath  URLPrefix           { get; }
 
@@ -359,7 +359,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         /// <param name="Hostname">The hostname of the remote HTTP/SOAP service.</param>
         /// <param name="HTTPPort">The HTTP port of the remote HTTP/SOAP service.</param>
         /// <param name="VirtualHostname">The HTTP virtual host to use.</param>
-        /// <param name="URLPrefix">The URI-prefix of the HTTP/SOAP service.</param>
+        /// <param name="URLPrefix">The URL-prefix of the HTTP/SOAP service.</param>
         /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="UserAgent">The HTTP user agent to use.</param>
@@ -457,7 +457,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
             var _RequestBuilder = new HTTPRequest.Builder(this) {
                                       HTTPMethod     = HTTPMethod.POST,
                                       Host           = VirtualHostname ?? Hostname,
-                                      URI            = URLPrefix,
+                                      URL            = URLPrefix,
                                       Content        = QueryXML.ToUTF8Bytes(),
                                       ContentType    = ContentType ?? new HTTPContentType("application",
                                                                                           "soap+xml",

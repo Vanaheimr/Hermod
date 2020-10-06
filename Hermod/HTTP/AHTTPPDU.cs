@@ -720,7 +720,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             => _HeaderFields.TryGetValue(FieldName, out Object Value) && Value is T value
                    ? value
-                   : default(T);
+                   : default;
 
         #endregion
 

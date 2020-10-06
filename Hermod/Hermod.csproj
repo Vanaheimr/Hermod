@@ -135,8 +135,8 @@
     <Compile Include="HTTP\Server\URLMapping\HTTPMethodNode.cs" />
     <Compile Include="HTTP\ServerSentEvents\HTTPEventSource_Id.cs" />
     <Compile Include="HTTP\ServerSentEvents\IHTTPEventSource.cs" />
-    <Compile Include="HTTP\Server\URLMapping\URIReplacement.cs" />
-    <Compile Include="HTTP\Server\URLMapping\URINode.cs" />
+    <Compile Include="HTTP\Server\URLMapping\URLReplacement.cs" />
+    <Compile Include="HTTP\Server\URLMapping\URL_Node.cs" />
     <Compile Include="HTTP\HTTPSemantics.cs" />
     <Compile Include="MIME\AMIME.cs" />
     <Compile Include="SMTP\EMail\AbstractEMail.cs" />

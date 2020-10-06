@@ -33,7 +33,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A URL node which stores some childnodes and a callback
     /// </summary>
-    public class URINode : IEnumerable<HTTPMethodNode>
+    public class URL_Node : IEnumerable<HTTPMethodNode>
     {
 
         #region Data
@@ -55,7 +55,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The URI regex for this service.
         /// </summary>
-        public Regex                                     URIRegex               { get; }
+        public Regex                                     URLRegex               { get; }
 
         /// <summary>
         /// The number of parameters within this URLNode for shorting best-matching URLs.
@@ -119,7 +119,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="URITemplate">The URI template for this service.</param>
         /// <param name="URIAuthentication">This and all subordinated nodes demand an explicit URI authentication.</param>
-        internal URINode(HTTPPath             URITemplate,
+        internal URL_Node(HTTPPath             URITemplate,
                          HTTPAuthentication  URIAuthentication  = null)
 
         {
@@ -138,7 +138,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var _ReplaceAllParameters   = new Regex(@"\{[^/]+\}");
             this.ParameterCount        += (UInt16) _ReplaceAllParameters.Matches(URLTemplate2).Count;
-            this.URIRegex               = new Regex("^" + _ReplaceAllParameters.Replace(URLTemplate2, "([^/]+)") + "$");
+            this.URLRegex               = new Regex("^" + _ReplaceAllParameters.Replace(URLTemplate2, "([^/]+)") + "$");
             this.SortLength             = (UInt16) _ReplaceAllParameters.Replace(URLTemplateWithoutVars, "").Length;
 
         }
@@ -160,7 +160,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPResponseLogHandler  HTTPResponseLogger          = null,
 
                                HTTPDelegate            DefaultErrorHandler         = null,
-                               URIReplacement          AllowReplacement            = URIReplacement.Fail)
+                               URLReplacement          AllowReplacement            = URLReplacement.Fail)
 
         {
 

@@ -60,7 +60,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public HTTPDelegate                              DefaultErrorHandler              { get; }
 
-        public URIReplacement                            AllowReplacement                 { get; }
+        public URLReplacement                            AllowReplacement                 { get; }
 
 
         /// <summary>
@@ -88,7 +88,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                  HTTPDelegate              RequestHandler                  = null,
                                  HTTPResponseLogHandler    HTTPResponseLogger              = null,
                                  HTTPDelegate              DefaultErrorHandler             = null,
-                                 URIReplacement            AllowReplacement                = URIReplacement.Fail)
+                                 URLReplacement            AllowReplacement                = URLReplacement.Fail)
         {
 
             this.HTTPContentType                 = HTTPContentType ?? throw new ArgumentNullException(nameof(HTTPContentType),  "The given HTTP content type must not be null!");

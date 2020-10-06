@@ -301,7 +301,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
                                   },
 
-                                  AllowReplacement: URIReplacement.Allow);
+                                  AllowReplacement: URLReplacement.Allow);
 
         }
 

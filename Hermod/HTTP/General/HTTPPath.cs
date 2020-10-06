@@ -399,11 +399,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPPath1">A HTTP path.</param>
         /// <param name="Text">Another HTTP path.</param>
         /// <returns>true|false</returns>
-        public static HTTPPath operator + (HTTPPath HTTPPath1, String Text)
+        public static HTTPPath operator +(HTTPPath HTTPPath1, String Text)
+        {
 
-            => HTTPPath1.EndsWith("/") && Text.StartsWith("/")
-                   ? Parse(HTTPPath1.ToString() + Text.Substring(1))
-                   : Parse(HTTPPath1.ToString() + Text);
+            if (HTTPPath1.EndsWith("/") && Text.StartsWith("/"))
+                return Parse(HTTPPath1.ToString() + Text.Substring(1));
+
+            if (!HTTPPath1.EndsWith("/") &&  Text.StartsWith("/") ||
+                 HTTPPath1.EndsWith("/") && !Text.StartsWith("/"))
+                return Parse(HTTPPath1.ToString() + Text);
+
+            return Parse(HTTPPath1.ToString() + "/" + Text);
+
+        }
 
         #endregion
 
@@ -416,9 +424,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPPath2">Another HTTP path.</param>
         /// <returns>true|false</returns>
         public static HTTPPath operator + (HTTPPath HTTPPath1, HTTPPath HTTPPath2)
-            => HTTPPath1.EndsWith("/") && HTTPPath2.StartsWith("/")
-                   ? Parse(HTTPPath1.ToString() + HTTPPath2.Substring(1))
-                   : Parse(HTTPPath1.ToString() + HTTPPath2);
+        {
+
+            if (HTTPPath1.EndsWith("/") && HTTPPath2.StartsWith("/"))
+                return Parse(HTTPPath1.ToString() + HTTPPath2.Substring(1));
+
+            if (!HTTPPath1.EndsWith("/") &&  HTTPPath2.StartsWith("/") ||
+                 HTTPPath1.EndsWith("/") && !HTTPPath2.StartsWith("/"))
+                return Parse(HTTPPath1.ToString() + HTTPPath2);
+
+            return Parse(HTTPPath1.ToString() + "/" + HTTPPath2);
+
+        }
 
         #endregion
 

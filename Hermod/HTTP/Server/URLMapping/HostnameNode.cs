@@ -32,7 +32,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A node which stores information for maintaining multiple http hostnames.
     /// </summary>
-    public class HostnameNode : IEnumerable<URINode>
+    public class HostnameNode : IEnumerable<URL_Node>
     {
 
         #region Data
@@ -40,7 +40,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// A mapping from URIs to URINodes.
         /// </summary>
-        private readonly Dictionary<HTTPPath, URINode> _URINodes;
+        private readonly Dictionary<HTTPPath, URL_Node> _URINodes;
 
         #endregion
 
@@ -61,7 +61,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return all URI nodes.
         /// </summary>
-        public IEnumerable<URINode> URINodes
+        public IEnumerable<URL_Node> URLNodes
             => _URINodes.Values;
 
         #endregion
@@ -105,7 +105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            this._URINodes  = new Dictionary<HTTPPath, URINode>();
+            this._URINodes  = new Dictionary<HTTPPath, URL_Node>();
 
         }
 
@@ -128,7 +128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPResponseLogHandler    HTTPResponseLogger          = null,
 
                                HTTPDelegate              DefaultErrorHandler         = null,
-                               URIReplacement            AllowReplacement            = URIReplacement.Fail)
+                               URLReplacement            AllowReplacement            = URLReplacement.Fail)
 
         {
 
@@ -138,11 +138,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (!URLTemplate.HasValue)
                     URLTemplate = HTTPPath.Parse("/");
 
-                if (!_URINodes.TryGetValue(URLTemplate.Value, out URINode _URINode))
+                if (!_URINodes.TryGetValue(URLTemplate.Value, out URL_Node _URINode))
                 {
 
                     _URINode = _URINodes.AddAndReturnValue(URLTemplate.Value,
-                                                           new URINode(URLTemplate.Value,
+                                                           new URL_Node(URLTemplate.Value,
                                                                        URIAuthentication));
 
                 }
@@ -186,10 +186,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return the URI node for the given URI template.
         /// </summary>
         /// <param name="URITemplate">An URI template.</param>
-        public URINode Get(HTTPPath URITemplate)
+        public URL_Node Get(HTTPPath URITemplate)
         {
 
-            if (_URINodes.TryGetValue(URITemplate, out URINode uriNode))
+            if (_URINodes.TryGetValue(URITemplate, out URL_Node uriNode))
                 return uriNode;
 
             return null;
@@ -205,7 +205,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="URITemplate">An URI template.</param>
         /// <param name="URINode">The attached URI node.</param>
-        public Boolean TryGet(HTTPPath URITemplate, out URINode URINode)
+        public Boolean TryGet(HTTPPath URITemplate, out URL_Node URINode)
 
             => _URINodes.TryGetValue(URITemplate, out URINode);
 
@@ -217,7 +217,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return all URI nodes.
         /// </summary>
-        public IEnumerator<URINode> GetEnumerator()
+        public IEnumerator<URL_Node> GetEnumerator()
             => _URINodes.Values.GetEnumerator();
 
         /// <summary>

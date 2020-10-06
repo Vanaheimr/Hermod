@@ -437,21 +437,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Method Callbacks
 
-        #region Redirect(Hostname, HTTPMethod, URLTemplate, HTTPContentType, URITarget)
+        #region Redirect(Hostname, HTTPMethod, URLTemplate, HTTPContentType, URLTarget)
 
         /// <summary>
-        /// Add a URI based method redirect for the given URL template.
+        /// Add a URL based method redirect for the given URL template.
         /// </summary>
         /// <param name="Hostname">The HTTP hostname.</param>
         /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="URLTemplate">The URL template.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
-        /// <param name="URITarget">The target URI of the redirect.</param>
+        /// <param name="URLTarget">The target URL of the redirect.</param>
         public void Redirect(HTTPHostname     Hostname,
                              HTTPMethod       HTTPMethod,
                              HTTPPath          URLTemplate,
                              HTTPContentType  HTTPContentType,
-                             HTTPPath          URITarget)
+                             HTTPPath          URLTarget)
 
         {
 
@@ -459,39 +459,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                  HTTPMethod,
                                  URLTemplate,
                                  HTTPContentType,
-                                 URITarget);
+                                 URLTarget);
 
         }
 
         #endregion
 
-        #region Redirect(HTTPMethod, URLTemplate, HTTPContentType, URITarget)
+        #region Redirect(HTTPMethod, URLTemplate, HTTPContentType, URLTarget)
 
         /// <summary>
-        /// Add a URI based method redirect for the given URL template.
+        /// Add a URL based method redirect for the given URL template.
         /// </summary>
         /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="URLTemplate">The URL template.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
-        /// <param name="URITarget">The target URI of the redirect.</param>
+        /// <param name="URLTarget">The target URL of the redirect.</param>
         public void Redirect(HTTPMethod       HTTPMethod,
                              HTTPPath          URLTemplate,
                              HTTPContentType  HTTPContentType,
-                             HTTPPath          URITarget)
+                             HTTPPath          URLTarget)
 
         {
 
             _HTTPServer.Redirect(HTTPMethod,
                                  URLTemplate,
                                  HTTPContentType,
-                                 URITarget);
+                                 URLTarget);
 
         }
 
         #endregion
 
 
-        #region AddMethodCallback(Hostname, HTTPMethod, URLTemplate, HTTPContentType = null, URIAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false, HTTPDelegate = null)
+        #region AddMethodCallback(Hostname, HTTPMethod, URLTemplate, HTTPContentType = null, URLAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false, HTTPDelegate = null)
 
         /// <summary>
         /// Add a method callback for the given URL template.
@@ -500,7 +500,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="URLTemplate">The URL template.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
-        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
         /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
@@ -511,14 +511,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPMethod              HTTPMethod,
                                       HTTPPath                 URLTemplate,
                                       HTTPContentType         HTTPContentType             = null,
-                                      HTTPAuthentication      URIAuthentication           = null,
+                                      HTTPAuthentication      URLAuthentication           = null,
                                       HTTPAuthentication      HTTPMethodAuthentication    = null,
                                       HTTPAuthentication      ContentTypeAuthentication   = null,
                                       HTTPRequestLogHandler   HTTPRequestLogger           = null,
                                       HTTPResponseLogHandler  HTTPResponseLogger          = null,
                                       HTTPDelegate            DefaultErrorHandler         = null,
                                       HTTPDelegate            HTTPDelegate                = null,
-                                      URIReplacement          AllowReplacement            = URIReplacement.Fail)
+                                      URLReplacement          AllowReplacement            = URLReplacement.Fail)
 
         {
 
@@ -526,7 +526,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           HTTPMethod,
                                           URLTemplate,
                                           HTTPContentType,
-                                          URIAuthentication,
+                                          URLAuthentication,
                                           HTTPMethodAuthentication,
                                           ContentTypeAuthentication,
                                           HTTPRequestLogger,
@@ -539,7 +539,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region AddMethodCallback(Hostname, HTTPMethod, URLTemplates, HTTPContentType = null, ..., HTTPDelegate = null, AllowReplacement = URIReplacement.Fail)
+        #region AddMethodCallback(Hostname, HTTPMethod, URLTemplates, HTTPContentType = null, ..., HTTPDelegate = null, AllowReplacement = URLReplacement.Fail)
 
         /// <summary>
         /// Add a method callback for the given URL template.
@@ -548,7 +548,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="URLTemplates">An enumeration of URL templates.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
-        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
         /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
@@ -559,14 +559,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPMethod              HTTPMethod,
                                       IEnumerable<HTTPPath>    URLTemplates,
                                       HTTPContentType         HTTPContentType             = null,
-                                      HTTPAuthentication      URIAuthentication           = null,
+                                      HTTPAuthentication      URLAuthentication           = null,
                                       HTTPAuthentication      HTTPMethodAuthentication    = null,
                                       HTTPAuthentication      ContentTypeAuthentication   = null,
                                       HTTPRequestLogHandler   HTTPRequestLogger           = null,
                                       HTTPResponseLogHandler  HTTPResponseLogger          = null,
                                       HTTPDelegate            DefaultErrorHandler         = null,
                                       HTTPDelegate            HTTPDelegate                = null,
-                                      URIReplacement          AllowReplacement            = URIReplacement.Fail)
+                                      URLReplacement          AllowReplacement            = URLReplacement.Fail)
 
         {
 
@@ -574,7 +574,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           HTTPMethod,
                                           URLTemplates,
                                           HTTPContentType,
-                                          URIAuthentication,
+                                          URLAuthentication,
                                           HTTPMethodAuthentication,
                                           ContentTypeAuthentication,
                                           HTTPRequestLogger,
@@ -587,7 +587,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region AddMethodCallback(Hostname, HTTPMethod, URLTemplate, HTTPContentTypes, URIAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false, HTTPDelegate = null)
+        #region AddMethodCallback(Hostname, HTTPMethod, URLTemplate, HTTPContentTypes, URLAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false, HTTPDelegate = null)
 
         /// <summary>
         /// Add a method callback for the given URL template.
@@ -596,7 +596,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="URLTemplate">The URL template.</param>
         /// <param name="HTTPContentTypes">An enumeration of HTTP content types.</param>
-        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
         /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
@@ -607,14 +607,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPMethod                    HTTPMethod,
                                       HTTPPath                       URLTemplate,
                                       IEnumerable<HTTPContentType>  HTTPContentTypes,
-                                      HTTPAuthentication            URIAuthentication           = null,
+                                      HTTPAuthentication            URLAuthentication           = null,
                                       HTTPAuthentication            HTTPMethodAuthentication    = null,
                                       HTTPAuthentication            ContentTypeAuthentication   = null,
                                       HTTPRequestLogHandler         HTTPRequestLogger           = null,
                                       HTTPResponseLogHandler        HTTPResponseLogger          = null,
                                       HTTPDelegate                  DefaultErrorHandler         = null,
                                       HTTPDelegate                  HTTPDelegate                = null,
-                                      URIReplacement                AllowReplacement            = URIReplacement.Fail)
+                                      URLReplacement                AllowReplacement            = URLReplacement.Fail)
 
         {
 
@@ -622,7 +622,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           HTTPMethod,
                                           URLTemplate,
                                           HTTPContentTypes,
-                                          URIAuthentication,
+                                          URLAuthentication,
                                           HTTPMethodAuthentication,
                                           ContentTypeAuthentication,
                                           HTTPRequestLogger,
@@ -635,7 +635,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region AddMethodCallback(Hostname, HTTPMethod, URLTemplate, HTTPContentTypes, URIAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false, HTTPDelegate = null)
+        #region AddMethodCallback(Hostname, HTTPMethod, URLTemplate, HTTPContentTypes, URLAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false, HTTPDelegate = null)
 
         /// <summary>
         /// Add a method callback for the given URL template.
@@ -644,7 +644,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="URLTemplates">An enumeration of URL templates.</param>
         /// <param name="HTTPContentTypes">An enumeration of HTTP content types.</param>
-        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
         /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
@@ -655,14 +655,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPMethod                    HTTPMethod,
                                       IEnumerable<HTTPPath>          URLTemplates,
                                       IEnumerable<HTTPContentType>  HTTPContentTypes,
-                                      HTTPAuthentication            URIAuthentication           = null,
+                                      HTTPAuthentication            URLAuthentication           = null,
                                       HTTPAuthentication            HTTPMethodAuthentication    = null,
                                       HTTPAuthentication            ContentTypeAuthentication   = null,
                                       HTTPRequestLogHandler         HTTPRequestLogger           = null,
                                       HTTPResponseLogHandler        HTTPResponseLogger          = null,
                                       HTTPDelegate                  DefaultErrorHandler         = null,
                                       HTTPDelegate                  HTTPDelegate                = null,
-                                      URIReplacement                AllowReplacement            = URIReplacement.Fail)
+                                      URLReplacement                AllowReplacement            = URLReplacement.Fail)
 
         {
 
@@ -670,7 +670,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           HTTPMethod,
                                           URLTemplates,
                                           HTTPContentTypes,
-                                          URIAuthentication,
+                                          URLAuthentication,
                                           HTTPMethodAuthentication,
                                           ContentTypeAuthentication,
                                           HTTPRequestLogger,
@@ -690,16 +690,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Call the best matching method handler for the given HTTP request.
         /// </summary>
         protected HTTPServer.Handlers GetHandlers(HTTPHostname                              Host,
-                                                  HTTPPath                                   URI,
+                                                  HTTPPath                                   URL,
                                                   HTTPMethod?                               HTTPMethod                   = null,
                                                   Func<HTTPContentType[], HTTPContentType>  HTTPContentTypeSelector      = null,
-                                                  Action<IEnumerable<String>>               ParsedURIParametersDelegate  = null)
+                                                  Action<IEnumerable<String>>               ParsedURLParametersDelegate  = null)
 
             => _HTTPServer.GetHandlers(Host,
-                                       URI,
+                                       URL,
                                        HTTPMethod,
                                        HTTPContentTypeSelector,
-                                       ParsedURIParametersDelegate);
+                                       ParsedURLParametersDelegate);
 
         #endregion
 
@@ -797,7 +797,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
         /// 
-        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// 
         /// <param name="DefaultErrorHandler">The default error handler.</param>
@@ -818,7 +818,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                             HTTPMethod?                      HTTPMethod                   = null,
                                                             HTTPContentType                  HTTPContentType              = null,
 
-                                                            HTTPAuthentication               URIAuthentication            = null,
+                                                            HTTPAuthentication               URLAuthentication            = null,
                                                             HTTPAuthentication               HTTPMethodAuthentication     = null,
 
                                                             HTTPDelegate                     DefaultErrorHandler          = null)
@@ -840,7 +840,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           HTTPMethod,
                                           HTTPContentType,
 
-                                          URIAuthentication,
+                                          URLAuthentication,
                                           HTTPMethodAuthentication,
 
                                           DefaultErrorHandler);
@@ -1019,13 +1019,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            public static Handlers FromURINode(URINode URINode)
+            public static Handlers FromURLNode(URL_Node URLNode)
 
-                => new Handlers(URINode?.RequestHandler,
-                                URINode?.HTTPRequestLogger,
-                                URINode?.HTTPResponseLogger,
-                                URINode?.DefaultErrorHandler,
-                                URINode?.ErrorHandlers);
+                => new Handlers(URLNode?.RequestHandler,
+                                URLNode?.HTTPRequestLogger,
+                                URLNode?.HTTPResponseLogger,
+                                URLNode?.DefaultErrorHandler,
+                                URLNode?.ErrorHandlers);
 
             public static Handlers FromMethodNode(HTTPMethodNode MethodNode)
 
@@ -1829,25 +1829,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region Redirect(Hostname, HTTPMethod, URLTemplate, HTTPContentType, URITarget)
+        #region Redirect(Hostname, HTTPMethod, URLTemplate, HTTPContentType, URLTarget)
 
         /// <summary>
-        /// Add a URI based method redirect for the given URL template.
+        /// Add a URL based method redirect for the given URL template.
         /// </summary>
         /// <param name="Hostname">The HTTP hostname.</param>
         /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="URLTemplate">The URL template.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
-        /// <param name="URITarget">The target URI of the redirect.</param>
+        /// <param name="URLTarget">The target URL of the redirect.</param>
         public void Redirect(HTTPHostname     Hostname,
                              HTTPMethod       HTTPMethod,
                              HTTPPath          URLTemplate,
                              HTTPContentType  HTTPContentType,
-                             HTTPPath          URITarget)
+                             HTTPPath          URLTarget)
 
         {
 
-            AddHandler(req => InvokeHandler(new HTTPRequest.Builder(req).SetURI(URITarget)),
+            AddHandler(req => InvokeHandler(new HTTPRequest.Builder(req).SetURL(URLTarget)),
                        Hostname,
                        (URLTemplate.IsNotNullOrEmpty()) ? URLTemplate     : HTTPPath.Parse("/"),
                        HTTPMethod,
@@ -1861,23 +1861,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Redirect(HTTPMethod, URLTemplate, HTTPContentType, URITarget)
+        #region Redirect(HTTPMethod, URLTemplate, HTTPContentType, URLTarget)
 
         /// <summary>
-        /// Add a URI based method redirect for the given URL template.
+        /// Add a URL based method redirect for the given URL template.
         /// </summary>
         /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="URLTemplate">The URL template.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
-        /// <param name="URITarget">The target URI of the redirect.</param>
+        /// <param name="URLTarget">The target URL of the redirect.</param>
         public void Redirect(HTTPMethod       HTTPMethod,
                              HTTPPath          URLTemplate,
                              HTTPContentType  HTTPContentType,
-                             HTTPPath          URITarget)
+                             HTTPPath          URLTarget)
 
         {
 
-            AddHandler(req => InvokeHandler(new HTTPRequest.Builder(req).SetURI(URITarget)),
+            AddHandler(req => InvokeHandler(new HTTPRequest.Builder(req).SetURL(URLTarget)),
                        HTTPHostname.Any,
                        (URLTemplate.IsNotNullOrEmpty()) ? URLTemplate     : HTTPPath.Parse("/"),
                        HTTPMethod,
@@ -1892,7 +1892,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (internal) AddHandler(HTTPDelegate, Hostname = "*", URLTemplate = "/", HTTPMethod = null, HTTPContentType = null, HostAuthentication = null, URIAuthentication = null, HTTPMethodAuthentication = null, ContentTypeAuthentication = null, DefaultErrorHandler = null)
+        #region (internal) AddHandler(HTTPDelegate, Hostname = "*", URLTemplate = "/", HTTPMethod = null, HTTPContentType = null, HostAuthentication = null, URLAuthentication = null, HTTPMethodAuthentication = null, ContentTypeAuthentication = null, DefaultErrorHandler = null)
 
         /// <summary>
         /// Add a method callback for the given URL template.
@@ -1902,7 +1902,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLTemplate">The URL template.</param>
         /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
-        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
         /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
@@ -1915,7 +1915,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                  HTTPMethod?               HTTPMethod                  = null,
                                  HTTPContentType           HTTPContentType             = null,
 
-                                 HTTPAuthentication        URIAuthentication           = null,
+                                 HTTPAuthentication        URLAuthentication           = null,
                                  HTTPAuthentication        HTTPMethodAuthentication    = null,
                                  HTTPAuthentication        ContentTypeAuthentication   = null,
 
@@ -1923,7 +1923,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                  HTTPResponseLogHandler    HTTPResponseLogger          = null,
 
                                  HTTPDelegate              DefaultErrorHandler         = null,
-                                 URIReplacement            AllowReplacement            = URIReplacement.Fail)
+                                 URLReplacement            AllowReplacement            = URLReplacement.Fail)
 
         {
 
@@ -1951,7 +1951,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          HTTPMethod,
                                          HTTPContentType,
 
-                                         URIAuthentication,
+                                         URLAuthentication,
                                          HTTPMethodAuthentication,
                                          ContentTypeAuthentication,
 
@@ -1967,7 +1967,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region AddMethodCallback(Hostname, HTTPMethod, URLTemplate,  HTTPContentType = null, URIAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false, HTTPDelegate = null)
+        #region AddMethodCallback(Hostname, HTTPMethod, URLTemplate,  HTTPContentType = null, URLAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false, HTTPDelegate = null)
 
         /// <summary>
         /// Add a method callback for the given URL template.
@@ -1976,7 +1976,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="URLTemplate">The URL template.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
-        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
         /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
@@ -1987,14 +1987,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPMethod                HTTPMethod,
                                       HTTPPath                  URLTemplate,
                                       HTTPContentType           HTTPContentType             = null,
-                                      HTTPAuthentication        URIAuthentication           = null,
+                                      HTTPAuthentication        URLAuthentication           = null,
                                       HTTPAuthentication        HTTPMethodAuthentication    = null,
                                       HTTPAuthentication        ContentTypeAuthentication   = null,
                                       HTTPRequestLogHandler     HTTPRequestLogger           = null,
                                       HTTPResponseLogHandler    HTTPResponseLogger          = null,
                                       HTTPDelegate              DefaultErrorHandler         = null,
                                       HTTPDelegate              HTTPDelegate                = null,
-                                      URIReplacement            AllowReplacement            = URIReplacement.Fail)
+                                      URLReplacement            AllowReplacement            = URLReplacement.Fail)
 
         {
 
@@ -2019,7 +2019,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        URLTemplate,
                        HTTPMethod,
                        HTTPContentType,
-                       URIAuthentication,
+                       URLAuthentication,
                        HTTPMethodAuthentication,
                        ContentTypeAuthentication,
                        HTTPRequestLogger,
@@ -2031,7 +2031,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region AddMethodCallback(Hostname, HTTPMethod, URLTemplates, HTTPContentType = null, ..., HTTPDelegate = null, AllowReplacement = URIReplacement.Fail)
+        #region AddMethodCallback(Hostname, HTTPMethod, URLTemplates, HTTPContentType = null, ..., HTTPDelegate = null, AllowReplacement = URLReplacement.Fail)
 
         /// <summary>
         /// Add a method callback for the given URL template.
@@ -2041,7 +2041,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLTemplates">An enumeration of URL templates.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
         /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
-        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
         /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
@@ -2052,14 +2052,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPMethod                HTTPMethod,
                                       IEnumerable<HTTPPath>     URLTemplates,
                                       HTTPContentType           HTTPContentType             = null,
-                                      HTTPAuthentication        URIAuthentication           = null,
+                                      HTTPAuthentication        URLAuthentication           = null,
                                       HTTPAuthentication        HTTPMethodAuthentication    = null,
                                       HTTPAuthentication        ContentTypeAuthentication   = null,
                                       HTTPRequestLogHandler     HTTPRequestLogger           = null,
                                       HTTPResponseLogHandler    HTTPResponseLogger          = null,
                                       HTTPDelegate              DefaultErrorHandler         = null,
                                       HTTPDelegate              HTTPDelegate                = null,
-                                      URIReplacement            AllowReplacement            = URIReplacement.Fail)
+                                      URLReplacement            AllowReplacement            = URLReplacement.Fail)
 
         {
 
@@ -2079,7 +2079,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            URLTemplate,
                            HTTPMethod,
                            HTTPContentType,
-                           URIAuthentication,
+                           URLAuthentication,
                            HTTPMethodAuthentication,
                            ContentTypeAuthentication,
                            HTTPRequestLogger,
@@ -2091,7 +2091,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region AddMethodCallback(Hostname, HTTPMethod, URLTemplate,  HTTPContentTypes, URIAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false, HTTPDelegate = null)
+        #region AddMethodCallback(Hostname, HTTPMethod, URLTemplate,  HTTPContentTypes, URLAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false, HTTPDelegate = null)
 
         /// <summary>
         /// Add a method callback for the given URL template.
@@ -2100,7 +2100,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="URLTemplate">The URL template.</param>
         /// <param name="HTTPContentTypes">An enumeration of HTTP content types.</param>
-        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
         /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
@@ -2111,14 +2111,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPMethod                    HTTPMethod,
                                       HTTPPath                       URLTemplate,
                                       IEnumerable<HTTPContentType>  HTTPContentTypes,
-                                      HTTPAuthentication            URIAuthentication           = null,
+                                      HTTPAuthentication            URLAuthentication           = null,
                                       HTTPAuthentication            HTTPMethodAuthentication    = null,
                                       HTTPAuthentication            ContentTypeAuthentication   = null,
                                       HTTPRequestLogHandler         HTTPRequestLogger           = null,
                                       HTTPResponseLogHandler        HTTPResponseLogger          = null,
                                       HTTPDelegate                  DefaultErrorHandler         = null,
                                       HTTPDelegate                  HTTPDelegate                = null,
-                                      URIReplacement                AllowReplacement            = URIReplacement.Fail)
+                                      URLReplacement                AllowReplacement            = URLReplacement.Fail)
 
         {
 
@@ -2147,7 +2147,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            URLTemplate,
                            HTTPMethod,
                            contenttype,
-                           URIAuthentication,
+                           URLAuthentication,
                            HTTPMethodAuthentication,
                            ContentTypeAuthentication,
                            HTTPRequestLogger,
@@ -2159,7 +2159,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region AddMethodCallback(Hostname, HTTPMethod, URLTemplate,  HTTPContentTypes, HostAuthentication = false, URIAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false, HTTPDelegate = null)
+        #region AddMethodCallback(Hostname, HTTPMethod, URLTemplate,  HTTPContentTypes, HostAuthentication = false, URLAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false, HTTPDelegate = null)
 
         /// <summary>
         /// Add a method callback for the given URL template.
@@ -2168,7 +2168,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="URLTemplates">An enumeration of URL templates.</param>
         /// <param name="HTTPContentTypes">An enumeration of HTTP content types.</param>
-        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
         /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
@@ -2179,14 +2179,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPMethod                    HTTPMethod,
                                       IEnumerable<HTTPPath>         URLTemplates,
                                       IEnumerable<HTTPContentType>  HTTPContentTypes,
-                                      HTTPAuthentication            URIAuthentication           = null,
+                                      HTTPAuthentication            URLAuthentication           = null,
                                       HTTPAuthentication            HTTPMethodAuthentication    = null,
                                       HTTPAuthentication            ContentTypeAuthentication   = null,
                                       HTTPRequestLogHandler         HTTPRequestLogger           = null,
                                       HTTPResponseLogHandler        HTTPResponseLogger          = null,
                                       HTTPDelegate                  DefaultErrorHandler         = null,
                                       HTTPDelegate                  HTTPDelegate                = null,
-                                      URIReplacement                AllowReplacement            = URIReplacement.Fail)
+                                      URLReplacement                AllowReplacement            = URLReplacement.Fail)
 
         {
 
@@ -2216,7 +2216,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                uritemplate,
                                HTTPMethod,
                                contenttype,
-                               URIAuthentication,
+                               URLAuthentication,
                                HTTPMethodAuthentication,
                                ContentTypeAuthentication,
                                HTTPRequestLogger,
@@ -2228,7 +2228,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (internal) ReplaceHandler(HTTPDelegate, Hostname = "*", URLTemplate = "/", HTTPMethod = null, HTTPContentType = null, HostAuthentication = null, URIAuthentication = null, HTTPMethodAuthentication = null, ContentTypeAuthentication = null, DefaultErrorHandler = null)
+        #region (internal) ReplaceHandler(HTTPDelegate, Hostname = "*", URLTemplate = "/", HTTPMethod = null, HTTPContentType = null, HostAuthentication = null, URLAuthentication = null, HTTPMethodAuthentication = null, ContentTypeAuthentication = null, DefaultErrorHandler = null)
 
         /// <summary>
         /// Add a method callback for the given URL template.
@@ -2238,7 +2238,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLTemplate">The URL template.</param>
         /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
-        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
         /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
@@ -2251,7 +2251,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                      HTTPMethod?               HTTPMethod                  = null,
                                      HTTPContentType           HTTPContentType             = null,
 
-                                     HTTPAuthentication        URIAuthentication           = null,
+                                     HTTPAuthentication        URLAuthentication           = null,
                                      HTTPAuthentication        HTTPMethodAuthentication    = null,
                                      HTTPAuthentication        ContentTypeAuthentication   = null,
 
@@ -2286,7 +2286,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          HTTPMethod,
                                          HTTPContentType,
 
-                                         URIAuthentication,
+                                         URLAuthentication,
                                          HTTPMethodAuthentication,
                                          ContentTypeAuthentication,
 
@@ -2311,10 +2311,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         internal Handlers GetHandlers(HTTPRequest Request)
 
             => GetHandlers(Request.Host,
-                           Request.URI.IsNullOrEmpty() ? HTTPPath.Parse("/") : Request.URI,
+                           Request.URL.IsNullOrEmpty() ? HTTPPath.Parse("/") : Request.URL,
                            Request.HTTPMethod,
                            AvailableContentTypes => Request.Accept.BestMatchingContentType(AvailableContentTypes),
-                           ParsedURIParameters   => Request.ParsedURIParameters = ParsedURIParameters.ToArray());
+                           ParsedURLParameters   => Request.ParsedURLParameters = ParsedURLParameters.ToArray());
 
         #endregion
 
@@ -2324,13 +2324,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return the best matching method handler for the given parameters.
         /// </summary>
         internal Handlers GetHandlers(HTTPHostname                              Host,
-                                      HTTPPath                                   URI,
+                                      HTTPPath                                   URL,
                                       HTTPMethod?                               Method                       = null,
                                       Func<HTTPContentType[], HTTPContentType>  HTTPContentTypeSelector      = null,
-                                      Action<IEnumerable<String>>               ParsedURIParametersDelegate  = null)
+                                      Action<IEnumerable<String>>               ParsedURLParametersDelegate  = null)
         {
 
-            URI                      = URI.IsNullOrEmpty()      ? HTTPPath.Parse("/") : URI;
+            URL                      = URL.IsNullOrEmpty()      ? HTTPPath.Parse("/") : URL;
             var httpMethod           = Method                  ?? HTTPMethod.GET;
             HTTPContentTypeSelector  = HTTPContentTypeSelector ?? (v => HTTPContentType.HTML_UTF8);
 
@@ -2349,17 +2349,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #region Try to find the best matching URLNode...
 
                 var _RegexList    = from   __URLNode
-                                    in     _HostNode.URINodes
+                                    in     _HostNode.URLNodes
                                     select new {
                                         URLNode = __URLNode,
-                                        Regex   = __URLNode.URIRegex
+                                        Regex   = __URLNode.URLRegex
                                     };
 
                 var _AllTemplates = from   _RegexTupel
                                     in     _RegexList
                                     select new {
                                         URLNode = _RegexTupel.URLNode,
-                                        Match   = _RegexTupel.Regex.Match(URI.ToString())
+                                        Match   = _RegexTupel.Regex.Match(URL.ToString())
                                     };
 
                 var _Matches      = from    _Match
@@ -2422,9 +2422,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 for (var i = 1; i < _Match2.Match.Groups.Count; i++)
                     _Parameters.Add(_Match2.Match.Groups[i].Value);
 
-                var ParsedURIParametersDelegateLocal = ParsedURIParametersDelegate;
-                if (ParsedURIParametersDelegateLocal != null)
-                    ParsedURIParametersDelegate(_Parameters);
+                var ParsedURLParametersDelegateLocal = ParsedURLParametersDelegate;
+                if (ParsedURLParametersDelegateLocal != null)
+                    ParsedURLParametersDelegate(_Parameters);
 
                 #endregion
 
@@ -2446,7 +2446,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             return Handlers.FromContentTypeNode(_HTTPMethodNode.FirstOrDefault());
 
                     //    else
-                    //        throw new ArgumentException(String.Concat(URI, " ", _HTTPMethodNode, " but multiple content type choices!"));
+                    //        throw new ArgumentException(String.Concat(URL, " ", _HTTPMethodNode, " but multiple content type choices!"));
 
                     }
 
@@ -2463,7 +2463,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 //}
 
                 // No HTTPMethod was found => return best matching URL Handler
-                return Handlers.FromURINode(_Match2.URLNode);
+                return Handlers.FromURLNode(_Match2.URLNode);
 
                 //return GetErrorHandler(Host, URL, HTTPMethod, HTTPContentType, HTTPStatusCode.BadRequest);
 
@@ -2696,7 +2696,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HttpMethod">The HTTP method.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
         /// 
-        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// 
         /// <param name="DefaultErrorHandler">The default error handler.</param>
@@ -2717,7 +2717,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                     HTTPMethod?                     HttpMethod                   = null,
                                                     HTTPContentType                 HTTPContentType              = null,
 
-                                                    HTTPAuthentication              URIAuthentication            = null,
+                                                    HTTPAuthentication              URLAuthentication            = null,
                                                     HTTPAuthentication              HTTPMethodAuthentication     = null,
 
                                                     HTTPDelegate                    DefaultErrorHandler          = null)
@@ -2772,7 +2772,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            HttpMethod      ?? HTTPMethod.GET,
                            HTTPContentType ?? HTTPContentType.EVENTSTREAM,
 
-                           URIAuthentication,
+                           URLAuthentication,
                            HTTPMethodAuthentication,
                            null,
 

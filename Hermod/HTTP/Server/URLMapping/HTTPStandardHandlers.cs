@@ -67,7 +67,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                          Request.RawHTTPHeader +
                                                                          Environment.NewLine + Environment.NewLine +
                                                                          "Method => "         + Request.HTTPMethod      + Environment.NewLine +
-                                                                         "URL => "            + Request.URI         + Environment.NewLine +
+                                                                         "URL => "            + Request.URL         + Environment.NewLine +
                                                                          "QueryString => "    + Request.QueryString     + Environment.NewLine +
                                                                          "Protocol => "       + Request.ProtocolName    + Environment.NewLine +
                                                                          "Version => "        + Request.ProtocolVersion + Environment.NewLine).ToUTF8Bytes()
@@ -227,7 +227,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              }
 
-                                         }, AllowReplacement: URIReplacement.Fail);
+                                         }, AllowReplacement: URLReplacement.Fail);
 
             return;
 
@@ -271,9 +271,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (HTTPLogin.IsNotNullOrEmpty() && HTTPPassword.IsNotNullOrEmpty())
                 {
 
-                    if (Request.Authorization          == null        ||
-                        Request.Authorization.Username != HTTPLogin   ||
-                        Request.Authorization.Password != HTTPPassword)
+                    if (Request.Authorization == null                               ||
+                      !(Request.Authorization is HTTPBasicAuthentication basicAuth) ||
+                        basicAuth.Username    != HTTPLogin                          ||
+                        basicAuth.Password    != HTTPPassword)
+                    {
                         return new HTTPResponse.Builder(Request) {
                             HTTPStatusCode   = HTTPStatusCode.Unauthorized,
                             Server           = HTTPServer.DefaultServerName,
@@ -283,6 +285,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             Content          = "Unauthorized Access!".ToUTF8Bytes(),
                             Connection       = "close"
                         };
+                    }
 
                 }
 
@@ -291,8 +294,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPContentType ResponseContentType = null;
 
-                var FilePath    = (Request.ParsedURIParameters != null && Request.ParsedURIParameters.Length > 0)
-                                      ? Request.ParsedURIParameters.Last().Replace("/", ".")
+                var FilePath    = (Request.ParsedURLParameters != null && Request.ParsedURLParameters.Length > 0)
+                                      ? Request.ParsedURLParameters.Last().Replace("/", ".")
                                       : DefaultFilename.Replace("/", ".");
 
                 var FileStream  = ResourceAssembly.GetManifestResourceStream(ResourcePath + "." + FilePath);
@@ -493,7 +496,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          HTTPContentType: ResponseContentType,
                                          HTTPDelegate: async Request => {
 
-                                             var ResourceFilename = ResourceFilenameBuilder(Request.ParsedURIParameters);
+                                             var ResourceFilename = ResourceFilenameBuilder(Request.ParsedURLParameters);
 
                                              if (!File.Exists(ResourceFilename) && DefaultFile != null)
                                                  ResourceFilename = DefaultFile;
@@ -527,7 +530,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Connection      = "close",
                                              };
 
-                                         }, AllowReplacement: URIReplacement.Fail);
+                                         }, AllowReplacement: URLReplacement.Fail);
 
             return;
 
@@ -565,11 +568,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                 var NumberOfTemplateParameters = URLTemplate.ToString().Count(c => c == '{');
 
-                                                var FilePath    = (Request.ParsedURIParameters != null && Request.ParsedURIParameters.Length > NumberOfTemplateParameters)
-                                                                      ? Request.ParsedURIParameters.Last().Replace('/', Path.DirectorySeparatorChar)
+                                                var FilePath    = (Request.ParsedURLParameters != null && Request.ParsedURLParameters.Length > NumberOfTemplateParameters)
+                                                                      ? Request.ParsedURLParameters.Last().Replace('/', Path.DirectorySeparatorChar)
                                                                       : DefaultFilename.Replace('/', Path.DirectorySeparatorChar);
 
-                                                var FileStream  = File.OpenRead(ResourcePath(Request.ParsedURIParameters) +
+                                                var FileStream  = File.OpenRead(ResourcePath(Request.ParsedURLParameters) +
                                                                                 Path.DirectorySeparatorChar +
                                                                                 FilePath);
 
@@ -645,7 +648,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                             }
 
-                                        }, AllowReplacement: URIReplacement.Fail);
+                                        }, AllowReplacement: URLReplacement.Fail);
 
             return;
 
@@ -745,8 +748,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              var NumberOfTemplateParameters = URLTemplate.ToString().Count(c => c == '{');
 
-                                             var FilePath    = (Request.ParsedURIParameters != null && Request.ParsedURIParameters.Length > NumberOfTemplateParameters)
-                                                                   ? Request.ParsedURIParameters.Last().Replace('/', Path.DirectorySeparatorChar)
+                                             var FilePath    = (Request.ParsedURLParameters != null && Request.ParsedURLParameters.Length > NumberOfTemplateParameters)
+                                                                   ? Request.ParsedURLParameters.Last().Replace('/', Path.DirectorySeparatorChar)
                                                                    : DefaultFilename.Replace('/', Path.DirectorySeparatorChar);
 
                                              try
@@ -797,7 +800,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Connection      = "close",
                                              };
 
-                                         }, AllowReplacement: URIReplacement.Fail);
+                                         }, AllowReplacement: URLReplacement.Fail);
 
 
             // And now my watch begins...

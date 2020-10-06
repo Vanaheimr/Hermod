@@ -32,9 +32,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// How to handle duplicate URI handlers.
+    /// How to handle duplicate URL handlers.
     /// </summary>
-    public enum URIReplacement
+    public enum URLReplacement
     {
 
         Allow,
