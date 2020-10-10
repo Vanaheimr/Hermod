@@ -794,8 +794,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
         /// <param name="EventTrackingId">The optional event tracking identification of the request.</param>
-        public static Boolean TryParse(String            Text,
-                                       out HTTPRequest   Request,
+        public static Boolean TryParse(String               Text,
+                                       out HTTPRequest      Request,
 
                                        DateTime?            Timestamp           = null,
                                        HTTPSource?          HTTPSource          = null,

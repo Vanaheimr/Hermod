@@ -122,7 +122,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-
         #region (override) ToString()
 
         /// <summary>

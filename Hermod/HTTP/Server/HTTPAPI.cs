@@ -1029,13 +1029,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLPathPrefix">An optional HTTP URL path prefix.</param>
         /// <param name="ServiceName">An optional HTTP service name.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
-        public HTTPAPI(HTTPHostname?   HTTPHostname      = null,
-                       IPPort?         HTTPServerPort    = null,
-                       String          HTTPServerName    = DefaultHTTPServerName,
-                       String          ExternalDNSName   = null,
-                       HTTPPath?       URLPathPrefix     = null,
-                       String          ServiceName       = DefaultHTTPServiceName,
-                       DNSClient       DNSClient         = null)
+        public HTTPAPI(HTTPHostname?  HTTPHostname      = null,
+                       IPPort?        HTTPServerPort    = null,
+                       String         HTTPServerName    = DefaultHTTPServerName,
+                       String         ExternalDNSName   = null,
+                       HTTPPath?      URLPathPrefix     = null,
+                       String         ServiceName       = DefaultHTTPServiceName,
+                       DNSClient      DNSClient         = null)
 
             : this(new HTTPServer(TCPPort:           HTTPServerPort ?? DefaultHTTPServerPort,
                                   DefaultServerName: HTTPServerName ?? DefaultHTTPServerName,
@@ -1069,12 +1069,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this.HTTPServer       = HTTPServer    ?? throw new ArgumentNullException(nameof(HTTPServer), "The given HTTP server must not be null!");
-            this.Hostname         = HTTPHostname  ?? HTTP.HTTPHostname.Any;
-            this.ExternalDNSName  = ExternalDNSName       ?? "";
-            this.URLPathPrefix    = URLPathPrefix ?? DefaultURLPathPrefix;
-            this.ServiceName      = ServiceName   ?? DefaultHTTPServiceName;
-            this.HTMLTemplate     = HTMLTemplate  ?? "";
+            this.HTTPServer       = HTTPServer      ?? throw new ArgumentNullException(nameof(HTTPServer), "The given HTTP server must not be null!");
+            this.Hostname         = HTTPHostname    ?? HTTP.HTTPHostname.Any;
+            this.ExternalDNSName  = ExternalDNSName ?? "";
+            this.URLPathPrefix    = URLPathPrefix   ?? DefaultURLPathPrefix;
+            this.ServiceName      = ServiceName     ?? DefaultHTTPServiceName;
+            this.HTMLTemplate     = HTMLTemplate    ?? "";
 
             this.SystemId         = System_Id.Parse(Environment.MachineName.Replace("/", "") + "/" + HTTPServer.DefaultHTTPServerPort);
 

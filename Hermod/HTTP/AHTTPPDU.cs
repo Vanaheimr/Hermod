@@ -579,7 +579,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (protected) TryGetHeaderField(FieldName)
+        #region TryGetHeaderField(FieldName)
 
         /// <summary>
         /// Return a http header field.
@@ -587,14 +587,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="FieldName">The key of the requested header field.</param>
         /// <param name="Value">The value of the requested header field.</param>
         /// <returns>True if the requested header exists; false otherwise.</returns>
-        protected Boolean TryGetHeaderField(String FieldName, out Object Value)
-        {
-            return _HeaderFields.TryGetValue(FieldName, out Value);
-        }
+        public Boolean TryGetHeaderField(String FieldName, out Object Value)
+
+            => _HeaderFields.TryGetValue(FieldName, out Value);
 
         #endregion
 
-        #region (protected) TryGetHeaderField(HeaderField)
+        #region TryGetHeaderField(HeaderField)
 
         /// <summary>
         /// Return a http header field.
@@ -602,7 +601,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HeaderField">The key of the requested header field.</param>
         /// <param name="Value">The value of the requested header field.</param>
         /// <returns>True if the requested header exists; false otherwise.</returns>
-        protected Boolean TryGetHeaderField(HTTPHeaderField HeaderField, out Object Value)
+        public Boolean TryGetHeaderField(HTTPHeaderField HeaderField, out Object Value)
 
             => _HeaderFields.TryGetValue(HeaderField.Name, out Value);
 
@@ -679,7 +678,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
                     catch (Exception)
                     {
-                        Value = default(T);
+                        Value = default;
                         return false;
                     }
                 }
@@ -687,7 +686,113 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
 
-            Value = default(T);
+            Value = default;
+            return false;
+
+        }
+
+        #endregion
+
+        #region TryParseHeaderField(HeaderField, TryParser)
+
+        /// <summary>
+        /// Parse the given http header field.
+        /// </summary>
+        /// <param name="HeaderField">The key of the requested header field.</param>
+        /// <param name="TryParser">The header field parser.</param>
+        public TValue? TryParseHeaderField<TValue>(String             HeaderField,
+                                                   TryParser<TValue>  TryParser)
+
+            where TValue : struct
+
+        {
+
+            if (TryParser != null &&
+                _HeaderFields.TryGetValue(HeaderField, out Object @object) &&
+                @object is String text &&
+                TryParser(text, out TValue Value))
+            {
+                return Value;
+            }
+
+            return default;
+
+        }
+
+
+        /// <summary>
+        /// Parse the given http header field.
+        /// </summary>
+        /// <param name="HeaderField">The key of the requested header field.</param>
+        /// <param name="TryParser">The header field parser.</param>
+        public TValue? TryParseHeaderField<TValue>(HTTPHeaderField    HeaderField,
+                                                   TryParser<TValue>  TryParser)
+
+            where TValue : struct
+
+        {
+
+            if (TryParser != null &&
+                _HeaderFields.TryGetValue(HeaderField.Name, out Object @object) &&
+                @object is String text &&
+                TryParser(text, out TValue Value))
+            {
+                return Value;
+            }
+
+            return default;
+
+        }
+
+        #endregion
+
+        #region TryParseHeaderField(HeaderField, TryParser, Value)
+
+        /// <summary>
+        /// Return a http header field.
+        /// </summary>
+        /// <param name="HeaderField">The key of the requested header field.</param>
+        /// <param name="Value">The value of the requested header field.</param>
+        /// <returns>True if the requested header exists; false otherwise.</returns>
+        public Boolean TryParseHeaderField<TValue>(String             HeaderField,
+                                                   TryParser<TValue>  TryParser,
+                                                   out TValue         Value)
+        {
+
+            if (TryParser != null &&
+                _HeaderFields.TryGetValue(HeaderField, out Object @object) &&
+                @object is String text &&
+                TryParser(text, out Value))
+            {
+                return true;
+            }
+
+            Value = default;
+            return false;
+
+        }
+
+
+        /// <summary>
+        /// Return a http header field.
+        /// </summary>
+        /// <param name="HeaderField">The key of the requested header field.</param>
+        /// <param name="Value">The value of the requested header field.</param>
+        /// <returns>True if the requested header exists; false otherwise.</returns>
+        public Boolean TryParseHeaderField<TValue>(HTTPHeaderField HeaderField,
+                                                   TryParser<TValue> TryParser,
+                                                   out TValue Value)
+        {
+
+            if (TryParser != null &&
+                _HeaderFields.TryGetValue(HeaderField.Name, out Object @object) &&
+                @object is String text &&
+                TryParser(text, out Value))
+            {
+                return true;
+            }
+
+            Value = default;
             return false;
 
         }
@@ -695,13 +800,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (protected) GetHeaderField(FieldName)
+        #region GetHeaderField(FieldName)
 
         /// <summary>
         /// Return the value of the given HTTP header field.
         /// </summary>
         /// <param name="FieldName">The name of the header field.</param>
-        protected String GetHeaderField(String FieldName)
+        public String GetHeaderField(String FieldName)
 
             => _HeaderFields.TryGetValue(FieldName, out Object Value)
                    ? Value?.ToString()
@@ -709,14 +814,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected) GetHeaderField<T>(FieldName)
+        #region GetHeaderField<T>(FieldName)
 
         /// <summary>
         /// Return the given HTTP header field.
         /// </summary>
         /// <typeparam name="T">The expected type of the field value.</typeparam>
         /// <param name="FieldName">The name of the header field.</param>
-        protected T GetHeaderField<T>(String FieldName)
+        public T GetHeaderField<T>(String FieldName)
 
             => _HeaderFields.TryGetValue(FieldName, out Object Value) && Value is T value
                    ? value
@@ -724,13 +829,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected) GetHeaderField(HeaderField)
+        #region GetHeaderField(HeaderField)
 
         /// <summary>
         /// Return the value of the given HTTP header field.
         /// </summary>
         /// <param name="HeaderField">The HTTP header field.</param>
-        protected String GetHeaderField(HTTPHeaderField HeaderField)
+        public String GetHeaderField(HTTPHeaderField HeaderField)
 
             => _HeaderFields.TryGetValue(HeaderField.Name, out Object Value)
                    ? Value?.ToString()
@@ -738,14 +843,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected) GetHeaderField<T>(HeaderField)
+        #region GetHeaderField<T>(HeaderField)
 
         /// <summary>
         /// Return the value of the given HTTP header field.
         /// </summary>
         /// <typeparam name="T">The expected type of the field value.</typeparam>
         /// <param name="HeaderField">The HTTP header field.</param>
-        protected T GetHeaderField<T>(HTTPHeaderField HeaderField)
+        public T GetHeaderField<T>(HTTPHeaderField HeaderField)
         {
 
             if (_HeaderFields.TryGetValue(HeaderField.Name, out Object Value))
@@ -770,7 +875,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            return default(T);
+            return default;
 
         }
 

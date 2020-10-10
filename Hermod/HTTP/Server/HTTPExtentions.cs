@@ -245,7 +245,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region GetResponseBodyAsUTF8String   (this Request, HTTPContentType)
+        #region GetResponseBodyAsUTF8String  (this Request, HTTPContentType)
 
         public static String GetResponseBodyAsUTF8String(this HTTPResponse  Response,
                                                          HTTPContentType    HTTPContentType,

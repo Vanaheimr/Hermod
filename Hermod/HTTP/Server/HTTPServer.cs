@@ -1983,18 +1983,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
-        public void AddMethodCallback(HTTPHostname              Hostname,
-                                      HTTPMethod                HTTPMethod,
-                                      HTTPPath                  URLTemplate,
-                                      HTTPContentType           HTTPContentType             = null,
-                                      HTTPAuthentication        URLAuthentication           = null,
-                                      HTTPAuthentication        HTTPMethodAuthentication    = null,
-                                      HTTPAuthentication        ContentTypeAuthentication   = null,
-                                      HTTPRequestLogHandler     HTTPRequestLogger           = null,
-                                      HTTPResponseLogHandler    HTTPResponseLogger          = null,
-                                      HTTPDelegate              DefaultErrorHandler         = null,
-                                      HTTPDelegate              HTTPDelegate                = null,
-                                      URLReplacement            AllowReplacement            = URLReplacement.Fail)
+        public void AddMethodCallback(HTTPHostname            Hostname,
+                                      HTTPMethod              HTTPMethod,
+                                      HTTPPath                URLTemplate,
+                                      HTTPContentType         HTTPContentType             = null,
+                                      HTTPAuthentication      URLAuthentication           = null,
+                                      HTTPAuthentication      HTTPMethodAuthentication    = null,
+                                      HTTPAuthentication      ContentTypeAuthentication   = null,
+                                      HTTPRequestLogHandler   HTTPRequestLogger           = null,
+                                      HTTPResponseLogHandler  HTTPResponseLogger          = null,
+                                      HTTPDelegate            DefaultErrorHandler         = null,
+                                      HTTPDelegate            HTTPDelegate                = null,
+                                      URLReplacement          AllowReplacement            = URLReplacement.Fail)
 
         {
 
