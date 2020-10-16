@@ -37,13 +37,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseMandatoryText   (this JSON, PropertyName, PropertyDescription, DefaultServerName,            out Text,      HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseMandatoryText(this JObject      JSON,
-                                                 String            PropertyName,
-                                                 String            PropertyDescription,
-                                                 String            DefaultServerName,
-                                                 out String        Text,
-                                                 HTTPRequest       HTTPRequest,
-                                                 out HTTPResponse  HTTPResponse)
+        public static Boolean ParseMandatoryText(this JObject              JSON,
+                                                 String                    PropertyName,
+                                                 String                    PropertyDescription,
+                                                 String                    DefaultServerName,
+                                                 out String                Text,
+                                                 HTTPRequest               HTTPRequest,
+                                                 out HTTPResponse.Builder  HTTPResponse)
         {
 
             var success = JSON.ParseMandatoryText(PropertyName,
@@ -160,14 +160,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseMandatory<T>    (this JSON, PropertyName, PropertyDescription, DefaultServerName, TryParser, out Value,     HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseMandatory<T>(this JObject      JSON,
-                                                String            PropertyName,
-                                                String            PropertyDescription,
-                                                String            DefaultServerName,
-                                                TryParser<T>      TryParser,
-                                                out T             Value,
-                                                HTTPRequest       HTTPRequest,
-                                                out HTTPResponse  HTTPResponse)
+        public static Boolean ParseMandatory<T>(this JObject              JSON,
+                                                String                    PropertyName,
+                                                String                    PropertyDescription,
+                                                String                    DefaultServerName,
+                                                TryParser<T>              TryParser,
+                                                out T                     Value,
+                                                HTTPRequest               HTTPRequest,
+                                                out HTTPResponse.Builder  HTTPResponse)
         {
 
             var success = JSON.ParseMandatory(PropertyName,
@@ -243,14 +243,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseMandatoryJSON<T>(this JSON, PropertyName, PropertyDescription, DefaultServerName, TryJObjectParser, out Value,     HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseMandatoryJSON<T>(this JObject         JSON,
-                                                    String               PropertyName,
-                                                    String               PropertyDescription,
-                                                    String               DefaultServerName,
-                                                    TryJObjectParser<T>  TryJObjectParser,
-                                                    out T                Value,
-                                                    HTTPRequest          HTTPRequest,
-                                                    out HTTPResponse     HTTPResponse)
+        public static Boolean ParseMandatoryJSON<T>(this JObject              JSON,
+                                                    String                    PropertyName,
+                                                    String                    PropertyDescription,
+                                                    String                    DefaultServerName,
+                                                    TryJObjectParser<T>       TryJObjectParser,
+                                                    out T                     Value,
+                                                    HTTPRequest               HTTPRequest,
+                                                    out HTTPResponse.Builder  HTTPResponse)
         {
 
             var success = JSON.ParseMandatoryJSON(PropertyName,
@@ -328,13 +328,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseMandatoryEnum<TEnum>(this JSON, PropertyName, PropertyDescription, DefaultServerName,            out EnumValue, HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseMandatoryEnum<TEnum>(this JObject      JSON,
-                                                        String            PropertyName,
-                                                        String            PropertyDescription,
-                                                        String            DefaultServerName,
-                                                        out TEnum         EnumValue,
-                                                        HTTPRequest       HTTPRequest,
-                                                        out HTTPResponse  HTTPResponse)
+        public static Boolean ParseMandatoryEnum<TEnum>(this JObject              JSON,
+                                                        String                    PropertyName,
+                                                        String                    PropertyDescription,
+                                                        String                    DefaultServerName,
+                                                        out TEnum                 EnumValue,
+                                                        HTTPRequest               HTTPRequest,
+                                                        out HTTPResponse.Builder  HTTPResponse)
 
              where TEnum : struct
 
@@ -372,13 +372,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseMandatory       (this JSON, PropertyName, PropertyDescription, DefaultServerName,            out Boolean,   HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseMandatory(this JObject      JSON,
-                                             String            PropertyName,
-                                             String            PropertyDescription,
-                                             String            DefaultServerName,
-                                             out Boolean       BooleanValue,
-                                             HTTPRequest       HTTPRequest,
-                                             out HTTPResponse  HTTPResponse)
+        public static Boolean ParseMandatory(this JObject              JSON,
+                                             String                    PropertyName,
+                                             String                    PropertyDescription,
+                                             String                    DefaultServerName,
+                                             out Boolean               BooleanValue,
+                                             HTTPRequest               HTTPRequest,
+                                             out HTTPResponse.Builder  HTTPResponse)
         {
 
             var success = JSON.ParseMandatory(PropertyName,
@@ -412,13 +412,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseMandatory       (this JSON, PropertyName, PropertyDescription, DefaultServerName,            out Single,    HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseMandatory(this JObject      JSON,
-                                             String            PropertyName,
-                                             String            PropertyDescription,
-                                             String            DefaultServerName,
-                                             out Single        SingleValue,
-                                             HTTPRequest       HTTPRequest,
-                                             out HTTPResponse  HTTPResponse)
+        public static Boolean ParseMandatory(this JObject              JSON,
+                                             String                    PropertyName,
+                                             String                    PropertyDescription,
+                                             String                    DefaultServerName,
+                                             out Single                SingleValue,
+                                             HTTPRequest               HTTPRequest,
+                                             out HTTPResponse.Builder  HTTPResponse)
         {
 
             var success = JSON.ParseMandatory(PropertyName,
@@ -452,13 +452,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseMandatory       (this JSON, PropertyName, PropertyDescription, DefaultServerName,            out Double,    HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseMandatory(this JObject      JSON,
-                                             String            PropertyName,
-                                             String            PropertyDescription,
-                                             String            DefaultServerName,
-                                             out Double        DoubleValue,
-                                             HTTPRequest       HTTPRequest,
-                                             out HTTPResponse  HTTPResponse)
+        public static Boolean ParseMandatory(this JObject              JSON,
+                                             String                    PropertyName,
+                                             String                    PropertyDescription,
+                                             String                    DefaultServerName,
+                                             out Double                DoubleValue,
+                                             HTTPRequest               HTTPRequest,
+                                             out HTTPResponse.Builder  HTTPResponse)
         {
 
             var success = JSON.ParseMandatory(PropertyName,
@@ -492,13 +492,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseMandatory       (this JSON, PropertyName, PropertyDescription, DefaultServerName,            out Decimal,   HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseMandatory(this JObject      JSON,
-                                             String            PropertyName,
-                                             String            PropertyDescription,
-                                             String            DefaultServerName,
-                                             out Decimal       DecimalValue,
-                                             HTTPRequest       HTTPRequest,
-                                             out HTTPResponse  HTTPResponse)
+        public static Boolean ParseMandatory(this JObject              JSON,
+                                             String                    PropertyName,
+                                             String                    PropertyDescription,
+                                             String                    DefaultServerName,
+                                             out Decimal               DecimalValue,
+                                             HTTPRequest               HTTPRequest,
+                                             out HTTPResponse.Builder  HTTPResponse)
         {
 
             var success = JSON.ParseMandatory(PropertyName,
@@ -532,13 +532,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseMandatory       (this JSON, PropertyName, PropertyDescription, DefaultServerName,            out Byte,      HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseMandatory(this JObject      JSON,
-                                             String            PropertyName,
-                                             String            PropertyDescription,
-                                             String            DefaultServerName,
-                                             out Byte         ByteValue,
-                                             HTTPRequest       HTTPRequest,
-                                             out HTTPResponse  HTTPResponse)
+        public static Boolean ParseMandatory(this JObject              JSON,
+                                             String                    PropertyName,
+                                             String                    PropertyDescription,
+                                             String                    DefaultServerName,
+                                             out Byte                  ByteValue,
+                                             HTTPRequest               HTTPRequest,
+                                             out HTTPResponse.Builder  HTTPResponse)
         {
 
             var success = JSON.ParseMandatory(PropertyName,
@@ -572,13 +572,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseMandatory       (this JSON, PropertyName, PropertyDescription, DefaultServerName,            out SByte,     HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseMandatory(this JObject      JSON,
-                                             String            PropertyName,
-                                             String            PropertyDescription,
-                                             String            DefaultServerName,
-                                             out SByte         SByteValue,
-                                             HTTPRequest       HTTPRequest,
-                                             out HTTPResponse  HTTPResponse)
+        public static Boolean ParseMandatory(this JObject              JSON,
+                                             String                    PropertyName,
+                                             String                    PropertyDescription,
+                                             String                    DefaultServerName,
+                                             out SByte                 SByteValue,
+                                             HTTPRequest               HTTPRequest,
+                                             out HTTPResponse.Builder  HTTPResponse)
         {
 
             var success = JSON.ParseMandatory(PropertyName,
@@ -612,13 +612,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseMandatory       (this JSON, PropertyName, PropertyDescription, DefaultServerName,            out Int32,     HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseMandatory(this JObject      JSON,
-                                             String            PropertyName,
-                                             String            PropertyDescription,
-                                             String            DefaultServerName,
-                                             out Int32         Int32Value,
-                                             HTTPRequest       HTTPRequest,
-                                             out HTTPResponse  HTTPResponse)
+        public static Boolean ParseMandatory(this JObject              JSON,
+                                             String                    PropertyName,
+                                             String                    PropertyDescription,
+                                             String                    DefaultServerName,
+                                             out Int32                 Int32Value,
+                                             HTTPRequest               HTTPRequest,
+                                             out HTTPResponse.Builder  HTTPResponse)
         {
 
             var success = JSON.ParseMandatory(PropertyName,
@@ -652,13 +652,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseMandatory       (this JSON, PropertyName, PropertyDescription, DefaultServerName,            out Int64,     HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseMandatory(this JObject      JSON,
-                                             String            PropertyName,
-                                             String            PropertyDescription,
-                                             String            DefaultServerName,
-                                             out Int64         Int64Value,
-                                             HTTPRequest       HTTPRequest,
-                                             out HTTPResponse  HTTPResponse)
+        public static Boolean ParseMandatory(this JObject              JSON,
+                                             String                    PropertyName,
+                                             String                    PropertyDescription,
+                                             String                    DefaultServerName,
+                                             out Int64                 Int64Value,
+                                             HTTPRequest               HTTPRequest,
+                                             out HTTPResponse.Builder  HTTPResponse)
         {
 
             var success = JSON.ParseMandatory(PropertyName,
@@ -692,13 +692,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseMandatory       (this JSON, PropertyName, PropertyDescription, DefaultServerName,            out Timestamp, HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseMandatory(this JObject      JSON,
-                                             String            PropertyName,
-                                             String            PropertyDescription,
-                                             String            DefaultServerName,
-                                             out DateTime      Timestamp,
-                                             HTTPRequest       HTTPRequest,
-                                             out HTTPResponse  HTTPResponse)
+        public static Boolean ParseMandatory(this JObject              JSON,
+                                             String                    PropertyName,
+                                             String                    PropertyDescription,
+                                             String                    DefaultServerName,
+                                             out DateTime              Timestamp,
+                                             HTTPRequest               HTTPRequest,
+                                             out HTTPResponse.Builder  HTTPResponse)
 
         {
 
@@ -733,13 +733,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseMandatory       (this JSON, PropertyName, PropertyDescription, DefaultServerName,            out I18NText,  HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseMandatory(this JObject      JSON,
-                                             String            PropertyName,
-                                             String            PropertyDescription,
-                                             String            DefaultServerName,
-                                             out I18NString    I18NText,
-                                             HTTPRequest       HTTPRequest,
-                                             out HTTPResponse  HTTPResponse)
+        public static Boolean ParseMandatory(this JObject              JSON,
+                                             String                    PropertyName,
+                                             String                    PropertyDescription,
+                                             String                    DefaultServerName,
+                                             out I18NString            I18NText,
+                                             HTTPRequest               HTTPRequest,
+                                             out HTTPResponse.Builder  HTTPResponse)
 
         {
 
@@ -774,13 +774,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseMandatory       (this JSON, PropertyName, PropertyDescription, DefaultServerName,            out JObject,   HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseMandatory(this JObject      JSON,
-                                             String            PropertyName,
-                                             String            PropertyDescription,
-                                             String            DefaultServerName,
-                                             out JObject       JObject,
-                                             HTTPRequest       HTTPRequest,
-                                             out HTTPResponse  HTTPResponse)
+        public static Boolean ParseMandatory(this JObject              JSON,
+                                             String                    PropertyName,
+                                             String                    PropertyDescription,
+                                             String                    DefaultServerName,
+                                             out JObject               JObject,
+                                             HTTPRequest               HTTPRequest,
+                                             out HTTPResponse.Builder  HTTPResponse)
         {
 
             var success = JSON.ParseMandatory(PropertyName,
@@ -814,13 +814,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseMandatory       (this JSON, PropertyName, PropertyDescription, DefaultServerName,            out JArray,    HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseMandatory(this JObject      JSON,
-                                             String            PropertyName,
-                                             String            PropertyDescription,
-                                             String            DefaultServerName,
-                                             out JArray        JArray,
-                                             HTTPRequest       HTTPRequest,
-                                             out HTTPResponse  HTTPResponse)
+        public static Boolean ParseMandatory(this JObject              JSON,
+                                             String                    PropertyName,
+                                             String                    PropertyDescription,
+                                             String                    DefaultServerName,
+                                             out JArray                JArray,
+                                             HTTPRequest               HTTPRequest,
+                                             out HTTPResponse.Builder  HTTPResponse)
         {
 
             var success = JSON.ParseMandatory(PropertyName,
@@ -854,13 +854,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseMandatory       (this JSON, PropertyName, PropertyDescription, DefaultServerName,       out StringArray,    HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseMandatory(this JObject             JSON,
-                                             String                   PropertyName,
-                                             String                   PropertyDescription,
-                                             String                   DefaultServerName,
-                                             out IEnumerable<String>  StringArray,
-                                             HTTPRequest              HTTPRequest,
-                                             out HTTPResponse         HTTPResponse)
+        public static Boolean ParseMandatory(this JObject              JSON,
+                                             String                    PropertyName,
+                                             String                    PropertyDescription,
+                                             String                    DefaultServerName,
+                                             out IEnumerable<String>   StringArray,
+                                             HTTPRequest               HTTPRequest,
+                                             out HTTPResponse.Builder  HTTPResponse)
         {
 
             var success = JSON.ParseMandatory(PropertyName,
@@ -903,14 +903,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseOptional       (this JSON, PropertyName, PropertyDescription, DefaultServerName, Mapper, out Value,      HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseOptional<T>(this JObject      JSON,
-                                               String            PropertyName,
-                                               String            PropertyDescription,
-                                               String            DefaultServerName,
-                                               Func<String, T>   Mapper,
-                                               out T             Value,
-                                               HTTPRequest       HTTPRequest,
-                                               out HTTPResponse  HTTPResponse)
+        public static Boolean ParseOptional<T>(this JObject              JSON,
+                                               String                    PropertyName,
+                                               String                    PropertyDescription,
+                                               String                    DefaultServerName,
+                                               Func<String, T>           Mapper,
+                                               out T                     Value,
+                                               HTTPRequest               HTTPRequest,
+                                               out HTTPResponse.Builder  HTTPResponse)
         {
 
             var result = JSON.ParseOptional(PropertyName,
@@ -942,14 +942,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseOptionalStruct<TStruct?>(this JSON, PropertyName, PropertyDescription, DefaultServerName, Parser, out Value, HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseOptionalStruct2<TStruct>(this JObject        JSON,
-                                                           String              PropertyName,
-                                                           String              PropertyDescription,
-                                                           String              DefaultServerName,
-                                                           TryParser<TStruct>  Parser,
-                                                           out TStruct?        Value,
-                                                           HTTPRequest         HTTPRequest,
-                                                           out HTTPResponse    HTTPResponse)
+        public static Boolean ParseOptionalStruct2<TStruct>(this JObject             JSON,
+                                                           String                    PropertyName,
+                                                           String                    PropertyDescription,
+                                                           String                    DefaultServerName,
+                                                           TryParser<TStruct>        Parser,
+                                                           out TStruct?              Value,
+                                                           HTTPRequest               HTTPRequest,
+                                                           out HTTPResponse.Builder  HTTPResponse)
 
             where TStruct : struct
 
@@ -983,14 +983,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseOptionalStruct<TStruct> (this JSON, PropertyName, PropertyDescription, DefaultServerName, Parser, out Value, HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseOptionalStruct<TStruct>(this JObject        JSON,
-                                                           String              PropertyName,
-                                                           String              PropertyDescription,
-                                                           String              DefaultServerName,
-                                                           TryParser<TStruct>  Parser,
-                                                           out TStruct         Value,
-                                                           HTTPRequest         HTTPRequest,
-                                                           out HTTPResponse    HTTPResponse)
+        public static Boolean ParseOptionalStruct<TStruct>(this JObject              JSON,
+                                                           String                    PropertyName,
+                                                           String                    PropertyDescription,
+                                                           String                    DefaultServerName,
+                                                           TryParser<TStruct>        Parser,
+                                                           out TStruct               Value,
+                                                           HTTPRequest               HTTPRequest,
+                                                           out HTTPResponse.Builder  HTTPResponse)
 
             where TStruct : struct
 
@@ -1027,14 +1027,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseOptional<T>    (this JSON, PropertyName, PropertyDescription, DefaultServerName, Parser,           out Value,     HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseOptional<T>(this JObject      JSON,
-                                               String            PropertyName,
-                                               String            PropertyDescription,
-                                               String            DefaultServerName,
-                                               TryParser<T>      Parser,
-                                               out T             Value,
-                                               HTTPRequest       HTTPRequest,
-                                               out HTTPResponse  HTTPResponse)
+        public static Boolean ParseOptional<T>(this JObject              JSON,
+                                               String                    PropertyName,
+                                               String                    PropertyDescription,
+                                               String                    DefaultServerName,
+                                               TryParser<T>              Parser,
+                                               out T                     Value,
+                                               HTTPRequest               HTTPRequest,
+                                               out HTTPResponse.Builder  HTTPResponse)
         {
 
             var result = JSON.ParseOptional(PropertyName,
@@ -1065,14 +1065,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseOptional<T>    (this JSON, PropertyName, PropertyDescription, DefaultServerName, TryJObjectParser, out Value,     HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseOptional<T>(this JObject         JSON,
-                                               String               PropertyName,
-                                               String               PropertyDescription,
-                                               String               DefaultServerName,
-                                               TryJObjectParser2<T>  TryJObjectParser,
-                                               out T                Value,
-                                               HTTPRequest          HTTPRequest,
-                                               out HTTPResponse     HTTPResponse)
+        public static Boolean ParseOptional<T>(this JObject              JSON,
+                                               String                    PropertyName,
+                                               String                    PropertyDescription,
+                                               String                    DefaultServerName,
+                                               TryJObjectParser2<T>      TryJObjectParser,
+                                               out T                     Value,
+                                               HTTPRequest               HTTPRequest,
+                                               out HTTPResponse.Builder  HTTPResponse)
         {
 
             var result = JSON.ParseOptionalJSON(PropertyName,
@@ -1141,13 +1141,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseOptional       (this JSON, PropertyName, PropertyDescription, DefaultServerName,         out I18NText,   HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseOptional(this JObject      JSON,
-                                            String            PropertyName,
-                                            String            PropertyDescription,
-                                            String            DefaultServerName,
-                                            out I18NString    I18NText,
-                                            HTTPRequest       HTTPRequest,
-                                            out HTTPResponse  HTTPResponse)
+        public static Boolean ParseOptional(this JObject              JSON,
+                                            String                    PropertyName,
+                                            String                    PropertyDescription,
+                                            String                    DefaultServerName,
+                                            out I18NString            I18NText,
+                                            HTTPRequest               HTTPRequest,
+                                            out HTTPResponse.Builder  HTTPResponse)
         {
 
             var result = JSON.ParseOptional(PropertyName,
@@ -1177,13 +1177,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseOptional<TEnum>(this JSON, PropertyName, PropertyDescription, DefaultServerName,         out EnumValue,  HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseOptional<TEnum>(this JObject      JSON,
-                                                   String            PropertyName,
-                                                   String            PropertyDescription,
-                                                   String            DefaultServerName,
-                                                   out TEnum?        EnumValue,
-                                                   HTTPRequest       HTTPRequest,
-                                                   out HTTPResponse  HTTPResponse)
+        public static Boolean ParseOptional<TEnum>(this JObject              JSON,
+                                                   String                    PropertyName,
+                                                   String                    PropertyDescription,
+                                                   String                    DefaultServerName,
+                                                   out TEnum?                EnumValue,
+                                                   HTTPRequest               HTTPRequest,
+                                                   out HTTPResponse.Builder  HTTPResponse)
 
             where TEnum : struct
 
@@ -1216,13 +1216,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseOptional       (this JSON, PropertyName, PropertyDescription, DefaultServerName,         out Timestamp,  HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseOptional(this JObject        JSON,
-                                            String              PropertyName,
-                                            String              PropertyDescription,
-                                            String              DefaultServerName,
-                                            out DateTime?       Timestamp,
-                                            HTTPRequest         HTTPRequest,
-                                            out HTTPResponse    HTTPResponse)
+        public static Boolean ParseOptional(this JObject              JSON,
+                                            String                    PropertyName,
+                                            String                    PropertyDescription,
+                                            String                    DefaultServerName,
+                                            out DateTime?             Timestamp,
+                                            HTTPRequest               HTTPRequest,
+                                            out HTTPResponse.Builder  HTTPResponse)
         {
 
             var result = JSON.ParseOptional(PropertyName,
@@ -1252,13 +1252,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseOptional       (this JSON, PropertyName, PropertyDescription, DefaultServerName,         out TimeSpan,   HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseOptional(this JObject        JSON,
-                                            String              PropertyName,
-                                            String              PropertyDescription,
-                                            String              DefaultServerName,
-                                            out TimeSpan?       TimeSpan,
-                                            HTTPRequest         HTTPRequest,
-                                            out HTTPResponse    HTTPResponse)
+        public static Boolean ParseOptional(this JObject              JSON,
+                                            String                    PropertyName,
+                                            String                    PropertyDescription,
+                                            String                    DefaultServerName,
+                                            out TimeSpan?             TimeSpan,
+                                            HTTPRequest               HTTPRequest,
+                                            out HTTPResponse.Builder  HTTPResponse)
         {
 
             var result = JSON.ParseOptional(PropertyName,
@@ -1285,6 +1285,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
+
 
         #region ParseOptional<T>    (this JSON, PropertyName, PropertyDescription, DefaultServerName, Parser, out Values,     HTTPRequest, out HTTPResponse)
 
@@ -1361,13 +1362,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseOptional       (this JSON, PropertyName, PropertyDescription, DefaultServerName,         out JSONObject, HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseOptional(this JObject        JSON,
-                                            String              PropertyName,
-                                            String              PropertyDescription,
-                                            String              DefaultServerName,
-                                            out JObject         JSONObject,
-                                            HTTPRequest         HTTPRequest,
-                                            out HTTPResponse    HTTPResponse)
+        public static Boolean ParseOptional(this JObject              JSON,
+                                            String                    PropertyName,
+                                            String                    PropertyDescription,
+                                            String                    DefaultServerName,
+                                            out JObject               JSONObject,
+                                            HTTPRequest               HTTPRequest,
+                                            out HTTPResponse.Builder  HTTPResponse)
         {
 
             var result = JSON.ParseOptional(PropertyName,
@@ -1397,13 +1398,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseOptional       (this JSON, PropertyName, PropertyDescription, DefaultServerName,         out JSONArray,  HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseOptional(this JObject        JSON,
-                                            String              PropertyName,
-                                            String              PropertyDescription,
-                                            String              DefaultServerName,
-                                            out JArray          JSONArray,
-                                            HTTPRequest         HTTPRequest,
-                                            out HTTPResponse    HTTPResponse)
+        public static Boolean ParseOptional(this JObject              JSON,
+                                            String                    PropertyName,
+                                            String                    PropertyDescription,
+                                            String                    DefaultServerName,
+                                            out JArray                JSONArray,
+                                            HTTPRequest               HTTPRequest,
+                                            out HTTPResponse.Builder  HTTPResponse)
         {
 
             var result = JSON.ParseOptional(PropertyName,
@@ -1433,14 +1434,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseOptionalHashSet(this JSON, PropertyName, PropertyDescription, DefaultServerName, Parser, out HashSet,    HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseOptionalHashSet<T>(this JObject      JSON,
-                                                      String            PropertyName,
-                                                      String            PropertyDescription,
-                                                      String            DefaultServerName,
-                                                      TryParser<T>      Parser,
-                                                      out HashSet<T>    HashSet,
-                                                      HTTPRequest       HTTPRequest,
-                                                      out HTTPResponse  HTTPResponse)
+        public static Boolean ParseOptionalHashSet<T>(this JObject              JSON,
+                                                      String                    PropertyName,
+                                                      String                    PropertyDescription,
+                                                      String                    DefaultServerName,
+                                                      TryParser<T>              Parser,
+                                                      out HashSet<T>            HashSet,
+                                                      HTTPRequest               HTTPRequest,
+                                                      out HTTPResponse.Builder  HTTPResponse)
         {
 
             var result = JSON.ParseOptionalHashSet(PropertyName,

@@ -33,46 +33,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public struct HTTPResult<TData>
     {
 
-        #region Data
+        #region Properties
 
         /// <summary>
         /// The HTTPResponse when an error occured.
         /// </summary>
-        public readonly HTTPResponse Error;
+        public HTTPResponse.Builder  Error          { get; }
 
         /// <summary>
         /// The result of an operation.
         /// </summary>
-        public readonly TData Data;
+        public TData                 Data           { get; }
 
         /// <summary>
         /// The result of an operation.
         /// </summary>
-        public readonly Boolean ValidData;
+        public Boolean               ValidData      { get; }
 
         /// <summary>
         /// The current ETag as state or revision of the resource.
         /// </summary>
-        public readonly String ETag;
+        public String                ETag           { get; }
 
-        #endregion
-
-        #region Properties
-
-        #region HasErrors
 
         /// <summary>
         /// The HTTP result contains errors.
         /// </summary>
-        public Boolean HasErrors
-        {
-            get
-            {
-                return (Error != null || Data == null);
-            }
-        }
+        public Boolean               HasErrors
 
-        #endregion
+            => Error != null || Data == null;
 
         #endregion
 
@@ -83,7 +72,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPResult(String ETag)
         {
             this.Error      = null;
-            this.Data       = default(TData);
+            this.Data       = default;
             this.ValidData  = false;
             this.ETag       = ETag;
         }
@@ -92,12 +81,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region HTTPResult(Result, ETag = null)
 
-        public HTTPResult(TData Result, String ETag = null)
+        public HTTPResult(TData   Result,
+                          String  ETag   = null)
         {
+
             this.Error      = null;
             this.Data       = Result;
             this.ValidData  = true;
             this.ETag       = ETag;
+
         }
 
         #endregion
@@ -107,13 +99,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTPResult when an error occurred.
         /// </summary>
-        /// <param name="Error">The HTTPResponse for this error.</param>
-        public HTTPResult(HTTPResponse HTTPResponse, String ETag = null)
+        public HTTPResult(HTTPResponse.Builder  HTTPResponse,
+                          String                ETag   = null)
         {
+
             this.Error      = HTTPResponse;
-            this.Data       = default(TData);
+            this.Data       = default;
             this.ValidData  = false;
             this.ETag       = ETag;
+
         }
 
         #endregion
@@ -123,28 +117,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTPResult when an error occurred.
         /// </summary>
-        /// <param name="HTTPRequest"></param>
-        /// <param name="HTTPStatusCode"></param>
-        /// <param name="Error">The HTTPResponse for this error.</param>
-        public HTTPResult(HTTPRequest HTTPRequest, HTTPStatusCode HTTPStatusCode, String Reason = null, String ETag = null)
+        public HTTPResult(HTTPRequest     HTTPRequest,
+                          HTTPStatusCode  HTTPStatusCode,
+                          String          Reason   = null,
+                          String          ETag     = null)
         {
+
             this.Error      = null;
-            this.Data       = default(TData);
+            this.Data       = default;
             this.ValidData  = false;
             this.ETag       = ETag;
             this.Error      = HTTPErrorResponse(HTTPRequest, HTTPStatusCode, Reason, ETag);
+
         }
 
         #endregion
 
         #region HTTPResult(HTTPResponse, Data, ETag = null)
 
-        public HTTPResult(HTTPResponse HTTPResponse, TData Data, String ETag = null)
+        public HTTPResult(HTTPResponse.Builder  HTTPResponse,
+                          TData                 Data,
+                          String                ETag   = null)
         {
+
             this.Error      = HTTPResponse;
             this.Data       = Data;
             this.ValidData  = true;
             this.ETag       = ETag;
+
         }
 
         #endregion
@@ -152,8 +152,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-
-        public HTTPResponse HTTPErrorResponse(HTTPRequest HTTPRequest, HTTPStatusCode StatusCode, String Reason = null, String ETag = null)
+        public HTTPResponse.Builder HTTPErrorResponse(HTTPRequest     HTTPRequest,
+                                                      HTTPStatusCode  StatusCode,
+                                                      String          Reason   = null,
+                                                      String          ETag     = null)
         {
 
             #region Initial checks
@@ -161,7 +163,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (StatusCode == null)
                 return HTTPErrorResponse(HTTPRequest, HTTPStatusCode.InternalServerError, "Calling the HTTPError lead to an error!");
 
-            var Content = String.Empty;
+            var Content     = String.Empty;
             var ContentType = HTTPRequest.Accept.BestMatchingContentType(HTTPContentType.JSON_UTF8,
                                                                          HTTPContentType.HTML_UTF8,
                                                                          HTTPContentType.TEXT_UTF8,
@@ -199,7 +201,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //</html>
             else if (ContentType == HTTPContentType.HTML_UTF8)
                 Content = (Reason == null) ? "<!doctype html><html><head><meta charset=\"UTF-8\"><title>Error " + StatusCode.Code + " - " + StatusCode.Name + "</title></head><body><h1>Error " + StatusCode.Code + " - " + StatusCode.Name + "</h1></body></html>" :
-                                              "<!doctype html><html><head><meta charset=\"UTF-8\"><title>Error " + StatusCode.Code + " - " + StatusCode.Name + "</title></head><body><h1>Error " + StatusCode.Code + " - " + StatusCode.Name + "</h1>" + Reason + "</body></html>";
+                                             "<!doctype html><html><head><meta charset=\"UTF-8\"><title>Error " + StatusCode.Code + " - " + StatusCode.Name + "</title></head><body><h1>Error " + StatusCode.Code + " - " + StatusCode.Name + "</h1>" + Reason + "</body></html>";
 
             #endregion
 
@@ -209,7 +211,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // The first paramter is not a valid number!
             else if (ContentType == HTTPContentType.TEXT_UTF8 || ContentType == HTTPContentType.ALL)
                 Content = (Reason == null) ? "Error " + StatusCode.Code + " - " + StatusCode.Name :
-                                              "Error " + StatusCode.Code + " - " + StatusCode.Name + Environment.NewLine + Reason;
+                                             "Error " + StatusCode.Code + " - " + StatusCode.Name + Environment.NewLine + Reason;
 
             #endregion
 
@@ -223,7 +225,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // </error>
             else if (ContentType == HTTPContentType.XML_UTF8)
                 Content = (Reason == null) ? "<?xml version=\"1.0\" encoding=\"UTF-8\"?><error><code>" + StatusCode.Code + "</code><message>" + StatusCode.Name + "</message></error></xml>" :
-                                              "<?xml version=\"1.0\" encoding=\"UTF-8\"?><error><code>" + StatusCode.Code + "</code><message>" + StatusCode.Name + "</message><reasons>" + Reason + "</reasons></error></xml>";
+                                             "<?xml version=\"1.0\" encoding=\"UTF-8\"?><error><code>" + StatusCode.Code + "</code><message>" + StatusCode.Name + "</message><reasons>" + Reason + "</reasons></error></xml>";
 
             #endregion
 

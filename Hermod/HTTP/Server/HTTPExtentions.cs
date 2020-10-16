@@ -112,11 +112,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region TryParseJObjectRequestBody   (this Request, out JSON, out HTTPResponse, AllowEmptyHTTPBody = false, JSONLDContext = null)
 
-        public static Boolean TryParseJObjectRequestBody(this HTTPRequest  Request,
-                                                         out JObject       JSON,
-                                                         out HTTPResponse  HTTPResponse,
-                                                         Boolean           AllowEmptyHTTPBody = false,
-                                                         String            JSONLDContext      = null)
+        public static Boolean TryParseJObjectRequestBody(this HTTPRequest          Request,
+                                                         out JObject               JSON,
+                                                         out HTTPResponse.Builder  HTTPResponse,
+                                                         Boolean                   AllowEmptyHTTPBody = false,
+                                                         String                    JSONLDContext      = null)
         {
 
             #region AllowEmptyHTTPBody
@@ -126,7 +126,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (Request.ContentLength == 0 && AllowEmptyHTTPBody)
             {
-                HTTPResponse = HTTPResponse.OK(Request);
+                HTTPResponse = HTTP.HTTPResponse.OK(Request);
                 return false;
             }
 
@@ -180,11 +180,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region TryParseJArrayRequestBody    (this Request, out JSON, out HTTPResponse, AllowEmptyHTTPBody = false, JSONLDContext = null)
 
-        public static Boolean TryParseJArrayRequestBody(this HTTPRequest  Request,
-                                                        out JArray        JSON,
-                                                        out HTTPResponse  HTTPResponse,
-                                                        Boolean           AllowEmptyHTTPBody = false,
-                                                        String            JSONLDContext      = null)
+        public static Boolean TryParseJArrayRequestBody(this HTTPRequest          Request,
+                                                        out JArray                JSON,
+                                                        out HTTPResponse.Builder  HTTPResponse,
+                                                        Boolean                   AllowEmptyHTTPBody = false,
+                                                        String                    JSONLDContext      = null)
         {
 
             #region AllowEmptyHTTPBody
@@ -194,7 +194,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (Request.ContentLength == 0 && AllowEmptyHTTPBody)
             {
-                HTTPResponse = HTTPResponse.OK(Request);
+                HTTPResponse = HTTP.HTTPResponse.OK(Request);
                 return false;
             }
 
@@ -220,7 +220,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             catch (Exception e)
             {
 
-                HTTPResponse  = new HTTPResponse.Builder(Request) {
+                HTTPResponse = new HTTPResponse.Builder(Request) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     ContentType     = HTTPContentType.JSON_UTF8,
                     Content         = JSONObject.Create(

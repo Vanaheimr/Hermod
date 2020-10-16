@@ -1073,8 +1073,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Request">A HTTP request.</param>
         /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-        public static HTTPResponse OK(HTTPRequest      Request,
-                                      Action<Builder>  Configurator = null)
+        public static Builder OK(HTTPRequest      Request,
+                                 Action<Builder>  Configurator = null)
 
             => Builder.OK(Request, Configurator);
 
@@ -1084,8 +1084,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Request">A HTTP request.</param>
         /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-        public static HTTPResponse OK(HTTPRequest             Request,
-                                      Func<Builder, Builder>  Configurator)
+        public static Builder OK(HTTPRequest             Request,
+                                 Func<Builder, Builder>  Configurator)
 
             => Builder.OK(Request, Configurator);
 
@@ -1098,8 +1098,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Request">A HTTP request.</param>
         /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-        public static HTTPResponse BadRequest(HTTPRequest      Request,
-                                              Action<Builder>  Configurator = null)
+        public static Builder BadRequest(HTTPRequest      Request,
+                                         Action<Builder>  Configurator = null)
 
             => Builder.BadRequest(Request, Configurator);
 
@@ -1109,8 +1109,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Request">A HTTP request.</param>
         /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-        public static HTTPResponse BadRequest(HTTPRequest             Request,
-                                              Func<Builder, Builder>  Configurator)
+        public static Builder BadRequest(HTTPRequest             Request,
+                                         Func<Builder, Builder>  Configurator)
 
             => Builder.BadRequest(Request, Configurator);
 
@@ -1123,8 +1123,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Request">A HTTP request.</param>
         /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-        public static HTTPResponse ServiceUnavailable(HTTPRequest      Request,
-                                                      Action<Builder>  Configurator = null)
+        public static Builder ServiceUnavailable(HTTPRequest      Request,
+                                                 Action<Builder>  Configurator = null)
 
             => Builder.ServiceUnavailable(Request, Configurator);
 
@@ -1134,8 +1134,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Request">A HTTP request.</param>
         /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-        public static HTTPResponse ServiceUnavailable(HTTPRequest             Request,
-                                                      Func<Builder, Builder>  Configurator)
+        public static Builder ServiceUnavailable(HTTPRequest             Request,
+                                                 Func<Builder, Builder>  Configurator)
 
             => Builder.ServiceUnavailable(Request, Configurator);
 
@@ -1172,8 +1172,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Request">A HTTP request.</param>
         /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-        public static HTTPResponse GatewayTimeout(HTTPRequest      Request,
-                                                  Action<Builder>  Configurator = null)
+        public static Builder GatewayTimeout(HTTPRequest      Request,
+                                             Action<Builder>  Configurator = null)
 
             => Builder.GatewayTimeout(Request, Configurator);
 
@@ -1183,8 +1183,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Request">A HTTP request.</param>
         /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-        public static HTTPResponse GatewayTimeout(HTTPRequest             Request,
-                                                  Func<Builder, Builder>  Configurator)
+        public static Builder GatewayTimeout(HTTPRequest             Request,
+                                             Func<Builder, Builder>  Configurator)
 
             => Builder.GatewayTimeout(Request, Configurator);
 
@@ -1197,8 +1197,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Request">A HTTP request.</param>
         /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-        public static HTTPResponse ClientError(HTTPRequest      Request,
-                                               Action<Builder>  Configurator = null)
+        public static Builder ClientError(HTTPRequest      Request,
+                                          Action<Builder>  Configurator = null)
 
             => Builder.ClientError(Request, Configurator);
 
@@ -1207,8 +1207,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Request">A HTTP request.</param>
         /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-        public static HTTPResponse ClientError(HTTPRequest             Request,
-                                               Func<Builder, Builder>  Configurator)
+        public static Builder ClientError(HTTPRequest             Request,
+                                          Func<Builder, Builder>  Configurator)
 
             => Builder.ClientError(Request, Configurator);
 
