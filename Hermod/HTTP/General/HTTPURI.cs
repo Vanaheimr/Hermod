@@ -148,7 +148,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return true;
             }
 
-            URI = default(HTTPURI2);
+            URI = default;
             return false;
 
         }
