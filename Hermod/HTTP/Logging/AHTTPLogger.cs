@@ -34,8 +34,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     public delegate String LogfileCreatorDelegate    (String Context, String LogfileName);
-    public delegate Task   HTTPRequestLoggerDelegate (String Context, String LogEventName, HTTPRequest HTTPRequest);
-    public delegate Task   HTTPResponseLoggerDelegate(String Context, String LogEventName, HTTPRequest HTTPRequest, HTTPResponse HTTPResponse);
+    public delegate Task   HTTPRequestLoggerDelegate (String Context, String LogEventName, HTTPRequest Request);
+    public delegate Task   HTTPResponseLoggerDelegate(String Context, String LogEventName, HTTPRequest Request, HTTPResponse Response);
 
 
     /// <summary>
@@ -43,30 +43,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// </summary>
     public abstract class AHTTPLogger
     {
-
-        #region Data
-
-        private static readonly Object         LockObject                   = new Object();
-        private static          SemaphoreSlim  LogHTTPRequest_toDisc_Lock   = new SemaphoreSlim(1,1);
-        private static          SemaphoreSlim  LogHTTPResponse_toDisc_Lock  = new SemaphoreSlim(1,1);
-
-        /// <summary>
-        /// The maximum number of retries to write to a logfile.
-        /// </summary>
-        public  static readonly Byte           MaxRetries                   = 5;
-
-        /// <summary>
-        /// Maximum waiting time to enter a lock around a logfile.
-        /// </summary>
-        public  static readonly TimeSpan       MaxWaitingForALock           = TimeSpan.FromSeconds(15);
-
-        /// <summary>
-        /// A delegate for the default ToDisc logger returning a
-        /// valid logfile name based on the given log event name.
-        /// </summary>
-        public         LogfileCreatorDelegate  LogfileCreator               { get; }
-
-        #endregion
 
         // Default logging delegates
 
@@ -353,6 +329,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
         #region Data
+
+        private static readonly Object         LockObject                   = new Object();
+        private static          SemaphoreSlim  LogHTTPRequest_toDisc_Lock   = new SemaphoreSlim(1,1);
+        private static          SemaphoreSlim  LogHTTPResponse_toDisc_Lock  = new SemaphoreSlim(1,1);
+
+        /// <summary>
+        /// The maximum number of retries to write to a logfile.
+        /// </summary>
+        public  static readonly Byte           MaxRetries                   = 5;
+
+        /// <summary>
+        /// Maximum waiting time to enter a lock around a logfile.
+        /// </summary>
+        public  static readonly TimeSpan       MaxWaitingForALock           = TimeSpan.FromSeconds(15);
+
+        /// <summary>
+        /// A delegate for the default ToDisc logger returning a
+        /// valid logfile name based on the given log event name.
+        /// </summary>
+        public         LogfileCreatorDelegate  LogfileCreator               { get; }
 
         protected readonly ConcurrentDictionary<String, HashSet<String>> _GroupTags;
 

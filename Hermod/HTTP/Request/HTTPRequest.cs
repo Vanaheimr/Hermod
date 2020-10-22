@@ -58,6 +58,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public HTTPContentType  BestMatchingAcceptType      { get; internal set; }
 
+
+        public Object           SubprotocolRequest          { get; set; }
+
         #endregion
 
         #region First request header line
