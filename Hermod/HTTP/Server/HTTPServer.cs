@@ -2528,9 +2528,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     try
                     {
 
-                        await HTTPHandlers.HTTPRequestLogger(DateTime.UtcNow,
-                                                             null,
-                                                             Request);
+                        var HTTPRequestLoggerTask = HTTPHandlers.HTTPRequestLogger(DateTime.UtcNow,
+                                                                                   null,
+                                                                                   Request);
+
+                        // RequestLog wrappers might return null!
+                        if (!(HTTPRequestLoggerTask is null))
+                            await HTTPRequestLoggerTask;
 
                     }
                     catch (Exception e)
@@ -2584,10 +2588,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     try
                     {
 
-                        await HTTPHandlers.HTTPResponseLogger(DateTime.UtcNow,
-                                                              null,
-                                                              Request,
-                                                              _HTTPResponse);
+                        var HTTPResponseLoggerTask = HTTPHandlers.HTTPResponseLogger(DateTime.UtcNow,
+                                                                                     null,
+                                                                                     Request,
+                                                                                     _HTTPResponse);
+
+                        // ResponseLog wrappers might return null!
+                        if (!(HTTPResponseLoggerTask is null))
+                            await HTTPResponseLoggerTask;
+
 
                     }
                     catch (Exception e)
