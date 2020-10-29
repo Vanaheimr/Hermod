@@ -159,6 +159,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPContentType JSON_UTF8            = new HTTPContentType("application", "json",                       "utf-8", null, null, "json");
         public static readonly HTTPContentType JSONLD_UTF8          = new HTTPContentType("application", "ld+json",                    "utf-8", null, null, "json-ld");
         public static readonly HTTPContentType GeoJSON_UTF8         = new HTTPContentType("application", "geo+json",                   "utf-8", null, null, "geojson");
+        public static readonly HTTPContentType JSONMergePatch_UTF8  = new HTTPContentType("application", "merge-patch+json",           "utf-8", null, null);
         public static readonly HTTPContentType XML_UTF8             = new HTTPContentType("application", "xml",                        "utf-8", null, null, "xml");
         public static readonly HTTPContentType SOAPXML_UTF8         = new HTTPContentType("application", "soap+xml",                   "utf-8", null, null, "soap");
 

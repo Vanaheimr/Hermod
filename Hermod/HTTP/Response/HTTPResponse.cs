@@ -1310,6 +1310,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
+            #region AcceptPatch
+
+            public List<HTTPContentType> AcceptPatch
+            {
+
+                get
+                {
+                    return GetHeaderField<List<HTTPContentType>>(HTTPHeaderField.AcceptPatch);
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPHeaderField.Allow, value);
+                }
+
+            }
+
+            #endregion
+
             #region DAV
 
             public String DAV

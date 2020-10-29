@@ -2311,6 +2311,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region  Accept-Patch
+
+        public static readonly HTTPHeaderField AcceptPatch = new HTTPHeaderField("Accept-Patch",
+                                                                                 typeof(String),
+                                                                                 HeaderFieldType.Response,
+                                                                                 RequestPathSemantic.EndToEnd);
+
+        #endregion
+
         #region DAV
 
         /// <summary>
