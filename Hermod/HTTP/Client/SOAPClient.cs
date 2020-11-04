@@ -191,7 +191,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
             var requestBuilder = new HTTPRequest.Builder(this) {
                                      HTTPMethod         = HTTPMethod.POST,
                                      Host               = VirtualHostname ?? Hostname,
-                                     URL                = URLPrefix,
+                                     Path                = URLPrefix,
                                      Accept             = new AcceptTypes(HTTPContentType.XMLTEXT_UTF8),
                                      Content            = QueryXML.ToUTF8Bytes(),
                                      ContentType        = ContentType ?? HTTPContentType.XMLTEXT_UTF8,
@@ -457,7 +457,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
             var _RequestBuilder = new HTTPRequest.Builder(this) {
                                       HTTPMethod     = HTTPMethod.POST,
                                       Host           = VirtualHostname ?? Hostname,
-                                      URL            = URLPrefix,
+                                      Path            = URLPrefix,
                                       Content        = QueryXML.ToUTF8Bytes(),
                                       ContentType    = ContentType ?? new HTTPContentType("application",
                                                                                           "soap+xml",

@@ -1395,7 +1395,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// The minimal URL (this means e.g. without the query string).
             /// </summary>
-            public HTTPPath URL
+            public HTTPPath Path
             {
 
                 get
@@ -2006,7 +2006,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 this.HTTPStatusCode   = HTTPStatusCode.OK;
                 this.HTTPMethod       = HTTPMethod.GET;
-                this.URL              = HTTPPath.Parse("/");
+                this.Path              = HTTPPath.Parse("/");
                 this.QueryString      = QueryString.New;
                 SetHeaderField(HTTPHeaderField.Accept, new AcceptTypes());
                 this.ProtocolName     = "HTTP";
@@ -2027,7 +2027,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
              //   this.HTTPStatusCode   = OtherHTTPRequest.HTTPStatusCode;
                 this.HTTPServer       = Request.HTTPServer;
                 this.HTTPMethod       = Request.HTTPMethod;
-                this.URL              = Request.URL;
+                this.Path              = Request.URL;
                 this.QueryString      = Request.QueryString;
                 SetHeaderField(HTTPHeaderField.Accept, new AcceptTypes(Request.Accept.ToArray()));
                 this.ProtocolName     = Request.ProtocolName;
@@ -2054,7 +2054,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <param name="URL">The new URL.</param>
             public Builder SetURL(HTTPPath URL)
             {
-                this.URL = URL;
+                this.Path = URL;
                 return this;
             }
 

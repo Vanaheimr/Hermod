@@ -225,7 +225,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
             else
             {
 
-                DebugX.LogT("HTTPRepose is null! (" + _RequestBuilder.URL.ToString() + ")");
+                DebugX.LogT("HTTPRepose is null! (" + _RequestBuilder.Path.ToString() + ")");
 
                 var OnHTTPErrorLocal = OnHTTPError;
                 if (OnHTTPErrorLocal != null)

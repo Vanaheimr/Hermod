@@ -52,7 +52,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
         public String HTTPText
-            => "Basic " + (Username + ":" + Password).ToBase64();
+            => "Basic " + (Username + ":" + Password).EncodeBase64();
 
 
         /// <summary>
@@ -118,7 +118,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 String.Equals(splitted[0], "basic", StringComparison.OrdinalIgnoreCase))
             {
 
-                var usernamePassword = splitted[1].FromBase64().Split(new Char[] { ':' });
+                var usernamePassword = splitted[1].DecodeBase64().Split(new Char[] { ':' });
 
                 if (usernamePassword.IsNullOrEmpty())
                     return false;
@@ -142,7 +142,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-            => "Basic " + (Username + ":" + Password).ToBase64();
+            => "Basic " + (Username + ":" + Password).EncodeBase64();
 
         #endregion
 

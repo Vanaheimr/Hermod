@@ -333,11 +333,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Create a new HTTP request.
         /// </summary>
         /// <param name="HTTPMethod">A HTTP method.</param>
-        /// <param name="URL">An URL.</param>
+        /// <param name="HTTPPath">An URL.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A new HTTPRequest object.</returns>
         public HTTPRequest.Builder CreateRequest(HTTPMethod                   HTTPMethod,
-                                                 HTTPPath                     URL,
+                                                 HTTPPath                     HTTPPath,
                                                  Action<HTTPRequest.Builder>  BuilderAction  = null)
         {
 
@@ -345,9 +345,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //Host = Host.Substring(Math.Max(URL.IndexOf("/"), Host.Length));
 
             var Builder     = new HTTPRequest.Builder(this) {
-                Host        = VirtualHostname ?? Hostname,
+                Host        = HTTPHostname.Parse((VirtualHostname ?? Hostname) + (RemotePort != IPPort.HTTP && RemotePort != IPPort.HTTPS ? ":" + RemotePort.ToString() : "")),
                 HTTPMethod  = HTTPMethod,
-                URL         = URL
+                Path        = HTTPPath
             };
 
             if (BuilderAction != null)

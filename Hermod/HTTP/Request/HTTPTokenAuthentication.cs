@@ -67,12 +67,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPTokenAuthentication(String Token)
         {
 
-            #region Initial checks
-
             if (Token.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(Token), "The given token must not be null or empty!");
-
-            #endregion
 
             this.HTTPCredentialType  = HTTPAuthenticationTypes.Basic;
             this.Token               = Token;
