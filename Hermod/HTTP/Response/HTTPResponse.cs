@@ -558,6 +558,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        public Object  SubprotocolResponse    { get; }
+
 
         #region Constructor(s)
 
@@ -586,6 +588,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              Byte[]              HTTPBody                    = null,
                              Stream              HTTPBodyStream              = null,
                              UInt32              HTTPBodyReceiveBufferSize   = DefaultHTTPBodyReceiveBufferSize,
+                             Object              SubprotocolResponse         = null,
+
                              CancellationToken?  CancellationToken           = null,
                              EventTracking_Id    EventTrackingId             = null,
                              TimeSpan?           Runtime                     = null,
@@ -603,14 +607,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this.HTTPRequest      = HTTPRequest;
+            this.HTTPRequest          = HTTPRequest;
 
-            var _StatusCodeLine   = FirstPDULine.Split(' ');
+            var _StatusCodeLine       = FirstPDULine.Split(' ');
             if (_StatusCodeLine.Length < 3)
                 throw new Exception("Invalid HTTP response!");
 
-            this.HTTPStatusCode   = HTTPStatusCode.ParseString(_StatusCodeLine[1]);
-            this.NumberOfRetries  = NumberOfRetries;
+            this.HTTPStatusCode       = HTTPStatusCode.ParseString(_StatusCodeLine[1]);
+            this.NumberOfRetries      = NumberOfRetries;
+            this.SubprotocolResponse  = SubprotocolResponse;
 
         }
 
@@ -650,8 +655,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="NumberOfRetry">The number of retransmissions of this request.</param>
         private HTTPResponse(String       ResponseHeader,
                              HTTPRequest  Request,
-                             Byte[]       HTTPBody       = null,
-                             Byte         NumberOfRetry  = 0)
+                             Byte[]       HTTPBody              = null,
+                             Byte         NumberOfRetry         = 0,
+                             Object       SubprotocolResponse   = null)
 
             : this(DateTime.UtcNow,
                    new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
@@ -661,6 +667,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    HTTPBody,
                    new MemoryStream(),
                    DefaultHTTPBodyReceiveBufferSize,
+                   SubprotocolResponse,
+
                    Request?.CancellationToken,
                    Request?.EventTrackingId,
                    Request != null ? DateTime.UtcNow - Request.Timestamp : TimeSpan.Zero,
@@ -690,7 +698,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Request">The HTTP request leading to this response.</param>
         private HTTPResponse(String       ResponseHeader,
                              Byte[]       ResponseBody,
-                             HTTPRequest  Request)
+                             HTTPRequest  Request,
+                             Object       SubprotocolResponse  = null)
 
             : this(DateTime.UtcNow,
                    new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
@@ -700,6 +709,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    ResponseBody,
                    null,
                    DefaultHTTPBodyReceiveBufferSize,
+                   SubprotocolResponse,
+
                    Request?.CancellationToken,
                    Request?.EventTrackingId,
                    Request != null ? DateTime.UtcNow - Request.Timestamp : TimeSpan.Zero)
@@ -720,7 +731,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         private HTTPResponse(String       ResponseHeader,
                              Stream       ResponseBodyStream,
                              HTTPRequest  Request,
-                             UInt32       HTTPBodyReceiveBufferSize  = DefaultHTTPBodyReceiveBufferSize)
+                             UInt32       HTTPBodyReceiveBufferSize  = DefaultHTTPBodyReceiveBufferSize,
+                             Object       SubprotocolResponse        = null)
 
             : this(DateTime.UtcNow,
                    new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
@@ -730,6 +742,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    null,
                    ResponseBodyStream,
                    HTTPBodyReceiveBufferSize,
+                   SubprotocolResponse,
+
                    Request?.CancellationToken,
                    Request?.EventTrackingId,
                    Request != null ? DateTime.UtcNow - Request.Timestamp : TimeSpan.Zero)
@@ -752,13 +766,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="NumberOfRetry">The number of retransmissions of this request.</param>
         public static HTTPResponse Parse(String       HTTPResponseHeader,
                                          HTTPRequest  HTTPRequest,
-                                         Byte[]       HTTPBody       = null,
-                                         Byte         NumberOfRetry  = 0)
+                                         Byte[]       HTTPBody              = null,
+                                         Byte         NumberOfRetry         = 0,
+                                         Object       SubprotocolResponse   = null)
 
             => new HTTPResponse(HTTPResponseHeader,
                                 HTTPRequest,
                                 HTTPBody,
-                                NumberOfRetry);
+                                NumberOfRetry,
+                                SubprotocolResponse);
 
         #endregion
 
@@ -773,11 +789,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPRequest">The HTTP request leading to this response.</param>
         public static HTTPResponse Parse(String       HTTPResponseHeader,
                                          Byte[]       HTTPResponseBody,
-                                         HTTPRequest  HTTPRequest)
+                                         HTTPRequest  HTTPRequest,
+                                         Object       SubprotocolResponse = null)
 
             => new HTTPResponse(HTTPResponseHeader,
                                 HTTPResponseBody,
-                                HTTPRequest);
+                                HTTPRequest,
+                                SubprotocolResponse);
 
         /// <summary>
         /// Parse the HTTP response from its text-representation and
@@ -788,11 +806,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPRequest">The HTTP request leading to this response.</param>
         public static HTTPResponse Parse(String       HTTPResponseHeader,
                                          Stream       HTTPResponseBody,
-                                         HTTPRequest  HTTPRequest)
+                                         HTTPRequest  HTTPRequest,
+                                         Object       SubprotocolResponse = null)
 
             => new HTTPResponse(HTTPResponseHeader,
                                 HTTPResponseBody,
-                                HTTPRequest);
+                                HTTPRequest,
+                                SubprotocolResponse: SubprotocolResponse);
 
         #endregion
 
@@ -1578,6 +1598,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
+            public Object SubprotocolResponse { get; set; }
+
             #region Constructor(s)
 
             /// <summary>
@@ -2177,13 +2199,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     PrepareImmutability();
 
                     if (Content != null)
-                        return Parse(HTTPHeader, Content,       HTTPRequest);
+                        return Parse(HTTPHeader, Content,       HTTPRequest, SubprotocolResponse);
 
                     else if (ContentStream != null)
-                        return Parse(HTTPHeader, ContentStream, HTTPRequest);
+                        return Parse(HTTPHeader, ContentStream, HTTPRequest, SubprotocolResponse);
 
                     else
-                        return Parse(HTTPHeader, HTTPRequest);
+                        return Parse(HTTPHeader, HTTPRequest, SubprotocolResponse: SubprotocolResponse);
 
                 }
             }
