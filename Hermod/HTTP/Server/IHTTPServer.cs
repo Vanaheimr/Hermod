@@ -212,12 +212,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPDelegate                  HTTPDelegate                = null,
                                URLReplacement                AllowReplacement            = URLReplacement.Fail);
 
-        IHTTPServer AttachTCPPort(IPPort Port);
-        IHTTPServer AttachTCPPorts(params IPPort[] Ports);
-        IHTTPServer AttachTCPSocket(IPSocket Socket);
+        IHTTPServer AttachTCPPorts  (params IPPort[] Ports);
         IHTTPServer AttachTCPSockets(params IPSocket[] Sockets);
-        IHTTPServer DetachTCPPort(IPPort Port);
-        IHTTPServer DetachTCPPorts(params IPPort[] Ports);
+        IHTTPServer DetachTCPPorts  (params IPPort[] Ports);
 
 
 

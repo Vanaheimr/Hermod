@@ -353,38 +353,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Manage the underlying TCP sockets...
 
-        #region AttachTCPPort(Port)
-
-        public IHTTPServer AttachTCPPort(IPPort Port)
-        {
-
-            _HTTPServer.AttachTCPPorts(Port);
-
-            return this;
-
-        }
-
-        #endregion
-
-        #region AttachTCPPorts(params Ports)
+        #region AttachTCPPorts  (params Ports)
 
         public IHTTPServer AttachTCPPorts(params IPPort[] Ports)
         {
 
             _HTTPServer.AttachTCPPorts(Ports);
-
-            return this;
-
-        }
-
-        #endregion
-
-        #region AttachTCPSocket(Socket)
-
-        public IHTTPServer AttachTCPSocket(IPSocket Socket)
-        {
-
-            _HTTPServer.AttachTCPSockets(Socket);
 
             return this;
 
@@ -405,21 +379,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-
-        #region DetachTCPPort(Port)
-
-        public IHTTPServer DetachTCPPort(IPPort Port)
-        {
-
-            _HTTPServer.DetachTCPPorts(Port);
-
-            return this;
-
-        }
-
-        #endregion
-
-        #region DetachTCPPorts(params Sockets)
+        #region DetachTCPPorts  (params Sockets)
 
         public IHTTPServer DetachTCPPorts(params IPPort[] Ports)
         {
@@ -475,9 +435,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPContentType">The HTTP content type.</param>
         /// <param name="URLTarget">The target URL of the redirect.</param>
         public void Redirect(HTTPMethod       HTTPMethod,
-                             HTTPPath          URLTemplate,
+                             HTTPPath         URLTemplate,
                              HTTPContentType  HTTPContentType,
-                             HTTPPath          URLTarget)
+                             HTTPPath         URLTarget)
 
         {
 
@@ -1746,9 +1706,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         : ConnectionClosedBy.Server);
 
             }
-#pragma warning disable RCS1075 // Avoid empty catch clause that catches System.Exception.
             catch (Exception)
-#pragma warning restore RCS1075 // Avoid empty catch clause that catches System.Exception.
             { }
 
             #endregion

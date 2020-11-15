@@ -23,10 +23,10 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Collections;
+using System.Net.Sockets;
 using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using System.Net.Sockets;
 
 #endregion
 
@@ -169,11 +169,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     return RawHTTPHeader.Trim() + "\r\n\r\n" +
                            Encoding.UTF8.GetString(HTTPBody);
 
-                                                   //Note: Because of \n vs \r\n the content-length might be invalid when a PDU is loaded from disc!
-                                                   //0,
-                                                   //ContentLength.HasValue
-                                                   //    ? (Int32) ContentLength.Value//Math.Min(HTTPBody.Length, (Int32) ContentLength.Value)
-                                                       //: HTTPBody.Length);
+                //Note: Because of \n vs \r\n the content-length might be invalid when a PDU is loaded from disc!
+                //0,
+                //ContentLength.HasValue
+                //    ? (Int32) ContentLength.Value//Math.Min(HTTPBody.Length, (Int32) ContentLength.Value)
+                    //: HTTPBody.Length);
 
                 return RawHTTPHeader;
 

@@ -77,6 +77,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         // Store each connection, in order to be able to stop them activily
         private        readonly  ConcurrentDictionary<IPSocket, TCPConnection>  _TCPConnections;
 
+        private        volatile  Boolean                                        _IsRunning       = false;
+        private        volatile  Boolean                                        _StopRequested   = false;
 
         // The internal thread
         private        readonly  Thread                                         _ListenerThread;
@@ -177,56 +179,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// </summary>
         public UInt32                            MaxClientConnections                   { get; set; }
 
-
-        #region NumberOfClients
-
         /// <summary>
         /// The current number of connected clients
         /// </summary>
-        public UInt64 NumberOfClients
-        {
-            get
-            {
-                return (UInt64) _TCPConnections.LongCount();
-            }
-        }
-
-        #endregion
-
-        #region IsRunning
-
-        private volatile Boolean _IsRunning = false;
+        public UInt64                            NumberOfClients
+            => (UInt64) _TCPConnections.LongCount();
 
         /// <summary>
         /// True while the TCPServer is listening for new clients
         /// </summary>
-        public Boolean IsRunning
-        {
-            get
-            {
-                return _IsRunning;
-            }
-        }
-
-        #endregion
-
-        #region StopRequested
-
-        private volatile Boolean _StopRequested = false;
+        public Boolean                           IsRunning
+            => _IsRunning;
 
         /// <summary>
         /// The TCPServer was requested to stop and will no
         /// longer accept new client connections
         /// </summary>
-        public Boolean StopRequested
-        {
-            get
-            {
-                return _StopRequested;
-            }
-        }
-
-        #endregion
+        public Boolean                           StopRequested
+            => _StopRequested;
 
         #endregion
 
@@ -624,17 +594,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region (protected internal) SendNewConnection(ServerTimestamp, RemoteSocket, ConnectionId, TCPConnection)
 
+        /// <summary>
+        /// Send a "new connection" event.
+        /// </summary>
+        /// <param name="ServerTimestamp">The timestamp of the request.</param>
+        /// <param name="RemoteSocket">The remote socket that was closed.</param>
+        /// <param name="ConnectionId">The internal connection identification.</param>
+        /// <param name="TCPConnection">The connection itself.</param>
         protected internal void SendNewConnection(DateTime       ServerTimestamp,
                                                   IPSocket       RemoteSocket,
                                                   String         ConnectionId,
                                                   TCPConnection  TCPConnection)
         {
 
-            OnNewConnection?.Invoke(this,
-                                    ServerTimestamp,
-                                    RemoteSocket,
-                                    ConnectionId,
-                                    TCPConnection);
+            try
+            {
+
+                OnNewConnection?.Invoke(this,
+                                        ServerTimestamp,
+                                        RemoteSocket,
+                                        ConnectionId,
+                                        TCPConnection);
+
+            }
+            catch (Exception)
+            { }
 
         }
 
@@ -642,17 +626,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region (protected internal) SendConnectionClosed(ServerTimestamp, RemoteSocket, ConnectionId, ClosedBy)
 
+        /// <summary>
+        /// Send a "connection closed" event.
+        /// </summary>
+        /// <param name="ServerTimestamp">The timestamp of the event.</param>
+        /// <param name="RemoteSocket">The remote socket that was closed.</param>
+        /// <param name="ConnectionId">The internal connection identification.</param>
+        /// <param name="ClosedBy">Whether it was closed by us or by the client.</param>
         protected internal void SendConnectionClosed(DateTime            ServerTimestamp,
                                                      IPSocket            RemoteSocket,
                                                      String              ConnectionId,
                                                      ConnectionClosedBy  ClosedBy)
         {
 
-            OnConnectionClosed?.Invoke(this,
-                                       ServerTimestamp,
-                                       RemoteSocket,
-                                       ConnectionId,
-                                       ClosedBy);
+            try
+            {
+
+                OnConnectionClosed?.Invoke(this,
+                                           ServerTimestamp,
+                                           RemoteSocket,
+                                           ConnectionId,
+                                           ClosedBy);
+
+            }
+            catch (Exception)
+            { }
 
         }
 
@@ -674,7 +672,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         #region Start(Delay, InBackground = true)
 
         /// <summary>
-        /// Start the UDP receiver after a little delay.
+        /// Start the TCP receiver after a little delay.
         /// </summary>
         /// <param name="Delay">The delay.</param>
         /// <param name="InBackground">Whether to wait on the main thread or in a background thread.</param>
@@ -686,8 +684,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 Thread.Sleep(Delay);
                 Start();
             }
-
             else
+            {
                 Task.Factory.StartNew(() => {
 
                     Thread.Sleep(Delay);
@@ -696,6 +694,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 }, CancellationTokenSource.Token,
                    TaskCreationOptions.AttachedToParent,
                    TaskScheduler.Default);
+            }
 
         }
 

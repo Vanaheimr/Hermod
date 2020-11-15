@@ -555,7 +555,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         // Manage the underlying TCP sockets...
 
-        #region (protected) AttachTCPPorts(Action, params Ports)
+        #region (protected) AttachTCPPorts  (Action, params Ports)
 
         protected void AttachTCPPorts(Action<TCPServer> Action,
                                       params IPPort[]    Ports)
@@ -649,7 +649,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
-        #region (protected) DetachTCPPorts(Action, params Ports)
+        #region (protected) DetachTCPPorts  (Action, params Ports)
 
         protected void DetachTCPPorts(Action<TCPServer> Action,
                                       params IPPort[]    Ports)
