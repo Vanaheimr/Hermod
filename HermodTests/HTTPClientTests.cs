@@ -20,7 +20,6 @@
 using System;
 
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using org.GraphDefined.Vanaheimr.Hermod;
 
 using NUnit.Framework;
 
@@ -51,13 +50,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
 
         private HTTPServer _HTTPServer;
 
-        [TestFixtureSetUp]
+        [OneTimeSetUp]
         public void Init_HTTPServer()
         {
             _HTTPServer = new HTTPServer();// (IPv4Address.Any, new IPPort(81), Autostart: true);
         }
 
-        [TestFixtureTearDown]
+        [OneTimeTearDown]
         public void Shutdown_HTTPServer()
         {
             _HTTPServer.Shutdown();
