@@ -1051,7 +1051,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region ParseEnum   (ParameterName, DefaultValueT)
+        #region ParseEnum            (ParameterName, DefaultValueT)
 
         public TEnum ParseEnum<TEnum>(String  ParameterName,
                                       TEnum   DefaultValueT)
@@ -1072,10 +1072,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region TryParseEnum(ParameterName)
+        #region TryParseEnum         (ParameterName)
 
         public TEnum? TryParseEnum<TEnum>(String  ParameterName)
+
              where TEnum : struct
+
         {
 
             if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
@@ -1129,6 +1131,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region CreateFilter         (ParameterName, TryParser, FilterDelegate)
+
+        public Func<T1, Boolean> CreateFilter<T1, T2>(String                 ParameterName,
+                                                      TryParser<T2>          TryParser,
+                                                      Func<T1, T2, Boolean>  FilterDelegate)
+        {
+
+
+            if (FilterDelegate != null &&
+                _Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
+                Values != null &&
+                Values.Count > 0)
+            {
+
+                var Value = Values.Last();
+
+                if (TryParser(Value.StartsWith("!", StringComparison.Ordinal)
+                                  ? Value.Substring(1)
+                                  : Value,
+                              out T2 ValueT))
+                {
+
+                    return item => Value.StartsWith("!", StringComparison.Ordinal)
+                                      ? !FilterDelegate(item, ValueT)
+                                      :  FilterDelegate(item, ValueT);
+
+                }
+
+            }
+
+            return item => true;
+
+        }
+
+        #endregion
+
         #region CreateMultiEnumFilter(ParameterName)
 
         public Func<TEnum, Boolean> CreateMultiEnumFilter<TEnum>(String ParameterName)
@@ -1164,25 +1202,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
 
                 if (Includes.Count == 0 && Excludes.Count == 0)
-                {
-                    return item => true;
-                }
+                    return item =>  true;
 
-                else if (Includes.Count > 0 && Excludes.Count == 0)
-                {
-                    return item => Includes.Contains(item);
-                }
+                if (Includes.Count > 0 && Excludes.Count == 0)
+                    return item =>  Includes.Contains(item);
 
-                else if (Includes.Count == 0 && Excludes.Count > 0)
-                {
+                if (Includes.Count == 0 && Excludes.Count > 0)
                     return item => !Excludes.Contains(item);
-                }
 
-                else
-                {
-                    return item =>  Includes.Contains(item) &&
-                                   !Excludes.Contains(item);
-                }
+                return item => Includes.Contains(item) &&
+                              !Excludes.Contains(item);
 
             }
 
@@ -1192,10 +1221,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region CreateMultiEnumFilter(ParameterName, Parser)
+        #region CreateMultiFilter    (ParameterName, TryParser)
 
-        public Func<TId, Boolean> CreateMultiFilter<TId>(String         ParameterName,
-                                                         TryParser<TId> TryParser)
+        public Func<T, Boolean> CreateMultiFilter<T>(String        ParameterName,
+                                                     TryParser<T>  TryParser)
         {
 
             if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
@@ -1203,8 +1232,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Values.Count > 0)
             {
 
-                var Includes = new List<TId>();
-                var Excludes = new List<TId>();
+                var Includes = new List<T>();
+                var Excludes = new List<T>();
 
                 foreach (var Value in Values)
                 {
@@ -1212,7 +1241,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (TryParser(Value.StartsWith("!", StringComparison.Ordinal)
                                       ? Value.Substring(1)
                                       : Value,
-                                  out TId ValueT))
+                                  out T ValueT))
                     {
 
                         if (Value.StartsWith("!", StringComparison.Ordinal))
@@ -1226,25 +1255,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
 
                 if (Includes.Count == 0 && Excludes.Count == 0)
-                {
-                    return item => true;
-                }
+                    return item =>  true;
 
-                else if (Includes.Count > 0 && Excludes.Count == 0)
-                {
-                    return item => Includes.Contains(item);
-                }
+                if (Includes.Count > 0 && Excludes.Count == 0)
+                    return item =>  Includes.Contains(item);
 
-                else if (Includes.Count == 0 && Excludes.Count > 0)
-                {
+                if (Includes.Count == 0 && Excludes.Count > 0)
                     return item => !Excludes.Contains(item);
-                }
 
-                else
-                {
-                    return item =>  Includes.Contains(item) &&
-                                   !Excludes.Contains(item);
-                }
+                return item => Includes.Contains(item) &&
+                              !Excludes.Contains(item);
 
             }
 
