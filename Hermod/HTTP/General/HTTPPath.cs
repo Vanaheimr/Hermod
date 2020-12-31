@@ -145,6 +145,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Clone
+
+        /// <summary>
+        /// Clone this object.
+        /// </summary>
+        public HTTPPath Clone
+
+            => new HTTPPath(InternalId);
+
+        #endregion
+
 
         public Boolean Contains(String Text)
             => InternalId.Contains(Text);

@@ -229,6 +229,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+        #region Clone
+
+        /// <summary>
+        /// Clone this object.
+        /// </summary>
+        public IPPort Clone
+
+            => new IPPort(InternalId);
+
+        #endregion
+
 
         #region ToUInt16()
 
