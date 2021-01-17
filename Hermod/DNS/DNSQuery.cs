@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2020, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2021, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,47 +37,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Properties
 
-        #region DomainName
+        public String   DomainName          { get; }
 
-        private String _DomainName;
+        public Int32    TransactionId       { get; }
 
-        public String DomainName
-        {
-            get
-            {
-                return _DomainName;
-            }
-        }
-
-        #endregion
-
-        #region TransactionId
-
-        private readonly Int32 _TransactionId;
-
-        public Int32 TransactionId
-        {
-            get
-            {
-                return _TransactionId;
-            }
-        }
-
-        #endregion
-
-        #region RecursionDesired
-
-        private Boolean _RecursionDesired;
-
-        public Boolean RecursionDesired
-        {
-            get
-            {
-                return _RecursionDesired;
-            }
-        }
-
-        #endregion
+        public Boolean  RecursionDesired    { get; }
 
         #endregion
 
@@ -118,9 +82,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (QueryTypes.Length > 2305) // Just because of the number ;)
                 throw new ArgumentException("Too many DNSResourceRecordTypes!");
 
-            this._DomainName        = DomainName;
-            this._TransactionId     = new Random(DateTime.Now.Millisecond).Next(55555);
-            this._RecursionDesired  = RecursionDesired;
+            this.DomainName        = DomainName;
+            this.TransactionId     = new Random(DateTime.Now.Millisecond).Next(55555);
+            this.RecursionDesired  = RecursionDesired;
             this.QueryClass         = DNSQueryClasses.IN;
 
         }

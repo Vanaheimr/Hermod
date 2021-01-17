@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2020, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2021, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -60,160 +60,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
 
         // readonly
 
-        #region IPAddress
-
-        private readonly IIPAddress _IPAddress;
-
         /// <summary>
         /// Gets the IPAddress on which the UDP receiver listens.
         /// </summary>
         public IIPAddress IPAddress
-        {
-            get
-            {
-                return _IPAddress;
-            }
-        }
-
-        #endregion
-
-        #region Port
-
-        private readonly IPPort _Port;
-
-        /// <summary>
-        /// Gets the port on which the UDP receiver listens.
-        /// </summary>
-        public IPPort Port
-        {
-            get
-            {
-                return _Port;
-            }
-        }
-
-        #endregion
-
-        #region IPSocket
-
-        private readonly IPSocket _IPSocket;
-
-        /// <summary>
-        /// Gets the IP socket on which the UDP receiver listens.
-        /// </summary>
-        public IPSocket IPSocket
-        {
-            get
-            {
-                return _IPSocket;
-            }
-        }
-
-        #endregion
-
-
-        #region IsMulticast
-
-        private readonly Boolean _IsMulticast;
+            => IPSocket.IPAddress;
 
         /// <summary>
         /// Whether this UDP receiver is listening
         /// on a multicast IP address or not.
         /// </summary>
         public Boolean IsMulticast
-        {
-            get
-            {
-                return _IsMulticast;
-            }
-        }
+            => IPSocket.IPAddress.IsMulticast;
 
-        #endregion
+        /// <summary>
+        /// Gets the port on which the UDP receiver listens.
+        /// </summary>
+        public IPPort Port
+            => IPSocket.Port;
 
-        #region ReceiverThreadName
+        /// <summary>
+        /// Gets the IP socket on which the UDP receiver listens.
+        /// </summary>
+        public IPSocket IPSocket { get; }
 
-        private readonly String _ReceiverThreadName;
+
+
 
         /// <summary>
         /// The name of the UDP receiver thread.
         /// </summary>
-        public String ReceiverThreadName
-        {
-            get
-            {
-                return _ReceiverThreadName;
-            }
-        }
-
-        #endregion
-
-        #region ReceiverThreadPriority
-
-        private readonly ThreadPriority _ReceiverThreadPriority;
+        public String ReceiverThreadName { get; }
 
         /// <summary>
         /// The priority of the UDP receiver thread.
         /// </summary>
-        public ThreadPriority ReceiverThreadPriority
-        {
-            get
-            {
-                return _ReceiverThreadPriority;
-            }
-        }
-
-        #endregion
-
-        #region ReceiverThreadIsBackground
-
-        private readonly Boolean _ReceiverThreadIsBackground;
+        public ThreadPriority ReceiverThreadPriority { get; }
 
         /// <summary>
         /// Whether the UDP receiver thread is a background thread or not.
         /// </summary>
-        public Boolean ReceiverThreadIsBackground
-        {
-            get
-            {
-                return _ReceiverThreadIsBackground;
-            }
-        }
-
-        #endregion
-
-        #region PacketThreadsPriority
-
-        private readonly ThreadPriority _PacketThreadsPriority;
+        public Boolean ReceiverThreadIsBackground { get; }
 
         /// <summary>
         /// The priority of the UDP packet threads.
         /// </summary>
-        public ThreadPriority PacketThreadsPriority
-        {
-            get
-            {
-                return _PacketThreadsPriority;
-            }
-        }
-
-        #endregion
-
-        #region PacketThreadsAreBackground
-
-        private readonly Boolean _PacketThreadsAreBackground;
+        public ThreadPriority PacketThreadsPriority { get; }
 
         /// <summary>
         /// Whether the UDP packet threads are background threads or not.
         /// </summary>
-        public Boolean PacketThreadsAreBackground
-        {
-            get
-            {
-                return _PacketThreadsAreBackground;
-            }
-        }
+        public Boolean PacketThreadsAreBackground { get; }
 
-        #endregion
 
 
         // mutatable
@@ -304,41 +202,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
 
         #region Events
 
-        #region OnStarted
-
         /// <summary>
         /// An event fired when the UDP receiver started.
         /// </summary>
-        public event StartedEventHandler OnStarted;
-
-        #endregion
-
-        #region OnNotification
+        public event StartedEventHandler                         OnStarted;
 
         /// <summary>
         /// An event fired for every incoming UDP packet.
         /// </summary>
-        public event NotificationEventHandler<UDPPacket<TData>> OnNotification;
-
-        #endregion
-
-        #region OnExceptionOccured
+        public event NotificationEventHandler<UDPPacket<TData>>  OnNotification;
 
         /// <summary>
         /// An event fired whenever an exception occured.
         /// </summary>
-        public event ExceptionOccuredEventHandler OnExceptionOccured;
-
-        #endregion
-
-        #region OnCompleted
+        public event ExceptionOccuredEventHandler                OnExceptionOccured;
 
         /// <summary>
         /// An event fired when the UDP receiver stopped.
         /// </summary>
-        public event CompletedEventHandler OnCompleted;
-
-        #endregion
+        public event CompletedEventHandler                       OnCompleted;
 
         #endregion
 
@@ -402,19 +284,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="PacketThreadsAreBackground">Whether the UDP packet threads are background threads or not.</param>
         /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
         public UDPReceiver(IPPort                          Port,
-                           String                          ServiceBanner               = DefaultServiceBanner,
-                           MapperDelegate                  Mapper                      = null,
-                           String                          ReceiverThreadName          = "UDP receiver thread",
-                           ThreadPriority                  ReceiverThreadPriority      = ThreadPriority.AboveNormal,
-                           Boolean                         ReceiverThreadIsBackground  = true,
-                           Func<UDPPacket<TData>, String>  PacketThreadsNameCreator    = null,
-                           ThreadPriority                  PacketThreadsPriority       = ThreadPriority.AboveNormal,
-                           Boolean                         PacketThreadsAreBackground  = true,
-                           Boolean                         Autostart                   = false)
+                           String                          ServiceBanner                = DefaultServiceBanner,
+                           MapperDelegate                  Mapper                       = null,
+                           String                          ReceiverThreadName           = "UDP receiver thread",
+                           ThreadPriority                  ReceiverThreadPriority       = ThreadPriority.AboveNormal,
+                           Boolean                         ReceiverThreadIsBackground   = true,
+                           Func<UDPPacket<TData>, String>  PacketThreadsNameCreator     = null,
+                           ThreadPriority                  PacketThreadsPriority        = ThreadPriority.AboveNormal,
+                           Boolean                         PacketThreadsAreBackground   = true,
+                           Boolean                         Autostart                    = false)
 
 
-            : this(IPv4Address.Any,
-                   Port,
+            : this(new IPSocket(IPv4Address.Any, Port),
                    ServiceBanner,
                    Mapper,
                    null,
@@ -430,13 +311,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
 
         #endregion
 
-        #region UDPReceiver(IPAddress, ServiceBanner, Port, Mapper, ...) <= main constructor
+        #region UDPReceiver(IPSocket, ServiceBanner, Mapper, ...) <= main constructor
 
         /// <summary>
         /// Create a new UDP receiver listening on the given IP address and port.
         /// </summary>
-        /// <param name="IPAddress">The IP address to listen.</param>
-        /// <param name="Port">The port to listen.</param>
+        /// <param name="IPSocket">The IP socket to listen.</param>
         /// <param name="ServiceBanner">Service banner.</param>
         /// <param name="Mapper">A delegate to transform the incoming UDP packets into custom data structures.</param>
         /// <param name="ReceiverThreadName">The optional name of the UDP receiver thread.</param>
@@ -446,53 +326,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="PacketThreadsPriority">The optional priority of the UDP packet threads.</param>
         /// <param name="PacketThreadsAreBackground">Whether the UDP packet threads are background threads or not.</param>
         /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
-        public UDPReceiver(IIPAddress                      IPAddress,
-                           IPPort                          Port,
-                           String                          ServiceBanner               = DefaultServiceBanner,
-                           MapperDelegate                  Mapper                      = null,
-                           MapReduceDelegate               MapReduce                   = null,
-                           String                          ReceiverThreadName          = "UDP receiver thread",
-                           ThreadPriority                  ReceiverThreadPriority      = ThreadPriority.AboveNormal,
-                           Boolean                         ReceiverThreadIsBackground  = true,
-                           Func<UDPPacket<TData>, String>  PacketThreadsNameCreator    = null,
-                           ThreadPriority                  PacketThreadsPriority       = ThreadPriority.AboveNormal,
-                           Boolean                         PacketThreadsAreBackground  = true,
-                           Boolean                         Autostart                   = false)
+        public UDPReceiver(IPSocket                        IPSocket,
+                           String                          ServiceBanner                = DefaultServiceBanner,
+                           MapperDelegate                  Mapper                       = null,
+                           MapReduceDelegate               MapReduce                    = null,
+                           String                          ReceiverThreadName           = "UDP receiver thread",
+                           ThreadPriority                  ReceiverThreadPriority       = ThreadPriority.AboveNormal,
+                           Boolean                         ReceiverThreadIsBackground   = true,
+                           Func<UDPPacket<TData>, String>  PacketThreadsNameCreator     = null,
+                           ThreadPriority                  PacketThreadsPriority        = ThreadPriority.AboveNormal,
+                           Boolean                         PacketThreadsAreBackground   = true,
+                           Boolean                         Autostart                    = false)
 
         {
 
             if (Mapper == null && MapReduce == null)
                 throw new ArgumentNullException("The mapper and mapreduce delegate can not be both null!");
 
-            this._IPAddress                 = IPAddress;
-            this._IsMulticast               = IPAddress.IsMulticast;
-            this._Port                      = Port;
-            this._IPSocket                  = new IPSocket(_IPAddress, _Port);
-            this.ServiceBanner              = ServiceBanner;
-            this.Mapper                     = Mapper;
-            this.MapReduce                  = MapReduce;
-            this._ReceiverThreadName        = ReceiverThreadName;
-            this._ReceiverThreadPriority    = ReceiverThreadPriority;
-            this.PacketThreadsNameCreator   = (PacketThreadsNameCreator == null)
-                                                  ? UDPpacket => "UDP packet from " + UDPpacket.RemoteSocket.IPAddress + ":" + UDPpacket.RemoteSocket.Port
-                                                  : PacketThreadsNameCreator;
-            this._PacketThreadsPriority      = PacketThreadsPriority;
-            this._PacketThreadsAreBackground              = PacketThreadsAreBackground;
+            this.IPSocket                     = IPSocket;
+            this.ServiceBanner                = ServiceBanner;
+            this.Mapper                       = Mapper;
+            this.MapReduce                    = MapReduce;
+            this.ReceiverThreadName           = ReceiverThreadName;
+            this.ReceiverThreadPriority       = ReceiverThreadPriority;
+            this.PacketThreadsNameCreator     = PacketThreadsNameCreator ?? (UDPpacket => "UDP packet from " + UDPpacket.RemoteSocket.IPAddress + ":" + UDPpacket.RemoteSocket.Port);
+            this.PacketThreadsPriority        = PacketThreadsPriority;
+            this.PacketThreadsAreBackground   = PacketThreadsAreBackground;
 
-            var LocalIPEndPoint             = new IPEndPoint(new System.Net.IPAddress(_IPAddress.GetBytes()), _Port.ToInt32());
-            this.LocalSocket                = new IPSocket(LocalIPEndPoint);
-            this.LocalDotNetSocket          = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            var LocalIPEndPoint               = new IPEndPoint(new System.Net.IPAddress(this.IPAddress.GetBytes()), this.Port.ToInt32());
+            this.LocalSocket                  = new IPSocket(LocalIPEndPoint);
+            this.LocalDotNetSocket            = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             this.LocalDotNetSocket.Bind(LocalIPEndPoint);
 
-            this.BufferSize                 = 65536;
-            this.ReceiveTimeout             = 5000;
+            this.BufferSize                   = 65536;
+            this.ReceiveTimeout               = 5000;
 
             if (IsMulticast)
             {
 
                 LocalDotNetSocket.SetSocketOption(SocketOptionLevel.IP,
                                                   SocketOptionName.AddMembership,
-                                                  new MulticastOption(System.Net.IPAddress.Parse(_IPAddress.ToString()),
+                                                  new MulticastOption(System.Net.IPAddress.Parse(this.IPAddress.ToString()),
                                                                       System.Net.IPAddress.Any));
 
             }
@@ -507,12 +381,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
 
         #endregion
 
-        #region UDPReceiver(IPSocket, ServiceBanner, Mapper, ...)
+        #region UDPReceiver(IPAddress, Port, ServiceBanner, Mapper, ...)
 
         /// <summary>
         /// Create a new UDP receiver listening on the given IP socket.
         /// </summary>
-        /// <param name="IPSocket">The IP socket to listen.</param>
+        /// <param name="IPAddress">The IP address to listen.</param>
+        /// <param name="Port">The port to listen.</param>
         /// <param name="ServiceBanner">Service banner.</param>
         /// <param name="Mapper">A delegate to transform the incoming UDP packets into custom data structures.</param>
         /// <param name="ReceiverThreadName">The optional name of the UDP receiver thread.</param>
@@ -522,19 +397,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="PacketThreadsPriority">The optional priority of the UDP packet threads.</param>
         /// <param name="PacketThreadsAreBackground">Whether the UDP packet threads are background threads or not.</param>
         /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
-        public UDPReceiver(IPSocket                        IPSocket,
-                           String                          ServiceBanner               = DefaultServiceBanner,
-                           MapperDelegate                  Mapper                      = null,
-                           String                          ReceiverThreadName          = "UDP receiver thread",
-                           ThreadPriority                  ReceiverThreadPriority      = ThreadPriority.AboveNormal,
-                           Boolean                         ReceiverThreadIsBackground  = true,
-                           Func<UDPPacket<TData>, String>  PacketThreadsNameCreator    = null,
-                           ThreadPriority                  PacketThreadsPriority       = ThreadPriority.AboveNormal,
-                           Boolean                         PacketThreadsAreBackground  = true,
-                           Boolean                         Autostart                   = false)
+        public UDPReceiver(IIPAddress                      IPAddress,
+                           IPPort                          Port,
+                           String                          ServiceBanner                = DefaultServiceBanner,
+                           MapperDelegate                  Mapper                       = null,
+                           String                          ReceiverThreadName           = "UDP receiver thread",
+                           ThreadPriority                  ReceiverThreadPriority       = ThreadPriority.AboveNormal,
+                           Boolean                         ReceiverThreadIsBackground   = true,
+                           Func<UDPPacket<TData>, String>  PacketThreadsNameCreator     = null,
+                           ThreadPriority                  PacketThreadsPriority        = ThreadPriority.AboveNormal,
+                           Boolean                         PacketThreadsAreBackground   = true,
+                           Boolean                         Autostart                    = false)
 
-            : this(IPSocket.IPAddress,
-                   IPSocket.Port,
+            : this(new IPSocket(IPAddress, Port),
                    ServiceBanner,
                    Mapper,
                    null,
@@ -613,8 +488,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
 
                                 #region Per packet task(s)...
 
-                                Task.Factory.StartNew(() =>
-                                {
+                                Task.Factory.StartNew(() => {
 
                                     // Create a local copies as we do not want to wait
                                     // till the new thread has accepted the packet
@@ -659,8 +533,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
 #endif
 
                                         // Start upper-layer protocol processing
-                                        if (OnNotificationLocal != null)
-                                            OnNotificationLocal(NewUDPPacket);
+                                        OnNotificationLocal?.Invoke(NewUDPPacket);
 
                                     }
 
@@ -674,15 +547,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
                                                                       UDPPayload_Local))
                                         {
 
-                                            var NewUDPPacket = new UDPPacket<TData>(this,
-                                                                                    Timestamp_Local,
-                                                                                    this.LocalSocket,
-                                                                                    RemoteSocket_Local,
-                                                                                    aaa);
-
                                             // Start upper-layer protocol processing
-                                            if (OnNotificationLocal != null)
-                                                OnNotificationLocal(NewUDPPacket);
+                                            OnNotificationLocal?.Invoke(new UDPPacket<TData>(this,
+                                                                                             Timestamp_Local,
+                                                                                             this.LocalSocket,
+                                                                                             RemoteSocket_Local,
+                                                                                             aaa));
 
                                         }
 
@@ -709,9 +579,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
                         }
                         catch (Exception e)
                         {
-                            var OnErrorLocal = OnExceptionOccured;
-                            if (OnErrorLocal != null)
-                                OnErrorLocal(this, DateTime.UtcNow, e);
+                            OnExceptionOccured?.Invoke(this, DateTime.UtcNow, e);
                         }
 
                     }
@@ -787,7 +655,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
 
                 LocalDotNetSocket.SetSocketOption(SocketOptionLevel.IP,
                                                   SocketOptionName.DropMembership,
-                                                  new MulticastOption(System.Net.IPAddress.Parse(_IPAddress.ToString()),
+                                                  new MulticastOption(System.Net.IPAddress.Parse(IPAddress.ToString()),
                                                                       System.Net.IPAddress.Any));
 
             }
@@ -798,9 +666,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
                 while (_IsRunning > 0)
                     Thread.Sleep(10);
 
-            var OnCompletedLocal = OnCompleted;
-            if (OnCompletedLocal != null)
-                OnCompletedLocal(this, DateTime.UtcNow, Message);
+            OnCompleted?.Invoke(this,
+                                DateTime.UtcNow,
+                                Message);
 
         }
 
@@ -818,7 +686,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
             var _GenericType       = (_GenericArguments.Length > 0) ? "<" + _GenericArguments[0].Name + ">"    : String.Empty;
             var _Running           = (IsRunning)                    ? " (running)"                             : String.Empty;
 
-            return String.Concat(ServiceBanner, " [", _TypeName, _GenericType, "] on ", _IPSocket.ToString(), _Running);
+            return String.Concat(ServiceBanner, " [", _TypeName, _GenericType, "] on ", IPSocket.ToString(), _Running);
 
         }
 
@@ -867,18 +735,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="PacketThreadsAreBackground">Whether the UDP packet threads are background threads or not.</param>
         /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
         public UDPReceiver(IPPort                           Port,
-                           String                           ServiceBanner               = DefaultServiceBanner,
-                           MapperDelegate                   Mapper                      = null,
-                           String                           ReceiverThreadName          = "UDP receiver thread",
-                           ThreadPriority                   ReceiverThreadPriority      = ThreadPriority.AboveNormal,
-                           Boolean                          ReceiverThreadIsBackground  = true,
-                           Func<UDPPacket<Byte[]>, String>  PacketThreadsNameCreator    = null,
-                           ThreadPriority                   PacketThreadsPriority       = ThreadPriority.AboveNormal,
-                           Boolean                          PacketThreadsAreBackground  = true,
-                           Boolean                          Autostart                   = false)
+                           String                           ServiceBanner                = DefaultServiceBanner,
+                           MapperDelegate                   Mapper                       = null,
+                           String                           ReceiverThreadName           = "UDP receiver thread",
+                           ThreadPriority                   ReceiverThreadPriority       = ThreadPriority.AboveNormal,
+                           Boolean                          ReceiverThreadIsBackground   = true,
+                           Func<UDPPacket<Byte[]>, String>  PacketThreadsNameCreator     = null,
+                           ThreadPriority                   PacketThreadsPriority        = ThreadPriority.AboveNormal,
+                           Boolean                          PacketThreadsAreBackground   = true,
+                           Boolean                          Autostart                    = false)
 
-            : this(IPv4Address.Any,
-                   Port,
+            : this(new IPSocket(IPv4Address.Any, Port),
                    ServiceBanner,
                    Mapper,
                    ReceiverThreadName,
@@ -893,10 +760,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
 
         #endregion
 
-        #region UDPReceiver(IPAddress, Port, ServiceBanner, Mapper, ...) <= main constructor
+        #region UDPReceiver(IPSocket, ServiceBanner, Mapper, ...) <= main constructor
 
         /// <summary>
         /// Create a new UDP receiver listening on the given IP address and port.
+        /// </summary>
+        /// <param name="IPSocket">The IP socket to listen.</param>
+        /// <param name="ServiceBanner">Service banner.</param>
+        /// <param name="Mapper">A delegate to transform the incoming UDP packets into custom data structures.</param>
+        /// <param name="ReceiverThreadName">The optional name of the UDP receiver thread.</param>
+        /// <param name="ReceiverThreadPriority">The optional priority of the UDP receiver thread.</param>
+        /// <param name="ReceiverThreadIsBackground">Whether the UDP receiver thread is a background thread or not.</param>
+        /// <param name="PacketThreadsNameCreator">An optional delegate to set the name of the UDP packet threads.</param>
+        /// <param name="PacketThreadsPriority">The optional priority of the UDP packet threads.</param>
+        /// <param name="PacketThreadsAreBackground">Whether the UDP packet threads are background threads or not.</param>
+        /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
+        public UDPReceiver(IPSocket                         IPSocket,
+                           String                           ServiceBanner                = DefaultServiceBanner,
+                           MapperDelegate                   Mapper                       = null,
+                           String                           ReceiverThreadName           = "UDP receiver thread",
+                           ThreadPriority                   ReceiverThreadPriority       = ThreadPriority.AboveNormal,
+                           Boolean                          ReceiverThreadIsBackground   = true,
+                           Func<UDPPacket<Byte[]>, String>  PacketThreadsNameCreator     = null,
+                           ThreadPriority                   PacketThreadsPriority        = ThreadPriority.AboveNormal,
+                           Boolean                          PacketThreadsAreBackground   = true,
+                           Boolean                          Autostart                    = false)
+
+            : base(IPSocket,
+                   ServiceBanner,
+                   Mapper ?? ((UDPReceiver, Timestamp, LocalSocket, RemoteSocket, Message) => Message),
+                   null,
+                   ReceiverThreadName,
+                   ReceiverThreadPriority,
+                   ReceiverThreadIsBackground,
+                   PacketThreadsNameCreator,
+                   PacketThreadsPriority,
+                   PacketThreadsAreBackground,
+                   Autostart)
+
+        { }
+
+        #endregion
+
+        #region UDPReceiver(IPAddress, Port, ServiceBanner, Mapper, ...)
+
+        /// <summary>
+        /// Create a new UDP receiver listening on the given IP socket.
         /// </summary>
         /// <param name="IPAddress">The IP address to listen.</param>
         /// <param name="Port">The port to listen.</param>
@@ -911,63 +820,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
         /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
         public UDPReceiver(IIPAddress                       IPAddress,
                            IPPort                           Port,
-                           String                           ServiceBanner               = DefaultServiceBanner,
-                           MapperDelegate                   Mapper                      = null,
-                           String                           ReceiverThreadName          = "UDP receiver thread",
-                           ThreadPriority                   ReceiverThreadPriority      = ThreadPriority.AboveNormal,
-                           Boolean                          ReceiverThreadIsBackground  = true,
-                           Func<UDPPacket<Byte[]>, String>  PacketThreadsNameCreator    = null,
-                           ThreadPriority                   PacketThreadsPriority       = ThreadPriority.AboveNormal,
-                           Boolean                          PacketThreadsAreBackground  = true,
-                           Boolean                          Autostart                   = false)
+                           String                           ServiceBanner                = DefaultServiceBanner,
+                           MapperDelegate                   Mapper                       = null,
+                           String                           ReceiverThreadName           = "UDP receiver thread",
+                           ThreadPriority                   ReceiverThreadPriority       = ThreadPriority.AboveNormal,
+                           Boolean                          ReceiverThreadIsBackground   = true,
+                           Func<UDPPacket<Byte[]>, String>  PacketThreadsNameCreator     = null,
+                           ThreadPriority                   PacketThreadsPriority        = ThreadPriority.AboveNormal,
+                           Boolean                          PacketThreadsAreBackground   = true,
+                           Boolean                          Autostart                    = false)
 
-            : base(IPAddress,
-                   Port,
-                   ServiceBanner,
-                   (Mapper != null)
-                       ? Mapper
-                       : (UDPReceiver, Timestamp, LocalSocket, RemoteSocket, Message) => Message,
-                   null,
-                   ReceiverThreadName,
-                   ReceiverThreadPriority,
-                   ReceiverThreadIsBackground,
-                   PacketThreadsNameCreator,
-                   PacketThreadsPriority,
-                   PacketThreadsAreBackground,
-                   Autostart)
-
-        { }
-
-        #endregion
-
-        #region UDPReceiver(IPSocket, ServiceBanner, Mapper, ...)
-
-        /// <summary>
-        /// Create a new UDP receiver listening on the given IP socket.
-        /// </summary>
-        /// <param name="IPSocket">The IP socket to listen.</param>
-        /// <param name="ServiceBanner">Service banner.</param>
-        /// <param name="Mapper">A delegate to transform the incoming UDP packets into custom data structures.</param>
-        /// <param name="ReceiverThreadName">The optional name of the UDP receiver thread.</param>
-        /// <param name="ReceiverThreadPriority">The optional priority of the UDP receiver thread.</param>
-        /// <param name="ReceiverThreadIsBackground">Whether the UDP receiver thread is a background thread or not.</param>
-        /// <param name="PacketThreadsNameCreator">An optional delegate to set the name of the UDP packet threads.</param>
-        /// <param name="PacketThreadsPriority">The optional priority of the UDP packet threads.</param>
-        /// <param name="PacketThreadsAreBackground">Whether the UDP packet threads are background threads or not.</param>
-        /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
-        public UDPReceiver(IPSocket                         IPSocket,
-                           String                           ServiceBanner               = DefaultServiceBanner,
-                           MapperDelegate                   Mapper                      = null,
-                           String                           ReceiverThreadName          = "UDP receiver thread",
-                           ThreadPriority                   ReceiverThreadPriority      = ThreadPriority.AboveNormal,
-                           Boolean                          ReceiverThreadIsBackground  = true,
-                           Func<UDPPacket<Byte[]>, String>  PacketThreadsNameCreator    = null,
-                           ThreadPriority                   PacketThreadsPriority       = ThreadPriority.AboveNormal,
-                           Boolean                          PacketThreadsAreBackground  = true,
-                           Boolean                          Autostart                   = false)
-
-            : this(IPSocket.IPAddress,
-                   IPSocket.Port,
+            : this(new IPSocket(IPAddress, Port),
                    ServiceBanner,
                    Mapper,
                    ReceiverThreadName,
