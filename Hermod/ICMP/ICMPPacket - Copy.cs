@@ -67,49 +67,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
     //    public byte[] Data;
 
     //    public enum CodeEnum {
-    //        RedirectDatagramsForTheNetwork = 0,
-    //        RedirectDatagramsForTheHost = 1,
-    //        RedirectDatagramsForTheTypeOfServiceAndNetwork = 2,
-    //        RedirectDatagramsForTheTypeOfServiceAndHost = 3
+    //        RedirectDatagramsForTheNetwork                   = 0,
+    //        RedirectDatagramsForTheHost                      = 1,
+    //        RedirectDatagramsForTheTypeOfServiceAndNetwork   = 2,
+    //        RedirectDatagramsForTheTypeOfServiceAndHost      = 3
     //    }
 
     //    public ICMPRedirect(ref byte[] Packet)
     //    {
-    //        try {
-    //            GatewayInternetAddress = (ulong)System.BitConverter.ToInt32(Packet, 0);
-    //            Data = new byte[Packet.Length - 4];
+    //        try
+    //        {
+    //            GatewayInternetAddress = (ulong) System.BitConverter.ToInt32(Packet, 0);
+    //            Data                   = new byte[Packet.Length - 4];
     //            System.Buffer.BlockCopy(Packet, 0, Data, 4, Packet.Length);
-    //        } catch { }
+    //        }
+    //        catch { }
     //    }
 
     //    public override byte[] GetBytes()
     //    {
     //        if (Data == null) Data = new byte[0];
     //        byte[] Packet = new byte[4 + Data.Length];
-    //        System.Buffer.BlockCopy(System.BitConverter.GetBytes((long)GatewayInternetAddress), 0, Packet, 0, 4);
+    //        System.Buffer.BlockCopy(System.BitConverter.GetBytes((long) GatewayInternetAddress), 0, Packet, 0, 4);
     //        System.Buffer.BlockCopy(Data, 0, Packet, 4, Data.Length);
     //        return Packet;
     //    }
-
-    //}
-
-
-
-
-
-    //public class ICMPDestinationUnreachable : ICMPIPHeaderReply
-    //{
-    //    public enum CodeEnum {
-    //        NetUnreachable = 0,
-    //        HostUnreachable = 1,
-    //        ProtocolUnreachable = 2,
-    //        PortUnreachable = 3,
-    //        FragmentationNeededAndDFSet = 4,
-    //        SourceRouteFailed = 5
-    //    }
-
-    //    public ICMPDestinationUnreachable(ref byte[] Packet)
-    //    { }
 
     //}
 
@@ -175,29 +157,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
     //    public ushort Identifier;
     //    public ushort SequenceNumber;
-    //    public ulong OriginateTimestamp;
-    //    public ulong ReceiveTimestamp;
-    //    public ulong TransmitTimestamp;
+    //    public ulong  OriginateTimestamp;
+    //    public ulong  ReceiveTimestamp;
+    //    public ulong  TransmitTimestamp;
 
     //    public ICMPTimestamp(ref byte[] Packet)
     //    {
-    //        try {
-    //            Identifier = (ushort)System.BitConverter.ToInt16(Packet, 0);
-    //            SequenceNumber = (ushort)System.BitConverter.ToInt16(Packet, 2);
-    //            OriginateTimestamp = (ulong)System.BitConverter.ToInt32(Packet, 4);
-    //            ReceiveTimestamp = (ulong)System.BitConverter.ToInt32(Packet, 8);
-    //            TransmitTimestamp = (ulong)System.BitConverter.ToInt32(Packet, 12);
-    //        } catch { }
+    //        try
+    //        {
+    //            Identifier          = (ushort) System.BitConverter.ToInt16(Packet,  0);
+    //            SequenceNumber      = (ushort) System.BitConverter.ToInt16(Packet,  2);
+    //            OriginateTimestamp  = (ulong)  System.BitConverter.ToInt32(Packet,  4);
+    //            ReceiveTimestamp    = (ulong)  System.BitConverter.ToInt32(Packet,  8);
+    //            TransmitTimestamp   = (ulong)  System.BitConverter.ToInt32(Packet, 12);
+    //        }
+    //        catch { }
     //    }
 
     //    public override byte[] GetBytes()
     //    {
     //        byte[] Packet = new byte[16];
-    //        System.Buffer.BlockCopy(System.BitConverter.GetBytes((short)Identifier), 0, Packet, 0, 2);
-    //        System.Buffer.BlockCopy(System.BitConverter.GetBytes((short)SequenceNumber), 0, Packet, 2, 2);
-    //        System.Buffer.BlockCopy(System.BitConverter.GetBytes((long)OriginateTimestamp), 0, Packet, 4, 4);
-    //        System.Buffer.BlockCopy(System.BitConverter.GetBytes((long)ReceiveTimestamp), 0, Packet, 8, 4);
-    //        System.Buffer.BlockCopy(System.BitConverter.GetBytes((long)TransmitTimestamp), 0, Packet, 12, 4);
+    //        System.Buffer.BlockCopy(System.BitConverter.GetBytes((short) Identifier),         0, Packet,  0, 2);
+    //        System.Buffer.BlockCopy(System.BitConverter.GetBytes((short) SequenceNumber),     0, Packet,  2, 2);
+    //        System.Buffer.BlockCopy(System.BitConverter.GetBytes((long)  OriginateTimestamp), 0, Packet,  4, 4);
+    //        System.Buffer.BlockCopy(System.BitConverter.GetBytes((long)  ReceiveTimestamp),   0, Packet,  8, 4);
+    //        System.Buffer.BlockCopy(System.BitConverter.GetBytes((long)  TransmitTimestamp),  0, Packet, 12, 4);
     //        return Packet;
     //    }
 
@@ -225,16 +209,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
     //    public ICMPInformationRequest(ref byte[] Packet)
     //    {
     //        try {
-    //            Identifier = (ushort)System.BitConverter.ToInt16(Packet, 0);
-    //            SequenceNumber = (ushort)System.BitConverter.ToInt16(Packet, 2);
+    //            Identifier     = (ushort) System.BitConverter.ToInt16(Packet, 0);
+    //            SequenceNumber = (ushort) System.BitConverter.ToInt16(Packet, 2);
     //        } catch { }
     //    }
 
     //    public override byte[] GetBytes()
     //    {
     //        byte[] Packet = new byte[4];
-    //        System.Buffer.BlockCopy(System.BitConverter.GetBytes((short)Identifier), 0, Packet, 0, 2);
-    //        System.Buffer.BlockCopy(System.BitConverter.GetBytes((short)SequenceNumber), 0, Packet, 2, 2);
+    //        System.Buffer.BlockCopy(System.BitConverter.GetBytes((short) Identifier),     0, Packet, 0, 2);
+    //        System.Buffer.BlockCopy(System.BitConverter.GetBytes((short) SequenceNumber), 0, Packet, 2, 2);
     //        return Packet;
     //    }
 

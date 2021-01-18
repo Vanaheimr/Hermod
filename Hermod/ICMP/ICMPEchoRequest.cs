@@ -134,8 +134,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                 Buffer.BlockCopy(Packet, 4, data, 0, data.Length);
 
                 ICMPEchoRequest = Create(
-                                      (UInt16) BitConverter.ToInt16(Packet, 0),
-                                      (UInt16) BitConverter.ToInt16(Packet, 2),
+                                      (UInt16) System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt16(Packet, 0)),
+                                      (UInt16) System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt16(Packet, 2)),
                                       data
                                   );
 
@@ -153,9 +153,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         {
 
             var packet = new Byte[4 + Data.Length];
-            Buffer.BlockCopy(BitConverter.GetBytes((Int16) Identifier),     0, packet, 0, 2);
-            Buffer.BlockCopy(BitConverter.GetBytes((Int16) SequenceNumber), 0, packet, 2, 2);
-            Buffer.BlockCopy(Data,                                          0, packet, 4, Data.Length);
+            Buffer.BlockCopy(BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16) Identifier)),     0, packet, 0, 2);
+            Buffer.BlockCopy(BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16) SequenceNumber)), 0, packet, 2, 2);
+            Buffer.BlockCopy(Data,                                                                                   0, packet, 4, Data.Length);
 
             return packet;
 
