@@ -257,6 +257,11 @@
     <Compile Include="Warden\WardenExtentions.cs" />
     <Compile Include="Warden\WardenProperties.cs" />
     <Compile Include="WebSocket\WebSocketFrame.cs" />
+    <Compile Include="WebSocket\WebSocketConnection.cs" />
+    <Compile Include="WebSocket\WebSocketMessageRespose.cs" />
+    <Compile Include="WebSocket\WebSocketDelegates.cs" />
+    <Compile Include="WebSocket\WebSocketTextMessageRespose.cs" />
+    <Compile Include="WebSocket\WebSocketBinaryMessageRespose.cs" />
     <Compile Include="WebSocket\WebSocketServer.cs" />
   </ItemGroup>
   <ItemGroup>

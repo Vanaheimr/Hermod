@@ -31,9 +31,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <summary>
     /// An IP socket is a combination of an IP address and a layer4 port.
     /// </summary>
-    public struct IPSocket : IEquatable <IPSocket>,
-                             IComparable<IPSocket>,
-                             IComparable
+    public readonly struct IPSocket : IEquatable <IPSocket>,
+                                      IComparable<IPSocket>,
+                                      IComparable
     {
 
         #region Properties
@@ -94,7 +94,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public IPSocket(IPEndPoint IPEndPoint)
         {
             this.IPAddress  = IPAddressHelper.Build(IPEndPoint.Address.GetAddressBytes());
-            this.Port       = IPPort.Parse((UInt16) IPEndPoint.Port);
+            this.Port       = IPPort.         Parse(IPEndPoint.Port);
         }
 
         #endregion
@@ -162,6 +162,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         }
 
         #endregion
+
+
+        public IPEndPoint ToIPEndPoint()
+
+            => new IPEndPoint(System.Net.IPAddress.Parse(IPAddress.ToString()),
+                              Port.ToUInt16());
+
 
 
         #region Operator overloading

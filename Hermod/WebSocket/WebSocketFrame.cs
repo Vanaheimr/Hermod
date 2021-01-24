@@ -18,16 +18,6 @@
 #region Usings
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Net;
-using System.Net.Sockets;
-using System.Collections;
-using System.Threading;
-
-using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -36,196 +26,169 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
     public enum ByteOrder
     {
+
         /// <summary>
         /// Specifies Little-endian.
         /// </summary>
         Little,
+
         /// <summary>
         /// Specifies Big-endian.
         /// </summary>
         Big
-    }
 
+    }
 
 
     public static class Ext
     {
 
-        public static bool TryGetUTF8DecodedString(this byte[] bytes, out string s)
-        {
-            s = null;
+        //public static bool TryGetUTF8DecodedString(this byte[] bytes, out string s)
+        //{
+        //    s = null;
 
-            try
-            {
-                s = Encoding.UTF8.GetString(bytes);
-            }
-            catch
-            {
-                return false;
-            }
+        //    try
+        //    {
+        //        s = Encoding.UTF8.GetString(bytes);
+        //    }
+        //    catch
+        //    {
+        //        return false;
+        //    }
 
-            return true;
-        }
+        //    return true;
+        //}
 
-        public static bool TryGetUTF8EncodedBytes(this string s, out byte[] bytes)
-        {
-            bytes = null;
+        //public static bool TryGetUTF8EncodedBytes(this string s, out byte[] bytes)
+        //{
+        //    bytes = null;
 
-            try
-            {
-                bytes = Encoding.UTF8.GetBytes(s);
-            }
-            catch
-            {
-                return false;
-            }
+        //    try
+        //    {
+        //        bytes = Encoding.UTF8.GetBytes(s);
+        //    }
+        //    catch
+        //    {
+        //        return false;
+        //    }
 
-            return true;
-        }
+        //    return true;
+        //}
 
-        public static T[] Reverse<T>(this T[] array)
-        {
-            var len = array.Length;
-            var ret = new T[len];
+        //public static T[] Reverse<T>(this T[] array)
+        //{
+        //    var len = array.Length;
+        //    var ret = new T[len];
 
-            var end = len - 1;
-            for (var i = 0; i <= end; i++)
-                ret[i] = array[end - i];
+        //    var end = len - 1;
+        //    for (var i = 0; i <= end; i++)
+        //        ret[i] = array[end - i];
 
-            return ret;
-        }
+        //    return ret;
+        //}
 
-        public static byte[] ToHostOrder(this byte[] source, ByteOrder sourceOrder)
-        {
-            if (source == null)
-                throw new ArgumentNullException("source");
+        //public static byte[] ToHostOrder(this byte[] source, ByteOrder sourceOrder)
+        //{
+        //    if (source == null)
+        //        throw new ArgumentNullException("source");
 
-            if (source.Length < 2)
-                return source;
+        //    if (source.Length < 2)
+        //        return source;
 
-            if (sourceOrder.IsHostOrder())
-                return source;
+        //    if (sourceOrder.IsHostOrder())
+        //        return source;
 
-            return source.Reverse();
-        }
+        //    return source.Reverse();
 
-        public static ushort ToUInt16(this byte[] source, ByteOrder sourceOrder)
-        {
-            return BitConverter.ToUInt16(source.ToHostOrder(sourceOrder), 0);
-        }
+        //}
 
-        public static ulong ToUInt64(this byte[] source, ByteOrder sourceOrder)
-        {
-            return BitConverter.ToUInt64(source.ToHostOrder(sourceOrder), 0);
-        }
+        //public static ushort ToUInt16(this byte[] source, ByteOrder sourceOrder)
+        //{
+        //    return BitConverter.ToUInt16(source.ToHostOrder(sourceOrder), 0);
+        //}
 
-        public static T[] SubArray<T>(this T[] array, int startIndex, int length)
-        {
+        //public static ulong ToUInt64(this byte[] source, ByteOrder sourceOrder)
+        //{
+        //    return BitConverter.ToUInt64(source.ToHostOrder(sourceOrder), 0);
+        //}
 
-            if (array == null)
-                throw new ArgumentNullException("array");
+        //public static T[] SubArray<T>(this T[] array, int startIndex, int length)
+        //{
 
-            var len = array.Length;
-            if (len == 0)
-            {
-                if (startIndex != 0)
-                    throw new ArgumentOutOfRangeException("startIndex");
+        //    if (array == null)
+        //        throw new ArgumentNullException("array");
 
-                if (length != 0)
-                    throw new ArgumentOutOfRangeException("length");
+        //    var len = array.Length;
+        //    if (len == 0)
+        //    {
+        //        if (startIndex != 0)
+        //            throw new ArgumentOutOfRangeException("startIndex");
 
-                return array;
-            }
+        //        if (length != 0)
+        //            throw new ArgumentOutOfRangeException("length");
 
-            if (startIndex < 0 || startIndex >= len)
-                throw new ArgumentOutOfRangeException("startIndex");
+        //        return array;
+        //    }
 
-            if (length < 0 || length > len - startIndex)
-                throw new ArgumentOutOfRangeException("length");
+        //    if (startIndex < 0 || startIndex >= len)
+        //        throw new ArgumentOutOfRangeException("startIndex");
 
-            if (length == 0)
-                return new T[0];
+        //    if (length < 0 || length > len - startIndex)
+        //        throw new ArgumentOutOfRangeException("length");
 
-            if (length == len)
-                return array;
+        //    if (length == 0)
+        //        return new T[0];
 
-            var subArray = new T[length];
-            Array.Copy(array, startIndex, subArray, 0, length);
+        //    if (length == len)
+        //        return array;
 
-            return subArray;
+        //    var subArray = new T[length];
+        //    Array.Copy(array, startIndex, subArray, 0, length);
 
-        }
+        //    return subArray;
 
-        public static T[] SubArray<T>(this T[] array, long startIndex, long length)
-        {
-            if (array == null)
-                throw new ArgumentNullException("array");
+        //}
 
-            var len = array.LongLength;
-            if (len == 0)
-            {
-                if (startIndex != 0)
-                    throw new ArgumentOutOfRangeException("startIndex");
+        //public static T[] SubArray<T>(this T[] array, long startIndex, long length)
+        //{
+        //    if (array == null)
+        //        throw new ArgumentNullException("array");
 
-                if (length != 0)
-                    throw new ArgumentOutOfRangeException("length");
+        //    var len = array.LongLength;
+        //    if (len == 0)
+        //    {
+        //        if (startIndex != 0)
+        //            throw new ArgumentOutOfRangeException("startIndex");
 
-                return array;
-            }
+        //        if (length != 0)
+        //            throw new ArgumentOutOfRangeException("length");
 
-            if (startIndex < 0 || startIndex >= len)
-                throw new ArgumentOutOfRangeException("startIndex");
+        //        return array;
+        //    }
 
-            if (length < 0 || length > len - startIndex)
-                throw new ArgumentOutOfRangeException("length");
+        //    if (startIndex < 0 || startIndex >= len)
+        //        throw new ArgumentOutOfRangeException("startIndex");
 
-            if (length == 0)
-                return new T[0];
+        //    if (length < 0 || length > len - startIndex)
+        //        throw new ArgumentOutOfRangeException("length");
 
-            if (length == len)
-                return array;
+        //    if (length == 0)
+        //        return new T[0];
 
-            var subArray = new T[length];
-            Array.Copy(array, startIndex, subArray, 0, length);
+        //    if (length == len)
+        //        return array;
 
-            return subArray;
-        }
+        //    var subArray = new T[length];
+        //    Array.Copy(array, startIndex, subArray, 0, length);
+
+        //    return subArray;
+        //}
 
         public static bool IsHostOrder(this ByteOrder order)
         {
-            // true: !(true ^ true) or !(false ^ false)
+            // true:  !(true ^ true)  or !(false ^ false)
             // false: !(true ^ false) or !(false ^ true)
             return !(BitConverter.IsLittleEndian ^ (order == ByteOrder.Little));
-        }
-
-        public static bool IsControl(this byte opcode)
-        {
-            return opcode > 0x7 && opcode < 0x10;
-        }
-
-        public static bool IsControl(this WebSocketFrame.Opcodes opcode)
-        {
-            return opcode >= WebSocketFrame.Opcodes.Close;
-        }
-
-        public static bool IsData(this byte opcode)
-        {
-            return opcode == 0x1 || opcode == 0x2;
-        }
-
-        internal static bool IsData(this WebSocketFrame.Opcodes opcode)
-        {
-            return opcode == WebSocketFrame.Opcodes.Text || opcode == WebSocketFrame.Opcodes.Binary;
-        }
-
-        internal static bool IsReserved(this ushort code)
-        {
-
-            return code == 1004 ||
-                   code == 1005 ||
-                   code == 1006 ||
-                   code == 1015;
-
         }
 
         internal static byte[] InternalToByteArray(this ushort value, ByteOrder order)
@@ -252,27 +215,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         }
 
-        internal static byte[] Append(this ushort code, string reason)
-        {
+        //internal static byte[] Append(this ushort code, string reason)
+        //{
 
-            var bytes = code.InternalToByteArray(ByteOrder.Big);
+        //    var bytes = code.InternalToByteArray(ByteOrder.Big);
 
-            if (reason == null || reason.Length == 0)
-                return bytes;
+        //    if (reason == null || reason.Length == 0)
+        //        return bytes;
 
-            var buff = new List<byte>(bytes);
-            buff.AddRange(Encoding.UTF8.GetBytes(reason));
+        //    var buff = new List<byte>(bytes);
+        //    buff.AddRange(Encoding.UTF8.GetBytes(reason));
 
-            return buff.ToArray();
+        //    return buff.ToArray();
 
-        }
+        //}
+
+
+
+        public   static Boolean IsControl(this WebSocketFrame.Opcodes Opcode)
+            => Opcode >= WebSocketFrame.Opcodes.Close;
+
+        public   static Boolean IsData   (this WebSocketFrame.Opcodes Opcode)
+            => Opcode == WebSocketFrame.Opcodes.Text ||
+               Opcode == WebSocketFrame.Opcodes.Binary;
+
+        //internal static Boolean IsReserved(this ushort code)
+        //    => code == 1004 ||
+        //       code == 1005 ||
+        //       code == 1006 ||
+        //       code == 1015;
 
     }
 
 
-
+    /// <summary>
+    /// A web socket frame.
+    /// </summary>
     public class WebSocketFrame
     {
+
+        #region (enum) Opcodes
 
         public enum Opcodes : byte
         {
@@ -280,34 +262,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             /// <summary>
             /// Equivalent to numeric value 0. Indicates continuation frame.
             /// </summary>
-            Continuation    = 0x0,
+            Continuation  = 0x0,
 
             /// <summary>
             /// Equivalent to numeric value 1. Indicates text frame.
             /// </summary>
-            Text            = 0x1,
+            Text          = 0x1,
 
             /// <summary>
             /// Equivalent to numeric value 2. Indicates binary frame.
             /// </summary>
-            Binary          = 0x2,
+            Binary        = 0x2,
 
             /// <summary>
             /// Equivalent to numeric value 8. Indicates connection close frame.
             /// </summary>
-            Close           = 0x8,
+            Close         = 0x8,
 
             /// <summary>
             /// Equivalent to numeric value 9. Indicates ping frame.
             /// </summary>
-            Ping            = 0x9,
+            Ping          = 0x9,
 
             /// <summary>
             /// Equivalent to numeric value 10. Indicates pong frame.
             /// </summary>
-            Pong            = 0xa
+            Pong          = 0xa
 
         }
+
+        #endregion
+
+        #region (enum) Fin
 
         public enum Fin : byte
         {
@@ -315,14 +301,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             /// <summary>
             /// Equivalent to numeric value 0. Indicates more frames of a message follow.
             /// </summary>
-            More = 0x0,
+            More   = 0x0,
 
             /// <summary>
             /// Equivalent to numeric value 1. Indicates the final frame of a message.
             /// </summary>
-            Final = 0x1
+            Final  = 0x1
 
         }
+
+        #endregion
+
+        #region (enum) Rsv
 
         public enum Rsv : byte
         {
@@ -330,15 +320,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             /// <summary>
             /// Equivalent to numeric value 0. Indicates zero.
             /// </summary>
-            Off = 0x0,
+            Off  = 0x0,
 
             /// <summary>
             /// Equivalent to numeric value 1. Indicates non-zero.
             /// </summary>
-            On = 0x1
+            On   = 0x1
 
         }
 
+        #endregion
+
+        #region (enum) MaskStatus
 
         public enum MaskStatus : byte
         {
@@ -346,15 +339,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             /// <summary>
             /// Equivalent to numeric value 0. Indicates not masked.
             /// </summary>
-            Off = 0x0,
+            Off  = 0x0,
 
             /// <summary>
             /// Equivalent to numeric value 1. Indicates masked.
             /// </summary>
-            On = 0x1
+            On   = 0x1
 
         }
 
+        #endregion
+
+        #region Properties
+
+        //internal static readonly Byte[] EmptyBytes;
 
         public Fin         FIN           { get; }
         public MaskStatus  Mask          { get; }
@@ -379,19 +377,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             => Opcode == Opcodes.Continuation;
 
         public Boolean IsControl
-            => Opcode >= Opcodes.Close;
+            => Opcode.IsControl();
 
         public Boolean IsData
-            => Opcode == Opcodes.Text || Opcode == Opcodes.Binary;
+            => Opcode.IsData();
 
         public Boolean IsFinal
             => FIN    == Fin.Final;
 
         public Boolean IsFragment
-            => FIN == Fin.More || Opcode == Opcodes.Continuation;
+            => FIN    == Fin.More || Opcode == Opcodes.Continuation;
 
         public Boolean IsMasked
-            => Mask == MaskStatus.On;
+            => Mask   == MaskStatus.On;
 
         public Boolean IsPing
             => Opcode == Opcodes.Ping;
@@ -402,11 +400,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public Boolean IsText
             => Opcode == Opcodes.Text;
 
+        #endregion
 
+        #region Constructor(s)
 
-
-
-
+        /// <summary>
+        /// Create a new web socket frame.
+        /// </summary>
+        /// <param name="FIN">Whether this frame is the final frame of a larger fragmented frame.</param>
+        /// <param name="Mask">The status of the frame mask.</param>
+        /// <param name="MaskingKey">The masking key.</param>
+        /// <param name="Opcode">The opcode.</param>
+        /// <param name="Payload">The payload.</param>
+        /// <param name="Rsv1">Reserved 1</param>
+        /// <param name="Rsv2">Reserved 2</param>
+        /// <param name="Rsv3">Reserved 3</param>
         public WebSocketFrame(Fin         FIN,
                               MaskStatus  Mask,
                               Byte[]      MaskingKey,
@@ -428,23 +436,128 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         }
 
+        #endregion
 
-        internal static readonly Byte[] EmptyBytes;
 
+        #region Documentation
+
+        //   0                   1                   2                   3
+        //   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+        //  +-+-+-+-+-------+-+-------------+-------------------------------+
+        //  |F|R|R|R| opcode|M| Payload len |    Extended payload length    |
+        //  |I|S|S|S|  (4)  |A|     (7)     |             (16/64)           |
+        //  |N|V|V|V|       |S|             |   (if payload len==126/127)   |
+        //  | |1|2|3|       |K|             |                               |
+        //  +-+-+-+-+-------+-+-------------+ - - - - - - - - - - - - - - - +
+        //  |     Extended payload length continued, if payload len == 127  |
+        //  + - - - - - - - - - - - - - - - +-------------------------------+
+        //  |                               |Masking-key, if MASK set to 1  |
+        //  +-------------------------------+-------------------------------+
+        //  | Masking-key (continued)       |          Payload Data         |
+        //  +-------------------------------- - - - - - - - - - - - - - - - +
+        //  :                     Payload Data continued ...                :
+        //  + - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - +
+        //  |                     Payload Data continued ...                |
+        //  +---------------------------------------------------------------+
+
+        #endregion
+
+        #region Parse(ByteArray)
+
+        public static WebSocketFrame Parse(Byte[] ByteArray)
+        {
+
+            var fin            = (ByteArray[0] & 0x80) == 0x80 ? Fin.Final : Fin.More;
+            var rsv1           = (ByteArray[0] & 0x40) == 0x40 ? Rsv.On    : Rsv.Off;
+            var rsv2           = (ByteArray[0] & 0x20) == 0x20 ? Rsv.On    : Rsv.Off;
+            var rsv3           = (ByteArray[0] & 0x10) == 0x10 ? Rsv.On    : Rsv.Off;
+            var opcode         = (Opcodes) (Byte) (ByteArray[0] & 0x0f);
+
+            //if (!opcode.IsSupported ()) {
+            //    var msg = "A frame has an unsupported opcode.";
+            //    //throw new WebSocketException (CloseStatusCode.ProtocolError, msg);
+            //}
+
+            if (!opcode.IsData() && rsv1 == Rsv.On)
+            {
+                var msg = "A non data frame is compressed.";
+                //throw new WebSocketException (CloseStatusCode.ProtocolError, msg);
+            }
+
+            var mask           = (ByteArray[1] & 0x80) == 0x80
+                                      ? MaskStatus.On
+                                      : MaskStatus.Off;
+
+            var payloadLength  = (UInt64) (ByteArray[1] & 0x7f);
+
+            var offset         = 2UL;
+
+
+            if (payloadLength == 126) {
+
+                payloadLength  = BitConverter.ToUInt16(new Byte[] {
+                                                           ByteArray[3],
+                                                           ByteArray[2]
+                                                       },
+                                                       0);
+
+                offset         = 4UL;
+
+            }
+
+            else if (payloadLength == 127) {
+
+                Console.WriteLine("TODO: msglen == 127, needs qword to store msglen");
+
+                // i don't really know the byte order, please edit this
+                // payloadLen = BitConverter.ToUInt64(new byte[] { bytes[5], bytes[4], bytes[3], bytes[2], bytes[9], bytes[8], bytes[7], bytes[6] }, 0);
+                offset         = 10UL;
+
+            }
+
+            var maskingKey     = new Byte[4] {
+                                     ByteArray[offset],
+                                     ByteArray[offset + 1],
+                                     ByteArray[offset + 2],
+                                     ByteArray[offset + 3]
+                                 };
+
+            offset += 4;
+
+
+            var payload = new Byte[payloadLength];
+
+            for (var i = 0UL; i < payloadLength; ++i)
+                payload[i] = (Byte) (ByteArray[offset + i] ^ maskingKey[i % 4]);
+
+            return new WebSocketFrame(fin,
+                                      mask,
+                                      maskingKey,
+                                      opcode,
+                                      payload,
+                                      rsv1,
+                                      rsv2,
+                                      rsv3);
+
+        }
+
+        #endregion
+
+        #region ToByteArray()
 
         public Byte[] ToByteArray()
         {
 
-            var payloadLength = (UInt64) Payload.Length;
-            var offset        = 0;
+            var payloadLength  = (UInt64) Payload.Length;
+            var offset         = 0;
 
             Byte[] frameBytes;
 
             if (payloadLength < 126)
             {
-                frameBytes = new Byte[payloadLength +  2];
-                frameBytes[1] = (Byte) payloadLength;
-                offset = 2;
+                frameBytes     = new Byte[payloadLength +  2];
+                frameBytes[1]  = (Byte) payloadLength;
+                offset         = 2;
             }
 
             else if (payloadLength >= 126 && payloadLength <= 65536)
@@ -496,99 +609,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         }
 
-
-
-
-        public static WebSocketFrame ParseFrame(Byte[] Frame)
-        {
-
-            //   0                   1                   2                   3
-            //   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-            //  +-+-+-+-+-------+-+-------------+-------------------------------+
-            //  |F|R|R|R| opcode|M| Payload len |    Extended payload length    |
-            //  |I|S|S|S|  (4)  |A|     (7)     |             (16/64)           |
-            //  |N|V|V|V|       |S|             |   (if payload len==126/127)   |
-            //  | |1|2|3|       |K|             |                               |
-            //  +-+-+-+-+-------+-+-------------+ - - - - - - - - - - - - - - - +
-            //  |     Extended payload length continued, if payload len == 127  |
-            //  + - - - - - - - - - - - - - - - +-------------------------------+
-            //  |                               |Masking-key, if MASK set to 1  |
-            //  +-------------------------------+-------------------------------+
-            //  | Masking-key (continued)       |          Payload Data         |
-            //  +-------------------------------- - - - - - - - - - - - - - - - +
-            //  :                     Payload Data continued ...                :
-            //  + - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - +
-            //  |                     Payload Data continued ...                |
-            //  +---------------------------------------------------------------+
-
-            var fin            = (Frame[0] & 0x80) == 0x80 ? Fin.Final : Fin.More;
-            var rsv1           = (Frame[0] & 0x40) == 0x40 ? Rsv.On    : Rsv.Off;
-            var rsv2           = (Frame[0] & 0x20) == 0x20 ? Rsv.On    : Rsv.Off;
-            var rsv3           = (Frame[0] & 0x10) == 0x10 ? Rsv.On    : Rsv.Off;
-            var opcode         = (Opcodes) (Byte) (Frame[0] & 0x0f);
-
-            var mask           = (Frame[1] & 0x80) == 0x80 ? MaskStatus.On   : MaskStatus.Off;
-            var payloadLength  = (UInt64) (Frame[1] & 0x7f);
-
-            var offset         = 2UL;
-
-
-            // Extended payload length 1
-            if (payloadLength == 126)
-            {
-                payloadLength  = BitConverter.ToUInt16(new Byte[] { Frame[3], Frame[2] }, 0);
-                offset         = 4UL;
-            }
-
-            else if (payloadLength == 127)
-            {
-                Console.WriteLine("TODO: msglen == 127, needs qword to store msglen");
-                // i don't really know the byte order, please edit this
-                // payloadLen = BitConverter.ToUInt64(new byte[] { bytes[5], bytes[4], bytes[3], bytes[2], bytes[9], bytes[8], bytes[7], bytes[6] }, 0);
-                offset         = 10UL;
-            }
-
-            var maskingKey  = new Byte[4] {
-                                    Frame[offset],
-                                    Frame[offset + 1],
-                                    Frame[offset + 2],
-                                    Frame[offset + 3]
-                                };
-
-            offset += 4;
-
-
-            var payload = new Byte[payloadLength];
-
-            for (UInt64 i = 0; i < payloadLength; ++i)
-                payload[i] = (Byte) (Frame[offset + i] ^ maskingKey[i % 4]);
-
-
-
-
-            //if (!opcode.IsSupported ()) {
-            //    var msg = "A frame has an unsupported opcode.";
-            //    //throw new WebSocketException (CloseStatusCode.ProtocolError, msg);
-            //}
-
-            if (!opcode.IsData () && rsv1 == Rsv.On) {
-                var msg = "A non data frame is compressed.";
-                //throw new WebSocketException (CloseStatusCode.ProtocolError, msg);
-            }
-
-
-            return new WebSocketFrame(fin,
-                                        mask,
-                                        maskingKey,
-                                        opcode,
-                                        payload,
-                                        rsv1,
-                                        rsv2,
-                                        rsv3);
-
-        }
+        #endregion
 
     }
-
 
 }

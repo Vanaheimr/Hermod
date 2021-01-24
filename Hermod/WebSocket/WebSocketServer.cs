@@ -29,231 +29,53 @@ using System.Threading;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
-    public class WebSocketConnection
+    /// <summary>
+    /// A web socket server.
+    /// </summary>
+    public class WebSocketServer
     {
 
         #region Data
 
-        private readonly Dictionary<String, String> httpHeaders;
+        private readonly List<WebSocketConnection>  webSocketConnections;
 
-        private readonly Dictionary<String, Object> customData;
+        private          Thread                     listenerThread;
+
+        private readonly CancellationTokenSource    cancellationTokenSource;
 
         #endregion
 
         #region Properties
 
-        public DateTime                                   Created                       { get; }
-
-        public CancellationTokenSource                    CancellationTokenSource       { get; }
-
-        public WebSocketServer                            WebSocketServer               { get; }
-
-        public TcpClient                                  TcpClient                     { get; }
-
-        public IPSocket                                   LocalSocket                   { get; }
-
-        public IPSocket                                   RemoteSocket                  { get; }
-
-        public String                                     HTTPMethod                    { get; internal set; }
-
-        public HTTPPath                                   HTTPPath                      { get; internal set; }
-
-        public String                                     HTTPVersion                   { get; internal set; }
+        public IEnumerable<WebSocketConnection> WebSocketConnections
+            => webSocketConnections;
 
 
-        public IEnumerable<KeyValuePair<String, String>>  HTTPHeaders
-                   => httpHeaders;
+        public IIPAddress IPAddress
+            => IPSocket.IPAddress;
+
+        public IPPort IPPort
+            => IPSocket.Port;
+
+        public IPSocket   IPSocket     { get; }
+
+        public DNSClient  DNSClient    { get; }
+
 
         #endregion
-
-        #region Constructor(s)
-
-        public WebSocketConnection(WebSocketServer                            WebSocketServer,
-                                   TcpClient                                  TcpClient,
-                                   IEnumerable<KeyValuePair<String, String>>  HTTPHeaders   = null,
-                                   IEnumerable<KeyValuePair<String, Object>>  CustomData    = null)
-        {
-
-            this.Created                  = DateTime.UtcNow;
-            this.CancellationTokenSource  = new CancellationTokenSource();
-            this.WebSocketServer          = WebSocketServer;
-            this.TcpClient                = TcpClient;
-            this.LocalSocket              = new IPSocket(TcpClient.Client.LocalEndPoint  as IPEndPoint);
-            this.RemoteSocket             = new IPSocket(TcpClient.Client.RemoteEndPoint as IPEndPoint);
-            this.httpHeaders              = HTTPHeaders != null
-                                                ? HTTPHeaders.ToDictionary(kvp => kvp.Key,
-                                                                           kvp => kvp.Value)
-                                                : new Dictionary<String, String>();
-            this.customData               = CustomData != null
-                                                ? CustomData. ToDictionary(kvp => kvp.Key,
-                                                                           kvp => kvp.Value)
-                                                : new Dictionary<String, Object>();
-
-        }
-
-        #endregion
-
-
-        internal void AddHTTPHeader(String  Key,
-                                    String  Value)
-        {
-
-            httpHeaders.Add(Key,
-                             Value);
-
-        }
-
-        public String GetHTTPHeader(String Key)
-        {
-
-            if (httpHeaders.TryGetValue(Key, out String Value))
-                return Value;
-
-            return "";
-
-        }
-
-
-
-        public void AddCustomData(String  Key,
-                                  Object  Value)
-        {
-
-            customData.Add(Key,
-                           Value);
-
-        }
-
-        public T GetCustomData<T>(String  Key)
-        {
-
-            if (customData.TryGetValue(Key, out Object data) && data is T dataT)
-                return dataT;
-
-            return default;
-
-        }
-
-        public T? TryGetCustomData<T>(String Key)
-            where T : struct
-        {
-
-            if (customData.TryGetValue(Key, out Object data) && data is T dataT)
-                return dataT;
-
-            return default;
-
-        }
-
-
-
-
-    }
-
-
-    public struct WebSocketMessageRespose
-    {
-
-        public DateTime        ResponseTimestamp    { get; }
-
-        public WebSocketFrame  Response             { get; }
-
-        public DateTime        RequestTimestamp     { get; }
-
-        public WebSocketFrame  Request              { get; }
-
-
-    }
-
-
-    public struct WebSocketTextMessageRespose
-    {
-
-        public DateTime  RequestTimestamp     { get; }
-
-        public String    Request              { get; }
-
-        public DateTime  ResponseTimestamp    { get; }
-
-        public String    Response             { get; }
-
-
-        public WebSocketTextMessageRespose(DateTime  RequestTimestamp,
-                                           String    Request,
-                                           DateTime  ResponseTimestamp,
-                                           String    Response)
-        {
-
-            this.RequestTimestamp   = RequestTimestamp;
-            this.Request            = Request;
-            this.ResponseTimestamp  = ResponseTimestamp;
-            this.Response           = Response;
-
-        }
-
-
-    }
-
-    public struct WebSocketBinaryMessageRespose
-    {
-
-        public DateTime  ResponseTimestamp    { get; }
-
-        public Byte[]    Response             { get; }
-
-        public DateTime  RequestTimestamp     { get; }
-
-        public Byte[]    Request              { get; }
-
-
-    }
-
-
-    public delegate Task                                 OnNewWebSocketConnectionDelegate(DateTime             Timestamp,
-                                                                                          WebSocketConnection  Sender,
-                                                                                          EventTracking_Id     EventTrackingId,
-                                                                                          CancellationToken    CancellationToken);
-
-    public delegate Task<WebSocketMessageRespose>        OnWebSocketMessageDelegate      (DateTime             Timestamp,
-                                                                                          WebSocketConnection  Sender,
-                                                                                          EventTracking_Id     EventTrackingId,
-                                                                                          CancellationToken    CancellationToken,
-                                                                                          WebSocketFrame       Message);
-
-    public delegate Task<WebSocketTextMessageRespose>    OnWebSocketTextMessageDelegate  (DateTime             Timestamp,
-                                                                                          WebSocketConnection  Sender,
-                                                                                          EventTracking_Id     EventTrackingId,
-                                                                                          CancellationToken    CancellationToken,
-                                                                                          String               TextMessage);
-
-    public delegate Task<WebSocketBinaryMessageRespose>  OnWebSocketBinaryMessageDelegate(DateTime             Timestamp,
-                                                                                          WebSocketConnection  Sender,
-                                                                                          EventTracking_Id     EventTrackingId,
-                                                                                          CancellationToken    CancellationToken,
-                                                                                          Byte[]               BinaryMessage);
-
-
-
-    public class WebSocketServer
-    {
-
-
-
-
-        public List<WebSocketConnection> WebSocketConnections = new List<WebSocketConnection>();
-
-
-
 
         #region Events
 
-        public event OnNewWebSocketConnectionDelegate  OnNewConnection;
+        public event OnNewTCPConnectionDelegate        OnNewTCPConnection;
+
+        public event OnNewWebSocketConnectionDelegate  OnNewWebSocketConnection;
 
         public event OnWebSocketMessageDelegate        OnMessage;
 
@@ -265,24 +87,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         public event OnWebSocketMessageDelegate        OnPongMessage;
 
-        public event OnWebSocketMessageDelegate        OnCloseMessage;
+        public event OnCloseMessageDelegate            OnCloseMessage;
+
+        #endregion
+
+        #region Constructor(s)
+
+        public WebSocketServer(IIPAddress  IPAddress   = null,
+                               IPPort?     Port        = null,
+                               DNSClient   DNSClient   = null,
+                               Boolean     AutoStart   = false)
+
+            : this(new IPSocket(IPAddress ?? IPv4Address.Any,
+                                Port      ?? IPPort.HTTP),
+                   DNSClient,
+                   AutoStart)
+
+        { }
+
+        public WebSocketServer(IPSocket   IPSocket,
+                               DNSClient  DNSClient   = null,
+                               Boolean    AutoStart   = false)
+        {
+
+            this.IPSocket                 = IPSocket;
+            this.DNSClient                = DNSClient;
+
+            this.webSocketConnections     = new List<WebSocketConnection>();
+            this.cancellationTokenSource  = new CancellationTokenSource();
+
+            if (AutoStart)
+                Start();
+
+        }
 
         #endregion
 
 
 
-
-        public WebSocketServer(System.Net.IPAddress  ip,
-                               Int32                 Port = 80)
+        public void Start()
         {
 
-            var ListenerThread = new Thread(() => {
+            listenerThread = new Thread(() => {
 
-                var cts    = new CancellationTokenSource();
-                var token  = cts.Token;
-                var server = new TcpListener(ip, Port);
+                var token  = cancellationTokenSource.Token;
+                var server = new TcpListener(IPSocket.ToIPEndPoint());
                 server.Start();
-                Console.WriteLine("web socket server has started on {0}:{1}, Waiting for a connection...", ip, Port);
+                DebugX.Log("WebSocket server has started on " + IPSocket.IPAddress + ":" + IPSocket.Port + "...");
 
                 while (!token.IsCancellationRequested)
                 {
@@ -295,19 +146,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         {
 
                             var WSConnection     = context as WebSocketConnection;
-                            WebSocketConnections.Add(WSConnection);
+                            webSocketConnections.Add(WSConnection);
                             var stream           = WSConnection.TcpClient.GetStream();
                             stream.ReadTimeout   = 20000;
                             stream.WriteTimeout  = 1000;
-                            var cts2             = new CancellationTokenSource();
-                            var token2           = cts.Token;
+                            var cts2             = CancellationTokenSource.CreateLinkedTokenSource(token);
+                            var token2           = cts2.Token;
 
-                            Console.WriteLine("A new client connected from " + WSConnection.TcpClient.Client.RemoteEndPoint.ToString());
+                            #region Send OnNewTCPConnection event
+
+                            try
+                            {
+
+                                var OnNewTCPConnectionLocal = OnNewTCPConnection;
+
+                                if (OnNewTCPConnectionLocal != null)
+                                {
+
+                                    var responseTask = OnNewTCPConnectionLocal(DateTime.UtcNow,
+                                                                               this,
+                                                                               WSConnection,
+                                                                               EventTracking_Id.New,
+                                                                               token2);
+
+                                    responseTask.Wait(TimeSpan.FromSeconds(10));
+
+                                }
+
+                            }
+                            catch (Exception e)
+                            {
+                                e.Log(nameof(WebSocketServer) + "." + nameof(OnNewTCPConnection));
+                            }
+
+                            #endregion
 
                             while (!token2.IsCancellationRequested)
                             {
 
-                                while (!stream.DataAvailable);
+                                while (!stream.DataAvailable);                //ToDo: Might be an infinite loop
                                 while (WSConnection.TcpClient.Available < 4); // match against "GET "
 
                                 var bytes = new Byte[WSConnection.TcpClient.Available];
@@ -315,10 +192,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                 var data  = Encoding.UTF8.GetString(bytes);
 
+                                #region Web socket handshake...
+
                                 if (data.StartsWith("GET "))
                                 {
 
-                                    Console.WriteLine("===== Handshaking from client =====\n{0}", data);
+                                    //Console.WriteLine("===== Handshaking from client =====\n{0}", data);
 
                                     var lines     = data.Split(new String[] { "\r\n" },
                                                                StringSplitOptions.None).
@@ -372,17 +251,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                     stream.Write(response, 0, response.Length);
 
-                                    OnNewConnection?.Invoke(DateTime.UtcNow,
-                                                            WSConnection,
-                                                            EventTracking_Id.New,
-                                                            token2).Wait();
+                                    #region Send OnNewWebSocketConnection event
+
+                                    try
+                                    {
+
+                                        var OnNewWebSocketConnectionLocal = OnNewWebSocketConnection;
+
+                                        if (OnNewWebSocketConnectionLocal != null)
+                                        {
+
+                                            var responseTask = OnNewWebSocketConnectionLocal(DateTime.UtcNow,
+                                                                                             this,
+                                                                                             WSConnection,
+                                                                                             EventTracking_Id.New,
+                                                                                             token2);
+
+                                            responseTask.Wait(TimeSpan.FromSeconds(10));
+
+                                        }
+
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        e.Log(nameof(WebSocketServer) + "." + nameof(OnNewTCPConnection));
+                                    }
+
+                                    #endregion
 
                                 }
+
+                                #endregion
+
+                                #region ...or web socket frame
 
                                 else
                                 {
 
-                                    var             frame             = WebSocketFrame.ParseFrame(bytes);
+                                    var             frame             = WebSocketFrame.Parse(bytes);
                                     var             eventTrackingId   = EventTracking_Id.New;
                                     WebSocketFrame  responseFrame     = null;
 
@@ -397,10 +303,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                         {
 
                                             var responseTask = OnMessageLocal(DateTime.UtcNow,
+                                                                              this,
                                                                               WSConnection,
+                                                                              frame,
                                                                               eventTrackingId,
-                                                                              token2,
-                                                                              frame);
+                                                                              token2);
 
                                             responseTask.Wait(TimeSpan.FromSeconds(60));
 
@@ -422,7 +329,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                     switch (frame.Opcode)
                                     {
 
-                                        #region Send OnTextMessage   event
+                                        #region Text   message
 
                                         case WebSocketFrame.Opcodes.Text:
 
@@ -435,10 +342,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 {
 
                                                     var responseTask = OnTextMessageLocal(DateTime.UtcNow,
+                                                                                          this,
                                                                                           WSConnection,
+                                                                                          frame.Payload.ToUTF8String(),
                                                                                           eventTrackingId,
-                                                                                          token2,
-                                                                                          frame.Payload.ToUTF8String());
+                                                                                          token2);
 
                                                     responseTask.Wait(TimeSpan.FromSeconds(60));
 
@@ -468,7 +376,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                         #endregion
 
-                                        #region Send OnBinaryMessage event
+                                        #region Binary message
 
                                         case WebSocketFrame.Opcodes.Binary:
 
@@ -481,10 +389,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 {
 
                                                     var responseTask = OnBinaryMessageLocal(DateTime.UtcNow,
+                                                                                            this,
                                                                                             WSConnection,
+                                                                                            frame.Payload,
                                                                                             eventTrackingId,
-                                                                                            token2,
-                                                                                            frame.Payload);
+                                                                                            token2);
 
                                                     responseTask.Wait(TimeSpan.FromSeconds(60));
 
@@ -514,95 +423,134 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                         #endregion
 
+                                        #region Ping   message
+
+                                        case WebSocketFrame.Opcodes.Ping:
+
+                                            try
+                                            {
+
+                                                //var OnCloseMessageLocal = OnCloseMessage;
+
+                                                //if (OnCloseMessageLocal != null)
+                                                //{
+
+                                                //    var responseTask = OnCloseMessageLocal(DateTime.UtcNow,
+                                                //                                           this,
+                                                //                                           WSConnection,
+                                                //                                           frame,
+                                                //                                           eventTrackingId,
+                                                //                                           token2);
+
+                                                //    responseTask.Wait(TimeSpan.FromSeconds(10));
+
+                                                //}
+
+                                            }
+                                            catch (Exception e)
+                                            {
+                                                e.Log(nameof(WebSocketServer) + "." + nameof(OnTextMessage));
+                                            }
+
+                                            break;
+
+                                        #endregion
+
+                                        #region Pong   message
+
+                                        case WebSocketFrame.Opcodes.Pong:
+
+                                            try
+                                            {
+
+                                                //var OnCloseMessageLocal = OnCloseMessage;
+
+                                                //if (OnCloseMessageLocal != null)
+                                                //{
+
+                                                //    var responseTask = OnCloseMessageLocal(DateTime.UtcNow,
+                                                //                                           this,
+                                                //                                           WSConnection,
+                                                //                                           frame,
+                                                //                                           eventTrackingId,
+                                                //                                           token2);
+
+                                                //    responseTask.Wait(TimeSpan.FromSeconds(10));
+
+                                                //}
+
+                                            }
+                                            catch (Exception e)
+                                            {
+                                                e.Log(nameof(WebSocketServer) + "." + nameof(OnTextMessage));
+                                            }
+
+                                            break;
+
+                                        #endregion
+
+                                        #region Close  message
+
+                                        case WebSocketFrame.Opcodes.Close:
+
+                                            try
+                                            {
+
+                                                webSocketConnections.Remove(WSConnection);
+
+                                                var OnCloseMessageLocal = OnCloseMessage;
+
+                                                if (OnCloseMessageLocal != null)
+                                                {
+
+                                                    var responseTask = OnCloseMessageLocal(DateTime.UtcNow,
+                                                                                           this,
+                                                                                           WSConnection,
+                                                                                           frame,
+                                                                                           eventTrackingId,
+                                                                                           token2);
+
+                                                    responseTask.Wait(TimeSpan.FromSeconds(10));
+
+                                                }
+
+                                            }
+                                            catch (Exception e)
+                                            {
+                                                e.Log(nameof(WebSocketServer) + "." + nameof(OnTextMessage));
+                                            }
+
+                                            break;
+
+                                        #endregion
+
                                     }
 
 
                                     if (responseFrame != null)
                                         stream.Write(responseFrame.ToByteArray());
 
-
-                                    //if (frame.Opcode == WebSocketFrame.Opcodes.Text)
+                                    //if (frame.Opcode.IsControl())
                                     //{
 
-                                    //    var text = Encoding.UTF8.GetString(frame.Payload);
+                                    //    if (frame.FIN    == WebSocketFrame.Fin.More)
+                                    //        Console.WriteLine(">>> A control frame is fragmented!");
 
-
-
-                                    //    Console.WriteLine("[" + client.Client.RemoteEndPoint.ToString() + " " +
-                                    //                            Thread.CurrentThread.ManagedThreadId + "] " +
-                                    //                      text);
-
-                                    //    Console.WriteLine();
-
-
-                                    //    var responseFrame1 = new WebSocketFrame(WebSocketFrame.Fin.Final,
-                                    //                                            WebSocketFrame.MaskStatus.Off,
-                                    //                                            new byte[4],
-                                    //                                            WebSocketFrame.Opcodes.Text,
-                                    //                                            ("Hello world!").ToUTF8Bytes(),
-                                    //                                            WebSocketFrame.Rsv.Off,
-                                    //                                            WebSocketFrame.Rsv.Off,
-                                    //                                            WebSocketFrame.Rsv.Off);
-
-                                    //    var response1 = responseFrame1.ToByteArray();
-
-                                    //    stream.Write(response1, 0, response1.Length);
-
-
-                                    //    var responseFrame2 = new WebSocketFrame(WebSocketFrame.Fin.Final,
-                                    //                                            WebSocketFrame.MaskStatus.Off,
-                                    //                                            new byte[4],
-                                    //                                            WebSocketFrame.Opcodes.Text,
-                                    //                                            ("Echo: >>>" + text + "<<<").ToUTF8Bytes(),
-                                    //                                            WebSocketFrame.Rsv.Off,
-                                    //                                            WebSocketFrame.Rsv.Off,
-                                    //                                            WebSocketFrame.Rsv.Off);
-
-                                    //    var response2 = responseFrame2.ToByteArray();
-
-                                    //    stream.Write(response2, 0, response2.Length);
+                                    //    if (frame.Payload.Length > 125)
+                                    //        Console.WriteLine("A control frame has too long payload length.");
 
                                     //}
 
-                                    if (frame.Opcode.IsControl())
-                                    {
-
-                                        if (frame.FIN    == WebSocketFrame.Fin.More)
-                                            Console.WriteLine(">>> A control frame is fragmented!");
-
-                                        if (frame.Opcode == WebSocketFrame.Opcodes.Close)
-                                        {
-
-                                            WebSocketConnections.Remove(WSConnection);
-
-                                            OnCloseMessage?.Invoke(DateTime.UtcNow,
-                                                                   WSConnection,
-                                                                   EventTracking_Id.New,
-                                                                   token2,
-                                                                   frame).Wait();
-
-                                        }
-
-                                        if (frame.Opcode == WebSocketFrame.Opcodes.Ping)
-                                            Console.WriteLine(">>> WebSocket ping!");
-
-                                        if (frame.Opcode == WebSocketFrame.Opcodes.Pong)
-                                            Console.WriteLine(">>> WebSocket pong!");
-
-
-                                        if (frame.Payload.Length > 125)
-                                            Console.WriteLine("A control frame has too long payload length.");
-
-                                    }
-
                                 }
+
+                                #endregion
 
                             }
 
                         }
                         catch (Exception e)
                         {
-                            Console.WriteLine("Exception in web socket client thread: " + e.Message + Environment.NewLine + e.StackTrace);
+                            DebugX.Log("Exception in web socket client thread: " + e.Message + Environment.NewLine + e.StackTrace);
                         }
 
                     },
@@ -610,9 +558,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 }
 
+                DebugX.Log("WebSocket server on " + IPSocket.IPAddress + ":" + IPSocket.Port + " stopped!");
+
             });
 
-            ListenerThread.Start();
+            listenerThread.Start();
 
         }
 
