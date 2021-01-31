@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2020, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2021, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,9 +31,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <summary>
     /// An IPv4 address.
     /// </summary>
-    public struct IPv4Address : IIPAddress,
-                                IComparable<IPv4Address>,
-                                IEquatable<IPv4Address>
+    public readonly struct IPv4Address : IIPAddress,
+                                         IComparable<IPv4Address>,
+                                         IEquatable<IPv4Address>
     {
 
         #region Data
@@ -91,6 +91,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public IPv4Address(System.Net.IPAddress IPAddress)
             : this(IPAddress.GetAddressBytes())
         { }
+
+        #endregion
+
+        #region IPv4Address(Int32)
+
+        /// <summary>
+        /// Generates a new IPv4Address based on the given Int32 representation.
+        /// </summary>
+        public IPv4Address(Int32 Int32)
+        {
+
+            IPAddressArray = new Byte[_Length] {
+                                     (Byte) ( Int32        & 0xFF),
+                                     (Byte) ((Int32 >>  8) & 0xFF),
+                                     (Byte) ((Int32 >> 16) & 0xFF),
+                                     (Byte) ( Int32 >> 24)
+                                 };
+
+        }
 
         #endregion
 
@@ -392,19 +411,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Compares two instances of this object.
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
-        /// <returns>true|false</returns>
         public Int32 CompareTo(Object Object)
-        {
 
-            if (Object == null)
-                throw new ArgumentNullException("The given object must not be null!");
-
-            if (!(Object is IPv4Address))
-                throw new ArgumentException("The given object is not an IPv4 address!");
-
-            return CompareTo((IPv4Address) Object);
-
-        }
+            => Object is IPv4Address ipAddress
+                   ? CompareTo(ipAddress)
+                   : throw new ArgumentException("The given object is not an IPv4 address!",
+                                                 nameof(Object));
 
         #endregion
 
@@ -474,17 +486,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Object">An object to compare with.</param>
         /// <returns>true|false</returns>
         public override Boolean Equals(Object Object)
-        {
 
-            if (Object == null)
-                return false;
-
-            if (!(Object is IPv4Address))
-                return false;
-
-            return Equals((IPv4Address) Object);
-
-        }
+            => Object is IPv4Address ipAddress &&
+                   Equals(ipAddress);
 
         #endregion
 

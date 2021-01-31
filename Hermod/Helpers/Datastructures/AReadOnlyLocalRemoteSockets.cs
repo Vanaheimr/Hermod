@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2020, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2021, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,100 +32,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
 
         #region Properties
 
-        #region LocalIPAddress
-
         /// <summary>
         /// The local IP address.
         /// </summary>
-        public IIPAddress LocalIPAddress
-        {
-            get
-            {
-                return _LocalSocket.IPAddress;
-            }
-        }
-
-        #endregion
-
-        #region LocalPort
+        public IIPAddress   LocalIPAddress
+            => LocalSocket.IPAddress;
 
         /// <summary>
         /// The local IP port.
         /// </summary>
-        public IPPort LocalPort
-        {
-            get
-            {
-                return LocalSocket.Port;
-            }
-        }
-
-        #endregion
-
-        #region LocalSocket
-
-        private readonly IPSocket _LocalSocket;
+        public IPPort       LocalPort
+            => LocalSocket.Port;
 
         /// <summary>
         /// The local socket.
         /// </summary>
-        public IPSocket LocalSocket
-        {
-            get
-            {
-                return _LocalSocket;
-            }
-        }
-
-        #endregion
+        public IPSocket     LocalSocket     { get; }
 
 
-        #region RemoteIPAddress
 
         /// <summary>
         /// The remote IP address.
         /// </summary>
-        public IIPAddress RemoteIPAddress
-        {
-            get
-            {
-                return _RemoteSocket.IPAddress;
-            }
-        }
-
-        #endregion
-
-        #region RemotePort
+        public IIPAddress   RemoteIPAddress
+            => RemoteSocket.IPAddress;
 
         /// <summary>
         /// The remote IP port.
         /// </summary>
-        public IPPort RemotePort
-        {
-            get
-            {
-                return _RemoteSocket.Port;
-            }
-        }
-
-        #endregion
-
-        #region RemoteSocket
-
-        private readonly IPSocket _RemoteSocket;
+        public IPPort       RemotePort
+            => RemoteSocket.Port;
 
         /// <summary>
         /// The remote socket.
         /// </summary>
-        public IPSocket RemoteSocket
-        {
-            get
-            {
-                return _RemoteSocket;
-            }
-        }
-
-        #endregion
+        public IPSocket     RemoteSocket    { get; }
 
         #endregion
 
@@ -138,22 +79,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
         /// <param name="RemoteSocket">The remote socket.</param>
         public AReadOnlyLocalRemoteSockets(IPSocket LocalSocket, IPSocket RemoteSocket)
         {
-            this._LocalSocket   = LocalSocket;
-            this._RemoteSocket  = RemoteSocket;
+            this.LocalSocket   = LocalSocket;
+            this.RemoteSocket  = RemoteSocket;
         }
 
         #endregion
 
-
-        #region IDisposable Members
-
-        /// <summary>
-        /// Dispose this packet.
-        /// </summary>
-        public virtual void Dispose()
-        { }
-
-        #endregion
 
         #region (override) ToString()
 
@@ -164,6 +95,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
         {
             return LocalSocket.ToString() + " [local] <-> " + RemoteSocket.ToString() + " [remote]";
         }
+
+        #endregion
+
+        #region IDisposable Members
+
+        /// <summary>
+        /// Dispose this packet.
+        /// </summary>
+        public virtual void Dispose()
+        { }
 
         #endregion
 
