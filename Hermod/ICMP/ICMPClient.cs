@@ -170,6 +170,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
             }
 
+            Socket.Close();
 
             var average         = replies.Select(timestamp => timestamp.TotalMilliseconds).AverageAndStdDev();
 
