@@ -2269,7 +2269,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         internal Handlers GetHandlers(HTTPRequest Request)
 
             => GetHandlers(Request.Host,
-                           Request.URL.IsNullOrEmpty() ? HTTPPath.Parse("/") : Request.URL,
+                           Request.Path.IsNullOrEmpty() ? HTTPPath.Parse("/") : Request.Path,
                            Request.HTTPMethod,
                            AvailableContentTypes => Request.Accept.BestMatchingContentType(AvailableContentTypes),
                            ParsedURLParameters   => Request.ParsedURLParameters = ParsedURLParameters.ToArray());

@@ -73,7 +73,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The minimal URL (this means e.g. without the query string).
         /// </summary>
-        public HTTPPath     URL                     { get; }
+        public HTTPPath     Path                     { get; }
 
         /// <summary>
         /// The parsed URL parameters of the best matching URL template.
@@ -102,7 +102,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public String       EntireRequestHeader
 
             => String.Concat(HTTPMethod, " ",
-                             FakeURLPrefix, URL, QueryString, " ",
+                             FakeURLPrefix, Path, QueryString, " ",
                              ProtocolName, "/", ProtocolVersion, "\r\n",
 
                              ConstructedHTTPHeader);
@@ -687,17 +687,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var RawUrl      = _HTTPMethodHeader[1];
             var _ParsedURL  = RawUrl.Split(_URLSeparator, 2, StringSplitOptions.None);
-            this.URL        = HTTPPath.Parse(HttpUtility.UrlDecode(_ParsedURL[0]));
+            this.Path        = HTTPPath.Parse(HttpUtility.UrlDecode(_ParsedURL[0]));
 
             //if (URL.StartsWith("http", StringComparison.Ordinal) || URL.StartsWith("https", StringComparison.Ordinal))
-            if (URL.Contains("://"))
+            if (Path.Contains("://"))
             {
-                URL = URL.Substring(URL.IndexOf("://", StringComparison.Ordinal) + 3);
-                URL = URL.Substring(URL.IndexOf("/",   StringComparison.Ordinal));
+                Path = Path.Substring(Path.IndexOf("://", StringComparison.Ordinal) + 3);
+                Path = Path.Substring(Path.IndexOf("/",   StringComparison.Ordinal));
             }
 
-            if (URL == "" || URL == null)
-                URL = HTTPPath.Parse("/");
+            if (Path == "" || Path == null)
+                Path = HTTPPath.Parse("/");
 
             // Parse QueryString after '?'
             if (RawUrl.IndexOf('?') > -1 && _ParsedURL[1].IsNeitherNullNorEmpty())
@@ -1240,7 +1240,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var _requests  = new ConcurrentBag<HTTPRequest>();
 
-            Parallel.ForEach(Directory.EnumerateFiles(Directory.GetCurrentDirectory() + Path.DirectorySeparatorChar + FilePath,
+            Parallel.ForEach(Directory.EnumerateFiles(Directory.GetCurrentDirectory() + System.IO.Path.DirectorySeparatorChar + FilePath,
                                                       FilePattern,
                                                       SearchOption.TopDirectoryOnly).
                                        OrderByDescending(file => file),
@@ -2027,7 +2027,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
              //   this.HTTPStatusCode   = OtherHTTPRequest.HTTPStatusCode;
                 this.HTTPServer       = Request.HTTPServer;
                 this.HTTPMethod       = Request.HTTPMethod;
-                this.Path              = Request.URL;
+                this.Path             = Request.Path;
                 this.QueryString      = Request.QueryString;
                 SetHeaderField(HTTPHeaderField.Accept, new AcceptTypes(Request.Accept.ToArray()));
                 this.ProtocolName     = Request.ProtocolName;

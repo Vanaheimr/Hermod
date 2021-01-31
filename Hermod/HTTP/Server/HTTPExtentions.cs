@@ -454,7 +454,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
-        public static HTTPResponse CreateBadRequest(HTTPRequest HTTPRequest, String Context, String ParameterName)
+        public static HTTPResponse.Builder CreateBadRequest(HTTPRequest HTTPRequest, String Context, String ParameterName)
         {
 
             return new HTTPResponse.Builder(HTTPRequest) {
@@ -466,7 +466,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
-        public static HTTPResponse CreateBadRequest(HTTPRequest HTTPRequest, String Context, String ParameterName, String Value)
+        public static HTTPResponse.Builder CreateBadRequest(HTTPRequest HTTPRequest, String Context, String ParameterName, String Value)
         {
 
             return new HTTPResponse.Builder(HTTPRequest) {
@@ -479,7 +479,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
-        public static HTTPResponse CreateNotFound(HTTPRequest HTTPRequest, String Context, String ParameterName, String Value)
+        public static HTTPResponse.Builder CreateNotFound(HTTPRequest HTTPRequest, String Context, String ParameterName, String Value)
         {
 
             return new HTTPResponse.Builder(HTTPRequest) {
