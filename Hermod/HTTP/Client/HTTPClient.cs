@@ -211,6 +211,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public event OnDataReadDelegate OnDataRead;
 
+
+
+        public delegate Task OnChunkDataReadDelegate(TimeSpan Timestamp, Int32 BytesRead);
+
+        public event OnChunkDataReadDelegate OnChunkDataRead;
+
+
+
+        public delegate Task OnChunkBlockFoundDelegate(TimeSpan Timestamp, Int32 BlockSize);
+
+        public event OnChunkBlockFoundDelegate OnChunkBlockFound;
+
         #endregion
 
         #region Constructor(s)
@@ -559,8 +571,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Create (Crypto-)Stream
 
-                TCPStream = new NetworkStream(TCPSocket, true);
-                TCPStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+                TCPStream = new NetworkStream(TCPSocket, true) {
+                                ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds
+                            };
 
                 TLSStream = RemoteCertificateValidator != null
 
@@ -568,12 +581,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  false,
                                                  RemoteCertificateValidator,
                                                  LocalCertificateSelector,
-                                                 EncryptionPolicy.RequireEncryption)
+                                                 EncryptionPolicy.RequireEncryption) {
+                                       ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds
+                                   }
 
                                  : null;
-
-                if (TLSStream != null)
-                    TLSStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
 
                 HTTPStream = null;
 
@@ -753,59 +765,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 else if (Response.TransferEncoding == "chunked")
                 {
 
-                    //var HTTPBodyStartsAt = HTTPHeaderBytes.Length + 4;
-
-                    //DebugX.Log("[HTTPClient] Chunked encoding detected");
-
                     try
                     {
 
-                        // Write the first buffer (without the HTTP header) to the HTTPBodyStream...
-                        //_InternalHTTPStream.Seek(HTTPBodyStartsAt, SeekOrigin.Begin);
                         Response.NewContentStream();
-                        var _ChunkedStream = new MemoryStream();
+                        var chunkedStream            = new MemoryStream();
+                        var chunkedDecodingFinished  = false;
 
-                        //_ChunkedStream.Write(_Buffer, 0, _InternalHTTPStream.Read(_Buffer, 0, _Buffer.Length));
-                        _ChunkedStream.Write(HTTPBodyBytes, 0, HTTPBodyBytes.Length);
-                        var ChunkedDecodingFinished = false;
-                        var ChunkedStreamLength = 0UL;
+                        // Write the first buffer (without the HTTP header) to the chunked stream...
+                        chunkedStream.Write(HTTPBodyBytes, 0, HTTPBodyBytes.Length);
 
                         do
                         {
 
-                            #region If more (new) data is available -> read it!
-
-                            do
-                            {
-
-                                while (TCPStream.DataAvailable)
-                                {
-
-                                    CurrentDataLength = HTTPStream.Read(_Buffer, 0, _Buffer.Length);
-
-                                    if (CurrentDataLength > 0)
-                                        _ChunkedStream.Write(_Buffer, 0, CurrentDataLength);
-
-                                    if (sw.ElapsedMilliseconds > HTTPStream.ReadTimeout)
-                                        throw new ApplicationException("HTTPClient timeout!");
-
-                                    Thread.Sleep(1);
-
-                                }
-
-                            } while ((UInt64)_ChunkedStream.Length == ChunkedStreamLength);
-
-                            ChunkedStreamLength = (UInt64)_ChunkedStream.Length;
-                            OnDataRead?.Invoke(sw.Elapsed, ChunkedStreamLength);
-
-                            #endregion
-
-                            var ChunkedBytes = _ChunkedStream.ToArray();
-                            var DecodedStream = new MemoryStream();
-                            var IsStatus_ReadBlockLength = true;
-                            var CurrentPosition = 0;
-                            var LastPos = 0;
-                            var NumberOfBlocks = 0;
+                            var ChunkedBytes              = chunkedStream.ToArray();
+                            var DecodedStream             = new MemoryStream();
+                            var IsStatus_ReadBlockLength  = true;
+                            var CurrentPosition           = 0;
+                            var LastPos                   = 0;
+                            var NumberOfBlocks            = 0;
 
                             do
                             {
@@ -819,14 +797,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     var BlockLength = ChunkedBytes.ReadTEBlockLength(LastPos,
                                                                                      CurrentPosition - LastPos - 2);
 
-                                    //Debug.WriteLine(DateTime.UtcNow + " Chunked encoded block of length " + BlockLength + " bytes detected");
+                                    OnChunkBlockFound?.Invoke(sw.Elapsed, BlockLength);
 
                                     #region End of stream reached...
 
                                     if (BlockLength == 0)
                                     {
                                         Response.ContentStreamToArray(DecodedStream);
-                                        ChunkedDecodingFinished = true;
+                                        chunkedDecodingFinished = true;
                                         break;
                                     }
 
@@ -866,10 +844,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                     else
                                     {
-                                        // Reaching this point means we need to read more
-                                        // data from the network stream and decode again!
 
-                                        //Debug.WriteLine(DateTime.UtcNow + " Chunked decoding restarted after reading " + NumberOfBlocks + " blocks!");
+                                        // Reaching this point means we need to read more data
+                                        // from the network stream and decode again!
+                                        do
+                                        {
+
+                                            CurrentDataLength = HTTPStream.Read(_Buffer, 0, _Buffer.Length);
+
+                                            OnChunkDataRead?.Invoke(sw.Elapsed, CurrentDataLength);
+
+                                            if (CurrentDataLength > 0)
+                                                chunkedStream.Write(_Buffer, 0, CurrentDataLength);
+
+                                            if (sw.ElapsedMilliseconds > HTTPStream.ReadTimeout)
+                                                throw new ApplicationException("HTTPClient timeout!");
+
+                                        } while (TCPStream.DataAvailable);
 
                                         break;
 
@@ -885,9 +876,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     CurrentPosition++;
                                 }
 
-                            } while (CurrentPosition < _ChunkedStream.Length);
+                            } while (CurrentPosition < chunkedStream.Length);
 
-                        } while (!ChunkedDecodingFinished);
+                        } while (!chunkedDecodingFinished);
 
                     }
                     catch (Exception e)
