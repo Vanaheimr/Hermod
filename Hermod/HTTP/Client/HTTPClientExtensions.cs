@@ -18,7 +18,7 @@
 #region Usings
 
 using System;
-using System.Threading;
+using System.Threading.Tasks;
 
 #endregion
 
@@ -33,237 +33,465 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         // RFC 2616 - HTTP/1.1
 
-        #region DELETE (this HTTPClient, URI = "/", BuilderAction = null)
+        #region DELETE (this HTTPClient, Path = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP DELETE request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="URI">An URL path.</param>
+        /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder DELETE(this HTTPClient              HTTPClient,
-                                                 HTTPPath                      URI,
-                                                 Action<HTTPRequest.Builder>  BuilderAction = null)
-        {
-            return HTTPClient.CreateRequest(HTTPMethod.DELETE, URI, BuilderAction);
-        }
+        public static Task<HTTPResponse> DELETE(this HTTPClient              HTTPClient,
+                                                HTTPPath                     Path,
+                                                Action<HTTPRequest.Builder>  BuilderAction = null)
+
+            =>  HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.DELETE,
+                                                                  Path,
+                                                                  BuilderAction));
+
+
+        /// <summary>
+        /// Create a new HTTP DELETE request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <returns>A HTTP request object.</returns>
+        public static HTTPRequest.Builder DELETERequest(this HTTPClient              HTTPClient,
+                                                        HTTPPath                     Path,
+                                                        Action<HTTPRequest.Builder>  BuilderAction = null)
+
+            => HTTPClient.CreateRequest(HTTPMethod.DELETE,
+                                        Path,
+                                        BuilderAction);
 
         #endregion
 
-        #region GET    (this HTTPClient, URI = "/", BuilderAction = null)
+        #region GET    (this HTTPClient, Path = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP GET request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="URI">An URL path.</param>
+        /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder GET(this HTTPClient              HTTPClient,
-                                              HTTPPath                      URI,
-                                              Action<HTTPRequest.Builder>  BuilderAction = null)
+        public static Task<HTTPResponse> GET(this HTTPClient              HTTPClient,
+                                             HTTPPath                     Path,
+                                             Action<HTTPRequest.Builder>  BuilderAction = null)
 
-            => HTTPClient.CreateRequest(HTTPMethod.GET, URI, BuilderAction);
+            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.GET,
+                                                                 Path,
+                                                                 BuilderAction));
+
+
+        /// <summary>
+        /// Create a new HTTP GET request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <returns>A HTTP request object.</returns>
+        public static HTTPRequest.Builder GETRequest(this HTTPClient              HTTPClient,
+                                                     HTTPPath                     Path,
+                                                     Action<HTTPRequest.Builder>  BuilderAction = null)
+
+            => HTTPClient.CreateRequest(HTTPMethod.GET,
+                                        Path,
+                                        BuilderAction);
 
         #endregion
 
-        #region COUNT  (this HTTPClient, URI = "/", BuilderAction = null)
+        #region COUNT  (this HTTPClient, Path = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP COUNT request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="URI">An URL path.</param>
+        /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder COUNT(this HTTPClient              HTTPClient,
-                                                HTTPPath                      URI,
-                                                Action<HTTPRequest.Builder>  BuilderAction = null)
+        public static Task<HTTPResponse> COUNT(this HTTPClient              HTTPClient,
+                                               HTTPPath                     Path,
+                                               Action<HTTPRequest.Builder>  BuilderAction = null)
 
-            => HTTPClient.CreateRequest(HTTPMethod.COUNT, URI, BuilderAction);
+            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.COUNT,
+                                                                 Path,
+                                                                 BuilderAction));
+
+
+        /// <summary>
+        /// Create a new HTTP COUNT request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <returns>A HTTP request object.</returns>
+        public static HTTPRequest.Builder COUNTRequest(this HTTPClient              HTTPClient,
+                                                       HTTPPath                     Path,
+                                                       Action<HTTPRequest.Builder>  BuilderAction = null)
+
+            => HTTPClient.CreateRequest(HTTPMethod.COUNT,
+                                        Path,
+                                        BuilderAction);
 
         #endregion
 
-        #region CREATE (this HTTPClient, URI = "/", BuilderAction = null)
+        #region CREATE (this HTTPClient, Path = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP CREATE request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="URI">An URL path.</param>
+        /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder CREATE(this HTTPClient              HTTPClient,
-                                                 HTTPPath                      URI,
-                                                 Action<HTTPRequest.Builder>  BuilderAction = null)
+        public static Task<HTTPResponse> CREATE(this HTTPClient              HTTPClient,
+                                                HTTPPath                     Path,
+                                                Action<HTTPRequest.Builder>  BuilderAction = null)
 
-            => HTTPClient.CreateRequest(HTTPMethod.CREATE, URI, BuilderAction);
+            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.CREATE,
+                                                                 Path,
+                                                                 BuilderAction));
+
+
+        /// <summary>
+        /// Create a new HTTP CREATE request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <returns>A HTTP request object.</returns>
+        public static HTTPRequest.Builder CREATERequest(this HTTPClient              HTTPClient,
+                                                        HTTPPath                     Path,
+                                                        Action<HTTPRequest.Builder>  BuilderAction = null)
+
+            => HTTPClient.CreateRequest(HTTPMethod.CREATE,
+                                        Path,
+                                        BuilderAction);
 
         #endregion
 
-        #region ADD    (this HTTPClient, URI = "/", BuilderAction = null)
+        #region ADD    (this HTTPClient, Path = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP ADD request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="URI">An URL path.</param>
+        /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder ADD(this HTTPClient              HTTPClient,
-                                              HTTPPath                      URI,
-                                              Action<HTTPRequest.Builder>  BuilderAction = null)
+        public static Task<HTTPResponse> ADD(this HTTPClient              HTTPClient,
+                                             HTTPPath                     Path,
+                                             Action<HTTPRequest.Builder>  BuilderAction = null)
 
-            => HTTPClient.CreateRequest(HTTPMethod.ADD, URI, BuilderAction);
+            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.ADD,
+                                                                 Path,
+                                                                 BuilderAction));
+
+
+        /// <summary>
+        /// Create a new HTTP ADD request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <returns>A HTTP request object.</returns>
+        public static HTTPRequest.Builder ADDRequest(this HTTPClient              HTTPClient,
+                                                     HTTPPath                     Path,
+                                                     Action<HTTPRequest.Builder>  BuilderAction = null)
+
+            => HTTPClient.CreateRequest(HTTPMethod.ADD,
+                                        Path,
+                                        BuilderAction);
 
         #endregion
 
-        #region SET    (this HTTPClient, URI = "/", BuilderAction = null)
+        #region SET    (this HTTPClient, Path = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP SET request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="URI">An URL path.</param>
+        /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder SET(this HTTPClient              HTTPClient,
-                                              HTTPPath                      URI,
-                                              Action<HTTPRequest.Builder>  BuilderAction = null)
+        public static Task<HTTPResponse> SET(this HTTPClient              HTTPClient,
+                                             HTTPPath                     Path,
+                                             Action<HTTPRequest.Builder>  BuilderAction = null)
 
-            => HTTPClient.CreateRequest(HTTPMethod.SET, URI, BuilderAction);
+            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.SET,
+                                                                 Path,
+                                                                 BuilderAction));
 
-        #endregion
-
-        #region CREATE (this HTTPClient, URI = "/")
 
         /// <summary>
-        /// Create a new HTTP CREATE request.
+        /// Create a new HTTP SET request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="URI">An URL path.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder CREATE(this HTTPClient  HTTPClient,
-                                                 HTTPPath          URI)
+        public static HTTPRequest.Builder SETRequest(this HTTPClient              HTTPClient,
+                                                     HTTPPath                     Path,
+                                                     Action<HTTPRequest.Builder>  BuilderAction = null)
 
-            => HTTPClient.CreateRequest(HTTPMethod.CREATE, URI);
+            => HTTPClient.CreateRequest(HTTPMethod.SET,
+                                        Path,
+                                        BuilderAction);
 
         #endregion
 
-        #region HEAD   (this HTTPClient, URI = "/")
+        #region HEAD   (this HTTPClient, Path = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP HEAD request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="URI">An URL path.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder HEAD(this HTTPClient  HTTPClient,
-                                               HTTPPath          URI)
+        public static Task<HTTPResponse> HEAD(this HTTPClient              HTTPClient,
+                                              HTTPPath                     Path,
+                                              Action<HTTPRequest.Builder>  BuilderAction = null)
 
-            => HTTPClient.CreateRequest(HTTPMethod.HEAD, URI);
+            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.HEAD,
+                                                                 Path,
+                                                                 BuilderAction));
+
+
+        /// <summary>
+        /// Create a new HTTP HEAD request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <returns>A HTTP request object.</returns>
+        public static HTTPRequest.Builder HEADRequest(this HTTPClient              HTTPClient,
+                                                      HTTPPath                     Path,
+                                                      Action<HTTPRequest.Builder>  BuilderAction = null)
+
+            => HTTPClient.CreateRequest(HTTPMethod.HEAD,
+                                        Path,
+                                        BuilderAction);
 
         #endregion
 
-        #region OPTIONS(this HTTPClient, URI = "/")
+        #region OPTIONS(this HTTPClient, Path = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP OPTIONS request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="URI">An URL path.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder OPTIONS(this HTTPClient  HTTPClient,
-                                                  HTTPPath          URI)
+        public static Task<HTTPResponse> OPTIONS(this HTTPClient              HTTPClient,
+                                                 HTTPPath                     Path,
+                                                 Action<HTTPRequest.Builder>  BuilderAction = null)
 
-            => HTTPClient.CreateRequest(HTTPMethod.OPTIONS, URI);
+            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.OPTIONS,
+                                                                 Path,
+                                                                 BuilderAction));
+
+
+        /// <summary>
+        /// Create a new HTTP OPTIONS request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <returns>A HTTP request object.</returns>
+        public static HTTPRequest.Builder OPTIONSRequest(this HTTPClient              HTTPClient,
+                                                         HTTPPath                     Path,
+                                                         Action<HTTPRequest.Builder>  BuilderAction = null)
+
+            => HTTPClient.CreateRequest(HTTPMethod.OPTIONS,
+                                        Path,
+                                        BuilderAction);
 
         #endregion
 
-        #region POST   (this HTTPClient, URI = "/", BuilderAction = null)
+        #region POST   (this HTTPClient, Path = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP POST request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="URI">An URL path.</param>
+        /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder POST(this HTTPClient              HTTPClient,
-                                               HTTPPath                      URI,
-                                               Action<HTTPRequest.Builder>  BuilderAction = null)
+        public static Task<HTTPResponse> POST(this HTTPClient              HTTPClient,
+                                              HTTPPath                     Path,
+                                              Action<HTTPRequest.Builder>  BuilderAction = null)
 
-            => HTTPClient.
-                   CreateRequest(HTTPMethod.POST, URI, BuilderAction).
-                   // Always send a Content-Length header, even when it's value is zero
-                   SetContentLength(0);
+            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.POST,
+                                                                 Path,
+                                                                 BuilderAction).
+                                                   // Always send a Content-Length header, even when it's value is zero!
+                                                   SetContentLength(0));
+
+
+        /// <summary>
+        /// Create a new HTTP POST request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <returns>A HTTP request object.</returns>
+        public static HTTPRequest.Builder POSTRequest(this HTTPClient              HTTPClient,
+                                                      HTTPPath                     Path,
+                                                      Action<HTTPRequest.Builder>  BuilderAction = null)
+
+            => HTTPClient.CreateRequest(HTTPMethod.POST,
+                                        Path,
+                                        BuilderAction).
+                          // Always send a Content-Length header, even when it's value is zero!
+                          SetContentLength(0);
 
         #endregion
 
-        #region PUT    (this HTTPClient, URI = "/")
+        #region PUT    (this HTTPClient, Path = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP PUT request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="URI">An URL path.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder PUT(this HTTPClient              HTTPClient,
-                                              HTTPPath                      URI,
-                                              Action<HTTPRequest.Builder>  BuilderAction = null)
+        public static Task<HTTPResponse> PUT(this HTTPClient              HTTPClient,
+                                             HTTPPath                     Path,
+                                             Action<HTTPRequest.Builder>  BuilderAction = null)
 
-            => HTTPClient.CreateRequest(HTTPMethod.PUT, URI, BuilderAction);
+            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.PUT,
+                                                                 Path,
+                                                                 BuilderAction));
+
+
+        /// <summary>
+        /// Create a new HTTP PUT request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <returns>A HTTP request object.</returns>
+        public static HTTPRequest.Builder PUTRequest(this HTTPClient              HTTPClient,
+                                                     HTTPPath                     Path,
+                                                     Action<HTTPRequest.Builder>  BuilderAction = null)
+
+            => HTTPClient.CreateRequest(HTTPMethod.PUT,
+                                        Path,
+                                        BuilderAction);
 
         #endregion
 
-        #region TRACE  (this HTTPClient, URI = "/")
+        #region TRACE  (this HTTPClient, Path = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP TRACE request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="URI">An URL path.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder TRACE(this HTTPClient  HTTPClient,
-                                                HTTPPath          URI)
+        public static Task<HTTPResponse> TRACE(this HTTPClient              HTTPClient,
+                                               HTTPPath                     Path,
+                                               Action<HTTPRequest.Builder>  BuilderAction = null)
 
-            => HTTPClient.CreateRequest(HTTPMethod.TRACE, URI);
+            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.TRACE,
+                                                                 Path,
+                                                                 BuilderAction));
+
+
+        /// <summary>
+        /// Create a new HTTP TRACE request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <returns>A HTTP request object.</returns>
+        public static HTTPRequest.Builder TRACERequest(this HTTPClient              HTTPClient,
+                                                       HTTPPath                     Path,
+                                                       Action<HTTPRequest.Builder>  BuilderAction = null)
+
+            => HTTPClient.CreateRequest(HTTPMethod.TRACE,
+                                        Path,
+                                        BuilderAction);
 
         #endregion
 
 
         // Additional methods
 
-        #region PATCH   (this HTTPClient, URI = "/", BuilderAction = null)
+        #region PATCH   (this HTTPClient, Path = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP PATCH request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="URI">An URL path.</param>
+        /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder PATCH(this HTTPClient              HTTPClient,
-                                                HTTPPath                      URI,
-                                                Action<HTTPRequest.Builder>  BuilderAction = null)
+        public static Task<HTTPResponse> PATCH(this HTTPClient              HTTPClient,
+                                               HTTPPath                     Path,
+                                               Action<HTTPRequest.Builder>  BuilderAction = null)
 
-            => HTTPClient.CreateRequest(HTTPMethod.PATCH, URI, BuilderAction);
+            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.PATCH,
+                                                                 Path,
+                                                                 BuilderAction));
+
+
+        /// <summary>
+        /// Create a new HTTP PATCH request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <returns>A HTTP request object.</returns>
+        public static HTTPRequest.Builder PATCHRequest(this HTTPClient              HTTPClient,
+                                                       HTTPPath                     Path,
+                                                       Action<HTTPRequest.Builder>  BuilderAction = null)
+
+            => HTTPClient.CreateRequest(HTTPMethod.PATCH,
+                                        Path,
+                                        BuilderAction);
 
         #endregion
 
-        #region TRAVERSE(this HTTPClient, URI = "/")
+        #region TRAVERSE(this HTTPClient, Path = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP TRAVERSE request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="URI">An URL path.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder TRAVERSE(this HTTPClient  HTTPClient,
-                                                   HTTPPath          URI)
+        public static Task<HTTPResponse> TRAVERSE(this HTTPClient              HTTPClient,
+                                                  HTTPPath                     Path,
+                                                  Action<HTTPRequest.Builder>  BuilderAction = null)
 
-            => HTTPClient.CreateRequest(HTTPMethod.TRAVERSE, URI);
+            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.TRAVERSE,
+                                                                 Path,
+                                                                 BuilderAction));
+
+
+        /// <summary>
+        /// Create a new HTTP TRAVERSE request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <returns>A HTTP request object.</returns>
+        public static HTTPRequest.Builder TRAVERSERequest(this HTTPClient              HTTPClient,
+                                                          HTTPPath                     Path,
+                                                          Action<HTTPRequest.Builder>  BuilderAction = null)
+
+            => HTTPClient.CreateRequest(HTTPMethod.TRAVERSE,
+                                        Path,
+                                        BuilderAction);
 
         #endregion
 

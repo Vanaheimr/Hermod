@@ -93,7 +93,11 @@ namespace org.GraphDefined.Vanaheimr.Warden
             this._Properties       = new WardenProperties();
 
             ServiceCheckLock       = new Object();
-            ServiceCheckTimer      = new Timer(RunWardenChecks, null, this.InitialDelay, this.CheckEvery);
+
+            ServiceCheckTimer      = new Timer(RunWardenChecks,
+                                               null,
+                                               this.InitialDelay,
+                                               this.CheckEvery);
 
         }
 
