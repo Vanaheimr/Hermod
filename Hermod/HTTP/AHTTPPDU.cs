@@ -1112,7 +1112,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
                _HTTPBody   = new Byte[(Int32) ContentLength.Value];
-            var Buffer     = new Byte[16*1024*1024]; //ToDo: Make the HTTP Body read buffer more flexible!
+            var Buffer     = new Byte[64*1024]; //ToDo: Make the HTTP Body read buffer more flexible!
             var Read       = 0;
             var Position   = 0;
 

@@ -20,6 +20,8 @@
 using System;
 using System.Linq;
 
+using org.GraphDefined.Vanaheimr.Illias;
+
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
@@ -192,9 +194,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// HTTP methods
     /// </summary>
-    public struct HTTPMethod : IEquatable<HTTPMethod>,
-                               IComparable<HTTPMethod>,
-                               IComparable
+    public readonly struct HTTPMethod : IEquatable<HTTPMethod>,
+                                        IComparable<HTTPMethod>,
+                                        IComparable
     {
 
         #region Properties
@@ -202,23 +204,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The name of the HTTP method.
         /// </summary>
-        public String  MethodName   { get; }
+        public String   MethodName      { get; }
 
         /// <summary>
         /// IsSafe
         /// </summary>
-        public Boolean IsSafe       { get; }
+        public Boolean  IsSafe          { get; }
 
         /// <summary>
         /// This HTTP methods has no side-effects for N > 0 identical
         /// requests, as it is the same as for a single request.
         /// </summary>
-        public Boolean IsIdempotent { get; }
+        public Boolean  IsIdempotent    { get; }
 
         /// <summary>
         /// The description of this HTTP method.
         /// </summary>
-        public String  Description  { get; }
+        public String   Description     { get; }
+
+
+        /// <summary>
+        /// Indicates whether this HTTP method is null or empty.
+        /// </summary>
+        public Boolean IsNullOrEmpty
+
+            => MethodName.IsNullOrEmpty();
+
+        /// <summary>
+        /// The length of the HTTP method.
+        /// </summary>
+        public UInt64 Length
+
+            => (UInt64) (MethodName?.Length ?? 0);
 
         #endregion
 
@@ -466,8 +483,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region Tools
-
         #region ParseEnum  (HTTPMethodsEnum)
 
         /// <summary>
@@ -561,34 +576,96 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #endregion
-
 
         #region Operator overloading
 
         #region Operator == (HTTPMethod1, HTTPMethod2)
 
-        public static Boolean operator == (HTTPMethod HTTPMethod1, HTTPMethod HTTPMethod2)
-        {
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPMethod1">A HTTP method.</param>
+        /// <param name="HTTPMethod2">Another HTTP method.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator == (HTTPMethod HTTPMethod1,
+                                           HTTPMethod HTTPMethod2)
 
-            // If both are null, or both are same instance, return true.
-            if (Object.ReferenceEquals(HTTPMethod1, HTTPMethod2))
-                return true;
-
-            // If one is null, but not both, return false.
-            if (((Object) HTTPMethod1 == null) || ((Object) HTTPMethod2 == null))
-                return false;
-
-            return HTTPMethod1.Equals(HTTPMethod2);
-
-        }
+            => HTTPMethod1.Equals(HTTPMethod2);
 
         #endregion
 
-        #region Operator != (myHTTPMethod1, myHTTPMethod2)
+        #region Operator != (HTTPMethod1, HTTPMethod2)
 
-        public static Boolean operator != (HTTPMethod myHTTPMethod1, HTTPMethod myHTTPMethod2)
-            => !(myHTTPMethod1 == myHTTPMethod2);
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPMethod1">A HTTP method.</param>
+        /// <param name="HTTPMethod2">Another HTTP method.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator != (HTTPMethod HTTPMethod1,
+                                           HTTPMethod HTTPMethod2)
+
+            => !(HTTPMethod1 == HTTPMethod2);
+
+        #endregion
+
+        #region Operator <  (HTTPMethod1, HTTPMethod2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPMethod1">A HTTP method.</param>
+        /// <param name="HTTPMethod2">Another HTTP method.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator < (HTTPMethod HTTPMethod1,
+                                          HTTPMethod HTTPMethod2)
+
+            => HTTPMethod1.CompareTo(HTTPMethod2) < 0;
+
+        #endregion
+
+        #region Operator <= (HTTPMethod1, HTTPMethod2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPMethod1">A HTTP method.</param>
+        /// <param name="HTTPMethod2">Another HTTP method.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator <= (HTTPMethod HTTPMethod1,
+                                           HTTPMethod HTTPMethod2)
+
+            => !(HTTPMethod1 > HTTPMethod2);
+
+        #endregion
+
+        #region Operator >  (HTTPMethod1, HTTPMethod2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPMethod1">A HTTP method.</param>
+        /// <param name="HTTPMethod2">Another HTTP method.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator > (HTTPMethod HTTPMethod1,
+                                          HTTPMethod HTTPMethod2)
+
+            => HTTPMethod1.CompareTo(HTTPMethod2) > 0;
+
+        #endregion
+
+        #region Operator >= (HTTPMethod1, HTTPMethod2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPMethod1">A HTTP method.</param>
+        /// <param name="HTTPMethod2">Another HTTP method.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator >= (HTTPMethod HTTPMethod1,
+                                           HTTPMethod HTTPMethod2)
+
+            => !(HTTPMethod1 < HTTPMethod2);
 
         #endregion
 
@@ -603,17 +680,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
         public Int32 CompareTo(Object Object)
-        {
 
-            if (Object == null)
-                throw new ArgumentNullException("The given object must not be null!");
-
-            if (!(Object is HTTPMethod))
-                throw new ArgumentException("The given object is not a HTTPMethod!");
-
-            return CompareTo((HTTPMethod) Object);
-
-        }
+            => Object is HTTPMethod httpMethod
+                   ? CompareTo(httpMethod)
+                   : throw new ArgumentException("The given object is not a HTTP method!",
+                                                 nameof(Object));
 
         #endregion
 
@@ -624,14 +695,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPMethod">An object to compare with.</param>
         public Int32 CompareTo(HTTPMethod HTTPMethod)
-        {
 
-            if ((Object) HTTPMethod == null)
-                throw new ArgumentNullException("The given HTTPMethod must not be null!");
-
-            return MethodName.CompareTo(HTTPMethod.MethodName);
-
-        }
+            => String.Compare(MethodName,
+                              HTTPMethod.MethodName,
+                              StringComparison.OrdinalIgnoreCase);
 
         #endregion
 
@@ -647,17 +714,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Object">An object to compare with.</param>
         /// <returns>true|false</returns>
         public override Boolean Equals(Object Object)
-        {
 
-            if (Object == null)
-                return false;
-
-            if (!(Object is HTTPMethod))
-                return false;
-
-            return Equals((HTTPMethod) Object);
-
-        }
+            => Object is HTTPMethod httpMethod &&
+                   Equals(httpMethod);
 
         #endregion
 
@@ -666,17 +725,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTPMethod for equality.
         /// </summary>
-        /// <param name="HTTPMethod">An HTTPMethod to compare with.</param>
+        /// <param name="HTTPMethod">A HTTPMethod to compare with.</param>
         /// <returns>True if both match; False otherwise.</returns>
         public Boolean Equals(HTTPMethod HTTPMethod)
-        {
 
-            if ((Object) HTTPMethod == null)
-                return false;
-
-            return MethodName == HTTPMethod.MethodName;
-
-        }
+            => String.Equals(MethodName,
+                             HTTPMethod.MethodName,
+                             StringComparison.OrdinalIgnoreCase);
 
         #endregion
 
@@ -689,6 +744,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
+
             => MethodName.GetHashCode();
 
         #endregion
@@ -699,6 +755,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
+
             => MethodName;
 
         #endregion
