@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2020, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2021, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -150,7 +150,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
 
             #endregion
 
-            var _RequestBuilder = this.POST(URLPrefix);
+            var _RequestBuilder = this.POSTRequest(URLPrefix);
             _RequestBuilder.Host               = VirtualHostname ?? Hostname;
             _RequestBuilder.Content            = JSONRequest.ToUTF8Bytes();
             _RequestBuilder.ContentType        = HTTPContentType.JSON_UTF8;

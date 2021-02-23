@@ -67,7 +67,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                          Request.RawHTTPHeader +
                                                                          Environment.NewLine + Environment.NewLine +
                                                                          "Method => "         + Request.HTTPMethod      + Environment.NewLine +
-                                                                         "URL => "            + Request.URL.ToString()  + Environment.NewLine +
+                                                                         "URL => "            + Request.Path.ToString()  + Environment.NewLine +
                                                                          "QueryString => "    + Request.QueryString     + Environment.NewLine +
                                                                          "Protocol => "       + Request.ProtocolName    + Environment.NewLine +
                                                                          "Version => "        + Request.ProtocolVersion + Environment.NewLine).ToUTF8Bytes()

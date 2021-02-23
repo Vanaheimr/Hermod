@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2020, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2021, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -141,6 +141,219 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
             => Warden.Check((timestamp, serviceproperties) => TimeCheck(timestamp),
                             SleepTime,
+                            Entity,
+                            ServiceChecker,
+                            ResultConsumers);
+
+        #endregion
+
+
+        #region EverySeconds(...)
+
+        public static Warden EverySeconds(this Warden                              Warden,
+                                          UInt16                                   Seconds,
+                                          Func<DateTime, CancellationToken, Task>  ServiceChecker)
+
+            => Warden.EverySeconds(Seconds,
+                                   0,
+                                   ServiceChecker);
+
+        public static Warden EverySeconds(this Warden                              Warden,
+                                          UInt16                                   Seconds,
+                                          UInt16                                   Offset,
+                                          Func<DateTime, CancellationToken, Task>  ServiceChecker)
+
+            => Warden.Check(timestamp => timestamp.Minute % Seconds == Offset,
+                            TimeSpan.FromSeconds(1),
+                            ServiceChecker);
+
+        public static Warden EverySeconds(this Warden                              Warden,
+                                          UInt16                                   Seconds,
+                                          PropertyCheckDelegate                    PropertyChecker,
+                                          Func<DateTime, CancellationToken, Task>  ServiceChecker)
+
+            => Warden.EverySeconds(Seconds,
+                                   0,
+                                   PropertyChecker,
+                                   ServiceChecker);
+
+        public static Warden EverySeconds(this Warden                              Warden,
+                                          UInt16                                   Seconds,
+                                          UInt16                                   Offset,
+                                          PropertyCheckDelegate                    PropertyChecker,
+                                          Func<DateTime, CancellationToken, Task>  ServiceChecker)
+
+            => Warden.Check((timestamp, properties) => timestamp.Minute % Seconds == Offset && (PropertyChecker?.Invoke(properties) ?? false),
+                            TimeSpan.FromSeconds(1),
+                            ServiceChecker);
+
+        #endregion
+
+        #region EverySeconds(...Entity)
+
+        public static Warden EverySeconds<TEntity>(this Warden                                       Warden,
+                                                   UInt16                                            Seconds,
+                                                   TEntity                                           Entity,
+                                                   Func<DateTime, TEntity, CancellationToken, Task>  ServiceChecker)
+
+            where TEntity : class
+
+            => Warden.EverySeconds(Seconds,
+                                   0,
+                                   Entity,
+                                   ServiceChecker);
+
+        public static Warden EverySeconds<TEntity>(this Warden                                       Warden,
+                                                   UInt16                                            Seconds,
+                                                   UInt16                                            Offset,
+                                                   TEntity                                           Entity,
+                                                   Func<DateTime, TEntity, CancellationToken, Task>  ServiceChecker)
+
+            where TEntity : class
+
+            => Warden.Check(timestamp => timestamp.Minute % Seconds == Offset,
+                            TimeSpan.FromSeconds(1),
+                            Entity,
+                            ServiceChecker);
+
+        public static Warden EverySeconds<TEntity>(this Warden                                       Warden,
+                                                   UInt16                                            Seconds,
+                                                   PropertyCheckDelegate                             PropertyChecker,
+                                                   TEntity                                           Entity,
+                                                   Func<DateTime, TEntity, CancellationToken, Task>  ServiceChecker)
+
+            where TEntity : class
+
+            => Warden.EverySeconds(Seconds,
+                                   0,
+                                   PropertyChecker,
+                                   Entity,
+                                   ServiceChecker);
+
+        public static Warden EverySeconds<TEntity>(this Warden                                       Warden,
+                                                   UInt16                                            Seconds,
+                                                   UInt16                                            Offset,
+                                                   PropertyCheckDelegate                             PropertyChecker,
+                                                   TEntity                                           Entity,
+                                                   Func<DateTime, TEntity, CancellationToken, Task>  ServiceChecker)
+
+            where TEntity : class
+
+            => Warden.Check((timestamp, properties) => timestamp.Minute % Seconds == Offset && (PropertyChecker?.Invoke(properties) ?? false),
+                            TimeSpan.FromSeconds(1),
+                            Entity,
+                            ServiceChecker);
+
+        #endregion
+
+        #region EverySeconds(..., ResultConsumers)
+
+        public static Warden EverySeconds<TResult>(this Warden                                       Warden,
+                                                   UInt16                                            Seconds,
+                                                   Func<DateTime, CancellationToken, Task<TResult>>  ServiceChecker,
+                                                   params Action<TResult>[]                          ResultConsumers)
+
+            => Warden.EverySeconds(Seconds,
+                                   0,
+                                   ServiceChecker,
+                                   ResultConsumers);
+
+        public static Warden EverySeconds<TResult>(this Warden                                       Warden,
+                                                   UInt16                                            Seconds,
+                                                   UInt16                                            Offset,
+                                                   Func<DateTime, CancellationToken, Task<TResult>>  ServiceChecker,
+                                                   params Action<TResult>[]                          ResultConsumers)
+
+            => Warden.Check(timestamp => timestamp.Minute % Seconds == Offset,
+                            TimeSpan.FromSeconds(1),
+                            ServiceChecker,
+                            ResultConsumers);
+
+        public static Warden EverySeconds<TResult>(this Warden                                       Warden,
+                                                   UInt16                                            Seconds,
+                                                   PropertyCheckDelegate                             PropertyChecker,
+                                                   Func<DateTime, CancellationToken, Task<TResult>>  ServiceChecker,
+                                                   params Action<TResult>[]                          ResultConsumers)
+
+            => Warden.EverySeconds(Seconds,
+                                   0,
+                                   PropertyChecker,
+                                   ServiceChecker,
+                                   ResultConsumers);
+
+        public static Warden EverySeconds<TResult>(this Warden                                       Warden,
+                                                   UInt16                                            Seconds,
+                                                   UInt16                                            Offset,
+                                                   PropertyCheckDelegate                             PropertyChecker,
+                                                   Func<DateTime, CancellationToken, Task<TResult>>  ServiceChecker,
+                                                   params Action<TResult>[]                          ResultConsumers)
+
+            => Warden.Check((timestamp, properties) => timestamp.Minute % Seconds == Offset && (PropertyChecker?.Invoke(properties) ?? false),
+                            TimeSpan.FromSeconds(1),
+                            ServiceChecker,
+                            ResultConsumers);
+
+        #endregion
+
+        #region EverySeconds(...Entity, ..., ResultConsumers)
+
+        public static Warden EverySeconds<TEntity, TResult>(this Warden                                                Warden,
+                                                            UInt16                                                     Seconds,
+                                                            TEntity                                                    Entity,
+                                                            Func<DateTime, TEntity, CancellationToken, Task<TResult>>  ServiceChecker,
+                                                            params Action<TEntity, TResult>[]                          ResultConsumers)
+
+            where TEntity : class
+
+            => Warden.EverySeconds(Seconds,
+                                   0,
+                                   Entity,
+                                   ServiceChecker,
+                                   ResultConsumers);
+
+        public static Warden EverySeconds<TEntity, TResult>(this Warden                                                Warden,
+                                                            UInt16                                                     Seconds,
+                                                            UInt16                                                     Offset,
+                                                            TEntity                                                    Entity,
+                                                            Func<DateTime, TEntity, CancellationToken, Task<TResult>>  ServiceChecker,
+                                                            params Action<TEntity, TResult>[]                          ResultConsumers)
+
+            where TEntity : class
+
+            => Warden.Check(timestamp => timestamp.Second % Seconds == Offset,
+                            TimeSpan.FromSeconds(1),
+                            Entity,
+                            ServiceChecker,
+                            ResultConsumers);
+
+        public static Warden EverySeconds<TEntity, TResult>(this Warden                                                Warden,
+                                                            UInt16                                                     Seconds,
+                                                            PropertyCheckDelegate                                      PropertyChecker,
+                                                            TEntity                                                    Entity,
+                                                            Func<DateTime, TEntity, CancellationToken, Task<TResult>>  ServiceChecker,
+                                                            params Action<TEntity, TResult>[]                          ResultConsumers)
+
+            where TEntity : class
+
+            => Warden.EverySeconds(Seconds,
+                                   0,
+                                   PropertyChecker,
+                                   Entity,
+                                   ServiceChecker,
+                                   ResultConsumers);
+
+        public static Warden EverySeconds<TEntity, TResult>(this Warden                                                Warden,
+                                                            UInt16                                                     Seconds,
+                                                            UInt16                                                     Offset,
+                                                            PropertyCheckDelegate                                      PropertyChecker,
+                                                            TEntity                                                    Entity,
+                                                            Func<DateTime, TEntity, CancellationToken, Task<TResult>>  ServiceChecker,
+                                                            params Action<TEntity, TResult>[]                          ResultConsumers)
+
+            where TEntity : class
+
+            => Warden.Check((timestamp, properties) => timestamp.Second % Seconds == Offset && (PropertyChecker?.Invoke(properties) ?? false),
+                            TimeSpan.FromSeconds(1),
                             Entity,
                             ServiceChecker,
                             ResultConsumers);
@@ -572,7 +785,6 @@ namespace org.GraphDefined.Vanaheimr.Warden
                             ResultConsumers);
 
         #endregion
-
 
     }
 

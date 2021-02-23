@@ -10,7 +10,8 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>org.GraphDefined.Vanaheimr.Hermod</RootNamespace>
     <AssemblyName>Vanaheimr.Hermod</AssemblyName>
-    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <LangVersion>8.0</LangVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
   </PropertyGroup>
@@ -138,6 +139,15 @@
     <Compile Include="HTTP\Server\URLMapping\URLReplacement.cs" />
     <Compile Include="HTTP\Server\URLMapping\URL_Node.cs" />
     <Compile Include="HTTP\HTTPSemantics.cs" />
+    <Compile Include="ICMP\ICMPClient.cs" />
+    <Compile Include="ICMP\ICMPDestinationUnreachable.cs" />
+    <Compile Include="ICMP\ICMPRedirect.cs" />
+    <Compile Include="ICMP\ICMPEchoReply.cs" />
+    <Compile Include="ICMP\ICMPEchoRequest.cs" />
+    <Compile Include="ICMP\ICMPPacket - Copy.cs" />
+    <Compile Include="ICMP\ICMPPacket.cs" />
+    <Compile Include="IP\IPv4Protocols.cs" />
+    <Compile Include="IP\IPv4Packet.cs" />
     <Compile Include="MIME\AMIME.cs" />
     <Compile Include="SMTP\EMail\AbstractEMail.cs" />
     <Compile Include="SMTP\EMail\EMailEnvelop.cs" />
@@ -247,6 +257,11 @@
     <Compile Include="Warden\WardenExtentions.cs" />
     <Compile Include="Warden\WardenProperties.cs" />
     <Compile Include="WebSocket\WebSocketFrame.cs" />
+    <Compile Include="WebSocket\WebSocketConnection.cs" />
+    <Compile Include="WebSocket\WebSocketMessageRespose.cs" />
+    <Compile Include="WebSocket\WebSocketDelegates.cs" />
+    <Compile Include="WebSocket\WebSocketTextMessageRespose.cs" />
+    <Compile Include="WebSocket\WebSocketBinaryMessageRespose.cs" />
     <Compile Include="WebSocket\WebSocketServer.cs" />
   </ItemGroup>
   <ItemGroup>

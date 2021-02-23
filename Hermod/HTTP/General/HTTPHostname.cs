@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2020, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2021, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -100,8 +100,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              UInt16?  Port = null)
         {
 
-            if (Name != null)
-                Name = Name.Trim();
+            Name = Name?.Trim();
 
             this.Name  = Name.IsNullOrEmpty() ? "*" : Name;
             this.Port  = Port;
@@ -282,6 +281,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             return true;
 
         }
+
+        #endregion
+
+        #region Clone
+
+        /// <summary>
+        /// Clone this object.
+        /// </summary>
+        public HTTPHostname Clone
+
+            => new HTTPHostname(new String(Name.ToCharArray()),
+                                Port);
 
         #endregion
 

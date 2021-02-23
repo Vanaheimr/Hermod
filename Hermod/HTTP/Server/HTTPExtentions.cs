@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2020, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2021, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -454,7 +454,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
-        public static HTTPResponse CreateBadRequest(HTTPRequest HTTPRequest, String Context, String ParameterName)
+        public static HTTPResponse.Builder CreateBadRequest(HTTPRequest HTTPRequest, String Context, String ParameterName)
         {
 
             return new HTTPResponse.Builder(HTTPRequest) {
@@ -466,7 +466,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
-        public static HTTPResponse CreateBadRequest(HTTPRequest HTTPRequest, String Context, String ParameterName, String Value)
+        public static HTTPResponse.Builder CreateBadRequest(HTTPRequest HTTPRequest, String Context, String ParameterName, String Value)
         {
 
             return new HTTPResponse.Builder(HTTPRequest) {
@@ -479,7 +479,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
-        public static HTTPResponse CreateNotFound(HTTPRequest HTTPRequest, String Context, String ParameterName, String Value)
+        public static HTTPResponse.Builder CreateNotFound(HTTPRequest HTTPRequest, String Context, String ParameterName, String Value)
         {
 
             return new HTTPResponse.Builder(HTTPRequest) {
