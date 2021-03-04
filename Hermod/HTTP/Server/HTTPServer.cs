@@ -178,8 +178,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           String                               ServiceName                        = null,
 
                           ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
-                          RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
                           LocalCertificateSelectionCallback    ClientCertificateSelector          = null,
+                          RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
                           SslProtocols                         AllowedTLSProtocols                = SslProtocols.Tls12,
 
                           String                               ServerThreadName                   = null,
@@ -199,8 +199,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   DefaultServerName,
                                   ServiceName,
                                   ServerCertificateSelector,
-                                  ClientCertificateValidator,
                                   ClientCertificateSelector,
+                                  ClientCertificateValidator,
                                   AllowedTLSProtocols,
                                   ServerThreadName,
                                   ServerThreadPriority,
@@ -1089,8 +1089,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           String                               ServiceName                        = null,
 
                           ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
-                          RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
                           LocalCertificateSelectionCallback    ClientCertificateSelector          = null,
+                          RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
                           SslProtocols                         AllowedTLSProtocols                = SslProtocols.Tls12,
 
                           String                               ServerThreadName                   = null,
@@ -1109,8 +1109,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             : base(ServiceName,
                    DefaultServerName,
                    ServerCertificateSelector,
-                   ClientCertificateValidator,
                    ClientCertificateSelector,
+                   ClientCertificateValidator,
                    AllowedTLSProtocols,
                    ServerThreadName,
                    ServerThreadPriority,
