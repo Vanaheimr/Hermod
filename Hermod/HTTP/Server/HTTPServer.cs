@@ -2276,19 +2276,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (internal) GetHandler(Host = "*", URL = "/", HTTPMethod = HTTPMethod.GET, HTTPContentTypeSelector = null)
+        #region (internal) GetHandler(Host = "*", Path = "/", HTTPMethod = HTTPMethod.GET, HTTPContentTypeSelector = null)
 
         /// <summary>
         /// Return the best matching method handler for the given parameters.
         /// </summary>
         internal Handlers GetHandlers(HTTPHostname                              Host,
-                                      HTTPPath                                   URL,
+                                      HTTPPath                                  Path,
                                       HTTPMethod?                               Method                       = null,
                                       Func<HTTPContentType[], HTTPContentType>  HTTPContentTypeSelector      = null,
                                       Action<IEnumerable<String>>               ParsedURLParametersDelegate  = null)
         {
 
-            URL                      = URL.IsNullOrEmpty()      ? HTTPPath.Parse("/") : URL;
+            Path                     = Path.IsNullOrEmpty()     ? HTTPPath.Parse("/") : Path;
             var httpMethod           = Method                  ?? HTTPMethod.GET;
             HTTPContentTypeSelector  = HTTPContentTypeSelector ?? (v => HTTPContentType.HTML_UTF8);
 
@@ -2317,7 +2317,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     in     _RegexList
                                     select new {
                                         URLNode = _RegexTupel.URLNode,
-                                        Match   = _RegexTupel.Regex.Match(URL.ToString())
+                                        Match   = _RegexTupel.Regex.Match(Path.ToString())
                                     };
 
                 var _Matches      = from    _Match
