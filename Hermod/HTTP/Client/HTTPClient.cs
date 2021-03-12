@@ -20,17 +20,19 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Net.Sockets;
-using System.Net.Security;
 using System.Threading;
-using System.Threading.Tasks;
+using System.Net.Sockets;
 using System.Diagnostics;
+using System.Net.Security;
+using System.Threading.Tasks;
+using System.Security.Authentication;
 using System.Text.RegularExpressions;
 using System.Security.Cryptography.X509Certificates;
 
+using Newtonsoft.Json.Linq;
+
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using Newtonsoft.Json.Linq;
 
 #endregion
 
@@ -210,6 +212,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public delegate Task OnDataReadDelegate(TimeSpan Timestamp, UInt64 BytesRead, UInt64? BytesExpected = null);
 
         public event OnDataReadDelegate OnDataRead;
+
+
+
+        public delegate Task OnChunkDataReadDelegate(TimeSpan Timestamp, Int32 BytesRead);
+
+        public event OnChunkDataReadDelegate OnChunkDataRead;
+
+
+
+        public delegate Task OnChunkBlockFoundDelegate(TimeSpan Timestamp, Int32 BlockSize);
+
+        public event OnChunkBlockFoundDelegate OnChunkBlockFound;
 
         #endregion
 
@@ -475,118 +489,149 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Create TCP connection (possibly also do DNS lookups)
 
-                if (TCPSocket == null)
+                Boolean restart;
+
+                do
                 {
 
-                    System.Net.IPEndPoint _FinalIPEndPoint = null;
-                    //     IIPAddress _ResolvedRemoteIPAddress = null;
+                    restart = false;
 
-                    if (RemoteIPAddress == null)
+                    if (TCPSocket == null)
                     {
 
-                        if (Hostname == "127.0.0.1" || Hostname == "localhost")
-                            RemoteIPAddress = IPv4Address.Localhost;
-
-                        else if (Hostname == "::1" || Hostname == "localhost6")
-                            RemoteIPAddress = IPv6Address.Localhost;
-
-                        // Hostname is an IPv4 address...
-                        else if (IPv4AddressRegExpr.IsMatch(Hostname.Name))
-                            RemoteIPAddress = IPv4Address.Parse(Hostname.Name);
-
-                        #region DNS lookup...
+                        System.Net.IPEndPoint _FinalIPEndPoint = null;
+                        //     IIPAddress _ResolvedRemoteIPAddress = null;
 
                         if (RemoteIPAddress == null)
                         {
 
-                            var IPv4AddressLookupTask  = DNSClient.
-                                                             Query<A>(Hostname.Name).
-                                                             ContinueWith(query => query.Result.Select(ARecord    => ARecord.IPv4Address));
+                            if (Hostname == "127.0.0.1" || Hostname == "localhost")
+                                RemoteIPAddress = IPv4Address.Localhost;
 
-                            var IPv6AddressLookupTask  = DNSClient.
-                                                             Query<AAAA>(Hostname.Name).
-                                                             ContinueWith(query => query.Result.Select(AAAARecord => AAAARecord.IPv6Address));
+                            else if (Hostname == "::1" || Hostname == "localhost6")
+                                RemoteIPAddress = IPv6Address.Localhost;
 
-                            await Task.WhenAll(IPv4AddressLookupTask,
-                                               IPv6AddressLookupTask).
-                                       ConfigureAwait(false);
+                            // Hostname is an IPv4 address...
+                            else if (IPv4AddressRegExpr.IsMatch(Hostname.Name))
+                                RemoteIPAddress = IPv4Address.Parse(Hostname.Name);
+
+                            #region DNS lookup...
+
+                            if (RemoteIPAddress == null)
+                            {
+
+                                var IPv4AddressLookupTask  = DNSClient.
+                                                                 Query<A>(Hostname.Name).
+                                                                 ContinueWith(query => query.Result.Select(ARecord    => ARecord.IPv4Address));
+
+                                var IPv6AddressLookupTask  = DNSClient.
+                                                                 Query<AAAA>(Hostname.Name).
+                                                                 ContinueWith(query => query.Result.Select(AAAARecord => AAAARecord.IPv6Address));
+
+                                await Task.WhenAll(IPv4AddressLookupTask,
+                                                   IPv6AddressLookupTask).
+                                           ConfigureAwait(false);
 
 
-                            if (IPv4AddressLookupTask.Result.Any())
-                                RemoteIPAddress = IPv4AddressLookupTask.Result.First();
+                                if (IPv4AddressLookupTask.Result.Any())
+                                    RemoteIPAddress = IPv4AddressLookupTask.Result.First();
 
-                            else if (IPv6AddressLookupTask.Result.Any())
-                                RemoteIPAddress = IPv6AddressLookupTask.Result.First();
+                                else if (IPv6AddressLookupTask.Result.Any())
+                                    RemoteIPAddress = IPv6AddressLookupTask.Result.First();
 
 
-                            if (RemoteIPAddress == null || RemoteIPAddress.GetBytes() == null)
-                                throw new Exception("DNS lookup failed!");
+                                if (RemoteIPAddress == null || RemoteIPAddress.GetBytes() == null)
+                                    throw new Exception("DNS lookup failed!");
+
+                            }
+
+                            #endregion
 
                         }
 
-                        #endregion
+                        _FinalIPEndPoint = new System.Net.IPEndPoint(new System.Net.IPAddress(RemoteIPAddress.GetBytes()),
+                                                                     RemotePort.ToInt32());
+
+                        sw.Start();
+
+                        //TCPClient = new TcpClient();
+                        //TCPClient.Connect(_FinalIPEndPoint);
+                        //TCPClient.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+
+
+                        if (RemoteIPAddress.IsIPv4)
+                            TCPSocket = new Socket(AddressFamily.InterNetwork,
+                                                   SocketType.Stream,
+                                                   ProtocolType.Tcp);
+
+                        else if (RemoteIPAddress.IsIPv6)
+                            TCPSocket = new Socket(AddressFamily.InterNetworkV6,
+                                                   SocketType.Stream,
+                                                   ProtocolType.Tcp);
+
+                        TCPSocket.SendTimeout    = (Int32) RequestTimeout.Value.TotalMilliseconds;
+                        TCPSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+                        TCPSocket.Connect(_FinalIPEndPoint);
+                        TCPSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
 
                     }
 
-                    _FinalIPEndPoint = new System.Net.IPEndPoint(new System.Net.IPAddress(RemoteIPAddress.GetBytes()),
-                                                                 RemotePort.ToInt32());
-
-                    sw.Start();
-
-                    //TCPClient = new TcpClient();
-                    //TCPClient.Connect(_FinalIPEndPoint);
-                    //TCPClient.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
-
-
-                    if (RemoteIPAddress.IsIPv4)
-                        TCPSocket = new Socket(AddressFamily.InterNetwork,
-                                               SocketType.Stream,
-                                               ProtocolType.Tcp);
-
-                    else if (RemoteIPAddress.IsIPv6)
-                        TCPSocket = new Socket(AddressFamily.InterNetworkV6,
-                                               SocketType.Stream,
-                                               ProtocolType.Tcp);
-
-                    TCPSocket.SendTimeout    = (Int32) RequestTimeout.Value.TotalMilliseconds;
-                    TCPSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
-                    TCPSocket.Connect(_FinalIPEndPoint);
-                    TCPSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
-
-                }
+                    TCPStream = new NetworkStream(TCPSocket, true) {
+                                    ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds
+                                };
 
                 #endregion
 
                 #region Create (Crypto-)Stream
 
-                TCPStream = new NetworkStream(TCPSocket, true);
-                TCPStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+                    if (RemoteCertificateValidator != null)
+                    {
 
-                TLSStream = RemoteCertificateValidator != null
+                        if (TLSStream == null)
+                        {
 
-                                 ? new SslStream(TCPStream,
-                                                 false,
-                                                 RemoteCertificateValidator,
-                                                 LocalCertificateSelector,
-                                                 EncryptionPolicy.RequireEncryption)
+                            TLSStream = new SslStream(TCPStream,
+                                                      false,
+                                                      RemoteCertificateValidator,
+                                                      LocalCertificateSelector,
+                                                      EncryptionPolicy.RequireEncryption)
+                            {
 
-                                 : null;
+                                ReadTimeout = (Int32)RequestTimeout.Value.TotalMilliseconds
 
-                if (TLSStream != null)
-                    TLSStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+                            };
 
-                HTTPStream = null;
+                            HTTPStream = TLSStream;
 
-                if (RemoteCertificateValidator != null)
-                {
-                    HTTPStream = TLSStream;
-                    await TLSStream.AuthenticateAsClientAsync(Hostname.Name);//, new X509CertificateCollection(new X509Certificate[] { ClientCert }), SslProtocols.Default, true);
+                            try
+                            {
+
+                                await TLSStream.AuthenticateAsClientAsync(Hostname.Name,
+                                                                          null,
+                                                                          SslProtocols.Tls12,
+                                                                          false);//, new X509CertificateCollection(new X509Certificate[] { ClientCert }), SslProtocols.Default, true);
+
+                            }
+                            catch (Exception e)
+                            {
+                                TCPSocket = null;
+                                restart = true;
+                            }
+
+                        }
+
+                    }
+
+                    else
+                    {
+                        TLSStream   = null;
+                        HTTPStream  = TCPStream;
+                    }
+
+                    HTTPStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+
                 }
-
-                else
-                    HTTPStream = TCPStream;
-
-                HTTPStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+                while (restart);
 
                 #endregion
 
@@ -753,59 +798,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 else if (Response.TransferEncoding == "chunked")
                 {
 
-                    //var HTTPBodyStartsAt = HTTPHeaderBytes.Length + 4;
-
-                    //DebugX.Log("[HTTPClient] Chunked encoding detected");
-
                     try
                     {
 
-                        // Write the first buffer (without the HTTP header) to the HTTPBodyStream...
-                        //_InternalHTTPStream.Seek(HTTPBodyStartsAt, SeekOrigin.Begin);
                         Response.NewContentStream();
-                        var _ChunkedStream = new MemoryStream();
+                        var chunkedStream            = new MemoryStream();
+                        var chunkedDecodingFinished  = false;
 
-                        //_ChunkedStream.Write(_Buffer, 0, _InternalHTTPStream.Read(_Buffer, 0, _Buffer.Length));
-                        _ChunkedStream.Write(HTTPBodyBytes, 0, HTTPBodyBytes.Length);
-                        var ChunkedDecodingFinished = false;
-                        var ChunkedStreamLength = 0UL;
+                        // Write the first buffer (without the HTTP header) to the chunked stream...
+                        chunkedStream.Write(HTTPBodyBytes, 0, HTTPBodyBytes.Length);
 
                         do
                         {
 
-                            #region If more (new) data is available -> read it!
-
-                            do
-                            {
-
-                                while (TCPStream.DataAvailable)
-                                {
-
-                                    CurrentDataLength = HTTPStream.Read(_Buffer, 0, _Buffer.Length);
-
-                                    if (CurrentDataLength > 0)
-                                        _ChunkedStream.Write(_Buffer, 0, CurrentDataLength);
-
-                                    if (sw.ElapsedMilliseconds > HTTPStream.ReadTimeout)
-                                        throw new ApplicationException("HTTPClient timeout!");
-
-                                    Thread.Sleep(1);
-
-                                }
-
-                            } while ((UInt64)_ChunkedStream.Length == ChunkedStreamLength);
-
-                            ChunkedStreamLength = (UInt64)_ChunkedStream.Length;
-                            OnDataRead?.Invoke(sw.Elapsed, ChunkedStreamLength);
-
-                            #endregion
-
-                            var ChunkedBytes = _ChunkedStream.ToArray();
-                            var DecodedStream = new MemoryStream();
-                            var IsStatus_ReadBlockLength = true;
-                            var CurrentPosition = 0;
-                            var LastPos = 0;
-                            var NumberOfBlocks = 0;
+                            var ChunkedBytes              = chunkedStream.ToArray();
+                            var DecodedStream             = new MemoryStream();
+                            var IsStatus_ReadBlockLength  = true;
+                            var CurrentPosition           = 0;
+                            var LastPos                   = 0;
+                            var NumberOfBlocks            = 0;
 
                             do
                             {
@@ -819,14 +830,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     var BlockLength = ChunkedBytes.ReadTEBlockLength(LastPos,
                                                                                      CurrentPosition - LastPos - 2);
 
-                                    //Debug.WriteLine(DateTime.UtcNow + " Chunked encoded block of length " + BlockLength + " bytes detected");
+                                    OnChunkBlockFound?.Invoke(sw.Elapsed, BlockLength);
 
                                     #region End of stream reached...
 
                                     if (BlockLength == 0)
                                     {
                                         Response.ContentStreamToArray(DecodedStream);
-                                        ChunkedDecodingFinished = true;
+                                        chunkedDecodingFinished = true;
                                         break;
                                     }
 
@@ -866,10 +877,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                     else
                                     {
-                                        // Reaching this point means we need to read more
-                                        // data from the network stream and decode again!
 
-                                        //Debug.WriteLine(DateTime.UtcNow + " Chunked decoding restarted after reading " + NumberOfBlocks + " blocks!");
+                                        // Reaching this point means we need to read more data
+                                        // from the network stream and decode again!
+                                        do
+                                        {
+
+                                            CurrentDataLength = HTTPStream.Read(_Buffer, 0, _Buffer.Length);
+
+                                            OnChunkDataRead?.Invoke(sw.Elapsed, CurrentDataLength);
+
+                                            if (CurrentDataLength > 0)
+                                                chunkedStream.Write(_Buffer, 0, CurrentDataLength);
+
+                                            if (sw.ElapsedMilliseconds > HTTPStream.ReadTimeout)
+                                                throw new ApplicationException("HTTPClient timeout!");
+
+                                        } while (TCPStream.DataAvailable);
 
                                         break;
 
@@ -885,9 +909,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     CurrentPosition++;
                                 }
 
-                            } while (CurrentPosition < _ChunkedStream.Length);
+                            } while (CurrentPosition < chunkedStream.Length);
 
-                        } while (!ChunkedDecodingFinished);
+                        } while (!chunkedDecodingFinished);
 
                     }
                     catch (Exception e)
@@ -913,6 +937,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (Response.Connection == null ||
                     Response.Connection == "close")
                 {
+
+                    if (TLSStream != null)
+                    {
+                        TLSStream.Close();
+                        TLSStream = null;
+                    }
 
                     if (TCPSocket != null)
                     {
@@ -947,6 +977,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #endregion
 
+                if (TLSStream != null)
+                {
+                    TLSStream.Close();
+                    TLSStream = null;
+                }
+
                 if (TCPSocket != null)
                 {
                     TCPSocket.Close();
@@ -975,6 +1011,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 };
 
                 #endregion
+
+                if (TLSStream != null)
+                {
+                    TLSStream.Close();
+                    TLSStream = null;
+                }
 
                 if (TCPSocket != null)
                 {

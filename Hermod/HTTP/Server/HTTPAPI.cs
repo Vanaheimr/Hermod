@@ -27,6 +27,10 @@ using org.GraphDefined.Vanaheimr.Illias;
 using System.Reflection;
 using System.IO;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using System.Security.Cryptography.X509Certificates;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using System.Net.Security;
+using System.Security.Authentication;
 
 #endregion
 
@@ -1054,11 +1058,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        String         HTMLTemplate      = null,
                        Boolean        DisableLogfile    = false,
                        String         LoggingPath       = null,
-                       DNSClient      DNSClient         = null)
+                       DNSClient      DNSClient         = null,
+                       Boolean        Autostart         = false)
 
-            : this(new HTTPServer(TCPPort:           HTTPServerPort ?? DefaultHTTPServerPort,
-                                  DefaultServerName: HTTPServerName ?? DefaultHTTPServerName,
-                                  DNSClient:         DNSClient),
+            : this(new HTTPServer(TCPPort:            HTTPServerPort ?? DefaultHTTPServerPort,
+                                  DefaultServerName:  HTTPServerName ?? DefaultHTTPServerName,
+                                  DNSClient:          DNSClient,
+                                  Autostart:          false),
                    HTTPHostname,
                    ExternalDNSName,
                    URLPathPrefix ?? DefaultURLPathPrefix,
@@ -1067,7 +1073,69 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    DisableLogfile,
                    LoggingPath)
 
-        { }
+        {
+
+            if (Autostart)
+                HTTPServer.Start();
+
+        }
+
+        #endregion
+
+        #region CommonAPI(HTTPHostname = null, ...)
+
+        /// <summary>
+        /// Create a new HTTP API.
+        /// </summary>
+        /// <param name="HTTPHostname">An optional HTTP hostname.</param>
+        /// <param name="HTTPServerPort">An optional HTTP TCP port.</param>
+        /// <param name="HTTPServerName">An optional HTTP server name.</param>
+        /// <param name="ExternalDNSName">The offical URL/DNS name of this service, e.g. for sending e-mails.</param>
+        /// <param name="URLPathPrefix">An optional HTTP URL path prefix.</param>
+        /// <param name="ServiceName">An optional HTTP service name.</param>
+        /// <param name="DNSClient">An optional DNS client.</param>
+        public HTTPAPI(ServerCertificateSelectorDelegate    ServerCertificateSelector,
+                       LocalCertificateSelectionCallback    ClientCertificateSelector,
+                       RemoteCertificateValidationCallback  ClientCertificateValidator,
+                       SslProtocols                         AllowedTLSProtocols   = SslProtocols.Tls12,
+                       HTTPHostname?                        HTTPHostname          = null,
+                       IPPort?                              HTTPServerPort        = null,
+                       String                               HTTPServerName        = DefaultHTTPServerName,
+                       String                               ExternalDNSName       = null,
+                       HTTPPath?                            URLPathPrefix         = null,
+                       String                               ServiceName           = DefaultHTTPServiceName,
+                       DNSClient                            DNSClient             = null,
+                       Boolean                              Autostart             = false)
+
+            : this(new HTTPServer(HTTPServerPort ?? DefaultHTTPServerPort,
+                                  HTTPServerName ?? DefaultHTTPServerName,
+                                  ServiceName,
+                                  ServerCertificateSelector,
+                                  ClientCertificateSelector,
+                                  ClientCertificateValidator,
+                                  AllowedTLSProtocols,
+                                  //ServerThreadName,
+                                  //ServerThreadPriority,
+                                  //ServerThreadIsBackground,
+                                  //ConnectionIdBuilder,
+                                  //ConnectionThreadsNameBuilder,
+                                  //ConnectionThreadsPriorityBuilder,
+                                  //ConnectionThreadsAreBackground,
+                                  //ConnectionTimeout,
+                                  //MaxClientConnections,
+                                  DNSClient: DNSClient,
+                                  Autostart: false),
+                   HTTPHostname,
+                   ExternalDNSName,
+                   URLPathPrefix ?? DefaultURLPathPrefix,
+                   ServiceName   ?? DefaultHTTPServiceName)
+
+        {
+
+            if (Autostart)
+                HTTPServer.Start();
+
+        }
 
         #endregion
 

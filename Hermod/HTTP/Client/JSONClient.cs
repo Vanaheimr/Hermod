@@ -150,7 +150,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
 
             #endregion
 
-            var _RequestBuilder = this.POST(URLPrefix);
+            var _RequestBuilder = this.POSTRequest(URLPrefix);
             _RequestBuilder.Host               = VirtualHostname ?? Hostname;
             _RequestBuilder.Content            = JSONRequest.ToUTF8Bytes();
             _RequestBuilder.ContentType        = HTTPContentType.JSON_UTF8;

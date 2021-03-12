@@ -502,8 +502,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public ATCPServers(String                               ServiceName                        = TCPServer.__DefaultServiceName,
                            String                               ServiceBanner                      = TCPServer.__DefaultServiceBanner,
                            ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
-                           RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
                            LocalCertificateSelectionCallback    ClientCertificateSelector          = null,
+                           RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
                            SslProtocols                         AllowedTLSProtocols                = SslProtocols.Tls12,
                            String                               ServerThreadName                   = TCPServer.__DefaultServerThreadName,
                            ThreadPriority                       ServerThreadPriority               = ThreadPriority.AboveNormal,
@@ -524,8 +524,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             // TCP Server
             this.ServerCertificateSelector          = ServerCertificateSelector;
-            this.ClientCertificateValidator         = ClientCertificateValidator;
             this.ClientCertificateSelector          = ClientCertificateSelector;
+            this.ClientCertificateValidator         = ClientCertificateValidator;
             this.AllowedTLSProtocols                = AllowedTLSProtocols;
 
             this._ServiceName                       = ServiceName                      ?? TCPServer.__DefaultServiceName;
