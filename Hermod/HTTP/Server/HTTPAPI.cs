@@ -924,36 +924,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected const Char GS = (Char) 0x1D;
 
 
+        public  const              String    DefaultHTTPAPI_LoggingPath     = "default";
+
 
         /// <summary>
         /// Internal non-cryptographic random number generator.
         /// </summary>
-        protected static readonly  Random    _Random                   = new Random(DateTime.Now.Millisecond);
+        protected static readonly  Random    _Random                        = new Random(DateTime.Now.Millisecond);
 
         /// <summary>
         /// The default HTTP server name.
         /// </summary>
-        public const               String    DefaultHTTPServerName     = "GraphDefined OCPI HTTP API v0.1";
+        public const               String    DefaultHTTPServerName          = "GraphDefined OCPI HTTP API v0.1";
 
         /// <summary>
         /// The default HTTP service name.
         /// </summary>
-        public  const              String    DefaultHTTPServiceName    = "GraphDefined HTTP API v1.0";
+        public  const              String    DefaultHTTPServiceName         = "GraphDefined HTTP API v1.0";
 
         /// <summary>
         /// The default HTTP server port.
         /// </summary>
-        public  static readonly    IPPort    DefaultHTTPServerPort     = IPPort.Parse(2002);
+        public  static readonly    IPPort    DefaultHTTPServerPort          = IPPort.Parse(2002);
 
         /// <summary>
         /// The default HTTP URL path prefix.
         /// </summary>
-        public  static readonly    HTTPPath  DefaultURLPathPrefix      = HTTPPath.Parse("/");
+        public  static readonly    HTTPPath  DefaultURLPathPrefix           = HTTPPath.Parse("/");
 
         /// <summary>
         /// Default logfile name.
         /// </summary>
-        public  const              String    DefaultLogfileName        = "HTTPAPI.log";
+        public  const              String    DefaultLogfileName             = "HTTPAPI.log";
 
         #endregion
 
@@ -994,6 +996,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public String        HTMLTemplate       { get; protected set; }
 
+
+        public HashSet<String>           DevMachines                        { get; set; }
+
+        public String                    LoggingPath                        { get; }
+
+        public String                    HTTPRequestsPath                   { get; }
+
+        public String                    HTTPResponsesPath                  { get; }
+
+        public String                    HTTPSSEsPath                       { get; }
+
         #endregion
 
         #region Events
@@ -1028,13 +1041,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ExternalDNSName">The offical URL/DNS name of this service, e.g. for sending e-mails.</param>
         /// <param name="URLPathPrefix">An optional HTTP URL path prefix.</param>
         /// <param name="ServiceName">An optional HTTP service name.</param>
+        /// <param name="HTMLTemplate">An optional HTML template.</param>
+        /// <param name="DisableLogfile">Disable the log file.</param>
+        /// <param name="LoggingPath">The path for all logfiles.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         public HTTPAPI(HTTPHostname?  HTTPHostname      = null,
                        IPPort?        HTTPServerPort    = null,
-                       String         HTTPServerName    = DefaultHTTPServerName,
+                       String         HTTPServerName    = null,
                        String         ExternalDNSName   = null,
                        HTTPPath?      URLPathPrefix     = null,
-                       String         ServiceName       = DefaultHTTPServiceName,
+                       String         ServiceName       = null,
+                       String         HTMLTemplate      = null,
+                       Boolean        DisableLogfile    = false,
+                       String         LoggingPath       = null,
                        DNSClient      DNSClient         = null)
 
             : this(new HTTPServer(TCPPort:           HTTPServerPort ?? DefaultHTTPServerPort,
@@ -1043,7 +1062,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    HTTPHostname,
                    ExternalDNSName,
                    URLPathPrefix ?? DefaultURLPathPrefix,
-                   ServiceName   ?? DefaultHTTPServiceName)
+                   ServiceName   ?? DefaultHTTPServiceName,
+                   HTMLTemplate,
+                   DisableLogfile,
+                   LoggingPath)
 
         { }
 
@@ -1060,25 +1082,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLPathPrefix">An optional URL path prefix.</param>
         /// <param name="ServiceName">An optional name of the HTTP API service.</param>
         /// <param name="HTMLTemplate">An optional HTML template.</param>
+        /// <param name="DisableLogfile">Disable the log file.</param>
+        /// <param name="LoggingPath">The path for all logfiles.</param>
         public HTTPAPI(HTTPServer     HTTPServer,
                        HTTPHostname?  HTTPHostname      = null,
                        String         ExternalDNSName   = "",
                        HTTPPath?      URLPathPrefix     = null,
                        String         ServiceName       = DefaultHTTPServiceName,
-                       String         HTMLTemplate      = null)
+                       String         HTMLTemplate      = null,
+                       Boolean        DisableLogfile    = false,
+                       String         LoggingPath       = DefaultHTTPAPI_LoggingPath)
 
         {
 
-            this.HTTPServer       = HTTPServer      ?? throw new ArgumentNullException(nameof(HTTPServer), "The given HTTP server must not be null!");
-            this.Hostname         = HTTPHostname    ?? HTTP.HTTPHostname.Any;
-            this.ExternalDNSName  = ExternalDNSName ?? "";
-            this.URLPathPrefix    = URLPathPrefix   ?? DefaultURLPathPrefix;
-            this.ServiceName      = ServiceName     ?? DefaultHTTPServiceName;
-            this.HTMLTemplate     = HTMLTemplate    ?? "";
+            this.HTTPServer         = HTTPServer      ?? throw new ArgumentNullException(nameof(HTTPServer), "The given HTTP server must not be null!");
+            this.Hostname           = HTTPHostname    ?? HTTP.HTTPHostname.Any;
+            this.ExternalDNSName    = ExternalDNSName ?? "";
+            this.URLPathPrefix      = URLPathPrefix   ?? DefaultURLPathPrefix;
+            this.ServiceName        = ServiceName     ?? DefaultHTTPServiceName;
+            this.HTMLTemplate       = HTMLTemplate    ?? "";
+            this.LoggingPath        = LoggingPath     ?? Directory.GetCurrentDirectory();
 
-            this.SystemId         = System_Id.Parse(Environment.MachineName.Replace("/", "") + "/" + HTTPServer.DefaultHTTPServerPort);
+            if (this.LoggingPath[this.LoggingPath.Length - 1] != Path.DirectorySeparatorChar)
+                this.LoggingPath += Path.DirectorySeparatorChar;
 
-            // Link HTTP events...
+            this.HTTPRequestsPath   = this.LoggingPath + "HTTPRequests"   + Path.DirectorySeparatorChar;
+            this.HTTPResponsesPath  = this.LoggingPath + "HTTPResponses"  + Path.DirectorySeparatorChar;
+            this.HTTPSSEsPath       = this.LoggingPath + "HTTPSSEs"       + Path.DirectorySeparatorChar;
+
+            this.SystemId           = System_Id.Parse(Environment.MachineName.Replace("/", "") + "/" + HTTPServer.DefaultHTTPServerPort);
+            this.DevMachines        = new HashSet<String>();
+
+            if (!DisableLogfile)
+            {
+                Directory.CreateDirectory(this.LoggingPath);
+                Directory.CreateDirectory(this.HTTPRequestsPath);
+                Directory.CreateDirectory(this.HTTPResponsesPath);
+                Directory.CreateDirectory(this.HTTPSSEsPath);
+            }
+
+
+                // Link HTTP events...
             HTTPServer.RequestLog   += (HTTPProcessor, ServerTimestamp, Request)                                 => RequestLog. WhenAll(HTTPProcessor, ServerTimestamp, Request);
             HTTPServer.ResponseLog  += (HTTPProcessor, ServerTimestamp, Request, Response)                       => ResponseLog.WhenAll(HTTPProcessor, ServerTimestamp, Request, Response);
             HTTPServer.ErrorLog     += (HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException) => ErrorLog.   WhenAll(HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException);
