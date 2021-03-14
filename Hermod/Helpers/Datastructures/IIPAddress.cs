@@ -53,16 +53,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         }
 
         public static Boolean IsIPv4(String IPAddress)
-            => IPv4AddressRegExpr.IsMatch(IPAddress?.Trim());
+            => IPAddress.IsNotNullOrEmpty()
+                   ? IPv4AddressRegExpr.IsMatch(IPAddress?.Trim())
+                   : false;
 
         public static Boolean IsIPv4(HTTPHostname Hostname)
-            => IPv4AddressRegExpr.IsMatch(Hostname.ToString());
+            => Hostname.ToString().IsNotNullOrEmpty()
+                   ? IPv4AddressRegExpr.IsMatch(Hostname.ToString())
+                   : false;
 
         public static Boolean IsIPv6(String IPAddress)
-            => IPv6AddressRegExpr.IsMatch(IPAddress?.Trim());
+            => IPAddress.IsNotNullOrEmpty()
+                   ? IPv6AddressRegExpr.IsMatch(IPAddress?.Trim())
+                   : false;
 
         public static Boolean IsIPv6(HTTPHostname Hostname)
-            => IPv6AddressRegExpr.IsMatch(Hostname.ToString());
+            => Hostname.ToString().IsNotNullOrEmpty()
+                   ? IPv6AddressRegExpr.IsMatch(Hostname.ToString())
+                   : false;
 
         public static Boolean IsLocalhost(String Text)
             => IsIPv4Localhost(Text) || IsIPv6Localhost(Text);

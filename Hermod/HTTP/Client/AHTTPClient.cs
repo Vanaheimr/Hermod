@@ -197,10 +197,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
-        /// <summary>
-        /// The Hostname to which the HTTPClient connects.
-        /// </summary>
-        public HTTPHostname     Hostname            { get; }
+        ///// <summary>
+        ///// The Hostname to which the HTTPClient connects.
+        ///// </summary>
+        //public HTTPHostname     Hostname            { get; }
 
 
         /// <summary>
@@ -212,14 +212,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The IP port to connect to.
         /// </summary>
         public IPPort           RemotePort          { get; }
-
-        /// <summary>
-        /// The IP socket to connect to.
-        /// </summary>
-        public IPSocket         RemoteSocket
-            => new IPSocket(RemoteIPAddress, RemotePort);
-
-
 
 
 
@@ -351,6 +343,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.HTTPLogger                  = HTTPLogger;
             this.DNSClient                   = DNSClient                  ?? new DNSClient();
 
+            this.RemotePort                  = RemoteURL.Port             ?? (RemoteURL.Protocol == HTTPProtocols.http
+                                                                                 ? IPPort.HTTP
+                                                                                 : IPPort.HTTPS);
+
         }
 
         #endregion
@@ -370,11 +366,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Action<HTTPRequest.Builder>  BuilderAction  = null)
         {
 
-            //var Host = URL.Substring(Math.Max(URL.IndexOf("://"), 0));
-            //Host = Host.Substring(Math.Max(URL.IndexOf("/"), Host.Length));
-
             var Builder     = new HTTPRequest.Builder(this) {
-                Host        = HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : "")),
+                Host        = HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : "")),
                 HTTPMethod  = HTTPMethod,
                 Path        = HTTPPath
             };
@@ -515,22 +508,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     {
 
                         System.Net.IPEndPoint _FinalIPEndPoint = null;
-                        //     IIPAddress _ResolvedRemoteIPAddress = null;
 
                         if (RemoteIPAddress == null)
                         {
 
-                            if      (IPAddress.IsIPv4Localhost(Hostname))
+                            if      (IPAddress.IsIPv4Localhost(RemoteURL.Hostname))
                                 RemoteIPAddress = IPv4Address.Localhost;
 
-                            else if (IPAddress.IsIPv6Localhost(Hostname))
+                            else if (IPAddress.IsIPv6Localhost(RemoteURL.Hostname))
                                 RemoteIPAddress = IPv6Address.Localhost;
 
-                            else if (IPAddress.IsIPv4(Hostname.Name))
-                                RemoteIPAddress = IPv4Address.Parse(Hostname.Name);
+                            else if (IPAddress.IsIPv4(RemoteURL.Hostname.Name))
+                                RemoteIPAddress = IPv4Address.Parse(RemoteURL.Hostname.Name);
 
-                            else if (IPAddress.IsIPv6(Hostname.Name))
-                                RemoteIPAddress = IPv6Address.Parse(Hostname.Name);
+                            else if (IPAddress.IsIPv6(RemoteURL.Hostname.Name))
+                                RemoteIPAddress = IPv6Address.Parse(RemoteURL.Hostname.Name);
 
                             #region DNS lookup...
 
@@ -538,11 +530,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             {
 
                                 var IPv4AddressLookupTask  = DNSClient.
-                                                                 Query<A>(Hostname.Name).
+                                                                 Query<A>(RemoteURL.Hostname.Name).
                                                                  ContinueWith(query => query.Result.Select(ARecord    => ARecord.IPv4Address));
 
                                 var IPv6AddressLookupTask  = DNSClient.
-                                                                 Query<AAAA>(Hostname.Name).
+                                                                 Query<AAAA>(RemoteURL.Hostname.Name).
                                                                  ContinueWith(query => query.Result.Select(AAAARecord => AAAARecord.IPv6Address));
 
                                 await Task.WhenAll(IPv4AddressLookupTask,
@@ -623,7 +615,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             try
                             {
 
-                                await TLSStream.AuthenticateAsClientAsync(Hostname.Name,
+                                await TLSStream.AuthenticateAsClientAsync(RemoteURL.Hostname.Name,
                                                                           null,
                                                                           SslProtocols.Tls12,
                                                                           false);//, new X509CertificateCollection(new X509Certificate[] { ClientCert }), SslProtocols.Default, true);

@@ -189,7 +189,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
 
             var requestBuilder = new HTTPRequest.Builder(this) {
                                      HTTPMethod         = HTTPMethod.POST,
-                                     Host               = VirtualHostname ?? Hostname,
+                                     Host               = VirtualHostname ?? RemoteURL.Hostname,
                                      Path               = URLPathPrefix,
                                      Accept             = new AcceptTypes(HTTPContentType.XMLTEXT_UTF8),
                                      Content            = QueryXML.ToUTF8Bytes(),
@@ -461,7 +461,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
 
             var _RequestBuilder = new HTTPRequest.Builder(this) {
                                       HTTPMethod     = HTTPMethod.POST,
-                                      Host           = VirtualHostname ?? Hostname,
+                                      Host           = VirtualHostname ?? RemoteURL.Hostname,
                                       Path           = URLPathPrefix,
                                       Content        = QueryXML.ToUTF8Bytes(),
                                       ContentType    = ContentType ?? new HTTPContentType("application",
@@ -470,7 +470,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                                                                                           SOAPAction,
                                                                                           null),
                                       UserAgent      = HTTPUserAgent,
-                                      FakeURLPrefix  = UseFakeURLPrefix ? "https://" + (VirtualHostname ?? Hostname) : null
+                                      FakeURLPrefix  = UseFakeURLPrefix ? "https://" + (VirtualHostname ?? RemoteURL.Hostname) : null
                                   };
 
             // Always send a Content-Length header, even when it's value is zero

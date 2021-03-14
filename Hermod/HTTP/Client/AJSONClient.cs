@@ -184,7 +184,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #endregion
 
             var _RequestBuilder = CreateRequest(HTTPMethod.POST, URLPathPrefix);
-            _RequestBuilder.Host               = VirtualHostname ?? Hostname;
+            _RequestBuilder.Host               = VirtualHostname ?? RemoteURL.Hostname;
             _RequestBuilder.Content            = JSONRequest.ToUTF8Bytes();
             _RequestBuilder.ContentType        = HTTPContentType.JSON_UTF8;
             _RequestBuilder.UserAgent          = HTTPUserAgent;
