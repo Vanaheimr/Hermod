@@ -18,13 +18,9 @@
 #region Usings
 
 using System;
-using System.Threading;
-using System.Net.Sockets;
 using System.Net.Security;
-using System.Threading.Tasks;
 using System.Security.Cryptography.X509Certificates;
 
-using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
@@ -32,44 +28,87 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
+    /// <summary>
+    /// The HTTP client interface.
+    /// </summary>
     public interface IHTTPClient : IDisposable
     {
 
         /// <summary>
-        /// The virtual hostname which the HTTPClient sends.
+        /// The remote URL of the OICP HTTP endpoint to connect to.
         /// </summary>
-        HTTPHostname   Hostname             { get; }
+        URL                                  RemoteURL                     { get; }
 
         /// <summary>
-        /// The virtual hostname which the HTTPClient sends.
+        /// An optional HTTP virtual hostname.
         /// </summary>
-        HTTPHostname?  VirtualHostname      { get; }
+        HTTPHostname?                        VirtualHostname               { get; }
+
+        /// <summary>
+        /// An optional description of this CPO client.
+        /// </summary>
+        String                               Description                   { get; set; }
+
+        /// <summary>
+        /// The remote SSL/TLS certificate validator.
+        /// </summary>
+        RemoteCertificateValidationCallback  RemoteCertificateValidator    { get; }
+
+        /// <summary>
+        /// The SSL/TLS client certificate to use of HTTP authentication.
+        /// </summary>
+        X509Certificate                      ClientCert                    { get; }
+
+        /// <summary>
+        /// The HTTP user agent identification.
+        /// </summary>
+        String                               HTTPUserAgent                 { get; }
+
+        /// <summary>
+        /// The timeout for HTTP requests.
+        /// </summary>
+        TimeSpan                             RequestTimeout                { get; set; }
+
+        /// <summary>
+        /// The delay between transmission retries.
+        /// </summary>
+        TransmissionRetryDelayDelegate       TransmissionRetryDelay        { get; }
+
+        /// <summary>
+        /// The maximum number of transmission retries for HTTP request.
+        /// </summary>
+        UInt16                               MaxNumberOfRetries            { get; }
+
+        /// <summary>
+        /// Make use of HTTP pipelining.
+        /// </summary>
+        Boolean                              UseHTTPPipelining             { get; }
+
+        /// <summary>
+        /// The CPO client (HTTP client) logger.
+        /// </summary>
+        HTTPClientLogger                     HTTPLogger                    { get; set; }
+
+        /// <summary>
+        /// The DNS client to use.
+        /// </summary>
+        DNSClient                            DNSClient                     { get; }
+
+
+
 
         //int Available { get; }
         //X509Certificate ClientCert { get; }
         //bool Connected { get; }
 
-        //string Hostname { get; }
         //LingerOption LingerState { get; set; }
         //LocalCertificateSelectionCallback LocalCertificateSelector { get; }
         //bool NoDelay { get; set; }
-        RemoteCertificateValidationCallback RemoteCertificateValidator { get; }
-        //IIPAddress  RemoteIPAddress    { get; }
-        IPPort      RemotePort         { get; }
-        //IPSocket    RemoteSocket       { get; }
-        TimeSpan?   RequestTimeout     { get; }
         //byte TTL { get; set; }
-        //string UserAgent { get; }
 
         //event HTTPClient.OnDataReadDelegate OnDataRead;
 
         //void Close();
-        //HTTPRequestBuilder CreateRequest(HTTPMethod HTTPMethod, string URI, Action<HTTPRequestBuilder> BuilderAction = null);
-
-        //Task<HTTPResponse> Execute(Func<HTTPClient, HTTPRequest> HTTPRequestDelegate, ClientRequestLogHandler RequestLogDelegate = null, ClientResponseLogHandler ResponseLogDelegate = null, CancellationToken? CancellationToken = default(CancellationToken?), EventTracking_Id EventTrackingId = null, TimeSpan? RequestTimeout = default(TimeSpan?), byte NumberOfRetry = 0);
-        //Task<HTTPResponse> Execute(HTTPRequest Request, ClientRequestLogHandler RequestLogDelegate = null, ClientResponseLogHandler ResponseLogDelegate = null, CancellationToken? CancellationToken = default(CancellationToken?), EventTracking_Id EventTrackingId = null, TimeSpan? RequestTimeout = default(TimeSpan?), byte NumberOfRetry = 0);
-
-        DNSClient   DNSClient          { get; }
 
     }
 

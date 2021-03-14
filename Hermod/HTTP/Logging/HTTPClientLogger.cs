@@ -414,7 +414,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The HTTP client of this logger.
         /// </summary>
-        public IHTTPClient  HTTPClient   { get; }
+        public IHTTPClient  HTTPClient        { get; }
+
+        /// <summary>
+        /// Whether to disable HTTP client logging.
+        /// </summary>
+        public Boolean      DisableLogging    { get; set; }
 
         #endregion
 

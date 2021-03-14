@@ -92,6 +92,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         public IEnumerable<IPPort> IPPorts
             => SOAPServer.HTTPServer.IPPorts;
 
+
+        /// <summary>
+        /// The SOAP server logger.
+        /// </summary>
+        public HTTPServerLogger  HTTPLogger    { get; set; }
+
         #endregion
 
         #region Events

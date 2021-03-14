@@ -17,8 +17,10 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Illias;
 using System;
+using System.Text.RegularExpressions;
 
 #endregion
 
@@ -27,6 +29,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
     public static class IPAddress
     {
+
+        //ToDo: Better do this by hand!
+        public static Regex IPv4AddressRegExpr = new Regex(@"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b");
+
+        //ToDo: Better do this by hand!
+        public static Regex IPv6AddressRegExpr = new Regex(@"(([a-f0-9:]+:+)+[a-f0-9]+)");
+
 
         public static IIPAddress Parse(String Text)
         {
@@ -37,11 +46,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (Text.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(Text), "The given IP address must not be null or empty!");
 
-            return Text.Contains(".")
-                       ? (IIPAddress) IPv4Address.Parse(Text)
-                       : (IIPAddress) IPv6Address.Parse(Text);
+            return IsIPv4(Text)
+                       ? IPv4Address.Parse(Text)
+                       : IPv6Address.Parse(Text);
 
         }
+
+        public static Boolean IsIPv4(String IPAddress)
+            => IPv4AddressRegExpr.IsMatch(IPAddress?.Trim());
+
+        public static Boolean IsIPv4(HTTPHostname Hostname)
+            => IPv4AddressRegExpr.IsMatch(Hostname.ToString());
+
+        public static Boolean IsIPv6(String IPAddress)
+            => IPv6AddressRegExpr.IsMatch(IPAddress?.Trim());
+
+        public static Boolean IsIPv6(HTTPHostname Hostname)
+            => IPv6AddressRegExpr.IsMatch(Hostname.ToString());
+
+        public static Boolean IsLocalhost(String Text)
+            => IsIPv4Localhost(Text) || IsIPv6Localhost(Text);
+
+        public static Boolean IsLocalhost(HTTPHostname Hostname)
+            => IsIPv4Localhost(Hostname) || IsIPv6Localhost(Hostname);
+
+        public static Boolean IsIPv4Localhost(String Text)
+        {
+            var text = Text?.Trim();
+            return !(text is null) && ((IsIPv4(text) && text.StartsWith("127.")) || text.ToLower() == "localhost");
+        }
+
+        public static Boolean IsIPv4Localhost(HTTPHostname Hostname)
+            => IsIPv4Localhost(Hostname.ToString());
+
+        public static Boolean IsIPv6Localhost(String Text)
+        {
+            var text = Text?.Trim();
+            return !(text is null) && (text == "::1" || text.ToLower() == "localhost6");
+        }
+
+        public static Boolean IsIPv6Localhost(HTTPHostname Hostname)
+            => IsIPv6Localhost(Hostname.ToString());
 
     }
 

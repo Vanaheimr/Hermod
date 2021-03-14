@@ -33,7 +33,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         // RFC 2616 - HTTP/1.1
 
-        #region DELETE (this HTTPClient, Path = "/", BuilderAction = null)
+        #region DELETE (this AHTTPClient, Path = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP DELETE request.
@@ -42,7 +42,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static Task<HTTPResponse> DELETE(this HTTPClient              HTTPClient,
+        public static Task<HTTPResponse> DELETE(this AHTTPClient             HTTPClient,
                                                 HTTPPath                     Path,
                                                 Action<HTTPRequest.Builder>  BuilderAction = null)
 
@@ -58,7 +58,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder DELETERequest(this HTTPClient              HTTPClient,
+        public static HTTPRequest.Builder DELETERequest(this AHTTPClient             HTTPClient,
                                                         HTTPPath                     Path,
                                                         Action<HTTPRequest.Builder>  BuilderAction = null)
 
@@ -68,7 +68,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region GET    (this HTTPClient, Path = "/", BuilderAction = null)
+        #region GET    (this AHTTPClient, Path = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP GET request.
@@ -77,7 +77,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static Task<HTTPResponse> GET(this HTTPClient              HTTPClient,
+        public static Task<HTTPResponse> GET(this AHTTPClient             HTTPClient,
                                              HTTPPath                     Path,
                                              Action<HTTPRequest.Builder>  BuilderAction = null)
 
@@ -93,7 +93,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder GETRequest(this HTTPClient              HTTPClient,
+        public static HTTPRequest.Builder GETRequest(this AHTTPClient             HTTPClient,
                                                      HTTPPath                     Path,
                                                      Action<HTTPRequest.Builder>  BuilderAction = null)
 
@@ -103,7 +103,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region COUNT  (this HTTPClient, Path = "/", BuilderAction = null)
+        #region COUNT  (this AHTTPClient, Path = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP COUNT request.
@@ -112,7 +112,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static Task<HTTPResponse> COUNT(this HTTPClient              HTTPClient,
+        public static Task<HTTPResponse> COUNT(this AHTTPClient             HTTPClient,
                                                HTTPPath                     Path,
                                                Action<HTTPRequest.Builder>  BuilderAction = null)
 
@@ -128,7 +128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder COUNTRequest(this HTTPClient              HTTPClient,
+        public static HTTPRequest.Builder COUNTRequest(this AHTTPClient             HTTPClient,
                                                        HTTPPath                     Path,
                                                        Action<HTTPRequest.Builder>  BuilderAction = null)
 
@@ -138,7 +138,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region CREATE (this HTTPClient, Path = "/", BuilderAction = null)
+        #region CREATE (this AHTTPClient, Path = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP CREATE request.
@@ -147,7 +147,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static Task<HTTPResponse> CREATE(this HTTPClient              HTTPClient,
+        public static Task<HTTPResponse> CREATE(this AHTTPClient             HTTPClient,
                                                 HTTPPath                     Path,
                                                 Action<HTTPRequest.Builder>  BuilderAction = null)
 
@@ -163,7 +163,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder CREATERequest(this HTTPClient              HTTPClient,
+        public static HTTPRequest.Builder CREATERequest(this AHTTPClient             HTTPClient,
                                                         HTTPPath                     Path,
                                                         Action<HTTPRequest.Builder>  BuilderAction = null)
 
@@ -173,7 +173,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ADD    (this HTTPClient, Path = "/", BuilderAction = null)
+        #region ADD    (this AHTTPClient, Path = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP ADD request.
@@ -182,7 +182,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static Task<HTTPResponse> ADD(this HTTPClient              HTTPClient,
+        public static Task<HTTPResponse> ADD(this AHTTPClient             HTTPClient,
                                              HTTPPath                     Path,
                                              Action<HTTPRequest.Builder>  BuilderAction = null)
 
@@ -198,7 +198,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder ADDRequest(this HTTPClient              HTTPClient,
+        public static HTTPRequest.Builder ADDRequest(this AHTTPClient             HTTPClient,
                                                      HTTPPath                     Path,
                                                      Action<HTTPRequest.Builder>  BuilderAction = null)
 
@@ -208,7 +208,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region SET    (this HTTPClient, Path = "/", BuilderAction = null)
+        #region SET    (this AHTTPClient, Path = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP SET request.
@@ -217,7 +217,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static Task<HTTPResponse> SET(this HTTPClient              HTTPClient,
+        public static Task<HTTPResponse> SET(this AHTTPClient             HTTPClient,
                                              HTTPPath                     Path,
                                              Action<HTTPRequest.Builder>  BuilderAction = null)
 
@@ -233,7 +233,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder SETRequest(this HTTPClient              HTTPClient,
+        public static HTTPRequest.Builder SETRequest(this AHTTPClient             HTTPClient,
                                                      HTTPPath                     Path,
                                                      Action<HTTPRequest.Builder>  BuilderAction = null)
 
@@ -243,7 +243,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region HEAD   (this HTTPClient, Path = "/", BuilderAction = null)
+        #region HEAD   (this AHTTPClient, Path = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP HEAD request.
@@ -252,7 +252,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static Task<HTTPResponse> HEAD(this HTTPClient              HTTPClient,
+        public static Task<HTTPResponse> HEAD(this AHTTPClient             HTTPClient,
                                               HTTPPath                     Path,
                                               Action<HTTPRequest.Builder>  BuilderAction = null)
 
@@ -268,7 +268,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder HEADRequest(this HTTPClient              HTTPClient,
+        public static HTTPRequest.Builder HEADRequest(this AHTTPClient             HTTPClient,
                                                       HTTPPath                     Path,
                                                       Action<HTTPRequest.Builder>  BuilderAction = null)
 
@@ -278,7 +278,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region OPTIONS(this HTTPClient, Path = "/", BuilderAction = null)
+        #region OPTIONS(this AHTTPClient, Path = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP OPTIONS request.
@@ -287,7 +287,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static Task<HTTPResponse> OPTIONS(this HTTPClient              HTTPClient,
+        public static Task<HTTPResponse> OPTIONS(this AHTTPClient             HTTPClient,
                                                  HTTPPath                     Path,
                                                  Action<HTTPRequest.Builder>  BuilderAction = null)
 
@@ -303,7 +303,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder OPTIONSRequest(this HTTPClient              HTTPClient,
+        public static HTTPRequest.Builder OPTIONSRequest(this AHTTPClient             HTTPClient,
                                                          HTTPPath                     Path,
                                                          Action<HTTPRequest.Builder>  BuilderAction = null)
 
@@ -313,7 +313,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region POST   (this HTTPClient, Path = "/", BuilderAction = null)
+        #region POST   (this AHTTPClient, Path = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP POST request.
@@ -322,7 +322,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static Task<HTTPResponse> POST(this HTTPClient              HTTPClient,
+        public static Task<HTTPResponse> POST(this AHTTPClient             HTTPClient,
                                               HTTPPath                     Path,
                                               Action<HTTPRequest.Builder>  BuilderAction = null)
 
@@ -340,7 +340,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder POSTRequest(this HTTPClient              HTTPClient,
+        public static HTTPRequest.Builder POSTRequest(this AHTTPClient             HTTPClient,
                                                       HTTPPath                     Path,
                                                       Action<HTTPRequest.Builder>  BuilderAction = null)
 
@@ -352,7 +352,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region PUT    (this HTTPClient, Path = "/", BuilderAction = null)
+        #region PUT    (this AHTTPClient, Path = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP PUT request.
@@ -361,7 +361,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static Task<HTTPResponse> PUT(this HTTPClient              HTTPClient,
+        public static Task<HTTPResponse> PUT(this AHTTPClient             HTTPClient,
                                              HTTPPath                     Path,
                                              Action<HTTPRequest.Builder>  BuilderAction = null)
 
@@ -377,7 +377,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder PUTRequest(this HTTPClient              HTTPClient,
+        public static HTTPRequest.Builder PUTRequest(this AHTTPClient             HTTPClient,
                                                      HTTPPath                     Path,
                                                      Action<HTTPRequest.Builder>  BuilderAction = null)
 
@@ -387,7 +387,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region TRACE  (this HTTPClient, Path = "/", BuilderAction = null)
+        #region TRACE  (this AHTTPClient, Path = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP TRACE request.
@@ -396,7 +396,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static Task<HTTPResponse> TRACE(this HTTPClient              HTTPClient,
+        public static Task<HTTPResponse> TRACE(this AHTTPClient             HTTPClient,
                                                HTTPPath                     Path,
                                                Action<HTTPRequest.Builder>  BuilderAction = null)
 
@@ -412,7 +412,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder TRACERequest(this HTTPClient              HTTPClient,
+        public static HTTPRequest.Builder TRACERequest(this AHTTPClient             HTTPClient,
                                                        HTTPPath                     Path,
                                                        Action<HTTPRequest.Builder>  BuilderAction = null)
 
@@ -425,7 +425,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         // Additional methods
 
-        #region PATCH   (this HTTPClient, Path = "/", BuilderAction = null)
+        #region PATCH   (this AHTTPClient, Path = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP PATCH request.
@@ -434,7 +434,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static Task<HTTPResponse> PATCH(this HTTPClient              HTTPClient,
+        public static Task<HTTPResponse> PATCH(this AHTTPClient             HTTPClient,
                                                HTTPPath                     Path,
                                                Action<HTTPRequest.Builder>  BuilderAction = null)
 
@@ -450,7 +450,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder PATCHRequest(this HTTPClient              HTTPClient,
+        public static HTTPRequest.Builder PATCHRequest(this AHTTPClient             HTTPClient,
                                                        HTTPPath                     Path,
                                                        Action<HTTPRequest.Builder>  BuilderAction = null)
 
@@ -460,7 +460,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region TRAVERSE(this HTTPClient, Path = "/", BuilderAction = null)
+        #region TRAVERSE(this AHTTPClient, Path = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP TRAVERSE request.
@@ -469,7 +469,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static Task<HTTPResponse> TRAVERSE(this HTTPClient              HTTPClient,
+        public static Task<HTTPResponse> TRAVERSE(this AHTTPClient             HTTPClient,
                                                   HTTPPath                     Path,
                                                   Action<HTTPRequest.Builder>  BuilderAction = null)
 
@@ -485,7 +485,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder TRAVERSERequest(this HTTPClient              HTTPClient,
+        public static HTTPRequest.Builder TRAVERSERequest(this AHTTPClient             HTTPClient,
                                                           HTTPPath                     Path,
                                                           Action<HTTPRequest.Builder>  BuilderAction = null)
 

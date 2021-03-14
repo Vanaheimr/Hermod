@@ -90,6 +90,7 @@
     <Compile Include="HTTP\General\HTTPURI.cs" />
     <Compile Include="HTTP\General\HTTPPath.cs" />
     <Compile Include="HTTP\General\HTTPVersion.cs" />
+    <Compile Include="HTTP\General\URL.cs" />
     <Compile Include="HTTP\HTTPHeaderField.cs" />
     <Compile Include="HTTP\JSON\JSONExtentions.cs" />
     <Compile Include="HTTP\Logging\HTTPClientLogger.cs" />

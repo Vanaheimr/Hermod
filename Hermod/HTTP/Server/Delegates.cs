@@ -115,7 +115,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="HTTPClient">The HTTP client sending the HTTP request.</param>
     /// <param name="Request">The outgoing HTTP request.</param>
     public delegate Task ClientRequestLogHandler(DateTime     Timestamp,
-                                                 HTTPClient   HTTPClient,
+                                                 AHTTPClient  HTTPClient,
                                                  HTTPRequest  Request);
 
 
@@ -127,7 +127,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="Request">The outgoing HTTP request.</param>
     /// <param name="Response">The incoming HTTP response.</param>
     public delegate Task ClientResponseLogHandler(DateTime      Timestamp,
-                                                  HTTPClient    HTTPClient,
+                                                  AHTTPClient   HTTPClient,
                                                   HTTPRequest   Request,
                                                   HTTPResponse  Response);
 

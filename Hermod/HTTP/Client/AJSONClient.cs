@@ -18,13 +18,15 @@
 #region Usings
 
 using System;
+using System.Threading;
 using System.Net.Security;
+using System.Threading.Tasks;
+using System.Security.Cryptography.X509Certificates;
 
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -32,10 +34,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// An abstract base class for all HTTP/JSON clients.
+    /// An abstract HTTP/JSON client.
     /// </summary>
     public abstract class AJSONClient : AHTTPClient
     {
+
+        #region Data
+
+        /// <summary>
+        /// The default HTTP user agent.
+        /// </summary>
+        public new const          String    DefaultHTTPUserAgent  = "GraphDefined HTTP/JSON Client";
+
+        /// <summary>
+        /// The default URL path prefix.
+        /// </summary>
+        protected static readonly HTTPPath  DefaultURLPathPrefix      = HTTPPath.Parse("/");
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// The default URL path prefix.
+        /// </summary>
+        public HTTPPath  URLPathPrefix    { get; }
+
+        #endregion
 
         #region Events
 
@@ -58,44 +83,196 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Constructor(s)
 
         /// <summary>
-        /// Create an abstract HTTP/JSON client.
+        /// Create a new abstract HTTP/JSON client.
         /// </summary>
-        /// <param name="ClientId">A unqiue identification of this client.</param>
-        /// <param name="Hostname">The hostname to connect to.</param>
-        /// <param name="RemotePort">The remote TCP port to connect to.</param>
-        /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
+        /// <param name="RemoteURL">The remote URL of the OICP HTTP endpoint to connect to.</param>
+        /// <param name="VirtualHostname">An optional HTTP virtual hostname.</param>
+        /// <param name="Description">An optional description of this CPO client.</param>
+        /// <param name="RemoteCertificateValidator">The remote SSL/TLS certificate validator.</param>
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
-        /// <param name="HTTPVirtualHost">An optional HTTP virtual host name to use.</param>
-        /// <param name="UserAgent">An optional HTTP user agent to use.</param>
-        /// <param name="RequestTimeout">An optional timeout for upstream queries.</param>
+        /// <param name="ClientCert">The SSL/TLS client certificate to use of HTTP authentication.</param>
+        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="URLPathPrefix">An optional default URL path prefix.</param>
+        /// <param name="RequestTimeout">An optional request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
-        /// <param name="MaxNumberOfRetries">The default number of maximum transmission retries.</param>
-        /// <param name="DNSClient">An optional DNS client.</param>
-        public AJSONClient(String                               ClientId,
-                           HTTPHostname                         Hostname,
-                           IPPort                               RemotePort,
-                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
-                           LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
-                           HTTPHostname?                        HTTPVirtualHost              = null,
-                           String                               UserAgent                    = DefaultHTTPUserAgent,
-                           TimeSpan?                            RequestTimeout               = null,
-                           TransmissionRetryDelayDelegate       TransmissionRetryDelay       = null,
-                           Byte?                                MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
-                           DNSClient                            DNSClient                    = null)
+        /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
+        /// <param name="DNSClient">The DNS client to use.</param>
+        protected AJSONClient(URL                                  RemoteURL,
+                              HTTPHostname?                        VirtualHostname              = null,
+                              String                               Description                  = null,
+                              RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
+                              LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
+                              X509Certificate                      ClientCert                   = null,
+                              String                               HTTPUserAgent                = DefaultHTTPUserAgent,
+                              HTTPPath?                            URLPathPrefix                = null,
+                              TimeSpan?                            RequestTimeout               = null,
+                              TransmissionRetryDelayDelegate       TransmissionRetryDelay       = null,
+                              UInt16?                              MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
+                              DNSClient                            DNSClient                    = null)
 
-            : base(ClientId,
-                   Hostname,
-                   RemotePort,
+            : base(RemoteURL,
+                   VirtualHostname,
+                   Description,
                    RemoteCertificateValidator,
                    ClientCertificateSelector,
-                   HTTPVirtualHost,
-                   UserAgent,
+                   ClientCert,
+                   HTTPUserAgent      ?? DefaultHTTPUserAgent,
                    RequestTimeout,
                    TransmissionRetryDelay,
-                   MaxNumberOfRetries,
+                   MaxNumberOfRetries ?? DefaultMaxNumberOfRetries,
+                   false,
+                   null,
                    DNSClient)
 
-        { }
+        {
+
+            this.URLPathPrefix  = URLPathPrefix ?? DefaultURLPathPrefix;
+
+        }
+
+        #endregion
+
+
+        #region Query(JSONRequest, OnSuccess, OnJSONFault, OnHTTPError, OnException, RequestTimeout = null)
+
+        /// <summary>
+        /// Create a new JSON request task.
+        /// </summary>
+        /// <typeparam name="T">The type of the return data structure.</typeparam>
+        /// <param name="JSONRequest">The JSON request.</param>
+        /// <param name="OnSuccess">The delegate to call for every successful result.</param>
+        /// <param name="OnJSONFault">The delegate to call whenever a JSON fault occured.</param>
+        /// <param name="OnHTTPError">The delegate to call whenever a HTTP error occured.</param>
+        /// <param name="OnException">The delegate to call whenever an exception occured.</param>
+        /// <param name="RequestTimeout">An optional timeout of the HTTP client [default 60 sec.]</param>
+        /// <returns>The data structured after it had been processed by the OnSuccess delegate, or a fault.</returns>
+        public async Task<HTTPResponse<T>>
+
+            Query<T>(JObject                                                         JSONRequest,
+                     Func<HTTPResponse<JObject>,                   HTTPResponse<T>>  OnSuccess,
+                     Func<DateTime, Object, HTTPResponse<JObject>, HTTPResponse<T>>  OnJSONFault,
+                     Func<DateTime, Object, HTTPResponse,          HTTPResponse<T>>  OnHTTPError,
+                     Func<DateTime, Object, Exception,             HTTPResponse<T>>  OnException,
+                     Action<HTTPRequest.Builder>                                     HTTPRequestBuilder    = null,
+                     ClientRequestLogHandler                                         RequestLogDelegate    = null,
+                     ClientResponseLogHandler                                        ResponseLogDelegate   = null,
+
+                     CancellationToken?                                              CancellationToken     = null,
+                     EventTracking_Id                                                EventTrackingId       = null,
+                     TimeSpan?                                                       RequestTimeout        = null,
+                     Byte                                                            NumberOfRetry         = 0)
+
+        {
+
+            #region Initial checks
+
+            if (JSONRequest == null)
+                throw new ArgumentNullException(nameof(JSONRequest),  "The JSON request must not be null!");
+
+            if (OnSuccess   == null)
+                throw new ArgumentNullException(nameof(OnSuccess),    "The 'OnSuccess'-delegate must not be null!");
+
+            if (OnJSONFault == null)
+                throw new ArgumentNullException(nameof(OnJSONFault),  "The 'OnJSONFault'-delegate must not be null!");
+
+            if (OnHTTPError == null)
+                throw new ArgumentNullException(nameof(OnHTTPError),  "The 'OnHTTPError'-delegate must not be null!");
+
+            if (OnException == null)
+                throw new ArgumentNullException(nameof(OnException),  "The 'OnException'-delegate must not be null!");
+
+            #endregion
+
+            var _RequestBuilder = CreateRequest(HTTPMethod.POST, URLPathPrefix);
+            _RequestBuilder.Host               = VirtualHostname ?? Hostname;
+            _RequestBuilder.Content            = JSONRequest.ToUTF8Bytes();
+            _RequestBuilder.ContentType        = HTTPContentType.JSON_UTF8;
+            _RequestBuilder.UserAgent          = HTTPUserAgent;
+            //_RequestBuilder.FakeURLPrefix      = "https://" + (VirtualHostname ?? Hostname);
+
+            HTTPRequestBuilder?.Invoke(_RequestBuilder);
+
+            var HttpResponse = await Execute(_RequestBuilder,
+                                             RequestLogDelegate,
+                                             ResponseLogDelegate,
+                                             CancellationToken.HasValue  ? CancellationToken.Value : new CancellationTokenSource().Token,
+                                             EventTrackingId,
+                                             RequestTimeout ?? DefaultRequestTimeout,
+                                             NumberOfRetry);
+
+
+            if (HttpResponse                 != null              &&
+                HttpResponse.HTTPStatusCode  == HTTPStatusCode.OK &&
+                HttpResponse.HTTPBody        != null              &&
+                HttpResponse.HTTPBody.Length > 0)
+            {
+
+                try
+                {
+
+            //        var OnHTTPErrorLocal = OnHTTPError;
+            //    if (OnHTTPErrorLocal != null)
+            //        return OnHTTPErrorLocal(DateTime.UtcNow, this, HttpResponseTask?.Result);
+
+            //    return new HTTPResponse<JObject>(HttpResponseTask?.Result,
+            //                                     new JObject(new JProperty("HTTPError", "")),
+            //                                     IsFault: true) as HTTPResponse<T>;
+
+            //}
+
+            //try
+            //{
+
+                    var JSON = JObject.Parse(HttpResponse.HTTPBody.ToUTF8String());
+
+                    var OnSuccessLocal = OnSuccess;
+                    if (OnSuccessLocal != null)
+                        return OnSuccessLocal(new HTTPResponse<JObject>(HttpResponse, JSON));
+
+                    //var OnSOAPFaultLocal = OnSOAPFault;
+                    //if (OnSOAPFaultLocal != null)
+                    //    return OnSOAPFaultLocal(DateTime.UtcNow, this, new HTTPResponse<XElement>(HttpResponseTask.Result, SOAPXML));
+
+                    return new HTTPResponse<JObject>(HttpResponse,
+                                                     new JObject(new JProperty("fault", "")),
+                                                     IsFault: true) as HTTPResponse<T>;
+
+
+                } catch (Exception e)
+                {
+
+                    OnException?.Invoke(DateTime.UtcNow, this, e);
+
+                    //var OnFaultLocal = OnSOAPFault;
+                    //if (OnFaultLocal != null)
+                    //    return OnFaultLocal(new HTTPResponse<XElement>(HttpResponseTask.Result, e));
+
+                    return new HTTPResponse<JObject>(HttpResponse,
+                                                     new JObject(new JProperty("exception", e.Message)),
+                                                     IsFault: true) as HTTPResponse<T>;
+
+                }
+
+            }
+
+            else
+            {
+
+                DebugX.LogT("HTTPRepose is null! (" + _RequestBuilder.Path.ToString() + ")");
+
+                var OnHTTPErrorLocal = OnHTTPError;
+                if (OnHTTPErrorLocal != null)
+                    return OnHTTPErrorLocal(DateTime.UtcNow, this, HttpResponse);
+
+                return new HTTPResponse<JObject>(HttpResponse,
+                                                 new JObject(
+                                                     new JProperty("HTTPError", true)
+                                                 ),
+                                                 IsFault: true) as HTTPResponse<T>;
+
+            }
+
+        }
 
         #endregion
 
@@ -120,7 +297,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
-
 
     }
 

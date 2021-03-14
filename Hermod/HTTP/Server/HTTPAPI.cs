@@ -928,8 +928,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected const Char GS = (Char) 0x1D;
 
 
-        public  const              String    DefaultHTTPAPI_LoggingPath     = "default";
-
 
         /// <summary>
         /// Internal non-cryptographic random number generator.
@@ -939,22 +937,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The default HTTP server name.
         /// </summary>
-        public const               String    DefaultHTTPServerName          = "GraphDefined OCPI HTTP API v0.1";
+        public  const              String    DefaultHTTPServerName          = "GraphDefined HTTP API";
 
         /// <summary>
         /// The default HTTP service name.
         /// </summary>
-        public  const              String    DefaultHTTPServiceName         = "GraphDefined HTTP API v1.0";
+        public  const              String    DefaultHTTPServiceName         = "GraphDefined HTTP API";
 
         /// <summary>
         /// The default HTTP server port.
         /// </summary>
-        public  static readonly    IPPort    DefaultHTTPServerPort          = IPPort.Parse(2002);
+        public  static readonly    IPPort    DefaultHTTPServerPort          = IPPort.HTTP;
 
         /// <summary>
         /// The default HTTP URL path prefix.
         /// </summary>
         public  static readonly    HTTPPath  DefaultURLPathPrefix           = HTTPPath.Parse("/");
+
+
+        public  const              String    DefaultHTTPAPI_LoggingPath     = "default";
 
         /// <summary>
         /// Default logfile name.
@@ -968,48 +969,67 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The HTTP server of the API.
         /// </summary>
-        public HTTPServer    HTTPServer         { get; }
+        public HTTPServer        HTTPServer                  { get; }
 
         /// <summary>
         /// The HTTP hostname for all URIs within this API.
         /// </summary>
-        public HTTPHostname  Hostname           { get; }
+        public HTTPHostname      Hostname                    { get; }
 
         /// <summary>
         /// The name of the HTTP API service.
         /// </summary>
-        public String        ServiceName        { get; }
+        public String            ServiceName                 { get; }
 
         /// <summary>
         /// The offical URL/DNS name of this service, e.g. for sending e-mails.
         /// </summary>
-        public String        ExternalDNSName    { get; }
+        public String            ExternalDNSName             { get; }
 
         /// <summary>
         /// The URL prefix of this HTTP API.
         /// </summary>
-        public HTTPPath      URLPathPrefix      { get; }
+        public HTTPPath          URLPathPrefix               { get; }
+
+        /// <summary>
+        /// The default request timeout for incoming HTTP requests.
+        /// </summary>
+        public TimeSpan          DefaultRequestTimeout       { get; set; }
 
         /// <summary>
         /// The unqiue identification of this HTTP API instance.
         /// </summary>
-        public System_Id     SystemId           { get; }
+        public System_Id         SystemId                    { get; }
 
         /// <summary>
         /// An optional HTML template.
         /// </summary>
-        public String        HTMLTemplate       { get; protected set; }
+        public String            HTMLTemplate                { get; protected set; }
 
 
-        public HashSet<String>           DevMachines                        { get; set; }
+        public HashSet<String>   DevMachines                 { get; set; }
 
-        public String                    LoggingPath                        { get; }
+        public String            LoggingPath                 { get; }
 
-        public String                    HTTPRequestsPath                   { get; }
+        public String            HTTPRequestsPath            { get; }
 
-        public String                    HTTPResponsesPath                  { get; }
+        public String            HTTPResponsesPath           { get; }
 
-        public String                    HTTPSSEsPath                       { get; }
+        public String            HTTPSSEsPath                { get; }
+
+
+
+        public X509Certificate   ServerCert                  { get; }
+
+
+        public DNSClient         DNSClient
+            => HTTPServer.DNSClient;
+
+
+        /// <summary>
+        /// The CPO client (HTTP client) logger.
+        /// </summary>
+        public HTTPServerLogger  HTTPLogger                  { get; set; }
 
         #endregion
 

@@ -1335,7 +1335,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Properties
 
-            private readonly HTTPClient _HTTPClient;
+            private readonly AHTTPClient _HTTPClient;
 
             #region Non-http header fields
 
@@ -1999,7 +1999,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// Create a new HTTP request.
             /// </summary>
-            public Builder(HTTPClient Client)
+            public Builder(AHTTPClient Client)
             {
 
                 this._HTTPClient      = Client;

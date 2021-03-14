@@ -17,10 +17,8 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Illias;
 using System;
 using System.Globalization;
-using System.Linq;
 using System.Text.RegularExpressions;
 
 #endregion
@@ -32,8 +30,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// A HTTP uniform resource identifier.
     /// </summary>
     public struct HTTPURI2 : IEquatable<HTTPURI2>,
-                            IComparable<HTTPURI2>,
-                            IComparable
+                             IComparable<HTTPURI2>,
+                             IComparable
     {
 
         #region Data

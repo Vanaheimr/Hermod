@@ -66,7 +66,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
     /// <summary>
     /// A specialized HTTP client for the Simple Object Access Protocol (SOAP) v1.1.
     /// </summary>
-    public class SOAPClient : HTTPClient
+    public class SOAPClient : ASOAPClient
     {
 
         #region Data
@@ -74,16 +74,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         /// <summary>
         /// The default HTTP/SOAP user agent.
         /// </summary>
-        public new const String DefaultUserAgent  = "GraphDefined HTTP/SOAP Client";
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// The URL-prefix of the HTTP/SOAP service.
-        /// </summary>
-        public HTTPPath       URLPrefix         { get; }
+        public new const String  DefaultHTTPUserAgent  = "GraphDefined HTTP/SOAPv1.1 Client";
 
         #endregion
 
@@ -92,40 +83,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         /// <summary>
         /// Create a new specialized HTTP client for the Simple Object Access Protocol (SOAP) v1.1.
         /// </summary>
-        /// <param name="Hostname">The hostname of the remote HTTP/SOAP service.</param>
-        /// <param name="VirtualHostname">The HTTP virtual host to use.</param>
-        /// <param name="URLPrefix">The URL-prefix of the HTTP/SOAP service.</param>
-        /// <param name="HTTPSPort">The HTTPS port of the remote HTTP/SOAP service.</param>
-        /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
+        /// <param name="RemoteURL">The remote URL of the OICP HTTP endpoint to connect to.</param>
+        /// <param name="VirtualHostname">An optional HTTP virtual hostname.</param>
+        /// <param name="Description">An optional description of this CPO client.</param>
+        /// <param name="RemoteCertificateValidator">The remote SSL/TLS certificate validator.</param>
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
-        /// <param name="UserAgent">The HTTP user agent to use.</param>
-        /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
-        /// <param name="DNSClient">An optional DNS client.</param>
-        public SOAPClient(HTTPHostname                         Hostname,
-                          HTTPPath                              URLPrefix,
+        /// <param name="ClientCert">The SSL/TLS client certificate to use of HTTP authentication.</param>
+        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="URLPathPrefix">An optional default URL path prefix.</param>
+        /// <param name="WSSLoginPassword">The WebService-Security username/password.</param>
+        /// <param name="RequestTimeout">An optional request timeout.</param>
+        /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
+        /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
+        /// <param name="DNSClient">The DNS client to use.</param>
+        public SOAPClient(URL                                  RemoteURL,
                           HTTPHostname?                        VirtualHostname              = null,
-                          IPPort?                              HTTPSPort                    = null,
+                          String                               Description                  = null,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
                           LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
-                          String                               UserAgent                    = DefaultUserAgent,
+                          X509Certificate                      ClientCert                   = null,
+                          String                               HTTPUserAgent                = DefaultHTTPUserAgent,
+                          HTTPPath?                            URLPathPrefix                = null,
+                          Tuple<String, String>                WSSLoginPassword             = null,
                           TimeSpan?                            RequestTimeout               = null,
+                          TransmissionRetryDelayDelegate       TransmissionRetryDelay       = null,
+                          UInt16?                              MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
                           DNSClient                            DNSClient                    = null)
 
-            : base(Hostname,
-                   HTTPSPort      ?? IPPort.HTTPS,
+            : base(RemoteURL,
                    VirtualHostname,
+                   Description,
                    RemoteCertificateValidator,
                    ClientCertificateSelector,
-                   null,
-                   UserAgent      ?? DefaultUserAgent,
-                   RequestTimeout ?? DefaultRequestTimeout,
+                   ClientCert,
+                   HTTPUserAgent,
+                   URLPathPrefix,
+                   WSSLoginPassword,
+                   RequestTimeout,
+                   TransmissionRetryDelay,
+                   MaxNumberOfRetries,
                    DNSClient)
 
-        {
-
-            this.URLPrefix  = URLPrefix.IsNotNullOrEmpty() ? URLPrefix : HTTPPath.Parse("/");
-
-        }
+        { }
 
         #endregion
 
@@ -191,11 +190,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
             var requestBuilder = new HTTPRequest.Builder(this) {
                                      HTTPMethod         = HTTPMethod.POST,
                                      Host               = VirtualHostname ?? Hostname,
-                                     Path                = URLPrefix,
+                                     Path               = URLPathPrefix,
                                      Accept             = new AcceptTypes(HTTPContentType.XMLTEXT_UTF8),
                                      Content            = QueryXML.ToUTF8Bytes(),
                                      ContentType        = ContentType ?? HTTPContentType.XMLTEXT_UTF8,
-                                     UserAgent          = UserAgent
+                                     UserAgent          = HTTPUserAgent
                                     // FakeURLPrefix      = "https://" + (VirtualHostname ?? Hostname)
                                  };
 
@@ -328,7 +327,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
     /// <summary>
     /// A specialized HTTP client for the Simple Object Access Protocol (SOAP) v1.2.
     /// </summary>
-    public class SOAPClient : HTTPClient
+    public class SOAPClient : ASOAPClient
     {
 
         #region Data
@@ -336,18 +335,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         /// <summary>
         /// The default HTTP/SOAP user agent.
         /// </summary>
-        public new const String DefaultUserAgent  = "GraphDefined HTTP/SOAPv1.2 Client";
+        public new const String  DefaultHTTPUserAgent  = "GraphDefined HTTP/SOAPv1.2 Client";
 
         #endregion
 
         #region Properties
 
-        /// <summary>
-        /// The URL-prefix of the HTTP/SOAP service.
-        /// </summary>
-        public HTTPPath  URLPrefix           { get; }
-
-        public Boolean   UseFakeURLPrefix    { get; }
+        public Boolean  UseFakeURLPrefix    { get; }
 
         #endregion
 
@@ -356,39 +350,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         /// <summary>
         /// Create a new specialized HTTP client for the Simple Object Access Protocol (SOAP) v1.2.
         /// </summary>
-        /// <param name="Hostname">The hostname of the remote HTTP/SOAP service.</param>
-        /// <param name="HTTPPort">The HTTP port of the remote HTTP/SOAP service.</param>
-        /// <param name="VirtualHostname">The HTTP virtual host to use.</param>
-        /// <param name="URLPrefix">The URL-prefix of the HTTP/SOAP service.</param>
-        /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
+        /// <param name="RemoteURL">The remote URL of the OICP HTTP endpoint to connect to.</param>
+        /// <param name="VirtualHostname">An optional HTTP virtual hostname.</param>
+        /// <param name="Description">An optional description of this CPO client.</param>
+        /// <param name="RemoteCertificateValidator">The remote SSL/TLS certificate validator.</param>
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
-        /// <param name="UserAgent">The HTTP user agent to use.</param>
-        /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
-        /// <param name="DNSClient">An optional DNS client.</param>
-        public SOAPClient(HTTPHostname                         Hostname,
-                          HTTPPath                             URLPrefix,
+        /// <param name="ClientCert">The SSL/TLS client certificate to use of HTTP authentication.</param>
+        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="URLPathPrefix">An optional default URL path prefix.</param>
+        /// <param name="WSSLoginPassword">The WebService-Security username/password.</param>
+        /// <param name="RequestTimeout">An optional request timeout.</param>
+        /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
+        /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
+        /// <param name="DNSClient">The DNS client to use.</param>
+        public SOAPClient(URL                                  RemoteURL,
                           HTTPHostname?                        VirtualHostname              = null,
-                          IPPort?                              HTTPPort                     = null,
+                          Boolean                              UseFakeURLPrefix             = true,
+                          String                               Description                  = null,
                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
                           LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
-                          String                               UserAgent                    = DefaultUserAgent,
-                          Boolean                              UseFakeURLPrefix             = true,
+                          X509Certificate                      ClientCert                   = null,
+                          String                               HTTPUserAgent                = DefaultHTTPUserAgent,
+                          HTTPPath?                            URLPathPrefix                = null,
+                          Tuple<String, String>                WSSLoginPassword             = null,
                           TimeSpan?                            RequestTimeout               = null,
+                          TransmissionRetryDelayDelegate       TransmissionRetryDelay       = null,
+                          UInt16?                              MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
                           DNSClient                            DNSClient                    = null)
 
-            : base(Hostname,
-                   HTTPPort       ?? IPPort.HTTP,
+            : base(RemoteURL,
                    VirtualHostname,
+                   Description,
                    RemoteCertificateValidator,
                    ClientCertificateSelector,
-                   null,
-                   UserAgent      ?? DefaultUserAgent,
-                   RequestTimeout ?? DefaultRequestTimeout,
+                   ClientCert,
+                   HTTPUserAgent,
+                   URLPathPrefix,
+                   WSSLoginPassword,
+                   RequestTimeout,
+                   TransmissionRetryDelay,
+                   MaxNumberOfRetries,
                    DNSClient)
 
         {
 
-            this.URLPrefix         = URLPrefix.IsNotNullOrEmpty() ? URLPrefix : HTTPPath.Parse("/");
             this.UseFakeURLPrefix  = UseFakeURLPrefix;
 
         }
@@ -457,14 +462,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
             var _RequestBuilder = new HTTPRequest.Builder(this) {
                                       HTTPMethod     = HTTPMethod.POST,
                                       Host           = VirtualHostname ?? Hostname,
-                                      Path            = URLPrefix,
+                                      Path           = URLPathPrefix,
                                       Content        = QueryXML.ToUTF8Bytes(),
                                       ContentType    = ContentType ?? new HTTPContentType("application",
                                                                                           "soap+xml",
                                                                                           "utf-8",
                                                                                           SOAPAction,
                                                                                           null),
-                                      UserAgent      = UserAgent,
+                                      UserAgent      = HTTPUserAgent,
                                       FakeURLPrefix  = UseFakeURLPrefix ? "https://" + (VirtualHostname ?? Hostname) : null
                                   };
 

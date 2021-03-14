@@ -31,130 +31,223 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A HTTPS client.
     /// </summary>
-    public class HTTPSClient : HTTPClient
+    public class HTTPSClient : AHTTPClient
     {
 
         #region Data
 
         /// <summary>
-        /// The default HTTPS/TCP Port.
-        /// </summary>
-        public static  IPPort    DefaultHTTPSPort       = IPPort.Parse(443);
-
-        /// <summary>
         /// The default HTTPS user agent.
         /// </summary>
-        public const   String    DefaultUserAgent       = "Vanaheimr Hermod HTTPS Client v0.1";
-
-        /// <summary>
-        /// The default HTTP user agent.
-        /// </summary>
-        public static  TimeSpan  DefaultRequestTimeout  = TimeSpan.FromSeconds(60);
+        public new const String  DefaultHTTPUserAgent  = "GraphDefined HTTPS Client";
 
         #endregion
 
-        #region HTTPSClient(RemoteIPAddress, RemoteCertificateValidator, ...)
+        #region Constructor(s)
+
+        #region HTTPSClient(RemoteURL, ...)
 
         /// <summary>
-        /// Create a new HTTPS client using the given optional parameters.
+        /// Create a new HTTPS client.
+        /// </summary>
+        /// <param name="RemoteURL">The remote URL of the OICP HTTP endpoint to connect to.</param>
+        /// <param name="VirtualHostname">An optional HTTP virtual hostname.</param>
+        /// <param name="Description">An optional description of this CPO client.</param>
+        /// <param name="RemoteCertificateValidator">The remote SSL/TLS certificate validator.</param>
+        /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
+        /// <param name="ClientCert">The SSL/TLS client certificate to use of HTTP authentication.</param>
+        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="RequestTimeout">An optional request timeout.</param>
+        /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
+        /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
+        /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
+        /// <param name="HTTPLogger">A HTTP logger.</param>
+        /// <param name="DNSClient">The DNS client to use.</param>
+        public HTTPSClient(URL                                  RemoteURL,
+                           HTTPHostname?                        VirtualHostname              = null,
+                           String                               Description                  = null,
+                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
+                           LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
+                           X509Certificate                      ClientCert                   = null,
+                           String                               HTTPUserAgent                = DefaultHTTPUserAgent,
+                           TimeSpan?                            RequestTimeout               = null,
+                           TransmissionRetryDelayDelegate       TransmissionRetryDelay       = null,
+                           UInt16?                              MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
+                           Boolean                              UseHTTPPipelining            = false,
+                           HTTPClientLogger                     HTTPLogger                   = null,
+                           DNSClient                            DNSClient                    = null)
+
+            : base(RemoteURL,
+                   VirtualHostname,
+                   Description,
+                   RemoteCertificateValidator,
+                   ClientCertificateSelector,
+                   ClientCert,
+                   HTTPUserAgent,
+                   RequestTimeout,
+                   TransmissionRetryDelay,
+                   MaxNumberOfRetries,
+                   UseHTTPPipelining,
+                   HTTPLogger,
+                   DNSClient)
+
+        { }
+
+        #endregion
+
+        #region HTTPSClient(RemoteIPAddress, RemotePort = null, ...)
+
+        /// <summary>
+        /// Create a new HTTPS client.
         /// </summary>
         /// <param name="RemoteIPAddress">The remote IP address to connect to.</param>
-        /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
-        /// <param name="LocalCertificateSelector">Selects the local certificate used for authentication.</param>
-        /// <param name="ClientCert">The TLS client certificate to use.</param>
-        /// <param name="UserAgent">The HTTP user agent to use.</param>
-        /// <param name="RemotePort">An optional remote IP port to connect to [default: 443].</param>
-        /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
-        /// <param name="DNSClient">An optional DNS client.</param>
+        /// <param name="RemotePort">An optional remote TCP port to connect to.</param>
+        /// <param name="VirtualHostname">An optional HTTP virtual hostname.</param>
+        /// <param name="Description">An optional description of this CPO client.</param>
+        /// <param name="RemoteCertificateValidator">The remote SSL/TLS certificate validator.</param>
+        /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
+        /// <param name="ClientCert">The SSL/TLS client certificate to use of HTTP authentication.</param>
+        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="RequestTimeout">An optional request timeout.</param>
+        /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
+        /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
+        /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
+        /// <param name="HTTPLogger">A HTTP logger.</param>
+        /// <param name="DNSClient">The DNS client to use.</param>
         public HTTPSClient(IIPAddress                           RemoteIPAddress,
-                           RemoteCertificateValidationCallback  RemoteCertificateValidator,
-                           LocalCertificateSelectionCallback    LocalCertificateSelector   = null,
-                           X509Certificate                      ClientCert                 = null,
-                           String                               UserAgent                  = DefaultUserAgent,
-                           IPPort?                              RemotePort                 = null,
-                           TimeSpan?                            RequestTimeout             = null,
-                           DNSClient                            DNSClient                  = null)
+                           IPPort?                              RemotePort                   = null,
+                           HTTPHostname?                        VirtualHostname              = null,
+                           String                               Description                  = null,
+                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
+                           LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
+                           X509Certificate                      ClientCert                   = null,
+                           String                               HTTPUserAgent                = DefaultHTTPUserAgent,
+                           TimeSpan?                            RequestTimeout               = null,
+                           TransmissionRetryDelayDelegate       TransmissionRetryDelay       = null,
+                           UInt16?                              MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
+                           Boolean                              UseHTTPPipelining            = false,
+                           HTTPClientLogger                     HTTPLogger                   = null,
+                           DNSClient                            DNSClient                    = null)
 
-            : base(RemoteIPAddress,
-                   RemotePort                 ?? DefaultHTTPSPort,
-                   RemoteCertificateValidator ?? throw new ArgumentNullException(nameof(RemoteCertificateValidator), "The given delegate for verifiying the remote SSL/TLS certificate must not be null!"),
-                   LocalCertificateSelector,
+            : this(URL.Parse("https://" + RemoteIPAddress + (RemotePort.HasValue ? ":" + RemotePort.Value.ToString() : "")),
+                   VirtualHostname,
+                   Description,
+                   RemoteCertificateValidator,
+                   ClientCertificateSelector,
                    ClientCert,
-                   UserAgent                  ?? DefaultUserAgent,
-                   RequestTimeout             ?? DefaultRequestTimeout,
+                   HTTPUserAgent,
+                   RequestTimeout,
+                   TransmissionRetryDelay,
+                   MaxNumberOfRetries,
+                   UseHTTPPipelining,
+                   HTTPLogger,
                    DNSClient)
 
         { }
 
         #endregion
 
-        #region HTTPSClient(Socket,          RemoteCertificateValidator, ...)
+        #region HTTPSClient(RemoteSocket, ...)
 
         /// <summary>
-        /// Create a new HTTPS client using the given optional parameters.
+        /// Create a new HTTPS client.
         /// </summary>
         /// <param name="RemoteSocket">The remote IP socket to connect to.</param>
-        /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
-        /// <param name="LocalCertificateSelector">Selects the local certificate used for authentication.</param>
-        /// <param name="ClientCert">The TLS client certificate to use.</param>
-        /// <param name="UserAgent">The HTTP user agent to use.</param>
-        /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
-        /// <param name="DNSClient">An optional DNS client.</param>
+        /// <param name="VirtualHostname">An optional HTTP virtual hostname.</param>
+        /// <param name="Description">An optional description of this CPO client.</param>
+        /// <param name="RemoteCertificateValidator">The remote SSL/TLS certificate validator.</param>
+        /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
+        /// <param name="ClientCert">The SSL/TLS client certificate to use of HTTP authentication.</param>
+        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="RequestTimeout">An optional request timeout.</param>
+        /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
+        /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
+        /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
+        /// <param name="HTTPLogger">A HTTP logger.</param>
+        /// <param name="DNSClient">The DNS client to use.</param>
         public HTTPSClient(IPSocket                             RemoteSocket,
-                           RemoteCertificateValidationCallback  RemoteCertificateValidator,
-                           LocalCertificateSelectionCallback    LocalCertificateSelector   = null,
-                           X509Certificate                      ClientCert                 = null,
-                           String                               UserAgent                  = DefaultUserAgent,
-                           TimeSpan?                            RequestTimeout             = null,
-                           DNSClient                            DNSClient                  = null)
+                           HTTPHostname?                        VirtualHostname              = null,
+                           String                               Description                  = null,
+                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
+                           LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
+                           X509Certificate                      ClientCert                   = null,
+                           String                               HTTPUserAgent                = DefaultHTTPUserAgent,
+                           TimeSpan?                            RequestTimeout               = null,
+                           TransmissionRetryDelayDelegate       TransmissionRetryDelay       = null,
+                           UInt16?                              MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
+                           Boolean                              UseHTTPPipelining            = false,
+                           HTTPClientLogger                     HTTPLogger                   = null,
+                           DNSClient                            DNSClient                    = null)
 
-            : base(RemoteSocket,
-                   RemoteCertificateValidator ?? throw new ArgumentNullException(nameof(RemoteCertificateValidator), "The given delegate for verifiying the remote SSL/TLS certificate must not be null!"),
-                   LocalCertificateSelector,
+            : this(URL.Parse("https://" + RemoteSocket.IPAddress + ":" + RemoteSocket.Port),
+                   VirtualHostname,
+                   Description,
+                   RemoteCertificateValidator,
+                   ClientCertificateSelector,
                    ClientCert,
-                   UserAgent                  ?? DefaultUserAgent,
-                   RequestTimeout             ?? DefaultRequestTimeout,
+                   HTTPUserAgent,
+                   RequestTimeout,
+                   TransmissionRetryDelay,
+                   MaxNumberOfRetries,
+                   UseHTTPPipelining,
+                   HTTPLogger,
                    DNSClient)
 
         { }
 
         #endregion
 
-        #region HTTPSClient(RemoteHost,      RemoteCertificateValidator, ...)
+        #region HTTPSClient(RemoteHost, ...)
 
         /// <summary>
-        /// Create a new HTTPS client using the given optional parameters.
+        /// Create a new HTTPS client.
         /// </summary>
         /// <param name="RemoteHost">The remote hostname to connect to.</param>
-        /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
-        /// <param name="LocalCertificateSelector">Selects the local certificate used for authentication.</param>
-        /// <param name="ClientCert">The TLS client certificate to use.</param>
-        /// <param name="RemotePort">An optional remote IP port to connect to [default: 443].</param>
-        /// <param name="VirtualHostname">The virtual hostname which the HTTPClient sends.</param>
-        /// <param name="UserAgent">The HTTP user agent to use.</param>
-        /// <param name="RequestTimeout">An optional default HTTP request timeout.</param>
-        /// <param name="DNSClient">An optional DNS client.</param>
+        /// <param name="RemotePort">An optional remote TCP port to connect to.</param>
+        /// <param name="VirtualHostname">An optional HTTP virtual hostname.</param>
+        /// <param name="Description">An optional description of this CPO client.</param>
+        /// <param name="RemoteCertificateValidator">The remote SSL/TLS certificate validator.</param>
+        /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
+        /// <param name="ClientCert">The SSL/TLS client certificate to use of HTTP authentication.</param>
+        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="RequestTimeout">An optional request timeout.</param>
+        /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
+        /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
+        /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
+        /// <param name="HTTPLogger">A HTTP logger.</param>
+        /// <param name="DNSClient">The DNS client to use.</param>
         public HTTPSClient(HTTPHostname                         RemoteHost,
-                           RemoteCertificateValidationCallback  RemoteCertificateValidator,
-                           LocalCertificateSelectionCallback    LocalCertificateSelector   = null,
-                           X509Certificate                      ClientCert                 = null,
-                           IPPort?                              RemotePort                 = null,
-                           HTTPHostname?                        VirtualHostname            = null,
-                           String                               UserAgent                  = DefaultUserAgent,
-                           TimeSpan?                            RequestTimeout             = null,
-                           DNSClient                            DNSClient                  = null)
+                           IPPort?                              RemotePort                   = null,
+                           HTTPHostname?                        VirtualHostname              = null,
+                           String                               Description                  = null,
+                           RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
+                           LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
+                           X509Certificate                      ClientCert                   = null,
+                           String                               HTTPUserAgent                = DefaultHTTPUserAgent,
+                           TimeSpan?                            RequestTimeout               = null,
+                           TransmissionRetryDelayDelegate       TransmissionRetryDelay       = null,
+                           UInt16?                              MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
+                           Boolean                              UseHTTPPipelining            = false,
+                           HTTPClientLogger                     HTTPLogger                   = null,
+                           DNSClient                            DNSClient                    = null)
 
-            : base(RemoteHost,
-                   RemotePort                 ?? DefaultHTTPSPort,
+            : this(URL.Parse("https://" + RemoteHost + (RemotePort.HasValue ? ":" + RemotePort.Value.ToString() : "")),
                    VirtualHostname,
-                   RemoteCertificateValidator ?? throw new ArgumentNullException(nameof(RemoteCertificateValidator), "The given delegate for verifiying the remote SSL/TLS certificate must not be null!"),
-                   LocalCertificateSelector,
+                   Description,
+                   RemoteCertificateValidator,
+                   ClientCertificateSelector,
                    ClientCert,
-                   UserAgent                  ?? DefaultUserAgent,
-                   RequestTimeout             ?? DefaultRequestTimeout,
+                   HTTPUserAgent,
+                   RequestTimeout,
+                   TransmissionRetryDelay,
+                   MaxNumberOfRetries,
+                   UseHTTPPipelining,
+                   HTTPLogger,
                    DNSClient)
 
         { }
+
+        #endregion
 
         #endregion
 

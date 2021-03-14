@@ -24,6 +24,7 @@ using System.Net.Security;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using System.Security.Cryptography.X509Certificates;
 
 #endregion
 
@@ -31,7 +32,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 {
 
     /// <summary>
-    /// An abstract base class for all HTTP/SOAP clients.
+    /// An abstract HTTP/SOAP client.
     /// </summary>
     public abstract class ASOAPClient : AHTTPClient
     {
@@ -39,23 +40,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         #region Data
 
         /// <summary>
-        /// The default URL prefix.
+        /// The default HTTP user agent.
         /// </summary>
-        protected static readonly HTTPPath  DefaultURLPrefix    = HTTPPath.Parse("/");
+        public new const          String    DefaultHTTPUserAgent  = "GraphDefined HTTP/SOAP Client";
 
         /// <summary>
-        /// The default remote TCP port to connect to.
+        /// The default URL path prefix.
         /// </summary>
-        public new static readonly IPPort   DefaultRemotePort   = IPPort.HTTPS;
+        protected static readonly HTTPPath  DefaultURLPathPrefix      = HTTPPath.Parse("/");
 
         #endregion
 
         #region Properties
 
         /// <summary>
-        /// The default URL prefix.
+        /// The default URL path prefix.
         /// </summary>
-        public HTTPPath               URLPrefix           { get; }
+        public HTTPPath               URLPathPrefix       { get; }
 
         /// <summary>
         /// The WebService-Security username/password.
@@ -88,50 +89,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         #region Constructor(s)
 
         /// <summary>
-        /// Create an abstract SOAP client.
+        /// Create a new abstract HTTP/SOAP client.
         /// </summary>
-        /// <param name="ClientId">A unqiue identification of this client.</param>
-        /// <param name="Hostname">The hostname to connect to.</param>
-        /// <param name="RemotePort">The remote TCP port to connect to.</param>
-        /// <param name="RemoteCertificateValidator">A delegate to verify the remote TLS certificate.</param>
+        /// <param name="RemoteURL">The remote URL of the OICP HTTP endpoint to connect to.</param>
+        /// <param name="VirtualHostname">An optional HTTP virtual hostname.</param>
+        /// <param name="Description">An optional description of this CPO client.</param>
+        /// <param name="RemoteCertificateValidator">The remote SSL/TLS certificate validator.</param>
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
-        /// <param name="HTTPVirtualHost">An optional HTTP virtual host name to use.</param>
-        /// <param name="URLPrefix">An default URL prefix.</param>
+        /// <param name="ClientCert">The SSL/TLS client certificate to use of HTTP authentication.</param>
+        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="URLPathPrefix">An optional default URL path prefix.</param>
         /// <param name="WSSLoginPassword">The WebService-Security username/password.</param>
-        /// <param name="UserAgent">An optional HTTP user agent to use.</param>
-        /// <param name="RequestTimeout">An optional timeout for upstream queries.</param>
+        /// <param name="RequestTimeout">An optional request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
-        /// <param name="MaxNumberOfRetries">The default number of maximum transmission retries.</param>
-        /// <param name="DNSClient">An optional DNS client.</param>
-        protected ASOAPClient(String                               ClientId,
-                              HTTPHostname                         Hostname,
-                              IPPort                               RemotePort,
+        /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
+        /// <param name="DNSClient">The DNS client to use.</param>
+        protected ASOAPClient(URL                                  RemoteURL,
+                              HTTPHostname?                        VirtualHostname              = null,
+                              String                               Description                  = null,
                               RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
                               LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
-                              HTTPHostname?                        HTTPVirtualHost              = null,
-                              HTTPPath?                            URLPrefix                    = null,
+                              X509Certificate                      ClientCert                   = null,
+                              String                               HTTPUserAgent                = DefaultHTTPUserAgent,
+                              HTTPPath?                            URLPathPrefix                = null,
                               Tuple<String, String>                WSSLoginPassword             = null,
-                              String                               UserAgent                    = DefaultHTTPUserAgent,
                               TimeSpan?                            RequestTimeout               = null,
                               TransmissionRetryDelayDelegate       TransmissionRetryDelay       = null,
-                              Byte?                                MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
+                              UInt16?                              MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
                               DNSClient                            DNSClient                    = null)
 
-            : base(ClientId,
-                   Hostname,
-                   RemotePort,
+            : base(RemoteURL,
+                   VirtualHostname,
+                   Description,
                    RemoteCertificateValidator,
                    ClientCertificateSelector,
-                   HTTPVirtualHost,
-                   UserAgent,
+                   ClientCert,
+                   HTTPUserAgent      ?? DefaultHTTPUserAgent,
                    RequestTimeout,
                    TransmissionRetryDelay,
-                   MaxNumberOfRetries,
+                   MaxNumberOfRetries ?? DefaultMaxNumberOfRetries,
+                   false,
+                   null,
                    DNSClient)
 
         {
 
-            this.URLPrefix         = URLPrefix ?? DefaultURLPrefix;
+            this.URLPathPrefix     = URLPathPrefix ?? DefaultURLPathPrefix;
             this.WSSLoginPassword  = WSSLoginPassword;
 
         }
