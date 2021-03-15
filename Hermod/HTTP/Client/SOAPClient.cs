@@ -95,6 +95,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         /// <param name="RequestTimeout">An optional request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
         /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
+        /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
+        /// <param name="HTTPLogger">A HTTP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         public SOAPClient(URL                                  RemoteURL,
                           HTTPHostname?                        VirtualHostname              = null,
@@ -108,6 +110,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                           TimeSpan?                            RequestTimeout               = null,
                           TransmissionRetryDelayDelegate       TransmissionRetryDelay       = null,
                           UInt16?                              MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
+                          Boolean                              UseHTTPPipelining            = false,
+                          HTTPClientLogger                     HTTPLogger                   = null,
                           DNSClient                            DNSClient                    = null)
 
             : base(RemoteURL,
@@ -122,6 +126,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                    RequestTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
+                   UseHTTPPipelining,
+                   HTTPLogger,
                    DNSClient)
 
         { }
@@ -362,6 +368,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         /// <param name="RequestTimeout">An optional request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
         /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
+        /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
+        /// <param name="HTTPLogger">A HTTP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         public SOAPClient(URL                                  RemoteURL,
                           HTTPHostname?                        VirtualHostname              = null,
@@ -376,6 +384,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                           TimeSpan?                            RequestTimeout               = null,
                           TransmissionRetryDelayDelegate       TransmissionRetryDelay       = null,
                           UInt16?                              MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
+                          Boolean                              UseHTTPPipelining            = false,
+                          HTTPClientLogger                     HTTPLogger                   = null,
                           DNSClient                            DNSClient                    = null)
 
             : base(RemoteURL,
@@ -390,6 +400,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                    RequestTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
+                   UseHTTPPipelining,
+                   HTTPLogger,
                    DNSClient)
 
         {
