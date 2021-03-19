@@ -47,8 +47,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 throw new ArgumentNullException(nameof(Text), "The given IP address must not be null or empty!");
 
             return IsIPv4(Text)
-                       ? IPv4Address.Parse(Text)
-                       : IPv6Address.Parse(Text);
+                       ? (IIPAddress) IPv4Address.Parse(Text)
+                       : (IIPAddress) IPv6Address.Parse(Text);
 
         }
 

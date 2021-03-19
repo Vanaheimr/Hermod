@@ -19,11 +19,10 @@
 
 using System;
 using System.IO;
-using System.Text;
 using System.Linq;
+using System.Globalization;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using System.Globalization;
 
 #endregion
 
@@ -33,9 +32,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <summary>
     /// An IPv6 address.
     /// </summary>
-    public struct IPv6Address : IIPAddress,
-                                IComparable<IPv6Address>,
-                                IEquatable<IPv6Address>
+    public readonly struct IPv6Address : IIPAddress,
+                                         IComparable<IPv6Address>,
+                                         IEquatable<IPv6Address>
     {
 
         #region Data
