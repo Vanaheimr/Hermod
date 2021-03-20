@@ -991,6 +991,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public HTTPPath          URLPathPrefix               { get; }
 
+
+        public HTTPPath?         BasePath                    { get; }
+
         /// <summary>
         /// The default request timeout for incoming HTTP requests.
         /// </summary>
@@ -1074,6 +1077,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        String         HTTPServerName    = null,
                        String         ExternalDNSName   = null,
                        HTTPPath?      URLPathPrefix     = null,
+                       HTTPPath?      BasePath          = null,
                        String         ServiceName       = null,
                        String         HTMLTemplate      = null,
                        Boolean        DisableLogfile    = false,
@@ -1088,6 +1092,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    HTTPHostname,
                    ExternalDNSName,
                    URLPathPrefix ?? DefaultURLPathPrefix,
+                   BasePath,
                    ServiceName   ?? DefaultHTTPServiceName,
                    HTMLTemplate,
                    DisableLogfile,
@@ -1123,6 +1128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        String                               HTTPServerName        = DefaultHTTPServerName,
                        String                               ExternalDNSName       = null,
                        HTTPPath?                            URLPathPrefix         = null,
+                       HTTPPath?                            BasePath              = null,
                        String                               ServiceName           = DefaultHTTPServiceName,
                        DNSClient                            DNSClient             = null,
                        Boolean                              Autostart             = false)
@@ -1148,6 +1154,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    HTTPHostname,
                    ExternalDNSName,
                    URLPathPrefix ?? DefaultURLPathPrefix,
+                   BasePath,
                    ServiceName   ?? DefaultHTTPServiceName)
 
         {
@@ -1176,6 +1183,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        HTTPHostname?  HTTPHostname      = null,
                        String         ExternalDNSName   = "",
                        HTTPPath?      URLPathPrefix     = null,
+                       HTTPPath?      BasePath          = null,
                        String         ServiceName       = DefaultHTTPServiceName,
                        String         HTMLTemplate      = null,
                        Boolean        DisableLogfile    = false,
@@ -1187,6 +1195,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.Hostname           = HTTPHostname    ?? HTTP.HTTPHostname.Any;
             this.ExternalDNSName    = ExternalDNSName ?? "";
             this.URLPathPrefix      = URLPathPrefix   ?? DefaultURLPathPrefix;
+            this.BasePath           = BasePath;
             this.ServiceName        = ServiceName     ?? DefaultHTTPServiceName;
             this.HTMLTemplate       = HTMLTemplate    ?? "";
             this.LoggingPath        = LoggingPath     ?? Directory.GetCurrentDirectory();
@@ -1497,7 +1506,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     ResourceStream.Seek(3, SeekOrigin.Begin);
                     ResourceStream.CopyTo(HTMLStream);
 
-                    return HTMLTemplate.Replace("<%= content %>", HTMLStream.ToArray().ToUTF8String());
+                    return HTMLTemplate.Replace("<%= content %>",  HTMLStream.ToArray().ToUTF8String()).
+                                        Replace("{{BasePath}}",    BasePath?.ToString() ?? "");
 
                 }
 
