@@ -333,7 +333,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.VirtualHostname             = VirtualHostname;
             this.Description                 = Description;
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
-            this.ClientCertificateSelector   = ClientCertificateSelector  ?? (ClientCert != null ? ((sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => ClientCert) : null);
+            this.ClientCertificateSelector   = ClientCertificateSelector;
             this.ClientCert                  = ClientCert;
             this.HTTPUserAgent               = HTTPUserAgent              ?? DefaultHTTPUserAgent;
             this.RequestTimeout              = RequestTimeout             ?? DefaultRequestTimeout;
@@ -346,6 +346,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.RemotePort                  = RemoteURL.Port             ?? (RemoteURL.Protocol == HTTPProtocols.http
                                                                                  ? IPPort.HTTP
                                                                                  : IPPort.HTTPS);
+
+            if (this.ClientCertificateSelector == null && this.ClientCert != null)
+                this.ClientCertificateSelector = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => ClientCert;
 
         }
 
