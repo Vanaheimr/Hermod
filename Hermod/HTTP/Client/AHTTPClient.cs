@@ -332,8 +332,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.RemoteURL                   = RemoteURL;
             this.VirtualHostname             = VirtualHostname;
             this.Description                 = Description;
-            this.RemoteCertificateValidator  = RemoteCertificateValidator ?? ((sender, certificate, chain, policyErrors)                                    => true);
-            this.ClientCertificateSelector   = ClientCertificateSelector  ?? ((sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => ClientCert );
+            this.RemoteCertificateValidator  = RemoteCertificateValidator;
+            this.ClientCertificateSelector   = ClientCertificateSelector  ?? (ClientCert != null ? ((sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => ClientCert) : null);
             this.ClientCert                  = ClientCert;
             this.HTTPUserAgent               = HTTPUserAgent              ?? DefaultHTTPUserAgent;
             this.RequestTimeout              = RequestTimeout             ?? DefaultRequestTimeout;
@@ -1064,7 +1064,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
-
 
 
         #region (protected) SendHTTPError(Timestamp, Sender, HttpResponse)
