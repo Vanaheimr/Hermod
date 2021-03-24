@@ -442,16 +442,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="EventTrackingId"></param>
         /// <param name="RequestTimeout">An optional timeout.</param>
         /// <param name="NumberOfRetry">The number of retransmissions of this request.</param>
-        public async Task<HTTPResponse>
+        public async Task<HTTPResponse> Execute(HTTPRequest               Request,
+                                                ClientRequestLogHandler   RequestLogDelegate    = null,
+                                                ClientResponseLogHandler  ResponseLogDelegate   = null,
 
-            Execute(HTTPRequest               Request,
-                    ClientRequestLogHandler   RequestLogDelegate    = null,
-                    ClientResponseLogHandler  ResponseLogDelegate   = null,
-
-                    CancellationToken?        CancellationToken     = null,
-                    EventTracking_Id          EventTrackingId       = null,
-                    TimeSpan?                 RequestTimeout        = null,
-                    Byte                      NumberOfRetry         = 0)
+                                                CancellationToken?        CancellationToken     = null,
+                                                EventTracking_Id          EventTrackingId       = null,
+                                                TimeSpan?                 RequestTimeout        = null,
+                                                Byte                      NumberOfRetry         = 0)
 
         {
 

@@ -18,10 +18,13 @@
 #region Usings
 
 using System;
+using System.Threading;
 using System.Net.Security;
+using System.Threading.Tasks;
 using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -109,6 +112,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         //event HTTPClient.OnDataReadDelegate OnDataRead;
 
         //void Close();
+
+
+    }
+
+    public interface IHTTPClientCommands : IHTTPClient
+    {
+
+        Task<HTTPResponse> Execute(Func<AHTTPClient, HTTPRequest>  HTTPRequestDelegate,
+                                   ClientRequestLogHandler         RequestLogDelegate    = null,
+                                   ClientResponseLogHandler        ResponseLogDelegate   = null,
+
+                                   CancellationToken?              CancellationToken     = null,
+                                   EventTracking_Id                EventTrackingId       = null,
+                                   TimeSpan?                       RequestTimeout        = null,
+                                   Byte                            NumberOfRetry         = 0);
+
+        Task<HTTPResponse> Execute(HTTPRequest                     Request,
+                                   ClientRequestLogHandler         RequestLogDelegate    = null,
+                                   ClientResponseLogHandler        ResponseLogDelegate   = null,
+
+                                   CancellationToken?              CancellationToken     = null,
+                                   EventTracking_Id                EventTrackingId       = null,
+                                   TimeSpan?                       RequestTimeout        = null,
+                                   Byte                            NumberOfRetry         = 0);
 
     }
 

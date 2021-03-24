@@ -45,7 +45,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A http client.
     /// </summary>
-    public class HTTPClient : AHTTPClient
+    public class HTTPClient : AHTTPClient, IHTTPClientCommands
     {
 
         #region Data

@@ -74,6 +74,7 @@
     <Compile Include="HTTP\AHTTPPDU.cs" />
     <Compile Include="HTTP\AHTTPPDUBuilder.cs" />
     <Compile Include="HTTP\Client\ClientResult.cs" />
+    <Compile Include="HTTP\Client\HTTPClientFactory.cs" />
     <Compile Include="HTTP\Client\HTTPSClient.cs" />
     <Compile Include="HTTP\Client\HTTPClient.cs" />
     <Compile Include="HTTP\Client\HTTPClientExtensions.cs" />
