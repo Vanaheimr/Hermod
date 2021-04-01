@@ -1407,6 +1407,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                       RemoteSocket:       new HTTPSource(TCPConnection.RemoteSocket),
                                                                       LocalSocket:        TCPConnection.LocalSocket,
                                                                       HTTPServer:         this,
+                                                                      ServerCertificate:  TCPConnection.ServerCertificate,
+                                                                      ClientCertificate:  TCPConnection.ClientCertificate,
 
                                                                       HTTPHeader:         HTTPHeaderString.Trim(),
                                                                       HTTPBody:           null,

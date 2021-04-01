@@ -28,6 +28,7 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Security.Cryptography.X509Certificates;
 
 #endregion
 
@@ -45,21 +46,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The HTTP server of this request.
         /// </summary>
-        public HTTPServer       HTTPServer                  { get; }
+        public HTTPServer        HTTPServer                  { get; }
+
+
+        public X509Certificate2  ServerCertificate           { get; }
+
+        public X509Certificate2  ClientCertificate           { get; }
 
         /// <summary>
         /// Add this prefix to the URL before sending the request.
         /// </summary>
-        public String           FakeURLPrefix               { get; internal set; }
+        public String            FakeURLPrefix               { get; internal set; }
 
         /// <summary>
         /// The best matching accept type.
         /// Set by the HTTP server.
         /// </summary>
-        public HTTPContentType  BestMatchingAcceptType      { get; internal set; }
+        public HTTPContentType   BestMatchingAcceptType      { get; internal set; }
 
 
-        public Object           SubprotocolRequest          { get; set; }
+        public Object            SubprotocolRequest          { get; set; }
 
         #endregion
 
@@ -648,6 +654,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              String              HTTPHeader,
                              Byte[]              HTTPBody                    = null,
                              Stream              HTTPBodyStream              = null,
+                             X509Certificate2    ServerCertificate           = null,
+                             X509Certificate2    ClientCertificate           = null,
 
                              UInt32              HTTPBodyReceiveBufferSize   = DefaultHTTPBodyReceiveBufferSize,
                              CancellationToken?  CancellationToken           = null,
@@ -665,7 +673,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this.HTTPServer = HTTPServer;
+            this.HTTPServer         = HTTPServer;
+            this.ServerCertificate  = ServerCertificate;
+            this.ClientCertificate  = ClientCertificate;
 
             #region Parse HTTPMethod (first line of the http request)
 

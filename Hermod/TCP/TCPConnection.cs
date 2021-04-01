@@ -75,7 +75,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// The optional HTTP client certificate.
         /// </summary>
-        public X509Certificate   ClientCertificate    { get; }
+        public X509Certificate2  ClientCertificate    { get; }
 
         /// <summary>
         /// The SSL/TLS protocol(s) to use.
@@ -302,7 +302,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                                     enabledSslProtocols:                AllowedTLSProtocols,
                                                     checkCertificateRevocation:         false);
 
-                var aa = SSLStream.RemoteCertificate;
+                if (this.SSLStream.RemoteCertificate != null)
+                    this.ClientCertificate = new X509Certificate2(this.SSLStream.RemoteCertificate);
 
             }
 
