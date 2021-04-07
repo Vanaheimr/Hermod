@@ -50,6 +50,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         //ToDo: "resentSender", "resentDate", "resentMessageId", "Resent-From", 
         //      "Resent-Reply-To", "Resent-To", "Resent-Cc", "Resent-Bcc",
 
+        private readonly Message_Id        _Reference;
+
+        private readonly List<Message_Id>  _References;
+
+
         #region From
 
         private EMailAddress _From;
@@ -268,7 +273,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #region Date
 
-        private Nullable<DateTime> _Date;
+        private DateTime? _Date;
 
         /// <summary>
         /// The sending timestamp of this e-mail.
@@ -305,64 +310,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #endregion
 
-        #region MessageId
-
         /// <summary>
         /// The unique message identification of the e-mail.
         /// </summary>
-        public Message_Id? MessageId    { get; }
-
-        #endregion
-
-        private readonly Message_Id _Reference;
-
-        private readonly List<Message_Id> _References;
-
-        #region SecurityLevel
+        public Message_Id?              MessageId               { get; }
 
         /// <summary>
         /// The security level of the e-mail.
         /// </summary>
-        public EMailSecurity SecurityLevel { get; set; }
-
-        #endregion
-
-        #region SymmetricKeyAlgorithm
+        public EMailSecurity            SecurityLevel           { get; set; }
 
         /// <summary>
         /// The symmetric key algorithm to use.
         /// </summary>
-        public SymmetricKeyAlgorithms SymmetricKeyAlgorithm { get; set; }
-
-        #endregion
-
-        #region HashAlgorithm
+        public SymmetricKeyAlgorithms   SymmetricKeyAlgorithm   { get; set; }
 
         /// <summary>
         /// The hash algorithm to use.
         /// </summary>
-        public HashAlgorithms HashAlgorithm { get; set; }
-
-        #endregion
-
-        #region CompressionAlgorithm
+        public HashAlgorithms           HashAlgorithm           { get; set; }
 
         /// <summary>
         /// The compression algorithm to use.
         /// </summary>
-        public CompressionAlgorithms CompressionAlgorithm { get; set; }
+        public CompressionAlgorithms    CompressionAlgorithm    { get; set; }
 
-        #endregion
-
-        #region Passphrase
-
-        public String Passphrase
-        {
-            get;
-            set;
-        }
-
-        #endregion
+        /// <summary>
+        /// The passphrase.
+        /// </summary>
+        public String                   Passphrase              { get; set; }
 
 
         #region Body
