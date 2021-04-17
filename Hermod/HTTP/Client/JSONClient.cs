@@ -47,7 +47,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The SSL/TLS client certificate to use of HTTP authentication.</param>
         /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
-        /// <param name="URLPathPrefix">An optional default URL path prefix.</param>
         /// <param name="RequestTimeout">An optional request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
         /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
@@ -59,7 +58,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
                           LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
                           X509Certificate                      ClientCert                   = null,
                           String                               HTTPUserAgent                = DefaultHTTPUserAgent,
-                          HTTPPath?                            URLPathPrefix                = null,
                           TimeSpan?                            RequestTimeout               = null,
                           TransmissionRetryDelayDelegate       TransmissionRetryDelay       = null,
                           UInt16?                              MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
@@ -72,7 +70,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
                    ClientCertificateSelector,
                    ClientCert,
                    HTTPUserAgent,
-                   URLPathPrefix,
                    RequestTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,

@@ -55,11 +55,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Properties
 
-        /// <summary>
-        /// The default URL path prefix.
-        /// </summary>
-        public HTTPPath  URLPathPrefix    { get; }
-
         #endregion
 
         #region Events
@@ -92,7 +87,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The SSL/TLS client certificate to use of HTTP authentication.</param>
         /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
-        /// <param name="URLPathPrefix">An optional default URL path prefix.</param>
         /// <param name="RequestTimeout">An optional request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
         /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
@@ -104,7 +98,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
                               X509Certificate                      ClientCert                   = null,
                               String                               HTTPUserAgent                = DefaultHTTPUserAgent,
-                              HTTPPath?                            URLPathPrefix                = null,
                               TimeSpan?                            RequestTimeout               = null,
                               TransmissionRetryDelayDelegate       TransmissionRetryDelay       = null,
                               UInt16?                              MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
@@ -124,11 +117,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    null,
                    DNSClient)
 
-        {
-
-            this.URLPathPrefix  = URLPathPrefix ?? DefaultURLPathPrefix;
-
-        }
+        { }
 
         #endregion
 
@@ -183,7 +172,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            var _RequestBuilder = CreateRequest(HTTPMethod.POST, URLPathPrefix);
+            var _RequestBuilder = CreateRequest(HTTPMethod.POST, RemoteURL.Path);
             _RequestBuilder.Host               = VirtualHostname ?? RemoteURL.Hostname;
             _RequestBuilder.Content            = JSONRequest.ToUTF8Bytes();
             _RequestBuilder.ContentType        = HTTPContentType.JSON_UTF8;
@@ -258,7 +247,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             else
             {
 
-                DebugX.LogT("HTTPRepose is null! (" + _RequestBuilder.Path.ToString() + ")");
+                DebugX.LogT("HTTPRespose is null! (" + _RequestBuilder.Path.ToString() + ")");
 
                 var OnHTTPErrorLocal = OnHTTPError;
                 if (OnHTTPErrorLocal != null)
