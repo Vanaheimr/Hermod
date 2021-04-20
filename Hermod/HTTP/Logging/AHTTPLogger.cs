@@ -180,10 +180,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                  ? String.Concat(Request.LocalSocket, " -> ", Request.RemoteSocket)
                                                                  : String.Concat(Request.HTTPSource,  " -> ", Request.LocalSocket),
                                                              Environment.NewLine,
-                                                             "HTTPSource: ",        Request.HTTPSource,        Environment.NewLine,
-                                                             "HTTPSource.Socket: ", Request.HTTPSource.Socket, Environment.NewLine,
-                                                             "LocalSocket: ",       Request.LocalSocket,       Environment.NewLine,
-                                                             "RemoteSocket: ",      Request.RemoteSocket,      Environment.NewLine,
                                                              ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------",  Environment.NewLine,
                                                              Request.Timestamp.ToIso8601(),                                                       Environment.NewLine,
                                                              Request.EntirePDU,                                                                   Environment.NewLine,
@@ -273,9 +269,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         {
 
                             File.AppendAllText(LogfileCreator(Context, LogEventName),
-                                               String.Concat(Request.HTTPSource != null && Request.LocalSocket != null
-                                                                 ? String.Concat(Request.HTTPSource, " -> ", Request.LocalSocket)
-                                                                 : "",                                                                            Environment.NewLine,
+                                               String.Concat(Request.HTTPSource.Socket == Request.LocalSocket
+                                                                 ? String.Concat(Request.LocalSocket, " -> ", Request.RemoteSocket)
+                                                                 : String.Concat(Request.HTTPSource,  " -> ", Request.LocalSocket),
+                                                             Environment.NewLine,
                                                              ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------",  Environment.NewLine,
                                                              Request.Timestamp.ToIso8601(),                                                       Environment.NewLine,
                                                              Request.EntirePDU,                                                                   Environment.NewLine,
