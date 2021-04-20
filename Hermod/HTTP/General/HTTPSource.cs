@@ -56,13 +56,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    => Socket.Port;
 
 
-        private readonly IIPAddress[] _ForwardedFor;
+        private readonly IIPAddress[] ForwardedForList;
 
         /// <summary>
         /// An additional enumeration of IP addresses, when the message had been forwarded between HTTP servers.
         /// </summary>
         public IEnumerable<IIPAddress>  ForwardedFor
-                   => _ForwardedFor;
+                   => ForwardedForList;
 
         #endregion
 
@@ -77,8 +77,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           IEnumerable<IIPAddress>  ForwardedFor = null)
         {
 
-            this.Socket         = Socket;
-            this._ForwardedFor  = ForwardedFor != null ? ForwardedFor.ToArray() : new IIPAddress[0];
+            this.Socket            = Socket;
+            this.ForwardedForList  = ForwardedFor != null ? ForwardedFor.ToArray() : new IIPAddress[0];
 
         }
 
@@ -250,7 +250,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             unchecked
             {
                 return Socket.       GetHashCode() * 3 ^
-                       _ForwardedFor.GetHashCode();
+                       ForwardedForList.GetHashCode();
             }
         }
 
@@ -263,8 +263,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public override String ToString()
 
-            => _ForwardedFor.Length > 0
-                   ? String.Concat(Socket, " (", _ForwardedFor.AggregateWith(" <- "), ")")
+            => ForwardedForList.Length > 0
+                   ? String.Concat(Socket, " (", ForwardedForList.AggregateWith(" <- "), ")")
                    : Socket.ToString();
 
         #endregion

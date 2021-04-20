@@ -630,14 +630,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region (internal) HTTPRequest(Timestamp, RemoteSocket, LocalSocket, HTTPServer, HTTPHeader, HTTPBody = null, HTTPBodyStream = null, CancellationToken = null, EventTrackingId = null)
+        #region (internal) HTTPRequest(Timestamp, HTTPSource, LocalSocket, RemoteSocket, HTTPServer, HTTPHeader, HTTPBody = null, HTTPBodyStream = null, CancellationToken = null, EventTrackingId = null)
 
         /// <summary>
         /// Create a new http request header based on the given string representation.
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
-        /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
+        /// <param name="HTTPSource">The HTTP source.</param>
         /// <param name="LocalSocket">The local TCP/IP socket.</param>
+        /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
         /// <param name="HTTPServer">The HTTP server who has received this request.</param>
         /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
         /// <param name="HTTPBody">The HTTP body as an array of bytes.</param>
@@ -647,8 +648,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         internal HTTPRequest(DateTime            Timestamp,
-                             HTTPSource          RemoteSocket,
+                             HTTPSource          HTTPSource,
                              IPSocket            LocalSocket,
+                             IPSocket            RemoteSocket,
                              HTTPServer          HTTPServer,
 
                              String              HTTPHeader,
@@ -662,8 +664,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              EventTracking_Id    EventTrackingId             = null)
 
             : base(Timestamp,
-                   RemoteSocket,
+                   HTTPSource,
                    LocalSocket,
+                   RemoteSocket,
                    HTTPHeader,
                    HTTPBody,
                    HTTPBodyStream,
@@ -803,6 +806,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The optional timestamp of the request.</param>
         /// <param name="HTTPSource">The optional remote TCP socket of the request.</param>
         /// <param name="LocalSocket">The optional local TCP socket of the request.</param>
+        /// <param name="RemoteSocket">The optional remote TCP socket of the request.</param>
         /// <param name="HTTPServer">The optional HTTP server who has received this request.</param>
         /// 
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
@@ -813,6 +817,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        DateTime?            Timestamp           = null,
                                        HTTPSource?          HTTPSource          = null,
                                        IPSocket?            LocalSocket         = null,
+                                       IPSocket?            RemoteSocket        = null,
                                        HTTPServer           HTTPServer          = null,
 
                                        CancellationToken?   CancellationToken   = null,
@@ -843,9 +848,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
 
-                    Request = new HTTPRequest(Timestamp   ?? DateTime.UtcNow,
-                                              HTTPSource  ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
-                                              LocalSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
+                    Request = new HTTPRequest(Timestamp    ?? DateTime.UtcNow,
+                                              HTTPSource   ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
+                                              LocalSocket  ?? IPSocket.LocalhostV4(IPPort.HTTPS),
+                                              RemoteSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
                                               HTTPServer,
 
                                               Header,
@@ -883,6 +889,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The optional timestamp of the request.</param>
         /// <param name="HTTPSource">The optional remote TCP socket of the request.</param>
         /// <param name="LocalSocket">The optional local TCP socket of the request.</param>
+        /// <param name="RemoteSocket">The optional remote TCP socket of the request.</param>
         /// <param name="HTTPServer">The optional HTTP server who has received this request.</param>
         /// 
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
@@ -894,6 +901,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        DateTime?            Timestamp           = null,
                                        HTTPSource?          HTTPSource          = null,
                                        IPSocket?            LocalSocket         = null,
+                                       IPSocket?            RemoteSocket        = null,
                                        HTTPServer           HTTPServer          = null,
 
                                        CancellationToken?   CancellationToken   = null,
@@ -908,9 +916,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     var EndOfHeader = Text.IndexOf("\r\n\r\n");
 
-                    Request = new HTTPRequest(Timestamp   ?? DateTime.UtcNow,
-                                              HTTPSource  ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
-                                              LocalSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
+                    Request = new HTTPRequest(Timestamp    ?? DateTime.UtcNow,
+                                              HTTPSource   ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
+                                              LocalSocket  ?? IPSocket.LocalhostV4(IPPort.HTTPS),
+                                              RemoteSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
                                               HTTPServer,
 
                                               EndOfHeader == -1 ? Text : Text.Substring(0, EndOfHeader + 2),
@@ -956,6 +965,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        DateTime?            Timestamp           = null,
                                        HTTPSource?          HTTPSource          = null,
                                        IPSocket?            LocalSocket         = null,
+                                       IPSocket?            RemoteSocket        = null,
                                        HTTPServer           HTTPServer          = null,
 
                                        CancellationToken?   CancellationToken   = null,
@@ -970,9 +980,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     var EndOfHeader = Text.IndexOf("\r\n\r\n");
 
-                    Request = new HTTPRequest(Timestamp   ?? DateTime.UtcNow,
-                                              HTTPSource  ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
-                                              LocalSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
+                    Request = new HTTPRequest(Timestamp    ?? DateTime.UtcNow,
+                                              HTTPSource   ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
+                                              LocalSocket  ?? IPSocket.LocalhostV4(IPPort.HTTPS),
+                                              RemoteSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
                                               HTTPServer,
 
                                               EndOfHeader == -1 ? Text : Text.Substring(0, EndOfHeader + 2),
@@ -1009,6 +1020,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The optional timestamp of the request.</param>
         /// <param name="HTTPSource">The optional remote TCP socket of the request.</param>
         /// <param name="LocalSocket">The optional local TCp socket of the request.</param>
+        /// <param name="RemoteSocket">The optional remote TCP socket of the request.</param>
         /// <param name="HTTPServer">The optional HTTP server who has received this request.</param>
         /// 
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
@@ -1019,6 +1031,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        DateTime?            Timestamp           = null,
                                        HTTPSource?          HTTPSource          = null,
                                        IPSocket?            LocalSocket         = null,
+                                       IPSocket?            RemoteSocket        = null,
                                        HTTPServer           HTTPServer          = null,
 
                                        CancellationToken?   CancellationToken   = null,
@@ -1030,9 +1043,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    Request = new HTTPRequest(Timestamp   ?? DateTime.UtcNow,
-                                              HTTPSource  ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
-                                              LocalSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
+                    Request = new HTTPRequest(Timestamp    ?? DateTime.UtcNow,
+                                              HTTPSource   ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
+                                              LocalSocket  ?? IPSocket.LocalhostV4(IPPort.HTTPS),
+                                              RemoteSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
                                               HTTPServer,
 
                                               Lines.TakeWhile(line => line != "").        AggregateWith("\r\n"),
@@ -1069,6 +1083,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The optional timestamp of the request.</param>
         /// <param name="HTTPSource">The optional remote TCP socket of the request.</param>
         /// <param name="LocalSocket">The optional local TCp socket of the request.</param>
+        /// <param name="RemoteSocket">The optional remote TCP socket of the request.</param>
         /// <param name="HTTPServer">The optional HTTP server who has received this request.</param>
         /// 
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
@@ -1080,6 +1095,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        DateTime?            Timestamp           = null,
                                        HTTPSource?          HTTPSource          = null,
                                        IPSocket?            LocalSocket         = null,
+                                       IPSocket?            RemoteSocket        = null,
                                        HTTPServer           HTTPServer          = null,
 
                                        CancellationToken?   CancellationToken   = null,
@@ -1091,9 +1107,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    Request = new HTTPRequest(Timestamp   ?? DateTime.UtcNow,
-                                              HTTPSource  ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
-                                              LocalSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
+                    Request = new HTTPRequest(Timestamp    ?? DateTime.UtcNow,
+                                              HTTPSource   ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
+                                              LocalSocket  ?? IPSocket.LocalhostV4(IPPort.HTTPS),
+                                              RemoteSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
                                               HTTPServer,
 
                                               Lines.TakeWhile(line => line != "").AggregateWith("\r\n"),
@@ -1127,17 +1144,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The optional timestamp of the request.</param>
         /// <param name="HTTPSource">The optional remote TCP socket of the request.</param>
         /// <param name="LocalSocket">The optional local TCp socket of the request.</param>
+        /// <param name="RemoteSocket">The optional remote TCP socket of the request.</param>
         /// <param name="HTTPServer">The optional HTTP server who has received this request.</param>
         /// <param name="EventTrackingId">The optional event tracking identification of the request.</param>
         public static Boolean TryParse(IEnumerable<String>  Lines,
                                        Stream               Body,
                                        out HTTPRequest      Request,
 
-                                       DateTime?            Timestamp        = null,
-                                       HTTPSource?          HTTPSource       = null,
-                                       IPSocket?            LocalSocket      = null,
-                                       HTTPServer           HTTPServer       = null,
-                                       EventTracking_Id     EventTrackingId  = null)
+                                       DateTime?            Timestamp         = null,
+                                       HTTPSource?          HTTPSource        = null,
+                                       IPSocket?            LocalSocket       = null,
+                                       IPSocket?            RemoteSocket      = null,
+                                       HTTPServer           HTTPServer        = null,
+                                       EventTracking_Id     EventTrackingId   = null)
         {
 
             if (Lines.SafeAny())
@@ -1145,9 +1164,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    Request = new HTTPRequest(Timestamp   ?? DateTime.UtcNow,
-                                              HTTPSource  ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
-                                              LocalSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
+                    Request = new HTTPRequest(Timestamp    ?? DateTime.UtcNow,
+                                              HTTPSource   ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
+                                              LocalSocket  ?? IPSocket.LocalhostV4(IPPort.HTTPS),
+                                              RemoteSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
                                               HTTPServer,
 
                                               Lines.TakeWhile(line => line != "").AggregateWith("\r\n"),
@@ -2785,6 +2805,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     return new HTTPRequest(DateTime.UtcNow,
                                            new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
+                                           IPSocket.LocalhostV4(IPPort.HTTPS),
                                            IPSocket.LocalhostV4(IPPort.HTTPS),
                                            HTTPServer,
 

@@ -354,7 +354,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
             this.PacketThreadsAreBackground   = PacketThreadsAreBackground;
 
             var LocalIPEndPoint               = new IPEndPoint(new System.Net.IPAddress(this.IPAddress.GetBytes()), this.Port.ToInt32());
-            this.LocalSocket                  = new IPSocket(LocalIPEndPoint);
+            this.LocalSocket                  = IPSocket.FromIPEndPoint(LocalIPEndPoint);
             this.LocalDotNetSocket            = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             this.LocalDotNetSocket.Bind(LocalIPEndPoint);
 
@@ -496,7 +496,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
                                     var Timestamp_Local                = Timestamp;
                                     var UDPPayload_Local               = UDPPayload;
                                     var OnNotificationLocal            = OnNotification;
-                                    var RemoteSocket_Local             = new IPSocket((IPEndPoint) RemoteEndPoint);
+                                    var RemoteSocket_Local             = IPSocket.FromIPEndPoint(RemoteEndPoint);
                                     var NumberOfReceivedBytes_Local    = NumberOfReceivedBytes;
                                     var MapperLocal                    = Mapper;
                                     var MapReduceLocal                 = MapReduce;

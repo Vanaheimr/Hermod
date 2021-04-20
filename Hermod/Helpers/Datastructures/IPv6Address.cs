@@ -200,7 +200,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region Parse(IPv6AddressString)
+        #region Parse   (IPv6AddressString)
 
         /// <summary>
         /// Parsed the given string representation into a new IPv6Address.
@@ -209,12 +209,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static IPv6Address Parse(String IPv6AddressString)
         {
 
-            IPv6Address _IPv6Address;
+            if (TryParse(IPv6AddressString, out IPv6Address IPAddress))
+                return IPAddress;
 
-            if (IPv6Address.TryParse(IPv6AddressString, out _IPv6Address))
-                return _IPv6Address;
+            throw new ArgumentException("The given string '" + IPv6AddressString + "' is not a valid IPv6Address!", nameof(IPv6AddressString));
 
-            throw new FormatException("The given string '" + IPv6AddressString + "' is not a valid IPv6Address!");
+        }
+
+        #endregion
+
+        #region TryParse(IPv6AddressString)
+
+        /// <summary>
+        /// Parsed the given string representation into a new IPv6Address.
+        /// </summary>
+        /// <param name="IPv6AddressString">An IPv6Address string representation.</param>
+        public static IPv6Address? TryParse(String IPv6AddressString)
+        {
+
+            if (TryParse(IPv6AddressString, out IPv6Address IPAddress))
+                return IPAddress;
+
+            return default;
 
         }
 

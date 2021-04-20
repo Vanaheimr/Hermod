@@ -1404,8 +1404,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     {
 
                                         HttpRequest = new HTTPRequest(Timestamp:          RequestTimestamp,
-                                                                      RemoteSocket:       new HTTPSource(TCPConnection.RemoteSocket),
+                                                                      HTTPSource:         new HTTPSource(TCPConnection.RemoteSocket),
                                                                       LocalSocket:        TCPConnection.LocalSocket,
+                                                                      RemoteSocket:       TCPConnection.RemoteSocket,
                                                                       HTTPServer:         this,
                                                                       ServerCertificate:  TCPConnection.ServerCertificate,
                                                                       ClientCertificate:  TCPConnection.ClientCertificate,

@@ -54,9 +54,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Context">The context of the log request.</param>
         /// <param name="LogEventName">The name of the log event.</param>
         /// <param name="Request">The HTTP request to log.</param>
-        public async Task Default_LogHTTPRequest_toConsole(String       Context,
-                                                           String       LogEventName,
-                                                           HTTPRequest  Request)
+        public Task Default_LogHTTPRequest_toConsole(String       Context,
+                                                     String       LogEventName,
+                                                     HTTPRequest  Request)
         {
 
             lock (LockObject)
@@ -66,23 +66,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 Console.ForegroundColor = ConsoleColor.Gray;
                 Console.Write("[" + Request.Timestamp.ToLocalTime() + " T:" + Thread.CurrentThread.ManagedThreadId.ToString() + "] ");
+
                 Console.ForegroundColor = ConsoleColor.DarkGray;
                 Console.Write(Context + "/");
+
                 Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.Write(LogEventName);
 
-                if (Request.HTTPSource != null)
-                {
-                    Console.Write(LogEventName);
-                    Console.ForegroundColor = ConsoleColor.Gray;
-                    Console.WriteLine(" from " + Request.HTTPSource);
-                }
-
-                else
-                    Console.WriteLine(LogEventName);
+                //Console.ForegroundColor = ConsoleColor.Gray;
+                //Console.WriteLine(Request.HTTPSource.Socket == Request.LocalSocket
+                //                      ? String.Concat(Request.LocalSocket, " -> ", Request.RemoteSocket)
+                //                      : String.Concat(Request.HTTPSource,  " -> ", Request.LocalSocket));
 
                 Console.ForegroundColor = PreviousColor;
 
             }
+
+            return Task.CompletedTask;
 
         }
 
@@ -97,10 +97,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogEventName">The name of the log event.</param>
         /// <param name="Request">The HTTP request to log.</param>
         /// <param name="Response">The HTTP response to log.</param>
-        public async Task Default_LogHTTPResponse_toConsole(String        Context,
-                                                            String        LogEventName,
-                                                            HTTPRequest   Request,
-                                                            HTTPResponse  Response)
+        public Task Default_LogHTTPResponse_toConsole(String        Context,
+                                                      String        LogEventName,
+                                                      HTTPRequest   Request,
+                                                      HTTPResponse  Response)
         {
 
             lock (LockObject)
@@ -110,12 +110,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 Console.ForegroundColor = ConsoleColor.Gray;
                 Console.Write("[" + Request.Timestamp.ToLocalTime() + " T:" + Thread.CurrentThread.ManagedThreadId.ToString() + "] ");
+
                 Console.ForegroundColor = ConsoleColor.DarkGray;
                 Console.Write(Context + "/");
+
                 Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.Write(LogEventName);
+
                 Console.ForegroundColor = ConsoleColor.Gray;
-                Console.Write(String.Concat(" from ", Request.HTTPSource != null ? Request.HTTPSource.ToString() : "<local>", " => "));
+                Console.Write(String.Concat(" from ", Request.HTTPSource, " => "));
 
                 if (Response.HTTPStatusCode == HTTPStatusCode.OK ||
                     Response.HTTPStatusCode == HTTPStatusCode.Created)
@@ -135,6 +138,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Console.ForegroundColor = PreviousColor;
 
             }
+
+            return Task.CompletedTask;
 
         }
 
@@ -171,9 +176,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         {
 
                             File.AppendAllText(LogfileCreator(Context, LogEventName),
-                                               String.Concat(Request.HTTPSource != null && Request.LocalSocket != null
-                                                                 ? String.Concat(Request.HTTPSource, " -> ", Request.LocalSocket)
-                                                                 : "",                                                                            Environment.NewLine,
+                                               String.Concat(Request.HTTPSource.Socket == Request.LocalSocket
+                                                                 ? String.Concat(Request.LocalSocket, " -> ", Request.RemoteSocket)
+                                                                 : String.Concat(Request.HTTPSource,  " -> ", Request.LocalSocket),
+                                                             Environment.NewLine,
                                                              ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------",  Environment.NewLine,
                                                              Request.Timestamp.ToIso8601(),                                                       Environment.NewLine,
                                                              Request.EntirePDU,                                                                   Environment.NewLine,

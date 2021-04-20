@@ -274,7 +274,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region Parse(IPv4AddressString)
+        #region Parse   (IPv4AddressString)
 
         /// <summary>
         /// Parsed the given string representation into a new IPv4Address.
@@ -283,10 +283,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static IPv4Address Parse(String IPv4AddressString)
         {
 
-            if (TryParse(IPv4AddressString, out IPv4Address _IPv4Address))
-                return _IPv4Address;
+            if (TryParse(IPv4AddressString, out IPv4Address IPAddress))
+                return IPAddress;
 
-            throw new FormatException("The given string '" + IPv4AddressString + "' is not a valid IPv4Address!");
+            throw new ArgumentException("The given string '" + IPv4AddressString + "' is not a valid IPv4Address!", nameof(IPv4AddressString));
 
         }
 
@@ -297,10 +297,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static IPv4Address Parse(HTTPHostname IPv4AddressString)
         {
 
-            if (IPv4AddressString.Name.IsNotNullOrEmpty())
-                return Parse(IPv4AddressString.Name);
+            if (TryParse(IPv4AddressString, out IPv4Address IPAddress))
+                return IPAddress;
 
-            throw new FormatException("The given string '" + IPv4AddressString + "' is not a valid IPv4Address!");
+            throw new ArgumentException("The given string '" + IPv4AddressString + "' is not a valid IPv4Address!", nameof(IPv4AddressString));
+
+        }
+
+        #endregion
+
+        #region TryParse(IPv4AddressString)
+
+        /// <summary>
+        /// Parsed the given string representation into a new IPv4Address.
+        /// </summary>
+        /// <param name="IPv4AddressString">An IPv4Address string representation.</param>
+        public static IPv4Address? TryParse(String IPv4AddressString)
+        {
+
+            if (TryParse(IPv4AddressString, out IPv4Address IPAddress))
+                return IPAddress;
+
+            return default;
+
+        }
+
+        /// <summary>
+        /// Parsed the given string representation into a new IPv4Address.
+        /// </summary>
+        /// <param name="IPv4AddressString">An IPv4Address string representation.</param>
+        public static IPv4Address? TryParse(HTTPHostname IPv4AddressString)
+        {
+
+            if (TryParse(IPv4AddressString, out IPv4Address IPAddress))
+                return IPAddress;
+
+            return default;
 
         }
 
@@ -316,7 +348,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static Boolean TryParse(String IPv4AddressString, out IPv4Address IPv4Address)
         {
 
-            IPv4Address  = default(IPv4Address);
+            IPv4Address  = default;
 
             var Elements = IPv4AddressString.Split(Splitter, _Length, StringSplitOptions.None);
 
@@ -349,15 +381,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IPv4AddressString">An IPv4Address string representation.</param>
         /// <param name="IPv4Address">The parsed IPv4 address.</param>
         public static Boolean TryParse(HTTPHostname IPv4AddressString, out IPv4Address IPv4Address)
-        {
 
-            if (IPv4AddressString.Name.IsNotNullOrEmpty())
-                return TryParse(IPv4AddressString.Name, out IPv4Address);
-
-            IPv4Address = default(IPv4Address);
-            return false;
-
-        }
+            => TryParse(IPv4AddressString.Name, out IPv4Address);
 
         #endregion
 

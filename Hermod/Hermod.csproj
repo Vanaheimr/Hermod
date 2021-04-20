@@ -73,6 +73,8 @@
     <Compile Include="Helpers\StatusSchedule.cs" />
     <Compile Include="HTTP\AHTTPPDU.cs" />
     <Compile Include="HTTP\AHTTPPDUBuilder.cs" />
+    <Compile Include="Helpers\TimeoutException.cs" />
+    <Compile Include="Helpers\MyNetworkStream.cs" />
     <Compile Include="HTTP\Client\ClientResult.cs" />
     <Compile Include="HTTP\Client\HTTPClientFactory.cs" />
     <Compile Include="HTTP\Client\HTTPSClient.cs" />

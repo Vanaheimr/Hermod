@@ -62,26 +62,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     }
 
 
-    public class TimeoutException : Exception
-    {
-
-        public TimeSpan Timeout { get; }
-
-        public TimeoutException(TimeSpan Timeout)
-
-            : base("Could not read from the TCP stream for " + Timeout.TotalMilliseconds.ToString() + "ms!")
-
-        {
-
-            this.Timeout = Timeout;
-
-            DebugX.Log("Could not read from the TCP stream for " + Timeout.TotalMilliseconds.ToString() + "ms!");
-
-        }
-
-    }
-
-
     /// <summary>
     /// An abstract base class for all HTTP clients.
     /// </summary>
@@ -90,10 +70,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private Socket         TCPSocket;
-        private NetworkStream  TCPStream;
-        private SslStream      TLSStream;
-        private Stream         HTTPStream;
+        private Socket           TCPSocket;
+        private MyNetworkStream  TCPStream;
+        private SslStream        TLSStream;
+        private Stream           HTTPStream;
 
 
         /// <summary>
@@ -453,31 +433,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            #region Call the optional HTTP request log delegate
-
-            //DebugX.LogT("HTTPClient pre-logging (" + Request.URL + ")...");
-
-            try
-            {
-
-                if (RequestLogDelegate != null)
-                    await Task.WhenAll(RequestLogDelegate.GetInvocationList().
-                                       Cast<ClientRequestLogHandler>().
-                                       Select(e => e(DateTime.UtcNow,
-                                                     this,
-                                                     Request))).
-                                       ConfigureAwait(false);
-
-            }
-            catch (Exception e)
-            {
-                e.Log(nameof(HTTPClient) + "." + nameof(RequestLogDelegate));
-            }
-
-            //DebugX.LogT("HTTPClient post-logging (" + Request.URL + ")...");
-
-            #endregion
-
             HTTPResponse Response = null;
 
             try
@@ -487,12 +442,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Data
 
-                var HTTPHeaderBytes = new Byte[0];
-                var HTTPBodyBytes   = new Byte[0];
-                var sw              = new Stopwatch();
+                var HTTPHeaderBytes   = new Byte[0];
+                var HTTPBodyBytes     = new Byte[0];
+                var sw                = new Stopwatch();
 
                 if (!RequestTimeout.HasValue)
-                    RequestTimeout = Request.Timeout ?? this.RequestTimeout;
+                    RequestTimeout    = Request.Timeout ?? this.RequestTimeout;
 
                 #endregion
 
@@ -586,7 +541,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     }
 
-                    TCPStream = new NetworkStream(TCPSocket, true) {
+                    TCPStream = new MyNetworkStream(TCPSocket, true) {
                                     ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds
                                 };
 
@@ -642,6 +597,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 }
                 while (restart);
+
+                #endregion
+
+                Request.LocalSocket   = IPSocket.FromIPEndPoint(TCPStream.Socket.LocalEndPoint);
+                Request.HTTPSource    = new HTTPSource(IPSocket.FromIPEndPoint(TCPStream.Socket.LocalEndPoint));
+                Request.RemoteSocket  = IPSocket.FromIPEndPoint(TCPStream.Socket.RemoteEndPoint);
+
+                #region Call the optional HTTP request log delegate
+
+                try
+                {
+
+                    if (RequestLogDelegate != null)
+                        await Task.WhenAll(RequestLogDelegate.GetInvocationList().
+                                           Cast<ClientRequestLogHandler>().
+                                           Select(e => e(DateTime.UtcNow,
+                                                         this,
+                                                         Request))).
+                                           ConfigureAwait(false);
+
+                }
+                catch (Exception e)
+                {
+                    e.Log(nameof(HTTPClient) + "." + nameof(RequestLogDelegate));
+                }
 
                 #endregion
 

@@ -83,8 +83,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.CancellationTokenSource  = new CancellationTokenSource();
             this.WebSocketServer          = WebSocketServer;
             this.TcpClient                = TcpClient;
-            this.LocalSocket              = new IPSocket(TcpClient.Client.LocalEndPoint  as IPEndPoint);
-            this.RemoteSocket             = new IPSocket(TcpClient.Client.RemoteEndPoint as IPEndPoint);
+            this.LocalSocket              = IPSocket.FromIPEndPoint(TcpClient.Client.LocalEndPoint);
+            this.RemoteSocket             = IPSocket.FromIPEndPoint(TcpClient.Client.RemoteEndPoint);
             this.httpHeaders              = HTTPHeaders != null
                                                 ? HTTPHeaders.ToDictionary(kvp => kvp.Key,
                                                                            kvp => kvp.Value)

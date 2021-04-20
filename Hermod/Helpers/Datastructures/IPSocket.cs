@@ -18,7 +18,6 @@
 #region Usings
 
 using System;
-using System.Diagnostics;
 using System.Net;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -27,6 +26,21 @@ using org.GraphDefined.Vanaheimr.Illias;
 
 namespace org.GraphDefined.Vanaheimr.Hermod
 {
+
+    public static class IPSocketExtentions
+    {
+
+        #region ToIPEndPoint(this IPSocket)
+
+        public static IPEndPoint ToIPEndPoint(this IPSocket IPSocket)
+
+            => new IPEndPoint(System.Net.IPAddress.Parse(IPSocket.IPAddress.ToString()),
+                              IPSocket.Port.ToUInt16());
+
+        #endregion
+
+    }
+
 
     /// <summary>
     /// An IP socket is a combination of an IP address and a layer4 port.
@@ -52,8 +66,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Constructor(s)
 
-        #region IPSocket(IPAddress, Port)
-
         /// <summary>
         /// Generates a new IPSocket based on the given IPAddress and IPPort.
         /// </summary>
@@ -63,21 +75,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         IPPort      Port)
         {
 
-            if (IPAddress == null)
-            {
+            //if (IPAddress == null)
+            //{
 
-                StackTrace stackTrace = new StackTrace();           // get call stack
-                StackFrame[] stackFrames = stackTrace.GetFrames();  // get method calls (frames)
+            //    StackTrace stackTrace = new StackTrace();           // get call stack
+            //    StackFrame[] stackFrames = stackTrace.GetFrames();  // get method calls (frames)
 
-                // write call stack method names
-                foreach (StackFrame stackFrame in stackFrames)
-                {
-                    Console.WriteLine(stackFrame.GetMethod().Name);   // write method name
-                }
+            //    // write call stack method names
+            //    foreach (StackFrame stackFrame in stackFrames)
+            //    {
+            //        Console.WriteLine(stackFrame.GetMethod().Name);   // write method name
+            //    }
 
-                DebugX.LogT(stackTrace.ToString());
+            //    DebugX.LogT(stackTrace.ToString());
 
-            }
+            //}
 
             this.IPAddress  = IPAddress ?? throw new ArgumentNullException(nameof(IPAddress), "The given IP address must not be null!");
             this.Port       = Port;
@@ -85,19 +97,91 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region IPSocket(IPEndPoint)
+
+        #region Parse   (Text)
 
         /// <summary>
-        /// Generates a new IPSocket based on the given IPEndPoint.
+        /// Parse the given text representation of an IP socket.
         /// </summary>
-        /// <param name="IPEndPoint">An IPEndPoint.</param>
-        public IPSocket(IPEndPoint IPEndPoint)
+        /// <param name="Text">A text representation of an IP socket.</param>
+        public static IPSocket Parse(String Text)
         {
-            this.IPAddress  = IPAddressHelper.Build(IPEndPoint.Address.GetAddressBytes());
-            this.Port       = IPPort.         Parse(IPEndPoint.Port);
+
+            if (TryParse(Text, out IPSocket ipSocket))
+                return ipSocket;
+
+            throw new ArgumentException("The given text is not a valid IP socket!", nameof(Text));
+
         }
 
         #endregion
+
+        #region TryParse(Text)
+
+        /// <summary>
+        /// Parse the given text representation of an IP socket.
+        /// </summary>
+        /// <param name="Text">A text representation of an IP socket.</param>
+        public static IPSocket? TryParse(String Text)
+        {
+
+            if (TryParse(Text, out IPSocket ipSocket))
+                return ipSocket;
+
+            return default;
+
+        }
+
+        #endregion
+
+        #region TryParse(Text, out IPSocket IPSocket)
+
+        /// <summary>
+        /// Parse the given text representation of an IP socket.
+        /// </summary>
+        /// <param name="Text">A text representation of an IP socket.</param>
+        public static Boolean TryParse(String Text, out IPSocket IPSocket)
+        {
+
+            IPSocket  = default;
+            Text      = Text?.Trim();
+
+            if (Text.IsNullOrEmpty())
+                return false;
+
+            var Splitter = Text.LastIndexOf(":");
+
+            if (Splitter < 4) // "1.2.3.4:8" or "::1:8" or "[::]:80"
+                return false;
+
+            var ipAddress    = Text.Substring(0, Splitter);
+            var ipv4Address  = IPv4Address.TryParse(ipAddress);
+            var ipv6Address  = IPv6Address.TryParse(ipAddress);
+            var port         = IPPort.     TryParse(Text.Substring(Splitter + 1, Text.Length - Splitter - 1));
+
+            if (ipv4Address.HasValue && port.HasValue)
+            {
+
+                IPSocket = new IPSocket(ipv4Address.Value,
+                                        port.       Value);
+
+                return true;
+
+            }
+
+            if (ipv6Address.HasValue && port.HasValue)
+            {
+
+                IPSocket = new IPSocket(ipv6Address.Value,
+                                        port.       Value);
+
+                return true;
+
+            }
+
+            return false;
+
+        }
 
         #endregion
 
@@ -128,47 +212,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region Parse(Text)
 
-        /// <summary>
-        /// Parse the given text representation of an IP socket.
-        /// </summary>
-        /// <param name="Text">A text representation of an IP socket.</param>
-        public static IPSocket Parse(String Text)
-        {
+        #region (static) FromIPEndPoint(this IPEndPoint)
 
-            if (!Text.IsNullOrEmpty())
-                Text = Text.Trim();
+        public static IPSocket FromIPEndPoint(IPEndPoint IPEndPoint)
 
-            if (Text.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(Text), "The given text must not be null or empty!");
+            => new IPSocket(
+                   IPAddressHelper.Build(IPEndPoint.Address.GetAddressBytes()),
+                   IPPort.Parse(IPEndPoint.Port)
+               );
 
-            var Splitter   = Text.LastIndexOf(":");
+        public static IPSocket FromIPEndPoint(EndPoint IPEndPoint)
 
-            if (Splitter < 4) // "1.2.3.4:8" or "::1:8" or "[::]:80"
-                throw new ArgumentException    (nameof(Text), "The given text is not a valid IP socket!");
+            => IPEndPoint is IPEndPoint ipEndPoint
 
-            var IPAddress  = Text.Substring(0, Splitter);
-            var Port       = Text.Substring(Splitter + 1, Text.Length - Splitter - 1);
+                   ? new IPSocket(
+                         IPAddressHelper.Build(ipEndPoint.Address.GetAddressBytes()),
+                         IPPort.Parse(ipEndPoint.Port)
+                     )
 
-            return IPAddress.Contains(".")
-
-                       ? new IPSocket(IPv4Address.Parse(IPAddress),
-                                      IPPort.Parse(Port))
-
-                       : new IPSocket(IPv6Address.Parse(IPAddress),
-                                      IPPort.Parse(Port));
-
-        }
+                   : throw new ArgumentException("The given EndPoint is not an IPEndPoint!", nameof(EndPoint));
 
         #endregion
-
-
-        public IPEndPoint ToIPEndPoint()
-
-            => new IPEndPoint(System.Net.IPAddress.Parse(IPAddress.ToString()),
-                              Port.ToUInt16());
-
 
 
         #region Operator overloading

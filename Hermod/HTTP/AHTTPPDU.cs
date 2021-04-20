@@ -92,13 +92,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The remote TCP/IP socket.
         /// </summary>
-        public HTTPSource               HTTPSource           { get; }
+        public HTTPSource               HTTPSource           { get; internal set; }
 
         /// <summary>
         /// The IP socket of the HTTP packet.
         /// </summary>
-        public IPSocket                 RemoteSocket
-                   => HTTPSource.Socket;
+        public IPSocket                 RemoteSocket         { get; internal set; }
 
         /// <summary>
         /// An additional enumeration of IP addresses, when the message had been forwarded between HTTP servers.
@@ -109,7 +108,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The local TCP/IP socket.
         /// </summary>
-        public IPSocket?                LocalSocket          { get; }
+        public IPSocket                 LocalSocket          { get; internal set; }
 
 
         /// <summary>
@@ -455,6 +454,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.Timestamp                  = HTTPPDU?.Timestamp         ?? DateTime.UtcNow;
             this.HTTPSource                 = HTTPPDU.HTTPSource;
+            this.RemoteSocket               = HTTPPDU.RemoteSocket;
             this.LocalSocket                = HTTPPDU.LocalSocket;
             this.RawHTTPHeader              = HTTPPDU?.RawHTTPHeader;
             this.RawPDU                     = HTTPPDU?.RawPDU;
@@ -484,8 +484,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Creates a new HTTP header.
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
-        /// <param name="HTTPSource">The remote TCP/IP socket.</param>
+        /// <param name="HTTPSource">The HTTP source.</param>
         /// <param name="LocalSocket">The local TCP/IP socket.</param>
+        /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
         /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
         /// <param name="HTTPBody">The HTTP body as an array of bytes.</param>
         /// <param name="HTTPBodyStream">The HTTP body as an stream of bytes.</param>
@@ -495,6 +496,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected AHTTPPDU(DateTime            Timestamp,
                            HTTPSource          HTTPSource,
                            IPSocket            LocalSocket,
+                           IPSocket            RemoteSocket,
                            String              HTTPHeader,
                            Byte[]              HTTPBody                    = null,
                            Stream              HTTPBodyStream              = null,
@@ -512,6 +514,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.Timestamp                  = Timestamp;
             this.HTTPSource                 = HTTPSource;
             this.LocalSocket                = LocalSocket;
+            this.RemoteSocket               = RemoteSocket;
             this.RawHTTPHeader              = HTTPHeader.Trim();
             this._HTTPBody                  = HTTPBody;
             this._HTTPBodyStream            = HTTPBodyStream;
