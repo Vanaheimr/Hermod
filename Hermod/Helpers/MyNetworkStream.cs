@@ -48,7 +48,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// The underlying IP socket.
         /// </summary>
         public new Socket Socket
-            => Socket;
+            => base.Socket;
 
     }
 
