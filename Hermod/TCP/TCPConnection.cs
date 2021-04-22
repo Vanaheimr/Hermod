@@ -253,7 +253,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                              ServerCertificateSelectorDelegate    ServerCertificateSelector    = null,
                              RemoteCertificateValidationCallback  ClientCertificateValidator   = null,
                              LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
-                             SslProtocols                         AllowedTLSProtocols          = SslProtocols.Tls12,
+                             SslProtocols                         AllowedTLSProtocols          = SslProtocols.Tls11 | SslProtocols.Tls12 | SslProtocols.Tls13,
                              TimeSpan?                            ReadTimeout                  = null,
                              TimeSpan?                            WriteTimeout                 = null)
 

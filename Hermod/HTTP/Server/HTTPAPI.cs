@@ -1057,7 +1057,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region CommonAPI(HTTPHostname = null, ...)
+        #region HTTPAPI(HTTPHostname = null, ...)
 
         /// <summary>
         /// Create a new HTTP API.
@@ -1072,42 +1072,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DisableLogfile">Disable the log file.</param>
         /// <param name="LoggingPath">The path for all logfiles.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
-        public HTTPAPI(HTTPHostname?  HTTPHostname      = null,
-                       IPPort?        HTTPServerPort    = null,
-                       String         HTTPServerName    = null,
-                       String         ExternalDNSName   = null,
-                       HTTPPath?      URLPathPrefix     = null,
-                       HTTPPath?      BasePath          = null,
-                       String         ServiceName       = null,
-                       String         HTMLTemplate      = null,
-                       Boolean        DisableLogfile    = false,
-                       String         LoggingPath       = null,
-                       DNSClient      DNSClient         = null,
-                       Boolean        Autostart         = false)
+        //public HTTPAPI(HTTPHostname?  HTTPHostname      = null,
+        //               IPPort?        HTTPServerPort    = null,
+        //               String         HTTPServerName    = null,
+        //               String         ExternalDNSName   = null,
+        //               HTTPPath?      URLPathPrefix     = null,
+        //               HTTPPath?      BasePath          = null,
+        //               String         ServiceName       = null,
+        //               String         HTMLTemplate      = null,
+        //               Boolean        DisableLogfile    = false,
+        //               String         LoggingPath       = null,
+        //               DNSClient      DNSClient         = null,
+        //               Boolean        Autostart         = false)
 
-            : this(new HTTPServer(TCPPort:            HTTPServerPort ?? DefaultHTTPServerPort,
-                                  DefaultServerName:  HTTPServerName ?? DefaultHTTPServerName,
-                                  DNSClient:          DNSClient,
-                                  Autostart:          false),
-                   HTTPHostname,
-                   ExternalDNSName,
-                   URLPathPrefix ?? DefaultURLPathPrefix,
-                   BasePath,
-                   ServiceName   ?? DefaultHTTPServiceName,
-                   HTMLTemplate,
-                   DisableLogfile,
-                   LoggingPath)
+        //    : this(new HTTPServer(TCPPort:            HTTPServerPort ?? DefaultHTTPServerPort,
+        //                          DefaultServerName:  HTTPServerName ?? DefaultHTTPServerName,
+        //                          DNSClient:          DNSClient,
+        //                          Autostart:          false),
+        //           HTTPHostname,
+        //           ExternalDNSName,
+        //           URLPathPrefix ?? DefaultURLPathPrefix,
+        //           BasePath,
+        //           ServiceName   ?? DefaultHTTPServiceName,
+        //           HTMLTemplate,
+        //           DisableLogfile,
+        //           LoggingPath)
 
-        {
+        //{
 
-            if (Autostart)
-                HTTPServer.Start();
+        //    if (Autostart)
+        //        HTTPServer.Start();
 
-        }
+        //}
 
         #endregion
 
-        #region CommonAPI(HTTPHostname = null, ...)
+        #region HTTPAPI(HTTPHostname = null, ...)
 
         /// <summary>
         /// Create a new HTTP API.
@@ -1119,19 +1119,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLPathPrefix">An optional HTTP URL path prefix.</param>
         /// <param name="ServiceName">An optional HTTP service name.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
-        public HTTPAPI(ServerCertificateSelectorDelegate    ServerCertificateSelector,
-                       LocalCertificateSelectionCallback    ClientCertificateSelector,
-                       RemoteCertificateValidationCallback  ClientCertificateValidator,
-                       SslProtocols                         AllowedTLSProtocols   = SslProtocols.Tls12,
-                       HTTPHostname?                        HTTPHostname          = null,
-                       IPPort?                              HTTPServerPort        = null,
-                       String                               HTTPServerName        = DefaultHTTPServerName,
-                       String                               ExternalDNSName       = null,
-                       HTTPPath?                            URLPathPrefix         = null,
-                       HTTPPath?                            BasePath              = null,
-                       String                               ServiceName           = DefaultHTTPServiceName,
-                       DNSClient                            DNSClient             = null,
-                       Boolean                              Autostart             = false)
+        public HTTPAPI(ServerCertificateSelectorDelegate    ServerCertificateSelector    = null,
+                       LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
+                       RemoteCertificateValidationCallback  ClientCertificateValidator   = null,
+                       SslProtocols?                        AllowedTLSProtocols          = SslProtocols.Tls12 | SslProtocols.Tls13,
+                       HTTPHostname?                        HTTPHostname                 = null,
+                       IPPort?                              HTTPServerPort               = null,
+                       String                               HTTPServerName               = DefaultHTTPServerName,
+                       String                               ExternalDNSName              = null,
+                       HTTPPath?                            URLPathPrefix                = null,
+                       HTTPPath?                            BasePath                     = null,
+                       String                               ServiceName                  = DefaultHTTPServiceName,
+                       DNSClient                            DNSClient                    = null,
+                       Boolean                              Autostart                    = false)
 
             : this(new HTTPServer(HTTPServerPort ?? DefaultHTTPServerPort,
                                   HTTPServerName ?? DefaultHTTPServerName,
@@ -1158,6 +1158,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    ServiceName   ?? DefaultHTTPServiceName)
 
         {
+
+            this.DefaultRequestTimeout = TimeSpan.FromSeconds(60);
 
             if (Autostart)
                 HTTPServer.Start();

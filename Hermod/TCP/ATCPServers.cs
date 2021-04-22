@@ -504,7 +504,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                            ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
                            LocalCertificateSelectionCallback    ClientCertificateSelector          = null,
                            RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
-                           SslProtocols                         AllowedTLSProtocols                = SslProtocols.Tls12,
+                           SslProtocols?                        AllowedTLSProtocols                = SslProtocols.Tls12 | SslProtocols.Tls13,
                            String                               ServerThreadName                   = TCPServer.__DefaultServerThreadName,
                            ThreadPriority                       ServerThreadPriority               = ThreadPriority.AboveNormal,
                            Boolean                              ServerThreadIsBackground           = true,
@@ -526,7 +526,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             this.ServerCertificateSelector          = ServerCertificateSelector;
             this.ClientCertificateSelector          = ClientCertificateSelector;
             this.ClientCertificateValidator         = ClientCertificateValidator;
-            this.AllowedTLSProtocols                = AllowedTLSProtocols;
+            this.AllowedTLSProtocols                = AllowedTLSProtocols ?? SslProtocols.Tls12 | SslProtocols.Tls13;
 
             this._ServiceName                       = ServiceName                      ?? TCPServer.__DefaultServiceName;
             this._ServiceBanner                     = ServiceBanner                    ?? TCPServer.__DefaultServiceBanner;

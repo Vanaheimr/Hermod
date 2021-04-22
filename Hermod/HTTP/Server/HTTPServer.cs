@@ -1091,7 +1091,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
                           LocalCertificateSelectionCallback    ClientCertificateSelector          = null,
                           RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
-                          SslProtocols                         AllowedTLSProtocols                = SslProtocols.Tls12,
+                          SslProtocols?                        AllowedTLSProtocols                = SslProtocols.Tls12 | SslProtocols.Tls13,
 
                           String                               ServerThreadName                   = null,
                           ThreadPriority                       ServerThreadPriority               = ThreadPriority.AboveNormal,
@@ -1640,6 +1640,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         #region CanNotRead
 
                         case TCPClientResponse.CanNotRead:
+                            DebugX.LogT("Server close!");
                             ServerClose = true;
                             break;
 
