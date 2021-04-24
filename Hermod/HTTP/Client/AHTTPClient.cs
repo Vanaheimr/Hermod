@@ -281,9 +281,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new abstract HTTP client.
         /// </summary>
-        /// <param name="RemoteURL">The remote URL of the OICP HTTP endpoint to connect to.</param>
+        /// <param name="RemoteURL">The remote URL of the HTTP endpoint to connect to.</param>
         /// <param name="VirtualHostname">An optional HTTP virtual hostname.</param>
-        /// <param name="Description">An optional description of this CPO client.</param>
+        /// <param name="Description">An optional description of this HTTP client.</param>
         /// <param name="RemoteCertificateValidator">The remote SSL/TLS certificate validator.</param>
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The SSL/TLS client certificate to use of HTTP authentication.</param>
@@ -315,17 +315,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
             this.ClientCertificateSelector   = ClientCertificateSelector;
             this.ClientCert                  = ClientCert;
-            this.HTTPUserAgent               = HTTPUserAgent              ?? DefaultHTTPUserAgent;
-            this.RequestTimeout              = RequestTimeout             ?? DefaultRequestTimeout;
-            this.TransmissionRetryDelay      = TransmissionRetryDelay     ?? (retryCounter => TimeSpan.FromSeconds(retryCounter * retryCounter * DefaultTransmissionRetryDelay.TotalSeconds));
-            this.MaxNumberOfRetries          = MaxNumberOfRetries         ?? DefaultMaxNumberOfRetries;
+            this.HTTPUserAgent               = HTTPUserAgent          ?? DefaultHTTPUserAgent;
+            this.RequestTimeout              = RequestTimeout         ?? DefaultRequestTimeout;
+            this.TransmissionRetryDelay      = TransmissionRetryDelay ?? (retryCounter => TimeSpan.FromSeconds(retryCounter * retryCounter * DefaultTransmissionRetryDelay.TotalSeconds));
+            this.MaxNumberOfRetries          = MaxNumberOfRetries     ?? DefaultMaxNumberOfRetries;
             this.UseHTTPPipelining           = UseHTTPPipelining;
             this.HTTPLogger                  = HTTPLogger;
-            this.DNSClient                   = DNSClient                  ?? new DNSClient();
+            this.DNSClient                   = DNSClient              ?? new DNSClient();
 
-            this.RemotePort                  = RemoteURL.Port             ?? (RemoteURL.Protocol == HTTPProtocols.http
-                                                                                 ? IPPort.HTTP
-                                                                                 : IPPort.HTTPS);
+            this.RemotePort                  = RemoteURL.Port         ?? (RemoteURL.Protocol == HTTPProtocols.http
+                                                                             ? IPPort.HTTP
+                                                                             : IPPort.HTTPS);
 
             if (this.ClientCertificateSelector == null && this.ClientCert != null)
                 this.ClientCertificateSelector = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => ClientCert;
