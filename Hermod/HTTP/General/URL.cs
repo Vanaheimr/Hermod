@@ -196,10 +196,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         if (!HTTPHostname.TryParse(elements[2].Substring(0, elements[2].IndexOf(":")),  out hostname))
                             return false;
 
-                        if (IPPort.       TryParse(elements[2].Substring(elements[2].IndexOf(":") + 1), out IPPort _port))
-                            port = _port;
-                        else
-                            return false;
+                        var portText = elements[2].Substring(elements[2].IndexOf(":") + 1)?.Trim();
+
+                        if (portText.IsNotNullOrEmpty())
+                        {
+
+                            if (IPPort.TryParse(elements[2].Substring(elements[2].IndexOf(":") + 1), out IPPort _port))
+                                port = _port;
+
+                            else
+                                return false;
+
+                        }
 
                     }
 
