@@ -18,8 +18,9 @@
 #region Usings
 
 using System;
-using System.Net.Sockets;
+using System.Web;
 using System.Text;
+using System.Net.Sockets;
 
 #endregion
 
@@ -104,6 +105,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             return SwapLong(network);
         }
+
+
+        public static String URLEncode(this String Text)
+
+            => HttpUtility.UrlEncode(Text);
+
+        public static String URLDecode(this String Text)
+
+            => HttpUtility.UrlDecode(Text);
 
 
 
