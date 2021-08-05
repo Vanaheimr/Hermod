@@ -18,11 +18,10 @@
 #region Usings
 
 using System;
-using System.Linq;
+using System.Collections;
 using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using System.Collections;
 
 #endregion
 
@@ -33,8 +32,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// A single HTTP cookie.
     /// </summary>
     public class HTTPCookie : IEquatable <HTTPCookie>,
-                              IComparable<HTTPCookie>
-
+                              IComparable<HTTPCookie>,
+                              IEnumerable<KeyValuePair<String, String>>
     {
 
         #region Data
@@ -44,7 +43,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The data stored within the cookie.
         /// </summary>
-        private readonly Dictionary<String, String> Crumbs;
+        private readonly Dictionary<String, String> crumbs;
 
         #endregion
 
@@ -67,14 +66,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             this.Name    = Name;
-            this.Crumbs  = new Dictionary<String, String>();
+            this.crumbs  = new Dictionary<String, String>();
 
             if (Crumbs != null)
             {
                 foreach (var crumb in Crumbs)
                 {
-                    if (!this.Crumbs.ContainsKey(crumb.Key))
-                        this.Crumbs.Add(crumb.Key, crumb.Value);
+                    if (!this.crumbs.ContainsKey(crumb.Key))
+                        this.crumbs.Add(crumb.Key, crumb.Value);
                 }
             }
 
@@ -92,8 +91,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPCookie Parse(String Text)
         {
 
-            if (TryParse(Text, out HTTPCookie _HTTPCookie))
-                return _HTTPCookie;
+            if (TryParse(Text, out HTTPCookie httpCookie))
+                return httpCookie;
 
             return null;
 
@@ -120,14 +119,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return false;
             }
 
-            if (!HTTPCookieName.TryParse(Text.Split('=').FirstOrDefault(), out HTTPCookieName cookieName))
+            if (!HTTPCookieName.TryParse(Text.Substring(0, Text.IndexOf('=')),
+                                         out HTTPCookieName cookieName))
             {
                 HTTPCookie = null;
                 return false;
             }
 
+            var split2 = new Char[] { '=' };
+            var crumbs = new Dictionary<String, String>();
+
+            Text.Substring (Text.IndexOf('=') + 1).
+                 Split     (':').
+                 SafeSelect(command => command.Split(split2, 2)).
+                 ForEach   (tuple   => {
+                               if (tuple[0].IsNotNullOrEmpty())
+                               {
+                                   if (tuple.Length == 1)
+                                   {
+                                       if (!crumbs.ContainsKey(tuple[0].Trim()))
+                                           crumbs.Add(tuple[0].Trim(), "");
+                                       else
+                                           crumbs[tuple[0].Trim()] = "";
+                                   }
+                                   else if (tuple.Length == 2)
+                                   {
+                                       if (!crumbs.ContainsKey(tuple[0].Trim()))
+                                           crumbs.Add(tuple[0].Trim(), tuple[1]);
+                                       else
+                                           crumbs[tuple[0].Trim()] = tuple[1];
+                                   }
+                               }
+                          });
+
             HTTPCookie = new HTTPCookie(cookieName,
-                                        Text.Trim().DoubleSplit(':', '='));
+                                        crumbs);
 
             return true;
 
@@ -147,7 +173,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             get
             {
 
-                if (Crumbs.TryGetValue(Crumb, out String Value))
+                if (crumbs.TryGetValue(Crumb, out String Value))
                     return Value;
 
                 return null;
@@ -166,7 +192,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public String Get(String Crumb)
         {
 
-            if (Crumbs.TryGetValue(Crumb, out String Value))
+            if (crumbs.TryGetValue(Crumb, out String Value))
                 return Value;
 
             return null;
@@ -183,9 +209,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Crumb">The key/name of the crumb.</param>
         /// <param name="Value">The value of the crumb.</param>
         public Boolean TryGet(String Crumb, out String Value)
-            => Crumbs.TryGetValue(Crumb, out Value);
+
+            => crumbs.TryGetValue(Crumb, out Value);
 
         #endregion
+
+
+        public IEnumerator<KeyValuePair<String, String>> GetEnumerator()
+            => crumbs.GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator()
+            => crumbs.GetEnumerator();
 
 
         #region Operator overloading
