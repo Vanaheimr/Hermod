@@ -27,21 +27,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// an API key.
+    /// An API key.
     /// </summary>
-    public struct APIKey : IId,
-                           IEquatable<APIKey>,
-                           IComparable<APIKey>
+    public readonly struct APIKey : IId,
+                                    IEquatable<APIKey>,
+                                    IComparable<APIKey>
     {
 
         #region Data
-
-        private static readonly Random _random = new Random(DateTime.Now.Millisecond);
 
         /// <summary>
         /// The internal identification.
         /// </summary>
         private readonly String  InternalId;
+
+        /// <summary>
+        /// Private non-cryptographic random number generator.
+        /// </summary>
+        private static readonly Random _random = new Random();
 
         #endregion
 
@@ -66,12 +69,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new unique API key based on the given string.
         /// </summary>
-        /// <param name="String">The string representation of the API key.</param>
-        private APIKey(String  String)
+        /// <param name="String">The text representation of the API key.</param>
+        private APIKey(String String)
         {
-
-            this.InternalId  = String;
-
+            this.InternalId = String;
         }
 
         #endregion
@@ -98,17 +99,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static APIKey Parse(String Text)
         {
 
-            #region Initial checks
-
-            if (Text != null)
-                Text = Text.Trim();
+            if (TryParse(Text, out APIKey apiKey))
+                return apiKey;
 
             if (Text.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(Text), "The given text representation of an API key must not be null or empty!");
 
-            #endregion
-
-            return new APIKey(Text);
+            throw new ArgumentException("The given text representation of an API key is invalid!", nameof(Text));
 
         }
 
@@ -123,20 +120,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static APIKey? TryParse(String Text)
         {
 
-            #region Initial checks
+            if (TryParse(Text, out APIKey apiKey))
+                return apiKey;
 
-            if (Text != null)
-                Text = Text.Trim();
-
-            if (Text.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(Text), "The given text representation of an API key must not be null or empty!");
-
-            #endregion
-
-            if (TryParse(Text, out APIKey _APIKey))
-                return _APIKey;
-
-            return new APIKey?();
+            return null;
 
         }
 
@@ -152,26 +139,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean TryParse(String Text, out APIKey APIKey)
         {
 
-            #region Initial checks
+            Text = Text?.Trim();
 
-            if (Text != null)
-                Text = Text.Trim();
-
-            if (Text.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(Text), "The given text representation of an API key must not be null or empty!");
-
-            #endregion
-
-            try
+            if (Text.IsNotNullOrEmpty())
             {
-                APIKey = new APIKey(Text);
-                return true;
+                try
+                {
+                    APIKey = new APIKey(Text);
+                    return true;
+                }
+                catch (Exception)
+                { }
             }
-            catch (Exception)
-            {
-                APIKey = default(APIKey);
-                return false;
-            }
+
+            APIKey = default;
+            return false;
 
         }
 
@@ -201,20 +183,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="APIKey1">an API key.</param>
         /// <param name="APIKey2">Another API key.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (APIKey APIKey1, APIKey APIKey2)
-        {
+        public static Boolean operator == (APIKey APIKey1,
+                                           APIKey APIKey2)
 
-            // If both are null, or both are same instance, return true.
-            if (Object.ReferenceEquals(APIKey1, APIKey2))
-                return true;
-
-            // If one is null, but not both, return false.
-            if (((Object) APIKey1 == null) || ((Object) APIKey2 == null))
-                return false;
-
-            return APIKey1.Equals(APIKey2);
-
-        }
+            => APIKey1.Equals(APIKey2);
 
         #endregion
 
@@ -226,7 +198,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="APIKey1">an API key.</param>
         /// <param name="APIKey2">Another API key.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator != (APIKey APIKey1, APIKey APIKey2)
+        public static Boolean operator != (APIKey APIKey1,
+                                           APIKey APIKey2)
+
             => !(APIKey1 == APIKey2);
 
         #endregion
@@ -239,15 +213,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="APIKey1">an API key.</param>
         /// <param name="APIKey2">Another API key.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator < (APIKey APIKey1, APIKey APIKey2)
-        {
+        public static Boolean operator < (APIKey APIKey1,
+                                          APIKey APIKey2)
 
-            if ((Object) APIKey1 == null)
-                throw new ArgumentNullException(nameof(APIKey1), "The given APIKey1 must not be null!");
-
-            return APIKey1.CompareTo(APIKey2) < 0;
-
-        }
+            => APIKey1.CompareTo(APIKey2) < 0;
 
         #endregion
 
@@ -259,8 +228,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="APIKey1">an API key.</param>
         /// <param name="APIKey2">Another API key.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator <= (APIKey APIKey1, APIKey APIKey2)
-            => !(APIKey1 > APIKey2);
+        public static Boolean operator <= (APIKey APIKey1,
+                                           APIKey APIKey2)
+
+            => APIKey1.CompareTo(APIKey2) <= 0;
 
         #endregion
 
@@ -272,15 +243,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="APIKey1">an API key.</param>
         /// <param name="APIKey2">Another API key.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator > (APIKey APIKey1, APIKey APIKey2)
-        {
+        public static Boolean operator > (APIKey APIKey1,
+                                          APIKey APIKey2)
 
-            if ((Object) APIKey1 == null)
-                throw new ArgumentNullException(nameof(APIKey1), "The given APIKey1 must not be null!");
-
-            return APIKey1.CompareTo(APIKey2) > 0;
-
-        }
+            => APIKey1.CompareTo(APIKey2) > 0;
 
         #endregion
 
@@ -292,8 +258,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="APIKey1">an API key.</param>
         /// <param name="APIKey2">Another API key.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator >= (APIKey APIKey1, APIKey APIKey2)
-            => !(APIKey1 < APIKey2);
+        public static Boolean operator >= (APIKey APIKey1,
+                                           APIKey APIKey2)
+
+            => APIKey1.CompareTo(APIKey2) >= 0;
 
         #endregion
 
@@ -308,18 +276,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
         public Int32 CompareTo(Object Object)
-        {
 
-            if (Object == null)
-                throw new ArgumentNullException(nameof(Object), "The given object must not be null!");
-
-            if (!(Object is APIKey))
-                throw new ArgumentException("The given object is not an API key!",
-                                            nameof(Object));
-
-            return CompareTo((APIKey) Object);
-
-        }
+            => Object is APIKey apiKey
+                   ? CompareTo(apiKey)
+                   : throw new ArgumentException("The given object is not an API key!",
+                                                 nameof(Object));
 
         #endregion
 
@@ -330,14 +291,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="APIKey">An object to compare with.</param>
         public Int32 CompareTo(APIKey APIKey)
-        {
 
-            if ((Object) APIKey == null)
-                throw new ArgumentNullException(nameof(APIKey),  "The given API key must not be null!");
-
-            return String.Compare(InternalId, APIKey.InternalId, StringComparison.Ordinal);
-
-        }
+            => String.Compare(InternalId,
+                              APIKey.InternalId,
+                              StringComparison.Ordinal);
 
         #endregion
 
@@ -353,17 +310,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Object">An object to compare with.</param>
         /// <returns>true|false</returns>
         public override Boolean Equals(Object Object)
-        {
 
-            if (Object == null)
-                return false;
-
-            if (!(Object is APIKey))
-                return false;
-
-            return Equals((APIKey) Object);
-
-        }
+            => Object is APIKey apiKey &&
+                   Equals(apiKey);
 
         #endregion
 
@@ -375,14 +324,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="APIKey">an API key to compare with.</param>
         /// <returns>True if both match; False otherwise.</returns>
         public Boolean Equals(APIKey APIKey)
-        {
 
-            if ((Object) APIKey == null)
-                return false;
-
-            return InternalId.Equals(APIKey.InternalId);
-
-        }
+            => String.Equals(InternalId,
+                             APIKey.InternalId,
+                             StringComparison.Ordinal);
 
         #endregion
 
@@ -396,7 +341,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
 
-            => InternalId.GetHashCode();
+            => InternalId?.GetHashCode() ?? 0;
 
         #endregion
 
@@ -406,7 +351,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-            => InternalId;
+
+            => InternalId ?? "";
 
         #endregion
 

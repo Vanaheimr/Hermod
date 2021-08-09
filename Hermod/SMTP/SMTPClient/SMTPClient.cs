@@ -144,7 +144,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         private                 Byte[]                       input;
         private static readonly Byte[]                       ByteZero    = new Byte[1] { 0x00 };
 
-        private static readonly Random                       _Random     = new Random(DateTime.Now.Millisecond);
+        private static readonly Random                       _Random     = new Random();
         private static readonly SHA256CryptoServiceProvider  _SHAHasher  = new SHA256CryptoServiceProvider();
 
         private static readonly SemaphoreSlim SendEMailSemaphore = new SemaphoreSlim(1, 1);

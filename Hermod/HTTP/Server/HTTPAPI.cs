@@ -932,7 +932,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Internal non-cryptographic random number generator.
         /// </summary>
-        protected static readonly  Random    _Random                        = new Random(DateTime.Now.Millisecond);
+        protected static readonly  Random    _Random                        = new Random();
 
         /// <summary>
         /// The default HTTP server name.
