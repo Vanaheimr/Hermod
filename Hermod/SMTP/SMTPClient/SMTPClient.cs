@@ -498,7 +498,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             }
             catch (Exception e)
             {
-                e.Log(nameof(SMTPClient) + "." + nameof(OnSendEMailRequest));
+                DebugX.Log(e, nameof(SMTPClient) + "." + nameof(OnSendEMailRequest));
             }
 
             #endregion
@@ -945,7 +945,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             }
             catch (Exception e)
             {
-                e.Log(nameof(SMTPClient) + "." + nameof(OnSendEMailResponse));
+                DebugX.Log(e, nameof(SMTPClient) + "." + nameof(OnSendEMailResponse));
             }
 
             #endregion

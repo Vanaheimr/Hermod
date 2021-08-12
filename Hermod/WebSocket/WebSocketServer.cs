@@ -176,7 +176,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             }
                             catch (Exception e)
                             {
-                                e.Log(nameof(WebSocketServer) + "." + nameof(OnNewTCPConnection));
+                                DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnNewTCPConnection));
                             }
 
                             #endregion
@@ -274,7 +274,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                     }
                                     catch (Exception e)
                                     {
-                                        e.Log(nameof(WebSocketServer) + "." + nameof(OnNewTCPConnection));
+                                        DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnNewTCPConnection));
                                     }
 
                                     #endregion
@@ -321,7 +321,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                     }
                                     catch (Exception e)
                                     {
-                                        e.Log(nameof(WebSocketServer) + "." + nameof(OnMessage));
+                                        DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnMessage));
                                     }
 
                                     #endregion
@@ -369,7 +369,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                             }
                                             catch (Exception e)
                                             {
-                                                e.Log(nameof(WebSocketServer) + "." + nameof(OnTextMessage));
+                                                DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnTextMessage));
                                             }
 
                                             break;
@@ -416,7 +416,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                             }
                                             catch (Exception e)
                                             {
-                                                e.Log(nameof(WebSocketServer) + "." + nameof(OnBinaryMessage));
+                                                DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnBinaryMessage));
                                             }
 
                                             break;
@@ -449,7 +449,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                             }
                                             catch (Exception e)
                                             {
-                                                e.Log(nameof(WebSocketServer) + "." + nameof(OnTextMessage));
+                                                DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnTextMessage));
                                             }
 
                                             break;
@@ -482,7 +482,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                             }
                                             catch (Exception e)
                                             {
-                                                e.Log(nameof(WebSocketServer) + "." + nameof(OnTextMessage));
+                                                DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnTextMessage));
                                             }
 
                                             break;
@@ -517,7 +517,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                             }
                                             catch (Exception e)
                                             {
-                                                e.Log(nameof(WebSocketServer) + "." + nameof(OnTextMessage));
+                                                DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnTextMessage));
                                             }
 
                                             break;

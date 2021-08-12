@@ -620,7 +620,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
                 catch (Exception e)
                 {
-                    e.Log(nameof(HTTPClient) + "." + nameof(RequestLogDelegate));
+                    DebugX.Log(e, nameof(HTTPClient) + "." + nameof(RequestLogDelegate));
                 }
 
                 #endregion
@@ -1035,7 +1035,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
             catch (Exception e2)
             {
-                e2.Log(nameof(HTTPClient) + "." + nameof(ResponseLogDelegate));
+                DebugX.Log(e2, nameof(HTTPClient) + "." + nameof(ResponseLogDelegate));
             }
 
             #endregion
