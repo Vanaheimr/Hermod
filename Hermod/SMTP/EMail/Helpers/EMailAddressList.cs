@@ -382,10 +382,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public static EMailAddressListBuilder Parse(String EMailAddressListBuilderString)
 
             => new EMailAddressListBuilder(EMailAddressListBuilderString.
-                                        Split (new String[] { ",", ";" }, StringSplitOptions.None).
-                                        Select(textaddr  => EMailAddress.Parse(textaddr.Trim())).
-                                        Where (addresses => addresses != null).
-                                        ToArray());
+                                               Split (new String[] { ",", ";" }, StringSplitOptions.None).
+                                               Select(textaddr  => EMailAddress.Parse(textaddr.Trim())).
+                                               Where (addresses => addresses != null).
+                                               ToArray());
 
 
 
