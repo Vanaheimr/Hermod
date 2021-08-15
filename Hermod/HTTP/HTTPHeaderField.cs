@@ -2189,7 +2189,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>API-Key: vfsf87wefh8743tzfgw9f489fh9fgs9z9z237hd208du79ehcv86egfsrf</example>
         public static readonly HTTPHeaderField API_Key = new HTTPHeaderField("API-Key",
-                                                                             typeof(APIKey),
+                                                                             typeof(APIKey_Id),
                                                                              HeaderFieldType.Request,
                                                                              RequestPathSemantic.EndToEnd);
 

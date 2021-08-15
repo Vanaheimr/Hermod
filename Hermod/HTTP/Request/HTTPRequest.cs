@@ -576,7 +576,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// An optional API key for authentication.
         /// </summary>
         /// <example>API-Key: vfsf87wefh8743tzfgw9f489fh9fgs9z9z237hd208du79ehcv86egfsrf</example>
-        public APIKey? API_Key
+        public APIKey_Id? API_Key
         {
 
             get
@@ -586,10 +586,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     return null;
 
                 if (Value is String)
-                    return APIKey.TryParse(Value as String);
+                    return APIKey_Id.TryParse(Value as String);
 
                 else
-                    return APIKey.TryParse(Value.ToString());
+                    return APIKey_Id.TryParse(Value.ToString());
 
             }
 
