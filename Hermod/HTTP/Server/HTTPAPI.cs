@@ -987,11 +987,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public String            ExternalDNSName             { get; }
 
         /// <summary>
-        /// The URL prefix of this HTTP API.
+        /// The optional URL path prefix, used when defining URL templates.
         /// </summary>
         public HTTPPath          URLPathPrefix               { get; }
 
-
+        /// <summary>
+        /// When the API is served from an optional subdirectory path.
+        /// </summary>
         public HTTPPath?         BasePath                    { get; }
 
         /// <summary>
@@ -1153,9 +1155,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   Autostart: false),
                    HTTPHostname,
                    ExternalDNSName,
-                   URLPathPrefix ?? DefaultURLPathPrefix,
+                   ServiceName   ?? DefaultHTTPServiceName,
+
                    BasePath,
-                   ServiceName   ?? DefaultHTTPServiceName)
+                   URLPathPrefix ?? DefaultURLPathPrefix)
 
         {
 
@@ -1176,29 +1179,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPServer">A HTTP server.</param>
         /// <param name="HTTPHostname">An optional HTTP hostname.</param>
         /// <param name="ExternalDNSName">The offical URL/DNS name of this service, e.g. for sending e-mails.</param>
-        /// <param name="URLPathPrefix">An optional URL path prefix.</param>
         /// <param name="ServiceName">An optional name of the HTTP API service.</param>
+        /// <param name="BasePath">When the API is served from an optional subdirectory path.</param>
+        /// 
+        /// <param name="URLPathPrefix">An optional URL path prefix, used when defining URL templates.</param>
         /// <param name="HTMLTemplate">An optional HTML template.</param>
         /// <param name="DisableLogfile">Disable the log file.</param>
         /// <param name="LoggingPath">The path for all logfiles.</param>
         public HTTPAPI(HTTPServer     HTTPServer,
                        HTTPHostname?  HTTPHostname      = null,
                        String         ExternalDNSName   = "",
-                       HTTPPath?      URLPathPrefix     = null,
-                       HTTPPath?      BasePath          = null,
                        String         ServiceName       = DefaultHTTPServiceName,
+                       HTTPPath?      BasePath          = null,
+
+                       HTTPPath?      URLPathPrefix     = null,
                        String         HTMLTemplate      = null,
                        Boolean        DisableLogfile    = false,
                        String         LoggingPath       = DefaultHTTPAPI_LoggingPath)
-
         {
 
             this.HTTPServer         = HTTPServer      ?? throw new ArgumentNullException(nameof(HTTPServer), "The given HTTP server must not be null!");
             this.Hostname           = HTTPHostname    ?? HTTP.HTTPHostname.Any;
             this.ExternalDNSName    = ExternalDNSName ?? "";
-            this.URLPathPrefix      = URLPathPrefix   ?? DefaultURLPathPrefix;
-            this.BasePath           = BasePath;
             this.ServiceName        = ServiceName     ?? DefaultHTTPServiceName;
+            this.BasePath           = BasePath;
+
+            this.URLPathPrefix      = URLPathPrefix   ?? DefaultURLPathPrefix;
             this.HTMLTemplate       = HTMLTemplate    ?? "";
             this.LoggingPath        = LoggingPath     ?? Directory.GetCurrentDirectory();
 
@@ -1220,8 +1226,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Directory.CreateDirectory(this.HTTPSSEsPath);
             }
 
-
-                // Link HTTP events...
+            // Link HTTP events...
             HTTPServer.RequestLog   += (HTTPProcessor, ServerTimestamp, Request)                                 => RequestLog. WhenAll(HTTPProcessor, ServerTimestamp, Request);
             HTTPServer.ResponseLog  += (HTTPProcessor, ServerTimestamp, Request, Response)                       => ResponseLog.WhenAll(HTTPProcessor, ServerTimestamp, Request, Response);
             HTTPServer.ErrorLog     += (HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException) => ErrorLog.   WhenAll(HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException);
