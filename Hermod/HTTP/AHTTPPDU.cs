@@ -100,7 +100,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IPSocket                 RemoteSocket         { get; internal set; }
 
         /// <summary>
-        /// An additional enumeration of IP addresses, when the message had been forwarded between HTTP servers.
+        /// An additional enumeration of IP addresses, when the message has been forwarded between HTTP servers.
         /// </summary>
         public IEnumerable<IIPAddress>  ForwardedFor
                    => HTTPSource.ForwardedFor;

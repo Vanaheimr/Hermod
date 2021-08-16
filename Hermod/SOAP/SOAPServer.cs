@@ -79,7 +79,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// Initialize the SOAP server using the given parameters.
         /// </summary>
         /// <param name="TCPPort">An IP port to listen on.</param>
-        /// <param name="DefaultServerName">The default HTTP servername, used whenever no HTTP Host-header had been given.</param>
+        /// <param name="DefaultServerName">The default HTTP servername, used whenever no HTTP Host-header has been given.</param>
         /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// 
         /// <param name="SOAPContentType">The default HTTP content type used for all SOAP requests/responses.</param>

@@ -447,12 +447,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         {
 
-            #region Initial checks
-
-            if (EMail == null)
+            if (EMail is null)
                 throw new ArgumentNullException(nameof(EMail), "The given e-mail must not be null!");
-
-            #endregion
 
             return Send(new EMailEnvelop(EMail),
                         NumberOfRetries,
@@ -471,7 +467,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             #region Initial checks
 
-            if (EMailEnvelop == null)
+            if (EMailEnvelop is null)
                 throw new ArgumentNullException(nameof(EMailEnvelop), "The given e-mail envelop must not be null!");
 
             var result = MailSentStatus.failed;
