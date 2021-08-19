@@ -26,12 +26,23 @@ using org.GraphDefined.Vanaheimr.Illias;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
+    /// <summary>
+    /// Extention methods for API key identifications.
+    /// </summary>
     public static class APIKeyIdExtentions
     {
 
+        /// <summary>
+        /// Indicates whether this API key identifications is null or empty.
+        /// </summary>
+        /// <param name="APIKey">An API key identifications.</param>
         public static Boolean IsNullOrEmpty(this APIKey_Id? APIKey)
             => !APIKey.HasValue || APIKey.Value.IsNullOrEmpty;
 
+        /// <summary>
+        /// Indicates whether this API key identifications is NOT null or empty.
+        /// </summary>
+        /// <param name="APIKey">An API key identifications.</param>
         public static Boolean IsNotNullOrEmpty(this APIKey_Id? APIKey)
             => APIKey.HasValue && APIKey.Value.IsNotNullOrEmpty;
 
