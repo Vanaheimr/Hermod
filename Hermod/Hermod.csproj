@@ -192,6 +192,8 @@
     <Compile Include="SMTP\SMTPClient\Helpers\SMTPCapabilities.cs" />
     <Compile Include="SMTP\SMTPClient\Helpers\SMTPClientException.cs" />
     <Compile Include="SMTP\SMTPClient\Helpers\SMTPExtentions.cs" />
+    <Compile Include="SMTP\SMTPClient\ISMTPClient.cs" />
+    <Compile Include="SMTP\SMTPClient\NullMailer.cs" />
     <Compile Include="SMTP\SMTPClient\SMTPClient.cs" />
     <Compile Include="SMTP\SMTPException.cs" />
     <Compile Include="SMTP\SMTPExtendedResponse.cs" />

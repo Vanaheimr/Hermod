@@ -1012,7 +1012,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public String            HTMLTemplate                { get; protected set; }
 
 
-        public HashSet<String>   DevMachines                 { get; set; }
+        public HashSet<String>   DevMachines                 { get; }
 
         public String            LoggingPath                 { get; }
 

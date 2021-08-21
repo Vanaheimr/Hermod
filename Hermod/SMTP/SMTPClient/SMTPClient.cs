@@ -36,110 +36,16 @@ using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
-    public static class SMTPClientExtentions
-    {
-
-        #region CRAM_MD5(Token, Login, Password)
-
-        public static Byte[] CRAM_MD5(String Token, String Login, String Password)
-        {
-
-            var HMAC_MD5 = new HMACMD5(Password.ToUTF8Bytes());
-            var digest   = HMAC_MD5.ComputeHash(Token.ToUTF8Bytes());
-
-            // result := login[space]digest
-            return Login.ToUTF8Bytes().
-                   Concat(new Byte[1] { 0x20 }).
-                   Concat(digest.ToHexString().ToUTF8Bytes()).
-                   ToArray();
-
-        }
-
-        #endregion
-
-        #region CRAM_MD5_(Token, Login, Password)
-
-        public static Byte[] CRAM_MD5_(String Token, String Login, String Password)
-        {
-
-            var token       = Token.   ToUTF8Bytes();
-            var password    = Password.ToUTF8Bytes();
-            var ipad        = new Byte[64];
-            var opad        = new Byte[64];
-            var startIndex  = 0;
-            var length      = token.Length;
-
-            // see also: http://tools.ietf.org/html/rfc2195 - 2. Challenge-Response Authentication Mechanism (CRAM)
-            //           http://tools.ietf.org/html/rfc2104 - 2. Definition of HMAC
-
-            #region Copy the password into inner/outer padding and XOR it accordingly
-
-            if (password.Length > ipad.Length)
-            {
-                var HashedPassword = new MD5CryptoServiceProvider().ComputeHash(password);
-                Array.Copy(HashedPassword, ipad, HashedPassword.Length);
-                Array.Copy(HashedPassword, opad, HashedPassword.Length);
-            }
-            else
-            {
-                Array.Copy(password, ipad, password.Length);
-                Array.Copy(password, opad, password.Length);
-            }
-
-            for (var i = 0; i < ipad.Length; i++) {
-                ipad[i] ^= 0x36;
-                opad[i] ^= 0x5c;
-            }
-
-            #endregion
-
-            #region Calculate the inner padding
-
-            byte[] digest;
-
-            using (var MD5 = new MD5CryptoServiceProvider())
-            {
-                MD5.TransformBlock     (ipad, 0, ipad.Length, null, 0);
-                MD5.TransformFinalBlock(token, startIndex, length);
-                digest = MD5.Hash;
-            }
-
-            #endregion
-
-            #region Calculate the outer padding
-
-            // oPAD (will use iPAD digest!)
-            using (var MD5 = new MD5CryptoServiceProvider())
-            {
-                MD5.TransformBlock     (opad, 0, opad.Length, null, 0);
-                MD5.TransformFinalBlock(digest, 0, digest.Length);
-                digest = MD5.Hash;
-            }
-
-            #endregion
 
 
-            // result := login[space]digest
-            return Login.ToUTF8Bytes().
-                   Concat(new Byte[1] { 0x20 }).
-                   Concat(digest.ToHexString().ToUTF8Bytes()).
-                   ToArray();
-
-        }
-
-        #endregion
-
-    }
 
     /// <summary>
     /// A SMTP client for sending e-mails.
     /// </summary>
-    public class SMTPClient : TCPClient
+    public class SMTPClient : TCPClient, ISMTPClient
     {
 
         #region Data
-
-        private readonly Object Lock = new Object();
 
         private                 Byte[]                       input;
         private static readonly Byte[]                       ByteZero    = new Byte[1] { 0x00 };
@@ -172,47 +78,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         public String Password      { get; }
 
 
-        #region MaxMailSize
 
-        private UInt64 _MaxMailSize;
+        public UInt64 MaxMailSize { get; }
 
-        public UInt64 MaxMailSize
-        {
-            get
-            {
-                return _MaxMailSize;
-            }
-        }
 
-        #endregion
+        public SMTPAuthMethods AuthMethods { get; }
 
-        #region AuthMethods
 
-        private SMTPAuthMethods _AuthMethods;
+        //#region UnknownAuthMethods
 
-        public SMTPAuthMethods AuthMethods
-        {
-            get
-            {
-                return _AuthMethods;
-            }
-        }
+        //private List<String> _UnknownAuthMethods;
 
-        #endregion
+        public IEnumerable<String> UnknownAuthMethods { get; }
+        //{
+        //    get
+        //    {
+        //        return _UnknownAuthMethods;
+        //    }
+        //}
 
-        #region UnknownAuthMethods
-
-        private List<String> _UnknownAuthMethods;
-
-        public IEnumerable<String> UnknownAuthMethods
-        {
-            get
-            {
-                return _UnknownAuthMethods;
-            }
-        }
-
-        #endregion
+        //#endregion
 
         public SmtpCapabilities Capabilities;
 
@@ -220,24 +105,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #region Events
 
-        public delegate Task OnSendEMailRequestDelegate (DateTime                        LogTimestamp,
-                                                         SMTPClient                      Sender,
-                                                         EventTracking_Id                EventTrackingId,
-                                                         EMailEnvelop                    EMailEnvelop,
-                                                         TimeSpan?                       RequestTimeout);
 
-        public event OnSendEMailRequestDelegate OnSendEMailRequest;
+        public event OnSendEMailRequestDelegate   OnSendEMailRequest;
 
 
-        public delegate Task OnSendEMailResponseDelegate(DateTime                        LogTimestamp,
-                                                         SMTPClient                      Sender,
-                                                         EventTracking_Id                EventTrackingId,
-                                                         EMailEnvelop                    EMailEnvelop,
-                                                         TimeSpan?                       RequestTimeout,
-                                                         MailSentStatus                  Result,
-                                                         TimeSpan                        Runtime);
-
-        public event OnSendEMailResponseDelegate OnSendEMailResponse;
+        public event OnSendEMailResponseDelegate  OnSendEMailResponse;
 
         #endregion
 
@@ -292,7 +164,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             this.Login                = Login;
             this.Password             = Password;
             this.LocalDomain          = LocalDomain ?? System.Net.Dns.GetHostName();
-            this._UnknownAuthMethods  = new List<String>();
+            this.UnknownAuthMethods  = new List<String>();
 
         }
 
@@ -445,16 +317,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                          Byte       NumberOfRetries  = 3,
                                          TimeSpan?  RequestTimeout   = null)
 
-        {
-
-            if (EMail is null)
-                throw new ArgumentNullException(nameof(EMail), "The given e-mail must not be null!");
-
-            return Send(new EMailEnvelop(EMail),
-                        NumberOfRetries,
-                        RequestTimeout);
-
-        }
+            => Send(new EMailEnvelop(EMail ?? throw new ArgumentNullException(nameof(EMail), "The given e-mail must not be null!")),
+                    NumberOfRetries,
+                    RequestTimeout);
 
         #endregion
 
@@ -500,9 +365,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             #endregion
 
 
-            var success = await SendEMailSemaphore.WaitAsync(RequestTimeout ?? TimeSpan.FromSeconds(60));
-
-            if (success)
+            if (await SendEMailSemaphore.WaitAsync(RequestTimeout ?? TimeSpan.FromSeconds(60)))
             {
                 try
                 {
@@ -528,8 +391,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                         case TCPConnectResult.Ok:
 
+                            var authMethods         = SMTPAuthMethods.None;
+                            var unknownAuthMethods  = new HashSet<String>();
+
                             // 220 mail.ahzf.de ESMTP Postfix (Debian/GNU)
-                            var LoginResponse = ReadSMTPResponse();
+                            var LoginResponse       = ReadSMTPResponse();
 
                             switch (LoginResponse.StatusCode)
                             {
@@ -623,7 +489,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                             Capabilities |= SmtpCapabilities.Size;
 
-                                            if (!UInt64.TryParse(v.Response.Substring(5), out _MaxMailSize))
+                                            if (!UInt64.TryParse(v.Response.Substring(5), out UInt64 maxMailSize))
                                                 throw new Exception("Invalid SIZE capability!");
 
                                         }
@@ -650,21 +516,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                             Capabilities |= SmtpCapabilities.Authentication;
 
-                                            var AuthType    = v.Response.Substring(4, 1);
-                                            var AuthMethods = v.Response.Substring(5).Split(' ');
+                                            var AuthType            = v.Response.Substring(4, 1);
+                                            var AuthMethods         = v.Response.Substring(5).
+                                                                                 Split    (new Char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).
+                                                                                 Select   (method => method?.Trim());
 
                                             // GMail: "AUTH LOGIN PLAIN XOAUTH XOAUTH2 PLAIN-CLIENTTOKEN"
-                                            foreach (var AuthMethod in AuthMethods)
+                                            foreach (var authMethod in AuthMethods)
                                             {
-
-                                                if (Enum.TryParse(AuthMethod.Replace('-', '_'), true, out SMTPAuthMethods ParsedAuthMethod))
+                                                if (Enum.TryParse(authMethod.Replace('-', '_'), true, out SMTPAuthMethods parsedAuthMethod))
                                                 {
                                                     if (AuthType == " ")
-                                                        _AuthMethods |= ParsedAuthMethod;
+                                                        authMethods |= parsedAuthMethod;
                                                 }
                                                 else
-                                                    _UnknownAuthMethods.Add(AuthMethod);
-
+                                                    unknownAuthMethods.Add(authMethod?.Trim());
                                             }
 
                                         }
@@ -719,7 +585,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                     #region Auth PLAIN...
 
-                                    if (_AuthMethods.HasFlag(SMTPAuthMethods.PLAIN))
+                                    if (authMethods.HasFlag(SMTPAuthMethods.PLAIN))
                                     {
 
                                         var response = SendCommandAndWaitForResponse("AUTH PLAIN " +
@@ -737,7 +603,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                     #region ...or Auth LOGIN...
 
-                                    else if (_AuthMethods.HasFlag(SMTPAuthMethods.LOGIN))
+                                    else if (authMethods.HasFlag(SMTPAuthMethods.LOGIN))
                                     {
 
                                         var response1 = SendCommandAndWaitForResponse("AUTH LOGIN");
@@ -752,7 +618,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                     #region ...or AUTH CRAM-MD5
 
-                                    else if (_AuthMethods.HasFlag(SMTPAuthMethods.CRAM_MD5))
+                                    else if (authMethods.HasFlag(SMTPAuthMethods.CRAM_MD5))
                                     {
 
                                         var AuthCRAMMD5Response = SendCommandAndWaitForResponse("AUTH CRAM-MD5");
@@ -762,9 +628,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                             var response = SendCommandAndWaitForResponse(
                                                                Convert.ToBase64String(
-                                                                   SMTPClientExtentions.CRAM_MD5(Convert.FromBase64String(AuthCRAMMD5Response.Response).ToUTF8String(),
-                                                                                                 Login,
-                                                                                                 Password)));
+                                                                   ISMTPClientExtentions.CRAM_MD5(Convert.FromBase64String(AuthCRAMMD5Response.Response).ToUTF8String(),
+                                                                                                  Login,
+                                                                                                  Password)));
 
                                             DebugX.Log("SMTP Auth CRAM-MD5 response: " + response.ToString());
 
@@ -910,7 +776,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e.Message);
+                    DebugX.LogException(e);
                     result = MailSentStatus.ExceptionOccured;
                 }
                 finally
