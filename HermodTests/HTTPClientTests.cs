@@ -1,6 +1,6 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim 'ahzf' Friedland <achim@graph-database.org>
- * This file is part of Hermod <http://www.github.com/Vanaheimr/Hermod>
+ * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,10 +18,12 @@
 #region Usings
 
 using System;
-
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using System.Threading.Tasks;
 
 using NUnit.Framework;
+
+using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -37,12 +39,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
 
         #region Constants
 
-        private const String _400_BadRequest                = "400 Bad Request";
-        private const String _404_NotFound                  = "404 Not Found";
-        private const String _405_MethodNotAllowed          = "405 Method Not Allowed";
+        private const String _400_BadRequest               = "400 Bad Request";
+        private const String _404_NotFound                 = "404 Not Found";
+        private const String _405_MethodNotAllowed         = "405 Method Not Allowed";
 
-        private const String _500_InternalServerError     = "500 Internal Server Error";
-        private const String _505_HTTPVersionNotSupported = "505 HTTP Version Not Supported";
+        private const String _500_InternalServerError      = "500 Internal Server Error";
+        private const String _505_HTTPVersionNotSupported  = "505 HTTP Version Not Supported";
 
         #endregion
 
@@ -53,7 +55,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         [OneTimeSetUp]
         public void Init_HTTPServer()
         {
-            _HTTPServer = new HTTPServer();// (IPv4Address.Any, new IPPort(81), Autostart: true);
+
+            _HTTPServer = new HTTPServer(
+                              IPPort.Parse(81),
+                              Autostart: true
+                          );
+
+            #region /
+
+            _HTTPServer.AddMethodCallback(HTTPHostname.Any,
+                                          HTTPMethod.GET,
+                                          HTTPPath.Root,
+                                          HTTPDelegate: Request => Task.FromResult(
+                                                                        new HTTPResponse.Builder(Request) {
+                                                                            HTTPStatusCode             = HTTPStatusCode.OK,
+                                                                            Server                     = "Test Server",
+                                                                            Date                       = DateTime.UtcNow,
+                                                                            AccessControlAllowOrigin   = "*",
+                                                                            AccessControlAllowMethods  = "GET",
+                                                                            AccessControlAllowHeaders  = "Content-Type, Accept, Authorization",
+                                                                            ContentType                = HTTPContentType.TEXT_UTF8,
+                                                                            Content                    = "Hello World!".ToUTF8Bytes(),
+                                                                            Connection                 = "close"
+                                                                        }.AsImmutable));
+
+            #endregion
+
         }
 
         [OneTimeTearDown]
@@ -81,11 +108,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         {
 
             var Response = NewTCPClientRequest().
-                           Send("GET / HTTP/1.1").
+                           Send("GET / HTTP/1.1\r\nHost: localhost").
                            FinishCurrentRequest().
                            Response;
 
-            Assert.IsTrue(Response.Contains("200 OK"), Response);
+            Assert.IsTrue(Response.Contains("200 OK"),       Response);
             Assert.IsTrue(Response.Contains("Hello World!"), Response);
 
         }
@@ -99,7 +126,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         {
 
             var Response = NewTCPClientRequest().
-                           Send("GET / HTTP/2.0").
+                           Send("GET / HTTP/2.0\r\nHost: localhost").
                            FinishCurrentRequest().
                            Response;
 
@@ -116,7 +143,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         {
 
             var Response = NewTCPClientRequest().
-                           Send("GET / HTTP 2.0").
+                           Send("GET / HTTP 2.0\r\nHost: localhost").
                            FinishCurrentRequest().
                            Response;
 
@@ -133,7 +160,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         {
 
             var Response = NewTCPClientRequest().
-                           Send("GET / HTTP/1").
+                           Send("GET / HTTP/1\r\nHost: localhost").
                            FinishCurrentRequest().
                            Response;
             
@@ -150,7 +177,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         {
 
             var Response = NewTCPClientRequest().
-                           Send("GET / HTTo/2.0").
+                           Send("GET / HTTo/2.0\r\nHost: localhost").
                            FinishCurrentRequest().
                            Response;
 
@@ -169,7 +196,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
             var Response = NewTCPClientRequest().
                            Send("GE").
                            Wait(100).
-                           Send("T / HTTo/2.0").
+                           Send("T / HTTo/2.0\r\nHost: localhost").
                            FinishCurrentRequest().
                            Response;
 
@@ -184,9 +211,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         [Test]
         public void HTTPClientTests_007()
         {
-            
+
             var Response = NewTCPClientRequest().
-                           Send("GETTT / HTTP/1.1").
+                           Send("GETTT / HTTP/1.1\r\nHost: localhost").
                            FinishCurrentRequest().
                            Response;
 

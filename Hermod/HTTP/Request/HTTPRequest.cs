@@ -1,6 +1,6 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
- * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
+ * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -753,7 +753,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // 3. If the host as determined by rule 1 or 2 is not a valid host on the server,
             //    the response MUST be a 400 (Bad Request) error message. (Not valid for proxies?!)
             if (!_HeaderFields.ContainsKey(HTTPHeaderField.Host.Name))
-                throw new Exception("The HTTP PDU does not have a HOST header!");
+                throw new Exception("The HTTP request must have have a valid HOST header!");
 
             // rfc 2616 - 3.2.2
             // If the port is empty or not given, port 80 is assumed.
