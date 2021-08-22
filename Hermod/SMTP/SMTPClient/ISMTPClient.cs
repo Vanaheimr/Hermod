@@ -20,7 +20,6 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Collections.Generic;
 using System.Security.Cryptography;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -148,9 +147,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         event OnSendEMailResponseDelegate  OnSendEMailResponse;
 
 
-        Task<MailSentStatus> Send(EMail EMail, byte NumberOfRetries = 3, TimeSpan? RequestTimeout = null);
+        Task<MailSentStatus> Send(EMail        EMail,        byte NumberOfRetries = 3, TimeSpan? RequestTimeout = null);
         Task<MailSentStatus> Send(EMailEnvelop EMailEnvelop, byte NumberOfRetries = 3, TimeSpan? RequestTimeout = null);
-
 
         void Dispose();
 
