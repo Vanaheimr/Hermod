@@ -1239,6 +1239,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
+
+        //private volatile Int32 _TimeOffset;
+
+        //public void SetTimeOffset(TimeSpan Offset)
+        //{
+        //    _TimeOffset = Convert.ToInt32(Offset.TotalMilliseconds);
+        //}
+
+        //public DateTime CurrentTimestamp
+        //{
+        //    get
+        //    {
+        //        return DateTime.UtcNow + TimeSpan.FromMilliseconds(_TimeOffset);
+        //    }
+        //}
+
+
+
+
         #region HTTP Server Sent Events
 
         #region AddEventSource(EventIdentification, MaxNumberOfCachedEvents = 500, RetryIntervall = null, LogfileName = null)
@@ -1536,7 +1555,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (!HTTPServer.IsStarted)
                     HTTPServer.Start();
 
-                //SendStarted(this, DateTime.UtcNow);
+                //SendStarted(this, CurrentTimestamp);
 
             }
 
@@ -1553,7 +1572,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
 
                 HTTPServer.Shutdown(Message, Wait);
-                //SendCompleted(this, DateTime.UtcNow, Message);
+                //SendCompleted(this, CurrentTimestamp, Message);
 
             }
 

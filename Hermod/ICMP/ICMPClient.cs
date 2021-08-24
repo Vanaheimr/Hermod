@@ -116,7 +116,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                                                              repetition,
                                                              TestData);
 
-                var startTimestamp  = DateTime.Now;
+                var startTimestamp  = DateTime.UtcNow;
                 var c               = Socket.SendTo(echoRequest.ICMPPacket.GetBytes(),
                                                     ipEndPoint);
 
@@ -139,10 +139,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                                 ICMPEchoReplyReply.Identifier == Identifier.Value &&
                                 ICMPEchoReplyReply.Text       == TestData)
                             {
-                                replies.Add(DateTime.Now - startTimestamp);
+                                replies.Add(DateTime.UtcNow - startTimestamp);
                             }
                             else
-                                failures.Add(DateTime.Now - startTimestamp);
+                                failures.Add(DateTime.UtcNow - startTimestamp);
 
                         }
 
@@ -165,7 +165,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                 }
                 catch (Exception)
                 {
-                    failures.Add(DateTime.Now - startTimestamp);
+                    failures.Add(DateTime.UtcNow - startTimestamp);
                 }
 
             }

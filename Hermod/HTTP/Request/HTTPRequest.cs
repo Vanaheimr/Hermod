@@ -1280,7 +1280,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var _request            = new List<String>();
                 var copy                = "none";
                 var relativelinenumber  = 0;
-                var RequestTimestamp    = DateTime.Now;
+                var RequestTimestamp    = DateTime.UtcNow;
 
                 foreach (var line in File.ReadLines(file))
                 {
