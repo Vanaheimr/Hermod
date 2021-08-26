@@ -18,19 +18,27 @@
 #region Usings
 
 using System;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
-
-using org.GraphDefined.Vanaheimr.Illias;
-using System.Reflection;
 using System.IO;
-using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using System.Security.Cryptography.X509Certificates;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using System.Linq;
+using System.Reflection;
 using System.Net.Security;
 using System.Security.Authentication;
+using System.Threading;
+using System.Globalization;
+using System.Diagnostics;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Security.Cryptography.X509Certificates;
+
+using Newtonsoft.Json.Linq;
+
+using Org.BouncyCastle.Crypto.Parameters;
+
+using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets;
+using org.GraphDefined.Vanaheimr.Warden;
 
 #endregion
 
@@ -932,35 +940,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Internal non-cryptographic random number generator.
         /// </summary>
-        protected static readonly  Random    _Random                        = new Random();
+        protected static readonly  Random        _Random                       = new Random();
 
         /// <summary>
         /// The default HTTP server name.
         /// </summary>
-        public  const              String    DefaultHTTPServerName          = "GraphDefined HTTP API";
+        public  const              String        DefaultHTTPServerName         = "GraphDefined HTTP API";
 
         /// <summary>
         /// The default HTTP service name.
         /// </summary>
-        public  const              String    DefaultHTTPServiceName         = "GraphDefined HTTP API";
+        public  const              String        DefaultHTTPServiceName        = "GraphDefined HTTP API";
 
         /// <summary>
         /// The default HTTP server port.
         /// </summary>
-        public  static readonly    IPPort    DefaultHTTPServerPort          = IPPort.HTTP;
+        public  static readonly    IPPort        DefaultHTTPServerPort         = IPPort.HTTP;
 
         /// <summary>
         /// The default HTTP URL path prefix.
         /// </summary>
-        public  static readonly    HTTPPath  DefaultURLPathPrefix           = HTTPPath.Parse("/");
+        public  static readonly    HTTPPath      DefaultURLPathPrefix          = HTTPPath.Parse("/");
 
 
-        public  const              String    DefaultHTTPAPI_LoggingPath     = "default";
+        public  const              String        DefaultHTTPAPI_LoggingPath    = "default";
 
         /// <summary>
         /// Default logfile name.
         /// </summary>
-        public  const              String    DefaultLogfileName             = "HTTPAPI.log";
+        public  const              String        DefaultHTTPAPI_LogfileName    = "HTTPAPI.log";
+
+        /// <summary>
+        /// The default maintenance interval.
+        /// </summary>
+        public readonly           TimeSpan       DefaultMaintenanceEvery       = TimeSpan.FromMinutes(1);
+
+        private readonly          Timer          MaintenanceTimer;
+
+
+        protected static readonly TimeSpan       SemaphoreSlimTimeout          = TimeSpan.FromSeconds(5);
+
+        protected static readonly SemaphoreSlim  MaintenanceSemaphore          = new SemaphoreSlim(1, 1);
+
+
+        /// <summary>
+        /// The performance counter to measure the total RAM usage.
+        /// </summary>
+        protected readonly        PerformanceCounter                            totalRAM_PerformanceCounter;
+
+        /// <summary>
+        /// The performance counter to measure the total CPU usage.
+        /// </summary>
+        protected readonly        PerformanceCounter                            totalCPU_PerformanceCounter;
 
         #endregion
 
@@ -969,72 +1000,104 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The HTTP server of the API.
         /// </summary>
-        public HTTPServer        HTTPServer                  { get; }
+        public HTTPServer               HTTPServer                  { get; }
 
         /// <summary>
         /// The HTTP hostname for all URIs within this API.
         /// </summary>
-        public HTTPHostname      Hostname                    { get; }
+        public HTTPHostname             Hostname                    { get; }
 
         /// <summary>
         /// The name of the HTTP API service.
         /// </summary>
-        public String            ServiceName                 { get; }
+        public String                   ServiceName                 { get; }
 
         /// <summary>
         /// The offical URL/DNS name of this service, e.g. for sending e-mails.
         /// </summary>
-        public String            ExternalDNSName             { get; }
+        public String                   ExternalDNSName             { get; }
 
         /// <summary>
         /// The optional URL path prefix, used when defining URL templates.
         /// </summary>
-        public HTTPPath          URLPathPrefix               { get; }
+        public HTTPPath                 URLPathPrefix               { get; }
 
         /// <summary>
         /// When the API is served from an optional subdirectory path.
         /// </summary>
-        public HTTPPath?         BasePath                    { get; }
+        public HTTPPath?                BasePath                    { get; }
 
         /// <summary>
         /// The default request timeout for incoming HTTP requests.
         /// </summary>
-        public TimeSpan          DefaultRequestTimeout       { get; set; }
+        public TimeSpan                 DefaultRequestTimeout       { get; set; }
 
         /// <summary>
         /// The unqiue identification of this HTTP API instance.
         /// </summary>
-        public System_Id         SystemId                    { get; }
+        public System_Id                SystemId                    { get; }
+
+        /// <summary>
+        /// The maintenance interval.
+        /// </summary>
+        public TimeSpan                 MaintenanceEvery            { get; }
+
+        /// <summary>
+        /// Disable all maintenance tasks.
+        /// </summary>
+        public Boolean                  DisableMaintenanceTasks     { get; set; }
 
         /// <summary>
         /// An optional HTML template.
         /// </summary>
-        public String            HTMLTemplate                { get; protected set; }
+        public String                   HTMLTemplate                { get; protected set; }
+
+        /// <summary>
+        /// The API version hash (git commit hash value).
+        /// </summary>
+        public String                   APIVersionHash              { get; }
+
+        public HashSet<String>          DevMachines                 { get; }
+
+        public String                   LoggingPath                 { get; }
+
+        public String                   HTTPRequestsPath            { get; }
+
+        public String                   HTTPResponsesPath           { get; }
+
+        public String                   HTTPSSEsPath                { get; }
+
+        public String                   MetricsPath                 { get; }
 
 
-        public HashSet<String>   DevMachines                 { get; }
-
-        public String            LoggingPath                 { get; }
-
-        public String            HTTPRequestsPath            { get; }
-
-        public String            HTTPResponsesPath           { get; }
-
-        public String            HTTPSSEsPath                { get; }
+        public X509Certificate          ServerCert                  { get; }
 
 
-
-        public X509Certificate   ServerCert                  { get; }
-
-
-        public DNSClient         DNSClient
+        public DNSClient                DNSClient
             => HTTPServer.DNSClient;
 
 
         /// <summary>
         /// The CPO client (HTTP client) logger.
         /// </summary>
-        public HTTPServerLogger  HTTPLogger                  { get; set; }
+        public HTTPServerLogger         HTTPLogger                  { get; set; }
+
+
+        /// <summary>
+        /// Disable the log file.
+        /// </summary>
+        public Boolean                  DisableLogfile              { get; }
+
+        /// <summary>
+        /// The logfile of this API.
+        /// </summary>
+        public String                   LogfileName                 { get; protected set; }
+
+        public Warden.Warden            Warden                      { get; }
+
+        public ECPrivateKeyParameters   ServiceCheckPrivateKey      { get; set; }
+
+        public ECPublicKeyParameters    ServiceCheckPublicKey       { get; set; }
 
         #endregion
 
@@ -1064,114 +1127,138 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP API.
         /// </summary>
-        /// <param name="HTTPHostname">An optional HTTP hostname.</param>
-        /// <param name="HTTPServerPort">An optional HTTP TCP port.</param>
-        /// <param name="HTTPServerName">An optional HTTP server name.</param>
+        /// <param name="HTTPHostname">The HTTP hostname for all URLs within this API.</param>
         /// <param name="ExternalDNSName">The offical URL/DNS name of this service, e.g. for sending e-mails.</param>
-        /// <param name="URLPathPrefix">An optional HTTP URL path prefix.</param>
-        /// <param name="ServiceName">An optional HTTP service name.</param>
+        /// <param name="HTTPServerPort">A TCP port to listen on.</param>
+        /// <param name="BasePath">When the API is served from an optional subdirectory path.</param>
+        /// <param name="HTTPServerName">The default HTTP servername, used whenever no HTTP Host-header has been given.</param>
+        /// 
+        /// <param name="URLPathPrefix">A common prefix for all URLs.</param>
+        /// <param name="HTTPServiceName">The name of the HTTP service.</param>
         /// <param name="HTMLTemplate">An optional HTML template.</param>
+        /// <param name="APIVersionHashes">The API version hashes (git commit hash values).</param>
+        /// 
+        /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
+        /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
+        /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
+        /// <param name="AllowedTLSProtocols">The SSL/TLS protocol(s) allowed for this connection.</param>
+        /// 
+        /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
+        /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
+        /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
+        /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information.</param>
+        /// <param name="ConnectionThreadsNameBuilder">An optional delegate to set the name of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsPriorityBuilder">An optional delegate to set the priority of the TCP connection threads.</param>
+        /// <param name="ConnectionThreadsAreBackground">Whether the TCP connection threads are background threads or not (default: yes).</param>
+        /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
+        /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
+        /// 
+        /// <param name="DisableMaintenanceTasks">Disable all maintenance tasks.</param>
+        /// <param name="MaintenanceInitialDelay">The initial delay of the maintenance tasks.</param>
+        /// <param name="MaintenanceEvery">The maintenance intervall.</param>
+        /// <param name="DisableWardenTasks">Disable all warden tasks.</param>
+        /// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
+        /// <param name="WardenCheckEvery">The warden intervall.</param>
+        /// 
         /// <param name="DisableLogfile">Disable the log file.</param>
         /// <param name="LoggingPath">The path for all logfiles.</param>
-        /// <param name="DNSClient">An optional DNS client.</param>
-        //public HTTPAPI(HTTPHostname?  HTTPHostname      = null,
-        //               IPPort?        HTTPServerPort    = null,
-        //               String         HTTPServerName    = null,
-        //               String         ExternalDNSName   = null,
-        //               HTTPPath?      URLPathPrefix     = null,
-        //               HTTPPath?      BasePath          = null,
-        //               String         ServiceName       = null,
-        //               String         HTMLTemplate      = null,
-        //               Boolean        DisableLogfile    = false,
-        //               String         LoggingPath       = null,
-        //               DNSClient      DNSClient         = null,
-        //               Boolean        Autostart         = false)
+        /// <param name="LogfileName">The name of the logfile for this API.</param>
+        /// <param name="DNSClient">The DNS client of the API.</param>
+        /// <param name="Autostart">Whether to start the API automatically.</param>
+        public HTTPAPI(HTTPHostname?                        HTTPHostname                       = null,
+                       String                               ExternalDNSName                    = null,
+                       IPPort?                              HTTPServerPort                     = null,
+                       HTTPPath?                            BasePath                           = null,
+                       String                               HTTPServerName                     = DefaultHTTPServerName,
 
-        //    : this(new HTTPServer(TCPPort:            HTTPServerPort ?? DefaultHTTPServerPort,
-        //                          DefaultServerName:  HTTPServerName ?? DefaultHTTPServerName,
-        //                          DNSClient:          DNSClient,
-        //                          Autostart:          false),
-        //           HTTPHostname,
-        //           ExternalDNSName,
-        //           URLPathPrefix ?? DefaultURLPathPrefix,
-        //           BasePath,
-        //           ServiceName   ?? DefaultHTTPServiceName,
-        //           HTMLTemplate,
-        //           DisableLogfile,
-        //           LoggingPath)
+                       HTTPPath?                            URLPathPrefix                      = null,
+                       String                               HTTPServiceName                    = DefaultHTTPServiceName,
+                       String                               HTMLTemplate                       = null,
+                       JObject                              APIVersionHashes                   = null,
 
-        //{
+                       ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
+                       RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
+                       LocalCertificateSelectionCallback    ClientCertificateSelector          = null,
+                       SslProtocols?                        AllowedTLSProtocols                = null,
 
-        //    if (Autostart)
-        //        HTTPServer.Start();
+                       String                               ServerThreadName                   = null,
+                       ThreadPriority                       ServerThreadPriority               = ThreadPriority.AboveNormal,
+                       Boolean                              ServerThreadIsBackground           = true,
+                       ConnectionIdBuilder                  ConnectionIdBuilder                = null,
+                       ConnectionThreadsNameBuilder         ConnectionThreadsNameBuilder       = null,
+                       ConnectionThreadsPriorityBuilder     ConnectionThreadsPriorityBuilder   = null,
+                       Boolean                              ConnectionThreadsAreBackground     = true,
+                       TimeSpan?                            ConnectionTimeout                  = null,
+                       UInt32                               MaxClientConnections               = TCPServer.__DefaultMaxClientConnections,
 
-        //}
+                       Boolean                              DisableMaintenanceTasks            = false,
+                       TimeSpan?                            MaintenanceInitialDelay            = null,
+                       TimeSpan?                            MaintenanceEvery                   = null,
+                       Boolean                              DisableWardenTasks                 = false,
+                       TimeSpan?                            WardenInitialDelay                 = null,
+                       TimeSpan?                            WardenCheckEvery                   = null,
 
-        #endregion
-
-        #region HTTPAPI(HTTPHostname = null, ...)
-
-        /// <summary>
-        /// Create a new HTTP API.
-        /// </summary>
-        /// <param name="HTTPHostname">An optional HTTP hostname.</param>
-        /// <param name="HTTPServerPort">An optional HTTP TCP port.</param>
-        /// <param name="HTTPServerName">An optional HTTP server name.</param>
-        /// <param name="ExternalDNSName">The offical URL/DNS name of this service, e.g. for sending e-mails.</param>
-        /// <param name="URLPathPrefix">An optional HTTP URL path prefix.</param>
-        /// <param name="ServiceName">An optional HTTP service name.</param>
-        /// <param name="DNSClient">An optional DNS client.</param>
-        public HTTPAPI(ServerCertificateSelectorDelegate    ServerCertificateSelector    = null,
-                       LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
-                       RemoteCertificateValidationCallback  ClientCertificateValidator   = null,
-                       SslProtocols?                        AllowedTLSProtocols          = SslProtocols.Tls12 | SslProtocols.Tls13,
-                       HTTPHostname?                        HTTPHostname                 = null,
-                       IPPort?                              HTTPServerPort               = null,
-                       String                               HTTPServerName               = DefaultHTTPServerName,
-                       String                               ExternalDNSName              = null,
-                       HTTPPath?                            URLPathPrefix                = null,
-                       HTTPPath?                            BasePath                     = null,
-                       String                               ServiceName                  = DefaultHTTPServiceName,
-                       DNSClient                            DNSClient                    = null,
-                       Boolean                              Autostart                    = false)
+                       Boolean                              DisableLogfile                     = false,
+                       String                               LoggingPath                        = DefaultHTTPAPI_LoggingPath,
+                       String                               LogfileName                        = DefaultHTTPAPI_LogfileName,
+                       DNSClient                            DNSClient                          = null,
+                       Boolean                              Autostart                          = false)
 
             : this(new HTTPServer(HTTPServerPort ?? DefaultHTTPServerPort,
                                   HTTPServerName ?? DefaultHTTPServerName,
-                                  ServiceName,
+                                  HTTPServiceName,
+
                                   ServerCertificateSelector,
                                   ClientCertificateSelector,
                                   ClientCertificateValidator,
                                   AllowedTLSProtocols,
-                                  //ServerThreadName,
-                                  //ServerThreadPriority,
-                                  //ServerThreadIsBackground,
-                                  //ConnectionIdBuilder,
-                                  //ConnectionThreadsNameBuilder,
-                                  //ConnectionThreadsPriorityBuilder,
-                                  //ConnectionThreadsAreBackground,
-                                  //ConnectionTimeout,
-                                  //MaxClientConnections,
-                                  DNSClient: DNSClient,
+
+                                  ServerThreadName,
+                                  ServerThreadPriority,
+                                  ServerThreadIsBackground,
+                                  ConnectionIdBuilder,
+                                  ConnectionThreadsNameBuilder,
+                                  ConnectionThreadsPriorityBuilder,
+                                  ConnectionThreadsAreBackground,
+                                  ConnectionTimeout,
+                                  MaxClientConnections,
+
+                                  DNSClient,
                                   Autostart: false),
+
                    HTTPHostname,
                    ExternalDNSName,
-                   ServiceName   ?? DefaultHTTPServiceName,
+                   HTTPServiceName   ?? DefaultHTTPServiceName,
 
                    BasePath,
-                   URLPathPrefix ?? DefaultURLPathPrefix)
+                   URLPathPrefix ?? DefaultURLPathPrefix,
+                   HTMLTemplate,
+                   APIVersionHashes,
+
+                   DisableMaintenanceTasks,
+                   MaintenanceInitialDelay,
+                   MaintenanceEvery,
+                   DisableWardenTasks,
+                   WardenInitialDelay,
+                   WardenCheckEvery,
+
+                   DisableLogfile,
+                   LoggingPath,
+                   LogfileName,
+                   Autostart: false)
 
         {
 
             this.DefaultRequestTimeout = TimeSpan.FromSeconds(60);
 
-            if (Autostart)
-                HTTPServer.Start();
+            if (Autostart && HTTPServer.Start())
+                DebugX.Log(nameof(HTTPAPI) + " version '" + APIVersionHash + "' started...");
 
         }
 
         #endregion
 
-        #region CommonAPI(HTTPServer, HTTPHostname = null, ...)
+        #region HTTPAPI(HTTPServer, HTTPHostname = null, ...)
 
         /// <summary>
         /// Create a new HTTP API.
@@ -1179,44 +1266,69 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPServer">A HTTP server.</param>
         /// <param name="HTTPHostname">An optional HTTP hostname.</param>
         /// <param name="ExternalDNSName">The offical URL/DNS name of this service, e.g. for sending e-mails.</param>
-        /// <param name="ServiceName">An optional name of the HTTP API service.</param>
+        /// <param name="HTTPServiceName">An optional name of the HTTP API service.</param>
         /// <param name="BasePath">When the API is served from an optional subdirectory path.</param>
         /// 
         /// <param name="URLPathPrefix">An optional URL path prefix, used when defining URL templates.</param>
         /// <param name="HTMLTemplate">An optional HTML template.</param>
+        /// <param name="APIVersionHashes">The API version hashes (git commit hash values).</param>
+        /// 
+        /// <param name="DisableMaintenanceTasks">Disable all maintenance tasks.</param>
+        /// <param name="MaintenanceInitialDelay">The initial delay of the maintenance tasks.</param>
+        /// <param name="MaintenanceEvery">The maintenance intervall.</param>
+        /// <param name="DisableWardenTasks">Disable all warden tasks.</param>
+        /// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
+        /// <param name="WardenCheckEvery">The warden intervall.</param>
+        /// 
         /// <param name="DisableLogfile">Disable the log file.</param>
         /// <param name="LoggingPath">The path for all logfiles.</param>
+        /// <param name="LogfileName">The name of the logfile for this API.</param>
+        /// <param name="Autostart">Whether to start the API automatically.</param>
         public HTTPAPI(HTTPServer     HTTPServer,
-                       HTTPHostname?  HTTPHostname      = null,
-                       String         ExternalDNSName   = "",
-                       String         ServiceName       = DefaultHTTPServiceName,
-                       HTTPPath?      BasePath          = null,
+                       HTTPHostname?  HTTPHostname              = null,
+                       String         ExternalDNSName           = "",
+                       String         HTTPServiceName           = DefaultHTTPServiceName,
+                       HTTPPath?      BasePath                  = null,
 
-                       HTTPPath?      URLPathPrefix     = null,
-                       String         HTMLTemplate      = null,
-                       Boolean        DisableLogfile    = false,
-                       String         LoggingPath       = DefaultHTTPAPI_LoggingPath)
+                       HTTPPath?      URLPathPrefix             = null,
+                       String         HTMLTemplate              = null,
+                       JObject        APIVersionHashes          = null,
+
+                       Boolean        DisableMaintenanceTasks   = false,
+                       TimeSpan?      MaintenanceInitialDelay   = null,
+                       TimeSpan?      MaintenanceEvery          = null,
+                       Boolean        DisableWardenTasks        = false,
+                       TimeSpan?      WardenInitialDelay        = null,
+                       TimeSpan?      WardenCheckEvery          = null,
+
+                       Boolean        DisableLogfile            = false,
+                       String         LoggingPath               = DefaultHTTPAPI_LoggingPath,
+                       String         LogfileName               = DefaultHTTPAPI_LogfileName,
+                       Boolean        Autostart                 = false)
+
         {
 
-            this.HTTPServer         = HTTPServer      ?? throw new ArgumentNullException(nameof(HTTPServer), "The given HTTP server must not be null!");
-            this.Hostname           = HTTPHostname    ?? HTTP.HTTPHostname.Any;
-            this.ExternalDNSName    = ExternalDNSName ?? "";
-            this.ServiceName        = ServiceName     ?? DefaultHTTPServiceName;
-            this.BasePath           = BasePath;
+            this.HTTPServer               = HTTPServer      ?? throw new ArgumentNullException(nameof(HTTPServer), "The given HTTP server must not be null!");
+            this.Hostname                 = HTTPHostname    ?? HTTP.HTTPHostname.Any;
+            this.ExternalDNSName          = ExternalDNSName ?? "";
+            this.ServiceName              = HTTPServiceName ?? DefaultHTTPServiceName;
+            this.BasePath                 = BasePath;
 
-            this.URLPathPrefix      = URLPathPrefix   ?? DefaultURLPathPrefix;
-            this.HTMLTemplate       = HTMLTemplate    ?? "";
-            this.LoggingPath        = LoggingPath     ?? Directory.GetCurrentDirectory();
+            this.URLPathPrefix            = URLPathPrefix   ?? DefaultURLPathPrefix;
+            this.HTMLTemplate             = HTMLTemplate    ?? "";
+            this.APIVersionHash           = APIVersionHashes?[nameof(HTTPAPI)]?.Value<String>()?.Trim();
+            this.LoggingPath              = LoggingPath     ?? Directory.GetCurrentDirectory();
 
             if (this.LoggingPath[this.LoggingPath.Length - 1] != Path.DirectorySeparatorChar)
                 this.LoggingPath += Path.DirectorySeparatorChar;
 
-            this.HTTPRequestsPath   = this.LoggingPath + "HTTPRequests"   + Path.DirectorySeparatorChar;
-            this.HTTPResponsesPath  = this.LoggingPath + "HTTPResponses"  + Path.DirectorySeparatorChar;
-            this.HTTPSSEsPath       = this.LoggingPath + "HTTPSSEs"       + Path.DirectorySeparatorChar;
+            this.HTTPRequestsPath         = this.LoggingPath + "HTTPRequests"   + Path.DirectorySeparatorChar;
+            this.HTTPResponsesPath        = this.LoggingPath + "HTTPResponses"  + Path.DirectorySeparatorChar;
+            this.HTTPSSEsPath             = this.LoggingPath + "HTTPSSEs"       + Path.DirectorySeparatorChar;
+            this.MetricsPath              = this.LoggingPath + "Metrics"        + Path.DirectorySeparatorChar;
 
-            this.SystemId           = System_Id.Parse(Environment.MachineName.Replace("/", "") + "/" + HTTPServer.DefaultHTTPServerPort);
-            this.DevMachines        = new HashSet<String>();
+            this.SystemId                 = System_Id.Parse(Environment.MachineName.Replace("/", "") + "/" + HTTPServer.DefaultHTTPServerPort);
+            this.DevMachines              = new HashSet<String>();
 
             if (!DisableLogfile)
             {
@@ -1224,6 +1336,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Directory.CreateDirectory(this.HTTPRequestsPath);
                 Directory.CreateDirectory(this.HTTPResponsesPath);
                 Directory.CreateDirectory(this.HTTPSSEsPath);
+                Directory.CreateDirectory(this.MetricsPath);
             }
 
             // Link HTTP events...
@@ -1231,31 +1344,89 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             HTTPServer.ResponseLog  += (HTTPProcessor, ServerTimestamp, Request, Response)                       => ResponseLog.WhenAll(HTTPProcessor, ServerTimestamp, Request, Response);
             HTTPServer.ErrorLog     += (HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException) => ErrorLog.   WhenAll(HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException);
 
+            // Setup Maintenance Task
+            this.DisableMaintenanceTasks  = DisableMaintenanceTasks;
+            this.MaintenanceEvery         = MaintenanceEvery ?? DefaultMaintenanceEvery;
+            this.MaintenanceTimer         = new Timer(DoMaintenanceSync,
+                                                      null,
+                                                      this.MaintenanceEvery,
+                                                      this.MaintenanceEvery);
+
+            // Setup Warden
+            this.Warden = new Warden.Warden(WardenInitialDelay ?? TimeSpan.FromMinutes(3),
+                                            WardenCheckEvery   ?? TimeSpan.FromMinutes(1),
+                                            DNSClient);
+
+            #region Warden: Observe CPU/RAM
+
+            Thread.CurrentThread.CurrentCulture   = CultureInfo.InvariantCulture;
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
+
+            // If those lines fail, try to run "lodctr /R" as administrator in an cmd.exe environment
+            totalRAM_PerformanceCounter = new PerformanceCounter("Process", "Working Set",      Process.GetCurrentProcess().ProcessName);
+            totalCPU_PerformanceCounter = new PerformanceCounter("Process", "% Processor Time", Process.GetCurrentProcess().ProcessName);
+            totalRAM_PerformanceCounter.NextValue();
+            totalCPU_PerformanceCounter.NextValue();
+
+            Warden.EveryMinutes(1,
+                                Process.GetCurrentProcess(),
+                                async (timestamp, process, ct) => {
+                                    using (var writer = File.AppendText(String.Concat(this.MetricsPath,
+                                                                                      Path.DirectorySeparatorChar,
+                                                                                      "process-stats_",
+                                                                                      DateTime.Now.Year, "-",
+                                                                                      DateTime.Now.Month.ToString("D2"),
+                                                                                      ".log")))
+                                    {
+
+                                        await writer.WriteLineAsync(String.Concat(timestamp.ToIso8601(), ";",
+                                                                                  process.VirtualMemorySize64, ";",
+                                                                                  process.WorkingSet64, ";",
+                                                                                  process.TotalProcessorTime, ";",
+                                                                                  totalRAM_PerformanceCounter.NextValue() / 1024 / 1024, ";",
+                                                                                  totalCPU_PerformanceCounter.NextValue())).
+                                                     ConfigureAwait(false);
+
+                                    }
+
+                                });
+
+            Warden.EveryMinutes(15,
+                                Environment.OSVersion.Platform == PlatformID.Unix
+                                    ? new DriveInfo("/")
+                                    : new DriveInfo(Directory.GetCurrentDirectory()),
+                                async (timestamp, driveInfo, ct) => {
+                                    using (var writer = File.AppendText(String.Concat(this.MetricsPath,
+                                                                                      Path.DirectorySeparatorChar,
+                                                                                      "disc-stats_",
+                                                                                      DateTime.Now.Year, "-",
+                                                                                      DateTime.Now.Month.ToString("D2"),
+                                                                                      ".log")))
+                                    {
+
+                                        var MBytesFree       = driveInfo.AvailableFreeSpace / 1024 / 1024;
+                                        var HDPercentageFree = 100 * driveInfo.AvailableFreeSpace / driveInfo.TotalSize;
+
+                                        await writer.WriteLineAsync(String.Concat(timestamp.ToIso8601(), ";",
+                                                                                  MBytesFree, ";",
+                                                                                  HDPercentageFree)).
+                                                     ConfigureAwait(false);
+
+                                    }
+
+                                });
+
+            #endregion
+
+
+            if (Autostart && HTTPServer.Start())
+                DebugX.Log(nameof(HTTPAPI) + " version '" + APIVersionHash + "' started...");
+
         }
 
         #endregion
 
         #endregion
-
-
-
-
-        //private volatile Int32 _TimeOffset;
-
-        //public void SetTimeOffset(TimeSpan Offset)
-        //{
-        //    _TimeOffset = Convert.ToInt32(Offset.TotalMilliseconds);
-        //}
-
-        //public DateTime CurrentTimestamp
-        //{
-        //    get
-        //    {
-        //        return DateTime.UtcNow + TimeSpan.FromMilliseconds(_TimeOffset);
-        //    }
-        //}
-
-
 
 
         #region HTTP Server Sent Events
@@ -1515,6 +1686,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region (protected) MixWithHTMLTemplate    (ResourceName, ResourceAssemblies)
 
         protected String MixWithHTMLTemplate(String                            ResourceName,
                                              params Tuple<String, Assembly>[]  ResourceAssemblies)
@@ -1543,6 +1715,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
+        #endregion
+
+
+        #region (Timer) DoMaintenance(State)
+
+        private void DoMaintenanceSync(Object State)
+        {
+            if (!DisableMaintenanceTasks)
+                DoMaintenance(State).Wait();
+        }
+
+        protected virtual async Task _DoMaintenance(Object State)
+        {
+
+        }
+
+        private async Task DoMaintenance(Object State)
+        {
+
+            if (await MaintenanceSemaphore.WaitAsync(SemaphoreSlimTimeout).
+                                           ConfigureAwait(false))
+            {
+                try
+                {
+
+                    await _DoMaintenance(State);
+
+                }
+                catch (Exception e)
+                {
+
+                    while (e.InnerException != null)
+                        e = e.InnerException;
+
+                    DebugX.LogException(e);
+
+                }
+                finally
+                {
+                    MaintenanceSemaphore.Release();
+                }
+            }
+            else
+                DebugX.LogT("Could not aquire the maintenance tasks lock!");
+
+        }
+
+        #endregion
+
 
         #region Start()
 
@@ -1555,7 +1776,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (!HTTPServer.IsStarted)
                     return HTTPServer.Start();
 
-                return false;
+                return true;
 
                 //SendStarted(this, CurrentTimestamp);
 
@@ -1567,17 +1788,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Shutdown(Message = null, Wait = true)
 
-        public void Shutdown(String Message = null, Boolean Wait = true)
+        public virtual Boolean Shutdown(String Message = null, Boolean Wait = true)
         {
-
             lock (HTTPServer)
             {
 
-                HTTPServer.Shutdown(Message, Wait);
-                //SendCompleted(this, CurrentTimestamp, Message);
+                if (HTTPServer.IsStarted)
+                    return HTTPServer.Shutdown(Message, Wait);
+
+                return true;
 
             }
-
         }
 
         #endregion

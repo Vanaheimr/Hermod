@@ -346,7 +346,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         Boolean Start();
         Boolean Start(TimeSpan Delay, Boolean InBackground = true);
-        void Shutdown(String Message = null, Boolean Wait = true);
+        Boolean Shutdown(String Message = null, Boolean Wait = true);
 
     }
 

@@ -914,11 +914,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Shutdown(Message = null, Wait = true)
 
-        public void Shutdown(String Message = null, Boolean Wait = true)
+        public Boolean Shutdown(String Message = null, Boolean Wait = true)
         {
 
             _HTTPServer.Shutdown(Message,
                                  Wait);
+
+            return true;
 
         }
 

@@ -864,7 +864,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region Shutdown(Message = null, Wait = true)
 
-        public void Shutdown(String Message = null, Boolean Wait = true)
+        public Boolean Shutdown(String Message = null, Boolean Wait = true)
         {
 
             lock (_TCPServers)
@@ -874,6 +874,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                     TCPServer.Shutdown(Message, Wait);
 
                 SendCompleted(this, DateTime.UtcNow, Message);
+
+                return true;
 
             }
 
