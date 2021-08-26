@@ -897,22 +897,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Start()
 
-        public void Start()
-        {
-            _HTTPServer.Start();
-        }
+        public Boolean Start()
+
+            => _HTTPServer.Start();
 
         #endregion
 
         #region Start(Delay, InBackground = true)
 
-        public void Start(TimeSpan Delay, Boolean InBackground = true)
-        {
+        public Boolean Start(TimeSpan Delay, Boolean InBackground = true)
 
-            _HTTPServer.Start(Delay,
-                              InBackground);
-
-        }
+            => _HTTPServer.Start(Delay,
+                                 InBackground);
 
         #endregion
 

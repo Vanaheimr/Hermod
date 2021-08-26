@@ -1546,14 +1546,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Start()
 
-        public void Start()
+        public virtual Boolean Start()
         {
 
             lock (HTTPServer)
             {
 
                 if (!HTTPServer.IsStarted)
-                    HTTPServer.Start();
+                    return HTTPServer.Start();
+
+                return false;
 
                 //SendStarted(this, CurrentTimestamp);
 

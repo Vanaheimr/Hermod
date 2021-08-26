@@ -344,8 +344,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         Task<HTTPResponse> InvokeHandler(HTTPRequest Request);
         Tuple<MethodInfo, IEnumerable<object>> GetErrorHandler(string Host, string URL, HTTPMethod? HTTPMethod = null, HTTPContentType HTTPContentType = null, HTTPStatusCode HTTPStatusCode = null);
 
-        void Start();
-        void Start(TimeSpan Delay, Boolean InBackground = true);
+        Boolean Start();
+        Boolean Start(TimeSpan Delay, Boolean InBackground = true);
         void Shutdown(String Message = null, Boolean Wait = true);
 
     }

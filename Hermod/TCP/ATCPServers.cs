@@ -820,7 +820,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region Start()
 
-        public void Start()
+        public Boolean Start()
         {
 
             lock (_TCPServers)
@@ -831,7 +831,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                 _IsStarted = true;
 
-                SendStarted(this, DateTime.UtcNow);
+                SendStarted(this, Timestamp.Now);
+
+                return true;
 
             }
 
@@ -841,7 +843,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region Start(Delay, InBackground = true)
 
-        public void Start(TimeSpan Delay, Boolean InBackground = true)
+        public Boolean Start(TimeSpan Delay, Boolean InBackground = true)
         {
 
             lock (_TCPServers)
@@ -851,6 +853,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                     TCPServer.Start(Delay, InBackground);
 
                 SendStarted(this, DateTime.UtcNow);
+
+                return true;
 
             }
 
