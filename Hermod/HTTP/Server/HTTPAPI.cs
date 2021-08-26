@@ -1726,7 +1726,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 DoMaintenance(State).Wait();
         }
 
-        protected virtual async Task _DoMaintenance(Object State)
+        protected internal virtual async Task _DoMaintenance(Object State)
         {
 
         }
