@@ -293,7 +293,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region IComparable<APIKeyId> Members
+        #region IComparable<APIKey_Id> Members
 
         #region CompareTo(Object)
 
@@ -326,7 +326,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region IEquatable<APIKeyId> Members
+        #region IEquatable<APIKey_Id> Members
 
         #region Equals(Object)
 
@@ -345,7 +345,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Equals(APIKeyId)
 
         /// <summary>
-        /// Compares two APIKeyIds for equality.
+        /// Compares two API key identifications for equality.
         /// </summary>
         /// <param name="APIKeyId">An API key identification to compare with.</param>
         /// <returns>True if both match; False otherwise.</returns>
