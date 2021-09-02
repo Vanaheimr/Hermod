@@ -259,6 +259,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         #endregion
 
 
+        #region Clear()
+
+        public void Clear()
+        {
+            if (EMailsSemaphore.Wait(TimeSpan.FromSeconds(60)))
+            {
+                try
+                {
+                    _EMails.Clear();
+                }
+                catch (Exception e)
+                {
+                    DebugX.LogException(e);
+                }
+                finally
+                {
+                    EMailsSemaphore.Release();
+                }
+            }
+        }
+
+        #endregion
+
+
         #region Dispose()
 
         public void Dispose()

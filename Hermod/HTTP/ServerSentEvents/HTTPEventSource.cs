@@ -219,7 +219,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         {
 
                             using (var logfile = File.AppendText(this.LogfileName(this.EventIdentification.ToString(),
-                                                                                  DateTime.UtcNow)))
+                                                                                  Timestamp.Now)))
                             {
 
                                 await logfile.WriteLineAsync(String.Concat(httpEvent.Timestamp.ToIso8601(),
@@ -259,7 +259,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Task SubmitEvent(T Data)
 
             => SubmitEvent(String.Empty,
-                           DateTime.UtcNow,
+                           Timestamp.Now,
                            Data);
 
         #endregion
@@ -289,7 +289,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Task SubmitEvent(String SubEvent, T Data)
 
             => SubmitEvent(SubEvent,
-                           DateTime.UtcNow,
+                           Timestamp.Now,
                            Data);
 
         #endregion

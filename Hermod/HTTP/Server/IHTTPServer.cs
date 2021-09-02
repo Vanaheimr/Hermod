@@ -5,9 +5,10 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Threading.Tasks;
 
+using Newtonsoft.Json.Linq;
+
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
-using Newtonsoft.Json.Linq;
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
@@ -21,8 +22,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="EventIdentification">The unique identification of the event source.</param>
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
         /// <param name="RetryIntervall">The retry intervall.</param>
-        /// <param name="DataSerializer">A delegate to serialize the stored events.</param>
-        /// <param name="DataDeserializer">A delegate to deserialize stored events.</param>
         /// <param name="EnableLogging">Enables storing and reloading events </param>
         /// <param name="LogfilePrefix">A prefix for the log file names or locations.</param>
         /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
@@ -31,8 +30,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                   HTTPEventSource_Id              EventIdentification,
                                                                   UInt32                          MaxNumberOfCachedEvents      = 500,
                                                                   TimeSpan?                       RetryIntervall               = null,
-                                                                  Func<JObject, String>           DataSerializer               = null,
-                                                                  Func<String, JObject>           DataDeserializer             = null,
                                                                   Boolean                         EnableLogging                = true,
                                                                   String                          LogfilePrefix                = null,
                                                                   Func<String, DateTime, String>  LogfileName                  = null,

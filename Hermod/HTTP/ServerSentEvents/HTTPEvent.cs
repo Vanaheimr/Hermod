@@ -84,7 +84,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                          String  SerializedData)
 
             : this(Id,
-                   DateTime.UtcNow,
+                   Illias.Timestamp.Now,
                    String.Empty,
                    Data,
                    SerializedHeader,
@@ -138,7 +138,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                          String  SerializedData)
 
             : this(Id,
-                   DateTime.UtcNow,
+                   Illias.Timestamp.Now,
                    Subevent,
                    Data,
                    SerializedHeader,
