@@ -36,9 +36,6 @@ using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
-
-
-
     /// <summary>
     /// A SMTP client for sending e-mails.
     /// </summary>
