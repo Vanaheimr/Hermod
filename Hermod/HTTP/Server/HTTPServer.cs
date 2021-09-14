@@ -1092,12 +1092,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           SslProtocols?                        AllowedTLSProtocols                = SslProtocols.Tls12 | SslProtocols.Tls13,
 
                           String                               ServerThreadName                   = null,
-                          ThreadPriority                       ServerThreadPriority               = ThreadPriority.AboveNormal,
-                          Boolean                              ServerThreadIsBackground           = true,
+                          ThreadPriority?                      ServerThreadPriority               = null,
+                          Boolean?                             ServerThreadIsBackground           = null,
                           ConnectionIdBuilder                  ConnectionIdBuilder                = null,
                           ConnectionThreadsNameBuilder         ConnectionThreadsNameBuilder       = null,
                           ConnectionThreadsPriorityBuilder     ConnectionThreadsPriorityBuilder   = null,
-                          Boolean                              ConnectionThreadsAreBackground     = true,
+                          Boolean?                             ConnectionThreadsAreBackground     = null,
                           TimeSpan?                            ConnectionTimeout                  = null,
                           UInt32?                              MaxClientConnections               = null,
 

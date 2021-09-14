@@ -1156,6 +1156,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DisableMaintenanceTasks">Disable all maintenance tasks.</param>
         /// <param name="MaintenanceInitialDelay">The initial delay of the maintenance tasks.</param>
         /// <param name="MaintenanceEvery">The maintenance intervall.</param>
+        /// 
         /// <param name="DisableWardenTasks">Disable all warden tasks.</param>
         /// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
         /// <param name="WardenCheckEvery">The warden intervall.</param>
@@ -1182,18 +1183,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        SslProtocols?                        AllowedTLSProtocols                = null,
 
                        String                               ServerThreadName                   = null,
-                       ThreadPriority                       ServerThreadPriority               = ThreadPriority.AboveNormal,
-                       Boolean                              ServerThreadIsBackground           = true,
+                       ThreadPriority?                      ServerThreadPriority               = null,
+                       Boolean?                             ServerThreadIsBackground           = null,
                        ConnectionIdBuilder                  ConnectionIdBuilder                = null,
                        ConnectionThreadsNameBuilder         ConnectionThreadsNameBuilder       = null,
                        ConnectionThreadsPriorityBuilder     ConnectionThreadsPriorityBuilder   = null,
-                       Boolean                              ConnectionThreadsAreBackground     = true,
+                       Boolean?                             ConnectionThreadsAreBackground     = null,
                        TimeSpan?                            ConnectionTimeout                  = null,
-                       UInt32                               MaxClientConnections               = TCPServer.__DefaultMaxClientConnections,
+                       UInt32?                              MaxClientConnections               = null,
 
                        Boolean                              DisableMaintenanceTasks            = false,
                        TimeSpan?                            MaintenanceInitialDelay            = null,
                        TimeSpan?                            MaintenanceEvery                   = null,
+
                        Boolean                              DisableWardenTasks                 = false,
                        TimeSpan?                            WardenInitialDelay                 = null,
                        TimeSpan?                            WardenCheckEvery                   = null,
@@ -1238,6 +1240,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    DisableMaintenanceTasks,
                    MaintenanceInitialDelay,
                    MaintenanceEvery,
+
                    DisableWardenTasks,
                    WardenInitialDelay,
                    WardenCheckEvery,
@@ -1276,6 +1279,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DisableMaintenanceTasks">Disable all maintenance tasks.</param>
         /// <param name="MaintenanceInitialDelay">The initial delay of the maintenance tasks.</param>
         /// <param name="MaintenanceEvery">The maintenance intervall.</param>
+        /// 
         /// <param name="DisableWardenTasks">Disable all warden tasks.</param>
         /// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
         /// <param name="WardenCheckEvery">The warden intervall.</param>
@@ -1294,17 +1298,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        String         HTMLTemplate              = null,
                        JObject        APIVersionHashes          = null,
 
-                       Boolean        DisableMaintenanceTasks   = false,
+                       Boolean?       DisableMaintenanceTasks   = false,
                        TimeSpan?      MaintenanceInitialDelay   = null,
                        TimeSpan?      MaintenanceEvery          = null,
-                       Boolean        DisableWardenTasks        = false,
+
+                       Boolean?       DisableWardenTasks        = false,
                        TimeSpan?      WardenInitialDelay        = null,
                        TimeSpan?      WardenCheckEvery          = null,
 
-                       Boolean        DisableLogfile            = false,
+                       Boolean?       DisableLogfile            = false,
                        String         LoggingPath               = DefaultHTTPAPI_LoggingPath,
                        String         LogfileName               = DefaultHTTPAPI_LogfileName,
-                       Boolean        Autostart                 = false)
+                       Boolean?       Autostart                 = false)
 
         {
 
@@ -1330,7 +1335,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.SystemId                 = System_Id.Parse(Environment.MachineName.Replace("/", "") + "/" + HTTPServer.DefaultHTTPServerPort);
             this.DevMachines              = new HashSet<String>();
 
-            if (!DisableLogfile)
+            if (DisableLogfile == false)
             {
                 Directory.CreateDirectory(this.LoggingPath);
                 Directory.CreateDirectory(this.HTTPRequestsPath);
@@ -1345,7 +1350,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             HTTPServer.ErrorLog     += (HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException) => ErrorLog.   WhenAll(HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException);
 
             // Setup Maintenance Task
-            this.DisableMaintenanceTasks  = DisableMaintenanceTasks;
+            this.DisableMaintenanceTasks  = DisableMaintenanceTasks ?? false;
             this.MaintenanceEvery         = MaintenanceEvery ?? DefaultMaintenanceEvery;
             this.MaintenanceTimer         = new Timer(DoMaintenanceSync,
                                                       null,
@@ -1419,7 +1424,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #endregion
 
 
-            if (Autostart && HTTPServer.Start())
+            if (Autostart == true && HTTPServer.Start())
                 DebugX.Log(nameof(HTTPAPI) + " version '" + APIVersionHash + "' started...");
 
         }
