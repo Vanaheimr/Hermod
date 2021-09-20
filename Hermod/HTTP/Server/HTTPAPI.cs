@@ -969,6 +969,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
         /// <summary>
+        /// The HTTP root for embedded ressources.
+        /// </summary>
+        public  const              String                  HTTPRoot                        = "org.GraphDefined.Vanaheimr.Hermod.HTTPRoot.";
+
+        /// <summary>
         /// The default maintenance interval.
         /// </summary>
         public readonly            TimeSpan                DefaultMaintenanceEvery         = TimeSpan.FromMinutes(1);
@@ -1656,88 +1661,113 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (protected) GetResourceStream      (ResourceAssembly, ResourceName)
+        #region (protected virtual) GetResourceStream      (ResourceName, ResourceAssemblies)
 
-        protected Stream GetResourceStream(Assembly  ResourceAssembly,
-                                           String    ResourceName)
+        protected virtual Stream GetResourceStream(String ResourceName)
 
-            => ResourceAssembly?.GetManifestResourceStream(ResourceName);
+            => GetResourceStream(ResourceName,
+                                 new Tuple<String, Assembly>(HTTPAPI. HTTPRoot, typeof(HTTPAPI). Assembly));
 
-        #endregion
-
-        #region (protected) GetResourceMemoryStream(ResourceAssembly, ResourceName)
-
-        protected MemoryStream GetResourceMemoryStream(Assembly  ResourceAssembly,
-                                                       String    ResourceName)
+        protected virtual Stream GetResourceStream(String                            ResourceName,
+                                                   params Tuple<String, Assembly>[]  ResourceAssemblies)
         {
 
-            try
+            foreach (var resourceAssembly in ResourceAssemblies)
             {
-
-                var OutputStream    = new MemoryStream();
-                var ResourceStream  = ResourceAssembly.GetManifestResourceStream(ResourceName);
-
-                if (ResourceStream != null)
+                try
                 {
-                    ResourceStream.CopyTo(OutputStream);
-                    OutputStream.Seek(0, SeekOrigin.Begin);
+
+                    var resourceStream = resourceAssembly.Item2.GetManifestResourceStream(resourceAssembly.Item1 + ResourceName);
+
+                    if (resourceStream != null)
+                        return resourceStream;
+
                 }
-
-                return OutputStream;
-
+                catch
+                { }
             }
-            catch (Exception)
-            {
-                return new MemoryStream();
-            }
+
+            return null;
 
         }
 
         #endregion
 
-        #region (protected) GetResourceString      (ResourceAssembly, ResourceName)
+        #region (protected virtual) GetResourceMemoryStream(ResourceName, ResourceAssemblies)
 
-        protected String GetResourceString(Assembly  ResourceAssembly,
-                                           String    ResourceName)
+        protected virtual MemoryStream GetResourceMemoryStream(String ResourceName)
 
-            => GetResourceMemoryStream(ResourceAssembly,
-                                       ResourceName)?.ToUTF8String() ?? String.Empty;
+            => GetResourceMemoryStream(ResourceName,
+                                       new Tuple<String, Assembly>(HTTPAPI. HTTPRoot, typeof(HTTPAPI). Assembly));
 
-        #endregion
-
-        #region (protected) GetResourceBytes       (ResourceAssembly, ResourceName)
-        protected Byte[] GetResourceBytes(Assembly  ResourceAssembly,
-                                          String    ResourceName)
+        protected virtual MemoryStream GetResourceMemoryStream(String                            ResourceName,
+                                                               params Tuple<String, Assembly>[]  ResourceAssemblies)
         {
 
             try
             {
 
-                var OutputStream   = new MemoryStream();
-                var TemplateStream = ResourceAssembly.GetManifestResourceStream(ResourceName);
+                var resourceStream = GetResourceStream(ResourceName,
+                                                       ResourceAssemblies);
 
-                if (TemplateStream != null)
+                if (resourceStream != null)
                 {
-                    TemplateStream.Seek(0, SeekOrigin.Begin);
-                    TemplateStream.CopyTo(OutputStream);
+
+                    var outputStream = new MemoryStream();
+                    resourceStream.CopyTo(outputStream);
+                    outputStream.Seek(0, SeekOrigin.Begin);
+
+                    return outputStream;
+
                 }
 
-                return OutputStream.ToArray();
+            }
+            catch
+            { }
 
-            }
-            catch (Exception)
-            {
-                return new Byte[0];
-            }
+            return new MemoryStream();
 
         }
 
         #endregion
 
-        #region (protected) MixWithHTMLTemplate    (ResourceName, ResourceAssemblies)
+        #region (protected virtual) GetResourceString      (ResourceName, ResourceAssemblies)
 
-        protected String MixWithHTMLTemplate(String                            ResourceName,
-                                             params Tuple<String, Assembly>[]  ResourceAssemblies)
+        protected virtual String GetResourceString(String ResourceName)
+
+            => GetResourceString(ResourceName,
+                                 new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+
+        protected virtual String GetResourceString(String                            ResourceName,
+                                                   params Tuple<String, Assembly>[]  ResourceAssemblies)
+
+            => GetResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToUTF8String() ?? String.Empty;
+
+        #endregion
+
+        #region (protected virtual) GetResourceBytes       (ResourceName, ResourceAssemblies)
+
+        protected virtual Byte[] GetResourceBytes(String ResourceName)
+
+            => GetResourceBytes(ResourceName,
+                                new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+
+        protected virtual Byte[] GetResourceBytes(String                            ResourceName,
+                                                  params Tuple<String, Assembly>[]  ResourceAssemblies)
+
+            => GetResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToArray() ?? new Byte[0];
+
+        #endregion
+
+        #region (protected virtual) MixWithHTMLTemplate    (ResourceName, ResourceAssemblies)
+
+        protected virtual String MixWithHTMLTemplate(String ResourceName)
+
+            => MixWithHTMLTemplate(ResourceName,
+                                   new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+
+        protected virtual String MixWithHTMLTemplate(String                            ResourceName,
+                                                     params Tuple<String, Assembly>[]  ResourceAssemblies)
         {
 
             var HTMLStream = new MemoryStream();
