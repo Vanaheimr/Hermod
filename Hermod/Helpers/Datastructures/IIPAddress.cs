@@ -40,37 +40,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static IIPAddress Parse(String Text)
         {
 
-            if (Text != null)
-                Text = Text.Trim();
+            if (TryParse(Text, out IIPAddress ipAddress))
+                return ipAddress;
 
             if (Text.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(Text), "The given IP address must not be null or empty!");
 
-            return IsIPv4(Text)
-                       ? (IIPAddress) IPv4Address.Parse(Text)
-                       : (IIPAddress) IPv6Address.Parse(Text);
+            return null;
+
+        }
+
+        public static Boolean TryParse(String Text, out IIPAddress IPAddress)
+        {
+
+            Text = Text?.Trim();
+
+            if (Text.IsNotNullOrEmpty())
+            {
+
+                if (IsIPv4(Text))
+                {
+                    IPAddress = IPv4Address.Parse(Text);
+                    return true;
+                }
+
+                if (IsIPv6(Text))
+                {
+                    IPAddress = IPv6Address.Parse(Text);
+                    return true;
+                }
+
+            }
+
+            IPAddress = null;
+            return false;
 
         }
 
         public static Boolean IsIPv4(String IPAddress)
-            => IPAddress.IsNotNullOrEmpty()
-                   ? IPv4AddressRegExpr.IsMatch(IPAddress?.Trim())
-                   : false;
+            => IPAddress.IsNotNullOrEmpty() &&
+               IPv4AddressRegExpr.IsMatch(IPAddress?.Trim());
 
         public static Boolean IsIPv4(HTTPHostname Hostname)
-            => Hostname.ToString().IsNotNullOrEmpty()
-                   ? IPv4AddressRegExpr.IsMatch(Hostname.ToString())
-                   : false;
+            => Hostname.IsNotNullOrEmpty &&
+               IPv4AddressRegExpr.IsMatch(Hostname.ToString());
 
         public static Boolean IsIPv6(String IPAddress)
-            => IPAddress.IsNotNullOrEmpty()
-                   ? IPv6AddressRegExpr.IsMatch(IPAddress?.Trim())
-                   : false;
+            => IPAddress.IsNotNullOrEmpty() &&
+               IPv6AddressRegExpr.IsMatch(IPAddress?.Trim());
 
         public static Boolean IsIPv6(HTTPHostname Hostname)
-            => Hostname.ToString().IsNotNullOrEmpty()
-                   ? IPv6AddressRegExpr.IsMatch(Hostname.ToString())
-                   : false;
+            => Hostname.IsNotNullOrEmpty &&
+               IPv6AddressRegExpr.IsMatch(Hostname.ToString());
 
         public static Boolean IsLocalhost(String Text)
             => IsIPv4Localhost(Text) || IsIPv6Localhost(Text);
@@ -79,22 +100,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             => IsIPv4Localhost(Hostname) || IsIPv6Localhost(Hostname);
 
         public static Boolean IsIPv4Localhost(String Text)
-        {
-            var text = Text?.Trim();
-            return !(text is null) && ((IsIPv4(text) && text.StartsWith("127.")) || text.ToLower() == "localhost");
-        }
+            => IsIPv4(Text) && (Text.StartsWith("127.") || Text.ToLower() == "localhost");
 
         public static Boolean IsIPv4Localhost(HTTPHostname Hostname)
-            => IsIPv4Localhost(Hostname.ToString());
+            => Hostname.IsNotNullOrEmpty && IsIPv4Localhost(Hostname.ToString());
 
         public static Boolean IsIPv6Localhost(String Text)
-        {
-            var text = Text?.Trim();
-            return !(text is null) && (text == "::1" || text.ToLower() == "localhost6");
-        }
+            => IsIPv6(Text) && (Text == "::1" || Text.ToLower() == "localhost6");
 
         public static Boolean IsIPv6Localhost(HTTPHostname Hostname)
-            => IsIPv6Localhost(Hostname.ToString());
+            => Hostname.IsNotNullOrEmpty && IsIPv6Localhost(Hostname.ToString());
 
     }
 
@@ -110,35 +125,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The length of the IP Address.
         /// </summary>
-        Byte   Length { get; }
+        Byte     Length         { get; }
 
         /// <summary>
         /// Whether the IP address is an IPv4 multicast address.
         /// </summary>
-        Boolean IsMulticast { get; }
+        Boolean  IsMulticast    { get; }
 
-        Boolean IsIPv4 { get; }
+        Boolean  IsIPv4         { get; }
 
-        Boolean IsIPv6 { get; }
+        Boolean  IsIPv6         { get; }
 
-        Boolean IsLocalhost { get; }
+        Boolean  IsLocalhost    { get; }
 
 
         /// <summary>
         /// Return a byte array representation of this object.
         /// </summary>
-        Byte[] GetBytes();
+        Byte[]   GetBytes();
 
 
         /// <summary>
         /// Return the HashCode of this object.
         /// </summary>
-        Int32  GetHashCode();
+        Int32    GetHashCode();
 
         /// <summary>
         /// Return a text representation of this object.
         /// </summary>
-        String ToString();
+        String   ToString();
 
     }
 
