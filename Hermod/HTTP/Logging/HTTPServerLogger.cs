@@ -53,6 +53,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Properties
 
+            public String                     LoggingPath                     { get; }
+
             /// <summary>
             /// The context of the event to be logged.
             /// </summary>
@@ -138,7 +140,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     throw new ArgumentException("Duplicate log target!", nameof(LogTarget));
 
                 _SubscriptionDelegates.Add(LogTarget,
-                                           (Timestamp, HTTPAPI, Request) => HTTPRequestDelegate(Context, LogEventName, Request));
+                                           (Timestamp, HTTPAPI, Request) => HTTPRequestDelegate(LoggingPath, Context, LogEventName, Request));
 
                 return this;
 
@@ -234,6 +236,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Properties
 
+            public String                     LoggingPath                     { get; }
+
             /// <summary>
             /// The context of the event to be logged.
             /// </summary>
@@ -319,7 +323,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     throw new ArgumentException("Duplicate log target!", nameof(LogTarget));
 
                 _SubscriptionDelegates.Add(LogTarget,
-                                           (Timestamp, HTTPAPI, Request) => HTTPRequestDelegate(Context, LogEventName, Request));
+                                           (Timestamp, HTTPAPI, Request) => HTTPRequestDelegate(LoggingPath, Context, LogEventName, Request));
 
                 return this;
 
@@ -415,6 +419,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Properties
 
+            public String                    LoggingPath                     { get; }
+
             /// <summary>
             /// The context of the event to be logged.
             /// </summary>
@@ -500,7 +506,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     throw new ArgumentException("Duplicate log target!", nameof(LogTarget));
 
                 _SubscriptionDelegates.Add(LogTarget,
-                                           (Timestamp, HTTPAPI, Request, Response) => HTTPResponseDelegate(Context, LogEventName, Request, Response));
+                                           (Timestamp, HTTPAPI, Request, Response) => HTTPResponseDelegate(LoggingPath, Context, LogEventName, Request, Response));
 
                 return this;
 
@@ -596,6 +602,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Properties
 
+            public String                    LoggingPath                     { get; }
+
             /// <summary>
             /// The context of the event to be logged.
             /// </summary>
@@ -667,7 +675,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <param name="HTTPResponseDelegate">A delegate to call.</param>
             /// <returns>A HTTP response logger.</returns>
             public HTTPServerResponseLogger2 RegisterLogTarget(LogTargets                  LogTarget,
-                                                              HTTPResponseLoggerDelegate  HTTPResponseDelegate)
+                                                               HTTPResponseLoggerDelegate  HTTPResponseDelegate)
             {
 
                 #region Initial checks
@@ -681,7 +689,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     throw new ArgumentException("Duplicate log target!", nameof(LogTarget));
 
                 _SubscriptionDelegates.Add(LogTarget,
-                                           (Timestamp, HTTPAPI, Request, Response) => HTTPResponseDelegate(Context, LogEventName, Request, Response));
+                                           (Timestamp, HTTPAPI, Request, Response) => HTTPResponseDelegate(LoggingPath, Context, LogEventName, Request, Response));
 
                 return this;
 

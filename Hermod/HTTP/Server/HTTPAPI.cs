@@ -940,58 +940,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Internal non-cryptographic random number generator.
         /// </summary>
-        protected static readonly  Random        _Random                       = new Random();
+        protected static readonly  Random                  _Random                         = new Random();
 
         /// <summary>
         /// The default HTTP server name.
         /// </summary>
-        public  const              String        DefaultHTTPServerName         = "GraphDefined HTTP API";
+        public  const              String                  DefaultHTTPServerName           = "GraphDefined HTTP API";
 
         /// <summary>
         /// The default HTTP service name.
         /// </summary>
-        public  const              String        DefaultHTTPServiceName        = "GraphDefined HTTP API";
+        public  const              String                  DefaultHTTPServiceName          = "GraphDefined HTTP API";
 
         /// <summary>
         /// The default HTTP server port.
         /// </summary>
-        public  static readonly    IPPort        DefaultHTTPServerPort         = IPPort.HTTP;
+        public  static readonly    IPPort                  DefaultHTTPServerPort           = IPPort.HTTP;
 
         /// <summary>
         /// The default HTTP URL path prefix.
         /// </summary>
-        public  static readonly    HTTPPath      DefaultURLPathPrefix          = HTTPPath.Parse("/");
+        public  static readonly    HTTPPath                DefaultURLPathPrefix            = HTTPPath.Parse("/");
 
 
-        public  const              String        DefaultHTTPAPI_LoggingPath    = "default";
+        public  const              String                  DefaultHTTPAPI_LoggingPath      = "default";
 
-        /// <summary>
-        /// Default logfile name.
-        /// </summary>
-        public  const              String        DefaultHTTPAPI_LogfileName    = "HTTPAPI.log";
+        public  const              String                  DefaultHTTPAPI_LogfileName      = "HTTPAPI.log";
+
 
         /// <summary>
         /// The default maintenance interval.
         /// </summary>
-        public readonly           TimeSpan       DefaultMaintenanceEvery       = TimeSpan.FromMinutes(1);
+        public readonly            TimeSpan                DefaultMaintenanceEvery         = TimeSpan.FromMinutes(1);
 
-        private readonly          Timer          MaintenanceTimer;
+        private readonly           Timer                   MaintenanceTimer;
 
 
-        protected static readonly TimeSpan       SemaphoreSlimTimeout          = TimeSpan.FromSeconds(5);
+        protected static readonly  TimeSpan                SemaphoreSlimTimeout            = TimeSpan.FromSeconds(5);
 
-        protected static readonly SemaphoreSlim  MaintenanceSemaphore          = new SemaphoreSlim(1, 1);
+        protected static readonly  SemaphoreSlim           MaintenanceSemaphore            = new SemaphoreSlim(1, 1);
 
 
         /// <summary>
         /// The performance counter to measure the total RAM usage.
         /// </summary>
-        protected readonly        PerformanceCounter                            totalRAM_PerformanceCounter;
+        protected readonly         PerformanceCounter      totalRAM_PerformanceCounter;
 
         /// <summary>
         /// The performance counter to measure the total CPU usage.
         /// </summary>
-        protected readonly        PerformanceCounter                            totalCPU_PerformanceCounter;
+        protected readonly         PerformanceCounter      totalCPU_PerformanceCounter;
 
         #endregion
 
@@ -1033,9 +1031,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public TimeSpan                 DefaultRequestTimeout       { get; set; }
 
         /// <summary>
+        /// The API version hash (git commit hash value).
+        /// </summary>
+        public String                   APIVersionHash              { get; }
+
+
+        /// <summary>
         /// The unqiue identification of this HTTP API instance.
         /// </summary>
         public System_Id                SystemId                    { get; }
+
+        /// <summary>
+        /// An optional HTML template.
+        /// </summary>
+        public String                   HTMLTemplate                { get; protected set; }
+
+
+        public X509Certificate          ServerCert                  { get; }
+
+
 
         /// <summary>
         /// The maintenance interval.
@@ -1047,18 +1061,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public Boolean                  DisableMaintenanceTasks     { get; set; }
 
-        /// <summary>
-        /// An optional HTML template.
-        /// </summary>
-        public String                   HTMLTemplate                { get; protected set; }
+
 
         /// <summary>
-        /// The API version hash (git commit hash value).
+        /// This HTTP API runs in development mode.
         /// </summary>
-        public String                   APIVersionHash              { get; }
+        public Boolean?                 IsDevelopment               { get; }
 
-        public HashSet<String>          DevMachines                 { get; }
+        /// <summary>
+        /// The enumeration of server names which will imply to run this service in development mode.
+        /// </summary>
+        public HashSet<String>          DevelopmentServers          { get; }
 
+
+        /// <summary>
+        /// Disable any logging.
+        /// </summary>
+        public Boolean                  DisableLogging              { get; }
+
+        /// <summary>
+        /// The path for all logfiles.
+        /// </summary>
         public String                   LoggingPath                 { get; }
 
         public String                   HTTPRequestsPath            { get; }
@@ -1069,12 +1092,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public String                   MetricsPath                 { get; }
 
+        //public String                   LoggingContext              { get; }
 
-        public X509Certificate          ServerCert                  { get; }
+        public String                   LogfileName                 { get; }
 
-
-        public DNSClient                DNSClient
-            => HTTPServer.DNSClient;
+        public LogfileCreatorDelegate   LogfileCreator              { get; }
 
 
         /// <summary>
@@ -1083,21 +1105,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPServerLogger         HTTPLogger                  { get; set; }
 
 
-        /// <summary>
-        /// Disable the log file.
-        /// </summary>
-        public Boolean                  DisableLogfile              { get; }
-
-        /// <summary>
-        /// The logfile of this API.
-        /// </summary>
-        public String                   LogfileName                 { get; protected set; }
-
         public Warden.Warden            Warden                      { get; }
 
         public ECPrivateKeyParameters   ServiceCheckPrivateKey      { get; set; }
 
         public ECPublicKeyParameters    ServiceCheckPublicKey       { get; set; }
+
+
+        public DNSClient                DNSClient
+            => HTTPServer.DNSClient;
 
         #endregion
 
@@ -1161,9 +1177,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
         /// <param name="WardenCheckEvery">The warden intervall.</param>
         /// 
-        /// <param name="DisableLogfile">Disable the log file.</param>
+        /// <param name="IsDevelopment">This HTTP API runs in development mode.</param>
+        /// <param name="DevelopmentServers">An enumeration of server names which will imply to run this service in development mode.</param>
+        /// <param name="DisableLogging">Disable any logging.</param>
         /// <param name="LoggingPath">The path for all logfiles.</param>
-        /// <param name="LogfileName">The name of the logfile for this API.</param>
+        /// <param name="LogfileCreator">A delegate for creating the name of the logfile for this API.</param>
         /// <param name="DNSClient">The DNS client of the API.</param>
         /// <param name="Autostart">Whether to start the API automatically.</param>
         public HTTPAPI(HTTPHostname?                        HTTPHostname                       = null,
@@ -1192,17 +1210,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        TimeSpan?                            ConnectionTimeout                  = null,
                        UInt32?                              MaxClientConnections               = null,
 
-                       Boolean                              DisableMaintenanceTasks            = false,
+                       Boolean?                             DisableMaintenanceTasks            = null,
                        TimeSpan?                            MaintenanceInitialDelay            = null,
                        TimeSpan?                            MaintenanceEvery                   = null,
 
-                       Boolean                              DisableWardenTasks                 = false,
+                       Boolean?                             DisableWardenTasks                 = null,
                        TimeSpan?                            WardenInitialDelay                 = null,
                        TimeSpan?                            WardenCheckEvery                   = null,
 
-                       Boolean                              DisableLogfile                     = false,
+                       Boolean?                             IsDevelopment                      = null,
+                       IEnumerable<String>                  DevelopmentServers                 = null,
+                       Boolean?                             DisableLogging                     = null,
                        String                               LoggingPath                        = DefaultHTTPAPI_LoggingPath,
                        String                               LogfileName                        = DefaultHTTPAPI_LogfileName,
+                       LogfileCreatorDelegate               LogfileCreator                     = null,
                        DNSClient                            DNSClient                          = null,
                        Boolean                              Autostart                          = false)
 
@@ -1245,9 +1266,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    WardenInitialDelay,
                    WardenCheckEvery,
 
-                   DisableLogfile,
+                   IsDevelopment,
+                   DevelopmentServers,
+                   DisableLogging,
                    LoggingPath,
                    LogfileName,
+                   LogfileCreator,
                    Autostart: false)
 
         {
@@ -1284,32 +1308,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
         /// <param name="WardenCheckEvery">The warden intervall.</param>
         /// 
-        /// <param name="DisableLogfile">Disable the log file.</param>
+        /// <param name="IsDevelopment">This HTTP API runs in development mode.</param>
+        /// <param name="DevelopmentServers">An enumeration of server names which will imply to run this service in development mode.</param>
+        /// <param name="DisableLogging">Disable the log file.</param>
         /// <param name="LoggingPath">The path for all logfiles.</param>
-        /// <param name="LogfileName">The name of the logfile for this API.</param>
+        /// <param name="LogfileCreator">A delegate for creating the name of the logfile for this API.</param>
         /// <param name="Autostart">Whether to start the API automatically.</param>
-        public HTTPAPI(HTTPServer     HTTPServer,
-                       HTTPHostname?  HTTPHostname              = null,
-                       String         ExternalDNSName           = "",
-                       String         HTTPServiceName           = DefaultHTTPServiceName,
-                       HTTPPath?      BasePath                  = null,
+        public HTTPAPI(HTTPServer              HTTPServer,
+                       HTTPHostname?           HTTPHostname              = null,
+                       String                  ExternalDNSName           = "",
+                       String                  HTTPServiceName           = DefaultHTTPServiceName,
+                       HTTPPath?               BasePath                  = null,
 
-                       HTTPPath?      URLPathPrefix             = null,
-                       String         HTMLTemplate              = null,
-                       JObject        APIVersionHashes          = null,
+                       HTTPPath?               URLPathPrefix             = null,
+                       String                  HTMLTemplate              = null,
+                       JObject                 APIVersionHashes          = null,
 
-                       Boolean?       DisableMaintenanceTasks   = false,
-                       TimeSpan?      MaintenanceInitialDelay   = null,
-                       TimeSpan?      MaintenanceEvery          = null,
+                       Boolean?                DisableMaintenanceTasks   = false,
+                       TimeSpan?               MaintenanceInitialDelay   = null,
+                       TimeSpan?               MaintenanceEvery          = null,
 
-                       Boolean?       DisableWardenTasks        = false,
-                       TimeSpan?      WardenInitialDelay        = null,
-                       TimeSpan?      WardenCheckEvery          = null,
+                       Boolean?                DisableWardenTasks        = false,
+                       TimeSpan?               WardenInitialDelay        = null,
+                       TimeSpan?               WardenCheckEvery          = null,
 
-                       Boolean?       DisableLogfile            = false,
-                       String         LoggingPath               = DefaultHTTPAPI_LoggingPath,
-                       String         LogfileName               = DefaultHTTPAPI_LogfileName,
-                       Boolean?       Autostart                 = false)
+                       Boolean?                IsDevelopment             = false,
+                       IEnumerable<String>     DevelopmentServers        = null,
+                       Boolean?                DisableLogging            = false,
+                       String                  LoggingPath               = DefaultHTTPAPI_LoggingPath,
+                       String                  LogfileName               = DefaultHTTPAPI_LogfileName,
+                       LogfileCreatorDelegate  LogfileCreator            = null,
+                       Boolean                 Autostart                 = false)
 
         {
 
@@ -1333,9 +1362,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.MetricsPath              = this.LoggingPath + "Metrics"        + Path.DirectorySeparatorChar;
 
             this.SystemId                 = System_Id.Parse(Environment.MachineName.Replace("/", "") + "/" + HTTPServer.DefaultHTTPServerPort);
-            this.DevMachines              = new HashSet<String>();
+            this.IsDevelopment            = IsDevelopment;
+            this.DevelopmentServers       = DevelopmentServers.SafeAny() ? new HashSet<String>(DevelopmentServers) : new HashSet<String>();
 
-            if (DisableLogfile == false)
+            if (!this.IsDevelopment.HasValue && this.DevelopmentServers.Contains(Environment.MachineName))
+                this.IsDevelopment = true;
+
+            this.LogfileName              = LogfileName    ?? DefaultHTTPAPI_LogfileName;
+            this.LogfileCreator           = LogfileCreator ?? ((loggingPath, context, logfileName) => String.Concat(loggingPath,
+                                                                                                                    context.IsNotNullOrEmpty() ? context + Path.DirectorySeparatorChar : "",
+                                                                                                                    logfileName.Replace(".log", ""), "_",
+                                                                                                                    DateTime.Now.Year, "-",
+                                                                                                                    DateTime.Now.Month.ToString("D2"),
+                                                                                                                    ".log"));
+
+            if (DisableLogging == false)
             {
                 Directory.CreateDirectory(this.LoggingPath);
                 Directory.CreateDirectory(this.HTTPRequestsPath);
@@ -1344,10 +1385,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Directory.CreateDirectory(this.MetricsPath);
             }
 
+
             // Link HTTP events...
             HTTPServer.RequestLog   += (HTTPProcessor, ServerTimestamp, Request)                                 => RequestLog. WhenAll(HTTPProcessor, ServerTimestamp, Request);
             HTTPServer.ResponseLog  += (HTTPProcessor, ServerTimestamp, Request, Response)                       => ResponseLog.WhenAll(HTTPProcessor, ServerTimestamp, Request, Response);
             HTTPServer.ErrorLog     += (HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException) => ErrorLog.   WhenAll(HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException);
+
 
             // Setup Maintenance Task
             this.DisableMaintenanceTasks  = DisableMaintenanceTasks ?? false;
