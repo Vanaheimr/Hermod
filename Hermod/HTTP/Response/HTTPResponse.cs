@@ -1472,6 +1472,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
+            #region XLocationAfterAuth
+
+            public HTTPPath XLocationAfterAuth
+            {
+
+                get
+                {
+                    return HTTPPath.Parse(GetHeaderField(HTTPHeaderField.XLocationAfterAuth));
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPHeaderField.XLocationAfterAuth, value);
+                }
+
+            }
+
+            #endregion
+
             #region ProxyAuthenticate
 
             public String ProxyAuthenticate

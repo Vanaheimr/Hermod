@@ -2796,6 +2796,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Non-standard response header fields
+
+        #region XLocationAfterAuth
+
+        /// <summary>
+        /// Stores the original HTTP path and redirects to it after authentication.
+        /// </summary>
+        public static readonly HTTPHeaderField XLocationAfterAuth = new HTTPHeaderField("X-LocationAfterAuth",
+                                                                                        typeof(String),
+                                                                                        HeaderFieldType.Response,
+                                                                                        RequestPathSemantic.EndToEnd);
+
+        #endregion
+
+        #endregion
+
 
         #region Operator overloading
 
