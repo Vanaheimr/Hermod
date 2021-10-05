@@ -248,13 +248,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
-        public delegate Task OnChunkDataReadDelegate(TimeSpan Timestamp, Int32 BytesRead);
+        public delegate Task OnChunkDataReadDelegate(TimeSpan Timestamp, UInt32 BytesRead, UInt64 TotalBytes);
 
         public event OnChunkDataReadDelegate OnChunkDataRead;
 
 
 
-        public delegate Task OnChunkBlockFoundDelegate(TimeSpan Timestamp, Int32 BlockSize);
+        public delegate Task OnChunkBlockFoundDelegate(TimeSpan Timestamp, UInt64 BlockNumber, UInt32 BlockSize, UInt64 TotalBytes);
 
         public event OnChunkBlockFoundDelegate OnChunkBlockFound;
 
@@ -663,21 +663,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Read the HTTP header
 
-                var CurrentDataLength    = 0;
+                var currentDataLength    = 0;
                 var CurrentHeaderLength  = 0;
                 var HeaderEndsAt         = 0;
 
-                var _Buffer = new Byte[4096];
+                var _Buffer = new Byte[65536];
 
                 do
                 {
 
-                    CurrentDataLength = HTTPStream.Read(_Buffer, 0, _Buffer.Length);
+                    currentDataLength = HTTPStream.Read(_Buffer, 0, _Buffer.Length);
 
-                    if (CurrentDataLength > 0)
+                    if (currentDataLength > 0)
                     {
 
-                        if (CurrentDataLength > 3 || CurrentHeaderLength > 3)
+                        if (currentDataLength > 3 || CurrentHeaderLength > 3)
                         {
 
                             for (var pos = 3; pos < _Buffer.Length; pos++)
@@ -700,9 +700,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 CurrentHeaderLength += HeaderEndsAt;
 
                                 // We already read a bit of the HTTP body!
-                                if (HeaderEndsAt + 4 < CurrentDataLength)
+                                if (HeaderEndsAt + 4 < currentDataLength)
                                 {
-                                    Array.Resize(ref HTTPBodyBytes, CurrentDataLength - 4 - HeaderEndsAt);
+                                    Array.Resize(ref HTTPBodyBytes, currentDataLength - 4 - HeaderEndsAt);
                                     Array.Copy(_Buffer, HeaderEndsAt + 4, HTTPBodyBytes, 0, HTTPBodyBytes.Length);
                                 }
 
@@ -755,14 +755,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                _StillToRead > 0)
                         {
 
-                            CurrentDataLength = HTTPStream.Read(_Buffer, 0, Math.Min(_Buffer.Length, _StillToRead));
+                            currentDataLength = HTTPStream.Read(_Buffer, 0, Math.Min(_Buffer.Length, _StillToRead));
 
-                            if (CurrentDataLength > 0)
+                            if (currentDataLength > 0)
                             {
                                 var OldSize = Response.HTTPBody.Length;
-                                Response.ResizeBody(OldSize + CurrentDataLength);
-                                Array.Copy(_Buffer, 0, Response.HTTPBody, OldSize, CurrentDataLength);
-                                _StillToRead -= CurrentDataLength;
+                                Response.ResizeBody(OldSize + currentDataLength);
+                                Array.Copy(_Buffer, 0, Response.HTTPBody, OldSize, currentDataLength);
+                                _StillToRead -= currentDataLength;
                             }
 
                         }
@@ -788,125 +788,125 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 else if (Response.TransferEncoding == "chunked")
                 {
 
+                    DebugX.Log("HTTP Client: Chunked Transport detected...");
+
                     try
                     {
 
                         Response.NewContentStream();
                         var chunkedStream            = new MemoryStream();
-                        var chunkedDecodingFinished  = false;
 
                         // Write the first buffer (without the HTTP header) to the chunked stream...
                         chunkedStream.Write(HTTPBodyBytes, 0, HTTPBodyBytes.Length);
 
+                        var chunkedArray             = chunkedStream.ToArray();
+                        var decodedStream            = new MemoryStream();
+                        var currentPosition          = 2;
+                        var lastPosition             = 0;
+                        var currentBlockNumber       = 1UL;
+                        var chunkedDecodingFinished  = 0;
+
                         do
                         {
 
-                            var ChunkedBytes              = chunkedStream.ToArray();
-                            var DecodedStream             = new MemoryStream();
-                            var IsStatus_ReadBlockLength  = true;
-                            var CurrentPosition           = 0;
-                            var LastPos                   = 0;
-                            var NumberOfBlocks            = 0;
+                            #region Read more data from network
 
-                            do
+                            if (TCPStream.DataAvailable)
                             {
 
-                                if (CurrentPosition > 2 &&
-                                    IsStatus_ReadBlockLength &&
-                                    ChunkedBytes[CurrentPosition - 1] == '\n' &&
-                                    ChunkedBytes[CurrentPosition - 2] == '\r')
+                                do
                                 {
 
-                                    var BlockLength = ChunkedBytes.ReadTEBlockLength(LastPos,
-                                                                                     CurrentPosition - LastPos - 2);
+                                    currentDataLength = HTTPStream.Read(_Buffer, 0, _Buffer.Length);
 
-                                    OnChunkBlockFound?.Invoke(sw.Elapsed, BlockLength);
+                                    if (currentDataLength > 0)
+                                        chunkedStream.Write(_Buffer, 0, currentDataLength);
 
-                                    #region End of stream reached...
+                                    OnChunkDataRead?.Invoke(sw.Elapsed,
+                                                            (UInt32) currentDataLength,
+                                                            (UInt64) chunkedStream.Length);
 
-                                    if (BlockLength == 0)
+                                    if (sw.ElapsedMilliseconds > HTTPStream.ReadTimeout)
+                                        chunkedDecodingFinished = 2;
+
+                                } while (TCPStream.DataAvailable && chunkedDecodingFinished == 0);
+
+                                chunkedArray = chunkedStream.ToArray();
+
+                            }
+
+                            #endregion
+
+                            #region Process chunks
+
+                            if (chunkedArray.Length >= currentPosition &&
+                                chunkedArray[currentPosition - 1] == '\n' &&
+                                chunkedArray[currentPosition - 2] == '\r')
+                            {
+
+                                var BlockLength = chunkedArray.ReadTEBlockLength(lastPosition,
+                                                                                 currentPosition - lastPosition - 2);
+
+                                // End of stream reached?
+                                if (BlockLength == 0)
+                                {
+                                    Response.ContentStreamToArray(decodedStream);
+                                    chunkedDecodingFinished = 1;
+                                    break;
+                                }
+
+                                // Read a new block...
+                                if (currentPosition + BlockLength <= chunkedArray.Length)
+                                {
+
+                                    OnChunkBlockFound?.Invoke(sw.Elapsed,
+                                                              currentBlockNumber,
+                                                              (UInt32) BlockLength,
+                                                              (UInt64) decodedStream.Length);
+
+                                    currentBlockNumber++;
+
+                                    decodedStream.Write(chunkedArray, currentPosition, BlockLength);
+                                    currentPosition += BlockLength;
+
+                                    if (currentPosition < chunkedArray.Length &&
+                                        chunkedArray[currentPosition] == 0x0d)
                                     {
-                                        Response.ContentStreamToArray(DecodedStream);
-                                        chunkedDecodingFinished = true;
-                                        break;
+                                        currentPosition++;
                                     }
 
-                                    #endregion
-
-                                    #region ...or read a new block...
-
-                                    if (CurrentPosition + BlockLength <= ChunkedBytes.Length)
+                                    if (currentPosition < chunkedArray.Length - 1 &&
+                                        chunkedArray[currentPosition] == 0x0a)
                                     {
-
-                                        NumberOfBlocks++;
-
-                                        DecodedStream.Write(ChunkedBytes, CurrentPosition, BlockLength);
-                                        CurrentPosition += BlockLength;
-
-                                        if (CurrentPosition < ChunkedBytes.Length &&
-                                            ChunkedBytes[CurrentPosition] == 0x0d)
-                                        {
-                                            CurrentPosition++;
-                                        }
-
-                                        if (CurrentPosition < ChunkedBytes.Length - 1 &&
-                                            ChunkedBytes[CurrentPosition] == 0x0a)
-                                        {
-                                            CurrentPosition++;
-                                        }
-
-                                        LastPos = CurrentPosition;
-
-                                        IsStatus_ReadBlockLength = false;
-
+                                        currentPosition++;
                                     }
 
-                                    #endregion
-
-                                    #region ...or start over!
-
-                                    else
-                                    {
-
-                                        // Reaching this point means we need to read more data
-                                        // from the network stream and decode again!
-                                        do
-                                        {
-
-                                            CurrentDataLength = HTTPStream.Read(_Buffer, 0, _Buffer.Length);
-
-                                            OnChunkDataRead?.Invoke(sw.Elapsed, CurrentDataLength);
-
-                                            if (CurrentDataLength > 0)
-                                                chunkedStream.Write(_Buffer, 0, CurrentDataLength);
-
-                                            if (sw.ElapsedMilliseconds > HTTPStream.ReadTimeout)
-                                                throw new ApplicationException("HTTPClient timeout!");
-
-                                        } while (TCPStream.DataAvailable);
-
-                                        break;
-
-                                    }
-
-                                    #endregion
+                                    lastPosition = currentPosition;
+                                    currentPosition++;
 
                                 }
 
-                                else
-                                {
-                                    IsStatus_ReadBlockLength = true;
-                                    CurrentPosition++;
-                                }
+                            }
 
-                            } while (CurrentPosition < chunkedStream.Length);
+                            #endregion
 
-                        } while (!chunkedDecodingFinished);
+                            else
+                                currentPosition++;
+
+                            if (sw.ElapsedMilliseconds > HTTPStream.ReadTimeout)
+                                chunkedDecodingFinished = 2;
+
+                        } while (chunkedDecodingFinished == 0);
+
+                        if (chunkedDecodingFinished == 2)
+                            DebugX.Log("HTTP Client: Chunked decoding timeout!");
+                        else
+                            DebugX.Log("HTTP Client: Chunked decoding finished!");
 
                     }
                     catch (Exception e)
                     {
-                        DebugX.Log("Chunked decoding failed: " + e.Message);
+                        DebugX.Log("HTTP Client: Chunked decoding failed: " + e.Message);
                     }
 
                 }
