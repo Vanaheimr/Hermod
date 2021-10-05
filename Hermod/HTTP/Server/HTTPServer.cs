@@ -1,6 +1,6 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
- * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
+ * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -153,7 +153,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Initialize the multitenant HTTP server using the given parameters.
         /// </summary>
         /// <param name="TCPPort">The TCP port to listen on.</param>
-        /// <param name="DefaultServerName">The default HTTP servername, used whenever no HTTP Host-header had been given.</param>
+        /// <param name="DefaultServerName">The default HTTP servername, used whenever no HTTP Host-header has been given.</param>
         /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// 
         /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
@@ -897,32 +897,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Start()
 
-        public void Start()
-        {
-            _HTTPServer.Start();
-        }
+        public Boolean Start()
+
+            => _HTTPServer.Start();
 
         #endregion
 
         #region Start(Delay, InBackground = true)
 
-        public void Start(TimeSpan Delay, Boolean InBackground = true)
-        {
+        public Boolean Start(TimeSpan Delay, Boolean InBackground = true)
 
-            _HTTPServer.Start(Delay,
-                              InBackground);
-
-        }
+            => _HTTPServer.Start(Delay,
+                                 InBackground);
 
         #endregion
 
         #region Shutdown(Message = null, Wait = true)
 
-        public void Shutdown(String Message = null, Boolean Wait = true)
+        public Boolean Shutdown(String Message = null, Boolean Wait = true)
         {
 
             _HTTPServer.Shutdown(Message,
                                  Wait);
+
+            return true;
 
         }
 
@@ -1064,7 +1062,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Initialize the HTTP server using the given parameters.
         /// </summary>
         /// <param name="TCPPort">The TCP port to listen on.</param>
-        /// <param name="DefaultServerName">The default HTTP servername, used whenever no HTTP Host-header had been given.</param>
+        /// <param name="DefaultServerName">The default HTTP servername, used whenever no HTTP Host-header has been given.</param>
         /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// 
         /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
@@ -1094,12 +1092,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           SslProtocols?                        AllowedTLSProtocols                = SslProtocols.Tls12 | SslProtocols.Tls13,
 
                           String                               ServerThreadName                   = null,
-                          ThreadPriority                       ServerThreadPriority               = ThreadPriority.AboveNormal,
-                          Boolean                              ServerThreadIsBackground           = true,
+                          ThreadPriority?                      ServerThreadPriority               = null,
+                          Boolean?                             ServerThreadIsBackground           = null,
                           ConnectionIdBuilder                  ConnectionIdBuilder                = null,
                           ConnectionThreadsNameBuilder         ConnectionThreadsNameBuilder       = null,
                           ConnectionThreadsPriorityBuilder     ConnectionThreadsPriorityBuilder   = null,
-                          Boolean                              ConnectionThreadsAreBackground     = true,
+                          Boolean?                             ConnectionThreadsAreBackground     = null,
                           TimeSpan?                            ConnectionTimeout                  = null,
                           UInt32?                              MaxClientConnections               = null,
 
@@ -1271,7 +1269,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     Content         = Content.ToUTF8Bytes()
                                 };
 
-            TCPConnection.WriteLineToResponseStream(_HTTPResponse.ToString());
+            TCPConnection.WriteLineToResponseStream(_HTTPResponse.AsImmutable.EntirePDU);
 
             if (CloseConnection)
                 TCPConnection.Close();

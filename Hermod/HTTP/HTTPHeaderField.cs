@@ -1,6 +1,6 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
- * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
+ * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -2189,7 +2189,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>API-Key: vfsf87wefh8743tzfgw9f489fh9fgs9z9z237hd208du79ehcv86egfsrf</example>
         public static readonly HTTPHeaderField API_Key = new HTTPHeaderField("API-Key",
-                                                                             typeof(APIKey),
+                                                                             typeof(APIKey_Id),
                                                                              HeaderFieldType.Request,
                                                                              RequestPathSemantic.EndToEnd);
 
@@ -2791,6 +2791,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                          RequestPathSemantic.EndToEnd);
 
         #endregion
+
+        #endregion
+
+        #endregion
+
+        #region Non-standard response header fields
+
+        #region XLocationAfterAuth
+
+        /// <summary>
+        /// Stores the original HTTP path and redirects to it after authentication.
+        /// </summary>
+        public static readonly HTTPHeaderField XLocationAfterAuth = new HTTPHeaderField("X-LocationAfterAuth",
+                                                                                        typeof(String),
+                                                                                        HeaderFieldType.Response,
+                                                                                        RequestPathSemantic.EndToEnd);
 
         #endregion
 

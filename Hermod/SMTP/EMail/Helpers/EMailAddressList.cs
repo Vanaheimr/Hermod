@@ -1,6 +1,6 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
- * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
+ * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -382,10 +382,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public static EMailAddressListBuilder Parse(String EMailAddressListBuilderString)
 
             => new EMailAddressListBuilder(EMailAddressListBuilderString.
-                                        Split (new String[] { ",", ";" }, StringSplitOptions.None).
-                                        Select(textaddr  => EMailAddress.Parse(textaddr.Trim())).
-                                        Where (addresses => addresses != null).
-                                        ToArray());
+                                               Split (new String[] { ",", ";" }, StringSplitOptions.None).
+                                               Select(textaddr  => EMailAddress.Parse(textaddr.Trim())).
+                                               Where (addresses => addresses != null).
+                                               ToArray());
 
 
 

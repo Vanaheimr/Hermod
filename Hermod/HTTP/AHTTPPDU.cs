@@ -1,6 +1,6 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
- * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
+ * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -100,7 +100,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IPSocket                 RemoteSocket         { get; internal set; }
 
         /// <summary>
-        /// An additional enumeration of IP addresses, when the message had been forwarded between HTTP servers.
+        /// An additional enumeration of IP addresses, when the message has been forwarded between HTTP servers.
         /// </summary>
         public IEnumerable<IIPAddress>  ForwardedFor
                    => HTTPSource.ForwardedFor;

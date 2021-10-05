@@ -1,6 +1,6 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim 'ahzf' Friedland <achim@graph-database.org>
- * This file is part of Hermod <http://www.github.com/Vanaheimr/Hermod>
+ * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod;
 
 using NUnit.Framework;
+using System.IO;
 
 #endregion
 
@@ -41,8 +42,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
 
         #region Data
 
-        private readonly TcpClient TCPClient;
-        private readonly NetworkStream TCPStream;
+        private readonly TcpClient      TCPClient;
+        private readonly NetworkStream  TCPStream;
 
         #endregion
 
@@ -52,22 +53,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
             TCPStream = TCPClient.GetStream();
         }
 
-        #region Send(RequestHeader)
+        #region Send(Data)
 
-        public TCPClientRequest Send(String Request)
+        public TCPClientRequest Send(String Data)
         {
-            var _Request = Request.ToUTF8Bytes();
-            TCPStream.Write(_Request, 0, _Request.Length);
+            var data = Data.ToUTF8Bytes();
+            TCPStream.Write(data, 0, data.Length);
             return this;
         }
 
         #endregion
 
-        #region Wait
+        #region Wait(Milliseconds)
 
         public TCPClientRequest Wait(UInt32 Milliseconds)
         {
-            Thread.Sleep((Int32)Milliseconds);
+            Thread.Sleep((Int32) Milliseconds);
             return this;
         }
 
@@ -84,22 +85,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
             get
             {
 
-                var _Buffer         = new Byte[65335];
-                var _ResponseString = "";
+                var memoryStream  = new MemoryStream();
+                var buffer        = new Byte[65335];
 
                 while (!TCPStream.DataAvailable)
-                { }
+                    Thread.Sleep(1);
 
                 while (TCPStream.DataAvailable)
                 {
-                    var _Read = TCPStream.Read(_Buffer, 0, _Buffer.Length);
-                    var _Response = new Byte[_Read];
-                    Array.Copy(_Buffer, _Response, _Read);
-                    _ResponseString += _Response.ToUTF8String();
-                    Thread.Sleep(3);
+                    var read = TCPStream.Read(buffer, 0, buffer.Length);
+                    memoryStream.Write(buffer, 0, read);
+                    Thread.Sleep(10);
                 }
 
-                return _ResponseString;
+                return memoryStream.ToArray().ToUTF8String();
 
             }
         }

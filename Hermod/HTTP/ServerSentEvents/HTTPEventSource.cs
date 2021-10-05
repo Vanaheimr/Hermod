@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2010-2021, GraphDefined GmbH
  * Author: Achim Friedland <achim.friedland@graphdefined.com>
- * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
+ * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -219,7 +219,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         {
 
                             using (var logfile = File.AppendText(this.LogfileName(this.EventIdentification.ToString(),
-                                                                                  DateTime.UtcNow)))
+                                                                                  Timestamp.Now)))
                             {
 
                                 await logfile.WriteLineAsync(String.Concat(httpEvent.Timestamp.ToIso8601(),
@@ -259,7 +259,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Task SubmitEvent(T Data)
 
             => SubmitEvent(String.Empty,
-                           DateTime.UtcNow,
+                           Timestamp.Now,
                            Data);
 
         #endregion
@@ -289,7 +289,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Task SubmitEvent(String SubEvent, T Data)
 
             => SubmitEvent(SubEvent,
-                           DateTime.UtcNow,
+                           Timestamp.Now,
                            Data);
 
         #endregion

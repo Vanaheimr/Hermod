@@ -1,6 +1,6 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
- * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
+ * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -116,7 +116,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                                                              repetition,
                                                              TestData);
 
-                var startTimestamp  = DateTime.Now;
+                var startTimestamp  = DateTime.UtcNow;
                 var c               = Socket.SendTo(echoRequest.ICMPPacket.GetBytes(),
                                                     ipEndPoint);
 
@@ -139,10 +139,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                                 ICMPEchoReplyReply.Identifier == Identifier.Value &&
                                 ICMPEchoReplyReply.Text       == TestData)
                             {
-                                replies.Add(DateTime.Now - startTimestamp);
+                                replies.Add(DateTime.UtcNow - startTimestamp);
                             }
                             else
-                                failures.Add(DateTime.Now - startTimestamp);
+                                failures.Add(DateTime.UtcNow - startTimestamp);
 
                         }
 
@@ -165,7 +165,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                 }
                 catch (Exception)
                 {
-                    failures.Add(DateTime.Now - startTimestamp);
+                    failures.Add(DateTime.UtcNow - startTimestamp);
                 }
 
             }

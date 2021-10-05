@@ -1,6 +1,6 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
- * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
+ * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -433,17 +434,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
         /// <summary>
         /// Start the UDP receiver.
         /// </summary>
-        public void Start()
+        public Boolean Start()
         {
 
             if (_IsRunning == 1)
-                return;
+                return false;
 
             try
             {
 
-                this.ReceiverTask = Task.Factory.StartNew(() =>
-                {
+                this.ReceiverTask = Task.Factory.StartNew(() => {
 
 #if __MonoCS__
                     // Code for Mono C# compiler
@@ -453,11 +453,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
                     Thread.CurrentThread.IsBackground  = PacketThreadsAreBackground;
 #endif
 
-                    EndPoint RemoteEndPoint = null;
-                    Byte[]   UDPPayload;
-                    Int32    NumberOfReceivedBytes;
-                    DateTime Timestamp;
-                    Int32    WaitForChildTaskCreation = 0;
+                    EndPoint  RemoteEndPoint = null;
+                    Byte[]    UDPPayload;
+                    Int32     NumberOfReceivedBytes;
+                    DateTime  timestamp;
+                    Int32     WaitForChildTaskCreation = 0;
 
                     Interlocked.Exchange(ref _IsRunning, 1);
 
@@ -479,7 +479,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
                             if (CancellationToken.IsCancellationRequested)
                                 break;
 
-                            Timestamp = DateTime.UtcNow;
+                            timestamp = Timestamp.Now;
 
                             if (NumberOfReceivedBytes > 0)
                             {
@@ -493,7 +493,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
                                     // Create a local copies as we do not want to wait
                                     // till the new thread has accepted the packet
                                     // (Behaviour may change in .NET 4.5!)
-                                    var Timestamp_Local                = Timestamp;
+                                    var Timestamp_Local                = timestamp;
                                     var UDPPayload_Local               = UDPPayload;
                                     var OnNotificationLocal            = OnNotification;
                                     var RemoteSocket_Local             = IPSocket.FromIPEndPoint(RemoteEndPoint);
@@ -579,7 +579,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
                         }
                         catch (Exception e)
                         {
-                            OnExceptionOccured?.Invoke(this, DateTime.UtcNow, e);
+                            OnExceptionOccured?.Invoke(this, Timestamp.Now, e);
                         }
 
                     }
@@ -597,13 +597,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
             {
 
                 OnExceptionOccured?.Invoke(this,
-                                           DateTime.UtcNow,
+                                           Timestamp.Now,
                                            e);
 
             }
 
             OnStarted?.Invoke(this,
-                              DateTime.UtcNow);
+                              Timestamp.Now);
+
+            return true;
 
         }
 
@@ -616,16 +618,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
         /// </summary>
         /// <param name="Delay">The delay.</param>
         /// <param name="InBackground">Whether to wait on the main thread or in a background thread.</param>
-        public void Start(TimeSpan Delay, Boolean InBackground = true)
+        public Boolean Start(TimeSpan  Delay,
+                             Boolean   InBackground = true)
         {
 
             if (!InBackground)
             {
                 Thread.Sleep(Delay);
-                Start();
+                return Start();
             }
 
             else
+            {
                 Task.Factory.StartNew(() => {
 
                     Thread.Sleep(Delay);
@@ -634,6 +638,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
                 }, CancellationTokenSource.Token,
                    TaskCreationOptions.AttachedToParent,
                    TaskScheduler.Default);
+            }
+
+            return true;
 
         }
 
@@ -646,8 +653,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
         /// </summary>
         /// <param name="Message">An optional shutdown message.</param>
         /// <param name="Wait">Wait until the server finally shutted down.</param>
-        public void Shutdown(String  Message  = null,
-                             Boolean Wait     = true)
+        public Boolean Shutdown(String  Message  = null,
+                                Boolean Wait     = true)
         {
 
             if (IsMulticast)
@@ -669,6 +676,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
             OnCompleted?.Invoke(this,
                                 DateTime.UtcNow,
                                 Message);
+
+            return true;
 
         }
 

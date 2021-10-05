@@ -1,6 +1,6 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
- * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
+ * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -192,7 +192,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             if (InitialValues.IsNeitherNullNorEmpty())
             {
-                var Now = DateTime.UtcNow;
+                var Now = Timestamp.Now;
                 _StatusSchedule.AddRange(InitialValues.Select(_ => new Timestamped<T>(Now, _)));
             }
 
@@ -230,7 +230,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public StatusSchedule<T> Insert(T NewStatus)
 
             => Insert(NewStatus,
-                      DateTime.UtcNow);
+                      Timestamp.Now);
 
         #endregion
 
@@ -402,12 +402,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             {
 
                 var _OldStatus   = OldStatus.HasValue ? OldStatus.Value : _CurrentStatus;
-                var Now          = DateTime.UtcNow;
+                var Now          = Timestamp.Now;
 
                 var HistoryList  = _StatusSchedule.Where(status => status.Timestamp <= Now).ToArray();
                 _CurrentStatus   = HistoryList.Any()
                                        ? HistoryList.First()
-                                       : new Timestamped<T>(DateTime.UtcNow, default(T));
+                                       : new Timestamped<T>(Timestamp.Now, default);
 
                 var FutureList   = _StatusSchedule.Where(status => status.Timestamp > Now).ToArray();
                 _NextStatus      = FutureList.Any()
@@ -415,7 +415,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                        : new Timestamped<T>?();
 
                 if (!EqualityComparer<T>.Default.Equals(_CurrentStatus.Value, _OldStatus.Value))
-                    OnStatusChanged?.Invoke(DateTime.UtcNow,
+                    OnStatusChanged?.Invoke(Timestamp.Now,
                                             EventTracking_Id.New,
                                             this,
                                             _OldStatus,

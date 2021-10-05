@@ -98,7 +98,7 @@
     <Compile Include="HTTP\JSON\JSONExtentions.cs" />
     <Compile Include="HTTP\Logging\HTTPClientLogger.cs" />
     <Compile Include="HTTP\Logging\HTTPServerLogger.cs" />
-    <Compile Include="HTTP\Request\APIKey.cs" />
+    <Compile Include="HTTP\Request\APIKey_Id.cs" />
     <Compile Include="HTTP\Request\HTTPTokenAuthentication.cs" />
     <Compile Include="HTTP\Request\HTTPBearerAuthentication.cs" />
     <Compile Include="HTTP\Request\IHTTPAuthentication.cs" />
@@ -192,6 +192,8 @@
     <Compile Include="SMTP\SMTPClient\Helpers\SMTPCapabilities.cs" />
     <Compile Include="SMTP\SMTPClient\Helpers\SMTPClientException.cs" />
     <Compile Include="SMTP\SMTPClient\Helpers\SMTPExtentions.cs" />
+    <Compile Include="SMTP\SMTPClient\ISMTPClient.cs" />
+    <Compile Include="SMTP\SMTPClient\NullMailer.cs" />
     <Compile Include="SMTP\SMTPClient\SMTPClient.cs" />
     <Compile Include="SMTP\SMTPException.cs" />
     <Compile Include="SMTP\SMTPExtendedResponse.cs" />
@@ -278,7 +280,10 @@
       <Name>Styx</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="SMS\" />
+    <Folder Include="Telegram\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

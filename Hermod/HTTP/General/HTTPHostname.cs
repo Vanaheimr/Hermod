@@ -1,6 +1,6 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
- * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
+ * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
+    /// Extention methods for HTTP hostnames.
+    /// </summary>
+    public static class HTTPHostnameExtentions
+    {
+
+        /// <summary>
+        /// Indicates whether this HTTP hostname is null or empty.
+        /// </summary>
+        /// <param name="HTTPHostname">A HTTP hostname.</param>
+        public static Boolean IsNullOrEmpty(this HTTPHostname? HTTPHostname)
+            => !HTTPHostname.HasValue || HTTPHostname.Value.IsNullOrEmpty;
+
+        /// <summary>
+        /// Indicates whether this HTTP hostname is null or empty.
+        /// </summary>
+        /// <param name="HTTPHostname">A HTTP hostname.</param>
+        public static Boolean IsNotNullOrEmpty(this HTTPHostname? HTTPHostname)
+            => HTTPHostname.HasValue && HTTPHostname.Value.IsNotNullOrEmpty;
+
+    }
+
+
+    /// <summary>
     /// The unique identification of a HTTP hostname.
     /// </summary>
     public readonly struct HTTPHostname : IEquatable<HTTPHostname>,
@@ -45,6 +68,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The TCP/IP port.
         /// </summary>
         public UInt16?  Port    { get; }
+
+        /// <summary>
+        /// Indicates whether this user identification is null or empty.
+        /// </summary>
+        public Boolean IsNullOrEmpty
+            => Name.IsNullOrEmpty();
+
+        /// <summary>
+        /// Indicates whether this user identification is NOT null or empty.
+        /// </summary>
+        public Boolean IsNotNullOrEmpty
+            => Name.IsNotNullOrEmpty();
 
         /// <summary>
         /// Returns the length of the identification.

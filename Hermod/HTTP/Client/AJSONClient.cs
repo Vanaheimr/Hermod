@@ -1,6 +1,6 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
- * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
+ * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -134,7 +134,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnHTTPError">The delegate to call whenever a HTTP error occured.</param>
         /// <param name="OnException">The delegate to call whenever an exception occured.</param>
         /// <param name="RequestTimeout">An optional timeout of the HTTP client [default 60 sec.]</param>
-        /// <returns>The data structured after it had been processed by the OnSuccess delegate, or a fault.</returns>
         public async Task<HTTPResponse<T>>
 
             Query<T>(JObject                                                         JSONRequest,

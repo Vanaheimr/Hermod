@@ -1,6 +1,6 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
- * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
+ * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -662,10 +662,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// Start the TCPServer thread
         /// </summary>
-        public void Start()
-        {
-            Start(__DefaultMaxClientConnections);
-        }
+        public Boolean Start()
+
+            => Start(__DefaultMaxClientConnections);
 
         #endregion
 
@@ -676,14 +675,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// </summary>
         /// <param name="Delay">The delay.</param>
         /// <param name="InBackground">Whether to wait on the main thread or in a background thread.</param>
-        public void Start(TimeSpan Delay, Boolean InBackground = true)
+        public Boolean Start(TimeSpan  Delay,
+                             Boolean   InBackground  = true)
         {
 
             if (!InBackground)
             {
                 Thread.Sleep(Delay);
-                Start();
+                return Start();
             }
+
             else
             {
                 Task.Factory.StartNew(() => {
@@ -696,6 +697,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                    TaskScheduler.Default);
             }
 
+            return true;
+
         }
 
         #endregion
@@ -705,11 +708,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// Start the TCPServer thread
         /// </summary>
-        public void Start(UInt32 MaxClientConnections)
+        public Boolean Start(UInt32 MaxClientConnections)
         {
 
+            // volatile!
             if (_IsRunning)
-                return;
+                return false;
 
             if (MaxClientConnections != __DefaultMaxClientConnections)
                 this.MaxClientConnections = MaxClientConnections;
@@ -724,14 +728,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             }
             catch (Exception e)
             {
-                DebugX.LogT("An exception occured in Hermod.TCPServer.Start(MaxClientConnections) [_TCPListener.Start((Int32) _MaxClientConnections)]: " + e.Message + Environment.NewLine + e.StackTrace);
+                DebugX.LogException(e);
+                return false;
             }
 
             try
             {
 
-                if (_ListenerThread == null)
+                if (_ListenerThread is null)
+                {
                     DebugX.LogT("An exception occured in Hermod.TCPServer.Start(MaxClientConnections) [_ListenerThread == null]!");
+                    return false;
+                }
 
                 // Start the TCPListenerThread
                 _ListenerThread.Start();
@@ -739,15 +747,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             }
             catch (Exception e)
             {
-                DebugX.LogT("An exception occured in Hermod.TCPServer.Start(MaxClientConnections) [_ListenerThread.Start()]: " + e.Message + Environment.NewLine + e.StackTrace);
+                DebugX.LogException(e);
+                return false;
             }
 
 
-            // Wait until socket has opened
+            // Wait until socket has opened (volatile!)
             while (!_IsRunning)
                 Thread.Sleep(10);
 
-            OnStarted?.Invoke(this, DateTime.UtcNow);
+            OnStarted?.Invoke(this, Timestamp.Now);
+
+            return true;
 
         }
 
@@ -761,8 +772,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// </summary>
         /// <param name="Wait">Wait until the server finally shutted down.</param>
         /// <param name="Message">An optional shutdown message.</param>
-        public void Shutdown(String  Message  = null,
-                             Boolean Wait     = true)
+        public Boolean Shutdown(String  Message  = null,
+                                Boolean Wait     = true)
         {
 
             _StopRequested = true;
@@ -774,9 +785,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             //    while (_IsRunning > 0)
             //        Thread.Sleep(10);
 
-            var OnCompletedLocal = OnCompleted;
-            if (OnCompletedLocal != null)
-                OnCompletedLocal(this, DateTime.UtcNow, (Message != null) ? Message : String.Empty);
+            OnCompleted?.Invoke(this, Timestamp.Now, Message ?? "");
+
+            return true;
 
         }
 
@@ -787,7 +798,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// Stop the TCPServer and wait until all connections are closed.
         /// </summary>
-        public void StopAndWait()
+        public Boolean StopAndWait()
         {
 
             _StopRequested = true;
@@ -797,6 +808,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             if (_TCPListener != null)
                 _TCPListener.Stop();
+
+            return true;
 
         }
 

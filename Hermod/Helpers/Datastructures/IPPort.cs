@@ -1,6 +1,6 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
- * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
+ * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
     /// <summary>
-    /// An IP port.
+    /// An Internet Protocol Layer 4 Port.
     /// </summary>
     public readonly struct IPPort : IEquatable<IPPort>,
                                     IComparable<IPPort>,
@@ -36,14 +36,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         private readonly UInt16 InternalId;
 
+        /// <summary>
+        /// Private non-cryptographic random number generator.
+        /// </summary>
+        private static readonly Random _random = new Random();
+
         #endregion
 
         #region Constructor(s)
 
         /// <summary>
-        /// Create a new IP port.
+        /// Create a new Internet Protocol Layer 4 Port.
         /// </summary>
-        /// <param name="Port">An IP port number.</param>
+        /// <param name="Port">An Internet Protocol layer 4 port number.</param>
         private IPPort(UInt16 Port)
         {
             this.InternalId = Port;
@@ -86,6 +91,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+
+        #region (static) Random
+
+        /// <summary>
+        /// Create a new random Internet Protocol Layer 4 Port.
+        /// </summary>
+        public static IPPort Random
+
+            => new IPPort((UInt16) _random.Next(UInt16.MaxValue));
+
+        #endregion
 
         #region (static) Parse   (Number)
 

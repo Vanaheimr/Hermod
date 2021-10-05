@@ -1,6 +1,6 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
- * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
+ * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -484,10 +484,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// </summary>
         /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// <param name="ServiceBanner">The service banner transmitted to a TCP client after connection initialization.</param>
+        /// 
         /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
         /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
         /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
         /// <param name="AllowedTLSProtocols">The SSL/TLS protocol(s) allowed for this connection.</param>
+        /// 
         /// <param name="ServerThreadName">An optional name of the TCP server threads.</param>
         /// <param name="ServerThreadPriority">An optional priority of the TCP server threads (default: AboveNormal).</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server threads are a background thread or not (default: yes).</param>
@@ -497,23 +499,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ConnectionThreadsAreBackground">Whether the TCP connection threads are background threads or not (default: yes).</param>
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
+        /// 
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="Autostart">Start the TCP server threads immediately (default: no).</param>
         public ATCPServers(String                               ServiceName                        = TCPServer.__DefaultServiceName,
                            String                               ServiceBanner                      = TCPServer.__DefaultServiceBanner,
+
                            ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
                            LocalCertificateSelectionCallback    ClientCertificateSelector          = null,
                            RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
                            SslProtocols?                        AllowedTLSProtocols                = SslProtocols.Tls12 | SslProtocols.Tls13,
+
                            String                               ServerThreadName                   = TCPServer.__DefaultServerThreadName,
-                           ThreadPriority                       ServerThreadPriority               = ThreadPriority.AboveNormal,
-                           Boolean                              ServerThreadIsBackground           = true,
+                           ThreadPriority?                      ServerThreadPriority               = ThreadPriority.AboveNormal,
+                           Boolean?                             ServerThreadIsBackground           = true,
                            ConnectionIdBuilder                  ConnectionIdBuilder                = null,
                            ConnectionThreadsNameBuilder         ConnectionThreadsNameBuilder       = null,
                            ConnectionThreadsPriorityBuilder     ConnectionThreadsPriorityBuilder   = null,
-                           Boolean                              ConnectionThreadsAreBackground     = true,
+                           Boolean?                             ConnectionThreadsAreBackground     = true,
                            TimeSpan?                            ConnectionTimeout                  = null,
                            UInt32?                              MaxClientConnections               = TCPServer.__DefaultMaxClientConnections,
+
                            DNSClient                            DNSClient                          = null,
                            Boolean                              Autostart                          = false)
 
@@ -533,17 +539,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             // Server thread related
             this._ServerThreadName                  = ServerThreadName;
-            this._ServerThreadPriority              = ServerThreadPriority;
-            this._ServerThreadIsBackground          = ServerThreadIsBackground;
+            this._ServerThreadPriority              = ServerThreadPriority             ?? ThreadPriority.AboveNormal;
+            this._ServerThreadIsBackground          = ServerThreadIsBackground         ?? true;
 
             // TCP Connection
             this._ConnectionIdBuilder               = ConnectionIdBuilder              ?? ((Sender, Timestamp, LocalSocket, RemoteIPSocket) => "TCP:" + RemoteIPSocket.IPAddress + ":" + RemoteIPSocket.Port);
             this._ConnectionThreadsNameBuilder      = ConnectionThreadsNameBuilder     ?? ((Sender, Timestamp, LocalSocket, RemoteIPSocket) => "TCP thread " + RemoteIPSocket.IPAddress + ":" + RemoteIPSocket.Port);
             this._ConnectionThreadsPriorityBuilder  = ConnectionThreadsPriorityBuilder ?? ((Sender, Timestamp, LocalSocket, RemoteIPSocket) => ThreadPriority.AboveNormal);
-            this._ConnectionThreadsAreBackground    = ConnectionThreadsAreBackground;
+            this._ConnectionThreadsAreBackground    = ConnectionThreadsAreBackground   ?? true;
             this._ConnectionTimeout                 = ConnectionTimeout                ?? TimeSpan.FromSeconds(30);
             this._MaxClientConnections              = MaxClientConnections             ?? TCPServer.__DefaultMaxClientConnections;
-
 
             if (Autostart)
                 Start();
@@ -820,7 +825,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region Start()
 
-        public void Start()
+        public Boolean Start()
         {
 
             lock (_TCPServers)
@@ -831,7 +836,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                 _IsStarted = true;
 
-                SendStarted(this, DateTime.UtcNow);
+                SendStarted(this, Timestamp.Now);
+
+                return true;
 
             }
 
@@ -841,7 +848,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region Start(Delay, InBackground = true)
 
-        public void Start(TimeSpan Delay, Boolean InBackground = true)
+        public Boolean Start(TimeSpan Delay, Boolean InBackground = true)
         {
 
             lock (_TCPServers)
@@ -852,6 +859,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                 SendStarted(this, DateTime.UtcNow);
 
+                return true;
+
             }
 
         }
@@ -860,7 +869,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region Shutdown(Message = null, Wait = true)
 
-        public void Shutdown(String Message = null, Boolean Wait = true)
+        public Boolean Shutdown(String Message = null, Boolean Wait = true)
         {
 
             lock (_TCPServers)
@@ -870,6 +879,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                     TCPServer.Shutdown(Message, Wait);
 
                 SendCompleted(this, DateTime.UtcNow, Message);
+
+                return true;
 
             }
 

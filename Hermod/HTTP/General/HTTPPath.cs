@@ -1,6 +1,6 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
- * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
+ * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -157,6 +157,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        /// <summary>
+        /// /
+        /// </summary>
+        public static HTTPPath Root
+            => new HTTPPath("/");
+
+
         public Boolean Contains(String Text)
             => InternalId.Contains(Text);
 
@@ -168,79 +175,79 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => Parse(InternalId.Substring(StartIndex, EndIndex));
 
 
-        public int IndexOf(char value, int startIndex, int count)
+        public Int32 IndexOf(char value, int startIndex, int count)
             => InternalId.IndexOf(value, startIndex, count);
 
-        public int IndexOf(char value, int startIndex)
+        public Int32 IndexOf(char value, int startIndex)
             => InternalId.IndexOf(value, startIndex);
 
-        public int IndexOf(String value)
+        public Int32 IndexOf(String value)
             => InternalId.IndexOf(value);
 
-        public int IndexOf(String value, int startIndex)
+        public Int32 IndexOf(String value, int startIndex)
             => InternalId.IndexOf(value, startIndex);
 
-        public int IndexOf(String value, int startIndex, int count)
+        public Int32 IndexOf(String value, int startIndex, int count)
             => InternalId.IndexOf(value, startIndex, count);
 
-        public int IndexOf(String value, StringComparison comparisonType)
+        public Int32 IndexOf(String value, StringComparison comparisonType)
             => InternalId.IndexOf(value, comparisonType);
 
-        public int IndexOf(String value, int startIndex, StringComparison comparisonType)
+        public Int32 IndexOf(String value, int startIndex, StringComparison comparisonType)
             => InternalId.IndexOf(value, startIndex, comparisonType);
 
-        public int IndexOf(char value)
+        public Int32 IndexOf(char value)
             => InternalId.IndexOf(value);
 
 
-        public int LastIndexOf(char value, int startIndex, int count)
+        public Int32 LastIndexOf(char value, int startIndex, int count)
             => InternalId.LastIndexOf(value, startIndex, count);
 
-        public int LastIndexOf(char value, int startIndex)
+        public Int32 LastIndexOf(char value, int startIndex)
             => InternalId.LastIndexOf(value, startIndex);
 
-        public int LastIndexOf(String value)
+        public Int32 LastIndexOf(String value)
             => InternalId.LastIndexOf(value);
 
-        public int LastIndexOf(String value, int startIndex)
+        public Int32 LastIndexOf(String value, int startIndex)
             => InternalId.LastIndexOf(value, startIndex);
 
-        public int LastIndexOf(String value, int startIndex, int count)
+        public Int32 LastIndexOf(String value, int startIndex, int count)
             => InternalId.LastIndexOf(value, startIndex, count);
 
-        public int LastIndexOf(String value, StringComparison comparisonType)
+        public Int32 LastIndexOf(String value, StringComparison comparisonType)
             => InternalId.LastIndexOf(value, comparisonType);
 
-        public int LastIndexOf(String value, int startIndex, StringComparison comparisonType)
+        public Int32 LastIndexOf(String value, int startIndex, StringComparison comparisonType)
             => InternalId.LastIndexOf(value, startIndex, comparisonType);
 
-        public int LastIndexOf(char value)
+        public Int32 LastIndexOf(char value)
             => InternalId.LastIndexOf(value);
 
 
-        public bool StartsWith(String value, StringComparison comparisonType)
+        public Boolean StartsWith(String value, StringComparison comparisonType)
             => InternalId.StartsWith(value, comparisonType);
 
-        public bool StartsWith(String value, bool ignoreCase, CultureInfo culture)
+        public Boolean StartsWith(String value, bool ignoreCase, CultureInfo culture)
             => InternalId.StartsWith(value, ignoreCase, culture);
 
-        public bool StartsWith(String value)
+        public Boolean StartsWith(String value)
             => InternalId.StartsWith(value);
 
-        public bool StartsWith(HTTPPath value)
+        public Boolean StartsWith(HTTPPath value)
             => InternalId.StartsWith(value.ToString());
 
 
-        public bool EndsWith(String value)
+        public Boolean EndsWith(String value)
             => InternalId.EndsWith(value);
 
-        public bool EndsWith(String value, StringComparison comparisonType)
+        public Boolean EndsWith(String value, StringComparison comparisonType)
             => InternalId.EndsWith(value, comparisonType);
 
-        public bool EndsWith(String value, bool ignoreCase, CultureInfo culture)
+        public Boolean EndsWith(String value, bool ignoreCase, CultureInfo culture)
             => InternalId.EndsWith(value, ignoreCase, culture);
 
-        public bool EndsWith(HTTPPath value)
+        public Boolean EndsWith(HTTPPath value)
             => InternalId.EndsWith(value.ToString());
 
 
@@ -268,20 +275,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPPath1">A HTTP path.</param>
         /// <param name="HTTPPath2">Another HTTP path.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (HTTPPath HTTPPath1, HTTPPath HTTPPath2)
-        {
+        public static Boolean operator == (HTTPPath HTTPPath1,
+                                           HTTPPath HTTPPath2)
 
-            // If both are null, or both are same instance, return true.
-            if (Object.ReferenceEquals(HTTPPath1, HTTPPath2))
-                return true;
-
-            // If one is null, but not both, return false.
-            if (((Object) HTTPPath1 == null) || ((Object) HTTPPath2 == null))
-                return false;
-
-            return HTTPPath1.Equals(HTTPPath2);
-
-        }
+            => HTTPPath1.Equals(HTTPPath2);
 
         #endregion
 
@@ -293,20 +290,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPPath1">A HTTP path.</param>
         /// <param name="Text">Another HTTP path.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (HTTPPath HTTPPath1, String Text)
-        {
+        public static Boolean operator == (HTTPPath HTTPPath1,
+                                           String   Text)
 
-            // If both are null, or both are same instance, return true.
-            if (Object.ReferenceEquals(HTTPPath1, Text))
-                return true;
-
-            // If one is null, but not both, return false.
-            if (((Object) HTTPPath1 == null) || ((Object) Text == null))
-                return false;
-
-            return HTTPPath1.Equals(Text);
-
-        }
+            => String.Equals(HTTPPath1.InternalId,
+                             Text,
+                             StringComparison.Ordinal);
 
         #endregion
 
@@ -318,8 +307,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPPath1">A HTTP path.</param>
         /// <param name="HTTPPath2">Another HTTP path.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator != (HTTPPath HTTPPath1, HTTPPath HTTPPath2)
-            => !(HTTPPath1 == HTTPPath2);
+        public static Boolean operator != (HTTPPath HTTPPath1,
+                                           HTTPPath HTTPPath2)
+
+            => !HTTPPath1.Equals(HTTPPath2);
 
         #endregion
 
@@ -331,8 +322,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPPath1">A HTTP path.</param>
         /// <param name="Text">Another HTTP path.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator != (HTTPPath HTTPPath1, String Text)
-            => !(HTTPPath1 == Text);
+        public static Boolean operator != (HTTPPath HTTPPath1,
+                                           String   Text)
+
+            => !String.Equals(HTTPPath1.InternalId,
+                              Text,
+                              StringComparison.Ordinal);
 
         #endregion
 
@@ -344,15 +339,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPPath1">A HTTP path.</param>
         /// <param name="HTTPPath2">Another HTTP path.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator < (HTTPPath HTTPPath1, HTTPPath HTTPPath2)
-        {
+        public static Boolean operator < (HTTPPath HTTPPath1,
+                                          HTTPPath HTTPPath2)
 
-            if ((Object) HTTPPath1 == null)
-                throw new ArgumentNullException(nameof(HTTPPath1), "The given HTTPPath1 must not be null!");
-
-            return HTTPPath1.CompareTo(HTTPPath2) < 0;
-
-        }
+            => HTTPPath1.CompareTo(HTTPPath2) < 0;
 
         #endregion
 
@@ -364,8 +354,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPPath1">A HTTP path.</param>
         /// <param name="HTTPPath2">Another HTTP path.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator <= (HTTPPath HTTPPath1, HTTPPath HTTPPath2)
-            => !(HTTPPath1 > HTTPPath2);
+        public static Boolean operator <= (HTTPPath HTTPPath1,
+                                           HTTPPath HTTPPath2)
+
+            => HTTPPath1.CompareTo(HTTPPath2) <= 0;
 
         #endregion
 
@@ -378,14 +370,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPPath2">Another HTTP path.</param>
         /// <returns>true|false</returns>
         public static Boolean operator > (HTTPPath HTTPPath1, HTTPPath HTTPPath2)
-        {
 
-            if ((Object) HTTPPath1 == null)
-                throw new ArgumentNullException(nameof(HTTPPath1), "The given HTTPPath1 must not be null!");
-
-            return HTTPPath1.CompareTo(HTTPPath2) > 0;
-
-        }
+            => HTTPPath1.CompareTo(HTTPPath2) > 0;
 
         #endregion
 
@@ -398,12 +384,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPPath2">Another HTTP path.</param>
         /// <returns>true|false</returns>
         public static Boolean operator >= (HTTPPath HTTPPath1, HTTPPath HTTPPath2)
-            => !(HTTPPath1 < HTTPPath2);
+
+            => HTTPPath1.CompareTo(HTTPPath2) >= 0;
 
         #endregion
 
 
-        #region Operator + (HTTPPath1, Text)
+        #region Operator +  (HTTPPath1, Text)
 
         /// <summary>
         /// Compares two instances of this object.
@@ -411,7 +398,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPPath1">A HTTP path.</param>
         /// <param name="Text">Another HTTP path.</param>
         /// <returns>true|false</returns>
-        public static HTTPPath operator + (HTTPPath HTTPPath1, String Text)
+        public static HTTPPath operator + (HTTPPath HTTPPath1,
+                                           String   Text)
         {
 
             if (HTTPPath1.EndsWith("/") && Text.StartsWith("/"))
@@ -450,7 +438,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Operator + (Hostname,  HTTPPath)
+        #region Operator +  (Hostname,  HTTPPath)
 
         /// <summary>
         /// Compares two instances of this object.
@@ -458,7 +446,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Hostname">Another HTTP path.</param>
         /// <param name="HTTPPath1">A HTTP path.</param>
         /// <returns>true|false</returns>
-        public static String operator + (HTTPHostname Hostname, HTTPPath HTTPPath1)
+        public static String operator + (HTTPHostname Hostname,
+                                         HTTPPath     HTTPPath1)
         {
 
             if (Hostname.ToString().EndsWith("/") && HTTPPath1.StartsWith("/"))
@@ -497,7 +486,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Operator + (Text,      HTTPPath)
+        #region Operator +  (Text,      HTTPPath)
 
         /// <summary>
         /// Compares two instances of this object.
@@ -505,7 +494,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Text">Another HTTP path.</param>
         /// <param name="HTTPPath1">A HTTP path.</param>
         /// <returns>true|false</returns>
-        public static String operator + (String Text, HTTPPath HTTPPath1)
+        public static String operator + (String   Text,
+                                         HTTPPath HTTPPath1)
         {
 
             if (Text.EndsWith("/") && HTTPPath1.StartsWith("/"))
@@ -544,7 +534,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Operator + (HTTPPath1, HTTPPath2)
+        #region Operator +  (HTTPPath1, HTTPPath2)
 
         /// <summary>
         /// Compares two instances of this object.
@@ -552,7 +542,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPPath1">A HTTP path.</param>
         /// <param name="HTTPPath2">Another HTTP path.</param>
         /// <returns>true|false</returns>
-        public static HTTPPath operator + (HTTPPath HTTPPath1, HTTPPath HTTPPath2)
+        public static HTTPPath operator + (HTTPPath HTTPPath1,
+                                           HTTPPath HTTPPath2)
         {
 
             if (HTTPPath1.EndsWith("/") && HTTPPath2.StartsWith("/"))
@@ -654,20 +645,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
         public Int32 CompareTo(Object Object)
-        {
 
-            if (Object == null)
-                throw new ArgumentNullException("The given object must not be null!");
-
-            if (Object is HTTPPath)
-                return CompareTo((HTTPPath) Object);
-
-            if (Object is String)
-                return InternalId.CompareTo((String) Object);
-
-            throw new ArgumentException("The given object is neither a HTTP path, nor its text representation!");
-
-        }
+            => Object is HTTPPath httpPath
+                   ? CompareTo(httpPath)
+                   : throw new ArgumentException("The given object is not a HTTP path!",
+                                                 nameof(Object));
 
         #endregion
 
@@ -678,14 +660,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPPath">An object to compare with.</param>
         public Int32 CompareTo(HTTPPath HTTPPath)
-        {
 
-            if ((Object) HTTPPath == null)
-                throw new ArgumentNullException("The given HTTP path must not be null!");
-
-            return InternalId.CompareTo(HTTPPath.InternalId);
-
-        }
+            => String.Compare(InternalId,
+                              HTTPPath.InternalId,
+                              StringComparison.Ordinal);
 
         #endregion
 
@@ -701,20 +679,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Object">An object to compare with.</param>
         /// <returns>true|false</returns>
         public override Boolean Equals(Object Object)
-        {
 
-            if (Object == null)
-                return false;
-
-            if (Object is HTTPPath)
-                return Equals((HTTPPath) Object);
-
-            if (Object is String)
-                return InternalId.Equals((String) Object);
-
-            return false;
-
-        }
+            => Object is HTTPPath httpPath &&
+                   Equals(httpPath);
 
         #endregion
 
@@ -726,14 +693,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPPath">A HTTPPath to compare with.</param>
         /// <returns>True if both match; False otherwise.</returns>
         public Boolean Equals(HTTPPath HTTPPath)
-        {
 
-            if ((Object) HTTPPath == null || InternalId == null)
-                return false;
-
-            return InternalId.Equals(HTTPPath.InternalId);
-
-        }
+            => String.Equals(InternalId,
+                             HTTPPath.InternalId,
+                             StringComparison.Ordinal);
 
         #endregion
 
@@ -746,7 +709,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
-            => InternalId.GetHashCode();
+
+            => InternalId?.GetHashCode() ?? 0;
 
         #endregion
 
@@ -756,7 +720,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-            => InternalId;
+
+            => InternalId ?? "";
 
         #endregion
 

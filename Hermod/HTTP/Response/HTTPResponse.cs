@@ -1,6 +1,6 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
- * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
+ * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -896,8 +896,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var _response           = new List<String>();
                 var copy                = "none";
                 var relativelinenumber  = 0;
-                var RequestTimestamp    = DateTime.Now;
-                var ResponseTimestamp   = DateTime.Now;
+                var RequestTimestamp    = DateTime.UtcNow;
+                var ResponseTimestamp   = DateTime.UtcNow;
 
                 foreach (var line in File.ReadLines(file))
                 {
@@ -1008,8 +1008,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var copy                = "none";
                 var relativelinenumber  = 0;
                 var HTTPSource          = new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS));
-                var RequestTimestamp    = DateTime.Now;
-                var ResponseTimestamp   = DateTime.Now;
+                var RequestTimestamp    = DateTime.UtcNow;
+                var ResponseTimestamp   = DateTime.UtcNow;
 
                 foreach (var line in File.ReadLines(file))
                 {
@@ -1466,6 +1466,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 set
                 {
                     SetHeaderField(HTTPHeaderField.Location, value);
+                }
+
+            }
+
+            #endregion
+
+            #region XLocationAfterAuth
+
+            public HTTPPath XLocationAfterAuth
+            {
+
+                get
+                {
+                    return HTTPPath.Parse(GetHeaderField(HTTPHeaderField.XLocationAfterAuth));
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPHeaderField.XLocationAfterAuth, value);
                 }
 
             }

@@ -1,6 +1,6 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
- * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
+ * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -576,7 +576,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// An optional API key for authentication.
         /// </summary>
         /// <example>API-Key: vfsf87wefh8743tzfgw9f489fh9fgs9z9z237hd208du79ehcv86egfsrf</example>
-        public APIKey? API_Key
+        public APIKey_Id? API_Key
         {
 
             get
@@ -586,10 +586,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     return null;
 
                 if (Value is String)
-                    return APIKey.TryParse(Value as String);
+                    return APIKey_Id.TryParse(Value as String);
 
                 else
-                    return APIKey.TryParse(Value.ToString());
+                    return APIKey_Id.TryParse(Value.ToString());
 
             }
 
@@ -753,7 +753,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // 3. If the host as determined by rule 1 or 2 is not a valid host on the server,
             //    the response MUST be a 400 (Bad Request) error message. (Not valid for proxies?!)
             if (!_HeaderFields.ContainsKey(HTTPHeaderField.Host.Name))
-                throw new Exception("The HTTP PDU does not have a HOST header!");
+                throw new Exception("The HTTP request must have have a valid HOST header!");
 
             // rfc 2616 - 3.2.2
             // If the port is empty or not given, port 80 is assumed.
@@ -1280,7 +1280,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var _request            = new List<String>();
                 var copy                = "none";
                 var relativelinenumber  = 0;
-                var RequestTimestamp    = DateTime.Now;
+                var RequestTimestamp    = DateTime.UtcNow;
 
                 foreach (var line in File.ReadLines(file))
                 {

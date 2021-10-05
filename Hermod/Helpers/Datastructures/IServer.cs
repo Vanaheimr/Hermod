@@ -1,6 +1,6 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
- * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
+ * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,14 +59,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Star the server.
         /// </summary>
-        void Start();
+        Boolean Start();
 
         /// <summary>
         /// Start the server after a little delay.
         /// </summary>
         /// <param name="Delay">The delay.</param>
         /// <param name="InBackground">Whether to wait on the main thread or in a background thread.</param>
-        void Start(TimeSpan Delay, Boolean InBackground = true);
+        Boolean Start(TimeSpan  Delay,
+                      Boolean   InBackground  = true);
 
 
         /// <summary>
@@ -74,8 +75,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         /// <param name="Message">An optional shutdown message.</param>
         /// <param name="Wait">Wait until the server finally shutted down.</param>
-        void Shutdown(String  Message  = null,
-                      Boolean Wait     = true);
+        Boolean Shutdown(String  Message  = null,
+                         Boolean Wait     = true);
 
         /// <summary>
         /// The shutdown of the server was requested.

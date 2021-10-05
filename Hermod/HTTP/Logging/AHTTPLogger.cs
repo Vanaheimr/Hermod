@@ -1,6 +1,6 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
- * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
+ * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,9 +33,9 @@ using org.GraphDefined.Vanaheimr.Illias;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
-    public delegate String LogfileCreatorDelegate    (String Context, String LogfileName);
-    public delegate Task   HTTPRequestLoggerDelegate (String Context, String LogEventName, HTTPRequest Request);
-    public delegate Task   HTTPResponseLoggerDelegate(String Context, String LogEventName, HTTPRequest Request, HTTPResponse Response);
+    public delegate String LogfileCreatorDelegate    (String LoggingPath, String Context, String LogfileName);
+    public delegate Task   HTTPRequestLoggerDelegate (String LoggingPath, String Context, String LogEventName, HTTPRequest Request);
+    public delegate Task   HTTPResponseLoggerDelegate(String LoggingPath, String Context, String LogEventName, HTTPRequest Request, HTTPResponse Response);
 
 
     /// <summary>
@@ -54,7 +54,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Context">The context of the log request.</param>
         /// <param name="LogEventName">The name of the log event.</param>
         /// <param name="Request">The HTTP request to log.</param>
-        public Task Default_LogHTTPRequest_toConsole(String       Context,
+        public Task Default_LogHTTPRequest_toConsole(String       LoggingPath,
+                                                     String       Context,
                                                      String       LogEventName,
                                                      HTTPRequest  Request)
         {
@@ -97,7 +98,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogEventName">The name of the log event.</param>
         /// <param name="Request">The HTTP request to log.</param>
         /// <param name="Response">The HTTP response to log.</param>
-        public Task Default_LogHTTPResponse_toConsole(String        Context,
+        public Task Default_LogHTTPResponse_toConsole(String        LoggingPath,
+                                                      String        Context,
                                                       String        LogEventName,
                                                       HTTPRequest   Request,
                                                       HTTPResponse  Response)
@@ -153,7 +155,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Context">The context of the log request.</param>
         /// <param name="LogEventName">The name of the log event.</param>
         /// <param name="Request">The HTTP request to log.</param>
-        public async Task Default_LogHTTPRequest_toDisc(String       Context,
+        public async Task Default_LogHTTPRequest_toDisc(String       LoggingPath,
+                                                        String       Context,
                                                         String       LogEventName,
                                                         HTTPRequest  Request)
         {
@@ -175,7 +178,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         try
                         {
 
-                            File.AppendAllText(LogfileCreator(Context, LogEventName),
+                            File.AppendAllText(LogfileCreator(LoggingPath, Context, LogEventName),
                                                String.Concat(Request.HTTPSource.Socket == Request.LocalSocket
                                                                  ? String.Concat(Request.LocalSocket, " -> ", Request.RemoteSocket)
                                                                  : String.Concat(Request.HTTPSource,  " -> ", Request.LocalSocket),
@@ -194,20 +197,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                             if (e.HResult != -2147024864)
                             {
-                                DebugX.LogT("File access error while logging to '" + LogfileCreator(Context, LogEventName) + "' (retry: " + retry + "): " + e.Message);
+                                DebugX.LogT("File access error while logging to '" + LogfileCreator(LoggingPath, Context, LogEventName) + "' (retry: " + retry + "): " + e.Message);
                                 Thread.Sleep(100);
                             }
 
                             else
                             {
-                                DebugX.LogT("Could not log to '" + LogfileCreator(Context, LogEventName) + "': " + e.Message);
+                                DebugX.LogT("Could not log to '" + LogfileCreator(LoggingPath, Context, LogEventName) + "': " + e.Message);
                                 break;
                             }
 
                         }
                         catch (Exception e)
                         {
-                            DebugX.LogT("Could not log to '" + LogfileCreator(Context, LogEventName) + "': " + e.Message);
+                            DebugX.LogT("Could not log to '" + LogfileCreator(LoggingPath, Context, LogEventName) + "': " + e.Message);
                             break;
                         }
 
@@ -215,15 +218,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     while (retry++ < MaxRetries);
 
                     if (retry >= MaxRetries)
-                        DebugX.LogT("Could not write to logfile '"      + LogfileCreator(Context, LogEventName) + "' for "   + retry + " retries!");
+                        DebugX.LogT("Could not write to logfile '"      + LogfileCreator(LoggingPath, Context, LogEventName) + "' for "   + retry + " retries!");
 
                     else if (retry > 0)
-                        DebugX.LogT("Successfully written to logfile '" + LogfileCreator(Context, LogEventName) + "' after " + retry + " retries!");
+                        DebugX.LogT("Successfully written to logfile '" + LogfileCreator(LoggingPath, Context, LogEventName) + "' after " + retry + " retries!");
 
                 }
 
                 else
-                    DebugX.LogT("Could not get lock to log to '" + LogfileCreator(Context, LogEventName) + "'!");
+                    DebugX.LogT("Could not get lock to log to '" + LogfileCreator(LoggingPath, Context, LogEventName) + "'!");
 
             }
             finally
@@ -245,7 +248,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogEventName">The name of the log event.</param>
         /// <param name="Request">The HTTP request to log.</param>
         /// <param name="Response">The HTTP response to log.</param>
-        public async Task Default_LogHTTPResponse_toDisc(String        Context,
+        public async Task Default_LogHTTPResponse_toDisc(String        LoggingPath,
+                                                         String        Context,
                                                          String        LogEventName,
                                                          HTTPRequest   Request,
                                                          HTTPResponse  Response)
@@ -268,7 +272,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         try
                         {
 
-                            File.AppendAllText(LogfileCreator(Context, LogEventName),
+                            File.AppendAllText(LogfileCreator(LoggingPath, Context, LogEventName),
                                                String.Concat(Request.HTTPSource.Socket == Request.LocalSocket
                                                                  ? String.Concat(Request.LocalSocket, " -> ", Request.RemoteSocket)
                                                                  : String.Concat(Request.HTTPSource,  " -> ", Request.LocalSocket),
@@ -292,20 +296,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                             if (e.HResult != -2147024864)
                             {
-                                DebugX.LogT("File access error while logging to '" + LogfileCreator(Context, LogEventName) + "' (retry: " + retry + "): " + e.Message);
+                                DebugX.LogT("File access error while logging to '" + LogfileCreator(LoggingPath, Context, LogEventName) + "' (retry: " + retry + "): " + e.Message);
                                 Thread.Sleep(100);
                             }
 
                             else
                             {
-                                DebugX.LogT("Could not log to '" + LogfileCreator(Context, LogEventName) + "': " + e.Message);
+                                DebugX.LogT("Could not log to '" + LogfileCreator(LoggingPath, Context, LogEventName) + "': " + e.Message);
                                 break;
                             }
 
                         }
                         catch (Exception e)
                         {
-                            DebugX.LogT("Could not log to '" + LogfileCreator(Context, LogEventName) + "': " + e.Message);
+                            DebugX.LogT("Could not log to '" + LogfileCreator(LoggingPath, Context, LogEventName) + "': " + e.Message);
                             break;
                         }
 
@@ -313,15 +317,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     while (retry++ < MaxRetries);
 
                     if (retry >= MaxRetries)
-                        DebugX.LogT("Could not write to logfile '"      + LogfileCreator(Context, LogEventName) + "' for "   + retry + " retries!");
+                        DebugX.LogT("Could not write to logfile '"      + LogfileCreator(LoggingPath, Context, LogEventName) + "' for "   + retry + " retries!");
 
                     else if (retry > 0)
-                        DebugX.LogT("Successfully written to logfile '" + LogfileCreator(Context, LogEventName) + "' after " + retry + " retries!");
+                        DebugX.LogT("Successfully written to logfile '" + LogfileCreator(LoggingPath, Context, LogEventName) + "' after " + retry + " retries!");
 
                 }
 
                 else
-                    DebugX.LogT("Could not get lock to log to '" + LogfileCreator(Context, LogEventName) + "'!");
+                    DebugX.LogT("Could not get lock to log to '" + LogfileCreator(LoggingPath, Context, LogEventName) + "'!");
 
             }
             finally
@@ -440,11 +444,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.LogfileCreator = LogfileCreator != null
                                       ? LogfileCreator
-                                      : (context, logfilename) => String.Concat(context != null ? context + "_" : "",
-                                                                                logfilename, "_",
-                                                                                DateTime.UtcNow.Year, "-",
-                                                                                DateTime.UtcNow.Month.ToString("D2"),
-                                                                                ".log");
+                                      : (loggingPath, context, logfilename) => String.Concat(context != null ? context + "_" : "",
+                                                                                             logfilename, "_",
+                                                                                             DateTime.UtcNow.Year, "-",
+                                                                                             DateTime.UtcNow.Month.ToString("D2"),
+                                                                                             ".log");
 
             #endregion
 

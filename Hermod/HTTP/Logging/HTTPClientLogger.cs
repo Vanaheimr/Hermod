@@ -1,6 +1,6 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
- * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
+ * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,6 +56,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #endregion
 
             #region Properties
+
+            public String                           LoggingPath                     { get; }
 
             /// <summary>
             /// The context of the event to be logged.
@@ -142,7 +144,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     throw new Exception("Duplicate log target!");
 
                 _SubscriptionDelegates.Add(LogTarget,
-                                           (Timestamp, HTTPAPI, Request) => HTTPRequestDelegate(Context, LogEventName, Request));
+                                           (Timestamp, HTTPAPI, Request) => HTTPRequestDelegate(LoggingPath, Context, LogEventName, Request));
 
                 return this;
 
@@ -238,6 +240,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Properties
 
+            public String                            LoggingPath                     { get; }
+
             /// <summary>
             /// The context of the event to be logged.
             /// </summary>
@@ -323,7 +327,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     throw new Exception("Duplicate log target!");
 
                 _SubscriptionDelegates.Add(LogTarget,
-                                           (Timestamp, HTTPAPI, Request, Response) => HTTPResponseDelegate(Context, LogEventName, Request, Response));
+                                           (Timestamp, HTTPAPI, Request, Response) => HTTPResponseDelegate(LoggingPath, Context, LogEventName, Request, Response));
 
                 return this;
 
