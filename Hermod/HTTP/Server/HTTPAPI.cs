@@ -1186,6 +1186,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DevelopmentServers">An enumeration of server names which will imply to run this service in development mode.</param>
         /// <param name="DisableLogging">Disable any logging.</param>
         /// <param name="LoggingPath">The path for all logfiles.</param>
+        /// <param name="LogfileName">The name of the logfile.</param>
         /// <param name="LogfileCreator">A delegate for creating the name of the logfile for this API.</param>
         /// <param name="DNSClient">The DNS client of the API.</param>
         /// <param name="Autostart">Whether to start the API automatically.</param>
@@ -1317,6 +1318,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DevelopmentServers">An enumeration of server names which will imply to run this service in development mode.</param>
         /// <param name="DisableLogging">Disable the log file.</param>
         /// <param name="LoggingPath">The path for all logfiles.</param>
+        /// <param name="LogfileName">The name of the logfile.</param>
         /// <param name="LogfileCreator">A delegate for creating the name of the logfile for this API.</param>
         /// <param name="Autostart">Whether to start the API automatically.</param>
         public HTTPAPI(HTTPServer              HTTPServer,
