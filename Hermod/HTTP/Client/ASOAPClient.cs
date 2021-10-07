@@ -47,7 +47,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The default URL path prefix.
         /// </summary>
-        protected static readonly HTTPPath  DefaultURLPathPrefix      = HTTPPath.Parse("/");
+        protected static readonly HTTPPath  DefaultURLPathPrefix  = HTTPPath.Parse("/");
 
         #endregion
 
@@ -91,9 +91,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// Create a new abstract HTTP/SOAP client.
         /// </summary>
-        /// <param name="RemoteURL">The remote URL of the OICP HTTP endpoint to connect to.</param>
+        /// <param name="RemoteURL">The remote URL of the HTTP endpoint to connect to.</param>
         /// <param name="VirtualHostname">An optional HTTP virtual hostname.</param>
-        /// <param name="Description">An optional description of this CPO client.</param>
+        /// <param name="Description">An optional description of this HTTP/SOAP client.</param>
         /// <param name="RemoteCertificateValidator">The remote SSL/TLS certificate validator.</param>
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The SSL/TLS client certificate to use of HTTP authentication.</param>

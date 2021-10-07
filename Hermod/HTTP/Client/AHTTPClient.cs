@@ -106,7 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Properties
 
         /// <summary>
-        /// The remote URL of the OICP HTTP endpoint to connect to.
+        /// The remote URL of the HTTP endpoint to connect to.
         /// </summary>
         public URL                                  RemoteURL                     { get; }
 
@@ -116,7 +116,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPHostname?                        VirtualHostname               { get; }
 
         /// <summary>
-        /// An optional description of this CPO client.
+        /// An optional description of this HTTP client.
         /// </summary>
         public String                               Description                   { get; set; }
 
