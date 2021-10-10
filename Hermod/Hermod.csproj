@@ -60,6 +60,7 @@
     <Compile Include="DNS\IPTransport.cs" />
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="Helpers\ChangeMethods.cs" />
+    <Compile Include="Helpers\IEventSender.cs" />
     <Compile Include="Helpers\ICustomDataBuilder.cs" />
     <Compile Include="Helpers\InfoStatus.cs" />
     <Compile Include="Helpers\JSON_IO.cs" />
