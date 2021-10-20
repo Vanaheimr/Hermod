@@ -368,9 +368,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Properties
 
         /// <summary>
+        /// The logging path.
+        /// </summary>
+        public String  LoggingPath    { get; }
+
+        /// <summary>
         /// The context of this HTTP logger.
         /// </summary>
-        public String       Context      { get; }
+        public String  Context        { get; }
 
         #endregion
 
@@ -379,6 +384,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP API logger using the given logging delegates.
         /// </summary>
+        /// <param name="LoggingPath">The logging path.</param>
         /// <param name="Context">A context of this API.</param>
         /// 
         /// <param name="LogHTTPRequest_toConsole">A delegate to log incoming HTTP requests to console.</param>
@@ -397,7 +403,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogHTTPError_toHTTPSSE">A delegate to log HTTP errors to a HTTP server sent events source.</param>
         /// 
         /// <param name="LogfileCreator">A delegate to create a log file from the given context and log file name.</param>
-        public AHTTPLogger(String                      Context,
+        public AHTTPLogger(String                      LoggingPath,
+                           String                      Context,
 
                            HTTPRequestLoggerDelegate   LogHTTPRequest_toConsole,
                            HTTPResponseLoggerDelegate  LogHTTPResponse_toConsole,
@@ -420,8 +427,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Init data structures
 
-            this.Context     = Context ?? "";
-            this._GroupTags  = new ConcurrentDictionary<String, HashSet<String>>();
+            this.LoggingPath  = LoggingPath ?? "";
+            this.Context      = Context     ?? "";
+            this._GroupTags   = new ConcurrentDictionary<String, HashSet<String>>();
 
             #endregion
 
@@ -442,13 +450,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (LogHTTPResponse_toDisc    == null)
                 LogHTTPResponse_toDisc     = Default_LogHTTPResponse_toDisc;
 
-            this.LogfileCreator = LogfileCreator != null
-                                      ? LogfileCreator
-                                      : (loggingPath, context, logfilename) => String.Concat(context != null ? context + "_" : "",
-                                                                                             logfilename, "_",
-                                                                                             DateTime.UtcNow.Year, "-",
-                                                                                             DateTime.UtcNow.Month.ToString("D2"),
-                                                                                             ".log");
+            this.LogfileCreator  = LogfileCreator ?? ((loggingPath, context, logfileName) => String.Concat(loggingPath,
+                                                                                                           context != null ? context + "_" : "",
+                                                                                                           logfileName, "_",
+                                                                                                           DateTime.UtcNow.Year, "-",
+                                                                                                           DateTime.UtcNow.Month.ToString("D2"),
+                                                                                                           ".log"));
 
             #endregion
 

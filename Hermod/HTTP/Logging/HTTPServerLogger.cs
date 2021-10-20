@@ -792,6 +792,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Create a new HTTP API logger using the given logging delegates.
         /// </summary>
         /// <param name="HTTPServer">A HTTP server.</param>
+        /// <param name="LoggingPath">The logging path.</param>
         /// <param name="Context">A context of this API.</param>
         /// 
         /// <param name="LogHTTPRequest_toConsole">A delegate to log incoming HTTP requests to console.</param>
@@ -811,6 +812,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="LogfileCreator">A delegate to create a log file from the given context and log file name.</param>
         public HTTPServerLogger(IHTTPServer                 HTTPServer,
+                                String                      LoggingPath,
                                 String                      Context,
 
                                 HTTPRequestLoggerDelegate   LogHTTPRequest_toConsole,
@@ -830,7 +832,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                 LogfileCreatorDelegate      LogfileCreator              = null)
 
-            : base(Context,
+            : base(LoggingPath,
+                   Context,
 
                    LogHTTPRequest_toConsole,
                    LogHTTPResponse_toConsole,
@@ -851,12 +854,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this.HTTPServer            = HTTPServer ?? throw new ArgumentNullException(nameof(HTTPServer), "The given HTTP API must not be null!");
+            this.HTTPServer             = HTTPServer ?? throw new ArgumentNullException(nameof(HTTPServer), "The given HTTP API must not be null!");
 
-            this._HTTPRequestLoggers   = new ConcurrentDictionary<String, HTTPServerRequestLogger>();
+            this._HTTPRequestLoggers    = new ConcurrentDictionary<String, HTTPServerRequestLogger>();
             this._HTTPRequestLoggers2   = new ConcurrentDictionary<String, HTTPServerRequestLogger2>();
             this._HTTPResponseLoggers2  = new ConcurrentDictionary<String, HTTPServerResponseLogger2>();
-            this._HTTPResponseLoggers  = new ConcurrentDictionary<String, HTTPServerResponseLogger>();
+            this._HTTPResponseLoggers   = new ConcurrentDictionary<String, HTTPServerResponseLogger>();
 
         }
 

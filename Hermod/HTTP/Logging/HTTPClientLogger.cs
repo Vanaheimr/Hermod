@@ -57,6 +57,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Properties
 
+            /// <summary>
+            /// The logging path.
+            /// </summary>
             public String                           LoggingPath                     { get; }
 
             /// <summary>
@@ -86,11 +89,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// Create a new log event for the linked HTTP API event.
             /// </summary>
+            /// <param name="LoggingPath">The logging path.</param>
             /// <param name="Context">The context of the event.</param>
             /// <param name="LogEventName">The name of the event.</param>
             /// <param name="SubscribeToEventDelegate">A delegate for subscribing to the linked event.</param>
             /// <param name="UnsubscribeFromEventDelegate">A delegate for subscribing from the linked event.</param>
-            public HTTPClientRequestLogger(String                           Context,
+            public HTTPClientRequestLogger(String                           LoggingPath,
+                                           String                           Context,
                                            String                           LogEventName,
                                            Action<ClientRequestLogHandler>  SubscribeToEventDelegate,
                                            Action<ClientRequestLogHandler>  UnsubscribeFromEventDelegate)
@@ -240,6 +245,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Properties
 
+            /// <summary>
+            /// The logging path.
+            /// </summary>
             public String                            LoggingPath                     { get; }
 
             /// <summary>
@@ -269,11 +277,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// Create a new log event for the linked HTTP API event.
             /// </summary>
+            /// <param name="LoggingPath">The logging path.</param>
             /// <param name="Context">The context of the event.</param>
             /// <param name="LogEventName">The name of the event.</param>
             /// <param name="SubscribeToEventDelegate">A delegate for subscribing to the linked event.</param>
             /// <param name="UnsubscribeFromEventDelegate">A delegate for subscribing from the linked event.</param>
-            public HTTPClientResponseLogger(String                            Context,
+            public HTTPClientResponseLogger(String                            LoggingPath,
+                                            String                            Context,
                                             String                            LogEventName,
                                             Action<ClientResponseLogHandler>  SubscribeToEventDelegate,
                                             Action<ClientResponseLogHandler>  UnsubscribeFromEventDelegate)
@@ -433,6 +443,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Create a new HTTP client logger using the given logging delegates.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="LoggingPath">The logging path.</param>
         /// <param name="Context">A context of this API.</param>
         /// 
         /// <param name="LogHTTPRequest_toConsole">A delegate to log incoming HTTP requests to console.</param>
@@ -452,6 +463,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="LogfileCreator">A delegate to create a log file from the given context and log file name.</param>
         public HTTPClientLogger(IHTTPClient                 HTTPClient,
+                                String                      LoggingPath,
                                 String                      Context,
 
                                 HTTPRequestLoggerDelegate   LogHTTPRequest_toConsole,
@@ -471,7 +483,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                 LogfileCreatorDelegate      LogfileCreator              = null)
 
-            : base(Context,
+            : base(LoggingPath,
+                   Context,
 
                    LogHTTPRequest_toConsole,
                    LogHTTPResponse_toConsole,
@@ -557,7 +570,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 !_HTTPClientResponseLoggers.ContainsKey(LogEventName))
             {
 
-                _HTTPClientRequestLogger = new HTTPClientRequestLogger(Context, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
+                _HTTPClientRequestLogger = new HTTPClientRequestLogger(LoggingPath, Context, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
                 _HTTPClientRequestLoggers.TryAdd(LogEventName, _HTTPClientRequestLogger);
 
                 #region Register group tag mapping
@@ -621,7 +634,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 !_HTTPClientRequestLoggers. ContainsKey(LogEventName))
             {
 
-                _HTTPClientResponseLogger = new HTTPClientResponseLogger(Context, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
+                _HTTPClientResponseLogger = new HTTPClientResponseLogger(LoggingPath, Context, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
                 _HTTPClientResponseLoggers.TryAdd(LogEventName, _HTTPClientResponseLogger);
 
                 #region Register group tag mapping
