@@ -246,7 +246,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// further connections.
         /// HTTP/1.1 applications that do not support persistent
         /// connections MUST include the "close" connection option
-        /// in every message. 
+        /// in every message.
         /// </summary>
         /// <example>Connection: close</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
@@ -651,6 +651,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                              typeof(String),
                                                                              HeaderFieldType.General,
                                                                              RequestPathSemantic.EndToEnd);
+
+        #endregion
+
+        #region SecWebSocketKey
+
+        /// <summary>
+        /// Sec-Web-SocketKey.
+        /// </summary>
+        public static readonly HTTPHeaderField SecWebSocketKey = new HTTPHeaderField("Sec-Web-SocketKey",
+                                                                                     typeof(String),
+                                                                                     HeaderFieldType.General,
+                                                                                     RequestPathSemantic.EndToEnd);
+
+        #endregion
+
+        #region SecWebSocketProtocol
+
+        /// <summary>
+        /// Sec-Web-SocketProtocol.
+        /// </summary>
+        public static readonly HTTPHeaderField SecWebSocketProtocol = new HTTPHeaderField("Sec-Web-SocketProtocol",
+                                                                                          typeof(String),
+                                                                                          HeaderFieldType.General,
+                                                                                          RequestPathSemantic.EndToEnd);
+
+        #endregion
+
+        #region SecWebSocketVersion
+
+        /// <summary>
+        /// Sec-WebSocket-Version.
+        /// </summary>
+        public static readonly HTTPHeaderField SecWebSocketVersion = new HTTPHeaderField("Sec-WebSocket-Version",
+                                                                                         typeof(String),
+                                                                                         HeaderFieldType.General,
+                                                                                         RequestPathSemantic.EndToEnd);
 
         #endregion
 

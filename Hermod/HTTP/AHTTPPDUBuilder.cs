@@ -297,6 +297,82 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Upgrade
+
+        public String Upgrade
+        {
+
+            get
+            {
+                return GetHeaderField(HTTPHeaderField.Upgrade);
+            }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.Upgrade, value);
+            }
+
+        }
+
+        #endregion
+
+        #region SecWebSocketKey
+
+        public String SecWebSocketKey
+        {
+
+            get
+            {
+                return GetHeaderField(HTTPHeaderField.SecWebSocketKey);
+            }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.SecWebSocketKey, value);
+            }
+
+        }
+
+        #endregion
+
+        #region SecWebSocketProtocol
+
+        public String SecWebSocketProtocol
+        {
+
+            get
+            {
+                return GetHeaderField(HTTPHeaderField.SecWebSocketProtocol);
+            }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.SecWebSocketProtocol, value);
+            }
+
+        }
+
+        #endregion
+
+        #region SecWebSocketVersion
+
+        public String SecWebSocketVersion
+        {
+
+            get
+            {
+                return GetHeaderField(HTTPHeaderField.SecWebSocketVersion);
+            }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.SecWebSocketVersion, value);
+            }
+
+        }
+
+        #endregion
+
         #region Content-Encoding
 
         public Encoding ContentEncoding

@@ -18,14 +18,14 @@
 #region Usings
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using System.Net;
-using System.Net.Sockets;
-using System.Collections;
 using System.Threading;
+using System.Net.Sockets;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+
+using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -37,7 +37,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
     /// <summary>
-    /// A web socket server.
+    /// The delegate for the WebSocket request log.
+    /// </summary>
+    /// <param name="Timestamp">The timestamp of the incoming request.</param>
+    /// <param name="WebSocketServer">The sending WebSocket server.</param>
+    /// <param name="Request">The incoming request.</param>
+    public delegate Task WSRequestLogHandler(DateTime         Timestamp,
+                                             WebSocketServer  WebSocketServer,
+                                             JArray           Request);
+
+    /// <summary>
+    /// The delegate for the WebSocket response log.
+    /// </summary>
+    /// <param name="Timestamp">The timestamp of the incoming request.</param>
+    /// <param name="WebSocketServer">The sending WebSocket server.</param>
+    /// <param name="Request">The incoming WebSocket request.</param>
+    /// <param name="Response">The outgoing WebSocket response.</param>
+    public delegate Task WSResponseLogHandler(DateTime         Timestamp,
+                                              WebSocketServer  WebSocketServer,
+                                              JArray           Request,
+                                              JArray           Response);
+
+
+    /// <summary>
+    /// A WebSocket server.
     /// </summary>
     public class WebSocketServer
     {
@@ -122,7 +145,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         }
 
         #endregion
-
 
 
         public void Start()
@@ -283,7 +305,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                 #endregion
 
-                                #region ...or web socket frame
+                                #region ...or WebSocket frame
 
                                 else
                                 {
@@ -550,7 +572,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         }
                         catch (Exception e)
                         {
-                            DebugX.Log("Exception in web socket client thread: " + e.Message + Environment.NewLine + e.StackTrace);
+                            DebugX.Log("Exception in WebSocket client thread: " + e.Message + Environment.NewLine + e.StackTrace);
                         }
 
                     },

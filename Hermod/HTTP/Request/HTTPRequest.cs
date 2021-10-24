@@ -1384,7 +1384,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region HTTPRequestLine
 
             public String HTTPRequestLine
-                => String.Concat(HTTPMethod, " ", FakeURLPrefix, _URL, QueryString, " ", ProtocolName, "/", ProtocolVersion);
+                => String.Concat(HTTPMethod, " ", FakeURLPrefix, _Path, QueryString, " ", ProtocolName, "/", ProtocolVersion);
 
             #endregion
 
@@ -1418,24 +1418,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region URL
+            #region Path
 
-            private HTTPPath _URL;
+            private HTTPPath _Path;
 
             /// <summary>
-            /// The minimal URL (this means e.g. without the query string).
+            /// The minimal path (this means e.g. without the query string).
             /// </summary>
             public HTTPPath Path
             {
 
                 get
                 {
-                    return _URL;
+                    return _Path;
                 }
 
                 set
                 {
-                    SetProperty(ref _URL, value, "URL");
+                    SetProperty(ref _Path, value, "URL");
                 }
 
             }
@@ -2024,19 +2024,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Constructor(s)
 
-            #region HTTPRequestBuilder()
+            #region HTTPRequestBuilder(Client = null)
 
             /// <summary>
             /// Create a new HTTP request.
             /// </summary>
-            public Builder(AHTTPClient Client)
+            public Builder(AHTTPClient Client = null)
             {
 
                 this._HTTPClient      = Client;
 
                 this.HTTPStatusCode   = HTTPStatusCode.OK;
                 this.HTTPMethod       = HTTPMethod.GET;
-                this.Path              = HTTPPath.Parse("/");
+                this.Path             = HTTPPath.Parse("/");
                 this.QueryString      = QueryString.New;
                 SetHeaderField(HTTPHeaderField.Accept, new AcceptTypes());
                 this.ProtocolName     = "HTTP";

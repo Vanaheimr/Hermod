@@ -1401,7 +1401,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             // Setup Maintenance Task
             this.DisableMaintenanceTasks  = DisableMaintenanceTasks ?? false;
-            this.MaintenanceEvery         = MaintenanceEvery ?? DefaultMaintenanceEvery;
+            this.MaintenanceEvery         = MaintenanceEvery        ?? DefaultMaintenanceEvery;
             this.MaintenanceTimer         = new Timer(DoMaintenanceSync,
                                                       null,
                                                       this.MaintenanceEvery,

@@ -490,7 +490,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             var payloadLength  = (UInt64) (ByteArray[1] & 0x7f);
 
-            var offset         = 2UL;
+            var offset         = 2U;
 
 
             if (payloadLength == 126) {
@@ -501,7 +501,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                        },
                                                        0);
 
-                offset         = 4UL;
+                offset         = 4U;
 
             }
 
@@ -511,24 +511,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 // i don't really know the byte order, please edit this
                 // payloadLen = BitConverter.ToUInt64(new byte[] { bytes[5], bytes[4], bytes[3], bytes[2], bytes[9], bytes[8], bytes[7], bytes[6] }, 0);
-                offset         = 10UL;
+                offset         = 10U;
 
             }
 
-            var maskingKey     = new Byte[4] {
-                                     ByteArray[offset],
-                                     ByteArray[offset + 1],
-                                     ByteArray[offset + 2],
-                                     ByteArray[offset + 3]
-                                 };
+            var payload     = new Byte[payloadLength];
+            var maskingKey  = new Byte[4] { 0x00, 0x00, 0x00, 0x00 };
 
-            offset += 4;
+            if (mask == MaskStatus.Off)
+                Array.Copy(ByteArray, (Int32) offset, payload, 0, (Int32) payloadLength);
 
+            else
+            {
 
-            var payload = new Byte[payloadLength];
+                offset += 4;
 
-            for (var i = 0UL; i < payloadLength; ++i)
-                payload[i] = (Byte) (ByteArray[offset + i] ^ maskingKey[i % 4]);
+                maskingKey = new Byte[4] {
+                                 ByteArray[offset],
+                                 ByteArray[offset + 1],
+                                 ByteArray[offset + 2],
+                                 ByteArray[offset + 3]
+                             };
+
+                for (var i = 0UL; i < payloadLength; ++i)
+                    payload[i] = (Byte) (ByteArray[offset + i] ^ maskingKey[i % 4]);
+
+            }
 
             return new WebSocketFrame(fin,
                                       mask,
