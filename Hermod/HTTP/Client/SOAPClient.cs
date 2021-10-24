@@ -92,6 +92,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
         /// <param name="URLPathPrefix">An optional default URL path prefix.</param>
         /// <param name="WSSLoginPassword">The WebService-Security username/password.</param>
+        /// <param name="HTTPContentType">The HTTP content type to use.</param>
         /// <param name="RequestTimeout">An optional request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
         /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
@@ -107,6 +108,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                           String                               HTTPUserAgent                = DefaultHTTPUserAgent,
                           HTTPPath?                            URLPathPrefix                = null,
                           Tuple<String, String>                WSSLoginPassword             = null,
+                          HTTPContentType                      HTTPContentType              = null,
                           TimeSpan?                            RequestTimeout               = null,
                           TransmissionRetryDelayDelegate       TransmissionRetryDelay       = null,
                           UInt16?                              MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
@@ -123,6 +125,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                    HTTPUserAgent,
                    URLPathPrefix,
                    WSSLoginPassword,
+                   HTTPContentType,
                    RequestTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
@@ -365,6 +368,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
         /// <param name="URLPathPrefix">An optional default URL path prefix.</param>
         /// <param name="WSSLoginPassword">The WebService-Security username/password.</param>
+        /// <param name="HTTPContentType">The HTTP content type to use.</param>
         /// <param name="RequestTimeout">An optional request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
         /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
@@ -381,6 +385,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                           String                               HTTPUserAgent                = DefaultHTTPUserAgent,
                           HTTPPath?                            URLPathPrefix                = null,
                           Tuple<String, String>                WSSLoginPassword             = null,
+                          HTTPContentType                      HTTPContentType              = null,
                           TimeSpan?                            RequestTimeout               = null,
                           TransmissionRetryDelayDelegate       TransmissionRetryDelay       = null,
                           UInt16?                              MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
@@ -397,6 +402,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                    HTTPUserAgent,
                    URLPathPrefix,
                    WSSLoginPassword,
+                   HTTPContentType,
                    RequestTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
@@ -473,14 +479,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
 
             var _RequestBuilder = new HTTPRequest.Builder(this) {
                                       HTTPMethod     = HTTPMethod.POST,
-                                      Host           = VirtualHostname ?? RemoteURL.Hostname,
-                                      Path           = URLPathPrefix,
+                                      Host           = VirtualHostname ?? HTTPHostname.Parse(RemoteURL.Hostname.ToString() + ":" + RemoteURL.Port.ToString()),
+                                      Path           = URLPathPrefix + RemoteURL.Path,
                                       Content        = QueryXML.ToUTF8Bytes(),
-                                      ContentType    = ContentType ?? new HTTPContentType("application",
-                                                                                          "soap+xml",
-                                                                                          "utf-8",
-                                                                                          SOAPAction,
-                                                                                          null),
+                                      ContentType    = ContentType ?? HTTPContentType ?? new HTTPContentType("application",
+                                                                                                             "soap+xml",
+                                                                                                             "utf-8",
+                                                                                                             SOAPAction,
+                                                                                                             null),
+                                      Accept         = new AcceptTypes(ContentType ?? HTTPContentType ?? new HTTPContentType("application",
+                                                                                                                             "soap+xml",
+                                                                                                                             "utf-8",
+                                                                                                                             null,
+                                                                                                                             null)),
                                       UserAgent      = HTTPUserAgent,
                                       FakeURLPrefix  = UseFakeURLPrefix ? "https://" + (VirtualHostname ?? RemoteURL.Hostname) : null
                                   };

@@ -63,6 +63,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// </summary>
         public Tuple<String, String>  WSSLoginPassword    { get; }
 
+        /// <summary>
+        /// The HTTP content type to use.
+        /// </summary>
+        public HTTPContentType        HTTPContentType     { get; }
+
         #endregion
 
         #region Events
@@ -100,6 +105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
         /// <param name="URLPathPrefix">An optional default URL path prefix.</param>
         /// <param name="WSSLoginPassword">The WebService-Security username/password.</param>
+        /// <param name="HTTPContentType">The HTTP content type to use.</param>
         /// <param name="RequestTimeout">An optional request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
         /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
@@ -115,6 +121,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                               String                               HTTPUserAgent                = DefaultHTTPUserAgent,
                               HTTPPath?                            URLPathPrefix                = null,
                               Tuple<String, String>                WSSLoginPassword             = null,
+                              HTTPContentType                      HTTPContentType              = null,
                               TimeSpan?                            RequestTimeout               = null,
                               TransmissionRetryDelayDelegate       TransmissionRetryDelay       = null,
                               UInt16?                              MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
@@ -140,6 +147,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             this.URLPathPrefix     = URLPathPrefix ?? DefaultURLPathPrefix;
             this.WSSLoginPassword  = WSSLoginPassword;
+            this.HTTPContentType   = HTTPContentType;
 
         }
 
