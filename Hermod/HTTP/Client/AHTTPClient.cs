@@ -650,7 +650,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 {
 
                     if (sw.ElapsedMilliseconds >= RequestTimeout.Value.TotalMilliseconds)
-                        throw new TimeoutException(sw.Elapsed);
+                        throw new HTTPTimeoutException(sw.Elapsed);
 
                     Thread.Sleep(1);
 
@@ -948,7 +948,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #endregion
 
             }
-            catch (TimeoutException e)
+            catch (HTTPTimeoutException e)
             {
 
                 #region Create a HTTP response for the exception...

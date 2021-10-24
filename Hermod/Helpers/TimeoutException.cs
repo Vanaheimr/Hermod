@@ -26,12 +26,12 @@ using org.GraphDefined.Vanaheimr.Illias;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
-    public class TimeoutException : Exception
+    public class HTTPTimeoutException : Exception
     {
 
         public TimeSpan Timeout { get; }
 
-        public TimeoutException(TimeSpan Timeout)
+        public HTTPTimeoutException(TimeSpan Timeout)
 
             : base("Could not read from the TCP stream for " + Timeout.TotalMilliseconds.ToString() + "ms!")
 
