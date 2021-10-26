@@ -524,14 +524,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             else
             {
 
-                offset += 4;
-
                 maskingKey = new Byte[4] {
                                  ByteArray[offset],
                                  ByteArray[offset + 1],
                                  ByteArray[offset + 2],
                                  ByteArray[offset + 3]
                              };
+
+                offset += 4;
 
                 for (var i = 0UL; i < payloadLength; ++i)
                     payload[i] = (Byte) (ByteArray[offset + i] ^ maskingKey[i % 4]);
