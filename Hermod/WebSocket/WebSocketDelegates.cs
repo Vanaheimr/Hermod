@@ -22,50 +22,91 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
-    public delegate Task                                 OnNewTCPConnectionDelegate      (DateTime             Timestamp,
-                                                                                          WebSocketServer      WebSocketServer,
-                                                                                          WebSocketConnection  NewWebSocketConnection,
-                                                                                          EventTracking_Id     EventTrackingId,
-                                                                                          CancellationToken    CancellationToken);
+    public delegate Task                                 OnNewTCPConnectionDelegate              (DateTime             Timestamp,
+                                                                                                  WebSocketServer      WebSocketServer,
+                                                                                                  WebSocketConnection  NewWebSocketConnection,
+                                                                                                  EventTracking_Id     EventTrackingId,
+                                                                                                  CancellationToken    CancellationToken);
 
-    public delegate Task                                 OnNewWebSocketConnectionDelegate(DateTime             Timestamp,
-                                                                                          WebSocketServer      WebSocketServer,
-                                                                                          WebSocketConnection  NewWebSocketConnection,
-                                                                                          EventTracking_Id     EventTrackingId,
-                                                                                          CancellationToken    CancellationToken);
+    public delegate Task<HTTPResponse>                   OnWebSocketHandshake                    (DateTime             Timestamp,
+                                                                                                  WebSocketServer      WebSocketServer,
+                                                                                                  WebSocketConnection  NewWebSocketConnection,
+                                                                                                  EventTracking_Id     EventTrackingId,
+                                                                                                  CancellationToken    CancellationToken);
 
-    public delegate Task<WebSocketMessageRespose>        OnWebSocketMessageDelegate      (DateTime             Timestamp,
-                                                                                          WebSocketServer      WebSocketServer,
-                                                                                          WebSocketConnection  Sender,
-                                                                                          WebSocketFrame       Message,
-                                                                                          EventTracking_Id     EventTrackingId,
-                                                                                          CancellationToken    CancellationToken);
+    public delegate Task                                 OnNewWebSocketConnectionDelegate        (DateTime             Timestamp,
+                                                                                                  WebSocketServer      WebSocketServer,
+                                                                                                  WebSocketConnection  NewWebSocketConnection,
+                                                                                                  EventTracking_Id     EventTrackingId,
+                                                                                                  CancellationToken    CancellationToken);
 
-    public delegate Task<WebSocketTextMessageRespose>    OnWebSocketTextMessageDelegate  (DateTime             Timestamp,
-                                                                                          WebSocketServer      WebSocketServer,
-                                                                                          WebSocketConnection  Sender,
-                                                                                          String               TextMessage,
-                                                                                          EventTracking_Id     EventTrackingId,
-                                                                                          CancellationToken    CancellationToken);
 
-    public delegate Task<WebSocketBinaryMessageRespose>  OnWebSocketBinaryMessageDelegate(DateTime             Timestamp,
-                                                                                          WebSocketServer      WebSocketServer,
-                                                                                          WebSocketConnection  Sender,
-                                                                                          Byte[]               BinaryMessage,
-                                                                                          EventTracking_Id     EventTrackingId,
-                                                                                          CancellationToken    CancellationToken);
+    public delegate Task<WebSocketMessageRespose>        OnWebSocketMessageDelegate              (DateTime             Timestamp,
+                                                                                                  WebSocketServer      WebSocketServer,
+                                                                                                  WebSocketConnection  Sender,
+                                                                                                  WebSocketFrame       Message,
+                                                                                                  EventTracking_Id     EventTrackingId,
+                                                                                                  CancellationToken    CancellationToken);
 
-    public delegate Task                                 OnCloseMessageDelegate          (DateTime             Timestamp,
-                                                                                          WebSocketServer      WebSocketServer,
-                                                                                          WebSocketConnection  WebSocketConnection,
-                                                                                          WebSocketFrame       Message,
-                                                                                          EventTracking_Id     EventTrackingId,
-                                                                                          CancellationToken    CancellationToken);
+
+    public delegate Task                                 OnWebSocketTextMessageRequestDelegate   (DateTime             Timestamp,
+                                                                                                  WebSocketServer      WebSocketServer,
+                                                                                                  WebSocketConnection  Sender,
+                                                                                                  String               TextRequestMessage,
+                                                                                                  EventTracking_Id     EventTrackingId,
+                                                                                                  CancellationToken    CancellationToken);
+
+    public delegate Task<WebSocketTextMessageRespose>    OnWebSocketTextMessageDelegate          (DateTime             Timestamp,
+                                                                                                  WebSocketServer      WebSocketServer,
+                                                                                                  WebSocketConnection  Sender,
+                                                                                                  String               TextMessage,
+                                                                                                  EventTracking_Id     EventTrackingId,
+                                                                                                  CancellationToken    CancellationToken);
+
+    public delegate Task                                 OnWebSocketTextMessageResponseDelegate  (DateTime             Timestamp,
+                                                                                                  WebSocketServer      WebSocketServer,
+                                                                                                  WebSocketConnection  Sender,
+                                                                                                  String               TextRequestMessage,
+                                                                                                  String               TextResponseMessage,
+                                                                                                  EventTracking_Id     EventTrackingId,
+                                                                                                  CancellationToken    CancellationToken);
+
+
+    public delegate Task                                 OnWebSocketBinaryMessageRequestDelegate (DateTime             Timestamp,
+                                                                                                  WebSocketServer      WebSocketServer,
+                                                                                                  WebSocketConnection  Sender,
+                                                                                                  Byte[]               BinaryRequestMessage,
+                                                                                                  EventTracking_Id     EventTrackingId,
+                                                                                                  CancellationToken    CancellationToken);
+
+    public delegate Task<WebSocketBinaryMessageRespose>  OnWebSocketBinaryMessageDelegate        (DateTime             Timestamp,
+                                                                                                  WebSocketServer      WebSocketServer,
+                                                                                                  WebSocketConnection  Sender,
+                                                                                                  Byte[]               BinaryMessage,
+                                                                                                  EventTracking_Id     EventTrackingId,
+                                                                                                  CancellationToken    CancellationToken);
+
+    public delegate Task                                 OnWebSocketBinaryMessageResponseDelegate(DateTime             Timestamp,
+                                                                                                  WebSocketServer      WebSocketServer,
+                                                                                                  WebSocketConnection  Sender,
+                                                                                                  Byte[]               BinaryRequestMessage,
+                                                                                                  Byte[]               BinaryResponseMessage,
+                                                                                                  EventTracking_Id     EventTrackingId,
+                                                                                                  CancellationToken    CancellationToken);
+
+
+    public delegate Task                                 OnCloseMessageDelegate                  (DateTime             Timestamp,
+                                                                                                  WebSocketServer      WebSocketServer,
+                                                                                                  WebSocketConnection  WebSocketConnection,
+                                                                                                  WebSocketFrame       Message,
+                                                                                                  EventTracking_Id     EventTrackingId,
+                                                                                                  CancellationToken    CancellationToken);
 
 }

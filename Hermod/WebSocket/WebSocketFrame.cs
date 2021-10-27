@@ -256,6 +256,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region (enum) Opcodes
 
+        /// <summary>
+        /// Web socket frame opcodes.
+        /// </summary>
         public enum Opcodes : byte
         {
 
@@ -351,8 +354,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
         #region Properties
-
-        //internal static readonly Byte[] EmptyBytes;
 
         public Fin         FIN           { get; }
         public MaskStatus  Mask          { get; }

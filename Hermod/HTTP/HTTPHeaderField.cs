@@ -690,6 +690,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region SecWebSocketAccept
+
+        /// <summary>
+        /// Sec-WebSocket-Accept.
+        /// </summary>
+        public static readonly HTTPHeaderField SecWebSocketAccept = new HTTPHeaderField("Sec-WebSocket-Accept",
+                                                                                        typeof(String),
+                                                                                        HeaderFieldType.General,
+                                                                                        RequestPathSemantic.EndToEnd);
+
+        #endregion
+
         #endregion
 
         #region Request header fields

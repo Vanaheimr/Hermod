@@ -129,6 +129,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         }
 
+        public Boolean HasCustomData(String Key)
+            => customData.ContainsKey(Key);
+
         public T GetCustomData<T>(String  Key)
         {
 

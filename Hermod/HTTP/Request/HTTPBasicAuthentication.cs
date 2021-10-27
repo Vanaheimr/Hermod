@@ -107,6 +107,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             BasicAuthentication = null;
 
+            Text = Text?.Trim();
+
             if (Text.IsNullOrEmpty())
                 return false;
 

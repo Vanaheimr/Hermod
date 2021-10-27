@@ -373,6 +373,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Sec-WebSocket-Accept
+
+        public String SecWebSocketAccept
+        {
+
+            get
+            {
+                return GetHeaderField(HTTPHeaderField.SecWebSocketAccept);
+            }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.SecWebSocketAccept, value);
+            }
+
+        }
+
+        #endregion
+
         #region Content-Encoding
 
         public Encoding ContentEncoding
