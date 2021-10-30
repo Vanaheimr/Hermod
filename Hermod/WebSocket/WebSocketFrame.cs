@@ -19,6 +19,8 @@
 
 using System;
 
+using org.GraphDefined.Vanaheimr.Illias;
+
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
@@ -463,90 +465,118 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region Parse(ByteArray)
+        #region TryParse(ByteArray, out Frame, out Length)
 
-        public static WebSocketFrame Parse(Byte[] ByteArray)
+        public static Boolean TryParse(Byte[]              ByteArray,
+                                       out WebSocketFrame  Frame,
+                                       out UInt64          Length)
         {
 
-            var fin            = (ByteArray[0] & 0x80) == 0x80 ? Fin.Final : Fin.More;
-            var rsv1           = (ByteArray[0] & 0x40) == 0x40 ? Rsv.On    : Rsv.Off;
-            var rsv2           = (ByteArray[0] & 0x20) == 0x20 ? Rsv.On    : Rsv.Off;
-            var rsv3           = (ByteArray[0] & 0x10) == 0x10 ? Rsv.On    : Rsv.Off;
-            var opcode         = (Opcodes) (Byte) (ByteArray[0] & 0x0f);
-
-            //if (!opcode.IsSupported ()) {
-            //    var msg = "A frame has an unsupported opcode.";
-            //    //throw new WebSocketException (CloseStatusCode.ProtocolError, msg);
-            //}
-
-            if (!opcode.IsData() && rsv1 == Rsv.On)
-            {
-                var msg = "A non data frame is compressed.";
-                //throw new WebSocketException (CloseStatusCode.ProtocolError, msg);
-            }
-
-            var mask           = (ByteArray[1] & 0x80) == 0x80
-                                      ? MaskStatus.On
-                                      : MaskStatus.Off;
-
-            var payloadLength  = (UInt64) (ByteArray[1] & 0x7f);
-
-            var offset         = 2U;
-
-
-            if (payloadLength == 126) {
-
-                payloadLength  = BitConverter.ToUInt16(new Byte[] {
-                                                           ByteArray[3],
-                                                           ByteArray[2]
-                                                       },
-                                                       0);
-
-                offset         = 4U;
-
-            }
-
-            else if (payloadLength == 127) {
-
-                Console.WriteLine("TODO: msglen == 127, needs qword to store msglen");
-
-                // i don't really know the byte order, please edit this
-                // payloadLen = BitConverter.ToUInt64(new byte[] { bytes[5], bytes[4], bytes[3], bytes[2], bytes[9], bytes[8], bytes[7], bytes[6] }, 0);
-                offset         = 10U;
-
-            }
-
-            var payload     = new Byte[payloadLength];
-            var maskingKey  = new Byte[4] { 0x00, 0x00, 0x00, 0x00 };
-
-            if (mask == MaskStatus.Off)
-                Array.Copy(ByteArray, (Int32) offset, payload, 0, (Int32) payloadLength);
-
-            else
+            try
             {
 
-                maskingKey = new Byte[4] {
-                                 ByteArray[offset],
-                                 ByteArray[offset + 1],
-                                 ByteArray[offset + 2],
-                                 ByteArray[offset + 3]
-                             };
+                var fin            = (ByteArray[0] & 0x80) == 0x80 ? Fin.Final : Fin.More;
+                var rsv1           = (ByteArray[0] & 0x40) == 0x40 ? Rsv.On    : Rsv.Off;
+                var rsv2           = (ByteArray[0] & 0x20) == 0x20 ? Rsv.On    : Rsv.Off;
+                var rsv3           = (ByteArray[0] & 0x10) == 0x10 ? Rsv.On    : Rsv.Off;
+                var opcode         = (Opcodes) (Byte) (ByteArray[0] & 0x0f);
 
-                offset += 4;
+                //if (!opcode.IsSupported ()) {
+                //    var msg = "A frame has an unsupported opcode.";
+                //    //throw new WebSocketException (CloseStatusCode.ProtocolError, msg);
+                //}
 
-                for (var i = 0UL; i < payloadLength; ++i)
-                    payload[i] = (Byte) (ByteArray[offset + i] ^ maskingKey[i % 4]);
+                if (!opcode.IsData() && rsv1 == Rsv.On)
+                {
+                    var msg = "A non data frame is compressed.";
+                    //throw new WebSocketException (CloseStatusCode.ProtocolError, msg);
+                }
+
+                var mask           = (ByteArray[1] & 0x80) == 0x80
+                                          ? MaskStatus.On
+                                          : MaskStatus.Off;
+
+                var payloadLength  = (UInt64) (ByteArray[1] & 0x7f);
+
+                var offset         = 2U;
+
+
+                if (payloadLength == 126) {
+
+                    payloadLength  = BitConverter.ToUInt16(new Byte[] {
+                                                               ByteArray[3],
+                                                               ByteArray[2]
+                                                           },
+                                                           0);
+
+                    offset         = 4U;
+
+                }
+
+                else if (payloadLength == 127) {
+
+                    Console.WriteLine("TODO: msglen == 127, needs qword to store msglen");
+
+                    // i don't really know the byte order, please edit this
+                    // payloadLen = BitConverter.ToUInt64(new byte[] { bytes[5], bytes[4], bytes[3], bytes[2], bytes[9], bytes[8], bytes[7], bytes[6] }, 0);
+                    offset         = 10U;
+
+                }
+
+                var payload     = new Byte[payloadLength];
+                var maskingKey  = new Byte[4] { 0x00, 0x00, 0x00, 0x00 };
+
+                if ((UInt64) ByteArray.Length < offset + payloadLength)
+                {
+                    Frame   = null;
+                    Length  = 0;
+                    return false;
+                }
+
+                if (mask == MaskStatus.Off)
+                    Array.Copy(ByteArray, (Int32) offset, payload, 0, (Int32) payloadLength);
+
+                else
+                {
+
+                    maskingKey = new Byte[4] {
+                                     ByteArray[offset],
+                                     ByteArray[offset + 1],
+                                     ByteArray[offset + 2],
+                                     ByteArray[offset + 3]
+                                 };
+
+                    offset += 4;
+
+                    for (var i = 0UL; i < payloadLength; ++i)
+                        payload[i] = (Byte) (ByteArray[offset + i] ^ maskingKey[i % 4]);
+
+                }
+
+                Frame   = new WebSocketFrame(fin,
+                                             mask,
+                                             maskingKey,
+                                             opcode,
+                                             payload,
+                                             rsv1,
+                                             rsv2,
+                                             rsv3);
+
+                Length  = offset + payloadLength;
+
+                return true;
 
             }
+            catch (Exception e)
+            {
 
-            return new WebSocketFrame(fin,
-                                      mask,
-                                      maskingKey,
-                                      opcode,
-                                      payload,
-                                      rsv1,
-                                      rsv2,
-                                      rsv3);
+                DebugX.Log(nameof(WebSocketFrame) + " Exception occured: " + e.Message);
+
+                Frame  = null;
+                Length = 0;
+                return false;
+
+            }
 
         }
 
@@ -564,14 +594,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             if (payloadLength < 126)
             {
-                frameBytes     = new Byte[payloadLength +  2];
+                frameBytes     = new Byte[payloadLength + 2 + (IsMasked ? 4U : 0U)];
                 frameBytes[1]  = (Byte) payloadLength;
                 offset         = 2;
             }
 
             else if (payloadLength >= 126 && payloadLength <= 65536)
             {
-                frameBytes = new Byte[payloadLength +  4];
+                frameBytes = new Byte[payloadLength + 4 + (IsMasked ? 4U : 0U)];
                 frameBytes[1] = (Byte) 126;
                 var extPayloadLength = ((ushort) payloadLength).InternalToByteArray(ByteOrder.Big);
                 frameBytes[2] = extPayloadLength[0];
@@ -581,7 +611,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             else
             {
-                frameBytes = new Byte[payloadLength + 10];
+                frameBytes = new Byte[payloadLength + 10 + (IsMasked ? 4U : 0U)];
                 var extPayloadLength = payloadLength.InternalToByteArray(ByteOrder.Big);
                 frameBytes[1] = (Byte) 127;
                 frameBytes[2] = extPayloadLength[0];
@@ -594,9 +624,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 frameBytes[9] = extPayloadLength[7];
                 offset = 10;
             }
-
-            Array.Copy(Payload, 0, frameBytes, offset, Payload.Length);
-
 
 
             if (FIN == Fin.Final)
@@ -613,6 +640,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             frameBytes[0] |= (Byte) Opcode;
 
+            try
+            {
+                // Mask is required when client -> server!
+                if (IsMasked)
+                {
+
+                    frameBytes[1] |= 0x80;
+
+                    frameBytes[offset]     = MaskingKey[0];
+                    frameBytes[offset + 1] = MaskingKey[1];
+                    frameBytes[offset + 2] = MaskingKey[2];
+                    frameBytes[offset + 3] = MaskingKey[3];
+
+                    offset += 4;
+
+                    for (var i = 0U; i < payloadLength; ++i)
+                        Payload[i] = (Byte) (Payload[i] ^ MaskingKey[i % 4]);
+
+                }
+
+                Array.Copy(Payload, 0, frameBytes, offset, Payload.Length);
+
+            }
+            catch (Exception e)
+            {
+
+
+            }
 
             return frameBytes;
 

@@ -188,48 +188,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Cache-Control
 
         public String CacheControl
-        {
-            get
-            {
-                return GetHeaderField(HTTPHeaderField.CacheControl);
-            }
-        }
+            => GetHeaderField(HTTPHeaderField.CacheControl);
 
         #endregion
 
         #region Connection
 
         public String Connection
-        {
-            get
-            {
-                return GetHeaderField(HTTPHeaderField.Connection);
-            }
-        }
+            => GetHeaderField(HTTPHeaderField.Connection);
 
         #endregion
 
         #region Content-Encoding
 
         public Encoding ContentEncoding
-        {
-            get
-            {
-                return GetHeaderField<Encoding>("Content-Encoding");
-            }
-        }
+            => GetHeaderField<Encoding>("Content-Encoding");
 
         #endregion
 
         #region Content-Language
 
         public List<String> ContentLanguage
-        {
-            get
-            {
-                return GetHeaderField<List<String>>(HTTPHeaderField.ContentLanguage);
-            }
-        }
+            => GetHeaderField<List<String>>(HTTPHeaderField.ContentLanguage);
 
         #endregion
 
@@ -240,10 +220,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             get
             {
 
-                if (!_HeaderFields.ContainsKey(HTTPHeaderField.ContentLength.Name))
-                    return new Nullable<UInt64>();
+                if (TryGetHeaderField(HTTPHeaderField.ContentLength.Name, out Object contentLength) && contentLength is UInt64 _contentLength)
+                    return _contentLength;
 
-                return GetHeaderField<UInt64>(HTTPHeaderField.ContentLength);
+                return null;
 
             }
         }
@@ -253,36 +233,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Content-Location
 
         public String ContentLocation
-        {
-            get
-            {
-                return GetHeaderField(HTTPHeaderField.ContentLocation);
-            }
-        }
+            => GetHeaderField(HTTPHeaderField.ContentLocation);
 
         #endregion
 
         #region Content-MD5
 
         public String ContentMD5
-        {
-            get
-            {
-                return GetHeaderField(HTTPHeaderField.ContentMD5);
-            }
-        }
+            => GetHeaderField(HTTPHeaderField.ContentMD5);
 
         #endregion
 
         #region Content-Range
 
         public String ContentRange
-        {
-            get
-            {
-                return GetHeaderField(HTTPHeaderField.ContentRange);
-            }
-        }
+            => GetHeaderField(HTTPHeaderField.ContentRange);
 
         #endregion
 
@@ -318,24 +283,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Date
 
         public String Date
-        {
-            get
-            {
-                return GetHeaderField(HTTPHeaderField.Date);
-            }
-        }
+            => GetHeaderField(HTTPHeaderField.Date);
 
         #endregion
 
         #region Via
 
         public String Via
-        {
-            get
-            {
-                return GetHeaderField(HTTPHeaderField.Via);
-            }
-        }
+            => GetHeaderField(HTTPHeaderField.Via);
+
+        #endregion
+
+        #region SecWebSocketProtocol
+
+        public String SecWebSocketProtocol
+            => GetHeaderField(HTTPHeaderField.SecWebSocketProtocol);
+
+        #endregion
+
+        #region SecWebSocketVersion
+
+        public String SecWebSocketVersion
+            => GetHeaderField(HTTPHeaderField.SecWebSocketVersion);
 
         #endregion
 
@@ -529,7 +498,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var AllLines = HTTPHeader.Trim().Split(_LineSeparator, StringSplitOptions.RemoveEmptyEntries);
 
             FirstPDULine = AllLines.FirstOrDefault();
-            if (FirstPDULine == null)
+            if (FirstPDULine is null)
                 throw new Exception("Bad request");
 
             #endregion
@@ -538,6 +507,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             foreach (var Line in AllLines.Skip(1))
             {
+
+                if (Line.IsNullOrEmpty())
+                    break;
 
                 var keyValuePair = Line.Split(_ColonSeparator, 2);
 

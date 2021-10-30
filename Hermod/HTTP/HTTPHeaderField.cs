@@ -659,7 +659,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Sec-Web-SocketKey.
         /// </summary>
-        public static readonly HTTPHeaderField SecWebSocketKey = new HTTPHeaderField("Sec-Web-SocketKey",
+        public static readonly HTTPHeaderField SecWebSocketKey = new HTTPHeaderField("Sec-WebSocket-Key",
                                                                                      typeof(String),
                                                                                      HeaderFieldType.General,
                                                                                      RequestPathSemantic.EndToEnd);
@@ -671,7 +671,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Sec-Web-SocketProtocol.
         /// </summary>
-        public static readonly HTTPHeaderField SecWebSocketProtocol = new HTTPHeaderField("Sec-Web-SocketProtocol",
+        public static readonly HTTPHeaderField SecWebSocketProtocol = new HTTPHeaderField("Sec-WebSocket-Protocol",
                                                                                           typeof(String),
                                                                                           HeaderFieldType.General,
                                                                                           RequestPathSemantic.EndToEnd);

@@ -506,6 +506,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region SecWebSocketKey
+
+        public String SecWebSocketKey
+            => GetHeaderField(HTTPHeaderField.SecWebSocketKey);
+
+        #endregion
+
         #endregion
 
         #region Non-standard request header fields
@@ -1175,6 +1182,74 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               Body,
 
                                               EventTrackingId:  EventTrackingId);
+
+                    return true;
+
+                }
+                catch (Exception e)
+                {
+                    DebugX.LogT("Could not parse HTTP request lines: " + e.Message);
+                }
+            }
+
+            Request = null;
+            return false;
+
+        }
+
+        #endregion
+
+        #region (static) TryParse(Bytes,       out Request, Timestamp = null, HTTPSource = null, LocalSocket = null, HTTPServer = null, ...)
+
+        /// <summary>
+        /// Parse the given text as a HTTP request.
+        /// </summary>
+        /// <param name="Bytes">The lines of the text representation of a HTTP request.</param>
+        /// <param name="Request">The parsed HTTP request.</param>
+        /// 
+        /// <param name="Timestamp">The optional timestamp of the request.</param>
+        /// <param name="HTTPSource">The optional remote TCP socket of the request.</param>
+        /// <param name="LocalSocket">The optional local TCp socket of the request.</param>
+        /// <param name="RemoteSocket">The optional remote TCP socket of the request.</param>
+        /// <param name="HTTPServer">The optional HTTP server who has received this request.</param>
+        /// 
+        /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
+        /// <param name="EventTrackingId">The optional event tracking identification of the request.</param>
+        public static Boolean TryParse(Byte[]               Bytes,
+                                       out HTTPRequest      Request,
+
+                                       DateTime?            Timestamp           = null,
+                                       HTTPSource?          HTTPSource          = null,
+                                       IPSocket?            LocalSocket         = null,
+                                       IPSocket?            RemoteSocket        = null,
+                                       HTTPServer           HTTPServer          = null,
+
+                                       CancellationToken?   CancellationToken   = null,
+                                       EventTracking_Id     EventTrackingId     = null)
+        {
+
+            if (Bytes.SafeAny())
+            {
+                try
+                {
+
+                    var header  = Bytes.ToUTF8String().
+                                        Split(new String[] { "\r\n" },
+                                              StringSplitOptions.None).
+                                        Where(line => line?.Trim().IsNotNullOrEmpty() == true).
+                                        ToArray();
+
+                    Request     = new HTTPRequest(Timestamp    ?? DateTime.UtcNow,
+                                                  HTTPSource   ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
+                                                  LocalSocket  ?? IPSocket.LocalhostV4(IPPort.HTTPS),
+                                                  RemoteSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
+                                                  HTTPServer,
+
+                                                  header.        AggregateWith("\r\n"),
+                                                  new Byte[0],
+
+                                                  CancellationToken:  CancellationToken,
+                                                  EventTrackingId:    EventTrackingId);
 
                     return true;
 
@@ -2012,6 +2087,63 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 set
                 {
                     SetHeaderField(HTTPHeaderField.API_Key, value);
+                }
+
+            }
+
+            #endregion
+
+            #region SecWebSocketKey
+
+            public String SecWebSocketKey
+            {
+
+                get
+                {
+                    return GetHeaderField(HTTPHeaderField.SecWebSocketKey);
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPHeaderField.SecWebSocketKey, value);
+                }
+
+            }
+
+            #endregion
+
+            #region SecWebSocketProtocol
+
+            public String SecWebSocketProtocol
+            {
+
+                get
+                {
+                    return GetHeaderField(HTTPHeaderField.SecWebSocketProtocol);
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPHeaderField.SecWebSocketProtocol, value);
+                }
+
+            }
+
+            #endregion
+
+            #region SecWebSocketVersion
+
+            public String SecWebSocketVersion
+            {
+
+                get
+                {
+                    return GetHeaderField(HTTPHeaderField.SecWebSocketVersion);
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPHeaderField.SecWebSocketVersion, value);
                 }
 
             }

@@ -35,7 +35,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                                   EventTracking_Id     EventTrackingId,
                                                                                                   CancellationToken    CancellationToken);
 
-    public delegate Task<HTTPResponse>                   OnWebSocketHandshake                    (DateTime             Timestamp,
+    public delegate Task<HTTPResponse>                   OnOnValidateWebSocketConnectionDelegate (DateTime             Timestamp,
                                                                                                   WebSocketServer      WebSocketServer,
                                                                                                   WebSocketConnection  NewWebSocketConnection,
                                                                                                   EventTracking_Id     EventTrackingId,

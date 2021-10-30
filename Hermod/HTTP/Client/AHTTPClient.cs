@@ -323,7 +323,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.HTTPLogger                  = HTTPLogger;
             this.DNSClient                   = DNSClient              ?? new DNSClient();
 
-            this.RemotePort                  = RemoteURL.Port         ?? (RemoteURL.Protocol == HTTPProtocols.http
+            this.RemotePort                  = RemoteURL.Port         ?? (RemoteURL.Protocol == URLProtocols.http
                                                                              ? IPPort.HTTP
                                                                              : IPPort.HTTPS);
 
@@ -416,7 +416,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Request">A HTTP request.</param>
         /// <param name="RequestLogDelegate">A delegate for logging the HTTP request.</param>
-        /// <param name="ResponseLogDelegate">A delegate for logging the HTTP request/response.</param>        /// 
+        /// <param name="ResponseLogDelegate">A delegate for logging the HTTP request/response.</param>
         /// 
         /// <param name="CancellationToken">A cancellation token.</param>
         /// <param name="EventTrackingId"></param>

@@ -28,7 +28,10 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
-    public enum HTTPProtocols
+    /// <summary>
+    /// Well-known protocols.
+    /// </summary>
+    public enum URLProtocols
     {
 
         /// <summary>
@@ -39,7 +42,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// HTTPS
         /// </summary>
-        https
+        https,
+
+        /// <summary>
+        /// Web Sockets
+        /// </summary>
+        ws,
+
+        /// <summary>
+        /// Web Sockets Secure
+        /// </summary>
+        wss,
 
     }
 
@@ -75,7 +88,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             => (UInt64) (InternalId?.Length ?? 0);
 
-        public HTTPProtocols  Protocol    { get; }
+        public URLProtocols  Protocol    { get; }
 
         public HTTPHostname   Hostname    { get; }
 
@@ -92,7 +105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="String">The string representation of the uniform resource location.</param>
         private URL(String         String,
-                    HTTPProtocols  Protocol,
+                    URLProtocols  Protocol,
                     HTTPHostname   Hostname,
                     IPPort?        Port,
                     HTTPPath       Path)
@@ -171,20 +184,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     var elements = Text.Split('/');
 
-                    HTTPProtocols  protocol  = HTTPProtocols.https;
-                    HTTPHostname   hostname;
-                    IPPort?        port      = default;
-                    HTTPPath?      path      = default;
+                    URLProtocols  protocol  = URLProtocols.https;
+                    HTTPHostname  hostname;
+                    IPPort?       port      = default;
+                    HTTPPath?     path      = default;
 
                     switch (elements[0])
                     {
 
                         case "http:":
-                            protocol = HTTPProtocols.http;
+                            protocol = URLProtocols.http;
+                            break;
+
+                        case "ws:":
+                            protocol = URLProtocols.ws;
+                            break;
+
+                        case "wss:":
+                            protocol = URLProtocols.wss;
                             break;
 
                         default:
-                            protocol = HTTPProtocols.https;
+                            protocol = URLProtocols.https;
                             break;
 
                     }
@@ -217,6 +238,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (elements.Length > 3)
                         path = HTTPPath.TryParse(elements.Skip(3).AggregateWith("/"));
 
+
+                    if (port is null)
+                    {
+                        switch (protocol)
+                        {
+
+                            case URLProtocols.http:
+                                port = IPPort.HTTP;
+                                break;
+
+                            case URLProtocols.https:
+                                port = IPPort.HTTPS;
+                                break;
+
+                            case URLProtocols.ws:
+                                port = IPPort.HTTP;
+                                break;
+
+                            case URLProtocols.wss:
+                                port = IPPort.HTTPS;
+                                break;
+
+                        }
+                    }
 
                     URL = new URL(Text,
                                   protocol,

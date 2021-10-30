@@ -39,7 +39,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region Data
 
-        private readonly Dictionary<String, String> httpHeaders;
+        //private readonly Dictionary<String, String> httpHeaders;
 
         private readonly Dictionary<String, Object> customData;
 
@@ -47,27 +47,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region Properties
 
-        public DateTime                                   Created                       { get; }
+        public DateTime                 Created                    { get; }
 
-        public CancellationTokenSource                    CancellationTokenSource       { get; }
+        public CancellationTokenSource  CancellationTokenSource    { get; }
 
-        public WebSocketServer                            WebSocketServer               { get; }
+        public WebSocketServer          WebSocketServer            { get; }
 
-        public TcpClient                                  TcpClient                     { get; }
+        public TcpClient                TcpClient                  { get; }
 
-        public IPSocket                                   LocalSocket                   { get; }
+        public IPSocket                 LocalSocket                { get; }
 
-        public IPSocket                                   RemoteSocket                  { get; }
+        public IPSocket                 RemoteSocket               { get; }
 
-        public String                                     HTTPMethod                    { get; internal set; }
-
-        public HTTPPath                                   HTTPPath                      { get; internal set; }
-
-        public String                                     HTTPVersion                   { get; internal set; }
-
-
-        public IEnumerable<KeyValuePair<String, String>>  HTTPHeaders
-                   => httpHeaders;
+        public HTTPRequest              Request                    { get; internal set; }
 
         #endregion
 
@@ -75,7 +67,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         public WebSocketConnection(WebSocketServer                            WebSocketServer,
                                    TcpClient                                  TcpClient,
-                                   IEnumerable<KeyValuePair<String, String>>  HTTPHeaders   = null,
+                                   HTTPRequest                                Request         = null,
+                                   //IEnumerable<KeyValuePair<String, String>>  HTTPHeaders   = null,
                                    IEnumerable<KeyValuePair<String, Object>>  CustomData    = null)
         {
 
@@ -85,10 +78,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.TcpClient                = TcpClient;
             this.LocalSocket              = IPSocket.FromIPEndPoint(TcpClient.Client.LocalEndPoint);
             this.RemoteSocket             = IPSocket.FromIPEndPoint(TcpClient.Client.RemoteEndPoint);
-            this.httpHeaders              = HTTPHeaders != null
-                                                ? HTTPHeaders.ToDictionary(kvp => kvp.Key,
-                                                                           kvp => kvp.Value)
-                                                : new Dictionary<String, String>();
+            this.Request                  = Request;
+            //this.httpHeaders              = HTTPHeaders != null
+            //                                    ? HTTPHeaders.ToDictionary(kvp => kvp.Key,
+            //                                                               kvp => kvp.Value)
+            //                                    : new Dictionary<String, String>();
             this.customData               = CustomData != null
                                                 ? CustomData. ToDictionary(kvp => kvp.Key,
                                                                            kvp => kvp.Value)
@@ -99,24 +93,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
-        internal void AddHTTPHeader(String  Key,
-                                    String  Value)
-        {
+        //internal void AddHTTPHeader(String  Key,
+        //                            String  Value)
+        //{
 
-            httpHeaders.Add(Key,
-                             Value);
+        //    httpHeaders.Add(Key,
+        //                    Value);
 
-        }
+        //}
 
-        public String GetHTTPHeader(String Key)
-        {
+        //public String GetHTTPHeader(String Key)
+        //{
 
-            if (httpHeaders.TryGetValue(Key, out String Value))
-                return Value;
+        //    if (httpHeaders.TryGetValue(Key, out String Value))
+        //        return Value;
 
-            return "";
+        //    return "";
 
-        }
+        //}
 
 
 

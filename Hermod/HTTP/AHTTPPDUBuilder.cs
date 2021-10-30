@@ -93,6 +93,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 foreach (var kvp in HeaderFields)
                 {
+
+                    if (kvp.Key == "Accept" && !(kvp.Value as AcceptTypes).Any())
+                        continue;
+
                     if (kvp.Value != null)
                     {
 
@@ -310,82 +314,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             set
             {
                 SetHeaderField(HTTPHeaderField.Upgrade, value);
-            }
-
-        }
-
-        #endregion
-
-        #region SecWebSocketKey
-
-        public String SecWebSocketKey
-        {
-
-            get
-            {
-                return GetHeaderField(HTTPHeaderField.SecWebSocketKey);
-            }
-
-            set
-            {
-                SetHeaderField(HTTPHeaderField.SecWebSocketKey, value);
-            }
-
-        }
-
-        #endregion
-
-        #region SecWebSocketProtocol
-
-        public String SecWebSocketProtocol
-        {
-
-            get
-            {
-                return GetHeaderField(HTTPHeaderField.SecWebSocketProtocol);
-            }
-
-            set
-            {
-                SetHeaderField(HTTPHeaderField.SecWebSocketProtocol, value);
-            }
-
-        }
-
-        #endregion
-
-        #region SecWebSocketVersion
-
-        public String SecWebSocketVersion
-        {
-
-            get
-            {
-                return GetHeaderField(HTTPHeaderField.SecWebSocketVersion);
-            }
-
-            set
-            {
-                SetHeaderField(HTTPHeaderField.SecWebSocketVersion, value);
-            }
-
-        }
-
-        #endregion
-
-        #region Sec-WebSocket-Accept
-
-        public String SecWebSocketAccept
-        {
-
-            get
-            {
-                return GetHeaderField(HTTPHeaderField.SecWebSocketAccept);
-            }
-
-            set
-            {
-                SetHeaderField(HTTPHeaderField.SecWebSocketAccept, value);
             }
 
         }
@@ -627,6 +555,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             set
             {
                 SetHeaderField(HTTPHeaderField.TransferEncoding, value);
+            }
+
+        }
+
+        #endregion
+
+        #region SecWebSocketProtocol
+
+        public String SecWebSocketProtocol
+        {
+
+            get
+            {
+                return GetHeaderField(HTTPHeaderField.SecWebSocketProtocol);
+            }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.SecWebSocketProtocol, value);
+            }
+
+        }
+
+        #endregion
+
+        #region SecWebSocketVersion
+
+        public String SecWebSocketVersion
+        {
+
+            get
+            {
+                return GetHeaderField(HTTPHeaderField.SecWebSocketVersion);
+            }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.SecWebSocketVersion, value);
             }
 
         }

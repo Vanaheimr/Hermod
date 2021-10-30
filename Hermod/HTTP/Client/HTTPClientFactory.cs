@@ -64,7 +64,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  HTTPClientLogger                     HTTPLogger                   = null,
                                                  DNSClient                            DNSClient                    = null)
 
-            => RemoteURL.Protocol == HTTPProtocols.http
+            => RemoteURL.Protocol == URLProtocols.http
 
                                          ? new HTTPClient(RemoteURL,
                                                            VirtualHostname,

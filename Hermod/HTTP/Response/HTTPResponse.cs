@@ -538,6 +538,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region SecWebSocketAccept
+
+        public String SecWebSocketAccept
+            => GetHeaderField(HTTPHeaderField.SecWebSocketAccept);
+
+        #endregion
+
         #endregion
 
         #region Non-standard response header fields
@@ -612,8 +619,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.HTTPRequest          = HTTPRequest;
 
-            var _StatusCodeLine       = FirstPDULine.Split(' ');
-            if (_StatusCodeLine.Length < 3)
+            var _StatusCodeLine       = FirstPDULine.Split(new Char[] { ' ' }, 3);
+            if (_StatusCodeLine.Length != 2 && _StatusCodeLine.Length != 3)
                 throw new Exception("Invalid HTTP response!");
 
             this.HTTPStatusCode       = HTTPStatusCode.ParseString(_StatusCodeLine[1]);
@@ -1618,6 +1625,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 set
                 {
                     SetHeaderField(HTTPHeaderField.WWWAuthenticate, value);
+                }
+
+            }
+
+            #endregion
+
+            #region SecWebSocketAccept
+
+            public String SecWebSocketAccept
+            {
+
+                get
+                {
+                    return GetHeaderField(HTTPHeaderField.SecWebSocketAccept);
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPHeaderField.SecWebSocketAccept, value);
                 }
 
             }
