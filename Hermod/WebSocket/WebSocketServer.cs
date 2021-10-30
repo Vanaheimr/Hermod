@@ -462,7 +462,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                         responseTask.Wait(TimeSpan.FromSeconds(60));
 
-                                                        if (responseTask.Result.Response != null)
+                                                        // Incoming higher protocol level respones will not produce another response!
+                                                        if (responseTask.Result?.Response != null)
                                                         {
 
                                                             responseFrame = new WebSocketFrame(WebSocketFrame.Fin.Final,
@@ -491,13 +492,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 try
                                                 {
 
-                                                    OnTextMessageResponse?.Invoke(Timestamp.Now,
-                                                                                  this,
-                                                                                  WSConnection,
-                                                                                  frame.Payload.ToUTF8String(),
-                                                                                  responseFrame.Payload.ToUTF8String(),
-                                                                                  eventTrackingId,
-                                                                                  token2);
+                                                    if (responseFrame != null)
+                                                        OnTextMessageResponse?.Invoke(Timestamp.Now,
+                                                                                      this,
+                                                                                      WSConnection,
+                                                                                      frame.Payload.ToUTF8String(),
+                                                                                      responseFrame.Payload.ToUTF8String(),
+                                                                                      eventTrackingId,
+                                                                                      token2);
 
                                                 }
                                                 catch (Exception e)
@@ -554,7 +556,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                         responseTask.Wait(TimeSpan.FromSeconds(60));
 
-                                                        if (responseTask.Result.Response != null)
+                                                        // Incoming higher protocol level respones will not produce another response!
+                                                        if (responseTask.Result?.Response != null)
                                                         {
 
                                                             responseFrame = new WebSocketFrame(WebSocketFrame.Fin.Final,
@@ -583,13 +586,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 try
                                                 {
 
-                                                    OnBinaryMessageResponse?.Invoke(Timestamp.Now,
-                                                                                    this,
-                                                                                    WSConnection,
-                                                                                    frame.Payload,
-                                                                                    responseFrame.Payload,
-                                                                                    eventTrackingId,
-                                                                                    token2);
+                                                    if (responseFrame != null)
+                                                        OnBinaryMessageResponse?.Invoke(Timestamp.Now,
+                                                                                        this,
+                                                                                        WSConnection,
+                                                                                        frame.Payload,
+                                                                                        responseFrame.Payload,
+                                                                                        eventTrackingId,
+                                                                                        token2);
 
                                                 }
                                                 catch (Exception e)

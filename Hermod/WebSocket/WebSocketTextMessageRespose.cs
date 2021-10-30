@@ -24,7 +24,7 @@ using System;
 namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
-    public struct WebSocketTextMessageRespose
+    public class WebSocketTextMessageRespose
     {
 
         public DateTime  RequestTimestamp     { get; }

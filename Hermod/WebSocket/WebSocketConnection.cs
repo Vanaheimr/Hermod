@@ -147,6 +147,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         }
 
+        public Boolean TryGetCustomData<T>(String Key, out T Value)
+        {
+
+            if (customData.TryGetValue(Key, out Object data) && data is T dataT)
+            {
+                Value = (T)dataT;
+                return true;
+            }
+
+            Value = default;
+            return false;
+
+        }
+
     }
 
 }

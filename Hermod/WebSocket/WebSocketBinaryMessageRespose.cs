@@ -35,7 +35,7 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
-    public struct WebSocketBinaryMessageRespose
+    public class WebSocketBinaryMessageRespose
     {
 
         public DateTime  ResponseTimestamp    { get; }
