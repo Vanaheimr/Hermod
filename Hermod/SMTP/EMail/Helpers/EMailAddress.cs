@@ -297,8 +297,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public static EMailAddress Parse(String EMailAddressString)
         {
 
-            if (EMailAddressString != null)
-                EMailAddressString = EMailAddressString.Trim();
+            EMailAddressString = EMailAddressString?.Trim();
 
             if (EMailAddressString.IsNullOrEmpty())
                 return null;
@@ -307,7 +306,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             var c      = EMailAddressString.IndexOf('>');
             var name   = (b >= 0 && c > b)
                              ? EMailAddressString.Remove(b, c - b + 1).Trim()
-                             : "";
+                             : null;
             var email  = (b >= 0 && c > b)
                              ? EMailAddressString.Substring(b + 1, c - b - 1).Trim()
                              : EMailAddressString.Trim();
