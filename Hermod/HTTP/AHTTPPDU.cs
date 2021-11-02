@@ -220,10 +220,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             get
             {
 
-                if (TryGetHeaderField(HTTPHeaderField.ContentLength.Name, out Object contentLength) && contentLength is UInt64 _contentLength)
-                    return _contentLength;
+                if (!_HeaderFields.ContainsKey(HTTPHeaderField.ContentLength.Name))
+                    return new Nullable<UInt64>();
 
-                return null;
+                return GetHeaderField<UInt64>(HTTPHeaderField.ContentLength);
+
+                //if (TryGetHeaderField(HTTPHeaderField.ContentLength.Name, out Object contentLength) && contentLength is UInt64 _contentLength)
+                //    return _contentLength;
+
+                //return null;
 
             }
         }
