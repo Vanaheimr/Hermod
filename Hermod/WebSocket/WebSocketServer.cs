@@ -18,7 +18,7 @@
 #region Usings
 
 using System;
-using System.Linq;
+using System.IO;
 using System.Text;
 using System.Threading;
 using System.Net.Sockets;
@@ -73,6 +73,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         private readonly CancellationTokenSource    cancellationTokenSource;
 
+        private const String LogfileName = "CentralSystemWSServer.log";
+
         #endregion
 
         #region Properties
@@ -122,9 +124,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public event OnWebSocketBinaryMessageResponseDelegate   OnBinaryMessageResponse;
 
 
-        public event OnWebSocketMessageDelegate                 OnPingMessage;
+        public event OnWebSocketMessageDelegate                 OnPingMessageReceived;
 
-        public event OnWebSocketMessageDelegate                 OnPongMessage;
+        public event OnWebSocketMessageDelegate                 OnPongMessageReceived;
 
 
         public event OnCloseMessageDelegate                     OnCloseMessage;
@@ -199,6 +201,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             Byte[] bytesLeftOver = new Byte[0];
                             String data          = null;
                             Boolean IsStillHTTP  = true;
+                            var lastWebSocketPingTimestamp  = Timestamp.Now;
+                            var WebSocketPingEvery          = TimeSpan.FromSeconds(20);
 
                             HTTPResponse httpResponse = null;
 
@@ -236,8 +240,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 if (bytes is null)
                                 {
 
-                                    while (!stream.DataAvailable) {
+                                    while (!stream.DataAvailable)
+                                    {
+
+                                        if (Timestamp.Now > lastWebSocketPingTimestamp + WebSocketPingEvery)
+                                        {
+
+                                            stream.Write(new WebSocketFrame(WebSocketFrame.Fin.Final,
+                                                                            WebSocketFrame.MaskStatus.On,
+                                                                            new Byte[] { 0xaa, 0xaa, 0xaa, 0xaa },
+                                                                            WebSocketFrame.Opcodes.Ping,
+                                                                            Guid.NewGuid().ToByteArray(),
+                                                                            WebSocketFrame.Rsv.Off,
+                                                                            WebSocketFrame.Rsv.Off,
+                                                                            WebSocketFrame.Rsv.Off).ToByteArray());
+
+                                            stream.Flush();
+
+                                            DebugX.Log(nameof(WebSocketServer) + ": Ping sent!");
+
+                                            lastWebSocketPingTimestamp = Timestamp.Now;
+
+                                        }
+
                                         Thread.Sleep(5);
+
                                     };
 
                                     bytes = new Byte[bytesLeftOver.Length + WSConnection.TcpClient.Available];
@@ -324,6 +351,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                     var response = (httpResponse.EntirePDU + "\r\n\r\n").ToUTF8Bytes();
 
                                     stream.Write(response, 0, response.Length);
+
+                                    if (httpRequest != null)
+                                    {
+
+                                        File.AppendAllText(LogfileName,
+                                                           String.Concat("Timestamp: ",     Timestamp.Now.ToIso8601(), Environment.NewLine,
+                                                                         "HTTP request: ",       Environment.NewLine, Environment.NewLine,
+                                                                         httpRequest.EntirePDU,  Environment.NewLine,
+                                                                         "--------------------------------------------------------------------------------------------", Environment.NewLine));
+
+                                        File.AppendAllText(LogfileName,
+                                                           String.Concat("Timestamp: ",     Timestamp.Now.ToIso8601(), Environment.NewLine,
+                                                                         "HTTP response: ",      Environment.NewLine, Environment.NewLine,
+                                                                         httpResponse.EntirePDU, Environment.NewLine,
+                                                                         "--------------------------------------------------------------------------------------------", Environment.NewLine));
+
+                                    }
 
                                     if (httpResponse.Connection == "close")
                                     {
@@ -611,30 +655,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                             case WebSocketFrame.Opcodes.Ping:
 
+                                                #region OnPingMessageReceived
+
                                                 try
                                                 {
 
-                                                    //var OnCloseMessageLocal = OnCloseMessage;
-
-                                                    //if (OnCloseMessageLocal != null)
-                                                    //{
-
-                                                    //    var responseTask = OnCloseMessageLocal(Timestamp.Now,
-                                                    //                                           this,
-                                                    //                                           WSConnection,
-                                                    //                                           frame,
-                                                    //                                           eventTrackingId,
-                                                    //                                           token2);
-
-                                                    //    responseTask.Wait(TimeSpan.FromSeconds(10));
-
-                                                    //}
+                                                    OnPingMessageReceived?.Invoke(Timestamp.Now,
+                                                                                    this,
+                                                                                    WSConnection,
+                                                                                    frame,
+                                                                                    eventTrackingId,
+                                                                                    token2);
 
                                                 }
                                                 catch (Exception e)
                                                 {
-                                                    DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnTextMessage));
+                                                    DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnPingMessageReceived));
                                                 }
+
+                                                #endregion
+
+                                                DebugX.Log(nameof(WebSocketServer) + ": Ping received!");
+
+                                                responseFrame = new WebSocketFrame(WebSocketFrame.Fin.Final,
+                                                                                   WebSocketFrame.MaskStatus.On,
+                                                                                   new Byte[] { 0xaa, 0xbb, 0xcc, 0xdd },
+                                                                                   WebSocketFrame.Opcodes.Pong,
+                                                                                   frame.Payload,
+                                                                                   WebSocketFrame.Rsv.Off,
+                                                                                   WebSocketFrame.Rsv.Off,
+                                                                                   WebSocketFrame.Rsv.Off);
 
                                                 break;
 
@@ -644,30 +694,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                             case WebSocketFrame.Opcodes.Pong:
 
+                                                #region OnPongMessageReceived
+
                                                 try
                                                 {
 
-                                                    //var OnCloseMessageLocal = OnCloseMessage;
-
-                                                    //if (OnCloseMessageLocal != null)
-                                                    //{
-
-                                                    //    var responseTask = OnCloseMessageLocal(Timestamp.Now,
-                                                    //                                           this,
-                                                    //                                           WSConnection,
-                                                    //                                           frame,
-                                                    //                                           eventTrackingId,
-                                                    //                                           token2);
-
-                                                    //    responseTask.Wait(TimeSpan.FromSeconds(10));
-
-                                                    //}
+                                                    OnPongMessageReceived?.Invoke(Timestamp.Now,
+                                                                                  this,
+                                                                                  WSConnection,
+                                                                                  frame,
+                                                                                  eventTrackingId,
+                                                                                  token2);
 
                                                 }
                                                 catch (Exception e)
                                                 {
-                                                    DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnTextMessage));
+                                                    DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnPongMessageReceived));
                                                 }
+
+                                                #endregion
+
+                                                DebugX.Log(nameof(WebSocketServer) + ": Pong received!");
 
                                                 break;
 
