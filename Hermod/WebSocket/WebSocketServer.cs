@@ -234,6 +234,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                             #endregion
 
+                            DebugX.Log("New web socket connection from: " + WSConnection.RemoteSocket.IPAddress + ":" + WSConnection.RemoteSocket.Port + "...");
+
                             while (!token2.IsCancellationRequested && stream != null)
                             {
 
@@ -243,12 +245,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                     while (!stream.DataAvailable)
                                     {
 
-                                        if (Timestamp.Now > lastWebSocketPingTimestamp + WebSocketPingEvery)
+                                        #region Send a regular web socket Ping
+
+                                        if (stream != null &&
+                                            Timestamp.Now > lastWebSocketPingTimestamp + WebSocketPingEvery)
                                         {
 
                                             stream.Write(new WebSocketFrame(WebSocketFrame.Fin.Final,
-                                                                            WebSocketFrame.MaskStatus.On,
-                                                                            new Byte[] { 0xaa, 0xaa, 0xaa, 0xaa },
+                                                                            WebSocketFrame.MaskStatus.Off,
+                                                                            new Byte[] { 0x00, 0x00, 0x00, 0x00 },
                                                                             WebSocketFrame.Opcodes.Ping,
                                                                             Guid.NewGuid().ToByteArray(),
                                                                             WebSocketFrame.Rsv.Off,
@@ -262,6 +267,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                             lastWebSocketPingTimestamp = Timestamp.Now;
 
                                         }
+
+                                        #endregion
 
                                         Thread.Sleep(5);
 
@@ -678,8 +685,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 DebugX.Log(nameof(WebSocketServer) + ": Ping received!");
 
                                                 responseFrame = new WebSocketFrame(WebSocketFrame.Fin.Final,
-                                                                                   WebSocketFrame.MaskStatus.On,
-                                                                                   new Byte[] { 0xaa, 0xbb, 0xcc, 0xdd },
+                                                                                   WebSocketFrame.MaskStatus.Off,
+                                                                                   //new Byte[] { 0xaa, 0xbb, 0xcc, 0xdd },
+                                                                                   new Byte[] { 0x00, 0x00, 0x00, 0x00 },
                                                                                    WebSocketFrame.Opcodes.Pong,
                                                                                    frame.Payload,
                                                                                    WebSocketFrame.Rsv.Off,
@@ -744,9 +752,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 #endregion
 
-                                                webSocketConnections.Remove(WSConnection);
-                                                stream.Close();
-                                                stream = null;
+                                                DebugX.Log(nameof(WebSocketServer) + ": Close received!");
+
+                                                //webSocketConnections.Remove(WSConnection);
+                                                //stream.Close();
+                                                //stream = null;
 
                                                 break;
 
