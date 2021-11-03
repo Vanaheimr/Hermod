@@ -190,17 +190,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         try
                         {
 
-                            var WSConnection     = context as WebSocketConnection;
+                            var WSConnection                = context as WebSocketConnection;
                             webSocketConnections.Add(WSConnection);
-                            var stream           = WSConnection.TcpClient.GetStream();
-                            stream.ReadTimeout   = 20000;
-                            stream.WriteTimeout  = 1000;
-                            var cts2             = CancellationTokenSource.CreateLinkedTokenSource(token);
-                            var token2           = cts2.Token;
-                            Byte[] bytes         = null;
-                            Byte[] bytesLeftOver = new Byte[0];
-                            String data          = null;
-                            Boolean IsStillHTTP  = true;
+                            var stream                      = WSConnection.TcpClient.GetStream();
+                            stream.ReadTimeout              = 20000;
+                            stream.WriteTimeout             = 1000;
+                            var cts2                        = CancellationTokenSource.CreateLinkedTokenSource(token);
+                            var token2                      = cts2.Token;
+                            Byte[] bytes                    = null;
+                            Byte[] bytesLeftOver            = new Byte[0];
+                            String data                     = null;
+                            Boolean IsStillHTTP             = true;
                             var lastWebSocketPingTimestamp  = Timestamp.Now;
                             var WebSocketPingEvery          = TimeSpan.FromSeconds(20);
 
