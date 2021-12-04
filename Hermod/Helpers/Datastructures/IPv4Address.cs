@@ -19,9 +19,7 @@
 
 using System;
 using System.IO;
-using System.Linq;
 
-using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
@@ -78,7 +76,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             => false;
 
         public Boolean IsLocalhost
-            => ToString() == "127.0.0.1";
+            => IPAddressArray[0] == 127 &&
+               IPAddressArray[1] ==   0 &&
+               IPAddressArray[2] ==   0 &&
+               IPAddressArray[3] ==   1;
+
+        public Boolean IsLocalNet
+            => IPAddressArray[0] == 127;
 
         #endregion
 
@@ -103,7 +107,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public IPv4Address(Int32 Int32)
         {
 
-            IPAddressArray = new Byte[_Length] {
+            IPAddressArray = new Byte[] {
                                      (Byte) ( Int32        & 0xFF),
                                      (Byte) ((Int32 >>  8) & 0xFF),
                                      (Byte) ((Int32 >> 16) & 0xFF),
@@ -122,7 +126,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public IPv4Address(UInt32 UInt32)
         {
 
-            IPAddressArray = new Byte[_Length] {
+            IPAddressArray = new Byte[] {
                                      (Byte) ( UInt32        & 0xFF),
                                      (Byte) ((UInt32 >>  8) & 0xFF),
                                      (Byte) ((UInt32 >> 16) & 0xFF),
@@ -141,7 +145,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public IPv4Address(Byte Byte1, Byte Byte2, Byte Byte3, Byte Byte4)
         {
 
-            IPAddressArray = new Byte[_Length] {
+            IPAddressArray = new Byte[] {
                                  Byte1,
                                  Byte2,
                                  Byte3,
@@ -194,17 +198,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Generates a new IPv4Address based on the given string representation.
         /// </summary>
-        public IPv4Address(String IPAddressString)
+        public IPv4Address(String IPv4AddressString)
         {
 
-            var Splitted = IPAddressString.Split(new Char[1] { '.' }, StringSplitOptions.None);
+            var splitted = IPv4AddressString.Split(Splitter, StringSplitOptions.None);
 
-            if (Splitted.Length != 4)
-                throw new ArgumentException("Invalid IP adddress!");
+            if (splitted.Length != _Length)
+                throw new ArgumentException("Invalid IPv4 address!");
 
-            IPAddressArray = Splitted.
-                                 Select(part => Byte.Parse(part)).
-                                 ToArray();
+            IPAddressArray = new Byte[_Length];
+
+            for (var i=0; i<_Length; i++)
+            {
+                if (Byte.TryParse(splitted[i], out Byte byteValue))
+                    IPAddressArray[i] = byteValue;
+            }
 
         }
 
@@ -398,19 +406,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IPv4Address2">Another IPv4Address.</param>
         /// <returns>true|false</returns>
         public static Boolean operator == (IPv4Address IPv4Address1, IPv4Address IPv4Address2)
-        {
-
-            // If both are null, or both are same instance, return true.
-            if (Object.ReferenceEquals(IPv4Address1, IPv4Address2))
-                return true;
-
-            // If one is null, but not both, return false.
-            if (((Object) IPv4Address1 == null) || ((Object) IPv4Address2 == null))
-                return false;
-
-            return IPv4Address1.Equals(IPv4Address2);
-
-        }
+            => IPv4Address1.Equals(IPv4Address2);
 
         #endregion
 
@@ -423,7 +419,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IPv4Address2">Another IPv4Address.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (IPv4Address IPv4Address1, IPv4Address IPv4Address2)
-            => !(IPv4Address1 == IPv4Address2);
+            => !IPv4Address1.Equals(IPv4Address2);
 
         #endregion
 
@@ -456,19 +452,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public Int32 CompareTo(IPv4Address IPv4Address)
         {
 
-            if ((Object) IPv4Address == null)
-                throw new ArgumentNullException("The given IPv4 address must not be null!");
+            var byteArray = IPv4Address.GetBytes();
 
-            var _ByteArray   = IPv4Address.GetBytes();
-            var _Comparision = 0;
-
-            for (var _BytePosition = 0; _BytePosition < 4; _BytePosition++)
+            for (var i = 0; i < byteArray.Length; i++)
             {
 
-                _Comparision = IPAddressArray[0].CompareTo(_ByteArray[0]);
+                var comparision = IPAddressArray[i].CompareTo(byteArray[i]);
 
-                if (_Comparision != 0)
-                    return _Comparision;
+                if (comparision != 0)
+                    return comparision;
 
             }
 
@@ -488,13 +480,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public Int32 CompareTo(IIPAddress IIPAddress)
         {
 
-            if (IIPAddress == null)
-                throw new ArgumentNullException("The given IIPAddress must not be null!");
+            if (IIPAddress is IPv4Address ipv4Address)
+                return CompareTo(ipv4Address);
 
-            if (!(IIPAddress is IPv4Address))
-                throw new ArgumentException("The given object is not an IPv4 address!");
-
-            return CompareTo((IPv4Address) IIPAddress);
+            throw new ArgumentException("The given object is not an IPv4 address!", nameof(IIPAddress));
 
         }
 
@@ -528,14 +517,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public Boolean Equals(IPv4Address IPv4Address)
         {
 
-            if ((Object) IPv4Address == null)
-                return false;
+            var byteArray = IPv4Address.GetBytes();
 
-            // If both are null, or both are same instance, return true.
-            if (ReferenceEquals(this, IPv4Address))
-                return true;
+            for (var i = 0; i < byteArray.Length; i++)
+            {
+                if (IPAddressArray[i] != byteArray[i])
+                    return false;
+            }
 
-            return ToString().Equals(IPv4Address.ToString());
+            return true;
 
         }
 
@@ -551,16 +541,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public Boolean Equals(IIPAddress IIPAddress)
         {
 
-            if ((Object) IIPAddress == null)
-                throw new ArgumentNullException("The given IIPAddress must not be null!");
+            if (IIPAddress is null)
+                throw new ArgumentNullException(nameof(IIPAddress), "The given IIPAddress must not be null!");
 
             if (_Length != IIPAddress.Length)
                 return false;
 
-            if (!(IIPAddress is IPv4Address))
-                return false;
+            if (IIPAddress is IPv4Address ipv4address)
+                return Equals(ipv4address);
 
-            return Equals((IPv4Address) IIPAddress);
+            return false;
 
         }
 

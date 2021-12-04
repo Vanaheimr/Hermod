@@ -35,7 +35,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
     public class ICMPClient
     {
 
-        private static Random random = new Random();
+        private static readonly Random random = new Random();
 
 
 
@@ -86,7 +86,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         {
 
             if (!Identifier.HasValue)
-                Identifier = (UInt16) random.Next((Int32) UInt16.MaxValue);
+                Identifier = (UInt16) random.Next(UInt16.MaxValue);
 
             if (TestData == null)
                 TestData   = random.RandomString(30);

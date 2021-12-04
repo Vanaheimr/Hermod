@@ -30,9 +30,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// Extention methods to parse JSON.
+    /// Extension methods to parse JSON.
     /// </summary>
-    public static class JSONExtentions
+    public static class JSONExtensions
     {
 
         #region ParseMandatoryText   (this JSON, PropertyName, PropertyDescription, DefaultServerName,            out Text,      HTTPRequest, out HTTPResponse)

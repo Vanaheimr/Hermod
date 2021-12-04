@@ -18,9 +18,6 @@
 #region Usings
 
 using System;
-using System.Text;
-using System.Collections.Generic;
-using System.Threading;
 
 #endregion
 
@@ -35,56 +32,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Properties
 
-        #region RefreshTime
-
-        private DateTime _RefreshTime;
-
         /// <summary>
         /// The timestamp of the last refresh.
         /// </summary>
-        public DateTime RefreshTime
-        {
-            get
-            {
-                return _RefreshTime;
-            }
-        }
-
-        #endregion
-
-        #region EndOfLife
-
-        private DateTime _EndOfLife;
+        public DateTime  RefreshTime    { get; }
 
         /// <summary>
         /// The timestamp when this entry gets invalidated.
         /// </summary>
-        public DateTime EndOfLife
-        {
-            get
-            {
-                return _EndOfLife;
-            }
-        }
-
-        #endregion
-
-        #region DNSInfo
-
-        private DNSInfo _DNSInfo;
+        public DateTime  EndOfLife      { get; }
 
         /// <summary>
         /// The cached DNS information.
         /// </summary>
-        public DNSInfo DNSInfo
-        {
-            get
-            {
-                return _DNSInfo;
-            }
-        }
-
-        #endregion
+        public DNSInfo   DNSInfo        { get; }
 
         #endregion
 
@@ -101,9 +62,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                              DNSInfo   DNSInfo)
         {
 
-            this._RefreshTime  = RefreshTime;
-            this._EndOfLife    = EndOfLife;
-            this._DNSInfo      = DNSInfo;
+            this.RefreshTime  = RefreshTime;
+            this.EndOfLife    = EndOfLife;
+            this.DNSInfo      = DNSInfo;
 
         }
 

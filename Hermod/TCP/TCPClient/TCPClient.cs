@@ -36,9 +36,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 {
 
     /// <summary>
-    /// Extention methods for sockets.
+    /// Extension methods for sockets.
     /// </summary>
-    public static class SocketExtentions
+    public static class SocketExtensions
     {
 
         #region Poll(this Socket, Mode, CancellationToken)

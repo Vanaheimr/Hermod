@@ -19,9 +19,11 @@
 
 using System;
 
+using org.GraphDefined.Vanaheimr.Hermod.Sockets;
+
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
+namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 {
 
     /// <summary>

@@ -13,7 +13,7 @@ using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
-    public static class IHTTPServerExtentions
+    public static class IHTTPServerExtensions
     {
 
         /// <summary>

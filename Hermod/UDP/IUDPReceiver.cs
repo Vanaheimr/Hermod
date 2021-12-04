@@ -18,11 +18,10 @@
 #region Usings
 
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod
+namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 {
 
     /// <summary>

@@ -66,13 +66,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public String  CharSet          { get; }
 
 
-        private readonly String[] _FileExtentions;
+        private readonly String[] _FileExtensions;
 
         /// <summary>
         /// Well-known file extentions using this HTTP content type.
         /// </summary>
-        public IEnumerable<String> FileExtentions
-            => _FileExtentions;
+        public IEnumerable<String> FileExtensions
+            => _FileExtensions;
 
         /// <summary>
         /// The (optional) MIME boundary.
@@ -92,7 +92,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public String DebugView
             => ToString() +
-               (FileExtentions != null & FileExtentions.Any() ? ", file extentions: " + FileExtentions.Aggregate((a, b) => a + ", " + b) : "");
+               (FileExtensions != null & FileExtensions.Any() ? ", file extentions: " + FileExtensions.Aggregate((a, b) => a + ", " + b) : "");
 
         #endregion
 
@@ -107,13 +107,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="MediaMainType">The media main type for the HTTP content type.</param>
         /// <param name="MediaSubType">The media sub type for the HTTP content type.</param>
         /// <param name="CharSet">The char set of the HTTP content type.</param>
-        /// <param name="FileExtentions">Well-known file extentions using this HTTP content type.</param>
+        /// <param name="FileExtensions">Well-known file extentions using this HTTP content type.</param>
         public HTTPContentType(String           MediaMainType,
                                String           MediaSubType,
                                String           CharSet,
                                String           Action,
                                String           MIMEBoundary,
-                               params String[]  FileExtentions)
+                               params String[]  FileExtensions)
         {
 
             this.MediaMainType    = MediaMainType;
@@ -121,14 +121,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.CharSet          = CharSet;
             this.Action           = Action;
             this.MIMEBoundary     = MIMEBoundary;
-            this._FileExtentions  = FileExtentions ?? new String[0];
+            this._FileExtensions  = FileExtensions ?? new String[0];
 
             if (!_Lookup.ContainsKey(MediaMainType + "/" + MediaSubType))
                 _Lookup.Add(MediaMainType + "/" + MediaSubType, this);
 
-            if (_FileExtentions != null && _FileExtentions.Any())
+            if (_FileExtensions != null && _FileExtensions.Any())
             {
-                _FileExtentions.ForEach(FileExtention => {
+                _FileExtensions.ForEach(FileExtention => {
                     if (_ReverseLookup.ContainsKey(FileExtention)) {
                         var List = new List<HTTPContentType>(_ReverseLookup[FileExtention]);
                         List.Add(this);

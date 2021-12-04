@@ -30,7 +30,7 @@ using org.GraphDefined.Vanaheimr.Illias.ConsoleLog;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
-    public static class HTTPExtentions
+    public static class HTTPExtensions
     {
 
         #region GetRequestBodyAsUTF8String   (this Request, HTTPContentType)

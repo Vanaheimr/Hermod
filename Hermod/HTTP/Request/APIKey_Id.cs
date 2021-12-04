@@ -27,9 +27,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// Extention methods for API key identifications.
+    /// Extension methods for API key identifications.
     /// </summary>
-    public static class APIKeyIdExtentions
+    public static class APIKeyIdExtensions
     {
 
         /// <summary>

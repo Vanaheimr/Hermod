@@ -103,7 +103,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
             TCPConnection.WriteLineToResponseStream(ServiceBanner);
             TCPConnection.NoDelay = true;
 
-            Byte Byte;
             var Buffer        = new Byte[1024];
             var MemoryStream  = new MemoryStream();
             var EndOfCSVLine  = EOLSearch.NotYet;
@@ -118,7 +117,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                 do
                 {
 
-                    switch (TCPConnection.TryRead(out Byte, MaxInitialWaitingTimeMS: ReadTimeout))
+                    switch (TCPConnection.TryRead(out Byte Byte, MaxInitialWaitingTimeMS: ReadTimeout))
                     {
 
                         #region DataAvailable

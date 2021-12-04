@@ -29,9 +29,9 @@ namespace org.GraphDefined.Vanaheimr.Warden
 {
 
     /// <summary>
-    /// Extentions methods for service checking and monitoring.
+    /// Extensions methods for service checking and monitoring.
     /// </summary>
-    public static class WardenExtentions
+    public static class WardenExtensions
     {
 
         #region Check(TimeCheck, SleepTime, ServiceChecker, ...)

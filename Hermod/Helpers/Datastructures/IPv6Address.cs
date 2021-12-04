@@ -344,19 +344,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IPv6Address2">Another IPv6 address.</param>
         /// <returns>true|false</returns>
         public static Boolean operator == (IPv6Address IPv6Address1, IPv6Address IPv6Address2)
-        {
-
-            // If both are null, or both are same instance, return true.
-            if (Object.ReferenceEquals(IPv6Address1, IPv6Address2))
-                return true;
-
-            // If one is null, but not both, return false.
-            if (((Object) IPv6Address1 == null) || ((Object) IPv6Address2 == null))
-                return false;
-
-            return IPv6Address1.Equals(IPv6Address2);
-
-        }
+            => IPv6Address1.Equals(IPv6Address2);
 
         #endregion
 
@@ -369,7 +357,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IPv6Address2">Another IPv6 address.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (IPv6Address IPv6Address1, IPv6Address IPv6Address2)
-            => !(IPv6Address1 == IPv6Address2);
+            => !IPv6Address1.Equals(IPv6Address2);
 
         #endregion
 
@@ -385,17 +373,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Object">An object to compare with.</param>
         /// <returns>true|false</returns>
         public Int32 CompareTo(Object Object)
-        {
 
-            if (Object == null)
-                throw new ArgumentNullException("The given object must not be null!");
-
-            if (!(Object is IPv6Address))
-                throw new ArgumentException("The given object is not an IPv6Address!");
-
-            return CompareTo((IPv6Address) Object);
-
-        }
+            => Object is IPv6Address ipAddress
+                   ? CompareTo(ipAddress)
+                   : throw new ArgumentException("The given object is not an IPv6 address!",
+                                                 nameof(Object));
 
         #endregion
 
@@ -409,19 +391,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public Int32 CompareTo(IPv6Address IPv6Address)
         {
 
-            if ((Object)IPv6Address == null)
-                throw new ArgumentNullException("The given IPv6 address must not be null!");
+            var byteArray = IPv6Address.GetBytes();
 
-            var _ByteArray = IPv6Address.GetBytes();
-            var _Comparision = 0;
-
-            for (var _BytePosition = 0; _BytePosition < 4; _BytePosition++)
+            for (var i = 0; i < byteArray.Length; i++)
             {
 
-                _Comparision = IPAddressArray[0].CompareTo(_ByteArray[0]);
+                var comparision = IPAddressArray[i].CompareTo(byteArray[i]);
 
-                if (_Comparision != 0)
-                    return _Comparision;
+                if (comparision != 0)
+                    return comparision;
 
             }
 
@@ -441,13 +419,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public Int32 CompareTo(IIPAddress IIPAddress)
         {
 
-            if (IIPAddress == null)
-                throw new ArgumentNullException("The given IIPAddress must not be null!");
+            if (IIPAddress is IPv6Address ipv6Address)
+                return CompareTo(ipv6Address);
 
-            if (!(IIPAddress is IPv6Address))
-                throw new ArgumentException("The given object is not an IPv6 address!");
-
-            return CompareTo((IPv6Address) IIPAddress);
+            throw new ArgumentException("The given object is not an IPv6 address!", nameof(IIPAddress));
 
         }
 
@@ -465,17 +440,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Object">An object to compare with.</param>
         /// <returns>true|false</returns>
         public override Boolean Equals(Object Object)
-        {
 
-            if (Object == null)
-                return false;
-
-            if (!(Object is IPv6Address))
-                return false;
-
-            return Equals((IPv6Address) Object);
-
-        }
+            => Object is IPv6Address ipAddress &&
+               Equals(ipAddress);
 
         #endregion
 
@@ -489,14 +456,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public Boolean Equals(IPv6Address IPv6Address)
         {
 
-            if ((Object) IPv6Address == null)
-                return false;
+            var byteArray = IPv6Address.GetBytes();
 
-            // If both are null, or both are same instance, return true.
-            if (ReferenceEquals(this, IPv6Address))
-                return true;
+            for (var i = 0; i < byteArray.Length; i++)
+            {
+                if (IPAddressArray[i] != byteArray[i])
+                    return false;
+            }
 
-            return ToString().Equals(IPv6Address.ToString());
+            return true;
 
         }
 
@@ -512,16 +480,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public Boolean Equals(IIPAddress IIPAddress)
         {
 
-            if ((Object) IIPAddress == null)
-                throw new ArgumentNullException("The given IIPAddress must not be null!");
+            if (IIPAddress is null)
+                throw new ArgumentNullException(nameof(IIPAddress), "The given IIPAddress must not be null!");
 
             if (_Length != IIPAddress.Length)
                 return false;
 
-            if (!(IIPAddress is IPv6Address))
-                return false;
+            if (IIPAddress is IPv6Address ipv6address)
+                return Equals(ipv6address);
 
-            return Equals((IPv6Address) IIPAddress);
+            return false;
 
         }
 
