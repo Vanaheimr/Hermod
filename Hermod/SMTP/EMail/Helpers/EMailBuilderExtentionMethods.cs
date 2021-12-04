@@ -30,7 +30,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
     /// <summary>
     /// Extension methods for e-mail builders.
     /// </summary>
-    public static class EMailBuilderExtentionMethods
+    public static class EMailBuilderExtensionMethods
     {
 
         #region AddAttachment(this MailBuilder, ByteArray, Filename, ContentType = GlobalMIMETypes.text_plain, ContentLanguage = null)

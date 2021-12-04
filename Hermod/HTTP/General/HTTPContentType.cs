@@ -128,14 +128,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (_FileExtensions != null && _FileExtensions.Any())
             {
-                _FileExtensions.ForEach(FileExtention => {
-                    if (_ReverseLookup.ContainsKey(FileExtention)) {
-                        var List = new List<HTTPContentType>(_ReverseLookup[FileExtention]);
+                _FileExtensions.ForEach(FileExtension => {
+                    if (_ReverseLookup.ContainsKey(FileExtension)) {
+                        var List = new List<HTTPContentType>(_ReverseLookup[FileExtension]);
                         List.Add(this);
-                        _ReverseLookup[FileExtention] = List.ToArray();
+                        _ReverseLookup[FileExtension] = List.ToArray();
                     }
                     else
-                        _ReverseLookup.Add(FileExtention, new HTTPContentType[] { this });
+                        _ReverseLookup.Add(FileExtension, new HTTPContentType[] { this });
                 });
             }
 
@@ -269,11 +269,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
-        public static IEnumerable<HTTPContentType> ForFileExtention(String                 FileExtention,
+        public static IEnumerable<HTTPContentType> ForFileExtension(String                 FileExtension,
                                                                     Func<HTTPContentType>  DefaultValueFactory = null)
         {
 
-            if (_ReverseLookup.TryGetValue(FileExtention, out HTTPContentType[] HTTPContentTypes))
+            if (_ReverseLookup.TryGetValue(FileExtension, out HTTPContentType[] HTTPContentTypes))
                 return HTTPContentTypes;
 
             if (DefaultValueFactory != null)

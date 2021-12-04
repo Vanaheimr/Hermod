@@ -28,7 +28,7 @@ using org.GraphDefined.Vanaheimr.Styx.Arrows;
 namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 {
 
-    public static class UDPPacketArrowExtention
+    public static class UDPPacketArrowExtension
     {
 
         public static ProcessUDPPacketArrow<TIn, TOut> ProcessUDPPacket<TIn, TOut>(this IArrowSender<UDPPacket<TIn>> In,

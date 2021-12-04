@@ -29,7 +29,7 @@ using org.GraphDefined.Vanaheimr.Hermod.UDP;
 namespace org.GraphDefined.Vanaheimr.Hermod.CSV
 {
 
-    public static class SplitUDPPacketArrowExtention
+    public static class SplitUDPPacketArrowExtension
     {
 
         /// <summary>

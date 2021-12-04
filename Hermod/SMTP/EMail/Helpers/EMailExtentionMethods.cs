@@ -27,7 +27,7 @@ using org.GraphDefined.Vanaheimr.Hermod.SMTP;
 namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 {
 
-    public static class EMailExtentionMethods
+    public static class EMailExtensionMethods
     {
 
         public static Task<MailSentStatus> SendVia(this EMail  EMail,
