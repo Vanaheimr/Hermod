@@ -391,7 +391,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Initial checks
 
-            if (HTTPRequestDelegate == null)
+            if (HTTPRequestDelegate is null)
                 throw new ArgumentNullException(nameof(HTTPRequestDelegate), "The given delegate must not be null!");
 
             #endregion
@@ -442,12 +442,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Data
 
-                var HTTPHeaderBytes   = new Byte[0];
-                var HTTPBodyBytes     = new Byte[0];
-                var sw                = new Stopwatch();
+                var HTTPHeaderBytes  = Array.Empty<Byte>();
+                var HTTPBodyBytes    = Array.Empty<Byte>();
+                var sw               = new Stopwatch();
 
                 if (!RequestTimeout.HasValue)
-                    RequestTimeout    = Request.Timeout ?? this.RequestTimeout;
+                    RequestTimeout   = Request.Timeout ?? this.RequestTimeout;
 
                 #endregion
 
