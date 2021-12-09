@@ -199,7 +199,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
             var requestBuilder = new HTTPRequest.Builder(this) {
                                      HTTPMethod         = HTTPMethod.POST,
                                      Host               = VirtualHostname ?? RemoteURL.Hostname,
-                                     Path               = URLPathPrefix,
+                                     Path               = RemoteURL.Path,
                                      Accept             = new AcceptTypes(HTTPContentType.XMLTEXT_UTF8),
                                      Content            = QueryXML.ToUTF8Bytes(),
                                      ContentType        = ContentType ?? HTTPContentType.XMLTEXT_UTF8,
