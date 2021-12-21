@@ -625,7 +625,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                             var response = SendCommandAndWaitForResponse(
                                                                Convert.ToBase64String(
-                                                                   ISMTPClientExtentions.CRAM_MD5(Convert.FromBase64String(AuthCRAMMD5Response.Response).ToUTF8String(),
+                                                                   ISMTPClientExtensions.CRAM_MD5(Convert.FromBase64String(AuthCRAMMD5Response.Response).ToUTF8String(),
                                                                                                   Login,
                                                                                                   Password)));
 

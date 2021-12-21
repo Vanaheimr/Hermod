@@ -27,7 +27,7 @@ using org.GraphDefined.Vanaheimr.Illias;
 namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
-    public static class IPSocketExtentions
+    public static class IPSocketExtensions
     {
 
         #region ToIPEndPoint(this IPSocket)

@@ -26,9 +26,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// Extentions methods for HTTP loggers.
+    /// Extensions methods for HTTP loggers.
     /// </summary>
-    public static class HTTPLoggerExtentions
+    public static class HTTPLoggerExtensions
     {
 
         #region RegisterDefaultConsoleLogTarget(this HTTPRequestLogger, HTTPLogger)

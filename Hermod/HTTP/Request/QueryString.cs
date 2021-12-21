@@ -32,9 +32,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// Extention methods for the HTTP QueryString class.
+    /// Extension methods for the HTTP QueryString class.
     /// </summary>
-    public static class QueryStringExtentions
+    public static class QueryStringExtensions
     {
 
         #region ParseFromTimestampFilter   (this QueryString)

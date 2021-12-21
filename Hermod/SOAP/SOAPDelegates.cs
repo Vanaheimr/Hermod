@@ -48,7 +48,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                                                  XElement     SOAPBody);
 
     /// <summary>
-    /// A delegate for checking if a givem XML matches.
+    /// A delegate for checking if a given XML matches.
     /// </summary>
     /// <param name="SOAPXML">A XML.</param>
     /// <returns>The matching XML (sub-)element.</returns>

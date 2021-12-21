@@ -25,10 +25,10 @@ using org.GraphDefined.Vanaheimr.Styx.Arrows;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
+namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 {
 
-    public static class UDPPacketArrowExtention
+    public static class UDPPacketArrowExtension
     {
 
         public static ProcessUDPPacketArrow<TIn, TOut> ProcessUDPPacket<TIn, TOut>(this IArrowSender<UDPPacket<TIn>> In,

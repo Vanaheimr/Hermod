@@ -762,7 +762,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                      #region Choose HTTP Content Type based on the file name extention...
 
-                                                     ResponseContentType = HTTPContentType.ForFileExtention(FilePath.Remove(0, FilePath.LastIndexOf(".", StringComparison.InvariantCulture) + 1),
+                                                     ResponseContentType = HTTPContentType.ForFileExtension(FilePath.Remove(0, FilePath.LastIndexOf(".", StringComparison.InvariantCulture) + 1),
                                                                                                             () => HTTPContentType.OCTETSTREAM).FirstOrDefault();
 
                                                      #endregion

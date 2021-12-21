@@ -26,7 +26,7 @@ using org.GraphDefined.Vanaheimr.Styx.Arrows;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
+namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 {
 
     // For testing via NetCat use: 'nc -lup 5000'

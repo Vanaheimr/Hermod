@@ -23,10 +23,11 @@ using System.Threading;
 using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.UDP;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
+namespace org.GraphDefined.Vanaheimr.Hermod.CSV
 {
 
     /// <summary>

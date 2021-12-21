@@ -45,7 +45,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                      TimeSpan                        Runtime);
 
 
-    public static class ISMTPClientExtentions
+    public static class ISMTPClientExtensions
     {
 
         #region CRAM_MD5(Token, Login, Password)

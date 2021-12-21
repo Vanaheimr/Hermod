@@ -37,7 +37,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     }
 
 
-    public static class InfoStatusExtentions
+    public static class InfoStatusExtensions
     {
 
         public static InfoStatus Parse(String Text)

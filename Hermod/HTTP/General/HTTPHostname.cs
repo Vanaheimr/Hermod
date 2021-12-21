@@ -27,9 +27,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// Extention methods for HTTP hostnames.
+    /// Extension methods for HTTP hostnames.
     /// </summary>
-    public static class HTTPHostnameExtentions
+    public static class HTTPHostnameExtensions
     {
 
         /// <summary>

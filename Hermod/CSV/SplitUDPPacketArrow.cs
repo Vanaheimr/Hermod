@@ -18,19 +18,18 @@
 #region Usings
 
 using System;
-using System.Net;
 using System.Linq;
 using System.Collections.Generic;
 
-using org.GraphDefined.Vanaheimr.Styx;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
+using org.GraphDefined.Vanaheimr.Hermod.UDP;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
+namespace org.GraphDefined.Vanaheimr.Hermod.CSV
 {
 
-    public static class SplitUDPPacketArrowExtention
+    public static class SplitUDPPacketArrowExtension
     {
 
         /// <summary>
@@ -59,15 +58,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.UDP
 
             : base(Messages => Messages.Payload.
                                         Select(Message => new UDPPacket<T>(null,
-                                                                           Messages.ServerTimestamp,
-                                                                           Messages.LocalSocket,
-                                                                           Messages.RemoteSocket,
-                                                                           Message)))
+                                                                             Messages.ServerTimestamp,
+                                                                             Messages.LocalSocket,
+                                                                             Messages.RemoteSocket,
+                                                                             Message)))
 
         {
 
-            if (In != null)
-                In.SendTo(this);
+            In?.SendTo(this);
 
         }
 

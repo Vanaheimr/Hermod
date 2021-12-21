@@ -27,7 +27,7 @@ using org.GraphDefined.Vanaheimr.Styx.Arrows;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Multicast
+namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 {
 
     /// <summary>
