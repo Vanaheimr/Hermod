@@ -1057,6 +1057,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
         /// <summary>
+        /// Whether the reload of the system is finished.
+        /// </summary>
+        public Boolean                  ReloadFinished              { get; protected set; }
+
+        /// <summary>
         /// The maintenance interval.
         /// </summary>
         public TimeSpan                 MaintenanceEvery            { get; }
@@ -1802,7 +1807,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         private void DoMaintenanceSync(Object State)
         {
-            if (!DisableMaintenanceTasks)
+            if (ReloadFinished && !DisableMaintenanceTasks)
                 DoMaintenance(State).Wait();
         }
 
