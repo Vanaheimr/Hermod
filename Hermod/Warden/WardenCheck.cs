@@ -52,7 +52,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
             /// <summary>
             /// A delegate for checking whether it is time to run a serive check.
             /// </summary>
-            public RunCheckDelegate  RunCheck   { get; }
+            public RunCheckDelegate   RunCheck    { get; }
 
             /// <summary>
             /// An additional sleeping time after every check.
