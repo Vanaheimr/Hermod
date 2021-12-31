@@ -333,6 +333,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
+        #region (implicit) operator IPAddress(IPv6Address)
+
+        /// <summary>
+        /// Convert this IPv6 address into a System.Net.IPAddress.
+        /// </summary>
+        /// <param name="IPv6Address">The IPv6 address.</param>
+        public static implicit operator System.Net.IPAddress(IPv6Address IPv6Address)
+
+            => new System.Net.IPAddress(IPv6Address.GetBytes());
+
+        #endregion
+
+
         #region Operator overloading
 
         #region Operator == (IPv6Address1, IPv6Address2)

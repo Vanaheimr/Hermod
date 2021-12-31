@@ -395,6 +395,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
+        #region (implicit) operator IPAddress(IPv4Address)
+
+        /// <summary>
+        /// Convert this IPv4 address into a System.Net.IPAddress.
+        /// </summary>
+        /// <param name="IPv4Address">The IPv4 address.</param>
+        public static implicit operator System.Net.IPAddress(IPv4Address IPv4Address)
+
+            => new System.Net.IPAddress(IPv4Address.GetBytes());
+
+        #endregion
+
+
         #region Operator overloading
 
         #region Operator == (IPv4Address1, IPv4Address2)

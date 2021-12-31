@@ -18,25 +18,11 @@
 #region Usings
 
 using System;
-using System.IO;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 {
-
-    public interface IICMPMessage<TICMPMessage>
-
-        where TICMPMessage : IICMPMessage<TICMPMessage>
-
-    {
-        ICMPPacket<TICMPMessage> ICMPPacket { get; }
-
-
-        Byte[] GetBytes();
-
-    }
-
 
     public class ICMPPacket<TICMPMessage> : ICMPPacket
 

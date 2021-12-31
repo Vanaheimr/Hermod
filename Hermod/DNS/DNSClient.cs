@@ -394,10 +394,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             #region Try to get answers from the DNS cache
 
-            var DNSInfo = _DNSCache.GetDNSInfo(DomainName);
+            var dnsInfo = _DNSCache.GetDNSInfo(DomainName);
 
-            if (DNSInfo != null)
-                return DNSInfo;
+            if (dnsInfo != null)
+            {
+
+                var resourceRecords = dnsInfo.Answers.
+                                              Where  (resourceRecord => ResourceRecordTypes.Contains(resourceRecord.Type)).
+                                              ToArray();
+
+                if (resourceRecords.Any())
+                    return dnsInfo;
+
+            }
 
             #endregion
 
