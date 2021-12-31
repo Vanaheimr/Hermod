@@ -141,7 +141,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         #endregion
 
 
-        #region
+        #region TryParse(IPv4Packet, out ICMPPacket, Offset = 4)
 
         /// <summary>
         /// Try to parse the ICMP packet embedded within the given IPv4 packet.
@@ -160,7 +160,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
         #endregion
 
-        #region
+        #region (Packet, out ICMPPacket, Offset = 4, IPv4Packet = null)
 
         /// <summary>
         /// Try to parse the given ICMP packet.
@@ -215,7 +215,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
         #endregion
 
-        #region
+        #region GetBytes()
 
         public Byte[] GetBytes()
         {
@@ -250,24 +250,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
         #endregion
 
-        #region
+        #region GetChecksum(ICMPPacket, Start, End)
 
         public UInt16 GetChecksum(Byte[] ICMPPacket, Int32 Start, Int32 End)
         {
 
-            UInt32 CheckSum = 0;
+            UInt32 checkSum = 0;
             Int32  i;
 
             for (i=Start; i<End; i+=2)
-                CheckSum += (UInt16) BitConverter.ToInt16(ICMPPacket, i);
+                checkSum += (UInt16) BitConverter.ToInt16(ICMPPacket, i);
 
             if (i == End)
-                CheckSum += (UInt16) ICMPPacket[End];
+                checkSum += (UInt16) ICMPPacket[End];
 
-            while (CheckSum >> 16 != 0)
-                CheckSum = (CheckSum & 0xFFFF) + (CheckSum >> 16);
+            while (checkSum >> 16 != 0)
+                checkSum = (checkSum & 0xFFFF) + (checkSum >> 16);
 
-            return (UInt16) ~CheckSum;
+            return (UInt16) ~checkSum;
 
         }
 
