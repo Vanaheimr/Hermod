@@ -32,9 +32,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 {
 
     /// <summary>
+    /// A delegate called for each test run result.
+    /// </summary>
+    /// <param name="TestRunId">The unique identification of the current test run.</param>
+    /// <param name="NuberOfTests">The overall number of test runs.</param>
+    /// <param name="Result">The result of the current test run.</param>
+    public delegate void TestRunResultDelegate(UInt32 TestRunId, UInt32 NuberOfTests, PingResult Result);
+
+
+    /// <summary>
     /// The ICMP Client.
     /// </summary>
-    /// <seealso cref="https://www.rfc-editor.org/rfc/rfc792.html"/>
     public class ICMPClient : IICMPClient
     {
 
@@ -42,7 +50,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
         private static readonly Random random = new Random();
 
-        private readonly Action<PingResult> ResultHandler;
+        private readonly TestRunResultDelegate ResultHandler;
 
         #endregion
 
@@ -62,8 +70,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         /// </summary>
         /// <param name="ResultHandler">A delegate called for each ping result.</param>
         /// <param name="DNSClient">An optional DNS client to use.</param>
-        public ICMPClient(Action<PingResult>  ResultHandler   = null,
-                          DNSClient           DNSClient       = null)
+        public ICMPClient(TestRunResultDelegate  ResultHandler   = null,
+                          DNSClient              DNSClient       = null)
         {
 
             this.ResultHandler  = ResultHandler;
@@ -88,15 +96,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         /// <param name="TestData">The ICMP echo request test data.</param>
         /// <param name="TTL">The time-to-live of the underlying IP packet.</param>
         /// <param name="DNSClient">An optional DNS client to use.</param>
-        public async Task<PingResults> Ping(String              Hostname,
-                                            UInt32              NumberOfTests        = 3,
-                                            TimeSpan?           Timeout              = null,
-                                            Action<PingResult>  ResultHandler        = null,
-                                            UInt16?             Identifier           = null,
-                                            UInt16              SequenceStartValue   = 0,
-                                            String              TestData             = null,
-                                            Byte                TTL                  = 64,
-                                            DNSClient           DNSClient            = null)
+        public async Task<PingResults> Ping(String                 Hostname,
+                                            UInt32                 NumberOfTests        = 3,
+                                            TimeSpan?              Timeout              = null,
+                                            TestRunResultDelegate  ResultHandler        = null,
+                                            UInt16?                Identifier           = null,
+                                            UInt16                 SequenceStartValue   = 0,
+                                            String                 TestData             = null,
+                                            Byte                   TTL                  = 64,
+                                            DNSClient              DNSClient            = null)
         {
 
             var startTimestamp  = Timestamp.Now;
@@ -144,7 +152,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
             var pingResult = new PingResult(Timestamp.Now - startTimestamp,
                                             ICMPErrors.DNSError);
 
-            (ResultHandler ?? this.ResultHandler)?.Invoke(pingResult);
+            (ResultHandler ?? this.ResultHandler)?.Invoke(1, NumberOfTests, pingResult);
 
             return new PingResults(
                         new PingResult[] {
@@ -164,21 +172,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         /// Ping the given IPv4 address.
         /// </summary>
         /// <param name="IPv4Address">An IPv4 address.</param>
-        /// <param name="NumberOfTests">The number of pings.</param>
+        /// <param name="NumberOfTests">The number of test runs/pings.</param>
         /// <param name="Timeout">The timeout of each ping.</param>
         /// <param name="ResultHandler">A delegate called for each ping result.</param>
         /// <param name="Identifier">The ICMP identifier.</param>
         /// <param name="SequenceStartValue">The ICMP echo request start value.</param>
         /// <param name="TestData">The ICMP echo request test data.</param>
         /// <param name="TTL">The time-to-live of the underlying IP packet.</param>
-        public async Task<PingResults> Ping(IPv4Address         IPv4Address,
-                                            UInt32              NumberOfTests        = 3,
-                                            TimeSpan?           Timeout              = null,
-                                            Action<PingResult>  ResultHandler        = null,
-                                            UInt16?             Identifier           = null,
-                                            UInt16              SequenceStartValue   = 0,
-                                            String              TestData             = null,
-                                            Byte                TTL                  = 64)
+        public async Task<PingResults> Ping(IPv4Address            IPv4Address,
+                                            UInt32                 NumberOfTests        = 3,
+                                            TimeSpan?              Timeout              = null,
+                                            TestRunResultDelegate  ResultHandler        = null,
+                                            UInt16?                Identifier           = null,
+                                            UInt16                 SequenceStartValue   = 0,
+                                            String                 TestData             = null,
+                                            Byte                   TTL                  = 64)
         {
 
             if (!Identifier.HasValue)
@@ -205,7 +213,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
             socket.SetSocketOption(SocketOptionLevel.IP,     SocketOptionName.IpTimeToLive,   TTL);
             //Socket.IOControl(System.Net.Sockets.IOControlCode.ReceiveAll, new byte[] { 1, 0, 0, 0 }, new byte[] { 1, 0, 0, 0 });
 
-            for (var repetition = SequenceStartValue; repetition < NumberOfTests; repetition++)
+            for (var testRunId = SequenceStartValue; testRunId < NumberOfTests; testRunId++)
             {
 
                 var pingResult         = new PingResult?();
@@ -213,18 +221,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                 var runStartTimestamp  = Timestamp.Now;
 
                 var echoRequest        = ICMPEchoRequest.Create(Identifier.Value,
-                                                                repetition,
+                                                                testRunId,
                                                                 TestData);
 
-                var sentLength         = socket.SendTo(echoRequest.ICMPPacket.GetBytes(),
-                                                       ipEndPoint);
+                //var sentLength         = socket.SendTo(echoRequest.ICMPPacket.GetBytes(),
+                //                                       ipEndPoint);
+                var sentLength         = await socket.SendToAsync(new ArraySegment<Byte>(echoRequest.ICMPPacket.GetBytes()),
+                                                                  SocketFlags.None,
+                                                                  ipEndPoint);
 
                 if (sentLength == 0)
                     pingResult = new PingResult(Timestamp.Now - runStartTimestamp,
                                                 ICMPErrors.SendError);
 
-
-                if (!pingResult.HasValue)
+                else
                 {
                     do
                     {
@@ -232,10 +242,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                         try
                         {
 
-                            var packet          = new Byte[65536];
-                            var receivedLenght  = socket.Receive(packet);
+                            var packet          = new ArraySegment<Byte>(new Byte[65536]);
+                            //var receivedLenght  = socket.Receive(packet);
+                            var receivedLenght  = await socket.ReceiveAsync(packet, SocketFlags.None);
 
-                            if (IPv4Packet.TryParse(packet,          out IPv4Packet ipv4PacketReply) &&
+                            if (IPv4Packet.TryParse(packet.Array,    out IPv4Packet ipv4PacketReply) &&
                                 ipv4PacketReply.Protocol == IPv4Protocols.ICMP                       &&
                                 ICMPPacket.TryParse(ipv4PacketReply, out ICMPPacket icmpPacketReply))
                             {
@@ -244,12 +255,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                                     icmpPacketReply.Code         == 0 &&
                                     ICMPEchoReply.TryParse(icmpPacketReply.PayloadBytes, out ICMPEchoReply icmpEchoReply)   &&
                                     icmpEchoReply.Identifier     == Identifier.Value &&
-                                    icmpEchoReply.SequenceNumber == repetition)
+                                    icmpEchoReply.SequenceNumber == testRunId)
                                 {
 
                                     if (icmpEchoReply.Text == TestData)
                                         pingResult = new PingResult(Timestamp.Now - runStartTimestamp,
-                                                                    ICMPErrors.NoError);
+                                                                    ICMPErrors.Success);
                                     else
                                         pingResult = new PingResult(Timestamp.Now - runStartTimestamp,
                                                                     ICMPErrors.InvalidReply);
@@ -268,7 +279,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                                          icmpDestinationUnreachable.EmbeddedIPv4Packet.Protocol == IPv4Protocols.ICMP &&
                                          ICMPEchoRequest.TryParse(icmpDestinationUnreachable.EmbeddedIPv4Packet.Payload, out ICMPEchoRequest embeddedICMPEchoRequest) &&
                                          embeddedICMPEchoRequest.Identifier     == Identifier.Value &&
-                                         embeddedICMPEchoRequest.SequenceNumber == repetition       &&
+                                         embeddedICMPEchoRequest.SequenceNumber == testRunId       &&
                                          embeddedICMPEchoRequest.Text           == TestData)
                                 {
 
@@ -287,7 +298,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                                         icmpTimeExceeded.EmbeddedIPv4Packet.Protocol == IPv4Protocols.ICMP &&
                                         ICMPEchoRequest.TryParse(icmpTimeExceeded.EmbeddedIPv4Packet.Payload, out embeddedICMPEchoRequest) &&
                                         embeddedICMPEchoRequest.Identifier     == Identifier.Value &&
-                                        embeddedICMPEchoRequest.SequenceNumber == repetition       &&
+                                        embeddedICMPEchoRequest.SequenceNumber == testRunId       &&
                                         embeddedICMPEchoRequest.Text           == TestData)
                                 {
 
@@ -359,7 +370,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
                     // Restart, whenever the received packet is not the one we expected!
                     } while (Timestamp.Now - runStartTimestamp < Timeout.Value);
-
                 }
 
                 if (pingResult.HasValue)
@@ -367,7 +377,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
                     pingResults.Add(pingResult.Value);
 
-                    (ResultHandler ?? this.ResultHandler)?.Invoke(pingResult.Value);
+                    (ResultHandler ?? this.ResultHandler)?.Invoke(testRunId,
+                                                                  NumberOfTests,
+                                                                  pingResult.Value);
 
                 }
 
@@ -399,7 +411,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         public async Task<PingResults> Ping(IPv6Address         IPv6Address,
                                             UInt32              NumberOfTests        = 3,
                                             TimeSpan?           Timeout              = null,
-                                            Action<PingResult>  ResultHandler        = null,
+                                            TestRunResultDelegate  ResultHandler        = null,
                                             UInt16?             Identifier           = null,
                                             UInt16              SequenceStartValue   = 0,
                                             String              TestData             = null,
@@ -477,7 +489,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
                                 if (icmpEchoReply.Text == TestData)
                                     pingResults.Add(new PingResult(Timestamp.Now - runStartTimestamp,
-                                                                   ICMPErrors.NoError));
+                                                                   ICMPErrors.Success));
                                 else
                                     pingResults.Add(new PingResult(Timestamp.Now - runStartTimestamp,
                                                                    ICMPErrors.InvalidReply));

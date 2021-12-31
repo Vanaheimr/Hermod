@@ -106,7 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                             TimeSpan                 Runtime)
         {
 
-            var goodResults       = PingResults.Where(failure => failure.Error == ICMPErrors.NoError).ToArray();
+            var goodResults       = PingResults.Where(failure => failure.Error == ICMPErrors.Success).ToArray();
 
             var average           = goodResults.Any()
                                         ? goodResults.Select(result => result.Runtime.TotalMilliseconds).AverageAndStdDev()

@@ -250,7 +250,6 @@
     <Compile Include="TCP\TCPClient\ENUMs\TCPConnectResult.cs" />
     <Compile Include="TCP\TCPClient\TCPClient.cs" />
     <Compile Include="Helpers\Datastructures\IServer.cs" />
-    <Compile Include="IPv4\ICMP\IICMPPacket.cs" />
     <Compile Include="CSV\UDPCSVReceiver.cs" />
     <Compile Include="TCP\TCPClient\TLSUsage.cs" />
     <Compile Include="TCP\TCPResult.cs" />
@@ -288,10 +287,7 @@
       <Name>Styx</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="SMS\" />
-    <Folder Include="Telegram\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

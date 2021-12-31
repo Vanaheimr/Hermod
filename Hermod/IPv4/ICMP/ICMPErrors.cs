@@ -25,9 +25,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
     {
 
         /// <summary>
-        /// No error(s).
+        /// Success / No error(s).
         /// </summary>
-        NoError,
+        Success,
 
         /// <summary>
         /// DNS error(s).

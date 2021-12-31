@@ -45,15 +45,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         /// <param name="TestData">The ICMP echo request test data.</param>
         /// <param name="TTL">The time-to-live of the underlying IP packet.</param>
         /// <param name="DNSClient">An optional DNS client to use.</param>
-        Task<PingResults> Ping(String              Hostname,
-                               UInt32              NumberOfTests        = 3,
-                               TimeSpan?           Timeout              = null,
-                               Action<PingResult>  ResultHandler        = null,
-                               UInt16?             Identifier           = null,
-                               UInt16              SequenceStartValue   = 0,
-                               String              TestData             = null,
-                               Byte                TTL                  = 64,
-                               DNSClient           DNSClient            = null);
+        Task<PingResults> Ping(String                 Hostname,
+                               UInt32                 NumberOfTests        = 3,
+                               TimeSpan?              Timeout              = null,
+                               TestRunResultDelegate  ResultHandler        = null,
+                               UInt16?                Identifier           = null,
+                               UInt16                 SequenceStartValue   = 0,
+                               String                 TestData             = null,
+                               Byte                   TTL                  = 64,
+                               DNSClient              DNSClient            = null);
 
 
         /// <summary>
@@ -67,14 +67,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         /// <param name="SequenceStartValue">The ICMP echo request start value.</param>
         /// <param name="TestData">The ICMP echo request test data.</param>
         /// <param name="TTL">The time-to-live of the underlying IP packet.</param>
-        Task<PingResults> Ping(IPv4Address         IPv4Address,
-                               UInt32              NumberOfTests        = 3,
-                               TimeSpan?           Timeout              = null,
-                               Action<PingResult>  ResultHandler        = null,
-                               UInt16?             Identifier           = null,
-                               UInt16              SequenceStartValue   = 0,
-                               String              TestData             = null,
-                               Byte                TTL                  = 64);
+        Task<PingResults> Ping(IPv4Address            IPv4Address,
+                               UInt32                 NumberOfTests        = 3,
+                               TimeSpan?              Timeout              = null,
+                               TestRunResultDelegate  ResultHandler        = null,
+                               UInt16?                Identifier           = null,
+                               UInt16                 SequenceStartValue   = 0,
+                               String                 TestData             = null,
+                               Byte                   TTL                  = 64);
 
 
         /// <summary>
@@ -88,14 +88,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         /// <param name="SequenceStartValue">The ICMP echo request start value.</param>
         /// <param name="TestData">The ICMP echo request test data.</param>
         /// <param name="TTL">The time-to-live of the underlying IP packet.</param>
-        Task<PingResults> Ping(IPv6Address         IPv6Address,
-                               UInt32              NumberOfTests        = 3,
-                               TimeSpan?           Timeout              = null,
-                               Action<PingResult>  ResultHandler        = null,
-                               UInt16?             Identifier           = null,
-                               UInt16              SequenceStartValue   = 0,
-                               String              TestData             = null,
-                               Byte                TTL                  = 64);
+        Task<PingResults> Ping(IPv6Address            IPv6Address,
+                               UInt32                 NumberOfTests        = 3,
+                               TimeSpan?              Timeout              = null,
+                               TestRunResultDelegate  ResultHandler        = null,
+                               UInt16?                Identifier           = null,
+                               UInt16                 SequenceStartValue   = 0,
+                               String                 TestData             = null,
+                               Byte                   TTL                  = 64);
 
     }
 
