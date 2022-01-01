@@ -43,7 +43,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
             #region Data
 
-            private ServiceCheckDelegate<TResult> ServiceCheck { get; }
+            private ServiceCheckDelegate<TResult>  ServiceCheck    { get; }
 
             #endregion
 
@@ -52,25 +52,25 @@ namespace org.GraphDefined.Vanaheimr.Warden
             /// <summary>
             /// A delegate for checking whether it is time to run a serive check.
             /// </summary>
-            public RunCheckDelegate   RunCheck    { get; }
+            public RunCheckDelegate   RunCheck           { get; }
 
             /// <summary>
             /// An additional sleeping time after every check.
             /// </summary>
-            public TimeSpan           SleepTime   { get; }
+            public TimeSpan           SleepTime          { get; }
 
             /// <summary>
             /// An entity to check.
             /// </summary>
-            public Object             Entity      { get; }
+            public Object             Entity             { get; }
 
 
-            public Action<TResult>[] ResultConsumers { get; }
+            public Action<TResult>[]  ResultConsumers    { get; }
 
             /// <summary>
             /// The timestamp of the last run.
             /// </summary>
-            public DateTime           LastRun     { private set; get; }
+            public DateTime           LastRun            { private set; get; }
 
             #endregion
 
@@ -185,10 +185,10 @@ namespace org.GraphDefined.Vanaheimr.Warden
                     try
                     {
 
-                        LastRun          = DateTime.UtcNow;
+                        LastRun           = DateTime.UtcNow;
 
-                        var _result      = ServiceCheck(Timestamp, DNSClient, Entity, CancellationToken);
-                        var _ResultTasks = ResultConsumers.Select(consumer => _result.ContinueWith(task => consumer(task.Result))).ToArray();
+                        var _result       = ServiceCheck(Timestamp, DNSClient, Entity, CancellationToken);
+                        var _ResultTasks  = ResultConsumers.Select(consumer => _result.ContinueWith(task => consumer(task.Result))).ToArray();
 
                         return Task.WhenAll(_ResultTasks);
 
@@ -224,7 +224,10 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
                 : base(RunCheck,
                        SleepTime,
-                       (ts, ct) => { ServiceChecker(ts, ct); return Task.FromResult(false); })
+                       (ts, ct) => {
+                           ServiceChecker(ts, ct);
+                           return Task.FromResult(false);
+                       })
 
             { }
 
@@ -238,7 +241,10 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
                 : base(RunCheck,
                        SleepTime,
-                       (ts, dns, ct) => { ServiceChecker(ts, dns, ct); return Task.FromResult(false); })
+                       (ts, dns, ct) => {
+                           ServiceChecker(ts, dns, ct);
+                           return Task.FromResult(false);
+                       })
 
             { }
 
@@ -254,7 +260,10 @@ namespace org.GraphDefined.Vanaheimr.Warden
                 : base(RunCheck,
                        SleepTime,
                        Entity,
-                       (ts, obj, ct) => { ServiceChecker(ts, obj, ct); return Task.FromResult(false); })
+                       (ts, obj, ct) => {
+                           ServiceChecker(ts, obj, ct);
+                           return Task.FromResult(false);
+                       })
 
             { }
 
@@ -270,7 +279,10 @@ namespace org.GraphDefined.Vanaheimr.Warden
                 : base(RunCheck,
                        SleepTime,
                        Entity,
-                       (ts, dns, obj, ct) => { ServiceChecker(ts, dns, obj, ct); return Task.FromResult(false); })
+                       (ts, dns, obj, ct) => {
+                           ServiceChecker(ts, dns, obj, ct);
+                           return Task.FromResult(false);
+                       })
 
             { }
 

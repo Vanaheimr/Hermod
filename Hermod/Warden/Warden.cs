@@ -114,8 +114,8 @@ namespace org.GraphDefined.Vanaheimr.Warden
             if (Monitor.TryEnter(ServiceCheckLock))
             {
 
-                var StopWatch = new Stopwatch();
-                StopWatch.Start();
+                //var StopWatch = new Stopwatch();
+                //StopWatch.Start();
 
                 try
                 {
@@ -152,7 +152,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
                     #if DEBUG
 
-                    StopWatch.Stop();
+                    //StopWatch.Stop();
 
                  //   DebugX.LogT("'Warden' finished after " + StopWatch.Elapsed.TotalSeconds + " seconds!");
 
@@ -165,7 +165,6 @@ namespace org.GraphDefined.Vanaheimr.Warden
                 {
                     DebugX.LogT("'Warden' led to an exception: " + e.Message + Environment.NewLine + e.StackTrace);
                 }
-
                 finally
                 {
                     Monitor.Exit(ServiceCheckLock);
