@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2022, Achim Friedland <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,13 +18,9 @@
 #region Usings
 
 using System;
-using System.Linq;
 using System.Threading;
-using System.Diagnostics;
 using System.Threading.Tasks;
-using System.Collections.Generic;
 
-using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
@@ -33,50 +29,58 @@ namespace org.GraphDefined.Vanaheimr.Warden
 {
 
     /// <summary>
-    /// A warden for service checking and monitoring.
+    /// The common interface of all Warden checks.
     /// </summary>
-    public partial class Warden
+    public interface IWardenCheck
     {
 
-        internal interface IWardenCheck
-        {
+        #region Properties
 
-            #region Properties
+        /// <summary>
+        /// A delegate for checking whether it is time to run a serive check.
+        /// </summary>
+        RunCheckDelegate   RunCheck    { get; }
 
-            /// <summary>
-            /// A delegate for checking whether it is time to run a serive check.
-            /// </summary>
-            RunCheckDelegate   RunCheck    { get; }
+        /// <summary>
+        /// An additional sleeping time after every check.
+        /// </summary>
+        TimeSpan           SleepTime   { get; }
 
-            /// <summary>
-            /// An additional sleeping time after every check.
-            /// </summary>
-            TimeSpan           SleepTime   { get; }
+        /// <summary>
+        /// An entity to check.
+        /// </summary>
+        Object             Entity      { get; }
 
-            /// <summary>
-            /// An entity to check.
-            /// </summary>
-            Object             Entity      { get; }
+        /// <summary>
+        /// The timestamp of the last run.
+        /// </summary>
+        DateTime           LastRun     { get; }
 
-            /// <summary>
-            /// The timestamp of the last run.
-            /// </summary>
-            DateTime           LastRun     { get; }
+        #endregion
 
-            #endregion
+        /// <summary>
+        /// Run this Warden check.
+        /// </summary>
+        /// <param name="CommonTimestamp">The common timestamp of all current/parallel Warden checks.</param>
+        /// <param name="DNSClient">The DNS client to use.</param>
+        /// <param name="CancellationToken">The cancellation token to use.</param>
+        Task Run(DateTime           CommonTimestamp,
+                 DNSClient          DNSClient,
+                 CancellationToken  CancellationToken);
 
-            Task Run(DateTime           Timestamp,
-                     DNSClient          DNSClient,
-                     CancellationToken  CancellationToken);
+    }
 
-        }
+    /// <summary>
+    /// The common generic interface of all Warden checks.
+    /// </summary>
+    /// <typeparam name="TResult">The type of the Warden check result.</typeparam>
+    public interface IWardenCheck<TResult> : IWardenCheck
+    {
 
-        internal interface IWardenCheck<TResult> : IWardenCheck
-        {
-
-            Action<TResult>[] ResultConsumers { get; }
-
-        }
+        /// <summary>
+        /// An array of Warden check result consumers.
+        /// </summary>
+        Action<TResult>[]  ResultConsumers    { get; }
 
     }
 

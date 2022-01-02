@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2022, Achim Friedland <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -310,6 +310,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #region Send(EMail,        NumberOfRetries = 3, RequestTimeout = null)
 
+        /// <summary>
+        /// Send the given e-mail.
+        /// </summary>
+        /// <param name="EMail">An e-mail.</param>
+        /// <param name="NumberOfRetries">The number of retries to send the given e-mail.</param>
+        /// <param name="RequestTimeout">The request timeout for sending the given e-mail.</param>
         public Task<MailSentStatus> Send(EMail      EMail,
                                          Byte       NumberOfRetries  = 3,
                                          TimeSpan?  RequestTimeout   = null)
@@ -322,6 +328,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #region Send(EMailEnvelop, NumberOfRetries = 3, RequestTimeout = null)
 
+        /// <summary>
+        /// Send the given e-mail envelop.
+        /// </summary>
+        /// <param name="EMailEnvelop">An e-mail envelop.</param>
+        /// <param name="NumberOfRetries">The number of retries to send the given e-mail.</param>
+        /// <param name="RequestTimeout">The request timeout for sending the given e-mail.</param>
         public async Task<MailSentStatus> Send(EMailEnvelop  EMailEnvelop,
                                                Byte          NumberOfRetries  = 3,
                                                TimeSpan?     RequestTimeout   = null)
@@ -345,13 +357,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                 if (OnSendEMailRequest != null)
                     await Task.WhenAll(OnSendEMailRequest.GetInvocationList().
-                                        Cast<OnSendEMailRequestDelegate>().
-                                        Select(e => e(StartTime,
-                                                      this,
-                                                      EMailEnvelop.EventTrackingId,
-                                                      EMailEnvelop,
-                                                      RequestTimeout))).
-                                        ConfigureAwait(false);
+                                       Cast<OnSendEMailRequestDelegate>().
+                                       Select(e => e(StartTime,
+                                                     this,
+                                                     EMailEnvelop.EventTrackingId,
+                                                     EMailEnvelop,
+                                                     RequestTimeout))).
+                                       ConfigureAwait(false);
 
             }
             catch (Exception e)

@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2022, Achim Friedland <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,34 +18,42 @@
 #region Usings
 
 using System;
-using System.IO;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 {
 
-    public interface IICMPMessage<TICMPMessage>
-
-        where TICMPMessage : IICMPMessage<TICMPMessage>
-
-    {
-        ICMPPacket<TICMPMessage> ICMPPacket { get; }
-
-
-        Byte[] GetBytes();
-
-    }
-
-
+    /// <summary>
+    /// A generic ICMP packet.
+    /// </summary>
+    /// <typeparam name="TICMPMessage">The type of the ICMP message.</typeparam>
+    /// <seealso cref="https://www.rfc-editor.org/rfc/rfc792.html"/>
     public class ICMPPacket<TICMPMessage> : ICMPPacket
 
         where TICMPMessage : IICMPMessage<TICMPMessage>
 
     {
 
-        public new TICMPMessage  Payload    { get; internal set; }
+        #region Properties
 
+        /// <summary>
+        /// The ICMP message.
+        /// </summary>
+        public TICMPMessage  Payload    { get; internal set; }
+
+        #endregion
+
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create a new generic ICMP packet.
+        /// </summary>
+        /// <param name="Type">The ICMP message type.</param>
+        /// <param name="Code">The ICMP code.</param>
+        /// <param name="Checksum">The ICMP checksum.</param>
+        /// <param name="Payload">The ICMP payload.</param>
+        /// <param name="IPv4Packet">The optional transporting IPv4 packet.</param>
         public ICMPPacket(Byte          Type,
                           Byte          Code,
                           UInt16        Checksum,
@@ -64,21 +72,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
         }
 
+        #endregion
+
     }
 
 
     /// <summary>
-    /// ICMP packet, rfc792
+    /// An ICMP packet.
     /// </summary>
+    /// <seealso cref="https://www.rfc-editor.org/rfc/rfc792.html"/>
     public class ICMPPacket
     {
 
+        #region Properties
+
+        /// <summary>
+        /// The ICMP message type.
+        /// </summary>
         public Byte        Type            { get; }
+
+        /// <summary>
+        /// The ICMP code.
+        /// </summary>
         public Byte        Code            { get; }
+
+        /// <summary>
+        /// The ICMP checksum.
+        /// </summary>
         public UInt16      Checksum        { get; private set; }
+
+        /// <summary>
+        /// The binary ICMP payload.
+        /// </summary>
         public Byte[]      PayloadBytes    { get; }
+
+        /// <summary>
+        /// The optional transporting IPv4 packet.
+        /// </summary>
         public IPv4Packet  IPv4Packet      { get; }
 
+        #endregion
+
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create a new generic ICMP packet.
+        /// </summary>
+        /// <param name="Type">The ICMP message type.</param>
+        /// <param name="Code">The ICMP code.</param>
+        /// <param name="Checksum">The ICMP checksum.</param>
+        /// <param name="PayloadBytes">The binary ICMP payload.</param>
+        /// <param name="IPv4Packet">The optional transporting IPv4 packet.</param>
         public ICMPPacket(Byte        Type,
                           Byte        Code,
                           UInt16      Checksum,
@@ -94,21 +138,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
         }
 
+        #endregion
 
-        public static Boolean TryParse(IPv4Packet IPv4Packet, out ICMPPacket ICMPPacket)
+
+        #region TryParse(IPv4Packet, out ICMPPacket, Offset = 4)
+
+        /// <summary>
+        /// Try to parse the ICMP packet embedded within the given IPv4 packet.
+        /// </summary>
+        /// <param name="IPv4Packet">An IPv4 packet.</param>
+        /// <param name="ICMPPacket">The parsed ICMP packet.</param>
+        /// <param name="Offset">The offset of the ICMP pakcet within the array of bytes.</param>
+        public static Boolean TryParse(IPv4Packet      IPv4Packet,
+                                       out ICMPPacket  ICMPPacket,
+                                       Byte            Offset   = 4)
 
             => TryParse(IPv4Packet.Payload,
                         out ICMPPacket,
+                        Offset,
                         IPv4Packet);
 
-        public static Boolean TryParse(Byte[] Packet, out ICMPPacket ICMPPacket, IPv4Packet IPv4Packet = null)
+        #endregion
+
+        #region (Packet, out ICMPPacket, Offset = 4, IPv4Packet = null)
+
+        /// <summary>
+        /// Try to parse the given ICMP packet.
+        /// </summary>
+        /// <param name="Packet">An array of bytes to parse.</param>
+        /// <param name="ICMPPacket">The parsed ICMP packet.</param>
+        /// <param name="Offset">The offset of the ICMP pakcet within the array of bytes.</param>
+        /// <param name="IPv4Packet"></param>
+        public static Boolean TryParse(Byte[]          Packet,
+                                       out ICMPPacket  ICMPPacket,
+                                       Byte            Offset       = 4,
+                                       IPv4Packet      IPv4Packet   = null)
         {
 
             try
             {
 
-                var payload = new Byte[Packet.Length - 4];
-                Buffer.BlockCopy(Packet, 4, payload, 0, payload.Length);
+                var payload = new Byte[Packet.Length - Offset];
+                Buffer.BlockCopy(Packet, Offset, payload, 0, payload.Length);
 
                 ICMPPacket = new ICMPPacket(
                                  Packet[0],
@@ -142,6 +213,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
         }
 
+        #endregion
+
+        #region GetBytes()
+
         public Byte[] GetBytes()
         {
 
@@ -173,24 +248,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
         }
 
+        #endregion
+
+        #region GetChecksum(ICMPPacket, Start, End)
+
         public UInt16 GetChecksum(Byte[] ICMPPacket, Int32 Start, Int32 End)
         {
 
-            UInt32 CheckSum = 0;
+            UInt32 checkSum = 0;
             Int32  i;
 
             for (i=Start; i<End; i+=2)
-                CheckSum += (UInt16) BitConverter.ToInt16(ICMPPacket, i);
+                checkSum += (UInt16) BitConverter.ToInt16(ICMPPacket, i);
 
             if (i == End)
-                CheckSum += (UInt16) ICMPPacket[End];
+                checkSum += (UInt16) ICMPPacket[End];
 
-            while (CheckSum >> 16 != 0)
-                CheckSum = (CheckSum & 0xFFFF) + (CheckSum >> 16);
+            while (checkSum >> 16 != 0)
+                checkSum = (checkSum & 0xFFFF) + (checkSum >> 16);
 
-            return (UInt16) ~CheckSum;
+            return (UInt16) ~checkSum;
 
         }
+
+        #endregion
 
     }
 

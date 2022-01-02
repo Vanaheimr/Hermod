@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2022, Achim Friedland <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -54,13 +54,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
         #region Properties
 
-        public CodeEnum                                Code          { get; }
+        public CodeEnum                                Code                  { get; }
 
-        public UInt16                                  NextHopMTU    { get; }
+        public UInt16                                  NextHopMTU            { get; }
 
-        public Byte[]                                  Data          { get; }
+        public Byte[]                                  Data                  { get; }
 
-        public ICMPPacket<ICMPDestinationUnreachable>  ICMPPacket    { get; internal set; }
+        public ICMPPacket<ICMPDestinationUnreachable>  ICMPPacket            { get; internal set; }
+
+        public IPv4Packet                              EmbeddedIPv4Packet    { get; internal set; }
 
         #endregion
 
@@ -69,13 +71,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         private ICMPDestinationUnreachable(CodeEnum                                Code,
                                            UInt16                                  NextHopMTU,
                                            Byte[]                                  Data,
-                                           ICMPPacket<ICMPDestinationUnreachable>  ICMPPacket = null)
+                                           IPv4Packet                              EmbeddedIPv4Packet   = null,
+                                           ICMPPacket<ICMPDestinationUnreachable>  ICMPPacket           = null)
         {
 
-            this.Code        = Code;
-            this.NextHopMTU  = NextHopMTU;
-            this.Data        = Data;
-            this.ICMPPacket  = ICMPPacket;
+            this.Code                = Code;
+            this.NextHopMTU          = NextHopMTU;
+            this.Data                = Data;
+            this.EmbeddedIPv4Packet  = EmbeddedIPv4Packet;
+            this.ICMPPacket          = ICMPPacket;
 
         }
 
@@ -94,6 +98,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
             var echoReply =  new ICMPDestinationUnreachable(Code,
                                                             NextHopMTU,
                                                             Data,
+                                                            null,
                                                             ICMPPacket);
 
             if (ICMPPacket == null)
@@ -116,6 +121,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
 
 
+
+        public static Boolean TryParse(ICMPPacket Packet, out ICMPDestinationUnreachable ICMPDestinationUnreachable)
+        {
+
+            try
+            {
+
+                var data = new Byte[Packet.PayloadBytes.Length - 4];
+                Buffer.BlockCopy(Packet.PayloadBytes, 4, data, 0, data.Length);
+
+                if (IPv4Packet.TryParse(data, out IPv4Packet ipv4Packet))
+                {
+
+                    ICMPDestinationUnreachable = new ICMPDestinationUnreachable((CodeEnum) Packet.Code,
+                                                                                0,
+                                                                                data,
+                                                                                ipv4Packet);
+
+                    ICMPDestinationUnreachable.ICMPPacket = new ICMPPacket<ICMPDestinationUnreachable>(Packet.Type, Packet.Code, Packet.Checksum, ICMPDestinationUnreachable, ipv4Packet);
+
+                    return true;
+
+                }
+
+
+                ICMPDestinationUnreachable = Create(
+                                                 (CodeEnum) Packet.Code,
+                                                 (UInt16) System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt32(data, 0)),
+                                                 data
+                                             );
+
+                return true;
+
+            } catch
+            { }
+
+            ICMPDestinationUnreachable = default;
+            return false;
+
+        }
 
         public static Boolean TryParse(CodeEnum Code, Byte[] Packet, out ICMPDestinationUnreachable ICMPDestinationUnreachable)
         {

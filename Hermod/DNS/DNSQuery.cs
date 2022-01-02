@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2022, Achim Friedland <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,13 +25,23 @@ using System.Text;
 namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
+    /// <summary>
+    /// A DNS query.
+    /// </summary>
     public class DNSQuery
     {
 
         #region Data
 
-        public UInt16[]         QueryTypes;
-        public DNSQueryClasses  QueryClass;
+        /// <summary>
+        /// The query types (resource record types).
+        /// </summary>
+        public UInt16[]         QueryTypes    { get; }
+
+        /// <summary>
+        /// The query class.
+        /// </summary>
+        public DNSQueryClasses  QueryClass    { get; }
 
         #endregion
 
@@ -49,35 +59,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region DNSQuery(DomainName)
 
+        /// <summary>
+        /// Create a new DNS query.
+        /// </summary>
+        /// <param name="DomainName">The domain name to query.</param>
         public DNSQuery(String DomainName)
-            : this(DomainName, 255)
+
+            : this(DomainName,
+                   true,
+                   255)
+
         { }
 
         #endregion
 
-        #region DNSQuery(DomainName, params DNSResourceRecordTypes)
+        #region DNSQuery(DomainName,                   params DNSResourceRecordTypes)
 
+        /// <summary>
+        /// Create a new DNS query.
+        /// </summary>
+        /// <param name="DomainName">The domain name to query.</param>
+        /// <param name="DNSResourceRecordTypes">The DNS resource record types to query.</param>
         public DNSQuery(String           DomainName,
                         params UInt16[]  DNSResourceRecordTypes)
 
-            : this(DomainName, true, DNSResourceRecordTypes)
+            : this(DomainName,
+                   true,
+                   DNSResourceRecordTypes)
 
         { }
 
         #endregion
 
-        #region DNSQuery(DomainName, RecursionDesired, params DNSResourceRecordTypes)
+        #region DNSQuery(DomainName, RecursionDesired, params ResourceRecordTypes)
 
+        /// <summary>
+        /// Create a new DNS query.
+        /// </summary>
+        /// <param name="DomainName">The domain name to query.</param>
+        /// <param name="RecursionDesired">Whether recursion is desired or not.</param>
+        /// <param name="ResourceRecordTypes">The DNS resource record types to query.</param>
         public DNSQuery(String           DomainName,
                         Boolean          RecursionDesired,
-                        params UInt16[]  DNSResourceRecordTypes)
+                        params UInt16[]  ResourceRecordTypes)
         {
 
-            if (DNSResourceRecordTypes == null || DNSResourceRecordTypes.Length == 0)
+            if (ResourceRecordTypes == null || ResourceRecordTypes.Length == 0)
                 QueryTypes = new UInt16[1] { 255 };
 
             else
-                QueryTypes = DNSResourceRecordTypes;
+                QueryTypes = ResourceRecordTypes;
 
             if (QueryTypes.Length > 2305) // Just because of the number ;)
                 throw new ArgumentException("Too many DNSResourceRecordTypes!");
@@ -85,7 +116,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             this.DomainName        = DomainName;
             this.TransactionId     = new Random().Next(55555);
             this.RecursionDesired  = RecursionDesired;
-            this.QueryClass         = DNSQueryClasses.IN;
+            this.QueryClass        = DNSQueryClasses.IN;
 
         }
 

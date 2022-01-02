@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2022, Achim Friedland <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Illias;
 using System;
 
 #endregion
@@ -124,18 +125,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
 
 
-        public static Boolean TryParse(Byte[] Packet, out ICMPEchoRequest ICMPEchoRequest)
+        public static Boolean TryParse(ICMPPacket Packet, out ICMPEchoRequest ICMPEchoRequest)
         {
+
+            ICMPEchoRequest = null;
 
             try
             {
 
-                var data = new Byte[Packet.Length - 4];
-                Buffer.BlockCopy(Packet, 4, data, 0, data.Length);
+                var data = new Byte[Packet.PayloadBytes.Length - 4];
+                Buffer.BlockCopy(Packet.PayloadBytes, 4, data, 0, data.Length);
 
                 ICMPEchoRequest = Create(
-                                      (UInt16) System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt16(Packet, 0)),
-                                      (UInt16) System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt16(Packet, 2)),
+                                      (UInt16) System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt16(data, 0)),
+                                      (UInt16) System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt16(data, 2)),
                                       data
                                   );
 
@@ -144,7 +147,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
             } catch
             { }
 
-            ICMPEchoRequest = default;
+            return false;
+
+        }
+
+        public static Boolean TryParse(Byte[] Packet, out ICMPEchoRequest ICMPEchoRequest)
+        {
+
+            ICMPEchoRequest = null;
+
+            try
+            {
+
+                var type      = Packet[0];
+                var code      = Packet[1];
+
+                if (type != 8 || code != 0)
+                    return false;
+
+                var checksum  = (UInt16) System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt16(Packet, 2));
+
+                var data      = new Byte[Packet.Length - 8];
+                Buffer.BlockCopy(Packet, 8, data, 0, data.Length);
+
+                ICMPEchoRequest = Create(
+                                      (UInt16) System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt16(Packet, 4)),
+                                      (UInt16) System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt16(Packet, 6)),
+                                      data
+                                  );
+
+                return true;
+
+            } catch
+            { }
+
             return false;
 
         }
