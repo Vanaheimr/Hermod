@@ -20,7 +20,6 @@
 using System;
 using System.Linq;
 using System.Threading;
-using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 
@@ -171,26 +170,46 @@ namespace org.GraphDefined.Vanaheimr.Warden
             #endregion
 
 
-            #region Run(Timestamp, DNSClient, CancellationToken)
+            #region Run(CommonTimestamp, DNSClient, CancellationToken)
 
-            public Task Run(DateTime           Timestamp,
+            /// <summary>
+            /// Run this Warden check.
+            /// </summary>
+            /// <param name="CommonTimestamp">The common timestamp of all current/parallel Warden checks.</param>
+            /// <param name="DNSClient">The DNS client to use.</param>
+            /// <param name="CancellationToken">The cancellation token to use.</param>
+            public Task Run(DateTime           CommonTimestamp,
                             DNSClient          DNSClient,
                             CancellationToken  CancellationToken)
 
             {
 
-                if (DateTime.UtcNow >= LastRun + SleepTime)
+                if (CommonTimestamp >= LastRun + SleepTime)
                 {
 
                     try
                     {
 
-                        LastRun           = DateTime.UtcNow;
+                        LastRun          = CommonTimestamp;
 
-                        var _result       = ServiceCheck(Timestamp, DNSClient, Entity, CancellationToken);
-                        var _ResultTasks  = ResultConsumers.Select(consumer => _result.ContinueWith(task => consumer(task.Result))).ToArray();
+                        var result       = ServiceCheck(CommonTimestamp, DNSClient, Entity, CancellationToken);
+                        var resultTasks  = ResultConsumers.Select(consumer => result.ContinueWith(task => {
+                                               try
+                                               {
+                                                   consumer(task.Result);
+                                               }
+                                               catch (Exception e)
+                                               {
 
-                        return Task.WhenAll(_ResultTasks);
+                                                   while (e.InnerException != null)
+                                                       e = e.InnerException;
+
+                                                   DebugX.LogException(e, nameof(WardenCheck));
+
+                                               }
+                                           })).ToArray();
+
+                        return Task.WhenAll(resultTasks);
 
                     }
                     catch (Exception e)

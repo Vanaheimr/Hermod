@@ -45,30 +45,47 @@ namespace org.GraphDefined.Vanaheimr.Warden
         private readonly       Object               ServiceCheckLock;
         private readonly       Timer                ServiceCheckTimer;
 
-        public static readonly TimeSpan             DefaultInitialDelay  = TimeSpan.FromSeconds(30);
-        public static readonly TimeSpan             DefaultCheckEvery    = TimeSpan.FromSeconds(10);
 
-        private readonly       WardenProperties     _Properties;
+        /// <summary>
+        /// The default initial delay before the first Warden checks will be run.
+        /// </summary>
+        public static readonly TimeSpan             DefaultInitialDelay  = TimeSpan.FromSeconds(30);
+
+        /// <summary>
+        /// The default delay between the runs of the Warden check timer.
+        /// </summary>
+        public static readonly TimeSpan             DefaultCheckEvery    = TimeSpan.FromSeconds(10);
 
         #endregion
 
         #region Properties
 
         /// <summary>
+        /// An enumeration of all Warden checks.
+        /// </summary>
+        public IEnumerable<IWardenCheck> AllWardenChecks
+            => AllWardenChecks;
+
+        /// <summary>
+        /// The Warden check properties.
+        /// </summary>
+        public WardenProperties  WardenCheckProperties    { get; }
+
+        /// <summary>
         /// Run the warden checks every...
         /// </summary>
-        public TimeSpan   CheckEvery    { get; }
+        public TimeSpan          CheckEvery               { get; }
 
         /// <summary>
         /// The initial start-up delay.
         /// </summary>
-        public TimeSpan   InitialDelay  { get; }
+        public TimeSpan          InitialDelay             { get; }
 
 
         /// <summary>
         /// An optional DNS client for warden checks requiring network access.
         /// </summary>
-        public DNSClient  DNSClient     { get; }
+        public DNSClient         DNSClient                { get; }
 
         #endregion
 
@@ -85,19 +102,19 @@ namespace org.GraphDefined.Vanaheimr.Warden
                       DNSClient  DNSClient     = null)
         {
 
-            this.InitialDelay      = InitialDelay ?? DefaultInitialDelay;
-            this.CheckEvery        = CheckEvery   ?? DefaultCheckEvery;
-            this.DNSClient         = DNSClient    ?? new DNSClient(SearchForIPv6DNSServers: false);
+            this.InitialDelay           = InitialDelay ?? DefaultInitialDelay;
+            this.CheckEvery             = CheckEvery   ?? DefaultCheckEvery;
+            this.DNSClient              = DNSClient    ?? new DNSClient();
 
-            this._AllWardenChecks  = new List<IWardenCheck>();
-            this._Properties       = new WardenProperties();
+            this._AllWardenChecks       = new List<IWardenCheck>();
+            this.WardenCheckProperties  = new WardenProperties();
 
-            ServiceCheckLock       = new Object();
+            this.ServiceCheckLock       = new Object();
 
-            ServiceCheckTimer      = new Timer(RunWardenChecks,
-                                               null,
-                                               this.InitialDelay,
-                                               this.CheckEvery);
+            this.ServiceCheckTimer      = new Timer(RunWardenChecks,
+                                                    null,
+                                                    this.InitialDelay,
+                                                    this.CheckEvery);
 
         }
 
@@ -120,31 +137,31 @@ namespace org.GraphDefined.Vanaheimr.Warden
                 try
                 {
 
-                    var Now  = DateTime.UtcNow;
-                    var TS   = new CancellationTokenSource();
+                    var Now       = Timestamp.Now;
+                    var TS        = new CancellationTokenSource();
 
-                    var AllTasks = _AllWardenChecks.Where (check => check.RunCheck(Now, _Properties)).
-                                                    Select(check =>
-                                                    {
-                                                        try
-                                                        {
-                                                            return check.Run(Now, DNSClient, TS.Token);
-                                                        }
-                                                        catch (Exception e)
-                                                        {
+                    var allTasks  = _AllWardenChecks.Where (check => check.RunCheck(Now, WardenCheckProperties)).
+                                                     Select(check =>
+                                                     {
+                                                         try
+                                                         {
+                                                             return check.Run(Now, DNSClient, TS.Token);
+                                                         }
+                                                         catch (Exception e)
+                                                         {
 
-                                                            while (e.InnerException != null)
-                                                                e = e.InnerException;
+                                                             while (e.InnerException != null)
+                                                                 e = e.InnerException;
 
-                                                            return Task.FromException(e);
+                                                             return Task.FromException(e);
 
-                                                        }
-                                                    }).
-                                                    Where (task  => task != null).
-                                                    ToArray();
+                                                         }
+                                                     }).
+                                                     Where (task  => task != null).
+                                                     ToArray();
 
-                    if (AllTasks.Length > 0)
-                        Task.WaitAll(AllTasks);
+                    if (allTasks.Length > 0)
+                        Task.WaitAll(allTasks);
 
                     //ToDo: Log exceptions!
 
@@ -349,17 +366,17 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
         public WardenProperties Set(String Key, Object Value)
         {
-            return _Properties.Set(Key, Value);
+            return WardenCheckProperties.Set(Key, Value);
         }
 
         public Object Get(String Key)
         {
-            return _Properties.Get(Key);
+            return WardenCheckProperties.Get(Key);
         }
 
         public WardenProperties Remove(String Key)
         {
-            return _Properties.Remove(Key);
+            return WardenCheckProperties.Remove(Key);
         }
 
     }
