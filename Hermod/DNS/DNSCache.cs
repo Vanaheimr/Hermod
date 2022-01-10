@@ -131,12 +131,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 else
                 {
 
-                    // ToDo: Merge of DNS responses!
-                    _DNSCache[Domainname] = new DNSCacheEntry(
-                                                DateTime.UtcNow + TimeSpan.FromSeconds(DNSInformation.Answers.First().TimeToLive.TotalSeconds / 2),
-                                                DateTime.UtcNow + DNSInformation.Answers.First().TimeToLive,
-                                                DNSInformation
-                                            );
+                    if (DNSInformation.Answers.Any())
+                    {
+
+                        // ToDo: Merge of DNS responses!
+                        _DNSCache[Domainname] = new DNSCacheEntry(
+                                                    DateTime.UtcNow + TimeSpan.FromSeconds(DNSInformation.Answers.First().TimeToLive.TotalSeconds / 2),
+                                                    DateTime.UtcNow + DNSInformation.Answers.First().TimeToLive,
+                                                    DNSInformation
+                                                );
+
+                    }
+
+                    // ToDo: Add negative answers to avoid asking again and again...
 
                 }
 
