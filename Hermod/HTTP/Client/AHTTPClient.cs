@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2022, Achim Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2022 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -788,7 +788,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 else if (Response.TransferEncoding == "chunked")
                 {
 
-                    DebugX.Log("HTTP Client: Chunked Transport detected...");
+                    //DebugX.Log("HTTP Client: Chunked Transport detected...");
 
                     try
                     {
@@ -900,8 +900,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         if (chunkedDecodingFinished == 2)
                             DebugX.Log("HTTP Client: Chunked decoding timeout!");
-                        else
-                            DebugX.Log("HTTP Client: Chunked decoding finished!");
+                        //else
+                        //    DebugX.Log("HTTP Client: Chunked decoding finished!");
 
                     }
                     catch (Exception e)
@@ -1148,7 +1148,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Dispose this object.
         /// </summary>
-        public void Dispose()
+        public virtual void Dispose()
         {
             Close();
         }

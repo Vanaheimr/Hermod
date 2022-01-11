@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2022, Achim Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2022 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -131,12 +131,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 else
                 {
 
-                    // ToDo: Merge of DNS responses!
-                    _DNSCache[Domainname] = new DNSCacheEntry(
-                                                DateTime.UtcNow + TimeSpan.FromSeconds(DNSInformation.Answers.First().TimeToLive.TotalSeconds / 2),
-                                                DateTime.UtcNow + DNSInformation.Answers.First().TimeToLive,
-                                                DNSInformation
-                                            );
+                    if (DNSInformation.Answers.Any())
+                    {
+
+                        // ToDo: Merge of DNS responses!
+                        _DNSCache[Domainname] = new DNSCacheEntry(
+                                                    DateTime.UtcNow + TimeSpan.FromSeconds(DNSInformation.Answers.First().TimeToLive.TotalSeconds / 2),
+                                                    DateTime.UtcNow + DNSInformation.Answers.First().TimeToLive,
+                                                    DNSInformation
+                                                );
+
+                    }
+
+                    // ToDo: Add negative answers to avoid asking again and again...
 
                 }
 
