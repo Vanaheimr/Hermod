@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2022, Achim Friedland <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -580,7 +580,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             if (SignTheMail & !EncryptTheMail)
             {
 
-                var DataToBeSigned      = BodypartToBeSecured.
+                var dataToBeSigned      = BodypartToBeSecured.
 
                                               // Include headers of this MIME body
                                               // https://tools.ietf.org/html/rfc1847 Security Multiparts for MIME:
@@ -614,7 +614,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                                                                                              ContentDisposition:       ContentDispositions.attachment.ToString() + "; filename=\"signature.asc\"",
                                                                                              Content:                  new String[] {
 
-                                                                                                                           OpenPGP.CreateSignature(new MemoryStream(DataToBeSigned.ToUTF8Bytes()),
+                                                                                                                           OpenPGP.CreateSignature(new MemoryStream(dataToBeSigned.ToUTF8Bytes()),
                                                                                                                                                    From.SecretKeyRing.First(),
                                                                                                                                                    Passphrase,
                                                                                                                                                    HashAlgorithm: HashAlgorithm).

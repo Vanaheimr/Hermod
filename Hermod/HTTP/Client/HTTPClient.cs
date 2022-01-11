@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2022, Achim Friedland <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,29 +18,13 @@
 #region Usings
 
 using System;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Net.Sockets;
-using System.Diagnostics;
-using System.Net.Security;
-using System.Threading.Tasks;
-using System.Security.Authentication;
-using System.Security.Cryptography.X509Certificates;
 
-using Newtonsoft.Json.Linq;
-
-using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
-
-
-
-
 
     /// <summary>
     /// A http client.

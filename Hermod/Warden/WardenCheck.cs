@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2022, Achim Friedland <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +20,6 @@
 using System;
 using System.Linq;
 using System.Threading;
-using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 
@@ -43,7 +42,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
             #region Data
 
-            private ServiceCheckDelegate<TResult> ServiceCheck { get; }
+            private ServiceCheckDelegate<TResult>  ServiceCheck    { get; }
 
             #endregion
 
@@ -52,25 +51,25 @@ namespace org.GraphDefined.Vanaheimr.Warden
             /// <summary>
             /// A delegate for checking whether it is time to run a serive check.
             /// </summary>
-            public RunCheckDelegate  RunCheck   { get; }
+            public RunCheckDelegate   RunCheck           { get; }
 
             /// <summary>
             /// An additional sleeping time after every check.
             /// </summary>
-            public TimeSpan           SleepTime   { get; }
+            public TimeSpan           SleepTime          { get; }
 
             /// <summary>
             /// An entity to check.
             /// </summary>
-            public Object             Entity      { get; }
+            public Object             Entity             { get; }
 
 
-            public Action<TResult>[] ResultConsumers { get; }
+            public Action<TResult>[]  ResultConsumers    { get; }
 
             /// <summary>
             /// The timestamp of the last run.
             /// </summary>
-            public DateTime           LastRun     { private set; get; }
+            public DateTime           LastRun            { private set; get; }
 
             #endregion
 
@@ -171,26 +170,46 @@ namespace org.GraphDefined.Vanaheimr.Warden
             #endregion
 
 
-            #region Run(Timestamp, DNSClient, CancellationToken)
+            #region Run(CommonTimestamp, DNSClient, CancellationToken)
 
-            public Task Run(DateTime           Timestamp,
+            /// <summary>
+            /// Run this Warden check.
+            /// </summary>
+            /// <param name="CommonTimestamp">The common timestamp of all current/parallel Warden checks.</param>
+            /// <param name="DNSClient">The DNS client to use.</param>
+            /// <param name="CancellationToken">The cancellation token to use.</param>
+            public Task Run(DateTime           CommonTimestamp,
                             DNSClient          DNSClient,
                             CancellationToken  CancellationToken)
 
             {
 
-                if (DateTime.UtcNow >= LastRun + SleepTime)
+                if (CommonTimestamp >= LastRun + SleepTime)
                 {
 
                     try
                     {
 
-                        LastRun          = DateTime.UtcNow;
+                        LastRun          = CommonTimestamp;
 
-                        var _result      = ServiceCheck(Timestamp, DNSClient, Entity, CancellationToken);
-                        var _ResultTasks = ResultConsumers.Select(consumer => _result.ContinueWith(task => consumer(task.Result))).ToArray();
+                        var result       = ServiceCheck(CommonTimestamp, DNSClient, Entity, CancellationToken);
+                        var resultTasks  = ResultConsumers.Select(consumer => result.ContinueWith(task => {
+                                               try
+                                               {
+                                                   consumer(task.Result);
+                                               }
+                                               catch (Exception e)
+                                               {
 
-                        return Task.WhenAll(_ResultTasks);
+                                                   while (e.InnerException != null)
+                                                       e = e.InnerException;
+
+                                                   DebugX.LogException(e, nameof(WardenCheck));
+
+                                               }
+                                           })).ToArray();
+
+                        return Task.WhenAll(resultTasks);
 
                     }
                     catch (Exception e)
@@ -224,7 +243,10 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
                 : base(RunCheck,
                        SleepTime,
-                       (ts, ct) => { ServiceChecker(ts, ct); return Task.FromResult(false); })
+                       (ts, ct) => {
+                           ServiceChecker(ts, ct);
+                           return Task.FromResult(false);
+                       })
 
             { }
 
@@ -238,7 +260,10 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
                 : base(RunCheck,
                        SleepTime,
-                       (ts, dns, ct) => { ServiceChecker(ts, dns, ct); return Task.FromResult(false); })
+                       (ts, dns, ct) => {
+                           ServiceChecker(ts, dns, ct);
+                           return Task.FromResult(false);
+                       })
 
             { }
 
@@ -254,7 +279,10 @@ namespace org.GraphDefined.Vanaheimr.Warden
                 : base(RunCheck,
                        SleepTime,
                        Entity,
-                       (ts, obj, ct) => { ServiceChecker(ts, obj, ct); return Task.FromResult(false); })
+                       (ts, obj, ct) => {
+                           ServiceChecker(ts, obj, ct);
+                           return Task.FromResult(false);
+                       })
 
             { }
 
@@ -270,7 +298,10 @@ namespace org.GraphDefined.Vanaheimr.Warden
                 : base(RunCheck,
                        SleepTime,
                        Entity,
-                       (ts, dns, obj, ct) => { ServiceChecker(ts, dns, obj, ct); return Task.FromResult(false); })
+                       (ts, dns, obj, ct) => {
+                           ServiceChecker(ts, dns, obj, ct);
+                           return Task.FromResult(false);
+                       })
 
             { }
 

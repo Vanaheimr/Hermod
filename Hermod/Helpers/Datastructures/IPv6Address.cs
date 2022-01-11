@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2022, Achim Friedland <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -329,6 +329,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             return true;
 
         }
+
+        #endregion
+
+
+        #region (implicit) operator IPAddress(IPv6Address)
+
+        /// <summary>
+        /// Convert this IPv6 address into a System.Net.IPAddress.
+        /// </summary>
+        /// <param name="IPv6Address">The IPv6 address.</param>
+        public static implicit operator System.Net.IPAddress(IPv6Address IPv6Address)
+
+            => new System.Net.IPAddress(IPv6Address.GetBytes());
 
         #endregion
 
