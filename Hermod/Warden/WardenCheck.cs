@@ -193,6 +193,21 @@ namespace org.GraphDefined.Vanaheimr.Warden
                         LastRun          = CommonTimestamp;
 
                         var result       = ServiceCheck(CommonTimestamp, DNSClient, Entity, CancellationToken);
+
+                        //foreach (var consumer in ResultConsumers)
+                        //{
+
+                        //    try
+                        //    {
+                        //        consumer(result.Result);
+                        //    }
+                        //    catch (Exception ex)
+                        //    {
+                        //        DebugX.LogException(ex);
+                        //    }
+
+                        //}
+
                         var resultTasks  = ResultConsumers.Select(consumer => result.ContinueWith(task => {
                                                try
                                                {

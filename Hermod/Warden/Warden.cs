@@ -126,13 +126,12 @@ namespace org.GraphDefined.Vanaheimr.Warden
         private void RunWardenChecks(Object Status)
         {
 
+            //DebugX.LogT("'Warden' called!");
+
             Thread.CurrentThread.Priority = ThreadPriority.BelowNormal;
 
             if (Monitor.TryEnter(ServiceCheckLock))
             {
-
-                //var StopWatch = new Stopwatch();
-                //StopWatch.Start();
 
                 try
                 {
@@ -165,18 +164,6 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
                     //ToDo: Log exceptions!
 
-                    #region Debug info
-
-                    #if DEBUG
-
-                    //StopWatch.Stop();
-
-                 //   DebugX.LogT("'Warden' finished after " + StopWatch.Elapsed.TotalSeconds + " seconds!");
-
-                    #endif
-
-                    #endregion
-
                 }
                 catch (Exception e)
                 {
@@ -189,8 +176,8 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
             }
 
-            else
-                DebugX.LogT("'Warden' skipped!");
+            //else
+            //    DebugX.LogT("'Warden' skipped!");
 
         }
 
