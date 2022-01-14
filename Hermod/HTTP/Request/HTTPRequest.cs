@@ -697,7 +697,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             // Parse HTTP method
             // Propably not usefull to define here, as we can not send a response having an "Allow-header" here!
-            this.HTTPMethod = (HTTPMethod.TryParseString(_HTTPMethodHeader[0], out HTTPMethod _HTTPMethod))
+            this.HTTPMethod = HTTPMethod.TryParseString(_HTTPMethodHeader[0], out HTTPMethod _HTTPMethod)
                                   ? _HTTPMethod
                                   : HTTPMethod.Create(_HTTPMethodHeader[0]);
 
@@ -707,7 +707,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var RawUrl      = _HTTPMethodHeader[1];
             var _ParsedURL  = RawUrl.Split(_URLSeparator, 2, StringSplitOptions.None);
-            this.Path        = HTTPPath.Parse(HttpUtility.UrlDecode(_ParsedURL[0]));
+            this.Path       = HTTPPath.Parse(_ParsedURL[0]);
 
             //if (URL.StartsWith("http", StringComparison.Ordinal) || URL.StartsWith("https", StringComparison.Ordinal))
             if (Path.Contains("://"))
