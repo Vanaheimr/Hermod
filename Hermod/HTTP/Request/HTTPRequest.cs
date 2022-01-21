@@ -19,21 +19,41 @@
 
 using System;
 using System.IO;
-using System.Web;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using System.Security.Cryptography.X509Certificates;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
+
+    /// <summary>
+    /// Extension methods for HTTP requests.
+    /// </summary>
+    public static class HTTPRequestExtensions
+    {
+
+        #region Reply(this HTTPRequest)
+
+        /// <summary>
+        /// Create a new HTTP response builder for the given request.
+        /// </summary>
+        /// <param name="HTTPRequest">A HTTP request.</param>
+        public static HTTPResponse.Builder Reply(this HTTPRequest HTTPRequest)
+
+            => new HTTPResponse.Builder(HTTPRequest);
+
+        #endregion
+
+    }
+
 
     /// <summary>
     /// A HTTP request.
@@ -2144,6 +2164,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 set
                 {
                     SetHeaderField(HTTPHeaderField.SecWebSocketVersion, value);
+                }
+
+            }
+
+            #endregion
+
+            #region X_ClientId
+
+            public String X_ClientId
+            {
+
+                get
+                {
+                    return GetHeaderField(HTTPHeaderField.X_ClientId);
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPHeaderField.X_ClientId, value);
                 }
 
             }

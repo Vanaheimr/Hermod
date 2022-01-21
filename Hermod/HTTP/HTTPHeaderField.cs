@@ -2243,6 +2243,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region X_ClientId
+
+        /// <summary>
+        /// A client identification for better logging.
+        /// </summary>
+        /// <example>X-ClientId: Hello world</example>
+        public static readonly HTTPHeaderField X_ClientId = new HTTPHeaderField("X-ClientId",
+                                                                                typeof(String),
+                                                                                HeaderFieldType.Request,
+                                                                                RequestPathSemantic.EndToEnd);
+
+        #endregion
+
         #region X-ExpectedTotalNumberOfItems
 
         /// <summary>

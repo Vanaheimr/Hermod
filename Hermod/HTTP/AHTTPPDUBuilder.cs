@@ -1110,7 +1110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (protected) SetHeaderField(FieldName, Value)
+        #region SetHeaderField   (FieldName,   Value)
 
         /// <summary>
         /// Set a HTTP header field.
@@ -1118,22 +1118,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="FieldName">The name of the header field.</param>
         /// <param name="Value">The value. NULL will remove the field from the header.</param>
-        protected void SetHeaderField(String FieldName, Object Value)
+        public void SetHeaderField(String FieldName, Object Value)
         {
 
-            if (Value != null)
+            FieldName = FieldName?.Trim();
+
+            if (FieldName.IsNotNullOrEmpty() &&
+                Value != null)
             {
-
-                FieldName = FieldName.Trim();
-
                 if (HeaderFields.ContainsKey(FieldName))
                     HeaderFields[FieldName] = Value;
-
                 else
                     HeaderFields.Add(FieldName, Value);
-
             }
-
             else
                 if (HeaderFields.ContainsKey(FieldName))
                     HeaderFields.Remove(FieldName);
@@ -1142,7 +1139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected) SetHeaderField(HeaderField, Value)
+        #region SetHeaderField   (HeaderField, Value)
 
         /// <summary>
         /// Set a HTTP header field.
@@ -1150,7 +1147,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HeaderField">The header field.</param>
         /// <param name="Value">The value. NULL will remove the field from the header.</param>
-        protected void SetHeaderField(HTTPHeaderField HeaderField, Object Value)
+        public void SetHeaderField(HTTPHeaderField HeaderField, Object Value)
         {
 
             if (Value != null)
@@ -1171,13 +1168,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected) RemoveHeaderField(FieldName)
+        #region RemoveHeaderField(FieldName)
 
         /// <summary>
         /// Remove a HTTP header field.
         /// </summary>
         /// <param name="FieldName">The name of the header field.</param>
-        protected void RemoveHeaderField(String FieldName)
+        public void RemoveHeaderField(String FieldName)
         {
 
             FieldName = FieldName?.Trim();
