@@ -1041,6 +1041,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public String                   APIVersionHash              { get; }
 
 
+        public ApplicationRunTypes      RunType                     { get; }
+
         /// <summary>
         /// The unqiue identification of this HTTP API instance.
         /// </summary>
@@ -1373,6 +1375,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.HTTPSSEsPath             = this.LoggingPath + "HTTPSSEs"       + Path.DirectorySeparatorChar;
             this.MetricsPath              = this.LoggingPath + "Metrics"        + Path.DirectorySeparatorChar;
 
+            this.RunType                  = ApplicationRunType.GetRunType();
             this.SystemId                 = System_Id.Parse(Environment.MachineName.Replace("/", "") + "/" + HTTPServer.DefaultHTTPServerPort);
             this.IsDevelopment            = IsDevelopment;
             this.DevelopmentServers       = DevelopmentServers.SafeAny() ? new HashSet<String>(DevelopmentServers) : new HashSet<String>();
