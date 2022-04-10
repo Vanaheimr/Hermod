@@ -1425,59 +1425,64 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             Thread.CurrentThread.CurrentCulture   = CultureInfo.InvariantCulture;
             Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
 
-            // If those lines fail, try to run "lodctr /R" as administrator in an cmd.exe environment
-            totalRAM_PerformanceCounter = new PerformanceCounter("Process", "Working Set",      Process.GetCurrentProcess().ProcessName);
-            totalCPU_PerformanceCounter = new PerformanceCounter("Process", "% Processor Time", Process.GetCurrentProcess().ProcessName);
-            totalRAM_PerformanceCounter.NextValue();
-            totalCPU_PerformanceCounter.NextValue();
+            if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+            {
 
-            Warden.EveryMinutes(1,
-                                Process.GetCurrentProcess(),
-                                async (timestamp, process, ct) => {
-                                    using (var writer = File.AppendText(String.Concat(this.MetricsPath,
-                                                                                      Path.DirectorySeparatorChar,
-                                                                                      "process-stats_",
-                                                                                      DateTime.Now.Year, "-",
-                                                                                      DateTime.Now.Month.ToString("D2"),
-                                                                                      ".log")))
-                                    {
+                // If those lines fail, try to run "lodctr /R" as administrator in an cmd.exe environment
+                totalRAM_PerformanceCounter = new PerformanceCounter("Process", "Working Set",      Process.GetCurrentProcess().ProcessName);
+                totalCPU_PerformanceCounter = new PerformanceCounter("Process", "% Processor Time", Process.GetCurrentProcess().ProcessName);
+                totalRAM_PerformanceCounter.NextValue();
+                totalCPU_PerformanceCounter.NextValue();
 
-                                        await writer.WriteLineAsync(String.Concat(timestamp.ToIso8601(), ";",
-                                                                                  process.VirtualMemorySize64, ";",
-                                                                                  process.WorkingSet64, ";",
-                                                                                  process.TotalProcessorTime, ";",
-                                                                                  totalRAM_PerformanceCounter.NextValue() / 1024 / 1024, ";",
-                                                                                  totalCPU_PerformanceCounter.NextValue())).
-                                                     ConfigureAwait(false);
+                Warden.EveryMinutes(1,
+                                    Process.GetCurrentProcess(),
+                                    async (timestamp, process, ct) => {
+                                        using (var writer = File.AppendText(String.Concat(this.MetricsPath,
+                                                                                          Path.DirectorySeparatorChar,
+                                                                                          "process-stats_",
+                                                                                          DateTime.Now.Year, "-",
+                                                                                          DateTime.Now.Month.ToString("D2"),
+                                                                                          ".log")))
+                                        {
 
-                                    }
+                                            await writer.WriteLineAsync(String.Concat(timestamp.ToIso8601(), ";",
+                                                                                      process.VirtualMemorySize64, ";",
+                                                                                      process.WorkingSet64, ";",
+                                                                                      process.TotalProcessorTime, ";",
+                                                                                      totalRAM_PerformanceCounter.NextValue() / 1024 / 1024, ";",
+                                                                                      totalCPU_PerformanceCounter.NextValue())).
+                                                         ConfigureAwait(false);
 
-                                });
+                                        }
 
-            Warden.EveryMinutes(15,
-                                Environment.OSVersion.Platform == PlatformID.Unix
-                                    ? new DriveInfo("/")
-                                    : new DriveInfo(Directory.GetCurrentDirectory()),
-                                async (timestamp, driveInfo, ct) => {
-                                    using (var writer = File.AppendText(String.Concat(this.MetricsPath,
-                                                                                      Path.DirectorySeparatorChar,
-                                                                                      "disc-stats_",
-                                                                                      DateTime.Now.Year, "-",
-                                                                                      DateTime.Now.Month.ToString("D2"),
-                                                                                      ".log")))
-                                    {
+                                    });
 
-                                        var MBytesFree       = driveInfo.AvailableFreeSpace / 1024 / 1024;
-                                        var HDPercentageFree = 100 * driveInfo.AvailableFreeSpace / driveInfo.TotalSize;
+                Warden.EveryMinutes(15,
+                                    Environment.OSVersion.Platform == PlatformID.Unix
+                                        ? new DriveInfo("/")
+                                        : new DriveInfo(Directory.GetCurrentDirectory()),
+                                    async (timestamp, driveInfo, ct) => {
+                                        using (var writer = File.AppendText(String.Concat(this.MetricsPath,
+                                                                                          Path.DirectorySeparatorChar,
+                                                                                          "disc-stats_",
+                                                                                          DateTime.Now.Year, "-",
+                                                                                          DateTime.Now.Month.ToString("D2"),
+                                                                                          ".log")))
+                                        {
 
-                                        await writer.WriteLineAsync(String.Concat(timestamp.ToIso8601(), ";",
-                                                                                  MBytesFree, ";",
-                                                                                  HDPercentageFree)).
-                                                     ConfigureAwait(false);
+                                            var MBytesFree       = driveInfo.AvailableFreeSpace / 1024 / 1024;
+                                            var HDPercentageFree = 100 * driveInfo.AvailableFreeSpace / driveInfo.TotalSize;
 
-                                    }
+                                            await writer.WriteLineAsync(String.Concat(timestamp.ToIso8601(), ";",
+                                                                                      MBytesFree, ";",
+                                                                                      HDPercentageFree)).
+                                                         ConfigureAwait(false);
 
-                                });
+                                        }
+
+                                    });
+
+            }
 
             #endregion
 
