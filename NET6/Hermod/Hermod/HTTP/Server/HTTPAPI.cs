@@ -1038,7 +1038,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The API version hash (git commit hash value).
         /// </summary>
-        public String                   APIVersionHash              { get; }
+        public String?                  APIVersionHash              { get; }
 
 
         public ApplicationRunTypes      RunType                     { get; }
@@ -1054,7 +1054,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public String                   HTMLTemplate                { get; protected set; }
 
 
-        public X509Certificate          ServerCert                  { get; }
+        public X509Certificate?         ServerCert                  { get; }
 
 
 
@@ -1114,14 +1114,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The CPO client (HTTP client) logger.
         /// </summary>
-        public HTTPServerLogger         HTTPLogger                  { get; set; }
+        public HTTPServerLogger?        HTTPLogger                  { get; set; }
 
 
         public Warden.Warden            Warden                      { get; }
 
-        public ECPrivateKeyParameters   ServiceCheckPrivateKey      { get; set; }
+        public ECPrivateKeyParameters?  ServiceCheckPrivateKey      { get; set; }
 
-        public ECPublicKeyParameters    ServiceCheckPublicKey       { get; set; }
+        public ECPublicKeyParameters?   ServiceCheckPublicKey       { get; set; }
 
 
         public DNSClient                DNSClient
@@ -1197,48 +1197,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogfileCreator">A delegate for creating the name of the logfile for this API.</param>
         /// <param name="DNSClient">The DNS client of the API.</param>
         /// <param name="Autostart">Whether to start the API automatically.</param>
-        public HTTPAPI(HTTPHostname?                        HTTPHostname                       = null,
-                       String                               ExternalDNSName                    = null,
-                       IPPort?                              HTTPServerPort                     = null,
-                       HTTPPath?                            BasePath                           = null,
-                       String                               HTTPServerName                     = DefaultHTTPServerName,
+        public HTTPAPI(HTTPHostname?                         HTTPHostname                       = null,
+                       String?                               ExternalDNSName                    = null,
+                       IPPort?                               HTTPServerPort                     = null,
+                       HTTPPath?                             BasePath                           = null,
+                       String?                               HTTPServerName                     = DefaultHTTPServerName,
 
-                       HTTPPath?                            URLPathPrefix                      = null,
-                       String                               HTTPServiceName                    = DefaultHTTPServiceName,
-                       String                               HTMLTemplate                       = null,
-                       JObject                              APIVersionHashes                   = null,
+                       HTTPPath?                             URLPathPrefix                      = null,
+                       String?                               HTTPServiceName                    = DefaultHTTPServiceName,
+                       String?                               HTMLTemplate                       = null,
+                       JObject?                              APIVersionHashes                   = null,
 
-                       ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
-                       RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
-                       LocalCertificateSelectionCallback    ClientCertificateSelector          = null,
-                       SslProtocols?                        AllowedTLSProtocols                = null,
+                       ServerCertificateSelectorDelegate?    ServerCertificateSelector          = null,
+                       RemoteCertificateValidationCallback?  ClientCertificateValidator         = null,
+                       LocalCertificateSelectionCallback?    ClientCertificateSelector          = null,
+                       SslProtocols?                         AllowedTLSProtocols                = null,
 
-                       String                               ServerThreadName                   = null,
-                       ThreadPriority?                      ServerThreadPriority               = null,
-                       Boolean?                             ServerThreadIsBackground           = null,
-                       ConnectionIdBuilder                  ConnectionIdBuilder                = null,
-                       ConnectionThreadsNameBuilder         ConnectionThreadsNameBuilder       = null,
-                       ConnectionThreadsPriorityBuilder     ConnectionThreadsPriorityBuilder   = null,
-                       Boolean?                             ConnectionThreadsAreBackground     = null,
-                       TimeSpan?                            ConnectionTimeout                  = null,
-                       UInt32?                              MaxClientConnections               = null,
+                       String?                               ServerThreadName                   = null,
+                       ThreadPriority?                       ServerThreadPriority               = null,
+                       Boolean?                              ServerThreadIsBackground           = null,
+                       ConnectionIdBuilder?                  ConnectionIdBuilder                = null,
+                       ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
+                       ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
+                       Boolean?                              ConnectionThreadsAreBackground     = null,
+                       TimeSpan?                             ConnectionTimeout                  = null,
+                       UInt32?                               MaxClientConnections               = null,
 
-                       Boolean?                             DisableMaintenanceTasks            = null,
-                       TimeSpan?                            MaintenanceInitialDelay            = null,
-                       TimeSpan?                            MaintenanceEvery                   = null,
+                       Boolean?                              DisableMaintenanceTasks            = null,
+                       TimeSpan?                             MaintenanceInitialDelay            = null,
+                       TimeSpan?                             MaintenanceEvery                   = null,
 
-                       Boolean?                             DisableWardenTasks                 = null,
-                       TimeSpan?                            WardenInitialDelay                 = null,
-                       TimeSpan?                            WardenCheckEvery                   = null,
+                       Boolean?                              DisableWardenTasks                 = null,
+                       TimeSpan?                             WardenInitialDelay                 = null,
+                       TimeSpan?                             WardenCheckEvery                   = null,
 
-                       Boolean?                             IsDevelopment                      = null,
-                       IEnumerable<String>                  DevelopmentServers                 = null,
-                       Boolean?                             DisableLogging                     = null,
-                       String                               LoggingPath                        = DefaultHTTPAPI_LoggingPath,
-                       String                               LogfileName                        = DefaultHTTPAPI_LogfileName,
-                       LogfileCreatorDelegate               LogfileCreator                     = null,
-                       DNSClient                            DNSClient                          = null,
-                       Boolean                              Autostart                          = false)
+                       Boolean?                              IsDevelopment                      = null,
+                       IEnumerable<String>?                  DevelopmentServers                 = null,
+                       Boolean?                              DisableLogging                     = null,
+                       String?                               LoggingPath                        = DefaultHTTPAPI_LoggingPath,
+                       String?                               LogfileName                        = DefaultHTTPAPI_LogfileName,
+                       LogfileCreatorDelegate?               LogfileCreator                     = null,
+                       DNSClient?                            DNSClient                          = null,
+                       Boolean                               Autostart                          = false)
 
             : this(new HTTPServer(HTTPServerPort ?? DefaultHTTPServerPort,
                                   HTTPServerName ?? DefaultHTTPServerName,
@@ -1328,31 +1328,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogfileName">The name of the logfile.</param>
         /// <param name="LogfileCreator">A delegate for creating the name of the logfile for this API.</param>
         /// <param name="Autostart">Whether to start the API automatically.</param>
-        public HTTPAPI(HTTPServer              HTTPServer,
-                       HTTPHostname?           HTTPHostname              = null,
-                       String                  ExternalDNSName           = "",
-                       String                  HTTPServiceName           = DefaultHTTPServiceName,
-                       HTTPPath?               BasePath                  = null,
+        public HTTPAPI(HTTPServer               HTTPServer,
+                       HTTPHostname?            HTTPHostname              = null,
+                       String?                  ExternalDNSName           = "",
+                       String?                  HTTPServiceName           = DefaultHTTPServiceName,
+                       HTTPPath?                BasePath                  = null,
 
-                       HTTPPath?               URLPathPrefix             = null,
-                       String                  HTMLTemplate              = null,
-                       JObject                 APIVersionHashes          = null,
+                       HTTPPath?                URLPathPrefix             = null,
+                       String?                  HTMLTemplate              = null,
+                       JObject?                 APIVersionHashes          = null,
 
-                       Boolean?                DisableMaintenanceTasks   = false,
-                       TimeSpan?               MaintenanceInitialDelay   = null,
-                       TimeSpan?               MaintenanceEvery          = null,
+                       Boolean?                 DisableMaintenanceTasks   = false,
+                       TimeSpan?                MaintenanceInitialDelay   = null,
+                       TimeSpan?                MaintenanceEvery          = null,
 
-                       Boolean?                DisableWardenTasks        = false,
-                       TimeSpan?               WardenInitialDelay        = null,
-                       TimeSpan?               WardenCheckEvery          = null,
+                       Boolean?                 DisableWardenTasks        = false,
+                       TimeSpan?                WardenInitialDelay        = null,
+                       TimeSpan?                WardenCheckEvery          = null,
 
-                       Boolean?                IsDevelopment             = false,
-                       IEnumerable<String>     DevelopmentServers        = null,
-                       Boolean?                DisableLogging            = false,
-                       String                  LoggingPath               = DefaultHTTPAPI_LoggingPath,
-                       String                  LogfileName               = DefaultHTTPAPI_LogfileName,
-                       LogfileCreatorDelegate  LogfileCreator            = null,
-                       Boolean                 Autostart                 = false)
+                       Boolean?                 IsDevelopment             = false,
+                       IEnumerable<String>?     DevelopmentServers        = null,
+                       Boolean?                 DisableLogging            = false,
+                       String?                  LoggingPath               = null,
+                       String?                  LogfileName               = DefaultHTTPAPI_LogfileName,
+                       LogfileCreatorDelegate?  LogfileCreator            = null,
+                       Boolean                  Autostart                 = false)
 
         {
 
@@ -1365,9 +1365,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.URLPathPrefix            = URLPathPrefix   ?? DefaultURLPathPrefix;
             this.HTMLTemplate             = HTMLTemplate    ?? "";
             this.APIVersionHash           = APIVersionHashes?[nameof(HTTPAPI)]?.Value<String>()?.Trim();
-            this.LoggingPath              = LoggingPath     ?? AppContext.BaseDirectory;
+            this.LoggingPath              = LoggingPath     ?? Path.Combine(AppContext.BaseDirectory, DefaultHTTPAPI_LoggingPath);
 
-            if (this.LoggingPath[this.LoggingPath.Length - 1] != Path.DirectorySeparatorChar)
+            if (this.LoggingPath[^1] != Path.DirectorySeparatorChar)
                 this.LoggingPath += Path.DirectorySeparatorChar;
 
             this.HTTPRequestsPath         = this.LoggingPath + "HTTPRequests"   + Path.DirectorySeparatorChar;
@@ -1378,7 +1378,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.RunType                  = ApplicationRunType.GetRunType();
             this.SystemId                 = System_Id.Parse(Environment.MachineName.Replace("/", "") + "/" + HTTPServer.DefaultHTTPServerPort);
             this.IsDevelopment            = IsDevelopment;
-            this.DevelopmentServers       = DevelopmentServers.SafeAny() ? new HashSet<String>(DevelopmentServers) : new HashSet<String>();
+            this.DevelopmentServers       = DevelopmentServers.SafeAny() ? new HashSet<String>(DevelopmentServers!) : new HashSet<String>();
 
             if (!this.IsDevelopment.HasValue && this.DevelopmentServers.Contains(Environment.MachineName))
                 this.IsDevelopment = true;
@@ -1519,6 +1519,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                             Func<TData, String>             DataSerializer               = null,
                                                             Func<String, TData>             DataDeserializer             = null,
                                                             Boolean                         EnableLogging                = true,
+                                                            String                          LogfilePath                  = null,
                                                             String                          LogfilePrefix                = null,
                                                             Func<String, DateTime, String>  LogfileName                  = null,
                                                             String                          LogfileReloadSearchPattern   = null)
@@ -1529,6 +1530,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          DataSerializer,
                                          DataDeserializer,
                                          EnableLogging,
+                                         LogfilePath,
                                          LogfilePrefix,
                                          LogfileName,
                                          LogfileReloadSearchPattern);
@@ -1570,6 +1572,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                     Func<T, String>                 DataSerializer               = null,
                                                     Func<String, T>                 DataDeserializer             = null,
                                                     Boolean                         EnableLogging                = true,
+                                                    String                          LogfilePath                  = null,
                                                     String                          LogfilePrefix                = null,
                                                     Func<String, DateTime, String>  LogfileName                  = null,
                                                     String                          LogfileReloadSearchPattern   = null,
@@ -1593,6 +1596,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          DataDeserializer,
                                          EnableLogging,
                                          LogfilePrefix,
+                                         LogfilePath,
                                          LogfileName,
                                          LogfileReloadSearchPattern,
 

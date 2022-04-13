@@ -31,6 +31,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                   UInt32                          MaxNumberOfCachedEvents      = 500,
                                                                   TimeSpan?                       RetryIntervall               = null,
                                                                   Boolean                         EnableLogging                = true,
+                                                                  String                          LogfilePath                  = null,
                                                                   String                          LogfilePrefix                = null,
                                                                   Func<String, DateTime, String>  LogfileName                  = null,
                                                                   String                          LogfileReloadSearchPattern   = null)
@@ -43,6 +44,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          data => data.ToString(Newtonsoft.Json.Formatting.None),
                                          text => JObject.Parse(text),
                                          EnableLogging,
+                                         LogfilePath,
                                          LogfilePrefix,
                                          LogfileName,
                                          LogfileReloadSearchPattern);
@@ -79,6 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                   Func<HTTPEvent<JObject>, Boolean>  IncludeFilterAtRuntime       = null,
                                                                   TimeSpan?                          RetryIntervall               = null,
                                                                   Boolean                            EnableLogging                = false,
+                                                                  String                             LogfilePath                  = null,
                                                                   String                             LogfilePrefix                = null,
                                                                   Func<String, DateTime, String>     LogfileName                  = null,
                                                                   String                             LogfileReloadSearchPattern   = null,
@@ -101,6 +104,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          data => data.ToString(Newtonsoft.Json.Formatting.None),
                                          text => JObject.Parse(text),
                                          EnableLogging,
+                                         LogfilePath,
                                          LogfilePrefix,
                                          LogfileName,
                                          LogfileReloadSearchPattern,
@@ -235,6 +239,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      Func<TData, String>             DataSerializer               = null,
                                                      Func<String, TData>             DataDeserializer             = null,
                                                      Boolean                         EnableLogging                = true,
+                                                     String                          LogfilePath                  = null,
                                                      String                          LogfilePrefix                = null,
                                                      Func<String, DateTime, String>  LogfileName                  = null,
                                                      String                          LogfileReloadSearchPattern   = null);
@@ -272,6 +277,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      Func<TData, String>              DataSerializer               = null,
                                                      Func<String, TData>              DataDeserializer             = null,
                                                      Boolean                          EnableLogging                = false,
+                                                     String                           LogfilePath                  = null,
                                                      String                           LogfilePrefix                = null,
                                                      Func<String, DateTime, String>   LogfileName                  = null,
                                                      String                           LogfileReloadSearchPattern   = null,

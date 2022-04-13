@@ -718,6 +718,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                             Func<TData, String>             DataSerializer               = null,
                                                             Func<String, TData>             DataDeserializer             = null,
                                                             Boolean                         EnableLogging                = true,
+                                                            String                          LogfilePath                  = null,
                                                             String                          LogfilePrefix                = null,
                                                             Func<String, DateTime, String>  LogfileName                  = null,
                                                             String                          LogfileReloadSearchPattern   = null)
@@ -728,6 +729,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           DataSerializer,
                                           DataDeserializer,
                                           EnableLogging,
+                                          LogfilePath,
                                           LogfilePrefix,
                                           LogfileName,
                                           LogfileReloadSearchPattern);
@@ -769,6 +771,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                             Func<TData, String>              DataSerializer               = null,
                                                             Func<String, TData>              DataDeserializer             = null,
                                                             Boolean                          EnableLogging                = true,
+                                                            String                           LogfilePath                  = null,
                                                             String                           LogfilePrefix                = null,
                                                             Func<String, DateTime, String>   LogfileName                  = null,
                                                             String                           LogfileReloadSearchPattern   = null,
@@ -791,6 +794,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           DataSerializer,
                                           DataDeserializer,
                                           EnableLogging,
+                                          LogfilePath,
                                           LogfilePrefix,
                                           LogfileName,
                                           LogfileReloadSearchPattern,
@@ -2605,6 +2609,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                     Func<T, String>                 DataSerializer               = null,
                                                     Func<String, T>                 DataDeserializer             = null,
                                                     Boolean                         EnableLogging                = true,
+                                                    String                          LogfilePath                  = null,
                                                     String                          LogfilePrefix                = null,
                                                     Func<String, DateTime, String>  LogfileName                  = null,
                                                     String                          LogfileReloadSearchPattern   = null)
@@ -2623,6 +2628,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          DataSerializer,
                                                          DataDeserializer,
                                                          EnableLogging,
+                                                         LogfilePath,
                                                          EnableLogging || LogfileName != null
                                                              ? LogfileName ?? ((eventid, time) => String.Concat(LogfilePrefix ?? "",
                                                                                                                 eventid, "_",
@@ -2677,6 +2683,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                     Func<T, String>                 DataSerializer               = null,
                                                     Func<String, T>                 DataDeserializer             = null,
                                                     Boolean                         EnableLogging                = true,
+                                                    String                          LogfilePath                  = null,
                                                     String                          LogfilePrefix                = null,
                                                     Func<String, DateTime, String>  LogfileName                  = null,
                                                     String                          LogfileReloadSearchPattern   = null,
@@ -2701,6 +2708,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   DataSerializer,
                                                   DataDeserializer,
                                                   EnableLogging,
+                                                  LogfilePath,
                                                   LogfilePrefix,
                                                   LogfileName,
                                                   LogfileReloadSearchPattern);

@@ -90,6 +90,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public TimeSpan                        RetryIntervall             { get; set; }
 
         /// <summary>
+        /// The path to the log file.
+        /// </summary>
+        public String                          LogfilePath                { get; }
+
+        /// <summary>
         /// The delegate to create a filename for storing and reloading events.
         /// </summary>
         public Func<String, DateTime, String>  LogfileName                { get; }
@@ -110,20 +115,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogfileName">A delegate to create a filename for storing events.</param>
         /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
         public HTTPEventSource(HTTPEventSource_Id              EventIdentification,
-                               UInt64                          MaxNumberOfCachedEvents     = 500,
-                               TimeSpan?                       RetryIntervall              = null,
-                               Func<T, String>                 DataSerializer              = null,
-                               Func<String, T>                 DataDeserializer            = null,
-                               Boolean                         EnableLogging               = true,
-                               Func<String, DateTime, String>  LogfileName                 = null,
-                               String                          LogfileReloadSearchPattern  = null)
+                               UInt64                          MaxNumberOfCachedEvents      = 500,
+                               TimeSpan?                       RetryIntervall               = null,
+                               Func<T, String>?                DataSerializer               = null,
+                               Func<String, T>?                DataDeserializer             = null,
+                               Boolean                         EnableLogging                = true,
+                               String?                         LogfilePath                  = null,
+                               Func<String, DateTime, String>  LogfileName                  = null,
+                               String?                         LogfileReloadSearchPattern   = null)
         {
 
             this.EventIdentification  = EventIdentification;
             this.QueueOfEvents        = new TSQueue<HTTPEvent<T>>(MaxNumberOfCachedEvents);
-            this.RetryIntervall       = RetryIntervall ?? TimeSpan.FromSeconds(30);
-            this.DataSerializer       = DataSerializer ?? (data => data.ToString());
-            this.DataDeserializer     = DataDeserializer;
+            this.RetryIntervall       = RetryIntervall   ?? TimeSpan.FromSeconds(30);
+            this.DataSerializer       = DataSerializer   ?? (data => data?.ToString() ?? "");
+            this.DataDeserializer     = DataDeserializer ?? (data => default);
+            this.LogfilePath          = LogfilePath      ?? AppContext.BaseDirectory;
             this.LogfileName          = LogfileName;
             this.IdCounter            = 1;
 
@@ -137,7 +144,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     var HTTPSSEs = new List<String[]>();
 
-                    foreach (var logfilename in Directory.EnumerateFiles(Directory.GetCurrentDirectory(),
+                    foreach (var logfilename in Directory.EnumerateFiles(this.LogfilePath,
                                                                          LogfileReloadSearchPattern,
                                                                          SearchOption.TopDirectoryOnly).
                                                           OrderByDescending(file => file))
@@ -218,8 +225,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         try
                         {
 
-                            using (var logfile = File.AppendText(this.LogfileName(this.EventIdentification.ToString(),
-                                                                                  Timestamp.Now)))
+                            using (var logfile = File.AppendText(Path.Combine(this.LogfilePath,
+                                                                              this.LogfileName(this.EventIdentification.ToString(),
+                                                                                               Timestamp.Now))))
                             {
 
                                 await logfile.WriteLineAsync(String.Concat(httpEvent.Timestamp.ToIso8601(),
