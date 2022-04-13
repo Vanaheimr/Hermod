@@ -411,17 +411,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            HTTPRequestLoggerDelegate   LogHTTPRequest_toDisc,
                            HTTPResponseLoggerDelegate  LogHTTPResponse_toDisc,
 
-                           HTTPRequestLoggerDelegate   LogHTTPRequest_toNetwork    = null,
-                           HTTPResponseLoggerDelegate  LogHTTPResponse_toNetwork   = null,
-                           HTTPRequestLoggerDelegate   LogHTTPRequest_toHTTPSSE    = null,
-                           HTTPResponseLoggerDelegate  LogHTTPResponse_toHTTPSSE   = null,
+                           HTTPRequestLoggerDelegate?   LogHTTPRequest_toNetwork    = null,
+                           HTTPResponseLoggerDelegate?  LogHTTPResponse_toNetwork   = null,
+                           HTTPRequestLoggerDelegate?   LogHTTPRequest_toHTTPSSE    = null,
+                           HTTPResponseLoggerDelegate?  LogHTTPResponse_toHTTPSSE   = null,
 
-                           HTTPResponseLoggerDelegate  LogHTTPError_toConsole      = null,
-                           HTTPResponseLoggerDelegate  LogHTTPError_toDisc         = null,
-                           HTTPResponseLoggerDelegate  LogHTTPError_toNetwork      = null,
-                           HTTPResponseLoggerDelegate  LogHTTPError_toHTTPSSE      = null,
+                           HTTPResponseLoggerDelegate?  LogHTTPError_toConsole      = null,
+                           HTTPResponseLoggerDelegate?  LogHTTPError_toDisc         = null,
+                           HTTPResponseLoggerDelegate?  LogHTTPError_toNetwork      = null,
+                           HTTPResponseLoggerDelegate?  LogHTTPError_toHTTPSSE      = null,
 
-                           LogfileCreatorDelegate      LogfileCreator              = null)
+                           LogfileCreatorDelegate?      LogfileCreator              = null)
 
         {
 
@@ -449,6 +449,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (LogHTTPResponse_toDisc    == null)
                 LogHTTPResponse_toDisc     = Default_LogHTTPResponse_toDisc;
+
+
+            if (LogHTTPRequest_toDisc  != null ||
+                LogHTTPResponse_toDisc != null ||
+                LogHTTPError_toDisc    != null)
+            {
+                Directory.CreateDirectory(this.LoggingPath);
+            }
 
             this.LogfileCreator  = LogfileCreator ?? ((loggingPath, context, logfileName) => String.Concat(loggingPath,
                                                                                                            context != null ? context + "_" : "",
