@@ -47,14 +47,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public static class Helpers
     {
 
-        public static Int32 ReadTEBlockLength(this Byte[] TEContent, Int32 Position, Int32 TELength)
+        public static Int32 ReadTEBlockLength(this Byte[] TESourceBlock, Int32 Position, Int32 TELength)
         {
 
-            var TEBlockLength = new Byte[TELength];
-            Array.Copy(TEContent, Position, TEBlockLength, 0, TELength);
+            if (TELength < 1)
+            {
+                DebugX.Log("TE Block Length(" + Position + "," + TELength + ")");
+                return 0;
+            }
 
-            return Convert.ToInt32(TEBlockLength.ToUTF8String(), // Hex-String
-                                   16);
+            var TEBlock = new Byte[TELength];
+            Array.Copy(TESourceBlock, Position, TEBlock, 0, TELength);
+
+            //DebugX.Log("TE Block Length(" + Position + "," + TELength + "): " + TEBlockLength.ToUTF8String());
+
+            var len = 0;
+
+            try
+            {
+                len = Convert.ToInt32(TEBlock.ToUTF8String(), // Hex-String
+                                      16);
+            }
+            catch (Exception ex)
+            {
+                DebugX.Log("TE Block Length exception (" + TEBlock.ToUTF8String() + "): " + ex.Message);
+            }
+
+            return len;
 
         }
 
@@ -839,10 +858,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                             #region Process chunks
 
+                            // HTTP/1.1 200 OK\r\n
+                            // Server:            Apache/1.3.27\r\n
+                            // Transfer-Encoding: chunked\r\n
+                            // Content-Type:      text/html; charset=iso-8859-1\r\n
+                            // Trailer:           Cache-Control\r\n
+                            // \r\n
+                            // ee1\r\n
+                            // [Die ersten 3809 Zeichen der Datei]
+                            // \r\n
+                            // ffb\r\n
+                            // [Weitere 4091 Zeichen der Datei]
+                            // \r\n
+                            // c40\r\n
+                            // [Die letzten 3136 Zeichen der Datei]
+                            // \r\n
+                            // 0\r\n
+                            // Cache-Control: no-cache\r\n
+                            // \r\n
+                            // [Ende]
+
                             if (chunkedArray.Length >= currentPosition &&
                                 chunkedArray[currentPosition - 1] == '\n' &&
                                 chunkedArray[currentPosition - 2] == '\r')
                             {
+
+                                //DebugX.Log("ReadTEBlockLength: currentPosition = " + currentPosition + ", lastPosition = " + lastPosition + ", length: " + (currentPosition - lastPosition - 2));
+
+                                if ((currentPosition - lastPosition - 2) == -1)
+                                {
+
+                                }
 
                                 var BlockLength = chunkedArray.ReadTEBlockLength(lastPosition,
                                                                                  currentPosition - lastPosition - 2);
@@ -882,7 +928,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     }
 
                                     lastPosition = currentPosition;
-                                    currentPosition++;
+                                    currentPosition += 3;
 
                                 }
 
@@ -907,6 +953,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     catch (Exception e)
                     {
                         DebugX.Log("HTTP Client: Chunked decoding failed: " + e.Message);
+                        DebugX.Log(e.StackTrace);
                     }
 
                 }
