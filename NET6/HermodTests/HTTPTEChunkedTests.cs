@@ -24,6 +24,7 @@ using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using Newtonsoft.Json.Linq;
 
 #endregion
 
@@ -164,7 +165,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
                 #region GET         ~/test04
 
                 // -------------------------------------------------------------
-                // curl -v -H "Accept: text/html" http://127.0.0.1:1234/test03
+                // curl -v -H "Accept: text/html" http://127.0.0.1:1234/test04
                 // -------------------------------------------------------------
                 HTTPServer.AddMethodCallback(HTTPHostname.Any,
                                              HTTPMethod.GET,
@@ -309,6 +310,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
 
             Assert.AreEqual(200,                       response?.HTTPStatusCode.Code);
             Assert.AreEqual("MozillaDeveloperNetwork", response?.HTTPBodyAsUTF8String);
+            //var json = JObject.Parse(response?.HTTPBodyAsUTF8String);
+            //Assert.IsNotNull(json);
 
         }
 

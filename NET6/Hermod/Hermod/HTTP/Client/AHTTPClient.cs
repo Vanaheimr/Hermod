@@ -59,7 +59,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var TEBlock = new Byte[TELength];
             Array.Copy(TESourceBlock, Position, TEBlock, 0, TELength);
 
-            //DebugX.Log("TE Block Length(" + Position + "," + TELength + "): " + TEBlockLength.ToUTF8String());
+            DebugX.Log("TE Block Length(" + Position + "," + TELength + "): " + TEBlock.ToUTF8String());
 
             var len = 0;
 
