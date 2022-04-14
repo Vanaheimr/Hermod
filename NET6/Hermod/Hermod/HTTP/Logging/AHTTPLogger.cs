@@ -455,7 +455,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 LogHTTPResponse_toDisc != null ||
                 LogHTTPError_toDisc    != null)
             {
-                Directory.CreateDirectory(this.LoggingPath);
+                if (this.LoggingPath.IsNotNullOrEmpty())
+                    Directory.CreateDirectory(this.LoggingPath);
             }
 
             this.LogfileCreator  = LogfileCreator ?? ((loggingPath, context, logfileName) => String.Concat(loggingPath,

@@ -102,15 +102,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (LogEventName.IsNullOrEmpty())
                     throw new ArgumentNullException(nameof(LogEventName),                 "The given log event name must not be null or empty!");
 
-                if (SubscribeToEventDelegate == null)
+                if (SubscribeToEventDelegate     is null)
                     throw new ArgumentNullException(nameof(SubscribeToEventDelegate),     "The given delegate for subscribing to the linked HTTP API event must not be null!");
 
-                if (UnsubscribeFromEventDelegate == null)
+                if (UnsubscribeFromEventDelegate is null)
                     throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate), "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
 
                 #endregion
 
-                this.Context                       = Context ?? "";
+                this.LoggingPath                   = LoggingPath ?? "";
+                this.Context                       = Context     ?? "";
                 this.LogEventName                  = LogEventName;
                 this.SubscribeToEventDelegate      = SubscribeToEventDelegate;
                 this.UnsubscribeFromEventDelegate  = UnsubscribeFromEventDelegate;
@@ -290,15 +291,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (LogEventName.IsNullOrEmpty())
                     throw new ArgumentNullException(nameof(LogEventName),                 "The given log event name must not be null or empty!");
 
-                if (SubscribeToEventDelegate == null)
+                if (SubscribeToEventDelegate     is null)
                     throw new ArgumentNullException(nameof(SubscribeToEventDelegate),     "The given delegate for subscribing to the linked  HTTP API event must not be null!");
 
-                if (UnsubscribeFromEventDelegate == null)
+                if (UnsubscribeFromEventDelegate is null)
                     throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate), "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
 
                 #endregion
 
-                this.Context                       = Context != null ? Context : "";
+                this.LoggingPath                   = LoggingPath ?? "";
+                this.Context                       = Context     ?? "";
                 this.LogEventName                  = LogEventName;
                 this.SubscribeToEventDelegate      = SubscribeToEventDelegate;
                 this.UnsubscribeFromEventDelegate  = UnsubscribeFromEventDelegate;
