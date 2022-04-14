@@ -800,10 +800,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (Content != null)
                     ContentLength = (UInt64) Content.LongLength;
 
-                else if (ContentStream != null &&
-                         ContentStream.CanSeek) // NetworkStreams are not seekable!
+                else if (ContentStream != null && ContentStream.CanSeek) // NetworkStreams are not seekable!
                     ContentLength = (UInt64) ContentStream.Length;
 
+            }
+
+            if (TransferEncoding == "chunked")
+            {
+                ContentLength = null;
             }
 
         }

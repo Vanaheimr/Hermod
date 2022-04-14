@@ -65,8 +65,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             try
             {
-                len = Convert.ToInt32(TEBlock.ToUTF8String(), // Hex-String
-                                      16);
+
+                var chunkHeader = TEBlock.ToUTF8String()?.Split(';');
+
+                if (chunkHeader != null &&
+                    chunkHeader[0].IsNotNullOrEmpty())
+                {
+                    // Hex-String
+                    len = Convert.ToInt32(chunkHeader[0], 16);
+                }
+
+                //ToDo: Process Chunk Extensions!
+
             }
             catch (Exception ex)
             {
@@ -820,7 +830,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         var chunkedArray             = chunkedStream.ToArray();
                         var decodedStream            = new MemoryStream();
-                        var currentPosition          = 2;
+                        var currentPosition          = 1;
                         var lastPosition             = 0;
                         var currentBlockNumber       = 1UL;
                         var chunkedDecodingFinished  = 0;
@@ -877,6 +887,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             // Cache-Control: no-cache\r\n
                             // \r\n
                             // [Ende]
+
+                            // A process for decoding the chunked transfer coding can be represented
+                            //    in pseudo-code as:
+                            //
+                            //      length := 0
+                            //      read chunk-size, chunk-ext (if any), and CRLF
+                            //      while (chunk-size > 0) {
+                            //         read chunk-data and CRLF
+                            //         append chunk-data to decoded-body
+                            //         length := length + chunk-size
+                            //         read chunk-size, chunk-ext (if any), and CRLF
+                            //      }
+                            //      read trailer field
+                            //      while (trailer field is not empty) {
+                            //         if (trailer field is allowed to be sent in a trailer) {
+                            //             append trailer field to existing header fields
+                            //         }
+                            //         read trailer-field
+                            //      }
+                            //      Content-Length := length
+                            //      Remove "chunked" from Transfer-Encoding
+                            //      Remove Trailer from existing header fields
+
+
 
                             if (chunkedArray.Length >= currentPosition &&
                                 chunkedArray[currentPosition - 1] == '\n' &&
