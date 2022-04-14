@@ -914,68 +914,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
-                            if (chunkedArray.Length >= currentPosition &&
-                                chunkedArray[currentPosition - 1] == '\n' &&
-                                chunkedArray[currentPosition - 2] == '\r')
+                            if (chunkedArray.Length >= currentPosition)
                             {
-
-                                //DebugX.Log("ReadTEBlockLength: currentPosition = " + currentPosition + ", lastPosition = " + lastPosition + ", length: " + (currentPosition - lastPosition - 2));
-
-                                if ((currentPosition - lastPosition - 2) == -1)
+                                if (chunkedArray[currentPosition - 1] == '\n' &&
+                                    chunkedArray[currentPosition - 2] == '\r')
                                 {
 
-                                }
+                                    //DebugX.Log("ReadTEBlockLength: currentPosition = " + currentPosition + ", lastPosition = " + lastPosition + ", length: " + (currentPosition - lastPosition - 2));
 
-                                var BlockLength = chunkedArray.ReadTEBlockLength(lastPosition,
-                                                                                 currentPosition - lastPosition - 2);
+                                    if ((currentPosition - lastPosition - 2) == -1)
+                                    {
 
-                                DebugX.Log("ReadTEBlockLength: " + BlockLength);
+                                    }
 
-                                // End of stream reached?
-                                if (BlockLength == 0)
-                                {
-                                    Response.ContentStreamToArray(decodedStream);
-                                    chunkedDecodingFinished = 1;
-                                    break;
-                                }
+                                    var BlockLength = chunkedArray.ReadTEBlockLength(lastPosition,
+                                                                                     currentPosition - lastPosition - 2);
 
-                                // Read a new block... and final "\r\n"
-                                if (currentPosition + BlockLength + 2 <= chunkedArray.Length)
-                                {
+                                    DebugX.Log("ReadTEBlockLength: " + BlockLength);
 
-                                    OnChunkBlockFound?.Invoke(sw.Elapsed,
-                                                              currentBlockNumber,
-                                                              (UInt32) BlockLength,
-                                                              (UInt64) decodedStream.Length);
+                                    // End of stream reached?
+                                    if (BlockLength == 0)
+                                    {
+                                        Response.ContentStreamToArray(decodedStream);
+                                        chunkedDecodingFinished = 1;
+                                        break;
+                                    }
 
-                                    currentBlockNumber++;
+                                    // Read a new block... and final "\r\n"
+                                    if (currentPosition + BlockLength + 2 <= chunkedArray.Length)
+                                    {
 
-                                    decodedStream.Write(chunkedArray, currentPosition, BlockLength);
-                                    currentPosition += BlockLength + 2;
+                                        OnChunkBlockFound?.Invoke(sw.Elapsed,
+                                                                  currentBlockNumber,
+                                                                  (UInt32) BlockLength,
+                                                                  (UInt64) decodedStream.Length);
 
-                                    //if (currentPosition < chunkedArray.Length &&
-                                    //    chunkedArray[currentPosition] == 0x0d)
-                                    //{
-                                    //    currentPosition++;
-                                    //}
+                                        currentBlockNumber++;
 
-                                    //if (currentPosition < chunkedArray.Length - 1 &&
-                                    //    chunkedArray[currentPosition] == 0x0a)
-                                    //{
-                                    //    currentPosition++;
-                                    //}
+                                        decodedStream.Write(chunkedArray, currentPosition, BlockLength);
+                                        currentPosition += BlockLength + 2;
+                                        lastPosition     = currentPosition;
+                                        currentPosition += 1;
 
-                                    lastPosition = currentPosition;
-                                    currentPosition += 1;
+                                    }
 
                                 }
-
+                                else
+                                    currentPosition++;
                             }
 
                             #endregion
-
-                            else
-                                currentPosition++;
 
                             if (sw.ElapsedMilliseconds > HTTPStream.ReadTimeout)
                                 chunkedDecodingFinished = 2;
