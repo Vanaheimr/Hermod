@@ -859,18 +859,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             #region Process chunks
 
                             // HTTP/1.1 200 OK\r\n
-                            // Server:            Apache/1.3.27\r\n
-                            // Transfer-Encoding: chunked\r\n
-                            // Content-Type:      text/html; charset=iso-8859-1\r\n
-                            // Trailer:           Cache-Control\r\n
+                            // Server:             Apache/1.3.27\r\n
+                            // Transfer-Encoding:  chunked\r\n
+                            // Content-Type:       text/html; charset=iso-8859-1\r\n
+                            // Trailer:            Cache-Control\r\n
                             // \r\n
-                            // ee1\r\n
+                            // ee1;XXX\r\n
                             // [Die ersten 3809 Zeichen der Datei]
                             // \r\n
-                            // ffb\r\n
+                            // ffb;XXX\r\n
                             // [Weitere 4091 Zeichen der Datei]
                             // \r\n
-                            // c40\r\n
+                            // c40;XXX\r\n
                             // [Die letzten 3136 Zeichen der Datei]
                             // \r\n
                             // 0\r\n
