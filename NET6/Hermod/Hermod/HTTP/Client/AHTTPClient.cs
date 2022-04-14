@@ -830,7 +830,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         var chunkedArray             = chunkedStream.ToArray();
                         var decodedStream            = new MemoryStream();
-                        var currentPosition          = 1;
+                        var currentPosition          = 2;
                         var lastPosition             = 0;
                         var currentBlockNumber       = 1UL;
                         var chunkedDecodingFinished  = 0;
@@ -927,6 +927,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 var BlockLength = chunkedArray.ReadTEBlockLength(lastPosition,
                                                                                  currentPosition - lastPosition - 2);
 
+                                DebugX.Log("ReadTEBlockLength: " + BlockLength);
+
                                 // End of stream reached?
                                 if (BlockLength == 0)
                                 {
@@ -935,8 +937,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     break;
                                 }
 
-                                // Read a new block...
-                                if (currentPosition + BlockLength <= chunkedArray.Length)
+                                // Read a new block... and final "\r\n"
+                                if (currentPosition + BlockLength + 2 <= chunkedArray.Length)
                                 {
 
                                     OnChunkBlockFound?.Invoke(sw.Elapsed,
@@ -947,22 +949,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     currentBlockNumber++;
 
                                     decodedStream.Write(chunkedArray, currentPosition, BlockLength);
-                                    currentPosition += BlockLength;
+                                    currentPosition += BlockLength + 2;
 
-                                    if (currentPosition < chunkedArray.Length &&
-                                        chunkedArray[currentPosition] == 0x0d)
-                                    {
-                                        currentPosition++;
-                                    }
+                                    //if (currentPosition < chunkedArray.Length &&
+                                    //    chunkedArray[currentPosition] == 0x0d)
+                                    //{
+                                    //    currentPosition++;
+                                    //}
 
-                                    if (currentPosition < chunkedArray.Length - 1 &&
-                                        chunkedArray[currentPosition] == 0x0a)
-                                    {
-                                        currentPosition++;
-                                    }
+                                    //if (currentPosition < chunkedArray.Length - 1 &&
+                                    //    chunkedArray[currentPosition] == 0x0a)
+                                    //{
+                                    //    currentPosition++;
+                                    //}
 
                                     lastPosition = currentPosition;
-                                    currentPosition += 3;
+                                    currentPosition += 1;
 
                                 }
 
