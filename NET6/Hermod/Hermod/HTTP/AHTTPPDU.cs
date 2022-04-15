@@ -967,13 +967,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (protected) RemoveHeaderField(FieldName)
+        #region (protected internal) RemoveHeaderField(FieldName)
 
         /// <summary>
         /// Remove a HTTP header field.
         /// </summary>
         /// <param name="FieldName">The name of the header field.</param>
-        protected void RemoveHeaderField(String FieldName)
+        protected internal void RemoveHeaderField(String FieldName)
         {
             if (_HeaderFields.ContainsKey(FieldName))
                 _HeaderFields.Remove(FieldName);
@@ -982,7 +982,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (protected) SetHeaderField(FieldName, Value)
+        #region (protected internal) SetHeaderField(FieldName, Value)
 
         /// <summary>
         /// Set a HTTP header field.
@@ -990,7 +990,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="FieldName">The name of the header field.</param>
         /// <param name="Value">The value. NULL will remove the field from the header.</param>
-        protected void SetHeaderField(String FieldName, Object Value)
+        protected internal void SetHeaderField(String FieldName, Object Value)
         {
 
             if (Value != null)
@@ -1011,7 +1011,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected) SetHeaderField(HeaderField, Value)
+        #region (protected internal) SetHeaderField(HeaderField, Value)
 
         /// <summary>
         /// Set a HTTP header field.
@@ -1019,7 +1019,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HeaderField">The HTTP header field.</param>
         /// <param name="Value">The value. NULL will remove the field from the header.</param>
-        protected void SetHeaderField(HTTPHeaderField HeaderField, Object Value)
+        protected internal void SetHeaderField(HTTPHeaderField HeaderField, Object Value)
         {
 
             if (Value != null)

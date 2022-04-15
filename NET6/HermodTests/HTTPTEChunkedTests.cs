@@ -100,12 +100,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
 
                                                 Task.FromResult(
                                                     new HTTPResponse.Builder(Request) {
-                                                        HTTPStatusCode             = HTTPStatusCode.OK,
-                                                        Server                     = HTTPServer.DefaultServerName,
-                                                        Date                       = Timestamp.Now,
-                                                        ContentType                = HTTPContentType.TEXT_UTF8,
-                                                        Content                    = "MozillaDeveloperNetwork".ToUTF8Bytes(),
-                                                        Connection                 = "close"
+                                                        HTTPStatusCode  = HTTPStatusCode.OK,
+                                                        Server          = HTTPServer.DefaultServerName,
+                                                        Date            = Timestamp.Now,
+                                                        ContentType     = HTTPContentType.TEXT_UTF8,
+                                                        Content         = "MozillaDeveloperNetwork".ToUTF8Bytes(),
+                                                        Connection      = "close"
                                                     }.AsImmutable),
 
                                              AllowReplacement: URLReplacement.Allow);
@@ -124,13 +124,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
 
                                                 Task.FromResult(
                                                     new HTTPResponse.Builder(Request) {
-                                                        HTTPStatusCode             = HTTPStatusCode.OK,
-                                                        Server                     = HTTPServer.DefaultServerName,
-                                                        Date                       = Timestamp.Now,
-                                                        TransferEncoding           = "chunked",
-                                                        ContentType                = HTTPContentType.TEXT_UTF8,
-                                                        Content                    = "7\r\nMozilla\r\n9\r\nDeveloper\r\n7\r\nNetwork\r\n0\r\n\r\n".ToUTF8Bytes(),
-                                                        Connection                 = "close"
+                                                        HTTPStatusCode    = HTTPStatusCode.OK,
+                                                        Server            = HTTPServer.DefaultServerName,
+                                                        Date              = Timestamp.Now,
+                                                        TransferEncoding  = "chunked",
+                                                        ContentType       = HTTPContentType.TEXT_UTF8,
+                                                        Content           = "7\r\nMozilla\r\n9\r\nDeveloper\r\n7\r\nNetwork\r\n0\r\n\r\n".ToUTF8Bytes(),
+                                                        Connection        = "close"
                                                     }.AsImmutable),
 
                                              AllowReplacement: URLReplacement.Allow);
@@ -149,13 +149,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
 
                                                 Task.FromResult(
                                                     new HTTPResponse.Builder(Request) {
-                                                        HTTPStatusCode             = HTTPStatusCode.OK,
-                                                        Server                     = HTTPServer.DefaultServerName,
-                                                        Date                       = Timestamp.Now,
-                                                        TransferEncoding           = "chunked",
-                                                        ContentType                = HTTPContentType.TEXT_UTF8,
-                                                        Content                    = "007\r\nMozilla\r\n009\r\nDeveloper\r\n007\r\nNetwork\r\n0\r\n\r\n".ToUTF8Bytes(),
-                                                        Connection                 = "close"
+                                                        HTTPStatusCode    = HTTPStatusCode.OK,
+                                                        Server            = HTTPServer.DefaultServerName,
+                                                        Date              = Timestamp.Now,
+                                                        TransferEncoding  = "chunked",
+                                                        ContentType       = HTTPContentType.TEXT_UTF8,
+                                                        Content           = "007\r\nMozilla\r\n009\r\nDeveloper\r\n007\r\nNetwork\r\n0\r\n\r\n".ToUTF8Bytes(),
+                                                        Connection        = "close"
                                                     }.AsImmutable),
 
                                              AllowReplacement: URLReplacement.Allow);
@@ -174,13 +174,64 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
 
                                                 Task.FromResult(
                                                     new HTTPResponse.Builder(Request) {
-                                                        HTTPStatusCode             = HTTPStatusCode.OK,
-                                                        Server                     = HTTPServer.DefaultServerName,
-                                                        Date                       = Timestamp.Now,
-                                                        TransferEncoding           = "chunked",
-                                                        ContentType                = HTTPContentType.TEXT_UTF8,
-                                                        Content                    = "007\r\nMozilla\r\n009;a=b\r\nDeveloper\r\n007;a=b;c=d\r\nNetwork\r\n0\r\n\r\n".ToUTF8Bytes(),
-                                                        Connection                 = "close"
+                                                        HTTPStatusCode    = HTTPStatusCode.OK,
+                                                        Server            = HTTPServer.DefaultServerName,
+                                                        Date              = Timestamp.Now,
+                                                        TransferEncoding  = "chunked",
+                                                        ContentType       = HTTPContentType.TEXT_UTF8,
+                                                        Content           = "007\r\nMozilla\r\n009;a=b\r\nDeveloper\r\n007;a=b;c=d\r\nNetwork\r\n0\r\n\r\n".ToUTF8Bytes(),
+                                                        Connection        = "close"
+                                                    }.AsImmutable),
+
+                                             AllowReplacement: URLReplacement.Allow);
+
+                #endregion
+
+                #region GET         ~/test05
+
+                // -------------------------------------------------------------
+                // curl -v -H "Accept: text/html" http://127.0.0.1:1234/test05
+                // -------------------------------------------------------------
+                HTTPServer.AddMethodCallback(HTTPHostname.Any,
+                                             HTTPMethod.GET,
+                                             URLPathPrefix + "test05",
+                                             HTTPDelegate: Request =>
+
+                                                Task.FromResult(
+                                                    new HTTPResponse.Builder(Request) {
+                                                        HTTPStatusCode    = HTTPStatusCode.OK,
+                                                        Server            = HTTPServer.DefaultServerName,
+                                                        Date              = Timestamp.Now,
+                                                        TransferEncoding  = "chunked",
+                                                        ContentType       = HTTPContentType.TEXT_UTF8,
+                                                        Content           = "007\r\nMozilla\r\n009;a=b\r\nDeveloper\r\n007;a=b;c=d\r\nNetwork\r\n0\r\nCache-Control: no-cache\r\n\r\n".ToUTF8Bytes(),
+                                                        Connection        = "close"
+                                                    }.AsImmutable),
+
+                                             AllowReplacement: URLReplacement.Allow);
+
+                #endregion
+
+                #region GET         ~/test06
+
+                // -------------------------------------------------------------
+                // curl -v -H "Accept: text/html" http://127.0.0.1:1234/test06
+                // -------------------------------------------------------------
+                HTTPServer.AddMethodCallback(HTTPHostname.Any,
+                                             HTTPMethod.GET,
+                                             URLPathPrefix + "test06",
+                                             HTTPDelegate: Request =>
+
+                                                Task.FromResult(
+                                                    new HTTPResponse.Builder(Request) {
+                                                        HTTPStatusCode    = HTTPStatusCode.OK,
+                                                        Server            = HTTPServer.DefaultServerName,
+                                                        Date              = Timestamp.Now,
+                                                        TransferEncoding  = "chunked",
+                                                        ContentType       = HTTPContentType.TEXT_UTF8,
+                                                        Content           = "007\r\nMozilla\r\n009;a=b\r\nDeveloper\r\n007;a=b;c=d\r\nNetwork\r\n0\r\nCache-Control: no-cache\r\nTrailingHeader: yes\r\nTrailingHeader2: yes\r\n\r\n".ToUTF8Bytes(),
+                                                        Trailer           = "Cache-Control",
+                                                        Connection        = "close"
                                                     }.AsImmutable),
 
                                              AllowReplacement: URLReplacement.Allow);
@@ -296,45 +347,189 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         public void ChunkedTest_04()
         {
 
-            var chunkInfo  = new List<ChunkInfos>();
+            var chunkLengths     = new List<UInt32>();
+            var chunkExtensions  = new List<Dictionary<String, List<String>>?>();
+            var chunkData        = new List<String>();
 
-            var client     = new HTTPClient(URL.Parse("http://127.0.0.1:1234"));
-            client.OnChunkBlockFound += async (timestamp, blockNumber, chunkInfos, totalBytes) => {
-                chunkInfo.Add(chunkInfos);
+            var client           = new HTTPClient(URL.Parse("http://127.0.0.1:1234"));
+            client.OnChunkBlockFound += async (timestamp, number, length, extensions, data, totalBytes) => {
+                chunkLengths.   Add(length);
+                chunkExtensions.Add(extensions);
+                chunkData.      Add(data != null ? data.ToUTF8String() : "");
             };
 
-            var response   = client.Execute(client => client.GETRequest(HTTPPath.Parse("/test04"),
-                                                                        requestbuilder => {
-                                                                            requestbuilder.Host = HTTPHostname.Localhost;
-                                                                            requestbuilder.Accept.Add(HTTPContentType.TEXT_UTF8);
-                                                                            requestbuilder.Connection = "close";
-                                                                        })).
-                                    Result;
+            var response         = client.Execute(client => client.GETRequest(HTTPPath.Parse("/test04"),
+                                                                              requestbuilder => {
+                                                                                  requestbuilder.Host = HTTPHostname.Localhost;
+                                                                                  requestbuilder.Accept.Add(HTTPContentType.TEXT_UTF8);
+                                                                                  requestbuilder.Connection = "close";
+                                                                              })).
+                                          Result;
 
 
             Assert.AreEqual (200,                       response?.HTTPStatusCode.Code);
             Assert.AreEqual ("MozillaDeveloperNetwork", response?.HTTPBodyAsUTF8String);
-            Assert.AreEqual (4,                         chunkInfo.Count);
-            Assert.IsNull   (chunkInfo[0].Extentions);
-            Assert.IsNotNull(chunkInfo[1].Extentions);
-            Assert.IsNotNull(chunkInfo[2].Extentions);
-            Assert.IsNull   (chunkInfo[3].Extentions);
+            Assert.AreEqual (4,                         chunkExtensions.Count);
 
-            Assert.AreEqual (1,                         chunkInfo[1].Extentions!.Count);
-            Assert.AreEqual ("a",                       chunkInfo[1].Extentions!.First().Key);
-            Assert.AreEqual (1,                         chunkInfo[1].Extentions!.First().Value.Count);
-            Assert.AreEqual ("b",                       chunkInfo[1].Extentions!.First().Value.First());
+            Assert.AreEqual (7, chunkLengths[0]);
+            Assert.IsNull   (chunkExtensions[0]);
+            Assert.AreEqual ("Mozilla",                 chunkData[0]);
 
-            Assert.AreEqual (2,                         chunkInfo[2].Extentions!.Count);
-            Assert.AreEqual ("a",                       chunkInfo[2].Extentions!.First().Key);
-            Assert.AreEqual (1,                         chunkInfo[2].Extentions!.First().Value.Count);
-            Assert.AreEqual ("b",                       chunkInfo[2].Extentions!.First().Value.First());
-            Assert.AreEqual ("c",                       chunkInfo[2].Extentions!.Skip(1).First().Key);
-            Assert.AreEqual (1,                         chunkInfo[2].Extentions!.Skip(1).First().Value.Count);
-            Assert.AreEqual ("d",                       chunkInfo[2].Extentions!.Skip(1).First().Value.First());
+            Assert.AreEqual (9, chunkLengths[1]);
+            Assert.IsNotNull(chunkExtensions[1]);
+            Assert.AreEqual (1,                         chunkExtensions[1]?.Count);
+            Assert.AreEqual ("a",                       chunkExtensions[1]?.First().Key);
+            Assert.AreEqual (1,                         chunkExtensions[1]?.First().Value.Count);
+            Assert.AreEqual ("b",                       chunkExtensions[1]?.First().Value.First());
+            Assert.AreEqual ("Developer",               chunkData[1]);
+
+            Assert.AreEqual (7, chunkLengths[2]);
+            Assert.IsNotNull(chunkExtensions[2]);
+            Assert.AreEqual (2,                         chunkExtensions[2]?.Count);
+            Assert.AreEqual ("a",                       chunkExtensions[2]?.First().Key);
+            Assert.AreEqual (1,                         chunkExtensions[2]?.First().Value.Count);
+            Assert.AreEqual ("b",                       chunkExtensions[2]?.First().Value.First());
+            Assert.AreEqual ("c",                       chunkExtensions[2]?.Skip(1).First().Key);
+            Assert.AreEqual (1,                         chunkExtensions[2]?.Skip(1).First().Value.Count);
+            Assert.AreEqual ("d",                       chunkExtensions[2]?.Skip(1).First().Value.First());
+            Assert.AreEqual ("Network",                 chunkData[2]);
+
+            Assert.AreEqual (0, chunkLengths[3]);
+            Assert.IsNull   (chunkExtensions[3]);
+            Assert.AreEqual ("",                        chunkData[3]);
 
             //var json = JObject.Parse(response?.HTTPBodyAsUTF8String);
             //Assert.IsNotNull(json);
+
+        }
+
+        #endregion
+
+        #region ChunkedTest_05()
+
+        [Test]
+        public void ChunkedTest_05()
+        {
+
+            var chunkLengths     = new List<UInt32>();
+            var chunkExtensions  = new List<Dictionary<String, List<String>>?>();
+            var chunkData        = new List<String>();
+
+            var client           = new HTTPClient(URL.Parse("http://127.0.0.1:1234"));
+            client.OnChunkBlockFound += async (timestamp, number, length, extensions, data, totalBytes) => {
+                chunkLengths.   Add(length);
+                chunkExtensions.Add(extensions);
+                chunkData.      Add(data != null ? data.ToUTF8String() : "");
+            };
+
+            var response         = client.Execute(client => client.GETRequest(HTTPPath.Parse("/test05"),
+                                                                              requestbuilder => {
+                                                                                  requestbuilder.Host = HTTPHostname.Localhost;
+                                                                                  requestbuilder.Accept.Add(HTTPContentType.TEXT_UTF8);
+                                                                                  requestbuilder.Connection = "close";
+                                                                              })).
+                                          Result;
+
+
+            Assert.AreEqual (200,                       response?.HTTPStatusCode.Code);
+            Assert.AreEqual ("MozillaDeveloperNetwork", response?.HTTPBodyAsUTF8String);
+            Assert.AreEqual (4,                         chunkExtensions.Count);
+
+            Assert.AreEqual (7, chunkLengths[0]);
+            Assert.IsNull   (chunkExtensions[0]);
+            Assert.AreEqual ("Mozilla",                 chunkData[0]);
+
+            Assert.AreEqual (9, chunkLengths[1]);
+            Assert.IsNotNull(chunkExtensions[1]);
+            Assert.AreEqual (1,                         chunkExtensions[1]?.Count);
+            Assert.AreEqual ("a",                       chunkExtensions[1]?.First().Key);
+            Assert.AreEqual (1,                         chunkExtensions[1]?.First().Value.Count);
+            Assert.AreEqual ("b",                       chunkExtensions[1]?.First().Value.First());
+            Assert.AreEqual ("Developer",               chunkData[1]);
+
+            Assert.AreEqual (7, chunkLengths[2]);
+            Assert.IsNotNull(chunkExtensions[2]);
+            Assert.AreEqual (2,                         chunkExtensions[2]?.Count);
+            Assert.AreEqual ("a",                       chunkExtensions[2]?.First().Key);
+            Assert.AreEqual (1,                         chunkExtensions[2]?.First().Value.Count);
+            Assert.AreEqual ("b",                       chunkExtensions[2]?.First().Value.First());
+            Assert.AreEqual ("c",                       chunkExtensions[2]?.Skip(1).First().Key);
+            Assert.AreEqual (1,                         chunkExtensions[2]?.Skip(1).First().Value.Count);
+            Assert.AreEqual ("d",                       chunkExtensions[2]?.Skip(1).First().Value.First());
+            Assert.AreEqual ("Network",                 chunkData[2]);
+
+            Assert.AreEqual (0, chunkLengths[3]);
+            Assert.IsNull   (chunkExtensions[3]);
+            Assert.AreEqual ("",                        chunkData[3]);
+
+            //var json = JObject.Parse(response?.HTTPBodyAsUTF8String);
+            //Assert.IsNotNull(json);
+
+        }
+
+        #endregion
+
+        #region ChunkedTest_06()
+
+        [Test]
+        public void ChunkedTest_06()
+        {
+
+            var chunkLengths     = new List<UInt32>();
+            var chunkExtensions  = new List<Dictionary<String, List<String>>?>();
+            var chunkData        = new List<String>();
+
+            var client           = new HTTPClient(URL.Parse("http://127.0.0.1:1234"), RequestTimeout: TimeSpan.FromHours(1));
+            client.OnChunkBlockFound += async (timestamp, number, length, extensions, data, totalBytes) => {
+                chunkLengths.   Add(length);
+                chunkExtensions.Add(extensions);
+                chunkData.      Add(data != null ? data.ToUTF8String() : "");
+            };
+
+            var response         = client.Execute(client => client.GETRequest(HTTPPath.Parse("/test06"),
+                                                                              requestbuilder => {
+                                                                                  requestbuilder.Host = HTTPHostname.Localhost;
+                                                                                  requestbuilder.Accept.Add(HTTPContentType.TEXT_UTF8);
+                                                                                  requestbuilder.Connection = "close";
+                                                                              })).
+                                          Result;
+
+
+            Assert.AreEqual (200,                       response?.HTTPStatusCode.Code);
+            Assert.AreEqual ("MozillaDeveloperNetwork", response?.HTTPBodyAsUTF8String);
+            Assert.AreEqual (4,                         chunkExtensions.Count);
+
+            Assert.AreEqual (7, chunkLengths[0]);
+            Assert.IsNull   (chunkExtensions[0]);
+            Assert.AreEqual ("Mozilla",                 chunkData[0]);
+
+            Assert.AreEqual (9, chunkLengths[1]);
+            Assert.IsNotNull(chunkExtensions[1]);
+            Assert.AreEqual (1,                         chunkExtensions[1]?.Count);
+            Assert.AreEqual ("a",                       chunkExtensions[1]?.First().Key);
+            Assert.AreEqual (1,                         chunkExtensions[1]?.First().Value.Count);
+            Assert.AreEqual ("b",                       chunkExtensions[1]?.First().Value.First());
+            Assert.AreEqual ("Developer",               chunkData[1]);
+
+            Assert.AreEqual (7, chunkLengths[2]);
+            Assert.IsNotNull(chunkExtensions[2]);
+            Assert.AreEqual (2,                         chunkExtensions[2]?.Count);
+            Assert.AreEqual ("a",                       chunkExtensions[2]?.First().Key);
+            Assert.AreEqual (1,                         chunkExtensions[2]?.First().Value.Count);
+            Assert.AreEqual ("b",                       chunkExtensions[2]?.First().Value.First());
+            Assert.AreEqual ("c",                       chunkExtensions[2]?.Skip(1).First().Key);
+            Assert.AreEqual (1,                         chunkExtensions[2]?.Skip(1).First().Value.Count);
+            Assert.AreEqual ("d",                       chunkExtensions[2]?.Skip(1).First().Value.First());
+            Assert.AreEqual ("Network",                 chunkData[2]);
+
+            Assert.AreEqual (0, chunkLengths[3]);
+            Assert.IsNull   (chunkExtensions[3]);
+            Assert.AreEqual ("",                        chunkData[3]);
+
+            Assert.AreEqual (String.Empty,              response.GetHeaderField(HTTPHeaderField.TransferEncoding));
+            Assert.AreEqual ("no-cache",                response.GetHeaderField(HTTPHeaderField.CacheControl));
+            Assert.AreEqual (String.Empty,              response.GetHeaderField("TrailingHeader"));
+            Assert.AreEqual (String.Empty,              response.GetHeaderField("TrailingHeader2"));
 
         }
 

@@ -599,6 +599,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Trailer
+
+        public String Trailer
+        {
+
+            get
+            {
+                return GetHeaderField(HTTPHeaderField.Trailer);
+            }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.Trailer, value);
+            }
+
+        }
+
+        #endregion
+
         #endregion
 
         #region CORS

@@ -233,7 +233,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
-        public delegate Task OnChunkBlockFoundDelegate(TimeSpan Timestamp, UInt32 BlockNumber, ChunkInfos ChunkInfos, UInt64 TotalBytes);
+        public delegate Task OnChunkBlockFoundDelegate(TimeSpan                           Timestamp,
+                                                       UInt32                             ChunkNumber,
+                                                       UInt32                             ChunkLength,
+                                                       Dictionary<String, List<String>>?  ChunkExtentions,
+                                                       Byte[]                             ChunkData,
+                                                       UInt64                             TotalBytes);
 
         public event OnChunkBlockFoundDelegate OnChunkBlockFound;
 
@@ -784,6 +789,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         var lastPosition             = 0U;
                         var currentBlockNumber       = 0U;
                         var chunkedDecodingFinished  = 0;
+                        var trailingHeaders          = new Dictionary<String, String?>();
 
                         do
                         {
@@ -808,7 +814,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                             (UInt64) chunkedStream.Length);
 
                                     if (sw.ElapsedMilliseconds > HTTPStream.ReadTimeout)
-                                        chunkedDecodingFinished = 2;
+                                        chunkedDecodingFinished = 3;
 
                                 } while (TCPStream.DataAvailable && chunkedDecodingFinished == 0);
 
@@ -870,32 +876,90 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     chunkedArray[currentPosition - 2] == '\r')
                                 {
 
-                                    currentBlockNumber++;
-
-                                    var chunkInfo = ChunkInfos.Parse(chunkedArray,
-                                                                     lastPosition,
-                                                                     currentPosition - lastPosition - 2);
-
-                                    OnChunkBlockFound?.Invoke(sw.Elapsed,
-                                                              currentBlockNumber,
-                                                              chunkInfo,
-                                                              (UInt64) decodedStream.Length);
-
-                                    // End of stream reached?
-                                    if (chunkInfo.Length == 0)
+                                    if (chunkedDecodingFinished == 0)
                                     {
-                                        Response.ContentStreamToArray(decodedStream);
-                                        chunkedDecodingFinished = 1;
-                                        break;
+
+                                        currentBlockNumber++;
+
+                                        var chunkInfo = ChunkInfos.Parse(chunkedArray,
+                                                                         lastPosition,
+                                                                         currentPosition - lastPosition - 2);
+
+                                        // End of stream reached?
+                                        if (chunkInfo.Length == 0)
+                                        {
+
+                                            OnChunkBlockFound?.Invoke(sw.Elapsed,
+                                                                      currentBlockNumber,
+                                                                      0,
+                                                                      chunkInfo.Extentions,
+                                                                      Array.Empty<Byte>(),
+                                                                      (UInt64) decodedStream.Length);
+
+                                            Response.ContentStreamToArray(decodedStream);
+
+                                            chunkedDecodingFinished = 1;
+                                            //currentPosition += chunkInfo.Length + 2;
+                                            lastPosition     = currentPosition;
+                                            currentPosition += 1;
+
+                                        }
+
+                                        // Read a new block... and final "\r\n"
+                                        if (chunkedDecodingFinished == 0 &&
+                                            currentPosition + chunkInfo.Length + 2 <= chunkedArray.Length)
+                                        {
+
+                                            if (OnChunkBlockFound != null)
+                                            {
+
+                                                var chunkData = new Byte[chunkInfo.Length];
+                                                Array.Copy(chunkedArray, currentPosition, chunkData, 0, chunkInfo.Length);
+
+                                                await OnChunkBlockFound.Invoke(sw.Elapsed,
+                                                                               currentBlockNumber,
+                                                                               chunkInfo.Length,
+                                                                               chunkInfo.Extentions,
+                                                                               chunkData,
+                                                                               (UInt64) decodedStream.Length);
+
+                                            }
+
+                                            decodedStream.Write(chunkedArray, (Int32) currentPosition, (Int32) chunkInfo.Length);
+
+                                            currentPosition += chunkInfo.Length + 2;
+                                            lastPosition     = currentPosition;
+                                            currentPosition += 1;
+
+                                        }
+
                                     }
 
-                                    // Read a new block... and final "\r\n"
-                                    if (currentPosition + chunkInfo.Length + 2 <= chunkedArray.Length)
+                                    else
                                     {
-                                        decodedStream.Write(chunkedArray, (Int32) currentPosition, (Int32) chunkInfo.Length);
-                                        currentPosition += chunkInfo.Length + 2;
+
+                                        if (currentPosition - lastPosition == 2)
+                                        {
+                                            chunkedDecodingFinished = 2;
+                                            break;
+                                        }
+
+                                        var trailingHeaderBuffer = new Byte[currentPosition - lastPosition - 2];
+                                        Array.Copy(chunkedArray, lastPosition, trailingHeaderBuffer, 0, currentPosition - lastPosition - 2);
+
+                                        var trailingHeader = trailingHeaderBuffer?.ToUTF8String()?.Trim()?.Split(':');
+
+                                        if (trailingHeader != null &&
+                                            trailingHeader?.Length > 1 &&
+                                            trailingHeader[0]?.Trim()?.IsNotNullOrEmpty() == true)
+                                        {
+                                            trailingHeaders.Add(trailingHeader[0]!,
+                                                                trailingHeader?.Length > 1 ? trailingHeader[1]?.Trim() : null);
+                                        }
+
                                         lastPosition     = currentPosition;
                                         currentPosition += 1;
+
                                     }
 
                                 }
@@ -906,14 +970,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             #endregion
 
                             if (sw.ElapsedMilliseconds > HTTPStream.ReadTimeout)
-                                chunkedDecodingFinished = 2;
+                                chunkedDecodingFinished = 3;
 
-                        } while (chunkedDecodingFinished == 0);
+                        } while (chunkedDecodingFinished < 2);
 
-                        if (chunkedDecodingFinished == 2)
+                        if (chunkedDecodingFinished == 3)
                             DebugX.Log("HTTP Client: Chunked decoding timeout!");
                         //else
                         //    DebugX.Log("HTTP Client: Chunked decoding finished!");
+
+                        if (Response.TryGetHeaderField("Transfer-Encoding", out Object transferEncoding))
+                        {
+                            if (transferEncoding is "chunked")
+                                Response.RemoveHeaderField("Transfer-Encoding");
+                        }
+
+                        if (Response.TryGetHeaderField("Trailer", out Object trailer))
+                        {
+
+                            var allowedTrailingHeaderfields = new List<String>();
+
+                            if (trailer is String _trailer)
+                            {
+                                trailer = _trailer.Split(';')?.Select(element => element?.Trim()).Where(element => element.IsNotNullOrEmpty()).ToList();
+                            }
+
+                            if (trailer is List<String> _trailerList)
+                            {
+                                foreach (var element in _trailerList)
+                                {
+                                    if (element != "Transfer-Encoding" &&
+                                        element != "Content-Length" &&
+                                        element != "Trailer")
+                                    {
+                                        allowedTrailingHeaderfields.Add(element!);
+                                    }
+                                }
+                            }
+
+                            foreach (var trailingHeader in trailingHeaders)
+                            {
+                                if (allowedTrailingHeaderfields.Contains(trailingHeader.Key))
+                                    Response.SetHeaderField(trailingHeader.Key,
+                                                            trailingHeader.Value);
+                            }
+
+                        }
 
                     }
                     catch (Exception e)
