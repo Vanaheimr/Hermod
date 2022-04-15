@@ -296,20 +296,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         public void ChunkedTest_04()
         {
 
-            var response = HTTPClientFactory.Create(URL.Parse("http://127.0.0.1:1234")).
+            var chunkInfo  = new List<ChunkInfos>();
 
-                                        Execute(client => client.GETRequest(HTTPPath.Parse("/test04"),
-                                                                            requestbuilder => {
-                                                                                requestbuilder.Host = HTTPHostname.Localhost;
-                                                                                requestbuilder.Accept.Add(HTTPContentType.TEXT_UTF8);
-                                                                                requestbuilder.Connection = "close";
-                                                                            })).
+            var client     = new HTTPClient(URL.Parse("http://127.0.0.1:1234"));
+            client.OnChunkBlockFound += async (timestamp, blockNumber, chunkInfos, totalBytes) => {
+                chunkInfo.Add(chunkInfos);
+            };
 
-                                        Result;
+            var response   = client.Execute(client => client.GETRequest(HTTPPath.Parse("/test04"),
+                                                                        requestbuilder => {
+                                                                            requestbuilder.Host = HTTPHostname.Localhost;
+                                                                            requestbuilder.Accept.Add(HTTPContentType.TEXT_UTF8);
+                                                                            requestbuilder.Connection = "close";
+                                                                        })).
+                                    Result;
 
 
-            Assert.AreEqual(200,                       response?.HTTPStatusCode.Code);
-            Assert.AreEqual("MozillaDeveloperNetwork", response?.HTTPBodyAsUTF8String);
+            Assert.AreEqual (200,                       response?.HTTPStatusCode.Code);
+            Assert.AreEqual ("MozillaDeveloperNetwork", response?.HTTPBodyAsUTF8String);
+            Assert.AreEqual (4,                         chunkInfo.Count);
+            Assert.IsNull   (chunkInfo[0].Extentions);
+            Assert.IsNotNull(chunkInfo[1].Extentions);
+            Assert.IsNotNull(chunkInfo[2].Extentions);
+            Assert.IsNull   (chunkInfo[3].Extentions);
+
+            Assert.AreEqual (1,                         chunkInfo[1].Extentions!.Count);
+            Assert.AreEqual ("a",                       chunkInfo[1].Extentions!.First().Key);
+            Assert.AreEqual (1,                         chunkInfo[1].Extentions!.First().Value.Count);
+            Assert.AreEqual ("b",                       chunkInfo[1].Extentions!.First().Value.First());
+
+            Assert.AreEqual (2,                         chunkInfo[2].Extentions!.Count);
+            Assert.AreEqual ("a",                       chunkInfo[2].Extentions!.First().Key);
+            Assert.AreEqual (1,                         chunkInfo[2].Extentions!.First().Value.Count);
+            Assert.AreEqual ("b",                       chunkInfo[2].Extentions!.First().Value.First());
+            Assert.AreEqual ("c",                       chunkInfo[2].Extentions!.Skip(1).First().Key);
+            Assert.AreEqual (1,                         chunkInfo[2].Extentions!.Skip(1).First().Value.Count);
+            Assert.AreEqual ("d",                       chunkInfo[2].Extentions!.Skip(1).First().Value.First());
+
             //var json = JObject.Parse(response?.HTTPBodyAsUTF8String);
             //Assert.IsNotNull(json);
 

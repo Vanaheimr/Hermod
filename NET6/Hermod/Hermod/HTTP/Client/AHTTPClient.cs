@@ -18,13 +18,9 @@
 #region Usings
 
 using System;
-using System.IO;
-using System.Linq;
-using System.Threading;
 using System.Diagnostics;
 using System.Net.Sockets;
 using System.Net.Security;
-using System.Threading.Tasks;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
@@ -43,52 +39,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// </summary>
     /// <param name="RetryCount">The retry counter.</param>
     public delegate TimeSpan TransmissionRetryDelayDelegate(UInt32 RetryCount);
-
-    public static class Helpers
-    {
-
-        public static Int32 ReadTEBlockLength(this Byte[] TESourceBlock, Int32 Position, Int32 TELength)
-        {
-
-            if (TELength < 1)
-            {
-                DebugX.Log("TE Block Length(" + Position + "," + TELength + ")");
-                return 0;
-            }
-
-            var TEBlock = new Byte[TELength];
-            Array.Copy(TESourceBlock, Position, TEBlock, 0, TELength);
-
-            DebugX.Log("TE Block Length(" + Position + "," + TELength + "): " + TEBlock.ToUTF8String());
-
-            var len = 0;
-
-            try
-            {
-
-                var chunkHeader = TEBlock.ToUTF8String()?.Split(';');
-
-                if (chunkHeader != null &&
-                    chunkHeader[0].IsNotNullOrEmpty())
-                {
-                    // Hex-String
-                    len = Convert.ToInt32(chunkHeader[0], 16);
-                }
-
-                //ToDo: Process Chunk Extensions!
-
-            }
-            catch (Exception ex)
-            {
-                DebugX.Log("TE Block Length exception (" + TEBlock.ToUTF8String() + "): " + ex.Message);
-            }
-
-            return len;
-
-        }
-
-
-    }
 
 
     /// <summary>
@@ -283,7 +233,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
-        public delegate Task OnChunkBlockFoundDelegate(TimeSpan Timestamp, UInt64 BlockNumber, UInt32 BlockSize, UInt64 TotalBytes);
+        public delegate Task OnChunkBlockFoundDelegate(TimeSpan Timestamp, UInt32 BlockNumber, ChunkInfos ChunkInfos, UInt64 TotalBytes);
 
         public event OnChunkBlockFoundDelegate OnChunkBlockFound;
 
@@ -830,9 +780,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         var chunkedArray             = chunkedStream.ToArray();
                         var decodedStream            = new MemoryStream();
-                        var currentPosition          = 2;
-                        var lastPosition             = 0;
-                        var currentBlockNumber       = 1UL;
+                        var currentPosition          = 2U;
+                        var lastPosition             = 0U;
+                        var currentBlockNumber       = 0U;
                         var chunkedDecodingFinished  = 0;
 
                         do
@@ -920,20 +870,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     chunkedArray[currentPosition - 2] == '\r')
                                 {
 
-                                    //DebugX.Log("ReadTEBlockLength: currentPosition = " + currentPosition + ", lastPosition = " + lastPosition + ", length: " + (currentPosition - lastPosition - 2));
+                                    currentBlockNumber++;
 
-                                    if ((currentPosition - lastPosition - 2) == -1)
-                                    {
+                                    var chunkInfo = ChunkInfos.Parse(chunkedArray,
+                                                                     lastPosition,
+                                                                     currentPosition - lastPosition - 2);
 
-                                    }
-
-                                    var BlockLength = chunkedArray.ReadTEBlockLength(lastPosition,
-                                                                                     currentPosition - lastPosition - 2);
-
-                                    DebugX.Log("ReadTEBlockLength: " + BlockLength);
+                                    OnChunkBlockFound?.Invoke(sw.Elapsed,
+                                                              currentBlockNumber,
+                                                              chunkInfo,
+                                                              (UInt64) decodedStream.Length);
 
                                     // End of stream reached?
-                                    if (BlockLength == 0)
+                                    if (chunkInfo.Length == 0)
                                     {
                                         Response.ContentStreamToArray(decodedStream);
                                         chunkedDecodingFinished = 1;
@@ -941,21 +890,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     }
 
                                     // Read a new block... and final "\r\n"
-                                    if (currentPosition + BlockLength + 2 <= chunkedArray.Length)
+                                    if (currentPosition + chunkInfo.Length + 2 <= chunkedArray.Length)
                                     {
-
-                                        OnChunkBlockFound?.Invoke(sw.Elapsed,
-                                                                  currentBlockNumber,
-                                                                  (UInt32) BlockLength,
-                                                                  (UInt64) decodedStream.Length);
-
-                                        currentBlockNumber++;
-
-                                        decodedStream.Write(chunkedArray, currentPosition, BlockLength);
-                                        currentPosition += BlockLength + 2;
+                                        decodedStream.Write(chunkedArray, (Int32) currentPosition, (Int32) chunkInfo.Length);
+                                        currentPosition += chunkInfo.Length + 2;
                                         lastPosition     = currentPosition;
                                         currentPosition += 1;
-
                                     }
 
                                 }

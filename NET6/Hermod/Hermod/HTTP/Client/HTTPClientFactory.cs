@@ -66,7 +66,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             => RemoteURL.Protocol == URLProtocols.http
 
-                                         ? new HTTPClient(RemoteURL,
+                                         ? new HTTPClient (RemoteURL,
                                                            VirtualHostname,
                                                            Description,
                                                            HTTPUserAgent,
