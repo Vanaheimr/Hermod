@@ -18,13 +18,11 @@
 #region Usings
 
 using System;
-using System.Threading.Tasks;
 
 using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using Newtonsoft.Json.Linq;
 
 #endregion
 
