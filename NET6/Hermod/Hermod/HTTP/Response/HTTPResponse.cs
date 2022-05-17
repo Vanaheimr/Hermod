@@ -18,12 +18,7 @@
 #region Usings
 
 using System;
-using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -39,7 +34,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public static class HTTPResponseExtensions
     {
 
-        #region ParseContent(this Response, ContentParser)
+        #region ParseContent      (this Response, ContentParser)
 
         public static HTTPResponse<TResult> ParseContent<TResult>(this HTTPResponse      Response,
                                                                   Func<Byte[], TResult>  ContentParser)
@@ -59,7 +54,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region AppendToLogfile(this Response)
+        #region CreateLogEntry    (this Response)
 
         public static String CreateLogEntry(this HTTPResponse Response)
 
@@ -75,7 +70,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region AppendToLogfile(this Response, Logfilename)
+        #region AppendToLogfile   (this Response, Logfilename)
 
         public static void AppendToLogfile(this HTTPResponse  Response,
                                            String             Logfilename)

@@ -1365,7 +1365,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.URLPathPrefix            = URLPathPrefix   ?? DefaultURLPathPrefix;
             this.HTMLTemplate             = HTMLTemplate    ?? "";
             this.APIVersionHash           = APIVersionHashes?[nameof(HTTPAPI)]?.Value<String>()?.Trim();
-            this.LoggingPath              = LoggingPath     ?? DefaultHTTPAPI_LoggingPath;
+            this.LoggingPath              = LoggingPath     ?? Path.Combine(AppContext.BaseDirectory, DefaultHTTPAPI_LoggingPath);
 
             if (this.LoggingPath[^1] != Path.DirectorySeparatorChar)
                 this.LoggingPath += Path.DirectorySeparatorChar;
