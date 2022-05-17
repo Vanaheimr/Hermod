@@ -114,15 +114,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="EnableLogging">Whether to enable event logging.</param>
         /// <param name="LogfileName">A delegate to create a filename for storing events.</param>
         /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
-        public HTTPEventSource(HTTPEventSource_Id              EventIdentification,
-                               UInt64                          MaxNumberOfCachedEvents      = 500,
-                               TimeSpan?                       RetryIntervall               = null,
-                               Func<T, String>?                DataSerializer               = null,
-                               Func<String, T>?                DataDeserializer             = null,
-                               Boolean                         EnableLogging                = true,
-                               String?                         LogfilePath                  = null,
-                               Func<String, DateTime, String>  LogfileName                  = null,
-                               String?                         LogfileReloadSearchPattern   = null)
+        public HTTPEventSource(HTTPEventSource_Id               EventIdentification,
+                               UInt64                           MaxNumberOfCachedEvents      = 500,
+                               TimeSpan?                        RetryIntervall               = null,
+                               Func<T, String>?                 DataSerializer               = null,
+                               Func<String, T>?                 DataDeserializer             = null,
+                               Boolean                          EnableLogging                = true,
+                               String?                          LogfilePath                  = null,
+                               Func<String, DateTime, String>?  LogfileName                  = null,
+                               String?                          LogfileReloadSearchPattern   = null)
         {
 
             this.EventIdentification  = EventIdentification;
