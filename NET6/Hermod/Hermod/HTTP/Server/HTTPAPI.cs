@@ -1234,8 +1234,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        Boolean?                              IsDevelopment                      = null,
                        IEnumerable<String>?                  DevelopmentServers                 = null,
                        Boolean?                              DisableLogging                     = null,
-                       String?                               LoggingPath                        = DefaultHTTPAPI_LoggingPath,
-                       String?                               LogfileName                        = DefaultHTTPAPI_LogfileName,
+                       String?                               LoggingPath                        = null,
+                       String?                               LogfileName                        = null,
                        LogfileCreatorDelegate?               LogfileCreator                     = null,
                        DNSClient?                            DNSClient                          = null,
                        Boolean                               Autostart                          = false)
@@ -1264,10 +1264,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                    HTTPHostname,
                    ExternalDNSName,
-                   HTTPServiceName   ?? DefaultHTTPServiceName,
+                   HTTPServiceName ?? DefaultHTTPServiceName,
 
                    BasePath,
-                   URLPathPrefix ?? DefaultURLPathPrefix,
+                   URLPathPrefix   ?? DefaultURLPathPrefix,
                    HTMLTemplate,
                    APIVersionHashes,
 
@@ -1365,7 +1365,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.URLPathPrefix            = URLPathPrefix   ?? DefaultURLPathPrefix;
             this.HTMLTemplate             = HTMLTemplate    ?? "";
             this.APIVersionHash           = APIVersionHashes?[nameof(HTTPAPI)]?.Value<String>()?.Trim();
-            this.LoggingPath              = LoggingPath     ?? Path.Combine(AppContext.BaseDirectory, DefaultHTTPAPI_LoggingPath);
+            this.LoggingPath              = LoggingPath     ?? DefaultHTTPAPI_LoggingPath;
 
             if (this.LoggingPath[^1] != Path.DirectorySeparatorChar)
                 this.LoggingPath += Path.DirectorySeparatorChar;
@@ -1393,11 +1393,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (DisableLogging == false)
             {
-                Directory.CreateDirectory(this.LoggingPath);
-                Directory.CreateDirectory(this.HTTPRequestsPath);
-                Directory.CreateDirectory(this.HTTPResponsesPath);
-                Directory.CreateDirectory(this.HTTPSSEsPath);
-                Directory.CreateDirectory(this.MetricsPath);
+                Directory.CreateDirectory(Path.Combine(AppContext.BaseDirectory, this.LoggingPath));
+                Directory.CreateDirectory(Path.Combine(AppContext.BaseDirectory, this.HTTPRequestsPath));
+                Directory.CreateDirectory(Path.Combine(AppContext.BaseDirectory, this.HTTPResponsesPath));
+                Directory.CreateDirectory(Path.Combine(AppContext.BaseDirectory, this.HTTPSSEsPath));
+                Directory.CreateDirectory(Path.Combine(AppContext.BaseDirectory, this.MetricsPath));
             }
 
 
