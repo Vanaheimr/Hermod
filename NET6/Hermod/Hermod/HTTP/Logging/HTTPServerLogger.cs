@@ -87,6 +87,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <param name="SubscribeToEventDelegate">A delegate for subscribing to the linked event.</param>
             /// <param name="UnsubscribeFromEventDelegate">A delegate for subscribing from the linked event.</param>
             public HTTPServerRequestLogger(String                     Context,
+                                           String                     LoggingPath,
                                            String                     LogEventName,
                                            Action<RequestLogHandler>  SubscribeToEventDelegate,
                                            Action<RequestLogHandler>  UnsubscribeFromEventDelegate)
@@ -106,6 +107,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #endregion
 
                 this.Context                       = Context ?? "";
+                this.LoggingPath                   = LoggingPath;
                 this.LogEventName                  = LogEventName;
                 this.SubscribeToEventDelegate      = SubscribeToEventDelegate;
                 this.UnsubscribeFromEventDelegate  = UnsubscribeFromEventDelegate;
@@ -236,17 +238,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Properties
 
-            public String                     LoggingPath                     { get; }
+            public String                         LoggingPath                     { get; }
 
             /// <summary>
             /// The context of the event to be logged.
             /// </summary>
-            public String                     Context                         { get; }
+            public String                         Context                         { get; }
 
             /// <summary>
             /// The name of the event to be logged.
             /// </summary>
-            public String                     LogEventName                    { get; }
+            public String                         LogEventName                    { get; }
 
             /// <summary>
             /// A delegate called whenever the event is subscriped to.
@@ -269,10 +271,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <param name="LogEventName">The name of the event.</param>
             /// <param name="SubscribeToEventDelegate">A delegate for subscribing to the linked event.</param>
             /// <param name="UnsubscribeFromEventDelegate">A delegate for subscribing from the linked event.</param>
-            public HTTPServerRequestLogger2(String                     Context,
-                                           String                     LogEventName,
-                                           Action<HTTPRequestLogHandler>  SubscribeToEventDelegate,
-                                           Action<HTTPRequestLogHandler>  UnsubscribeFromEventDelegate)
+            public HTTPServerRequestLogger2(String                         Context,
+                                            String                         LoggingPath,
+                                            String                         LogEventName,
+                                            Action<HTTPRequestLogHandler>  SubscribeToEventDelegate,
+                                            Action<HTTPRequestLogHandler>  UnsubscribeFromEventDelegate)
             {
 
                 #region Initial checks
@@ -289,6 +292,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #endregion
 
                 this.Context                       = Context ?? "";
+                this.LoggingPath                   = LoggingPath;
                 this.LogEventName                  = LogEventName;
                 this.SubscribeToEventDelegate      = SubscribeToEventDelegate;
                 this.UnsubscribeFromEventDelegate  = UnsubscribeFromEventDelegate;
@@ -453,6 +457,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <param name="SubscribeToEventDelegate">A delegate for subscribing to the linked event.</param>
             /// <param name="UnsubscribeFromEventDelegate">A delegate for subscribing from the linked event.</param>
             public HTTPServerResponseLogger(String                    Context,
+                                            String                    LoggingPath,
                                             String                    LogEventName,
                                             Action<AccessLogHandler>  SubscribeToEventDelegate,
                                             Action<AccessLogHandler>  UnsubscribeFromEventDelegate)
@@ -472,6 +477,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #endregion
 
                 this.Context                       = Context ?? "";
+                this.LoggingPath                   = LoggingPath;
                 this.LogEventName                  = LogEventName;
                 this.SubscribeToEventDelegate      = SubscribeToEventDelegate;
                 this.UnsubscribeFromEventDelegate  = UnsubscribeFromEventDelegate;
@@ -635,10 +641,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <param name="LogEventName">The name of the event.</param>
             /// <param name="SubscribeToEventDelegate">A delegate for subscribing to the linked event.</param>
             /// <param name="UnsubscribeFromEventDelegate">A delegate for subscribing from the linked event.</param>
-            public HTTPServerResponseLogger2(String                    Context,
-                                            String                    LogEventName,
-                                            Action<HTTPResponseLogHandler>  SubscribeToEventDelegate,
-                                            Action<HTTPResponseLogHandler>  UnsubscribeFromEventDelegate)
+            public HTTPServerResponseLogger2(String                          Context,
+                                             String                          LoggingPath,
+                                             String                          LogEventName,
+                                             Action<HTTPResponseLogHandler>  SubscribeToEventDelegate,
+                                             Action<HTTPResponseLogHandler>  UnsubscribeFromEventDelegate)
             {
 
                 #region Initial checks
@@ -655,6 +662,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #endregion
 
                 this.Context                       = Context ?? "";
+                this.LoggingPath                   = LoggingPath;
                 this.LogEventName                  = LogEventName;
                 this.SubscribeToEventDelegate      = SubscribeToEventDelegate;
                 this.UnsubscribeFromEventDelegate  = UnsubscribeFromEventDelegate;
@@ -898,7 +906,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 !_HTTPResponseLoggers.ContainsKey(LogEventName))
             {
 
-                _HTTPRequestLogger = new HTTPServerRequestLogger(Context, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
+                _HTTPRequestLogger = new HTTPServerRequestLogger(Context, LoggingPath, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
                 _HTTPRequestLoggers.TryAdd(LogEventName, _HTTPRequestLogger);
 
                 #region Register group tag mapping
@@ -960,7 +968,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 !_HTTPResponseLoggers2.ContainsKey(LogEventName))
             {
 
-                _HTTPRequestLogger = new HTTPServerRequestLogger2(Context, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
+                _HTTPRequestLogger = new HTTPServerRequestLogger2(Context, LoggingPath, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
                 _HTTPRequestLoggers2.TryAdd(LogEventName, _HTTPRequestLogger);
 
                 #region Register group tag mapping
@@ -1022,7 +1030,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 !_HTTPRequestLoggers. ContainsKey(LogEventName))
             {
 
-                _HTTPResponseLogger = new HTTPServerResponseLogger(Context, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
+                _HTTPResponseLogger = new HTTPServerResponseLogger(Context, LoggingPath, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
                 _HTTPResponseLoggers.TryAdd(LogEventName, _HTTPResponseLogger);
 
                 #region Register group tag mapping
@@ -1084,7 +1092,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 !_HTTPRequestLoggers2. ContainsKey(LogEventName))
             {
 
-                _HTTPResponseLogger = new HTTPServerResponseLogger2(Context, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
+                _HTTPResponseLogger = new HTTPServerResponseLogger2(Context, LoggingPath, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
                 _HTTPResponseLoggers2.TryAdd(LogEventName, _HTTPResponseLogger);
 
                 #region Register group tag mapping

@@ -403,13 +403,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogHTTPError_toHTTPSSE">A delegate to log HTTP errors to a HTTP server sent events source.</param>
         /// 
         /// <param name="LogfileCreator">A delegate to create a log file from the given context and log file name.</param>
-        public AHTTPLogger(String                      LoggingPath,
-                           String                      Context,
+        public AHTTPLogger(String                       LoggingPath,
+                           String                       Context,
 
-                           HTTPRequestLoggerDelegate   LogHTTPRequest_toConsole,
-                           HTTPResponseLoggerDelegate  LogHTTPResponse_toConsole,
-                           HTTPRequestLoggerDelegate   LogHTTPRequest_toDisc,
-                           HTTPResponseLoggerDelegate  LogHTTPResponse_toDisc,
+                           HTTPRequestLoggerDelegate    LogHTTPRequest_toConsole,
+                           HTTPResponseLoggerDelegate   LogHTTPResponse_toConsole,
+                           HTTPRequestLoggerDelegate    LogHTTPRequest_toDisc,
+                           HTTPResponseLoggerDelegate   LogHTTPResponse_toDisc,
 
                            HTTPRequestLoggerDelegate?   LogHTTPRequest_toNetwork    = null,
                            HTTPResponseLoggerDelegate?  LogHTTPResponse_toNetwork   = null,
@@ -437,9 +437,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (LogHTTPRequest_toConsole  == null)
                 LogHTTPRequest_toConsole   = Default_LogHTTPRequest_toConsole;
-
-            if (LogHTTPRequest_toDisc     == null)
-                LogHTTPRequest_toDisc      = Default_LogHTTPRequest_toDisc;
 
             if (LogHTTPRequest_toDisc     == null)
                 LogHTTPRequest_toDisc      = Default_LogHTTPRequest_toDisc;
