@@ -1752,13 +1752,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (protected virtual) GetResourceString      (ResourceName, ResourceAssemblies)
 
-        protected virtual String GetResourceString(String ResourceName)
+        protected virtual String? GetResourceString(String ResourceName)
 
             => GetResourceString(ResourceName,
                                  new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
 
-        protected virtual String GetResourceString(String                            ResourceName,
-                                                   params Tuple<String, Assembly>[]  ResourceAssemblies)
+        protected virtual String? GetResourceString(String                            ResourceName,
+                                                    params Tuple<String, Assembly>[]  ResourceAssemblies)
 
             => GetResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToUTF8String() ?? String.Empty;
 
@@ -1780,28 +1780,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (protected virtual) MixWithHTMLTemplate    (ResourceName, ResourceAssemblies)
 
-        protected virtual String MixWithHTMLTemplate(String ResourceName)
+        protected virtual String? MixWithHTMLTemplate(String ResourceName)
 
             => MixWithHTMLTemplate(ResourceName,
                                    new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
 
-        protected virtual String MixWithHTMLTemplate(String                            ResourceName,
-                                                     params Tuple<String, Assembly>[]  ResourceAssemblies)
+        protected virtual String? MixWithHTMLTemplate(String                            ResourceName,
+                                                      params Tuple<String, Assembly>[]  ResourceAssemblies)
         {
 
-            var HTMLStream = new MemoryStream();
+            var htmlStream = new MemoryStream();
 
             foreach (var assembly in ResourceAssemblies)
             {
 
-                var ResourceStream = assembly.Item2.GetManifestResourceStream(assembly.Item1 + ResourceName);
-                if (ResourceStream != null)
+                var resourceStream = assembly.Item2.GetManifestResourceStream(assembly.Item1 + ResourceName);
+                if (resourceStream != null)
                 {
 
-                    ResourceStream.Seek(3, SeekOrigin.Begin);
-                    ResourceStream.CopyTo(HTMLStream);
+                    resourceStream.Seek(3, SeekOrigin.Begin);
+                    resourceStream.CopyTo(htmlStream);
 
-                    return HTMLTemplate.Replace("<%= content %>",  HTMLStream.ToArray().ToUTF8String()).
+                    return HTMLTemplate.Replace("<%= content %>",  htmlStream.ToArray().ToUTF8String()).
                                         Replace("{{BasePath}}",    BasePath?.ToString() ?? "");
 
                 }

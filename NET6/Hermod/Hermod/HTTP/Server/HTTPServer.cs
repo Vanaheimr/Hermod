@@ -2447,15 +2447,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Process HTTP filters...
 
-            HTTPResponse _HTTPResponse = null;
+            HTTPResponse? httpResponse = null;
 
-            foreach (var _HTTPFilter in _HTTPFilters)
+            foreach (var httpFilter in _HTTPFilters.ReverseAndReturn())
             {
 
-                _HTTPResponse = _HTTPFilter(this, Request);
+                httpResponse = httpFilter(this, Request);
 
-                if (_HTTPResponse != null)
-                    return _HTTPResponse;
+                if (httpResponse != null)
+                    return httpResponse;
 
             }
 
@@ -2463,14 +2463,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Process HTTP rewrites...
 
-            foreach (var _HTTPRewrite in _HTTPRewrites)
+            foreach (var httpRewrite in _HTTPRewrites.ReverseAndReturn())
             {
 
-                var NewRequest = _HTTPRewrite(this, Request);
+                var newRequest = httpRewrite(this, Request);
 
-                if (NewRequest != null)
+                if (newRequest != null)
                 {
-                    Request = NewRequest;
+                    Request = newRequest;
                     break;
                 }
 
@@ -2511,7 +2511,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    _HTTPResponse = await HTTPHandlers.RequestHandler(Request);
+                    httpResponse = await HTTPHandlers.RequestHandler(Request);
 
                 }
                 catch (Exception e)
@@ -2519,7 +2519,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     DebugX.LogT("HTTP server request processing exception: " + e.Message);
 
-                    _HTTPResponse = new HTTPResponse.Builder(Request) {
+                    httpResponse = new HTTPResponse.Builder(Request) {
                                         HTTPStatusCode  = HTTPStatusCode.InternalServerError,
                                         ContentType     = HTTPContentType.JSON_UTF8,
                                         Content         = JSONObject.Create(
@@ -2534,8 +2534,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 }
 
-                if (_HTTPResponse == null)
-                    _HTTPResponse = new HTTPResponse.Builder(Request) {
+                if (httpResponse is null)
+                    httpResponse = new HTTPResponse.Builder(Request) {
                                         HTTPStatusCode  = HTTPStatusCode.NotFound,
                                         Server          = Request.Host.ToString(),
                                         Date            = DateTime.UtcNow,
@@ -2554,7 +2554,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         var HTTPResponseLoggerTask = HTTPHandlers.HTTPResponseLogger(DateTime.UtcNow,
                                                                                      null,
                                                                                      Request,
-                                                                                     _HTTPResponse);
+                                                                                     httpResponse);
 
                         // ResponseLog wrappers might return null!
                         if (!(HTTPResponseLoggerTask is null))
@@ -2572,7 +2572,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            return _HTTPResponse ?? new HTTPResponse.Builder(Request) {
+            return httpResponse ?? new HTTPResponse.Builder(Request) {
                                         HTTPStatusCode  = HTTPStatusCode.NotFound,
                                         Server          = Request.Host.ToString(),
                                         Date            = DateTime.UtcNow,
