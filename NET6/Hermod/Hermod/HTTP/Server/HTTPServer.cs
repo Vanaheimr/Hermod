@@ -1765,12 +1765,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public void AddFilter(HTTPFilter1Delegate Filter)
         {
+            _HTTPFilters.Reverse();
             _HTTPFilters.Add((server, request) => Filter(request));
+            _HTTPFilters.Reverse();
         }
 
         public void AddFilter(HTTPFilter2Delegate Filter)
         {
+            _HTTPFilters.Reverse();
             _HTTPFilters.Add(Filter);
+            _HTTPFilters.Reverse();
         }
 
         #endregion
@@ -1781,12 +1785,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public void Rewrite(HTTPRewrite1Delegate Rewrite)
         {
+            _HTTPRewrites.Reverse();
             _HTTPRewrites.Add((server, request) => Rewrite(request));
+            _HTTPRewrites.Reverse();
         }
 
         public void Rewrite(HTTPRewrite2Delegate Rewrite)
         {
+            _HTTPRewrites.Reverse();
             _HTTPRewrites.Add(Rewrite);
+            _HTTPRewrites.Reverse();
         }
 
         #endregion
