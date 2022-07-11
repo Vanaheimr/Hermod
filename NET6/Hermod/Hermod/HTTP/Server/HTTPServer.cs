@@ -43,11 +43,11 @@ using org.GraphDefined.Vanaheimr.Hermod.Services;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
-    public delegate HTTPResponse HTTPFilter1Delegate (                   HTTPRequest Request);
-    public delegate HTTPResponse HTTPFilter2Delegate (HTTPServer Server, HTTPRequest Request);
+    public delegate HTTPResponse? HTTPFilter1Delegate (                   HTTPRequest Request);
+    public delegate HTTPResponse? HTTPFilter2Delegate (HTTPServer Server, HTTPRequest Request);
 
-    public delegate HTTPRequest  HTTPRewrite1Delegate(                   HTTPRequest Request);
-    public delegate HTTPRequest  HTTPRewrite2Delegate(HTTPServer Server, HTTPRequest Request);
+    public delegate HTTPRequest?  HTTPRewrite1Delegate(                   HTTPRequest Request);
+    public delegate HTTPRequest?  HTTPRewrite2Delegate(HTTPServer Server, HTTPRequest Request);
 
 
     /// <summary>

@@ -668,7 +668,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              Byte         NumberOfRetry         = 0,
                              Object       SubprotocolResponse   = null)
 
-            : this(DateTime.UtcNow,
+            : this(Illias.Timestamp.Now,
                    new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
                    IPSocket.LocalhostV4(IPPort.HTTPS),
                    IPSocket.LocalhostV4(IPPort.HTTPS),
@@ -681,7 +681,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                    Request?.CancellationToken,
                    Request?.EventTrackingId,
-                   Request != null ? DateTime.UtcNow - Request.Timestamp : TimeSpan.Zero,
+                   Request != null ? Illias.Timestamp.Now - Request.Timestamp : TimeSpan.Zero,
                    NumberOfRetry)
 
         {
@@ -711,7 +711,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              HTTPRequest  Request,
                              Object       SubprotocolResponse  = null)
 
-            : this(DateTime.UtcNow,
+            : this(Illias.Timestamp.Now,
                    new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
                    IPSocket.LocalhostV4(IPPort.HTTPS),
                    IPSocket.LocalhostV4(IPPort.HTTPS),
@@ -724,7 +724,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                    Request?.CancellationToken,
                    Request?.EventTrackingId,
-                   Request != null ? DateTime.UtcNow - Request.Timestamp : TimeSpan.Zero)
+                   Request != null ? Illias.Timestamp.Now - Request.Timestamp : TimeSpan.Zero)
 
         { }
 
@@ -745,7 +745,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              UInt32       HTTPBodyReceiveBufferSize  = DefaultHTTPBodyReceiveBufferSize,
                              Object       SubprotocolResponse        = null)
 
-            : this(DateTime.UtcNow,
+            : this(Illias.Timestamp.Now,
                    new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
                    IPSocket.LocalhostV4(IPPort.HTTPS),
                    IPSocket.LocalhostV4(IPPort.HTTPS),
@@ -758,7 +758,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                    Request?.CancellationToken,
                    Request?.EventTrackingId,
-                   Request != null ? DateTime.UtcNow - Request.Timestamp : TimeSpan.Zero)
+                   Request != null ? Illias.Timestamp.Now - Request.Timestamp : TimeSpan.Zero)
 
         { }
 
@@ -849,11 +849,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          HTTPRequest          Request           = null)
         {
 
-                Timestamp  = Timestamp ?? DateTime.UtcNow;
+                Timestamp  = Timestamp ?? Illias.Timestamp.Now;
             var Header     = Text.TakeWhile(line => line != "").AggregateWith("\r\n");
             var Body       = Text.SkipWhile(line => line != "").Skip(1).AggregateWith("\r\n");
 
-            return new HTTPResponse(Timestamp    ?? DateTime.UtcNow,
+            return new HTTPResponse(Timestamp    ?? Illias.Timestamp.Now,
                                     HTTPSource   ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
                                     LocalSocket  ?? IPSocket.LocalhostV4(IPPort.HTTPS),
                                     RemoteSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
@@ -902,8 +902,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var _response           = new List<String>();
                 var copy                = "none";
                 var relativelinenumber  = 0;
-                var RequestTimestamp    = DateTime.UtcNow;
-                var ResponseTimestamp   = DateTime.UtcNow;
+                var RequestTimestamp    = Illias.Timestamp.Now;
+                var ResponseTimestamp   = Illias.Timestamp.Now;
 
                 foreach (var line in File.ReadLines(file))
                 {
@@ -1014,8 +1014,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var copy                = "none";
                 var relativelinenumber  = 0;
                 var HTTPSource          = new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS));
-                var RequestTimestamp    = DateTime.UtcNow;
-                var ResponseTimestamp   = DateTime.UtcNow;
+                var RequestTimestamp    = Illias.Timestamp.Now;
+                var ResponseTimestamp   = Illias.Timestamp.Now;
 
                 foreach (var line in File.ReadLines(file))
                 {
@@ -1655,15 +1655,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Constructor(s)
 
+            #region Builder(             HTTPStatusCode = null)
+
             /// <summary>
             /// Create a new HTTP response.
             /// </summary>
             /// <param name="HTTPStatusCode">A HTTP status code</param>
-            public Builder(HTTPStatusCode  HTTPStatusCode = null)
+            public Builder(HTTPStatusCode?  HTTPStatusCode = null)
             {
 
-                this._HTTPStatusCode    = HTTPStatusCode;
-                this.Timestamp          = DateTime.UtcNow;
+                this._HTTPStatusCode    = HTTPStatusCode ?? HTTPStatusCode.OK;
+                this.Timestamp          = Illias.Timestamp.Now;
                 this.ProtocolName       = "HTTP";
                 this.ProtocolVersion    = new HTTPVersion(1, 1);
                 this.CancellationToken  = new CancellationTokenSource().Token;
@@ -1672,27 +1674,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
+            #endregion
+
+            #region Builder(HTTPRequest, HTTPStatusCode = null)
+
             /// <summary>
             /// Create a new HTTP response.
             /// </summary>
             /// <param name="HTTPRequest">The HTTP request for this response.</param>
             /// <param name="HTTPStatusCode">A HTTP status code</param>
-            public Builder(HTTPRequest     HTTPRequest,
-                           HTTPStatusCode  HTTPStatusCode = null)
+            public Builder(HTTPRequest      HTTPRequest,
+                           HTTPStatusCode?  HTTPStatusCode = null)
             {
 
                 this.HTTPRequest        = HTTPRequest;
-                this._HTTPStatusCode    = HTTPStatusCode;
-                this.Timestamp          = DateTime.UtcNow;
+                this._HTTPStatusCode    = HTTPStatusCode ?? HTTPStatusCode.OK;
+                this.Timestamp          = Illias.Timestamp.Now;
                 this.ProtocolName       = "HTTP";
                 this.ProtocolVersion    = new HTTPVersion(1, 1);
                 this.CancellationToken  = HTTPRequest?.CancellationToken ?? new CancellationTokenSource().Token;
                 base.EventTrackingId    = HTTPRequest?.EventTrackingId   ?? EventTracking_Id.New;
                 this.Runtime            = HTTPRequest != null
-                                              ? DateTime.UtcNow - HTTPRequest.Timestamp
+                                              ? Illias.Timestamp.Now - HTTPRequest.Timestamp
                                               : TimeSpan.Zero;
 
             }
+
+            #endregion
 
             #endregion
 

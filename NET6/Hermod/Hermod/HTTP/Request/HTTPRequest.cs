@@ -17,13 +17,7 @@
 
 #region Usings
 
-using System;
-using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Security.Cryptography.X509Certificates;
 
@@ -46,9 +40,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Create a new HTTP response builder for the given request.
         /// </summary>
         /// <param name="HTTPRequest">A HTTP request.</param>
-        public static HTTPResponse.Builder Reply(this HTTPRequest HTTPRequest)
+        public static HTTPResponse.Builder Reply(this HTTPRequest  HTTPRequest,
+                                                 HTTPStatusCode?   HTTPStatusCode = null)
 
-            => new HTTPResponse.Builder(HTTPRequest);
+            => new (HTTPRequest,
+                    HTTPStatusCode);
 
         #endregion
 
@@ -139,7 +135,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Accept
 
-        protected AcceptTypes _Accept;
+        protected AcceptTypes accept;
 
         /// <summary>
         /// The http content types accepted by the client.
@@ -150,17 +146,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             get
             {
 
-                _Accept = GetHeaderField<AcceptTypes>("Accept");
-                if (_Accept != null)
-                    return _Accept;
+                accept = GetHeaderField<AcceptTypes>("Accept");
+                if (accept != null)
+                    return accept;
 
-                var _AcceptString = GetHeaderField<String>("Accept");
+                var acceptString = GetHeaderField<String>("Accept");
 
-                if (!_AcceptString.IsNullOrEmpty())
+                if (!acceptString.IsNullOrEmpty())
                 {
-                    _Accept = new AcceptTypes(_AcceptString);
-                    SetHeaderField("Accept", _Accept);
-                    return _Accept;
+                    accept = AcceptTypes.Parse(acceptString);
+                    SetHeaderField("Accept", accept);
+                    return accept;
                 }
 
                 else

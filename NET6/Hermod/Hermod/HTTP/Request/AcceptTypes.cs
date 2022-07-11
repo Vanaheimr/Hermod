@@ -17,11 +17,6 @@
 
 #region Usings
 
-using System;
-using System.Linq;
-using System.Globalization;
-using System.Collections.Generic;
-
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -37,198 +32,80 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private readonly List<AcceptType> List;
+        private        readonly List<AcceptType>  acceptedTypes;
+
+        private static readonly Char[]            splitter = new Char[] { ',' };
 
         #endregion
 
         #region Constructor(s)
 
-        #region AcceptTypes()
-
-        public AcceptTypes()
-        {
-            this.List = new List<AcceptType>();
-        }
-
-        #endregion
-
-        #region AcceptTypes(FirstAcceptType)
-
-        public AcceptTypes(AcceptType FirstAcceptType)
+        public AcceptTypes(params AcceptType[] AcceptTypes)
         {
 
-            #region Initial checks
+            this.acceptedTypes = new List<AcceptType>();
 
-            if (FirstAcceptType == null)
-                throw new ArgumentNullException("The given AcceptType must not be null!");
-
-            #endregion
-
-            this.List = new List<AcceptType>() { FirstAcceptType };
+            if (AcceptTypes != null && AcceptTypes.Any())
+                this.acceptedTypes.AddRange(AcceptTypes);
 
         }
 
         #endregion
 
-        #region AcceptTypes(AcceptTypes)
 
-        public AcceptTypes(AcceptType[] AcceptTypes)
-        {
+        #region Parse(AcceptString)
 
-            #region Initial checks
+        public static AcceptTypes Parse(String AcceptString)
 
-            if (AcceptTypes == null)
-                throw new ArgumentNullException("The given AcceptTypes must not be null!");
-
-            #endregion
-
-            this.List = new List<AcceptType>();
-            this.List.AddRange(AcceptTypes);
-
-        }
+            => new (AcceptString.Split(splitter, StringSplitOptions.RemoveEmptyEntries)?.Select(acceptString => new AcceptType(acceptString))?.ToArray()
+                        ?? Array.Empty<AcceptType>());
 
         #endregion
 
-        #region AcceptTypes(FirstAcceptType, MoreAcceptTypes)
+        #region FromHTTPContentTypes(params HTTPContentTypes)
 
-        public AcceptTypes(AcceptType FirstAcceptType, params AcceptType[] MoreAcceptTypes)
-        {
+        public static AcceptTypes FromHTTPContentTypes(params HTTPContentType[] HTTPContentTypes)
 
-            #region Initial checks
-
-            if (FirstAcceptType == null)
-                throw new ArgumentNullException("The given AcceptType must not be null!");
-
-            #endregion
-
-            this.List = new List<AcceptType>() { FirstAcceptType };
-
-            if (MoreAcceptTypes != null && MoreAcceptTypes.Length > 0)
-                this.List.AddRange(MoreAcceptTypes);
-
-        }
-
-        #endregion
-
-        #region AcceptTypes(HTTPContentType)
-
-        public AcceptTypes(HTTPContentType HTTPContentType)
-        {
-
-            #region Initial checks
-
-            if (HTTPContentType == null)
-                throw new ArgumentNullException("The given HTTPContentType must not be null!");
-
-            #endregion
-
-            this.List = new List<AcceptType>() { new AcceptType(HTTPContentType, 1) };
-
-        }
-
-        #endregion
-
-        #region AcceptTypes(FirstHTTPContentType, MoreHTTPContentTypes)
-
-        public AcceptTypes(HTTPContentType FirstHTTPContentType, params HTTPContentType[] MoreHTTPContentTypes)
-        {
-
-            #region Initial checks
-
-            if (FirstHTTPContentType == null)
-                throw new ArgumentNullException("The given HTTPContentType must not be null!");
-
-            #endregion
-
-            this.List = new List<AcceptType>() { new AcceptType(FirstHTTPContentType, 1) };
-
-            if (MoreHTTPContentTypes != null && MoreHTTPContentTypes.Length > 0)
-                this.List.AddRange(from _HTTPContentType in MoreHTTPContentTypes select new AcceptType(_HTTPContentType, 1));
-
-        }
-
-        #endregion
-
-        #region AcceptTypes(AcceptsString)
-
-        public AcceptTypes(String AcceptsString)
-        {
-
-            // text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
-
-            // text/html
-            // application/xhtml+xml
-            // application/xml;q=0.9
-            // */*;q=0.8
-
-            // text/html,application/xhtml+xml,application/xml
-            // q=0.9,*/*
-            // q=0.8
-
-            this.List = new List<AcceptType>();
-            var CurrentQuality = 1.0;
-
-            foreach (var AcceptString in AcceptsString.Split(new Char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
-            {
-
-                //if (AcceptString.StartsWith("q="))
-                //    CurrentQuality = Double.Parse(AcceptString.Substring(2), CultureInfo.InvariantCulture);
-
-                //else
-                    List.Add(new AcceptType(AcceptString));
-
-            }
-
-            // text/html
-            // application/xhtml+xml
-            // application/xml
-            // q=0.9
-            // */*
-            // q=0.8
-
-            //this.List = new List<AcceptType>().Select(s => new AcceptType(s)));
-        }
-
-        #endregion
+            => new (HTTPContentTypes?.Select(contentType => new AcceptType(contentType, 1))?.ToArray()
+                        ?? Array.Empty<AcceptType>());
 
         #endregion
 
 
 
-        public void Clear()
-        {
-            List.Clear();
-        }
-
+        #region Add(AcceptType)
 
         public void Add(AcceptType AcceptType)
         {
 
-            #region Initial checks
+            if (AcceptType is null)
+                return;
 
-            if (AcceptType == null)
-                throw new ArgumentNullException("The given AcceptType must not be null!");
-
-            #endregion
-
-            List.Add(AcceptType);
+            lock (acceptedTypes)
+            {
+                acceptedTypes.Add(AcceptType);
+            }
 
         }
+
+        #endregion
+
+        #region Add(HTTPContentType, Quality = 1)
 
         public void Add(HTTPContentType HTTPContentType, Double Quality = 1)
         {
 
-            #region Initial checks
+            if (HTTPContentType is null)
+                return;
 
-            if (HTTPContentType == null)
-                throw new ArgumentNullException("The given HTTPContentType must not be null!");
-
-            #endregion
-
-            List.Add(new AcceptType(HTTPContentType, Quality));
+            lock (acceptedTypes)
+            {
+                acceptedTypes.Add(new AcceptType(HTTPContentType, Quality));
+            }
 
         }
 
+        #endregion
 
 
         #region BestMatchingContentType(AvailableContentTypes)
@@ -242,11 +119,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var MatchingAcceptHeaders = new AcceptTypes();
 
-            // If no Accept-headerfield was given -> return anything.
-            if (List.IsNullOrEmpty())
+            // If no Accept-headerfield was given -> return anything
+            if (acceptedTypes.IsNullOrEmpty())
                 return HTTPContentType.ALL;
 
-            foreach (var AcceptType in List)
+            foreach (var AcceptType in acceptedTypes)
             {
 
                 if (AvailableContentTypes.Contains(AcceptType.ContentType))
@@ -260,27 +137,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (MatchingAcceptHeaders.IsNullOrEmpty())
                 return HTTPContentType.ALL;
 
-            var MaxQuality  = (from   Matching
+            var maxQuality  = (from   Matching
                                in     MatchingAcceptHeaders
                                select Matching.Quality).Max();
 
-            var BestMatches =  from   Matching
+            var bestMatches =  from   Matching
                                in     MatchingAcceptHeaders
-                               where  Matching.Quality == MaxQuality
+                               where  Matching.Quality == maxQuality
                                select Matching;
 
-            if (BestMatches.Skip(1).Any())
-                BestMatches = from   Matching
+            if (bestMatches.Skip(1).Any())
+                bestMatches = from   Matching
                               in     MatchingAcceptHeaders
-                              where  Matching.Quality == MaxQuality
+                              where  Matching.Quality == maxQuality
                               where  Matching.ContentType.ToString() != "*/*"
                               select Matching;
 
 
-            if (BestMatches.IsNullOrEmpty())
+            if (bestMatches.IsNullOrEmpty())
                 return HTTPContentType.ALL;
             else
-                return BestMatches.Reverse().First().ContentType;
+                return bestMatches.Reverse().First().ContentType;
 
         }
 
@@ -288,17 +165,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
-
+        #region GetEnumerator()
 
         public IEnumerator<AcceptType> GetEnumerator()
         {
-            return List.GetEnumerator();
+            return acceptedTypes.GetEnumerator();
         }
 
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
         {
-            return List.GetEnumerator();
+            return acceptedTypes.GetEnumerator();
         }
+
+        #endregion
 
 
         #region (override) ToString()
@@ -310,10 +189,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public override String ToString()
         {
 
-            if (List.Count == 0)
+            if (acceptedTypes.Count == 0)
                 return String.Empty;
 
-            return String.Join(",", List.Select(a => a.ContentType + ";q=" + a.Quality.ToString().Replace(',', '.')));
+            return String.Join(",", acceptedTypes.Select(a => a.ContentType + ";q=" + a.Quality.ToString().Replace(',', '.')));
 
         }
 

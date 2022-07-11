@@ -200,7 +200,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                                      HTTPMethod         = HTTPMethod.POST,
                                      Host               = VirtualHostname ?? RemoteURL.Hostname,
                                      Path               = RemoteURL.Path,
-                                     Accept             = new AcceptTypes(HTTPContentType.XMLTEXT_UTF8),
+                                     Accept             = AcceptTypes.FromHTTPContentTypes(HTTPContentType.XMLTEXT_UTF8),
                                      Content            = QueryXML.ToUTF8Bytes(),
                                      ContentType        = ContentType ?? HTTPContentType.XMLTEXT_UTF8,
                                      UserAgent          = HTTPUserAgent
@@ -487,11 +487,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                                                                                                              "utf-8",
                                                                                                              SOAPAction,
                                                                                                              null),
-                                      Accept         = new AcceptTypes(ContentType ?? HTTPContentType ?? new HTTPContentType("application",
-                                                                                                                             "soap+xml",
-                                                                                                                             "utf-8",
-                                                                                                                             null,
-                                                                                                                             null)),
+                                      Accept         = AcceptTypes.FromHTTPContentTypes(ContentType ?? HTTPContentType ?? new HTTPContentType("application",
+                                                                                                                                              "soap+xml",
+                                                                                                                                              "utf-8",
+                                                                                                                                              null,
+                                                                                                                                              null)),
                                       UserAgent      = HTTPUserAgent,
                                       FakeURLPrefix  = UseFakeURLPrefix ? "https://" + (VirtualHostname ?? RemoteURL.Hostname) : null
                                   };

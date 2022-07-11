@@ -45,8 +45,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         private static readonly Char[]                                Splitter        = new Char[1] { ';' };
 
-        private static readonly Dictionary<String, HTTPContentType>   _Lookup         = new Dictionary<String, HTTPContentType>();
-        private static readonly Dictionary<String, HTTPContentType[]> _ReverseLookup  = new Dictionary<String, HTTPContentType[]>();
+        private static readonly Dictionary<String, HTTPContentType>   _Lookup         = new();
+        private static readonly Dictionary<String, HTTPContentType[]> _ReverseLookup  = new();
 
         #region Properties
 
@@ -66,13 +66,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public String  CharSet          { get; }
 
 
-        private readonly String[] _FileExtensions;
+        private readonly String[] fileExtensions;
 
         /// <summary>
         /// Well-known file extentions using this HTTP content type.
         /// </summary>
         public IEnumerable<String> FileExtensions
-            => _FileExtensions;
+            => fileExtensions;
 
         /// <summary>
         /// The (optional) MIME boundary.
@@ -121,17 +121,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.CharSet          = CharSet;
             this.Action           = Action;
             this.MIMEBoundary     = MIMEBoundary;
-            this._FileExtensions  = FileExtensions ?? new String[0];
+            this.fileExtensions  = FileExtensions ?? Array.Empty<String>();
 
             if (!_Lookup.ContainsKey(MediaMainType + "/" + MediaSubType))
                 _Lookup.Add(MediaMainType + "/" + MediaSubType, this);
 
-            if (_FileExtensions != null && _FileExtensions.Any())
+            if (fileExtensions.Any())
             {
-                _FileExtensions.ForEach(FileExtension => {
+                fileExtensions.ForEach(FileExtension => {
                     if (_ReverseLookup.ContainsKey(FileExtension)) {
-                        var List = new List<HTTPContentType>(_ReverseLookup[FileExtension]);
-                        List.Add(this);
+                        var List = new List<HTTPContentType>(_ReverseLookup[FileExtension]) {
+                                       this
+                                   };
                         _ReverseLookup[FileExtension] = List.ToArray();
                     }
                     else

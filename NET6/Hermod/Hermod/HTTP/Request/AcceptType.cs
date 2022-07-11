@@ -109,7 +109,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public AcceptType(String AcceptString)
         {
 
-            this.Quality = 1;
+            // text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+
+            // text/html
+            // application/xhtml+xml
+            // application/xml;q=0.9
+            // */*;q=0.8
+
+            // text/html,application/xhtml+xml,application/xml
+            // q=0.9,*/*
+            // q=0.8
+
+            // text/html
+            // application/xhtml+xml
+            // application/xml
+            // q=0.9
+            // */*
+            // q=0.8
+
+            this.Quality              = 1;
 
             var SplittedAcceptString  = AcceptString.Split(new Char[1] { ';' }, StringSplitOptions.RemoveEmptyEntries).Select(_ => _.Trim()).ToArray();
             var MediaTypes            = SplittedAcceptString[0].Split('/');
