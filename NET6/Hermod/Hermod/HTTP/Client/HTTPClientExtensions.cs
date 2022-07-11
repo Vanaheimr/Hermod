@@ -103,6 +103,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region CHECK  (this AHTTPClient, Path = "/", BuilderAction = null)
+
+        /// <summary>
+        /// Create a new HTTP CHECK request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <returns>A HTTP request object.</returns>
+        public static Task<HTTPResponse> CHECK(this AHTTPClient             HTTPClient,
+                                               HTTPPath                     Path,
+                                               Action<HTTPRequest.Builder>  BuilderAction = null)
+
+            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.CHECK,
+                                                                 Path,
+                                                                 BuilderAction));
+
+
+        /// <summary>
+        /// Create a new HTTP CHECK request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <returns>A HTTP request object.</returns>
+        public static HTTPRequest.Builder CHECKRequest(this AHTTPClient             HTTPClient,
+                                                       HTTPPath                     Path,
+                                                       Action<HTTPRequest.Builder>  BuilderAction = null)
+
+            => HTTPClient.CreateRequest(HTTPMethod.CHECK,
+                                        Path,
+                                        BuilderAction);
+
+        #endregion
+
         #region COUNT  (this AHTTPClient, Path = "/", BuilderAction = null)
 
         /// <summary>
