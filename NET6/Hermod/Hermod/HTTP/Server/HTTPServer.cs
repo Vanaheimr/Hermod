@@ -43,11 +43,14 @@ using org.GraphDefined.Vanaheimr.Hermod.Services;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
-    public delegate HTTPResponse? HTTPFilter1Delegate (                   HTTPRequest Request);
-    public delegate HTTPResponse? HTTPFilter2Delegate (HTTPServer Server, HTTPRequest Request);
+    public delegate IUser?         HTTPAuth1Delegate   (                   HTTPRequest Request);
+    public delegate IUser?         HTTPAuth2Delegate   (HTTPServer Server, HTTPRequest Request);
 
-    public delegate HTTPRequest?  HTTPRewrite1Delegate(                   HTTPRequest Request);
-    public delegate HTTPRequest?  HTTPRewrite2Delegate(HTTPServer Server, HTTPRequest Request);
+    public delegate HTTPResponse?  HTTPFilter1Delegate (                   HTTPRequest Request);
+    public delegate HTTPResponse?  HTTPFilter2Delegate (HTTPServer Server, HTTPRequest Request);
+
+    public delegate HTTPRequest?   HTTPRewrite1Delegate(                   HTTPRequest Request);
+    public delegate HTTPRequest?   HTTPRewrite2Delegate(HTTPServer Server, HTTPRequest Request);
 
 
     /// <summary>
@@ -1759,6 +1762,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Method Callbacks
 
+        #region HTTP Auth
+
+        private readonly List<HTTPAuth2Delegate> _HTTPAuths = new List<HTTPAuth2Delegate>();
+
+        public void AddAuth(HTTPAuth1Delegate Filter)
+        {
+            _HTTPAuths.Add((server, request) => Filter(request));
+        }
+
+        public void AddAuth(HTTPAuth2Delegate Filter)
+        {
+            _HTTPAuths.Add(Filter);
+        }
+
+        #endregion
+
         #region HTTP Filters
 
         private readonly List<HTTPFilter2Delegate> _HTTPFilters = new List<HTTPFilter2Delegate>();
@@ -2444,6 +2463,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public async Task<HTTPResponse> InvokeHandler(HTTPRequest Request)
         {
+
+            #region Process HTTP auths...
+
+            IUser? user = null;
+
+            foreach (var httpAuth in _HTTPAuths.ReverseAndReturn())
+            {
+
+                user = httpAuth(this, Request);
+
+                if (user is not null)
+                    break;
+
+            }
+
+            Request.User = user;
+
+            #endregion
 
             #region Process HTTP filters...
 

@@ -651,6 +651,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Internal     request header fields
+
+        #region User
+
+        /// <summary>
+        /// This is an internal HTTP request field to idicate the HTTP user.
+        /// </summary>
+        public IUser? User { get; set; }
+
+        #endregion
+
+        #endregion
+
         #region Constructor(s)
 
         #region (internal) HTTPRequest(Timestamp, HTTPSource, LocalSocket, RemoteSocket, HTTPServer, HTTPHeader, HTTPBody = null, HTTPBodyStream = null, CancellationToken = null, EventTrackingId = null)
