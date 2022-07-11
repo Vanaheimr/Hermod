@@ -75,7 +75,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                            MaxNumberOfRetries,
                                                            UseHTTPPipelining,
                                                            HTTPLogger,
-                                                           DNSClient) as IHTTPClientCommands
+                                                           DNSClient)
 
                                          : new HTTPSClient(RemoteURL,
                                                            VirtualHostname,
@@ -89,7 +89,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                            MaxNumberOfRetries,
                                                            UseHTTPPipelining,
                                                            HTTPLogger,
-                                                           DNSClient) as IHTTPClientCommands;
+                                                           DNSClient);
 
     }
 
