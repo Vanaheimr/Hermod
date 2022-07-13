@@ -405,11 +405,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (HTTPPath1.EndsWith("/") && Text.StartsWith("/"))
                 return Parse(HTTPPath1.ToString() + Text.Substring(1));
 
-            if (!HTTPPath1.EndsWith("/") &&  Text.StartsWith("/") ||
+            if (!HTTPPath1.EndsWith("/") && Text.StartsWith("/") ||
                  HTTPPath1.EndsWith("/") && !Text.StartsWith("/"))
-                return Parse(HTTPPath1.ToString() + Text);
+            {
+                return Text.IsNotNullOrEmpty()
+                           ? Parse(HTTPPath1.ToString() + Text)
+                           : HTTPPath1;
+            }
 
-            return Parse(HTTPPath1.ToString() + "/" + Text);
+            return Text.IsNotNullOrEmpty()
+                       ? Parse(HTTPPath1.ToString() + "/" + Text)
+                       : HTTPPath1;
 
         }
 
@@ -426,13 +432,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return Parse(Text);
 
             if (HTTPPath1.Value.EndsWith("/") && Text.StartsWith("/"))
-                return Parse(HTTPPath1.ToString() + Text.Substring(1));
+                return Parse(HTTPPath1.Value.ToString() + Text.Substring(1));
 
             if (!HTTPPath1.Value.EndsWith("/") &&  Text.StartsWith("/") ||
                  HTTPPath1.Value.EndsWith("/") && !Text.StartsWith("/"))
-                return Parse(HTTPPath1.ToString() + Text);
+            {
+                return Text.IsNotNullOrEmpty()
+                           ? Parse(HTTPPath1.Value.ToString() + Text)
+                           : HTTPPath1.Value;
+            }
 
-            return Parse(HTTPPath1.ToString() + "/" + Text);
+            return Text.IsNotNullOrEmpty()
+                       ? Parse(HTTPPath1.Value.ToString() + "/" + Text)
+                       : HTTPPath1.Value;
 
         }
 
