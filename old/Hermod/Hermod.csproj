@@ -1,0 +1,300 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{477EFD16-3627-4473-957D-44CA9A9DFB79}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>org.GraphDefined.Vanaheimr.Hermod</RootNamespace>
+    <AssemblyName>Vanaheimr.Hermod</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <LangVersion>8.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+    <DocumentationFile>bin\Debug\Vanaheimr.Hermod.XML</DocumentationFile>
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\Styx\libs\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.IdentityModel" />
+    <Reference Include="System.IdentityModel.Selectors" />
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.ServiceModel.Web" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="CounterValues.cs" />
+    <Compile Include="DNS\IPTransport.cs" />
+    <Compile Include="GlobalSuppressions.cs" />
+    <Compile Include="Helpers\ChangeMethods.cs" />
+    <Compile Include="Helpers\IEventSender.cs" />
+    <Compile Include="Helpers\ICustomDataBuilder.cs" />
+    <Compile Include="Helpers\InfoStatus.cs" />
+    <Compile Include="Helpers\JSON_IO.cs" />
+    <Compile Include="Helpers\Datastructures\AReadOnlyLocalRemoteSockets.cs" />
+    <Compile Include="DNS\DNSTools.cs" />
+    <Compile Include="Helpers\ExtentionMethods\NetworkingHelpers.cs" />
+    <Compile Include="Helpers\ExtentionMethods\IPAddressHelper.cs" />
+    <Compile Include="Helpers\Datastructures\ILocalSocket.cs" />
+    <Compile Include="Helpers\PriorityList.cs" />
+    <Compile Include="Helpers\Signature.cs" />
+    <Compile Include="Helpers\StatusSchedule.cs" />
+    <Compile Include="HTTP\AHTTPPDU.cs" />
+    <Compile Include="HTTP\AHTTPPDUBuilder.cs" />
+    <Compile Include="Helpers\TimeoutException.cs" />
+    <Compile Include="Helpers\MyNetworkStream.cs" />
+    <Compile Include="HTTP\Client\ClientResult.cs" />
+    <Compile Include="HTTP\Client\HTTPClientFactory.cs" />
+    <Compile Include="HTTP\Client\HTTPSClient.cs" />
+    <Compile Include="HTTP\Client\HTTPClient.cs" />
+    <Compile Include="HTTP\Client\HTTPClientExtensions.cs" />
+    <Compile Include="HTTP\Client\IHTTPClient.cs" />
+    <Compile Include="HTTP\Client\JSONClient.cs" />
+    <Compile Include="HTTP\Client\SOAPClient.cs" />
+    <Compile Include="HTTP\General\HTTPCookies.cs" />
+    <Compile Include="HTTP\General\HTTPCookieName.cs" />
+    <Compile Include="HTTP\General\HTTPContentType.cs" />
+    <Compile Include="HTTP\General\HTTPCookie.cs" />
+    <Compile Include="HTTP\General\HTTPHostname.cs" />
+    <Compile Include="HTTP\General\HTTPStatusCode.cs" />
+    <Compile Include="HTTP\General\HTTPSource.cs" />
+    <Compile Include="HTTP\General\HTTPURI.cs" />
+    <Compile Include="HTTP\General\HTTPPath.cs" />
+    <Compile Include="HTTP\General\HTTPVersion.cs" />
+    <Compile Include="HTTP\General\URL.cs" />
+    <Compile Include="HTTP\HTTPHeaderField.cs" />
+    <Compile Include="HTTP\JSON\JSONExtentions.cs" />
+    <Compile Include="HTTP\Logging\HTTPClientLogger.cs" />
+    <Compile Include="HTTP\Logging\HTTPServerLogger.cs" />
+    <Compile Include="HTTP\Request\APIKey_Id.cs" />
+    <Compile Include="HTTP\Request\HTTPTokenAuthentication.cs" />
+    <Compile Include="HTTP\Request\HTTPBearerAuthentication.cs" />
+    <Compile Include="HTTP\Request\IHTTPAuthentication.cs" />
+    <Compile Include="HTTP\Server\IHTTPServer.cs" />
+    <Compile Include="HTTP\Logging\HTTPLoggerExtentions.cs" />
+    <Compile Include="HTTP\Logging\AHTTPLogger.cs" />
+    <Compile Include="HTTP\Logging\LogTargets.cs" />
+    <Compile Include="HTTP\Request\HTTPRequest.cs" />
+    <Compile Include="HTTP\Response\HTTPResponse.cs" />
+    <Compile Include="HTTP\Request\AcceptType.cs" />
+    <Compile Include="HTTP\Request\AcceptTypes.cs" />
+    <Compile Include="HTTP\Request\HTTPAuthenticationTypes.cs" />
+    <Compile Include="HTTP\Request\HTTPBasicAuthentication.cs" />
+    <Compile Include="HTTP\Request\HTTPMethod.cs" />
+    <Compile Include="HTTP\Request\Parsy.cs" />
+    <Compile Include="HTTP\Request\QueryString.cs" />
+    <Compile Include="HTTP\Response\KeepAliveType.cs" />
+    <Compile Include="HTTP\Server\HTTPExtentions.cs" />
+    <Compile Include="HTTP\Server\Delegates.cs" />
+    <Compile Include="HTTP\Server\URLMapping\HTTPStandardHandlers.cs" />
+    <Compile Include="HTTP\Server\HTTPServer.cs" />
+    <Compile Include="HTTP\Server\Attributes\AuthenticationAttributes.cs" />
+    <Compile Include="HTTP\Server\Attributes\HTTPErrorAttribute.cs" />
+    <Compile Include="HTTP\Server\Attributes\HTTPEventMappingAttribute.cs" />
+    <Compile Include="HTTP\Server\Attributes\HTTPMappingAttribute.cs" />
+    <Compile Include="HTTP\Server\Attributes\HTTPResourcesMappingAttribute.cs" />
+    <Compile Include="HTTP\Server\Helpers\HTTPErrors.cs" />
+    <Compile Include="HTTP\Server\Helpers\HTTPTools.cs" />
+    <Compile Include="HTTP\Server\HTTPResult.cs" />
+    <Compile Include="HTTP\Server\Interfaces\IHTTPBaseService.cs" />
+    <Compile Include="HTTP\Server\Interfaces\IHTTPConnection.cs" />
+    <Compile Include="HTTP\Server\Interfaces\IHTTPService.cs" />
+    <Compile Include="HTTP\Server\Security\HTTPSecurity.cs" />
+    <Compile Include="HTTP\Server\HTTPAPI.cs" />
+    <Compile Include="HTTP\Server\URLMapping\ContentTypeNode.cs" />
+    <Compile Include="HTTP\Server\URLMapping\HostnameNode.cs" />
+    <Compile Include="HTTP\ServerSentEvents\HTTPEvent.cs" />
+    <Compile Include="HTTP\ServerSentEvents\HTTPEventSource.cs" />
+    <Compile Include="HTTP\Server\URLMapping\HTTPMethodNode.cs" />
+    <Compile Include="HTTP\ServerSentEvents\HTTPEventSource_Id.cs" />
+    <Compile Include="HTTP\ServerSentEvents\IHTTPEventSource.cs" />
+    <Compile Include="HTTP\Server\URLMapping\URLReplacement.cs" />
+    <Compile Include="HTTP\Server\URLMapping\URL_Node.cs" />
+    <Compile Include="HTTP\HTTPSemantics.cs" />
+    <Compile Include="IPv4\ICMP\IICMPClient.cs" />
+    <Compile Include="IPv4\ICMP\ICMPErrors.cs" />
+    <Compile Include="IPv4\ICMP\PingResult.cs" />
+    <Compile Include="IPv4\ICMP\PingResults.cs" />
+    <Compile Include="IPv4\ICMP\ICMPClient.cs" />
+    <Compile Include="IPv4\ICMP\Messages\ICMPDestinationUnreachable.cs" />
+    <Compile Include="IPv4\ICMP\Messages\ICMPParameterProblem.cs" />
+    <Compile Include="IPv4\ICMP\Messages\ICMPSourceQuench.cs" />
+    <Compile Include="IPv4\ICMP\Messages\ICMPTimeExceeded.cs" />
+    <Compile Include="IPv4\ICMP\Messages\ICMPRedirect.cs" />
+    <Compile Include="IPv4\ICMP\Messages\ICMPEchoReply.cs" />
+    <Compile Include="IPv4\ICMP\Messages\ICMPEchoRequest.cs" />
+    <Compile Include="IPv4\ICMP\Messages\IICMPMessage.cs" />
+    <Compile Include="IPv4\ICMP\ICMPPacket.cs" />
+    <Compile Include="IPv4\IPv4Protocols.cs" />
+    <Compile Include="IPv4\IPv4Packet.cs" />
+    <Compile Include="MIME\AMIME.cs" />
+    <Compile Include="SMTP\EMail\AbstractEMail.cs" />
+    <Compile Include="SMTP\EMail\EMailEnvelop.cs" />
+    <Compile Include="SMTP\EMail\AbstractEMailBuilder.cs" />
+    <Compile Include="SMTP\EMail\EMail.cs" />
+    <Compile Include="SMTP\EMail\Helpers\ContentDispositions.cs" />
+    <Compile Include="SMTP\EMail\Helpers\ContentTransferEncoding.cs" />
+    <Compile Include="SMTP\EMail\Helpers\EMailAddress.cs" />
+    <Compile Include="SMTP\EMail\Helpers\EMailAddressList.cs" />
+    <Compile Include="SMTP\EMail\Helpers\EMailBodypart.cs" />
+    <Compile Include="SMTP\EMail\Helpers\EMailBuilderExtentionMethods.cs" />
+    <Compile Include="SMTP\EMail\Helpers\EMailException.cs" />
+    <Compile Include="SMTP\EMail\Helpers\EMailExtentionMethods.cs" />
+    <Compile Include="SMTP\EMail\Helpers\EMailSecurity.cs" />
+    <Compile Include="SMTP\EMail\Helpers\EMailSecurityException.cs" />
+    <Compile Include="SMTP\EMail\Helpers\MailContentTypes.cs" />
+    <Compile Include="SMTP\EMail\Helpers\ListId.cs" />
+    <Compile Include="SMTP\EMail\Helpers\Message_Id.cs" />
+    <Compile Include="SMTP\EMail\Helpers\MailContentType.cs" />
+    <Compile Include="SMTP\EMail\Helpers\SimpleEMailAddress.cs" />
+    <Compile Include="SMTP\EMail\HTMLEMailBuilder.cs" />
+    <Compile Include="SMTP\EMail\MailinglistEMailBuilder.cs" />
+    <Compile Include="SMTP\EMail\TextEMailBuilder.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Helpers\Datastructures\IIPAddress.cs" />
+    <Compile Include="Helpers\Datastructures\IPv6Address.cs" />
+    <Compile Include="Helpers\Datastructures\IPPort.cs" />
+    <Compile Include="Helpers\Datastructures\IPv4Address.cs" />
+    <Compile Include="Helpers\Datastructures\IPSocket.cs" />
+    <Compile Include="Helpers\Datastructures\IRemoteSocket.cs" />
+    <Compile Include="CSV\TCPCSVServer.cs" />
+    <Compile Include="Helpers\EOLSearch.cs" />
+    <Compile Include="CSV\TCPCSVCommandProcessor.cs" />
+    <Compile Include="Helpers\Datastructures\Delegates.cs" />
+    <Compile Include="CSV\SplitUDPPacketArrow.cs" />
+    <Compile Include="SMTP\SMTPClient\Helpers\MailSentStatus.cs" />
+    <Compile Include="SMTP\SMTPClient\Helpers\SMTPAuthMethods.cs" />
+    <Compile Include="SMTP\SMTPClient\Helpers\SMTPCapabilities.cs" />
+    <Compile Include="SMTP\SMTPClient\Helpers\SMTPClientException.cs" />
+    <Compile Include="SMTP\SMTPClient\Helpers\SMTPExtentions.cs" />
+    <Compile Include="SMTP\SMTPClient\ISMTPClient.cs" />
+    <Compile Include="SMTP\SMTPClient\NullMailer.cs" />
+    <Compile Include="SMTP\SMTPClient\SMTPClient.cs" />
+    <Compile Include="SMTP\SMTPException.cs" />
+    <Compile Include="SMTP\SMTPExtendedResponse.cs" />
+    <Compile Include="SMTP\SMTPResponse.cs" />
+    <Compile Include="SMTP\SMTPServer\Helpers\Delegates.cs" />
+    <Compile Include="SMTP\SMTPServer\Helpers\SMTPServerException.cs" />
+    <Compile Include="SMTP\SMTPServer\Helpers\Extentions.cs" />
+    <Compile Include="SMTP\SMTPServer\SMTPConnection.cs" />
+    <Compile Include="SMTP\SMTPServer\SMTPServer.cs" />
+    <Compile Include="SMTP\SMTPStatusCode.cs" />
+    <Compile Include="SOAP\ASOAPServer.cs" />
+    <Compile Include="HTTP\Client\AHTTPClient.cs" />
+    <Compile Include="HTTP\Client\AJSONClient.cs" />
+    <Compile Include="HTTP\Client\ASOAPClient.cs" />
+    <Compile Include="SOAP\SOAPDispatch.cs" />
+    <Compile Include="SOAP\SOAPDelegates.cs" />
+    <Compile Include="SOAP\SOAPDispatcher.cs" />
+    <Compile Include="SOAP\SOAPServer.cs" />
+    <Compile Include="TCP\ConnectionClosedBy.cs" />
+    <Compile Include="TCP\ATCPServers.cs" />
+    <Compile Include="TCP\TCPClientResponse.cs" />
+    <Compile Include="TCP\Delegates.cs" />
+    <Compile Include="CSV\TCPCSVProcessor.cs" />
+    <Compile Include="CSV\ProcessUDPPacketArrow.cs" />
+    <Compile Include="DNS\NoDNSPaketInformation.cs" />
+    <Compile Include="DNS\DNSCacheEntry.cs" />
+    <Compile Include="DNS\DNSCache.cs" />
+    <Compile Include="DNS\DNSQuery.cs" />
+    <Compile Include="DNS\ENUMs\DNSResponseCodes.cs" />
+    <Compile Include="DNS\ENUMs\DNSResourceRecordTypes.cs" />
+    <Compile Include="DNS\ResourceRecords\A.cs" />
+    <Compile Include="DNS\DNSClient.cs" />
+    <Compile Include="DNS\DNSInfo.cs" />
+    <Compile Include="DNS\ENUMs\DNSQueryClasses.cs" />
+    <Compile Include="DNS\ResourceRecords\CNAME.cs" />
+    <Compile Include="DNS\ResourceRecords\AAAA.cs" />
+    <Compile Include="DNS\ResourceRecords\SSHFP.cs" />
+    <Compile Include="DNS\ResourceRecords\NS.cs" />
+    <Compile Include="DNS\ResourceRecords\MINFO.cs" />
+    <Compile Include="DNS\ResourceRecords\PTR.cs" />
+    <Compile Include="DNS\ResourceRecords\TXT.cs" />
+    <Compile Include="DNS\ResourceRecords\MX.cs" />
+    <Compile Include="DNS\ResourceRecords\ADNSResourceRecord.cs" />
+    <Compile Include="DNS\ResourceRecords\SOA.cs" />
+    <Compile Include="TCP\TCPClient\ENUMs\TCPDisconnectResult.cs" />
+    <Compile Include="TCP\TCPClient\ENUMs\TCPConnectResult.cs" />
+    <Compile Include="TCP\TCPClient\TCPClient.cs" />
+    <Compile Include="Helpers\Datastructures\IServer.cs" />
+    <Compile Include="CSV\UDPCSVReceiver.cs" />
+    <Compile Include="TCP\TCPClient\TLSUsage.cs" />
+    <Compile Include="TCP\TCPResult.cs" />
+    <Compile Include="UDP\IUDPReceiver.cs" />
+    <Compile Include="UDP\MulticastReceiver.cs" />
+    <Compile Include="UDP\UDPMulticastSenderArrow.cs" />
+    <Compile Include="TCP\TCPConnection.cs" />
+    <Compile Include="TCP\TCPServer.cs" />
+    <Compile Include="Helpers\Datastructures\ALocalRemoteSockets.cs" />
+    <Compile Include="UDP\UDPPacket.cs" />
+    <Compile Include="UDP\UDPReceiver.cs" />
+    <Compile Include="UDP\UDPSender.cs" />
+    <Compile Include="Warden\Delegates.cs" />
+    <Compile Include="Warden\IWardenCheck.cs" />
+    <Compile Include="Warden\Version.cs" />
+    <Compile Include="Warden\Warden.cs" />
+    <Compile Include="Warden\WardenCheck.cs" />
+    <Compile Include="Warden\WardenExtentions.cs" />
+    <Compile Include="Warden\WardenProperties.cs" />
+    <Compile Include="WebSocket\WebSocketFrame.cs" />
+    <Compile Include="WebSocket\WebSocketConnection.cs" />
+    <Compile Include="WebSocket\WebSocketMessageRespose.cs" />
+    <Compile Include="WebSocket\WebSocketDelegates.cs" />
+    <Compile Include="WebSocket\WebSocketTextMessageRespose.cs" />
+    <Compile Include="WebSocket\WebSocketBinaryMessageRespose.cs" />
+    <Compile Include="WebSocket\WebSocketServer.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\BouncyCastle\crypto\crypto.csproj">
+      <Project>{38872a5f-e87e-4fad-b109-8eb7b2e6a4a0}</Project>
+      <Name>crypto</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Styx\Styx\Styx.csproj">
+      <Project>{af76ecc0-2ca5-4cff-9e1e-ff5478c4b6e4}</Project>
+      <Name>Styx</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
