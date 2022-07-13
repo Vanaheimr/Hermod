@@ -14,8 +14,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Styx\NET6\StyxTests\StyxTests.csproj" />
-    <ProjectReference Include="..\..\..\Styx\NET6\Styx\Styx.csproj" />
+    <ProjectReference Include="..\..\Styx\StyxTests\StyxTests.csproj" />
+    <ProjectReference Include="..\..\Styx\Styx\Styx.csproj" />
     <ProjectReference Include="..\Hermod\Hermod.csproj" />
   </ItemGroup>
 

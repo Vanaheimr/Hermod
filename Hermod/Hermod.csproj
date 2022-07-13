@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Styx\NET6\Styx\Styx.csproj" />
+    <ProjectReference Include="..\..\Styx\Styx\Styx.csproj" />
   </ItemGroup>
 
 </Project>
