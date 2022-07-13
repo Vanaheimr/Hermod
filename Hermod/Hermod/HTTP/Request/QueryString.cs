@@ -378,8 +378,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region GetString    (ParameterName, DefaultValue = null)
 
-        public String GetString(String  ParameterName,
-                                String  DefaultValue = null)
+        public String? GetString(String  ParameterName,
+                                 String? DefaultValue = null)
         {
 
             if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
