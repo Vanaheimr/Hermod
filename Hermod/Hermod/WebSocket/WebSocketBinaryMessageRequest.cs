@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2022 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2021, Achim Friedland <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,33 +18,34 @@
 #region Usings
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Net;
-using System.Net.Sockets;
-using System.Collections;
-using System.Threading;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
-    public class WebSocketBinaryMessageRespose
+    public class WebSocketBinaryMessageRequest
     {
 
-        public DateTime  ResponseTimestamp    { get; }
+        public EventTracking_Id  EventTrackingId    { get; }
 
-        public Byte[]    Response             { get; }
+        public DateTime          Timestamp          { get; }
 
-        public DateTime  RequestTimestamp     { get; }
+        public Byte[]            Request            { get; }
 
-        public Byte[]    Request              { get; }
+
+        public WebSocketBinaryMessageRequest(EventTracking_Id  EventTrackingId,
+                                             DateTime          Timestamp,
+                                             Byte[]            Request)
+        {
+
+            this.EventTrackingId  = EventTrackingId;
+            this.Timestamp        = Timestamp;
+            this.Request          = Request;
+
+        }
 
 
     }

@@ -19,35 +19,34 @@
 
 using System;
 
+using org.GraphDefined.Vanaheimr.Illias;
+
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
-    public class WebSocketTextMessageRespose
+    public class WebSocketTextMessageRequest
     {
 
-        public DateTime  RequestTimestamp     { get; }
+        public EventTracking_Id  EventTrackingId    { get; }
 
-        public String    Request              { get; }
+        public DateTime          Timestamp          { get; }
 
-        public DateTime  ResponseTimestamp    { get; }
-
-        public String    Response             { get; }
+        public String            Request            { get; }
 
 
-        public WebSocketTextMessageRespose(DateTime  RequestTimestamp,
-                                           String    Request,
-                                           DateTime  ResponseTimestamp,
-                                           String    Response)
+        public WebSocketTextMessageRequest(EventTracking_Id  EventTrackingId,
+                                           DateTime          Timestamp,
+                                           String            Request)
         {
 
-            this.RequestTimestamp   = RequestTimestamp;
-            this.Request            = Request;
-            this.ResponseTimestamp  = ResponseTimestamp;
-            this.Response           = Response;
+            this.EventTrackingId  = EventTrackingId;
+            this.Timestamp        = Timestamp;
+            this.Request          = Request;
 
         }
+
 
     }
 

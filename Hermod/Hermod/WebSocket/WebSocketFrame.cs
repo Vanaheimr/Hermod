@@ -428,6 +428,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                               Rsv         Rsv3)
         {
 
+            if (Mask == MaskStatus.On && (MaskingKey is null || MaskingKey.Length != 4))
+                throw new ArgumentException("When a web socket mask is used the given masking key must be set!");
+
             this.FIN         = FIN;
             this.Mask        = Mask;
             this.MaskingKey  = MaskingKey;
