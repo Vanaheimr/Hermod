@@ -20,11 +20,12 @@
 using System;
 using System.Xml.Linq;
 using System.Net.Security;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using System.Security.Cryptography.X509Certificates;
 
 #endregion
 
@@ -56,17 +57,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The default URL path prefix.
         /// </summary>
-        public HTTPPath               URLPathPrefix       { get; }
+        public HTTPPath                URLPathPrefix       { get; }
 
         /// <summary>
         /// The WebService-Security username/password.
         /// </summary>
-        public Tuple<String, String>  WSSLoginPassword    { get; }
+        public Tuple<String, String>?  WSSLoginPassword    { get; }
 
         /// <summary>
         /// The HTTP content type to use.
         /// </summary>
-        public HTTPContentType        HTTPContentType     { get; }
+        public HTTPContentType?        HTTPContentType     { get; }
 
         #endregion
 
@@ -112,22 +113,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
         /// <param name="HTTPLogger">A HTTP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
-        protected ASOAPClient(URL                                  RemoteURL,
-                              HTTPHostname?                        VirtualHostname              = null,
-                              String                               Description                  = null,
-                              RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
-                              LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
-                              X509Certificate                      ClientCert                   = null,
-                              String                               HTTPUserAgent                = DefaultHTTPUserAgent,
-                              HTTPPath?                            URLPathPrefix                = null,
-                              Tuple<String, String>                WSSLoginPassword             = null,
-                              HTTPContentType                      HTTPContentType              = null,
-                              TimeSpan?                            RequestTimeout               = null,
-                              TransmissionRetryDelayDelegate       TransmissionRetryDelay       = null,
-                              UInt16?                              MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
-                              Boolean                              UseHTTPPipelining            = false,
-                              HTTPClientLogger                     HTTPLogger                   = null,
-                              DNSClient                            DNSClient                    = null)
+        protected ASOAPClient(URL                                   RemoteURL,
+                              HTTPHostname?                         VirtualHostname              = null,
+                              String?                               Description                  = null,
+                              RemoteCertificateValidationCallback?  RemoteCertificateValidator   = null,
+                              LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
+                              X509Certificate?                      ClientCert                   = null,
+                              SslProtocols?                         TLSProtocol                  = null,
+                              Boolean?                              PreferIPv4                   = null,
+                              String                                HTTPUserAgent                = DefaultHTTPUserAgent,
+                              HTTPPath?                             URLPathPrefix                = null,
+                              Tuple<String, String>?                WSSLoginPassword             = null,
+                              HTTPContentType?                      HTTPContentType              = null,
+                              TimeSpan?                             RequestTimeout               = null,
+                              TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
+                              UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
+                              Boolean                               UseHTTPPipelining            = false,
+                              HTTPClientLogger?                     HTTPLogger                   = null,
+                              DNSClient?                            DNSClient                    = null)
 
             : base(RemoteURL,
                    VirtualHostname,
@@ -135,6 +138,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                    RemoteCertificateValidator,
                    ClientCertificateSelector,
                    ClientCert,
+                   TLSProtocol,
+                   PreferIPv4,
                    HTTPUserAgent      ?? DefaultHTTPUserAgent,
                    RequestTimeout,
                    TransmissionRetryDelay,

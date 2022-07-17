@@ -19,6 +19,7 @@
 
 using System;
 using System.Net.Security;
+using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
@@ -50,25 +51,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
         /// <param name="HTTPLogger">A HTTP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
-        public static IHTTPClientCommands Create(URL                                  RemoteURL,
-                                                 HTTPHostname?                        VirtualHostname              = null,
-                                                 String                               Description                  = null,
-                                                 RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
-                                                 LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
-                                                 X509Certificate                      ClientCert                   = null,
-                                                 String                               HTTPUserAgent                = HTTPSClient.DefaultHTTPUserAgent,
-                                                 TimeSpan?                            RequestTimeout               = null,
-                                                 TransmissionRetryDelayDelegate       TransmissionRetryDelay       = null,
-                                                 UInt16?                              MaxNumberOfRetries           = HTTPSClient.DefaultMaxNumberOfRetries,
-                                                 Boolean                              UseHTTPPipelining            = false,
-                                                 HTTPClientLogger                     HTTPLogger                   = null,
-                                                 DNSClient                            DNSClient                    = null)
+        public static IHTTPClientCommands Create(URL                                   RemoteURL,
+                                                 HTTPHostname?                         VirtualHostname              = null,
+                                                 String?                               Description                  = null,
+                                                 RemoteCertificateValidationCallback?  RemoteCertificateValidator   = null,
+                                                 LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
+                                                 X509Certificate?                      ClientCert                   = null,
+                                                 SslProtocols?                         TLSProtocol                  = null,
+                                                 Boolean?                              PreferIPv4                   = null,
+                                                 String                                HTTPUserAgent                = HTTPSClient.DefaultHTTPUserAgent,
+                                                 TimeSpan?                             RequestTimeout               = null,
+                                                 TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
+                                                 UInt16?                               MaxNumberOfRetries           = HTTPSClient.DefaultMaxNumberOfRetries,
+                                                 Boolean                               UseHTTPPipelining            = false,
+                                                 HTTPClientLogger?                     HTTPLogger                   = null,
+                                                 DNSClient?                            DNSClient                    = null)
 
             => RemoteURL.Protocol == URLProtocols.http
 
                                          ? new HTTPClient (RemoteURL,
                                                            VirtualHostname,
                                                            Description,
+                                                           PreferIPv4,
                                                            HTTPUserAgent,
                                                            RequestTimeout,
                                                            TransmissionRetryDelay,
@@ -83,6 +87,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                            RemoteCertificateValidator,
                                                            ClientCertificateSelector,
                                                            ClientCert,
+                                                           TLSProtocol,
+                                                           PreferIPv4,
                                                            HTTPUserAgent,
                                                            RequestTimeout,
                                                            TransmissionRetryDelay,

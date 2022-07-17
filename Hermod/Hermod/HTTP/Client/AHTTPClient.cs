@@ -49,10 +49,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private Socket           TCPSocket;
-        private MyNetworkStream  TCPStream;
-        private SslStream        TLSStream;
-        private Stream           HTTPStream;
+        private Socket?           TCPSocket;
+        private MyNetworkStream?  TCPStream;
+        private SslStream?        TLSStream;
+        private Stream?           HTTPStream;
 
 
         /// <summary>
@@ -87,73 +87,77 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The remote URL of the HTTP endpoint to connect to.
         /// </summary>
-        public URL                                  RemoteURL                     { get; }
+        public URL                                   RemoteURL                     { get; }
 
         /// <summary>
         /// The virtual HTTP hostname to connect to.
         /// </summary>
-        public HTTPHostname?                        VirtualHostname               { get; }
+        public HTTPHostname?                         VirtualHostname               { get; }
 
         /// <summary>
         /// An optional description of this HTTP client.
         /// </summary>
-        public String                               Description                   { get; set; }
+        public String?                               Description                   { get; set; }
 
         /// <summary>
         /// The remote SSL/TLS certificate validator.
         /// </summary>
-        public RemoteCertificateValidationCallback  RemoteCertificateValidator    { get; }
+        public RemoteCertificateValidationCallback?  RemoteCertificateValidator    { get; }
 
         /// <summary>
         /// A delegate to select a TLS client certificate.
         /// </summary>
-        public LocalCertificateSelectionCallback    ClientCertificateSelector     { get; }
+        public LocalCertificateSelectionCallback?    ClientCertificateSelector     { get; }
 
         /// <summary>
         /// The SSL/TLS client certificate to use of HTTP authentication.
         /// </summary>
-        public X509Certificate                      ClientCert                    { get; }
+        public X509Certificate?                      ClientCert                    { get; }
+
+        /// <summary>
+        /// The TLS protocol to use.
+        /// </summary>
+        public SslProtocols                          TLSProtocol                   { get; }
+
+        /// <summary>
+        /// Prefer IPv4 instead of IPv6.
+        /// </summary>
+        public Boolean                               PreferIPv4                    { get; }
 
         /// <summary>
         /// The HTTP user agent identification.
         /// </summary>
-        public String                               HTTPUserAgent                 { get; }
+        public String                                HTTPUserAgent                 { get; }
 
         /// <summary>
         /// The timeout for upstream requests.
         /// </summary>
-        public TimeSpan                             RequestTimeout                { get; set; }
+        public TimeSpan                              RequestTimeout                { get; set; }
 
         /// <summary>
         /// The delay between transmission retries.
         /// </summary>
-        public TransmissionRetryDelayDelegate       TransmissionRetryDelay        { get; }
+        public TransmissionRetryDelayDelegate        TransmissionRetryDelay        { get; }
 
         /// <summary>
         /// The maximum number of retries when communicationg with the remote OICP service.
         /// </summary>
-        public UInt16                               MaxNumberOfRetries            { get; }
+        public UInt16                                MaxNumberOfRetries            { get; }
 
         /// <summary>
         /// Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.
         /// </summary>
-        public Boolean                              UseHTTPPipelining             { get; }
+        public Boolean                               UseHTTPPipelining             { get; }
 
         /// <summary>
         /// The CPO client (HTTP client) logger.
         /// </summary>
-        public HTTPClientLogger                     HTTPLogger                    { get; set; }
-
-
-
+        public HTTPClientLogger?                     HTTPLogger                    { get; set; }
 
         /// <summary>
         /// The DNS client defines which DNS servers to use.
         /// </summary>
-        public DNSClient                            DNSClient                     { get; }
-
-
-
+        public DNSClient                             DNSClient                     { get; }
 
 
         ///// <summary>
@@ -165,12 +169,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The IP Address to connect to.
         /// </summary>
-        public IIPAddress       RemoteIPAddress     { get; private set; }
+        public IIPAddress?                           RemoteIPAddress               { get; private set; }
 
         /// <summary>
         /// The IP port to connect to.
         /// </summary>
-        public IPPort           RemotePort          { get; }
+        public IPPort?                               RemotePort                    { get; }
 
 
 
@@ -180,7 +184,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean Connected
             => TCPSocket.Connected;
 
-        public LingerOption LingerState
+        public LingerOption? LingerState
         {
             get
             {
@@ -271,6 +275,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RemoteCertificateValidator">The remote SSL/TLS certificate validator.</param>
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The SSL/TLS client certificate to use of HTTP authentication.</param>
+        /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
+        /// <param name="TLSProtocol">The TLS protocol to use.</param>
         /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
         /// <param name="RequestTimeout">An optional request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
@@ -278,19 +284,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
         /// <param name="HTTPLogger">A HTTP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
-        protected AHTTPClient(URL                                  RemoteURL,
-                              HTTPHostname?                        VirtualHostname              = null,
-                              String                               Description                  = null,
-                              RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
-                              LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
-                              X509Certificate                      ClientCert                   = null,
-                              String                               HTTPUserAgent                = DefaultHTTPUserAgent,
-                              TimeSpan?                            RequestTimeout               = null,
-                              TransmissionRetryDelayDelegate       TransmissionRetryDelay       = null,
-                              UInt16?                              MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
-                              Boolean                              UseHTTPPipelining            = false,
-                              HTTPClientLogger                     HTTPLogger                   = null,
-                              DNSClient                            DNSClient                    = null)
+        protected AHTTPClient(URL                                   RemoteURL,
+                              HTTPHostname?                         VirtualHostname              = null,
+                              String?                               Description                  = null,
+                              RemoteCertificateValidationCallback?  RemoteCertificateValidator   = null,
+                              LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
+                              X509Certificate?                      ClientCert                   = null,
+                              SslProtocols?                         TLSProtocol                  = null,
+                              Boolean?                              PreferIPv4                   = null,
+                              String                                HTTPUserAgent                = DefaultHTTPUserAgent,
+                              TimeSpan?                             RequestTimeout               = null,
+                              TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
+                              UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
+                              Boolean                               UseHTTPPipelining            = false,
+                              HTTPClientLogger?                     HTTPLogger                   = null,
+                              DNSClient?                            DNSClient                    = null)
         {
 
             this.RemoteURL                   = RemoteURL;
@@ -299,6 +307,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
             this.ClientCertificateSelector   = ClientCertificateSelector;
             this.ClientCert                  = ClientCert;
+            this.PreferIPv4                  = PreferIPv4             ?? false;
+            this.TLSProtocol                 = TLSProtocol            ?? SslProtocols.Tls12;
             this.HTTPUserAgent               = HTTPUserAgent          ?? DefaultHTTPUserAgent;
             this.RequestTimeout              = RequestTimeout         ?? DefaultRequestTimeout;
             this.TransmissionRetryDelay      = TransmissionRetryDelay ?? (retryCounter => TimeSpan.FromSeconds(retryCounter * retryCounter * DefaultTransmissionRetryDelay.TotalSeconds));
@@ -311,8 +321,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                              ? IPPort.HTTP
                                                                              : IPPort.HTTPS);
 
-            if (this.ClientCertificateSelector == null && this.ClientCert != null)
-                this.ClientCertificateSelector = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => ClientCert;
+            if (this.ClientCertificateSelector is null && this.ClientCert is not null)
+                this.ClientCertificateSelector = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => this.ClientCert;
 
         }
 
@@ -328,9 +338,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPPath">An URL.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A new HTTPRequest object.</returns>
-        public HTTPRequest.Builder CreateRequest(HTTPMethod                   HTTPMethod,
-                                                 HTTPPath                     HTTPPath,
-                                                 Action<HTTPRequest.Builder>  BuilderAction  = null)
+        public HTTPRequest.Builder CreateRequest(HTTPMethod                    HTTPMethod,
+                                                 HTTPPath                      HTTPPath,
+                                                 Action<HTTPRequest.Builder>?  BuilderAction  = null)
         {
 
             var Builder     = new HTTPRequest.Builder(this) {
@@ -339,7 +349,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Path        = HTTPPath
             };
 
-            if (BuilderAction != null)
+            if (BuilderAction is not null)
                 BuilderAction?.Invoke(Builder);
 
             return Builder;
@@ -363,11 +373,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RequestTimeout">An optional HTTP request timeout.</param>
         /// <param name="NumberOfRetry">The number of retransmissions of this request.</param>
         public Task<HTTPResponse> Execute(Func<AHTTPClient, HTTPRequest>  HTTPRequestDelegate,
-                                          ClientRequestLogHandler         RequestLogDelegate    = null,
-                                          ClientResponseLogHandler        ResponseLogDelegate   = null,
+                                          ClientRequestLogHandler?        RequestLogDelegate    = null,
+                                          ClientResponseLogHandler?       ResponseLogDelegate   = null,
 
                                           CancellationToken?              CancellationToken     = null,
-                                          EventTracking_Id                EventTrackingId       = null,
+                                          EventTracking_Id?               EventTrackingId       = null,
                                           TimeSpan?                       RequestTimeout        = null,
                                           Byte                            NumberOfRetry         = 0)
 
@@ -406,18 +416,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="EventTrackingId"></param>
         /// <param name="RequestTimeout">An optional timeout.</param>
         /// <param name="NumberOfRetry">The number of retransmissions of this request.</param>
-        public async Task<HTTPResponse> Execute(HTTPRequest               Request,
-                                                ClientRequestLogHandler   RequestLogDelegate    = null,
-                                                ClientResponseLogHandler  ResponseLogDelegate   = null,
+        public async Task<HTTPResponse> Execute(HTTPRequest                Request,
+                                                ClientRequestLogHandler?   RequestLogDelegate    = null,
+                                                ClientResponseLogHandler?  ResponseLogDelegate   = null,
 
-                                                CancellationToken?        CancellationToken     = null,
-                                                EventTracking_Id          EventTrackingId       = null,
-                                                TimeSpan?                 RequestTimeout        = null,
-                                                Byte                      NumberOfRetry         = 0)
+                                                CancellationToken?         CancellationToken     = null,
+                                                EventTracking_Id?          EventTrackingId       = null,
+                                                TimeSpan?                  RequestTimeout        = null,
+                                                Byte                       NumberOfRetry         = 0)
 
         {
 
-            HTTPResponse Response = null;
+            HTTPResponse? Response = null;
 
             try
             {
@@ -431,7 +441,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var sw               = new Stopwatch();
 
                 if (!RequestTimeout.HasValue)
-                    RequestTimeout   = Request.Timeout ?? this.RequestTimeout;
+                    RequestTimeout = Request.Timeout ?? this.RequestTimeout;
 
                 #endregion
 
@@ -444,15 +454,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     restart = false;
 
-                    if (TCPSocket == null)
+                    if (TCPSocket is null)
                     {
 
-                        System.Net.IPEndPoint _FinalIPEndPoint = null;
+                        System.Net.IPEndPoint? _FinalIPEndPoint = null;
 
-                        if (RemoteIPAddress == null)
+                        if (RemoteIPAddress is null)
                         {
 
-                            if      (IPAddress.IsIPv4Localhost(RemoteURL.Hostname))
+                            #region Localhost
+
+                            if (IPAddress.IsIPv4Localhost(RemoteURL.Hostname))
                                 RemoteIPAddress = IPv4Address.Localhost;
 
                             else if (IPAddress.IsIPv6Localhost(RemoteURL.Hostname))
@@ -464,33 +476,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             else if (IPAddress.IsIPv6(RemoteURL.Hostname.Name))
                                 RemoteIPAddress = IPv6Address.Parse(RemoteURL.Hostname.Name);
 
+                            #endregion
+
                             #region DNS lookup...
 
-                            if (RemoteIPAddress == null)
+                            if (RemoteIPAddress is null)
                             {
 
-                                var IPv4AddressLookupTask  = DNSClient.
-                                                                 Query<A>(RemoteURL.Hostname.Name).
-                                                                 ContinueWith(query => query.Result.Select(ARecord    => ARecord.IPv4Address));
+                                var IPv4AddressLookupTask = DNSClient.
+                                                                Query<A>(RemoteURL.Hostname.Name).
+                                                                ContinueWith(query => query.Result.Select(ARecord    => ARecord.IPv4Address));
 
-                                var IPv6AddressLookupTask  = DNSClient.
-                                                                 Query<AAAA>(RemoteURL.Hostname.Name).
-                                                                 ContinueWith(query => query.Result.Select(AAAARecord => AAAARecord.IPv6Address));
+                                var IPv6AddressLookupTask = DNSClient.
+                                                                Query<AAAA>(RemoteURL.Hostname.Name).
+                                                                ContinueWith(query => query.Result.Select(AAAARecord => AAAARecord.IPv6Address));
 
                                 await Task.WhenAll(IPv4AddressLookupTask,
                                                    IPv6AddressLookupTask).
                                            ConfigureAwait(false);
 
+                                if (PreferIPv4)
+                                {
+                                    if (IPv6AddressLookupTask.Result.Any())
+                                        RemoteIPAddress = IPv6AddressLookupTask.Result.First();
 
-                                if (IPv4AddressLookupTask.Result.Any())
-                                    RemoteIPAddress = IPv4AddressLookupTask.Result.First();
+                                    if (IPv4AddressLookupTask.Result.Any())
+                                        RemoteIPAddress = IPv4AddressLookupTask.Result.First();
+                                }
+                                else
+                                {
+                                    if (IPv4AddressLookupTask.Result.Any())
+                                        RemoteIPAddress = IPv4AddressLookupTask.Result.First();
 
-                                else if (IPv6AddressLookupTask.Result.Any())
-                                    RemoteIPAddress = IPv6AddressLookupTask.Result.First();
-
-
-                                if (RemoteIPAddress == null || RemoteIPAddress.GetBytes() == null)
-                                    throw new Exception("DNS lookup failed!");
+                                    if (IPv6AddressLookupTask.Result.Any())
+                                        RemoteIPAddress = IPv6AddressLookupTask.Result.First();
+                                }
 
                             }
 
@@ -498,8 +518,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         }
 
-                        _FinalIPEndPoint = new System.Net.IPEndPoint(new System.Net.IPAddress(RemoteIPAddress.GetBytes()),
-                                                                     RemotePort.ToInt32());
+                        if (RemoteIPAddress is not null && RemotePort is not null)
+                            _FinalIPEndPoint = new System.Net.IPEndPoint(new System.Net.IPAddress(RemoteIPAddress.GetBytes()),
+                                                                         RemotePort.Value.ToInt32());
+                        else
+                            throw new Exception("DNS lookup failed!");
+
 
                         sw.Start();
 
@@ -507,21 +531,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         //TCPClient.Connect(_FinalIPEndPoint);
                         //TCPClient.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
 
-
                         if (RemoteIPAddress.IsIPv4)
                             TCPSocket = new Socket(AddressFamily.InterNetwork,
                                                    SocketType.Stream,
                                                    ProtocolType.Tcp);
 
-                        else if (RemoteIPAddress.IsIPv6)
+                        if (RemoteIPAddress.IsIPv6)
                             TCPSocket = new Socket(AddressFamily.InterNetworkV6,
                                                    SocketType.Stream,
                                                    ProtocolType.Tcp);
 
-                        TCPSocket.SendTimeout    = (Int32) RequestTimeout.Value.TotalMilliseconds;
-                        TCPSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
-                        TCPSocket.Connect(_FinalIPEndPoint);
-                        TCPSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+                        TCPSocket!.SendTimeout    = (Int32) RequestTimeout.Value.TotalMilliseconds;
+                        TCPSocket!.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+                        TCPSocket!.Connect(_FinalIPEndPoint);
+                        TCPSocket!.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
 
                     }
 
@@ -533,10 +556,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Create (Crypto-)Stream
 
-                    if (RemoteCertificateValidator != null)
+                    if (RemoteCertificateValidator is not null)
                     {
 
-                        if (TLSStream == null)
+                        if (TLSStream is null)
                         {
 
                             TLSStream = new SslStream(TCPStream,
@@ -557,14 +580,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                 await TLSStream.AuthenticateAsClientAsync(RemoteURL.Hostname.Name,
                                                                           null,
-                                                                          SslProtocols.Tls12,
+                                                                          this.TLSProtocol,
                                                                           false);//, new X509CertificateCollection(new X509Certificate[] { ClientCert }), SslProtocols.Default, true);
 
                             }
-                            catch (Exception e)
+                            catch (Exception)
                             {
                                 TCPSocket = null;
-                                restart = true;
+                                restart   = true;
                             }
 
                         }
@@ -573,8 +596,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     else
                     {
-                        TLSStream   = null;
-                        HTTPStream  = TCPStream;
+                        TLSStream  = null;
+                        HTTPStream = TCPStream;
                     }
 
                     HTTPStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
@@ -593,7 +616,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    if (RequestLogDelegate != null)
+                    if (RequestLogDelegate is not null)
                         await Task.WhenAll(RequestLogDelegate.GetInvocationList().
                                            Cast<ClientRequestLogHandler>().
                                            Select(e => e(DateTime.UtcNow,
@@ -611,12 +634,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Send Request
 
+                // To avoid confusions, better send the entire header incl. separator lines as one block
                 HTTPStream.Write(String.Concat(Request.EntireRequestHeader, "\r\n\r\n").
                                         ToUTF8Bytes());
 
-                var RequestBodyLength = Request.HTTPBody == null
-                                            ? Request.ContentLength.HasValue ? (Int32) Request.ContentLength.Value : 0
-                                            : Request.ContentLength.HasValue ? Math.Min((Int32)Request.ContentLength.Value, Request.HTTPBody.Length) : Request.HTTPBody.Length;
+                var RequestBodyLength = Request.HTTPBody is null
+                                            ? Request.ContentLength.HasValue
+                                                  ? (Int32) Request.ContentLength.Value
+                                                  : 0
+                                            : Request.ContentLength.HasValue
+                                                  ? Math.Min((Int32) Request.ContentLength.Value,
+                                                             Request.HTTPBody.Length)
+                                                  : Request.HTTPBody.Length;
 
                 if (RequestBodyLength > 0)
                     HTTPStream.Write(Request.HTTPBody, 0, RequestBodyLength);

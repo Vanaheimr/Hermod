@@ -29,7 +29,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A http client.
     /// </summary>
-    public class HTTPClient : AHTTPClient, IHTTPClientCommands
+    public class HTTPClient : AHTTPClient,
+                              IHTTPClientCommands
     {
 
         #region Data
@@ -58,16 +59,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
         /// <param name="HTTPLogger">A HTTP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
-        public HTTPClient(URL                             RemoteURL,
-                          HTTPHostname?                   VirtualHostname          = null,
-                          String                          Description              = null,
-                          String                          HTTPUserAgent            = DefaultHTTPUserAgent,
-                          TimeSpan?                       RequestTimeout           = null,
-                          TransmissionRetryDelayDelegate  TransmissionRetryDelay   = null,
-                          UInt16?                         MaxNumberOfRetries       = DefaultMaxNumberOfRetries,
-                          Boolean                         UseHTTPPipelining        = false,
-                          HTTPClientLogger                HTTPLogger               = null,
-                          DNSClient                       DNSClient                = null)
+        public HTTPClient(URL                              RemoteURL,
+                          HTTPHostname?                    VirtualHostname          = null,
+                          String?                          Description              = null,
+                          Boolean?                         PreferIPv4               = null,
+                          String                           HTTPUserAgent            = DefaultHTTPUserAgent,
+                          TimeSpan?                        RequestTimeout           = null,
+                          TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
+                          UInt16?                          MaxNumberOfRetries       = DefaultMaxNumberOfRetries,
+                          Boolean                          UseHTTPPipelining        = false,
+                          HTTPClientLogger?                HTTPLogger               = null,
+                          DNSClient?                       DNSClient                = null)
 
             : base(RemoteURL,
                    VirtualHostname,
@@ -75,6 +77,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    null,
                    null,
                    null,
+                   null,
+                   PreferIPv4,
                    HTTPUserAgent,
                    RequestTimeout,
                    TransmissionRetryDelay,
@@ -103,21 +107,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
         /// <param name="HTTPLogger">A HTTP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
-        public HTTPClient(IIPAddress                      RemoteIPAddress,
-                          IPPort?                         RemotePort               = null,
-                          HTTPHostname?                   VirtualHostname          = null,
-                          String                          Description              = null,
-                          String                          HTTPUserAgent            = DefaultHTTPUserAgent,
-                          TimeSpan?                       RequestTimeout           = null,
-                          TransmissionRetryDelayDelegate  TransmissionRetryDelay   = null,
-                          UInt16?                         MaxNumberOfRetries       = DefaultMaxNumberOfRetries,
-                          Boolean                         UseHTTPPipelining        = false,
-                          HTTPClientLogger                HTTPLogger               = null,
-                          DNSClient                       DNSClient                = null)
+        public HTTPClient(IIPAddress                       RemoteIPAddress,
+                          IPPort?                          RemotePort               = null,
+                          HTTPHostname?                    VirtualHostname          = null,
+                          String?                          Description              = null,
+                          Boolean?                         PreferIPv4               = null,
+                          String                           HTTPUserAgent            = DefaultHTTPUserAgent,
+                          TimeSpan?                        RequestTimeout           = null,
+                          TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
+                          UInt16?                          MaxNumberOfRetries       = DefaultMaxNumberOfRetries,
+                          Boolean                          UseHTTPPipelining        = false,
+                          HTTPClientLogger?                HTTPLogger               = null,
+                          DNSClient?                       DNSClient                = null)
 
             : this(URL.Parse("http://" + RemoteIPAddress + (RemotePort.HasValue ? ":" + RemotePort.Value.ToString() : "")),
                    VirtualHostname,
                    Description,
+                   PreferIPv4,
                    HTTPUserAgent,
                    RequestTimeout,
                    TransmissionRetryDelay,
@@ -145,20 +151,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
         /// <param name="HTTPLogger">A HTTP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
-        public HTTPClient(IPSocket                        RemoteSocket,
-                          HTTPHostname?                   VirtualHostname          = null,
-                          String                          Description              = null,
-                          String                          HTTPUserAgent            = DefaultHTTPUserAgent,
-                          TimeSpan?                       RequestTimeout           = null,
-                          TransmissionRetryDelayDelegate  TransmissionRetryDelay   = null,
-                          UInt16?                         MaxNumberOfRetries       = DefaultMaxNumberOfRetries,
-                          Boolean                         UseHTTPPipelining        = false,
-                          HTTPClientLogger                HTTPLogger               = null,
-                          DNSClient                       DNSClient                = null)
+        public HTTPClient(IPSocket                         RemoteSocket,
+                          HTTPHostname?                    VirtualHostname          = null,
+                          String?                          Description              = null,
+                          Boolean?                         PreferIPv4               = null,
+                          String                           HTTPUserAgent            = DefaultHTTPUserAgent,
+                          TimeSpan?                        RequestTimeout           = null,
+                          TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
+                          UInt16?                          MaxNumberOfRetries       = DefaultMaxNumberOfRetries,
+                          Boolean                          UseHTTPPipelining        = false,
+                          HTTPClientLogger?                HTTPLogger               = null,
+                          DNSClient?                       DNSClient                = null)
 
             : this(URL.Parse("http://" + RemoteSocket.IPAddress + ":" + RemoteSocket.Port),
                    VirtualHostname,
                    Description,
+                   PreferIPv4,
                    HTTPUserAgent,
                    RequestTimeout,
                    TransmissionRetryDelay,
@@ -187,21 +195,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
         /// <param name="HTTPLogger">A HTTP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
-        public HTTPClient(HTTPHostname                    RemoteHost,
-                          IPPort?                         RemotePort               = null,
-                          HTTPHostname?                   VirtualHostname          = null,
-                          String                          Description              = null,
-                          String                          HTTPUserAgent            = DefaultHTTPUserAgent,
-                          TimeSpan?                       RequestTimeout           = null,
-                          TransmissionRetryDelayDelegate  TransmissionRetryDelay   = null,
-                          UInt16?                         MaxNumberOfRetries       = DefaultMaxNumberOfRetries,
-                          Boolean                         UseHTTPPipelining        = false,
-                          HTTPClientLogger                HTTPLogger               = null,
-                          DNSClient                       DNSClient                = null)
+        public HTTPClient(HTTPHostname                     RemoteHost,
+                          IPPort?                          RemotePort               = null,
+                          HTTPHostname?                    VirtualHostname          = null,
+                          String?                          Description              = null,
+                          Boolean?                         PreferIPv4               = null,
+                          String                           HTTPUserAgent            = DefaultHTTPUserAgent,
+                          TimeSpan?                        RequestTimeout           = null,
+                          TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
+                          UInt16?                          MaxNumberOfRetries       = DefaultMaxNumberOfRetries,
+                          Boolean                          UseHTTPPipelining        = false,
+                          HTTPClientLogger?                HTTPLogger               = null,
+                          DNSClient?                       DNSClient                = null)
 
             : this(URL.Parse("http://" + RemoteHost + (RemotePort.HasValue ? ":" + RemotePort.Value.ToString() : "")),
                    VirtualHostname,
                    Description,
+                   PreferIPv4,
                    HTTPUserAgent,
                    RequestTimeout,
                    TransmissionRetryDelay,

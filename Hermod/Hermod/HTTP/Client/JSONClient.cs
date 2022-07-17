@@ -19,6 +19,7 @@
 
 using System;
 using System.Net.Security;
+using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
@@ -51,17 +52,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
         /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
-        public JSONClient(URL                                  RemoteURL,
-                          HTTPHostname?                        VirtualHostname              = null,
-                          String                               Description                  = null,
-                          RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
-                          LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
-                          X509Certificate                      ClientCert                   = null,
-                          String                               HTTPUserAgent                = DefaultHTTPUserAgent,
-                          TimeSpan?                            RequestTimeout               = null,
-                          TransmissionRetryDelayDelegate       TransmissionRetryDelay       = null,
-                          UInt16?                              MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
-                          DNSClient                            DNSClient                    = null)
+        public JSONClient(URL                                   RemoteURL,
+                          HTTPHostname?                         VirtualHostname              = null,
+                          String?                               Description                  = null,
+                          RemoteCertificateValidationCallback?  RemoteCertificateValidator   = null,
+                          LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
+                          X509Certificate?                      ClientCert                   = null,
+                          SslProtocols?                         TLSProtocol                  = null,
+                          Boolean?                              PreferIPv4                   = null,
+                          String                                HTTPUserAgent                = DefaultHTTPUserAgent,
+                          TimeSpan?                             RequestTimeout               = null,
+                          TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
+                          UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
+                          DNSClient?                            DNSClient                    = null)
 
             : base(RemoteURL,
                    VirtualHostname,
@@ -69,6 +72,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
                    RemoteCertificateValidator,
                    ClientCertificateSelector,
                    ClientCert,
+                   TLSProtocol,
+                   PreferIPv4,
                    HTTPUserAgent,
                    RequestTimeout,
                    TransmissionRetryDelay,

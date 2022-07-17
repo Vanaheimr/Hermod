@@ -18,11 +18,9 @@
 #region Usings
 
 using System;
-using System.Linq;
 using System.Xml.Linq;
-using System.Threading;
 using System.Net.Security;
-using System.Threading.Tasks;
+using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -99,22 +97,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
         /// <param name="HTTPLogger">A HTTP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
-        public SOAPClient(URL                                  RemoteURL,
-                          HTTPHostname?                        VirtualHostname              = null,
-                          String                               Description                  = null,
-                          RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
-                          LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
-                          X509Certificate                      ClientCert                   = null,
-                          String                               HTTPUserAgent                = DefaultHTTPUserAgent,
-                          HTTPPath?                            URLPathPrefix                = null,
-                          Tuple<String, String>                WSSLoginPassword             = null,
-                          HTTPContentType                      HTTPContentType              = null,
-                          TimeSpan?                            RequestTimeout               = null,
-                          TransmissionRetryDelayDelegate       TransmissionRetryDelay       = null,
-                          UInt16?                              MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
-                          Boolean                              UseHTTPPipelining            = false,
-                          HTTPClientLogger                     HTTPLogger                   = null,
-                          DNSClient                            DNSClient                    = null)
+        public SOAPClient(URL                                   RemoteURL,
+                          HTTPHostname?                         VirtualHostname              = null,
+                          String?                               Description                  = null,
+                          RemoteCertificateValidationCallback?  RemoteCertificateValidator   = null,
+                          LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
+                          X509Certificate?                      ClientCert                   = null,
+                          SslProtocols?                         TLSProtocol                  = null,
+                          Boolean?                              PreferIPv4                   = null,
+                          String                                HTTPUserAgent                = DefaultHTTPUserAgent,
+                          HTTPPath?                             URLPathPrefix                = null,
+                          Tuple<String, String>?                WSSLoginPassword             = null,
+                          HTTPContentType?                      HTTPContentType              = null,
+                          TimeSpan?                             RequestTimeout               = null,
+                          TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
+                          UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
+                          Boolean                               UseHTTPPipelining            = false,
+                          HTTPClientLogger?                     HTTPLogger                   = null,
+                          DNSClient?                            DNSClient                    = null)
 
             : base(RemoteURL,
                    VirtualHostname,
@@ -122,6 +122,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                    RemoteCertificateValidator,
                    ClientCertificateSelector,
                    ClientCert,
+                   TLSProtocol,
+                   PreferIPv4,
                    HTTPUserAgent,
                    URLPathPrefix,
                    WSSLoginPassword,
@@ -375,23 +377,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
         /// <param name="HTTPLogger">A HTTP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
-        public SOAPClient(URL                                  RemoteURL,
-                          HTTPHostname?                        VirtualHostname              = null,
-                          Boolean                              UseFakeURLPrefix             = true,
-                          String                               Description                  = null,
-                          RemoteCertificateValidationCallback  RemoteCertificateValidator   = null,
-                          LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
-                          X509Certificate                      ClientCert                   = null,
-                          String                               HTTPUserAgent                = DefaultHTTPUserAgent,
-                          HTTPPath?                            URLPathPrefix                = null,
-                          Tuple<String, String>                WSSLoginPassword             = null,
-                          HTTPContentType                      HTTPContentType              = null,
-                          TimeSpan?                            RequestTimeout               = null,
-                          TransmissionRetryDelayDelegate       TransmissionRetryDelay       = null,
-                          UInt16?                              MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
-                          Boolean                              UseHTTPPipelining            = false,
-                          HTTPClientLogger                     HTTPLogger                   = null,
-                          DNSClient                            DNSClient                    = null)
+        public SOAPClient(URL                                   RemoteURL,
+                          HTTPHostname?                         VirtualHostname              = null,
+                          Boolean                               UseFakeURLPrefix             = true,
+                          String?                               Description                  = null,
+                          RemoteCertificateValidationCallback?  RemoteCertificateValidator   = null,
+                          LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
+                          X509Certificate?                      ClientCert                   = null,
+                          SslProtocols?                         TLSProtocol                  = null,
+                          Boolean?                              PreferIPv4                   = null,
+                          String                                HTTPUserAgent                = DefaultHTTPUserAgent,
+                          HTTPPath?                             URLPathPrefix                = null,
+                          Tuple<String, String>?                WSSLoginPassword             = null,
+                          HTTPContentType?                      HTTPContentType              = null,
+                          TimeSpan?                             RequestTimeout               = null,
+                          TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
+                          UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
+                          Boolean                               UseHTTPPipelining            = false,
+                          HTTPClientLogger?                     HTTPLogger                   = null,
+                          DNSClient?                            DNSClient                    = null)
 
             : base(RemoteURL,
                    VirtualHostname,
@@ -399,6 +403,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                    RemoteCertificateValidator,
                    ClientCertificateSelector,
                    ClientCert,
+                   TLSProtocol,
+                   PreferIPv4,
                    HTTPUserAgent,
                    URLPathPrefix,
                    WSSLoginPassword,
