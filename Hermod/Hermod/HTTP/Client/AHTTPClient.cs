@@ -619,7 +619,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (RequestLogDelegate is not null)
                         await Task.WhenAll(RequestLogDelegate.GetInvocationList().
                                            Cast<ClientRequestLogHandler>().
-                                           Select(e => e(DateTime.UtcNow,
+                                           Select(e => e(Timestamp.Now,
                                                          this,
                                                          Request))).
                                            ConfigureAwait(false);
@@ -737,7 +737,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                          sw.ElapsedMilliseconds < HTTPStream.ReadTimeout);
 
                 if (HTTPHeaderBytes.Length == 0)
-                    throw new ApplicationException("[" + DateTime.UtcNow.ToString() + "] Could not find the end of the HTTP protocol header!");
+                    throw new ApplicationException("[" + Timestamp.Now.ToString() + "] Could not find the end of the HTTP protocol header!");
 
                 Response = HTTPResponse.Parse(HTTPHeaderBytes.ToUTF8String(),
                                               Request,
@@ -1068,17 +1068,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Close connection if requested!
 
-                if (Response.Connection == null ||
+                if (Response.Connection is null ||
                     Response.Connection == "close")
                 {
 
-                    if (TLSStream != null)
+                    if (TLSStream is not null)
                     {
                         TLSStream.Close();
                         TLSStream = null;
                     }
 
-                    if (TCPSocket != null)
+                    if (TCPSocket is not null)
                     {
                         TCPSocket.Close();
                         //TCPClient.Dispose();
@@ -1111,13 +1111,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #endregion
 
-                if (TLSStream != null)
+                if (TLSStream is not null)
                 {
                     TLSStream.Close();
                     TLSStream = null;
                 }
 
-                if (TCPSocket != null)
+                if (TCPSocket is not null)
                 {
                     TCPSocket.Close();
                     //TCPClient.Dispose();
@@ -1130,7 +1130,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Create a HTTP response for the exception...
 
-                while (e.InnerException != null)
+                while (e.InnerException is not null)
                     e = e.InnerException;
 
                 Response = new HTTPResponse.Builder(Request,
@@ -1146,13 +1146,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #endregion
 
-                if (TLSStream != null)
+                if (TLSStream is not null)
                 {
                     TLSStream.Close();
                     TLSStream = null;
                 }
 
-                if (TCPSocket != null)
+                if (TCPSocket is not null)
                 {
                     TCPSocket.Close();
                     //TCPClient.Dispose();
@@ -1167,10 +1167,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             try
             {
 
-                if (ResponseLogDelegate != null)
+                if (ResponseLogDelegate is not null)
                     await Task.WhenAll(ResponseLogDelegate.GetInvocationList().
                                        Cast<ClientResponseLogHandler>().
-                                       Select(e => e(DateTime.UtcNow,
+                                       Select(e => e(Timestamp.Now,
                                                      this,
                                                      Request,
                                                      Response))).

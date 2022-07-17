@@ -22,8 +22,8 @@ using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
-using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
@@ -129,20 +129,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     {
 
         Task<HTTPResponse> Execute(Func<AHTTPClient, HTTPRequest>  HTTPRequestDelegate,
-                                   ClientRequestLogHandler         RequestLogDelegate    = null,
-                                   ClientResponseLogHandler        ResponseLogDelegate   = null,
+                                   ClientRequestLogHandler?        RequestLogDelegate    = null,
+                                   ClientResponseLogHandler?       ResponseLogDelegate   = null,
 
                                    CancellationToken?              CancellationToken     = null,
-                                   EventTracking_Id                EventTrackingId       = null,
+                                   EventTracking_Id?               EventTrackingId       = null,
                                    TimeSpan?                       RequestTimeout        = null,
                                    Byte                            NumberOfRetry         = 0);
 
         Task<HTTPResponse> Execute(HTTPRequest                     Request,
-                                   ClientRequestLogHandler         RequestLogDelegate    = null,
-                                   ClientResponseLogHandler        ResponseLogDelegate   = null,
+                                   ClientRequestLogHandler?        RequestLogDelegate    = null,
+                                   ClientResponseLogHandler?       ResponseLogDelegate   = null,
 
                                    CancellationToken?              CancellationToken     = null,
-                                   EventTracking_Id                EventTrackingId       = null,
+                                   EventTracking_Id?               EventTrackingId       = null,
                                    TimeSpan?                       RequestTimeout        = null,
                                    Byte                            NumberOfRetry         = 0);
 
