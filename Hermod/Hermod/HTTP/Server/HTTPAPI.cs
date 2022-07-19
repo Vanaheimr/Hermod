@@ -18,16 +18,11 @@
 #region Usings
 
 using System;
-using System.IO;
-using System.Linq;
 using System.Reflection;
-using System.Net.Security;
-using System.Security.Authentication;
-using System.Threading;
-using System.Globalization;
 using System.Diagnostics;
-using System.Threading.Tasks;
-using System.Collections.Generic;
+using System.Net.Security;
+using System.Globalization;
+using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
 using Newtonsoft.Json.Linq;
@@ -1902,7 +1897,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Dispose()
 
-        public void Dispose()
+        public virtual void Dispose()
         {
 
             lock (HTTPServer)
