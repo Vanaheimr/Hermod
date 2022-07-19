@@ -461,13 +461,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="LogfileCreator">A delegate to create a log file from the given context and log file name.</param>
         public HTTPClientLogger(IHTTPClient                  HTTPClient,
-                                String                       LoggingPath,
+                                String?                      LoggingPath,
                                 String                       Context,
 
-                                HTTPRequestLoggerDelegate    LogHTTPRequest_toConsole,
-                                HTTPResponseLoggerDelegate   LogHTTPResponse_toConsole,
-                                HTTPRequestLoggerDelegate    LogHTTPRequest_toDisc,
-                                HTTPResponseLoggerDelegate   LogHTTPResponse_toDisc,
+                                HTTPRequestLoggerDelegate?   LogHTTPRequest_toConsole    = null,
+                                HTTPResponseLoggerDelegate?  LogHTTPResponse_toConsole   = null,
+                                HTTPRequestLoggerDelegate?   LogHTTPRequest_toDisc       = null,
+                                HTTPResponseLoggerDelegate?  LogHTTPResponse_toDisc      = null,
 
                                 HTTPRequestLoggerDelegate?   LogHTTPRequest_toNetwork    = null,
                                 HTTPResponseLoggerDelegate?  LogHTTPResponse_toNetwork   = null,
