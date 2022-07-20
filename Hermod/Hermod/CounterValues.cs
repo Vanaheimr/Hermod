@@ -17,9 +17,6 @@
 
 #region Usings
 
-using System;
-using System.Threading;
-
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -29,54 +26,143 @@ using org.GraphDefined.Vanaheimr.Illias;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
-    public struct CounterValues
+    /// <summary>
+    /// A helper class to count API requests responses.
+    /// (Note: Must be a class, otherwise the counters do not increment!)
+    /// </summary>
+    public class APICounterValues
     {
 
-        private Int64 requests;
+        #region Data
+
+        private Int64 requests_OK;
+        private Int64 requests_Error;
+
         private Int64 responses_OK;
         private Int64 responses_Error;
 
-        public UInt64 Requests         => unchecked((UInt64) requests);
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Number of valid API requests.
+        /// </summary>
+        public UInt64 Requests_OK      => unchecked((UInt64) requests_OK);
+
+        /// <summary>
+        /// Number of invalid API requests.
+        /// </summary>
+        public UInt64 Requests_Error   => unchecked((UInt64) requests_Error);
+
+
+        /// <summary>
+        /// Number of valid API responses.
+        /// </summary>
         public UInt64 Responses_OK     => unchecked((UInt64) responses_OK);
+
+        /// <summary>
+        /// Number of valid API responses.
+        /// </summary>
         public UInt64 Responses_Error  => unchecked((UInt64) responses_Error);
 
-        public CounterValues(UInt64 Requests,
-                             UInt64 Responses_OK,
-                             UInt64 Responses_Error)
+        #endregion
+
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create new API counter values.
+        /// </summary>
+        /// <param name="Requests_OK">Number of valid API requests.</param>
+        /// <param name="Requests_Error">Number of invalid API requests.</param>
+        /// <param name="Responses_OK">Number of valid API responses.</param>
+        /// <param name="Responses_Error">Number of valid API responses.</param>
+        public APICounterValues(UInt64?  Requests_OK       = 0UL,
+                                UInt64?  Requests_Error    = 0UL,
+
+                                UInt64?  Responses_OK      = 0UL,
+                                UInt64?  Responses_Error   = 0UL)
         {
 
-            this.requests         = (Int64) Requests;
-            this.responses_OK     = (Int64) Responses_OK;
-            this.responses_Error  = (Int64) Responses_Error;
+            this.requests_OK      = (Int64) (Requests_OK     ?? 0UL);
+            this.requests_Error   = (Int64) (Requests_Error  ?? 0UL);
+
+            this.responses_OK     = (Int64) (Responses_OK    ?? 0UL);
+            this.responses_Error  = (Int64) (Responses_Error ?? 0UL);
 
         }
 
-        public CounterValues IncRequests()
+        #endregion
+
+
+        #region IncRequests_OK()
+
+        /// <summary>
+        /// Increment the number of valid API requests.
+        /// </summary>
+        public APICounterValues IncRequests_OK()
         {
-            Interlocked.Increment(ref requests);
+            Interlocked.Increment(ref requests_OK);
             return this;
         }
 
-        public CounterValues IncResponses_OK()
+        #endregion
+
+        #region IncRequests_Error()
+
+        /// <summary>
+        /// Increment the number of invalid API requests.
+        /// </summary>
+        public APICounterValues IncRequests_Error()
+        {
+            Interlocked.Increment(ref requests_Error);
+            return this;
+        }
+
+        #endregion
+
+
+        #region IncResponses_OK()
+
+        /// <summary>
+        /// Increment the number of valid API responses.
+        /// </summary>
+        public APICounterValues IncResponses_OK()
         {
             Interlocked.Increment(ref responses_OK);
             return this;
         }
 
-        public CounterValues IncResponses_Error()
+        #endregion
+
+        #region IncResponses_Error()
+
+        /// <summary>
+        /// Increment the number of invalid API responses.
+        /// </summary>
+        public APICounterValues IncResponses_Error()
         {
             Interlocked.Increment(ref responses_Error);
             return this;
         }
 
+        #endregion
 
+
+        #region ToJSON()
+
+        /// <summary>
+        /// Return a JSON representation of this data structure.
+        /// </summary>
         public JObject ToJSON()
 
                 => JSONObject.Create(
-                       new JProperty("requests",       requests),
+                       new JProperty("requests",       requests_OK),
                        new JProperty("responsesOK",    responses_OK),
                        new JProperty("responsesError", responses_Error)
                    );
+
+        #endregion
 
     }
 
