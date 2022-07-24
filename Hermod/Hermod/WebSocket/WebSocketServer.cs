@@ -343,8 +343,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                 Connection            = "Upgrade",
                                                                 Upgrade               = "websocket",
                                                                 SecWebSocketAccept    = swkaSha1Base64,
-                                                                SecWebSocketProtocol  = "ocpp1.6",
-                                                                SecWebSocketVersion   = "13"
+                                                                SecWebSocketProtocol  = "ocpp1.6"
+                                                             //   SecWebSocketVersion   = "13"
                                                             }.AsImmutable;
 
                                     }
