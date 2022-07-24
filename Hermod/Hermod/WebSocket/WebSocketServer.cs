@@ -18,12 +18,8 @@
 #region Usings
 
 using System;
-using System.IO;
 using System.Text;
-using System.Threading;
 using System.Net.Sockets;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 
 using Newtonsoft.Json.Linq;
 
@@ -196,13 +192,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             var cts2                        = CancellationTokenSource.CreateLinkedTokenSource(token);
                             var token2                      = cts2.Token;
                             Byte[] bytes                    = null;
-                            Byte[] bytesLeftOver            = new Byte[0];
+                            Byte[] bytesLeftOver            = Array.Empty<Byte>();
                             String data                     = null;
                             Boolean IsStillHTTP             = true;
                             var lastWebSocketPingTimestamp  = Timestamp.Now;
                             var WebSocketPingEvery          = TimeSpan.FromSeconds(20);
 
-                            HTTPResponse httpResponse = null;
+                            HTTPResponse httpResponse       = null;
 
                             #region Send OnNewTCPConnection event
 
@@ -234,7 +230,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                             DebugX.Log("New web socket connection from: " + WSConnection.RemoteSocket.IPAddress + ":" + WSConnection.RemoteSocket.Port + "...");
 
-                            while (!token2.IsCancellationRequested && stream != null)
+                            while (!token2.IsCancellationRequested && stream is not null)
                             {
 
                                 if (bytes is null)
@@ -245,7 +241,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                         #region Send a regular web socket Ping
 
-                                        if (stream != null &&
+                                        if (stream is not null &&
                                             Timestamp.Now > lastWebSocketPingTimestamp + WebSocketPingEvery)
                                         {
 
@@ -429,8 +425,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                 out UInt64          frameLength)) // ToDo: Might contain multiple frames!
                                     {
 
-                                        var            eventTrackingId  = EventTracking_Id.New;
-                                        WebSocketFrame responseFrame    = null;
+                                        var             eventTrackingId  = EventTracking_Id.New;
+                                        WebSocketFrame? responseFrame    = null;
 
                                         #region OnMessageRequest
 
@@ -516,7 +512,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 #region ProcessTextMessage
 
-                                                WebSocketTextMessageResponse textMessageResponse = null;
+                                                WebSocketTextMessageResponse? textMessageResponse = null;
 
                                                 try
                                                 {
@@ -528,12 +524,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                                    token2);
 
                                                     // Incoming higher protocol level respones will not produce another response!
-                                                    if (textMessageResponse?.Response != null)
+                                                    if (textMessageResponse?.Response is not null)
                                                     {
 
                                                         responseFrame = new WebSocketFrame(WebSocketFrame.Fin.Final,
                                                                                            WebSocketFrame.MaskStatus.Off,
-                                                                                           null, //new Byte[4],
+                                                                                           Array.Empty<byte>(),
                                                                                            WebSocketFrame.Opcodes.Text,
                                                                                            textMessageResponse.Response.ToUTF8Bytes(),
                                                                                            WebSocketFrame.Rsv.Off,
@@ -555,7 +551,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 try
                                                 {
 
-                                                    if (responseFrame != null)
+                                                    if (responseFrame is not null && textMessageResponse is not null)
                                                         OnTextMessageResponse?.Invoke(Timestamp.Now,
                                                                                       this,
                                                                                       WSConnection,
@@ -606,7 +602,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 #region ProcessBinaryMessage
 
-                                                WebSocketBinaryMessageResponse binaryMessageResponse = null;
+                                                WebSocketBinaryMessageResponse? binaryMessageResponse = null;
 
                                                 try
                                                 {
@@ -623,7 +619,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                         responseFrame = new WebSocketFrame(WebSocketFrame.Fin.Final,
                                                                                            WebSocketFrame.MaskStatus.Off,
-                                                                                           null, //new Byte[4],
+                                                                                           Array.Empty<byte>(),
                                                                                            WebSocketFrame.Opcodes.Text,
                                                                                            binaryMessageResponse.Response,
                                                                                            WebSocketFrame.Rsv.Off,
@@ -645,7 +641,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 try
                                                 {
 
-                                                    if (responseFrame != null)
+                                                    if (responseFrame is not null && binaryMessageResponse is not null)
                                                         OnBinaryMessageResponse?.Invoke(Timestamp.Now,
                                                                                         this,
                                                                                         WSConnection,
@@ -673,11 +669,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 {
 
                                                     OnPingMessageReceived?.Invoke(Timestamp.Now,
-                                                                                    this,
-                                                                                    WSConnection,
-                                                                                    frame,
-                                                                                    eventTrackingId,
-                                                                                    token2);
+                                                                                  this,
+                                                                                  WSConnection,
+                                                                                  frame,
+                                                                                  eventTrackingId,
+                                                                                  token2);
 
                                                 }
                                                 catch (Exception e)
@@ -691,7 +687,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 responseFrame = new WebSocketFrame(WebSocketFrame.Fin.Final,
                                                                                    WebSocketFrame.MaskStatus.Off,
-                                                                                   //new Byte[] { 0xaa, 0xbb, 0xcc, 0xdd },
                                                                                    new Byte[] { 0x00, 0x00, 0x00, 0x00 },
                                                                                    WebSocketFrame.Opcodes.Pong,
                                                                                    frame.Payload,
@@ -769,7 +764,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                         }
 
-                                        if (responseFrame != null && stream != null)
+                                        if (responseFrame is not null && stream is not null)
                                         {
 
                                             try
@@ -786,7 +781,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                             try
                                             {
 
-                                                if (responseFrame != null)
+                                                if (responseFrame is not null)
                                                     OnMessageResponse?.Invoke(Timestamp.Now,
                                                                               this,
                                                                               WSConnection,
@@ -826,7 +821,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                             bytes = newBytes;
                                         }
 
-                                        bytesLeftOver = new Byte[0];
+                                        bytesLeftOver = Array.Empty<Byte>();
 
                                     }
 
