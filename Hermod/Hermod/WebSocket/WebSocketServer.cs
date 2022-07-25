@@ -135,7 +135,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                DNSClient?   DNSClient         = null,
                                Boolean      AutoStart         = false)
 
-            : this(new IPSocket(IPAddress ?? IPv4Address.Any,
+            : this(new IPSocket(IPAddress ?? IPv6Address.Any,
                                 Port      ?? IPPort.HTTP),
                    HTTPServiceName,
                    DNSClient,

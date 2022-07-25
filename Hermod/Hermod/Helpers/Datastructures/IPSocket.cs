@@ -32,10 +32,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region ToIPEndPoint(this IPSocket)
 
+        /// <summary>
+        /// Convert this IP socket into an .NET IPEndPoint.
+        /// </summary>
         public static IPEndPoint ToIPEndPoint(this IPSocket IPSocket)
 
-            => new IPEndPoint(System.Net.IPAddress.Parse(IPSocket.IPAddress.ToString()),
-                              IPSocket.Port.ToUInt16());
+            => new (System.Net.IPAddress.Parse(IPSocket.IPAddress.ToString()),
+                    IPSocket.Port.ToUInt16());
 
         #endregion
 
@@ -144,7 +147,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         {
 
             IPSocket  = default;
-            Text      = Text?.Trim();
+            Text      = Text.Trim();
 
             if (Text.IsNullOrEmpty())
                 return false;
@@ -215,21 +218,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region (static) FromIPEndPoint(this IPEndPoint)
 
+        /// <summary>
+        /// Convert the given .NET IPEndPoint into an IP Socket.
+        /// </summary>
+        /// <param name="IPEndPoint">A .NET IPEndPoint.</param>
         public static IPSocket FromIPEndPoint(IPEndPoint IPEndPoint)
 
-            => new IPSocket(
-                   IPAddressHelper.Build(IPEndPoint.Address.GetAddressBytes()),
-                   IPPort.Parse(IPEndPoint.Port)
-               );
+            => new (IPAddressHelper.Build(IPEndPoint.Address.GetAddressBytes()),
+                    IPPort.Parse(IPEndPoint.Port));
 
-        public static IPSocket FromIPEndPoint(EndPoint IPEndPoint)
 
-            => IPEndPoint is IPEndPoint ipEndPoint
+        /// <summary>
+        /// Convert the given .NET EndPoint into an IP Socket.
+        /// </summary>
+        /// <param name="EndPoint">A .NET EndPoint.</param>
+        public static IPSocket FromIPEndPoint(EndPoint EndPoint)
 
-                   ? new IPSocket(
-                         IPAddressHelper.Build(ipEndPoint.Address.GetAddressBytes()),
-                         IPPort.Parse(ipEndPoint.Port)
-                     )
+            => EndPoint is IPEndPoint ipEndPoint
+
+                   ? new (IPAddressHelper.Build(ipEndPoint.Address.GetAddressBytes()),
+                          IPPort.Parse(ipEndPoint.Port))
 
                    : throw new ArgumentException("The given EndPoint is not an IPEndPoint!", nameof(EndPoint));
 
