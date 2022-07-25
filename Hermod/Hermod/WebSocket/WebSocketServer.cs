@@ -247,18 +247,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 Timestamp.Now > lastWebSocketPingTimestamp + WebSocketPingEvery)
                                             {
 
+                                                var payload = Guid.NewGuid().ToString();
+
                                                 stream.Write(new WebSocketFrame(WebSocketFrame.Fin.Final,
                                                                                 WebSocketFrame.MaskStatus.Off,
                                                                                 new Byte[] { 0x00, 0x00, 0x00, 0x00 },
                                                                                 WebSocketFrame.Opcodes.Ping,
-                                                                                Guid.NewGuid().ToByteArray(),
+                                                                                payload.ToUTF8Bytes(),
                                                                                 WebSocketFrame.Rsv.Off,
                                                                                 WebSocketFrame.Rsv.Off,
                                                                                 WebSocketFrame.Rsv.Off).ToByteArray());
 
                                                 stream.Flush();
 
-                                                DebugX.Log(nameof(WebSocketServer) + ": Ping sent!");
+                                                DebugX.Log(nameof(WebSocketServer) + ": Ping sent:     '" + payload + "'!");
 
                                                 lastWebSocketPingTimestamp = Timestamp.Now;
 
