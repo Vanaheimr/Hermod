@@ -470,13 +470,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region TryParse(ByteArray, out Frame, out Length)
 
-        public static Boolean TryParse(Byte[]              ByteArray,
-                                       out WebSocketFrame  Frame,
-                                       out UInt64          Length)
+        public static Boolean TryParse(Byte[]               ByteArray,
+                                       out WebSocketFrame?  Frame,
+                                       out UInt64           Length,
+                                       out String?          ErrorResponse)
         {
 
             try
             {
+
+                Frame          = null;
+                Length         = 0;
+                ErrorResponse  = null;
+
+                if (ByteArray is null || ByteArray.Length < 5) {
+                    ErrorResponse = "Invalid byte array!";
+                    return false;
+                }
 
                 var fin            = (ByteArray[0] & 0x80) == 0x80 ? Fin.Final : Fin.More;
                 var rsv1           = (ByteArray[0] & 0x40) == 0x40 ? Rsv.On    : Rsv.Off;
@@ -485,14 +495,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 var opcode         = (Opcodes) (Byte) (ByteArray[0] & 0x0f);
 
                 //if (!opcode.IsSupported ()) {
-                //    var msg = "A frame has an unsupported opcode.";
                 //    //throw new WebSocketException (CloseStatusCode.ProtocolError, msg);
+                //    ErrorResponse  = "A frame has an unsupported opcode!";
+                //    return false;
                 //}
 
-                if (!opcode.IsData() && rsv1 == Rsv.On)
-                {
-                    var msg = "A non data frame is compressed.";
-                    //throw new WebSocketException (CloseStatusCode.ProtocolError, msg);
+                if (!opcode.IsData() && rsv1 == Rsv.On) {
+                    ErrorResponse = "A non data frame is compressed!";
+                    return false;
                 }
 
                 var mask           = (ByteArray[1] & 0x80) == 0x80
@@ -518,7 +528,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 else if (payloadLength == 127) {
 
-                    Console.WriteLine("TODO: msglen == 127, needs qword to store msglen");
+                    DebugX.Log("TODO: msglen == 127, needs qword to store msglen");
 
                     // i don't really know the byte order, please edit this
                     // payloadLen = BitConverter.ToUInt64(new byte[] { bytes[5], bytes[4], bytes[3], bytes[2], bytes[9], bytes[8], bytes[7], bytes[6] }, 0);
@@ -531,8 +541,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 if ((UInt64) ByteArray.Length < offset + payloadLength)
                 {
-                    Frame   = null;
-                    Length  = 0;
+                    ErrorResponse = "Invalid byte array!";
                     return false;
                 }
 
@@ -572,13 +581,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             }
             catch (Exception e)
             {
-
                 DebugX.Log(nameof(WebSocketFrame) + " Exception occured: " + e.Message);
-
-                Frame  = null;
-                Length = 0;
+                Frame          = null;
+                Length         = 0;
+                ErrorResponse  = "An exception occured: " + e.Message;
                 return false;
-
             }
 
         }
@@ -668,7 +675,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             }
             catch (Exception e)
             {
-
 
             }
 
