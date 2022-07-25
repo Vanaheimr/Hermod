@@ -65,11 +65,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         private readonly List<WebSocketConnection>  webSocketConnections;
 
-        private          Thread                     listenerThread;
+        private          Thread?                    listenerThread;
 
         private readonly CancellationTokenSource    cancellationTokenSource;
 
-        private const String LogfileName = "CentralSystemWSServer.log";
+        private const    String LogfileName = "CentralSystemWSServer.log";
 
         #endregion
 
@@ -79,7 +79,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             => webSocketConnections;
 
 
-        public String     HTTPServiceName    { get; }
+        public String      HTTPServiceName    { get; }
 
         public IIPAddress IPAddress
             => IPSocket.IPAddress;
@@ -87,53 +87,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public IPPort IPPort
             => IPSocket.Port;
 
-        public IPSocket   IPSocket           { get; }
+        public IPSocket    IPSocket           { get; }
 
-        public DNSClient  DNSClient          { get; }
+        public DNSClient?  DNSClient          { get; }
 
 
         #endregion
 
         #region Events
 
-        public event OnNewTCPConnectionDelegate                 OnNewTCPConnection;
+        public event OnNewTCPConnectionDelegate?                  OnNewTCPConnection;
 
-        public event OnOnValidateWebSocketConnectionDelegate    OnValidateWebSocketConnection;
+        public event OnOnValidateWebSocketConnectionDelegate?     OnValidateWebSocketConnection;
 
-        public event OnNewWebSocketConnectionDelegate           OnNewWebSocketConnection;
-
-
-        public event OnWebSocketMessageRequestDelegate          OnMessageRequest;
-
-        public event OnWebSocketMessageResponseDelegate         OnMessageResponse;
+        public event OnNewWebSocketConnectionDelegate?            OnNewWebSocketConnection;
 
 
-        public event OnWebSocketTextMessageRequestDelegate      OnTextMessageRequest;
+        public event OnWebSocketMessageRequestDelegate?           OnMessageRequest;
 
-        public event OnWebSocketTextMessageResponseDelegate     OnTextMessageResponse;
-
-
-        public event OnWebSocketBinaryMessageRequestDelegate    OnBinaryMessageRequest;
-
-        public event OnWebSocketBinaryMessageResponseDelegate   OnBinaryMessageResponse;
+        public event OnWebSocketMessageResponseDelegate?          OnMessageResponse;
 
 
-        public event OnWebSocketMessageRequestDelegate          OnPingMessageReceived;
+        public event OnWebSocketTextMessageRequestDelegate?       OnTextMessageRequest;
 
-        public event OnWebSocketMessageRequestDelegate          OnPongMessageReceived;
+        public event OnWebSocketTextMessageResponseDelegate?      OnTextMessageResponse;
 
 
-        public event OnCloseMessageDelegate                     OnCloseMessage;
+        public event OnWebSocketBinaryMessageRequestDelegate?     OnBinaryMessageRequest;
+
+        public event OnWebSocketBinaryMessageResponseDelegate?    OnBinaryMessageResponse;
+
+
+        public event OnWebSocketMessageRequestDelegate?          OnPingMessageReceived;
+
+        public event OnWebSocketMessageRequestDelegate?          OnPongMessageReceived;
+
+
+        public event OnCloseMessageDelegate?                     OnCloseMessage;
 
         #endregion
 
         #region Constructor(s)
 
-        public WebSocketServer(IIPAddress  IPAddress         = null,
-                               IPPort?     Port              = null,
-                               String      HTTPServiceName   = null,
-                               DNSClient   DNSClient         = null,
-                               Boolean     AutoStart         = false)
+        public WebSocketServer(IIPAddress?  IPAddress         = null,
+                               IPPort?      Port              = null,
+                               String?      HTTPServiceName   = null,
+                               DNSClient?   DNSClient         = null,
+                               Boolean      AutoStart         = false)
 
             : this(new IPSocket(IPAddress ?? IPv4Address.Any,
                                 Port      ?? IPPort.HTTP),
@@ -143,14 +143,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         { }
 
-        public WebSocketServer(IPSocket   IPSocket,
-                               String     HTTPServiceName   = null,
-                               DNSClient  DNSClient         = null,
-                               Boolean    AutoStart         = false)
+        public WebSocketServer(IPSocket    IPSocket,
+                               String?     HTTPServiceName   = null,
+                               DNSClient?  DNSClient         = null,
+                               Boolean     AutoStart         = false)
         {
 
             this.IPSocket                 = IPSocket;
-            this.HTTPServiceName          = HTTPServiceName;
+            this.HTTPServiceName          = HTTPServiceName ?? "GraphDefined Websocket Server";
             this.DNSClient                = DNSClient;
 
             this.webSocketConnections     = new List<WebSocketConnection>();
