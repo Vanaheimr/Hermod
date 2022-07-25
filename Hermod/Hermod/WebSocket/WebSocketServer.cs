@@ -294,12 +294,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                     // Sec-WebSocket-Protocol:  ocpp1.6, ocpp1.5
                                     // Sec-WebSocket-Version:   13
                                     if (!HTTPRequest.TryParse(bytes, out HTTPRequest httpRequest))
+                                    {
+
+                                        DebugX.Log("Could not parse the incoming HTTP request!");
+                                        DebugX.Log(bytes.ToUTF8String());
+
                                         httpResponse  = new HTTPResponse.Builder(HTTPStatusCode.BadRequest) {
                                                             Server              = HTTPServiceName,
                                                             Date                = Timestamp.Now,
                                                             Connection          = "close"
                                                         }.AsImmutable;
 
+                                    }
                                     else
                                     {
 
