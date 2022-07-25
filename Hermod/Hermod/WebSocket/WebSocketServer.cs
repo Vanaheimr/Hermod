@@ -696,7 +696,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                         #endregion
 
-                                                        DebugX.Log(nameof(WebSocketServer) + ": Ping received!");
+                                                        DebugX.Log(nameof(WebSocketServer) + ": Ping received: '" + frame.Payload.ToUTF8String() + "'");
 
                                                         responseFrame = new WebSocketFrame(WebSocketFrame.Fin.Final,
                                                                                            WebSocketFrame.MaskStatus.Off,
@@ -735,7 +735,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                         #endregion
 
-                                                        DebugX.Log(nameof(WebSocketServer) + ": Pong received!");
+                                                        DebugX.Log(nameof(WebSocketServer) + ": Pong received: '" + frame.Payload.ToUTF8String() + "'");
 
                                                         break;
 
@@ -767,9 +767,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                         DebugX.Log(nameof(WebSocketServer) + ": Close received!");
 
-                                                        //webSocketConnections.Remove(WSConnection);
-                                                        //stream.Close();
-                                                        //stream = null;
+                                                        webSocketConnections.Remove(WSConnection);
+                                                        stream.Close();
+                                                        stream = null;
 
                                                         break;
 
