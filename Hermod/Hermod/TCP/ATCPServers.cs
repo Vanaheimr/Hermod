@@ -18,11 +18,8 @@
 #region Usings
 
 using System;
-using System.Linq;
-using System.Threading;
 using System.Collections;
 using System.Net.Security;
-using System.Collections.Generic;
 using System.Security.Authentication;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -644,7 +641,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                     Action(_TCPServer);
 
-                    SendTCPSocketAttached(DateTime.UtcNow, _TCPServer.IPSocket);
+                    SendTCPSocketAttached(Timestamp.Now, _TCPServer.IPSocket);
 
                 }
 
@@ -795,7 +792,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region (protected) SendCompleted(Sender, Timestamp, Message = null)
 
-        protected void SendCompleted(Object Sender, DateTime Timestamp, String Message = null)
+        protected void SendCompleted(Object    Sender,
+                                     DateTime  Timestamp,
+                                     String?   Message   = null)
         {
 
             OnCompleted?.Invoke(Sender,
@@ -857,7 +856,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 foreach (var TCPServer in _TCPServers)
                     TCPServer.Start(Delay, InBackground);
 
-                SendStarted(this, DateTime.UtcNow);
+                SendStarted(this, Timestamp.Now);
 
                 return true;
 
@@ -869,7 +868,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region Shutdown(Message = null, Wait = true)
 
-        public Boolean Shutdown(String Message = null, Boolean Wait = true)
+        public Boolean Shutdown(String?  Message   = null,
+                                Boolean  Wait      = true)
         {
 
             lock (_TCPServers)
@@ -878,7 +878,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 foreach (var TCPServer in _TCPServers)
                     TCPServer.Shutdown(Message, Wait);
 
-                SendCompleted(this, DateTime.UtcNow, Message);
+                SendCompleted(this,
+                              Timestamp.Now,
+                              Message);
 
                 return true;
 

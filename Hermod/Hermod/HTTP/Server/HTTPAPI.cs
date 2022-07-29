@@ -1489,6 +1489,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region HTTPAPI(HTTPAPI)
+
+        public HTTPAPI(HTTPAPI HTTPAPI)
+
+            : this(HTTPServer:               HTTPAPI.HTTPServer,
+                   HTTPHostname:             HTTPAPI.Hostname,
+                   ExternalDNSName:          HTTPAPI.ExternalDNSName,
+                   HTTPServiceName:          HTTPAPI.ServiceName,
+                   BasePath:                 HTTPAPI.BasePath,
+
+                   URLPathPrefix:            HTTPAPI.URLPathPrefix,
+                   HTMLTemplate:             HTTPAPI.HTMLTemplate,
+                   APIVersionHashes:         null,
+
+                   DisableMaintenanceTasks:  HTTPAPI.DisableMaintenanceTasks,
+                   MaintenanceInitialDelay:  null,
+                   MaintenanceEvery:         HTTPAPI.MaintenanceEvery,
+
+                   DisableWardenTasks:       null, //HTTPAPI.DisableWardenTasks,
+                   WardenInitialDelay:       null,
+                   WardenCheckEvery:         null, //HTTPAPI.WardenCheckEvery,
+
+                   IsDevelopment:            HTTPAPI.IsDevelopment,
+                   DevelopmentServers:       HTTPAPI.DevelopmentServers,
+                   DisableLogging:           HTTPAPI.DisableLogging,
+                   LoggingPath:              HTTPAPI.LoggingPath,
+                   LogfileName:              HTTPAPI.LogfileName,
+                   LogfileCreator:           HTTPAPI.LogfileCreator)
+
+        {
+
+
+
+        }
+
+        #endregion
+
         #endregion
 
 
@@ -1880,7 +1917,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Shutdown(Message = null, Wait = true)
 
-        public virtual Boolean Shutdown(String Message = null, Boolean Wait = true)
+        public virtual Boolean Shutdown(String?  Message   = null,
+                                        Boolean  Wait      = true)
         {
             lock (HTTPServer)
             {

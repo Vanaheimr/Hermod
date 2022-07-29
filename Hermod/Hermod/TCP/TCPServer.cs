@@ -772,8 +772,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// </summary>
         /// <param name="Wait">Wait until the server finally shutted down.</param>
         /// <param name="Message">An optional shutdown message.</param>
-        public Boolean Shutdown(String  Message  = null,
-                                Boolean Wait     = true)
+        public Boolean Shutdown(String?  Message   = null,
+                                Boolean  Wait      = true)
         {
 
             _StopRequested = true;
