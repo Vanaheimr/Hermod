@@ -204,26 +204,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="Autostart">Start the SMTP server thread immediately (default: no).</param>
-        public SMTPServer(IPPort?                              TCPPort                            = null,
-                          String                               DefaultServerName                  = __DefaultServerName,
-                          String                               ServiceName                        = null,
+        public SMTPServer(IPPort?                               TCPPort                            = null,
+                          String                                DefaultServerName                  = __DefaultServerName,
+                          String?                               ServiceName                        = null,
 
-                          ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
-                          LocalCertificateSelectionCallback    ClientCertificateSelector          = null,
-                          RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
-                          SslProtocols                         AllowedTLSProtocols                = SslProtocols.Tls12,
-                          Boolean?                             AllowStartTLS                      = true,
-                          String                               ServerThreadName                   = null,
-                          ThreadPriority                       ServerThreadPriority               = ThreadPriority.AboveNormal,
-                          Boolean                              ServerThreadIsBackground           = true,
-                          ConnectionIdBuilder                  ConnectionIdBuilder                = null,
-                          ConnectionThreadsNameBuilder         ConnectionThreadsNameBuilder       = null,
-                          ConnectionThreadsPriorityBuilder     ConnectionThreadsPriorityBuilder   = null,
-                          Boolean                              ConnectionThreadsAreBackground     = true,
-                          TimeSpan?                            ConnectionTimeout                  = null,
-                          UInt32?                              MaxClientConnections               = null,
-                          DNSClient                            DNSClient                          = null,
-                          Boolean                              Autostart                          = false)
+                          ServerCertificateSelectorDelegate?    ServerCertificateSelector          = null,
+                          LocalCertificateSelectionCallback?    ClientCertificateSelector          = null,
+                          RemoteCertificateValidationCallback?  ClientCertificateValidator         = null,
+                          SslProtocols?                         AllowedTLSProtocols                = null,
+                          Boolean?                              ClientCertificateRequired          = null,
+                          Boolean?                              CheckCertificateRevocation         = null,
+                          Boolean?                              AllowStartTLS                      = true,
+
+                          String                                ServerThreadName                   = null,
+                          ThreadPriority                        ServerThreadPriority               = ThreadPriority.AboveNormal,
+                          Boolean                               ServerThreadIsBackground           = true,
+
+                          ConnectionIdBuilder                   ConnectionIdBuilder                = null,
+                          ConnectionThreadsNameBuilder          ConnectionThreadsNameBuilder       = null,
+                          ConnectionThreadsPriorityBuilder      ConnectionThreadsPriorityBuilder   = null,
+                          Boolean                               ConnectionThreadsAreBackground     = true,
+                          TimeSpan?                             ConnectionTimeout                  = null,
+
+                          UInt32?                               MaxClientConnections               = null,
+                          DNSClient                             DNSClient                          = null,
+                          Boolean                               Autostart                          = false)
 
             : base(ServiceName,
                    DefaultServerName,
@@ -231,14 +236,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                    ClientCertificateSelector,
                    ClientCertificateValidator,
                    AllowedTLSProtocols,
+                   ClientCertificateRequired,
+                   CheckCertificateRevocation,
+
                    ServerThreadName,
                    ServerThreadPriority,
                    ServerThreadIsBackground,
+
                    ConnectionIdBuilder,
                    ConnectionThreadsNameBuilder,
                    ConnectionThreadsPriorityBuilder,
                    ConnectionThreadsAreBackground,
                    ConnectionTimeout,
+
                    MaxClientConnections,
                    DNSClient,
                    false)

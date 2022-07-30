@@ -175,27 +175,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
-        public HTTPServer(IPPort?                              TCPPort                            = null,
-                          String                               DefaultServerName                  = HTTPServer.DefaultHTTPServerName,
-                          String                               ServiceName                        = null,
+        public HTTPServer(IPPort?                               TCPPort                            = null,
+                          String                                DefaultServerName                  = HTTPServer.DefaultHTTPServerName,
+                          String?                               ServiceName                        = null,
 
-                          ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
-                          LocalCertificateSelectionCallback    ClientCertificateSelector          = null,
-                          RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
-                          SslProtocols                         AllowedTLSProtocols                = SslProtocols.Tls12,
+                          ServerCertificateSelectorDelegate?    ServerCertificateSelector          = null,
+                          LocalCertificateSelectionCallback?    ClientCertificateSelector          = null,
+                          RemoteCertificateValidationCallback?  ClientCertificateValidator         = null,
+                          SslProtocols?                         AllowedTLSProtocols                = null,
+                          Boolean?                              ClientCertificateRequired          = null,
+                          Boolean?                              CheckCertificateRevocation         = null,
 
-                          String                               ServerThreadName                   = null,
-                          ThreadPriority                       ServerThreadPriority               = ThreadPriority.AboveNormal,
-                          Boolean                              ServerThreadIsBackground           = true,
-                          ConnectionIdBuilder                  ConnectionIdBuilder                = null,
-                          ConnectionThreadsNameBuilder         ConnectionThreadsNameBuilder       = null,
-                          ConnectionThreadsPriorityBuilder     ConnectionThreadsPriorityBuilder   = null,
-                          Boolean                              ConnectionThreadsAreBackground     = true,
-                          TimeSpan?                            ConnectionTimeout                  = null,
-                          UInt32                               MaxClientConnections               = TCPServer.__DefaultMaxClientConnections,
+                          String?                               ServerThreadName                   = null,
+                          ThreadPriority                        ServerThreadPriority               = ThreadPriority.AboveNormal,
+                          Boolean                               ServerThreadIsBackground           = true,
+                          ConnectionIdBuilder?                  ConnectionIdBuilder                = null,
+                          ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
+                          ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
+                          Boolean                               ConnectionThreadsAreBackground     = true,
+                          TimeSpan?                             ConnectionTimeout                  = null,
+                          UInt32                                MaxClientConnections               = TCPServer.__DefaultMaxClientConnections,
 
-                          DNSClient                            DNSClient                          = null,
-                          Boolean                              Autostart                          = false)
+                          DNSClient?                            DNSClient                          = null,
+                          Boolean                               Autostart                          = false)
 
             : this(new HTTPServer(TCPPort,
                                   DefaultServerName,
@@ -204,14 +206,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   ClientCertificateSelector,
                                   ClientCertificateValidator,
                                   AllowedTLSProtocols,
+                                  ClientCertificateRequired,
+                                  CheckCertificateRevocation,
+
                                   ServerThreadName,
                                   ServerThreadPriority,
                                   ServerThreadIsBackground,
+
                                   ConnectionIdBuilder,
                                   ConnectionThreadsNameBuilder,
                                   ConnectionThreadsPriorityBuilder,
                                   ConnectionThreadsAreBackground,
                                   ConnectionTimeout,
+
                                   MaxClientConnections,
                                   DNSClient,
                                   Autostart))
@@ -1088,27 +1095,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
-        public HTTPServer(IPPort?                              TCPPort                            = null,
-                          String                               DefaultServerName                  = DefaultHTTPServerName,
-                          String                               ServiceName                        = null,
+        public HTTPServer(IPPort?                               TCPPort                            = null,
+                          String                                DefaultServerName                  = DefaultHTTPServerName,
+                          String?                               ServiceName                        = null,
 
-                          ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
-                          LocalCertificateSelectionCallback    ClientCertificateSelector          = null,
-                          RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
-                          SslProtocols?                        AllowedTLSProtocols                = SslProtocols.Tls12 | SslProtocols.Tls13,
+                          ServerCertificateSelectorDelegate?    ServerCertificateSelector          = null,
+                          LocalCertificateSelectionCallback?    ClientCertificateSelector          = null,
+                          RemoteCertificateValidationCallback?  ClientCertificateValidator         = null,
+                          SslProtocols?                         AllowedTLSProtocols                = null,
+                          Boolean?                              ClientCertificateRequired          = null,
+                          Boolean?                              CheckCertificateRevocation         = null,
 
-                          String                               ServerThreadName                   = null,
-                          ThreadPriority?                      ServerThreadPriority               = null,
-                          Boolean?                             ServerThreadIsBackground           = null,
-                          ConnectionIdBuilder                  ConnectionIdBuilder                = null,
-                          ConnectionThreadsNameBuilder         ConnectionThreadsNameBuilder       = null,
-                          ConnectionThreadsPriorityBuilder     ConnectionThreadsPriorityBuilder   = null,
-                          Boolean?                             ConnectionThreadsAreBackground     = null,
-                          TimeSpan?                            ConnectionTimeout                  = null,
-                          UInt32?                              MaxClientConnections               = null,
+                          String?                               ServerThreadName                   = null,
+                          ThreadPriority?                       ServerThreadPriority               = null,
+                          Boolean?                              ServerThreadIsBackground           = null,
+                          ConnectionIdBuilder?                  ConnectionIdBuilder                = null,
+                          ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
+                          ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
+                          Boolean?                              ConnectionThreadsAreBackground     = null,
+                          TimeSpan?                             ConnectionTimeout                  = null,
+                          UInt32?                               MaxClientConnections               = null,
 
-                          DNSClient                            DNSClient                          = null,
-                          Boolean                              Autostart                          = false)
+                          DNSClient?                            DNSClient                          = null,
+                          Boolean                               Autostart                          = false)
 
             : base(ServiceName,
                    DefaultServerName,
@@ -1116,14 +1125,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    ClientCertificateSelector,
                    ClientCertificateValidator,
                    AllowedTLSProtocols,
+                   ClientCertificateRequired,
+                   CheckCertificateRevocation,
+
                    ServerThreadName,
                    ServerThreadPriority,
                    ServerThreadIsBackground,
+
                    ConnectionIdBuilder,
                    ConnectionThreadsNameBuilder,
                    ConnectionThreadsPriorityBuilder,
                    ConnectionThreadsAreBackground,
                    ConnectionTimeout,
+
                    MaxClientConnections,
                    DNSClient,
                    false)

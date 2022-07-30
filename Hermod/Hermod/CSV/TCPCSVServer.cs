@@ -113,24 +113,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="Autostart">Start the TCP server thread immediately (default: no).</param>
-        public TCPCSVServer(IPPort                               TCPPort,
-                            ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
-                            RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
-                            LocalCertificateSelectionCallback    ClientCertificateSelector          = null,
-                            SslProtocols                         AllowedTLSProtocols                = SslProtocols.Tls12,
-                            String                               ServiceName                        = null,
-                            String                               ServiceBanner                      = __DefaultServiceBanner,
-                            IEnumerable<Char>                    SplitCharacters                    = null,
-                            String                               ServerThreadName                   = null,
-                            ThreadPriority                       ServerThreadPriority               = ThreadPriority.AboveNormal,
-                            Boolean                              ServerThreadIsBackground           = true,
-                            ConnectionIdBuilder                  ConnectionIdBuilder                = null,
-                            ConnectionThreadsNameBuilder         ConnectionThreadsNameBuilder       = null,
-                            ConnectionThreadsPriorityBuilder     ConnectionThreadsPriorityBuilder   = null,
-                            Boolean                              ConnectionThreadsAreBackground     = true,
-                            TimeSpan?                            ConnectionTimeout                  = null,
-                            UInt32                               MaxClientConnections               = __DefaultMaxClientConnections,
-                            Boolean                              Autostart                          = false)
+        public TCPCSVServer(IPPort                                TCPPort,
+                            ServerCertificateSelectorDelegate?    ServerCertificateSelector          = null,
+                            RemoteCertificateValidationCallback?  ClientCertificateValidator         = null,
+                            LocalCertificateSelectionCallback?    ClientCertificateSelector          = null,
+                            SslProtocols?                         AllowedTLSProtocols                = null,
+                            Boolean?                              ClientCertificateRequired          = null,
+                            Boolean?                              CheckCertificateRevocation         = null,
+
+                            String?                               ServiceName                        = null,
+                            String                                ServiceBanner                      = __DefaultServiceBanner,
+                            IEnumerable<Char>?                    SplitCharacters                    = null,
+                            String?                               ServerThreadName                   = null,
+                            ThreadPriority                        ServerThreadPriority               = ThreadPriority.AboveNormal,
+                            Boolean                               ServerThreadIsBackground           = true,
+
+                            ConnectionIdBuilder?                  ConnectionIdBuilder                = null,
+                            ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
+                            ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
+                            Boolean                               ConnectionThreadsAreBackground     = true,
+                            TimeSpan?                             ConnectionTimeout                  = null,
+
+                            UInt32                                MaxClientConnections               = __DefaultMaxClientConnections,
+                            Boolean                               Autostart                          = false)
 
             : this(IPv4Address.Any,
                    TCPPort,
@@ -138,17 +143,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                    ClientCertificateValidator,
                    ClientCertificateSelector,
                    AllowedTLSProtocols,
+                   ClientCertificateRequired,
+                   CheckCertificateRevocation,
+
                    ServiceName,
                    ServiceBanner,
                    SplitCharacters,
                    ServerThreadName,
                    ServerThreadPriority,
                    ServerThreadIsBackground,
+
                    ConnectionIdBuilder,
                    ConnectionThreadsNameBuilder,
                    ConnectionThreadsPriorityBuilder,
                    ConnectionThreadsAreBackground,
                    ConnectionTimeout,
+
                    MaxClientConnections,
                    Autostart)
 
@@ -180,25 +190,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="Autostart">Start the TCP/CSV server thread immediately (default: no).</param>
-        public TCPCSVServer(IIPAddress                           IIPAddress,
-                            IPPort                               Port,
-                            ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
-                            RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
-                            LocalCertificateSelectionCallback    ClientCertificateSelector          = null,
-                            SslProtocols                         AllowedTLSProtocols                = SslProtocols.Tls12,
-                            String                               ServiceName                        = null,
-                            String                               ServiceBanner                      = __DefaultServiceBanner,
-                            IEnumerable<Char>                    SplitCharacters                    = null,
-                            String                               ServerThreadName                   = null,
-                            ThreadPriority                       ServerThreadPriority               = ThreadPriority.AboveNormal,
-                            Boolean                              ServerThreadIsBackground           = true,
-                            ConnectionIdBuilder                  ConnectionIdBuilder                = null,
-                            ConnectionThreadsNameBuilder         ConnectionThreadsNameBuilder       = null,
-                            ConnectionThreadsPriorityBuilder     ConnectionThreadsPriorityBuilder   = null,
-                            Boolean                              ConnectionThreadsAreBackground     = true,
-                            TimeSpan?                            ConnectionTimeout                  = null,
-                            UInt32                               MaxClientConnections               = __DefaultMaxClientConnections,
-                            Boolean                              Autostart                          = false)
+        public TCPCSVServer(IIPAddress                            IIPAddress,
+                            IPPort                                Port,
+                            ServerCertificateSelectorDelegate?    ServerCertificateSelector          = null,
+                            RemoteCertificateValidationCallback?  ClientCertificateValidator         = null,
+                            LocalCertificateSelectionCallback?    ClientCertificateSelector          = null,
+                            SslProtocols?                         AllowedTLSProtocols                = null,
+                            Boolean?                              ClientCertificateRequired          = null,
+                            Boolean?                              CheckCertificateRevocation         = null,
+
+                            String?                               ServiceName                        = null,
+                            String                                ServiceBanner                      = __DefaultServiceBanner,
+                            IEnumerable<Char>?                    SplitCharacters                    = null,
+                            String?                               ServerThreadName                   = null,
+                            ThreadPriority                        ServerThreadPriority               = ThreadPriority.AboveNormal,
+                            Boolean                               ServerThreadIsBackground           = true,
+
+                            ConnectionIdBuilder?                  ConnectionIdBuilder                = null,
+                            ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
+                            ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
+                            Boolean                               ConnectionThreadsAreBackground     = true,
+                            TimeSpan?                             ConnectionTimeout                  = null,
+
+                            UInt32                                MaxClientConnections               = __DefaultMaxClientConnections,
+                            Boolean                               Autostart                          = false)
 
             : base(IIPAddress,
                    Port,
@@ -206,16 +221,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                    ClientCertificateValidator,
                    ClientCertificateSelector,
                    AllowedTLSProtocols,
+                   ClientCertificateRequired,
+                   CheckCertificateRevocation,
+
                    ServiceName,
                    ServiceBanner,
                    ServerThreadName,
                    ServerThreadPriority,
                    ServerThreadIsBackground,
+
                    ConnectionIdBuilder,
                    ConnectionThreadsNameBuilder,
                    ConnectionThreadsPriorityBuilder,
                    ConnectionThreadsAreBackground,
                    ConnectionTimeout,
+
                    MaxClientConnections,
                    false)
 
@@ -261,24 +281,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="Autostart">Start the TCP server thread immediately (default: no).</param>
-        public TCPCSVServer(IPSocket                             IPSocket,
-                            ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
-                            RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
-                            LocalCertificateSelectionCallback    ClientCertificateSelector          = null,
-                            SslProtocols                         AllowedTLSProtocols                = SslProtocols.Tls12,
-                            String                               ServiceName                        = null,
-                            String                               ServiceBanner                      = __DefaultServiceBanner,
-                            IEnumerable<Char>                    SplitCharacters                    = null,
-                            String                               ServerThreadName                   = null,
-                            ThreadPriority                       ServerThreadPriority               = ThreadPriority.AboveNormal,
-                            Boolean                              ServerThreadIsBackground           = true,
-                            ConnectionIdBuilder                  ConnectionIdBuilder                = null,
-                            ConnectionThreadsNameBuilder         ConnectionThreadsNameBuilder       = null,
-                            ConnectionThreadsPriorityBuilder     ConnectionThreadsPriorityBuilder   = null,
-                            Boolean                              ConnectionThreadsAreBackground     = true,
-                            TimeSpan?                            ConnectionTimeout                  = null,
-                            UInt32                               MaxClientConnections               = __DefaultMaxClientConnections,
-                            Boolean                              Autostart                          = false)
+        public TCPCSVServer(IPSocket                              IPSocket,
+                            ServerCertificateSelectorDelegate?    ServerCertificateSelector          = null,
+                            RemoteCertificateValidationCallback?  ClientCertificateValidator         = null,
+                            LocalCertificateSelectionCallback?    ClientCertificateSelector          = null,
+                            SslProtocols?                         AllowedTLSProtocols                = null,
+                            Boolean?                              ClientCertificateRequired          = null,
+                            Boolean?                              CheckCertificateRevocation         = null,
+
+                            String?                               ServiceName                        = null,
+                            String                                ServiceBanner                      = __DefaultServiceBanner,
+                            IEnumerable<Char>?                    SplitCharacters                    = null,
+                            String?                               ServerThreadName                   = null,
+                            ThreadPriority                        ServerThreadPriority               = ThreadPriority.AboveNormal,
+                            Boolean                               ServerThreadIsBackground           = true,
+
+                            ConnectionIdBuilder?                  ConnectionIdBuilder                = null,
+                            ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
+                            ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
+                            Boolean                               ConnectionThreadsAreBackground     = true,
+                            TimeSpan?                             ConnectionTimeout                  = null,
+
+                            UInt32                                MaxClientConnections               = __DefaultMaxClientConnections,
+                            Boolean                               Autostart                          = false)
 
             : this(IPSocket.IPAddress,
                    IPSocket.Port,
@@ -286,17 +311,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                    ClientCertificateValidator,
                    ClientCertificateSelector,
                    AllowedTLSProtocols,
+                   ClientCertificateRequired,
+                   CheckCertificateRevocation,
+
                    ServiceName,
                    ServiceBanner,
                    SplitCharacters,
                    ServerThreadName,
                    ServerThreadPriority,
                    ServerThreadIsBackground,
+
                    ConnectionIdBuilder,
                    ConnectionThreadsNameBuilder,
                    ConnectionThreadsPriorityBuilder,
                    ConnectionThreadsAreBackground,
                    ConnectionTimeout,
+
                    MaxClientConnections,
                    Autostart)
 

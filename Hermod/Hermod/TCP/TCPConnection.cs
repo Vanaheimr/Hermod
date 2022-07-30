@@ -250,12 +250,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="AllowedTLSProtocols">The SSL/TLS protocol(s) allowed for this connection.</param>
         public TCPConnection(TCPServer                            TCPServer,
                              TcpClient                            TCPClient,
-                             ServerCertificateSelectorDelegate    ServerCertificateSelector    = null,
-                             RemoteCertificateValidationCallback  ClientCertificateValidator   = null,
-                             LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
-                             SslProtocols                         AllowedTLSProtocols          = SslProtocols.Tls11 | SslProtocols.Tls12 | SslProtocols.Tls13,
-                             TimeSpan?                            ReadTimeout                  = null,
-                             TimeSpan?                            WriteTimeout                 = null)
+                             ServerCertificateSelectorDelegate?    ServerCertificateSelector    = null,
+                             RemoteCertificateValidationCallback?  ClientCertificateValidator   = null,
+                             LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
+                             SslProtocols?                         AllowedTLSProtocols          = null,
+                             TimeSpan?                             ReadTimeout                  = null,
+                             TimeSpan?                             WriteTimeout                 = null)
 
             : base(new IPSocket(new IPv4Address((         TCPClient.Client.LocalEndPoint  as IPEndPoint)?.Address),
                                 IPPort.Parse   ((UInt16) (TCPClient.Client.LocalEndPoint  as IPEndPoint)?.Port)),
@@ -299,7 +299,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                 this.SSLStream.AuthenticateAsServer(serverCertificate:                  ServerCertificate,
                                                     clientCertificateRequired:          ClientCertificateValidator != null,
-                                                    enabledSslProtocols:                AllowedTLSProtocols,
+                                                    enabledSslProtocols:                AllowedTLSProtocols ?? SslProtocols.Tls12 | SslProtocols.Tls13,
                                                     checkCertificateRevocation:         false);
 
                 if (this.SSLStream.RemoteCertificate != null)

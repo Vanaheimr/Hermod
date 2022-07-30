@@ -1207,10 +1207,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        RemoteCertificateValidationCallback?  ClientCertificateValidator         = null,
                        LocalCertificateSelectionCallback?    ClientCertificateSelector          = null,
                        SslProtocols?                         AllowedTLSProtocols                = null,
+                       Boolean?                              ClientCertificateRequired          = null,
+                       Boolean?                              CheckCertificateRevocation         = null,
 
                        String?                               ServerThreadName                   = null,
                        ThreadPriority?                       ServerThreadPriority               = null,
                        Boolean?                              ServerThreadIsBackground           = null,
+
                        ConnectionIdBuilder?                  ConnectionIdBuilder                = null,
                        ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
                        ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
@@ -1243,6 +1246,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   ClientCertificateSelector,
                                   ClientCertificateValidator,
                                   AllowedTLSProtocols,
+                                  ClientCertificateRequired,
+                                  CheckCertificateRevocation,
 
                                   ServerThreadName,
                                   ServerThreadPriority,

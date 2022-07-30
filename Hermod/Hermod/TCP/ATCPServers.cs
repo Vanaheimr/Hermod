@@ -51,27 +51,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// The DNS defines which DNS servers to use.
         /// </summary>
-        public DNSClient                            DNSClient                       { get; }
+        public DNSClient                             DNSClient                       { get; }
 
         /// <summary>
         /// The optional delegate to select a SSL/TLS server certificate.
         /// </summary>
-        public ServerCertificateSelectorDelegate    ServerCertificateSelector       { get; }
+        public ServerCertificateSelectorDelegate?    ServerCertificateSelector       { get; }
 
         /// <summary>
         /// The optional delegate to verify the SSL/TLS client certificate used for authentication.
         /// </summary>
-        public RemoteCertificateValidationCallback  ClientCertificateValidator      { get; }
+        public RemoteCertificateValidationCallback?  ClientCertificateValidator      { get; }
 
         /// <summary>
         /// The optional delegate to select the SSL/TLS client certificate used for authentication.
         /// </summary>
-        public LocalCertificateSelectionCallback    ClientCertificateSelector       { get; }
+        public LocalCertificateSelectionCallback?    ClientCertificateSelector       { get; }
 
         /// <summary>
         /// The SSL/TLS protocol(s) allowed for this connection.
         /// </summary>
-        public SslProtocols                         AllowedTLSProtocols             { get; }
+        public SslProtocols                          AllowedTLSProtocols             { get; }
+
+        public Boolean                               ClientCertificateRequired       { get; }
+
+        public Boolean                               CheckCertificateRevocation      { get; }
 
 
         #region ServiceName
@@ -499,37 +503,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// 
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="Autostart">Start the TCP server threads immediately (default: no).</param>
-        public ATCPServers(String                               ServiceName                        = TCPServer.__DefaultServiceName,
-                           String                               ServiceBanner                      = TCPServer.__DefaultServiceBanner,
+        public ATCPServers(String                                ServiceName                        = TCPServer.__DefaultServiceName,
+                           String                                ServiceBanner                      = TCPServer.__DefaultServiceBanner,
 
-                           ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
-                           LocalCertificateSelectionCallback    ClientCertificateSelector          = null,
-                           RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
-                           SslProtocols?                        AllowedTLSProtocols                = SslProtocols.Tls12 | SslProtocols.Tls13,
+                           ServerCertificateSelectorDelegate?    ServerCertificateSelector          = null,
+                           LocalCertificateSelectionCallback?    ClientCertificateSelector          = null,
+                           RemoteCertificateValidationCallback?  ClientCertificateValidator         = null,
+                           SslProtocols?                         AllowedTLSProtocols                = null,
+                           Boolean?                              ClientCertificateRequired          = null,
+                           Boolean?                              CheckCertificateRevocation         = null,
 
-                           String                               ServerThreadName                   = TCPServer.__DefaultServerThreadName,
-                           ThreadPriority?                      ServerThreadPriority               = ThreadPriority.AboveNormal,
-                           Boolean?                             ServerThreadIsBackground           = true,
-                           ConnectionIdBuilder                  ConnectionIdBuilder                = null,
-                           ConnectionThreadsNameBuilder         ConnectionThreadsNameBuilder       = null,
-                           ConnectionThreadsPriorityBuilder     ConnectionThreadsPriorityBuilder   = null,
-                           Boolean?                             ConnectionThreadsAreBackground     = true,
-                           TimeSpan?                            ConnectionTimeout                  = null,
-                           UInt32?                              MaxClientConnections               = TCPServer.__DefaultMaxClientConnections,
+                           String                                ServerThreadName                   = TCPServer.__DefaultServerThreadName,
+                           ThreadPriority?                       ServerThreadPriority               = ThreadPriority.AboveNormal,
+                           Boolean?                              ServerThreadIsBackground           = true,
+                           ConnectionIdBuilder?                  ConnectionIdBuilder                = null,
+                           ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
+                           ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
+                           Boolean?                              ConnectionThreadsAreBackground     = true,
+                           TimeSpan?                             ConnectionTimeout                  = null,
+                           UInt32?                               MaxClientConnections               = TCPServer.__DefaultMaxClientConnections,
 
-                           DNSClient                            DNSClient                          = null,
-                           Boolean                              Autostart                          = false)
+                           DNSClient?                            DNSClient                          = null,
+                           Boolean                               Autostart                          = false)
 
         {
 
-            this._TCPServers  = new List<TCPServer>();
-            this.DNSClient = DNSClient;
+            this._TCPServers                        = new List<TCPServer>();
+            this.DNSClient                          = DNSClient                        ?? new DNSClient();
 
             // TCP Server
             this.ServerCertificateSelector          = ServerCertificateSelector;
             this.ClientCertificateSelector          = ClientCertificateSelector;
             this.ClientCertificateValidator         = ClientCertificateValidator;
-            this.AllowedTLSProtocols                = AllowedTLSProtocols ?? SslProtocols.Tls12 | SslProtocols.Tls13;
+            this.AllowedTLSProtocols                = AllowedTLSProtocols              ?? SslProtocols.Tls12 | SslProtocols.Tls13;
+            this.ClientCertificateRequired          = ClientCertificateRequired        ?? false;
+            this.CheckCertificateRevocation         = CheckCertificateRevocation       ?? false;
 
             this._ServiceName                       = ServiceName                      ?? TCPServer.__DefaultServiceName;
             this._ServiceBanner                     = ServiceBanner                    ?? TCPServer.__DefaultServiceBanner;
@@ -574,16 +582,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                                                                    ClientCertificateValidator,
                                                                                    ClientCertificateSelector,
                                                                                    AllowedTLSProtocols,
+                                                                                   ClientCertificateRequired,
+                                                                                   CheckCertificateRevocation,
+
                                                                                    ServiceName,
                                                                                    ServiceBanner,
                                                                                    _ServerThreadName,
                                                                                    _ServerThreadPriority,
                                                                                    _ServerThreadIsBackground,
+
                                                                                    _ConnectionIdBuilder,
                                                                                    _ConnectionThreadsNameBuilder,
                                                                                    _ConnectionThreadsPriorityBuilder,
                                                                                    _ConnectionThreadsAreBackground,
                                                                                    _ConnectionTimeout,
+
                                                                                    _MaxClientConnections,
                                                                                    false));
 
@@ -620,16 +633,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                                                                    ClientCertificateValidator,
                                                                                    ClientCertificateSelector,
                                                                                    AllowedTLSProtocols,
+                                                                                   ClientCertificateRequired,
+                                                                                   CheckCertificateRevocation,
+
                                                                                    ServiceName,
                                                                                    ServiceBanner,
                                                                                    _ServerThreadName,
                                                                                    _ServerThreadPriority,
                                                                                    _ServerThreadIsBackground,
+
                                                                                    _ConnectionIdBuilder,
                                                                                    _ConnectionThreadsNameBuilder,
                                                                                    _ConnectionThreadsPriorityBuilder,
                                                                                    _ConnectionThreadsAreBackground,
                                                                                    _ConnectionTimeout,
+
                                                                                    _MaxClientConnections,
                                                                                    false));
 

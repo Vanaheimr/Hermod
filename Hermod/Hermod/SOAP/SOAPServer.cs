@@ -98,26 +98,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
-        public SOAPServer(IPPort                               TCPPort,
-                          String                               DefaultServerName                  = HTTPServer.DefaultHTTPServerName,
-                          String                               ServiceName                        = null,
+        public SOAPServer(IPPort                                TCPPort,
+                          String                                DefaultServerName                  = HTTPServer.DefaultHTTPServerName,
+                          String?                               ServiceName                        = null,
 
-                          HTTPContentType                      SOAPContentType                    = null,
-                          ServerCertificateSelectorDelegate    ServerCertificateSelector          = null,
-                          LocalCertificateSelectionCallback    ClientCertificateSelector          = null,
-                          RemoteCertificateValidationCallback  ClientCertificateValidator         = null,
-                          SslProtocols                         AllowedTLSProtocols                = SslProtocols.Tls12,
-                          String                               ServerThreadName                   = null,
-                          ThreadPriority                       ServerThreadPriority               = ThreadPriority.AboveNormal,
-                          Boolean                              ServerThreadIsBackground           = true,
-                          ConnectionIdBuilder                  ConnectionIdBuilder                = null,
-                          ConnectionThreadsNameBuilder         ConnectionThreadsNameBuilder       = null,
-                          ConnectionThreadsPriorityBuilder     ConnectionThreadsPriorityBuilder   = null,
-                          Boolean                              ConnectionThreadsAreBackground     = true,
-                          TimeSpan?                            ConnectionTimeout                  = null,
-                          UInt32?                              MaxClientConnections               = null,
-                          DNSClient                            DNSClient                          = null,
-                          Boolean                              Autostart                          = false)
+                          HTTPContentType?                      SOAPContentType                    = null,
+                          ServerCertificateSelectorDelegate?    ServerCertificateSelector          = null,
+                          LocalCertificateSelectionCallback?    ClientCertificateSelector          = null,
+                          RemoteCertificateValidationCallback?  ClientCertificateValidator         = null,
+                          SslProtocols?                         AllowedTLSProtocols                = null,
+                          Boolean?                              ClientCertificateRequired          = null,
+                          Boolean?                              CheckCertificateRevocation         = null,
+
+                          String?                               ServerThreadName                   = null,
+                          ThreadPriority                        ServerThreadPriority               = ThreadPriority.AboveNormal,
+                          Boolean                               ServerThreadIsBackground           = true,
+
+                          ConnectionIdBuilder?                  ConnectionIdBuilder                = null,
+                          ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
+                          ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
+                          Boolean                               ConnectionThreadsAreBackground     = true,
+                          TimeSpan?                             ConnectionTimeout                  = null,
+
+                          UInt32?                               MaxClientConnections               = null,
+                          DNSClient?                            DNSClient                          = null,
+                          Boolean                               Autostart                          = false)
 
         {
 
@@ -128,14 +133,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                                     ClientCertificateSelector,
                                                     ClientCertificateValidator,
                                                     AllowedTLSProtocols,
+                                                    ClientCertificateRequired,
+                                                    CheckCertificateRevocation,
+
                                                     ServerThreadName,
                                                     ServerThreadPriority,
                                                     ServerThreadIsBackground,
+
                                                     ConnectionIdBuilder,
                                                     ConnectionThreadsNameBuilder,
                                                     ConnectionThreadsPriorityBuilder,
                                                     ConnectionThreadsAreBackground,
                                                     ConnectionTimeout,
+
                                                     MaxClientConnections,
                                                     DNSClient,
                                                     false);
