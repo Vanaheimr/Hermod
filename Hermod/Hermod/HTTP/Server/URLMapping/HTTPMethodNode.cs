@@ -140,10 +140,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
 
                 // For ANY content type...
-                if (HTTPContentType == null)
+                if (HTTPContentType is null)
                 {
 
-                    if (this.RequestHandler == null || AllowReplacement == URLReplacement.Allow)
+                    if (this.RequestHandler is null || AllowReplacement == URLReplacement.Allow)
                     {
 
                         this.HTTPRequestLogger    = HTTPRequestLogger;
@@ -154,7 +154,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        throw new ArgumentException("An URI without a content type? Does this make sense here!");
+                        throw new ArgumentException("An URL template without a content type? Does this make sense here!");
 
                 }
 
@@ -163,7 +163,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 {
 
                     // The content type already exists!
-                    if (_ContentTypeNodes.TryGetValue(HTTPContentType, out ContentTypeNode _ContentTypeNode))
+                    if (_ContentTypeNodes.TryGetValue(HTTPContentType, out ContentTypeNode? _ContentTypeNode))
                     {
 
                         if (_ContentTypeNode.AllowReplacement == URLReplacement.Allow)
