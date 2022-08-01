@@ -745,6 +745,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Process-ID
+
+        /// <summary>
+        /// The unique identification of a server side process,
+        /// e.g. used by the Hubject Open InterCharge Protocol.
+        /// </summary>
+        /// <example>4c1134cd-2ee7-49da-9952-0f53c5456d36</example>
+        public String? ProcessID
+        {
+
+            get
+            {
+                return GetHeaderField(HTTPHeaderField.ProcessID);
+            }
+
+            set
+            {
+                SetHeaderField(HTTPHeaderField.ProcessID, value);
+            }
+
+        }
+
+        #endregion
+
         #endregion
 
         #region Events
@@ -1140,22 +1164,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="FieldName">The name of the header field.</param>
         /// <param name="Value">The value. NULL will remove the field from the header.</param>
-        public void SetHeaderField(String FieldName, Object Value)
+        public void SetHeaderField(String FieldName, Object? Value)
         {
 
-            FieldName = FieldName?.Trim();
+            FieldName = FieldName.Trim();
 
-            if (FieldName.IsNotNullOrEmpty() &&
-                Value != null)
+            if (FieldName.IsNotNullOrEmpty())
             {
-                if (HeaderFields.ContainsKey(FieldName))
-                    HeaderFields[FieldName] = Value;
-                else
-                    HeaderFields.Add(FieldName, Value);
+                lock (HeaderFields)
+                {
+
+                    if (Value is not null)
+                    {
+                        if (HeaderFields.ContainsKey(FieldName))
+                            HeaderFields[FieldName] = Value;
+                        else
+                            HeaderFields.Add(FieldName, Value);
+                    }
+                    else
+                        if (HeaderFields.ContainsKey(FieldName))
+                        HeaderFields.Remove(FieldName);
+
+                }
             }
-            else
-                if (HeaderFields.ContainsKey(FieldName))
-                    HeaderFields.Remove(FieldName);
 
         }
 
@@ -1169,22 +1200,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HeaderField">The header field.</param>
         /// <param name="Value">The value. NULL will remove the field from the header.</param>
-        public void SetHeaderField(HTTPHeaderField HeaderField, Object Value)
+        public void SetHeaderField(HTTPHeaderField HeaderField, Object? Value)
         {
 
-            if (Value != null)
+            lock (HeaderFields)
             {
 
-                if (HeaderFields.ContainsKey(HeaderField.Name))
-                    HeaderFields[HeaderField.Name] = Value;
+                if (Value is not null)
+                {
+                    if (HeaderFields.ContainsKey(HeaderField.Name))
+                        HeaderFields[HeaderField.Name] = Value;
+                    else
+                        HeaderFields.Add(HeaderField.Name, Value);
+                }
+
                 else
-                    HeaderFields.Add(HeaderField.Name, Value);
+                    if (HeaderFields.ContainsKey(HeaderField.Name))
+                        HeaderFields.Remove(HeaderField.Name);
 
             }
-
-            else
-                if (HeaderFields.ContainsKey(HeaderField.Name))
-                    HeaderFields.Remove(HeaderField.Name);
 
         }
 
@@ -1199,10 +1233,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public void RemoveHeaderField(String FieldName)
         {
 
-            FieldName = FieldName?.Trim();
+            FieldName = FieldName.Trim();
 
-            if (HeaderFields.ContainsKey(FieldName))
-                HeaderFields.Remove(FieldName);
+            if (FieldName.IsNotNullOrEmpty())
+            {
+                lock (HeaderFields)
+                {
+                    if (HeaderFields.ContainsKey(FieldName))
+                        HeaderFields.Remove(FieldName);
+                }
+            }
+
+        }
+
+        #endregion
+
+        #region RemoveHeaderField(FieldName)
+
+        /// <summary>
+        /// Remove a HTTP header field.
+        /// </summary>
+        /// <param name="HeaderField">The header field.</param>
+        public void RemoveHeaderField(HTTPHeaderField HeaderField)
+        {
+
+            lock (HeaderFields)
+            {
+                if (HeaderFields.ContainsKey(HeaderField.Name))
+                    HeaderFields.Remove(HeaderField.Name);
+            }
 
         }
 

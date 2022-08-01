@@ -2301,6 +2301,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Process-ID
+
+        /// <summary>
+        /// The unique identification of a server side process,
+        /// e.g. used by the Hubject Open InterCharge Protocol.
+        /// </summary>
+        /// <example>4c1134cd-2ee7-49da-9952-0f53c5456d36</example>
+        public static readonly HTTPHeaderField ProcessID = new HTTPHeaderField("Process-ID",
+                                                                               typeof(String),
+                                                                               HeaderFieldType.Response,
+                                                                               RequestPathSemantic.HopToHop);
+
+        #endregion
+
         #endregion
 
 
