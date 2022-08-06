@@ -162,7 +162,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
         /// <param name="HTTPLogger">A HTTP logger.</param>
         public static HTTPServerRequestLogger2 RegisterDefaultConsoleLogTarget(this HTTPServerRequestLogger2  HTTPRequestLogger,
-                                                                              HTTPServerLogger              HTTPLogger)
+                                                                               HTTPServerLogger               HTTPLogger)
 
             => HTTPRequestLogger.RegisterLogTarget(LogTargets.Console,
                                                    HTTPLogger.Default_LogHTTPRequest_toConsole);
@@ -177,7 +177,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
         /// <param name="HTTPLogger">A HTTP logger.</param>
         public static HTTPServerResponseLogger2 RegisterDefaultConsoleLogTarget(this HTTPServerResponseLogger2  HTTPResponseLogger,
-                                                                               HTTPServerLogger               HTTPLogger)
+                                                                                HTTPServerLogger                HTTPLogger)
 
             => HTTPResponseLogger.RegisterLogTarget(LogTargets.Console,
                                                     HTTPLogger.Default_LogHTTPResponse_toConsole);
@@ -223,7 +223,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
         /// <param name="HTTPLogger">A HTTP logger.</param>
         public static HTTPServerRequestLogger2 RegisterDefaultDiscLogTarget(this HTTPServerRequestLogger2  HTTPRequestLogger,
-                                                                           HTTPServerLogger              HTTPLogger)
+                                                                            HTTPServerLogger               HTTPLogger)
 
             => HTTPRequestLogger.RegisterLogTarget(LogTargets.Disc,
                                                    HTTPLogger.Default_LogHTTPRequest_toDisc);
@@ -238,7 +238,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
         /// <param name="HTTPLogger">A HTTP logger.</param>
         public static HTTPServerResponseLogger2 RegisterDefaultDiscLogTarget(this HTTPServerResponseLogger2  HTTPResponseLogger,
-                                                                            HTTPServerLogger               HTTPLogger)
+                                                                             HTTPServerLogger                HTTPLogger)
 
             => HTTPResponseLogger.RegisterLogTarget(LogTargets.Disc,
                                                     HTTPLogger.Default_LogHTTPResponse_toDisc);

@@ -17,13 +17,7 @@
 
 #region Usings
 
-using System;
-using System.IO;
 using System.Text;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -43,6 +37,137 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// </summary>
     public abstract class AHTTPLogger
     {
+
+        #region Data
+
+        private static readonly Object         LockObject                   = new Object();
+        private static          SemaphoreSlim  LogHTTPRequest_toDisc_Lock   = new SemaphoreSlim(1,1);
+        private static          SemaphoreSlim  LogHTTPResponse_toDisc_Lock  = new SemaphoreSlim(1,1);
+
+        /// <summary>
+        /// The maximum number of retries to write to a logfile.
+        /// </summary>
+        public  static readonly Byte           MaxRetries                   = 5;
+
+        /// <summary>
+        /// Maximum waiting time to enter a lock around a logfile.
+        /// </summary>
+        public  static readonly TimeSpan       MaxWaitingForALock           = TimeSpan.FromSeconds(15);
+
+        /// <summary>
+        /// A delegate for the default ToDisc logger returning a
+        /// valid logfile name based on the given log event name.
+        /// </summary>
+        public         LogfileCreatorDelegate  LogfileCreator               { get; }
+
+        protected readonly ConcurrentDictionary<String, HashSet<String>> _GroupTags;
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// The logging path.
+        /// </summary>
+        public String  LoggingPath    { get; }
+
+        /// <summary>
+        /// The context of this HTTP logger.
+        /// </summary>
+        public String  Context        { get; }
+
+        #endregion
+
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create a new HTTP API logger using the given logging delegates.
+        /// </summary>
+        /// <param name="LoggingPath">The logging path.</param>
+        /// <param name="Context">A context of this API.</param>
+        /// 
+        /// <param name="LogHTTPRequest_toConsole">A delegate to log incoming HTTP requests to console.</param>
+        /// <param name="LogHTTPResponse_toConsole">A delegate to log HTTP requests/responses to console.</param>
+        /// <param name="LogHTTPRequest_toDisc">A delegate to log incoming HTTP requests to disc.</param>
+        /// <param name="LogHTTPResponse_toDisc">A delegate to log HTTP requests/responses to disc.</param>
+        /// 
+        /// <param name="LogHTTPRequest_toNetwork">A delegate to log incoming HTTP requests to a network target.</param>
+        /// <param name="LogHTTPResponse_toNetwork">A delegate to log HTTP requests/responses to a network target.</param>
+        /// <param name="LogHTTPRequest_toHTTPSSE">A delegate to log incoming HTTP requests to a HTTP server sent events source.</param>
+        /// <param name="LogHTTPResponse_toHTTPSSE">A delegate to log HTTP requests/responses to a HTTP server sent events source.</param>
+        /// 
+        /// <param name="LogHTTPError_toConsole">A delegate to log HTTP errors to console.</param>
+        /// <param name="LogHTTPError_toDisc">A delegate to log HTTP errors to disc.</param>
+        /// <param name="LogHTTPError_toNetwork">A delegate to log HTTP errors to a network target.</param>
+        /// <param name="LogHTTPError_toHTTPSSE">A delegate to log HTTP errors to a HTTP server sent events source.</param>
+        /// 
+        /// <param name="LogfileCreator">A delegate to create a log file from the given context and log file name.</param>
+        public AHTTPLogger(String                       LoggingPath,
+                           String                       Context,
+
+                           HTTPRequestLoggerDelegate?   LogHTTPRequest_toConsole    = null,
+                           HTTPResponseLoggerDelegate?  LogHTTPResponse_toConsole   = null,
+                           HTTPRequestLoggerDelegate?   LogHTTPRequest_toDisc       = null,
+                           HTTPResponseLoggerDelegate?  LogHTTPResponse_toDisc      = null,
+
+                           HTTPRequestLoggerDelegate?   LogHTTPRequest_toNetwork    = null,
+                           HTTPResponseLoggerDelegate?  LogHTTPResponse_toNetwork   = null,
+                           HTTPRequestLoggerDelegate?   LogHTTPRequest_toHTTPSSE    = null,
+                           HTTPResponseLoggerDelegate?  LogHTTPResponse_toHTTPSSE   = null,
+
+                           HTTPResponseLoggerDelegate?  LogHTTPError_toConsole      = null,
+                           HTTPResponseLoggerDelegate?  LogHTTPError_toDisc         = null,
+                           HTTPResponseLoggerDelegate?  LogHTTPError_toNetwork      = null,
+                           HTTPResponseLoggerDelegate?  LogHTTPError_toHTTPSSE      = null,
+
+                           LogfileCreatorDelegate?      LogfileCreator              = null)
+
+        {
+
+            #region Init data structures
+
+            this.LoggingPath  = LoggingPath ?? "";
+            this.Context      = Context     ?? "";
+            this._GroupTags   = new ConcurrentDictionary<String, HashSet<String>>();
+
+            #endregion
+
+            #region Set default delegates
+
+            if (LogHTTPRequest_toConsole  is null)
+                LogHTTPRequest_toConsole   = Default_LogHTTPRequest_toConsole;
+
+            if (LogHTTPRequest_toDisc     is null)
+                LogHTTPRequest_toDisc      = Default_LogHTTPRequest_toDisc;
+
+            if (LogHTTPResponse_toConsole is null)
+                LogHTTPResponse_toConsole  = Default_LogHTTPResponse_toConsole;
+
+            if (LogHTTPResponse_toDisc    is null)
+                LogHTTPResponse_toDisc     = Default_LogHTTPResponse_toDisc;
+
+
+            if (LogHTTPRequest_toDisc  is not null ||
+                LogHTTPResponse_toDisc is not null ||
+                LogHTTPError_toDisc    is not null)
+            {
+                if (this.LoggingPath.IsNotNullOrEmpty())
+                    Directory.CreateDirectory(this.LoggingPath);
+            }
+
+            this.LogfileCreator  = LogfileCreator ?? ((loggingPath, context, logfileName) => String.Concat(loggingPath,
+                                                                                                           context != null ? context + "_" : "",
+                                                                                                           logfileName, "_",
+                                                                                                           DateTime.UtcNow.Year, "-",
+                                                                                                           DateTime.UtcNow.Month.ToString("D2"),
+                                                                                                           ".log"));
+
+            #endregion
+
+        }
+
+        #endregion
+
 
         // Default logging delegates
 
@@ -146,6 +271,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
+
 
         #region Default_LogHTTPRequest_toDisc (Context, LogEventName, Request)
 
@@ -338,136 +464,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-
-        #region Data
-
-        private static readonly Object         LockObject                   = new Object();
-        private static          SemaphoreSlim  LogHTTPRequest_toDisc_Lock   = new SemaphoreSlim(1,1);
-        private static          SemaphoreSlim  LogHTTPResponse_toDisc_Lock  = new SemaphoreSlim(1,1);
-
-        /// <summary>
-        /// The maximum number of retries to write to a logfile.
-        /// </summary>
-        public  static readonly Byte           MaxRetries                   = 5;
-
-        /// <summary>
-        /// Maximum waiting time to enter a lock around a logfile.
-        /// </summary>
-        public  static readonly TimeSpan       MaxWaitingForALock           = TimeSpan.FromSeconds(15);
-
-        /// <summary>
-        /// A delegate for the default ToDisc logger returning a
-        /// valid logfile name based on the given log event name.
-        /// </summary>
-        public         LogfileCreatorDelegate  LogfileCreator               { get; }
-
-        protected readonly ConcurrentDictionary<String, HashSet<String>> _GroupTags;
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// The logging path.
-        /// </summary>
-        public String  LoggingPath    { get; }
-
-        /// <summary>
-        /// The context of this HTTP logger.
-        /// </summary>
-        public String  Context        { get; }
-
-        #endregion
-
-        #region Constructor(s)
-
-        /// <summary>
-        /// Create a new HTTP API logger using the given logging delegates.
-        /// </summary>
-        /// <param name="LoggingPath">The logging path.</param>
-        /// <param name="Context">A context of this API.</param>
-        /// 
-        /// <param name="LogHTTPRequest_toConsole">A delegate to log incoming HTTP requests to console.</param>
-        /// <param name="LogHTTPResponse_toConsole">A delegate to log HTTP requests/responses to console.</param>
-        /// <param name="LogHTTPRequest_toDisc">A delegate to log incoming HTTP requests to disc.</param>
-        /// <param name="LogHTTPResponse_toDisc">A delegate to log HTTP requests/responses to disc.</param>
-        /// 
-        /// <param name="LogHTTPRequest_toNetwork">A delegate to log incoming HTTP requests to a network target.</param>
-        /// <param name="LogHTTPResponse_toNetwork">A delegate to log HTTP requests/responses to a network target.</param>
-        /// <param name="LogHTTPRequest_toHTTPSSE">A delegate to log incoming HTTP requests to a HTTP server sent events source.</param>
-        /// <param name="LogHTTPResponse_toHTTPSSE">A delegate to log HTTP requests/responses to a HTTP server sent events source.</param>
-        /// 
-        /// <param name="LogHTTPError_toConsole">A delegate to log HTTP errors to console.</param>
-        /// <param name="LogHTTPError_toDisc">A delegate to log HTTP errors to disc.</param>
-        /// <param name="LogHTTPError_toNetwork">A delegate to log HTTP errors to a network target.</param>
-        /// <param name="LogHTTPError_toHTTPSSE">A delegate to log HTTP errors to a HTTP server sent events source.</param>
-        /// 
-        /// <param name="LogfileCreator">A delegate to create a log file from the given context and log file name.</param>
-        public AHTTPLogger(String                       LoggingPath,
-                           String                       Context,
-
-                           HTTPRequestLoggerDelegate?   LogHTTPRequest_toConsole    = null,
-                           HTTPResponseLoggerDelegate?  LogHTTPResponse_toConsole   = null,
-                           HTTPRequestLoggerDelegate?   LogHTTPRequest_toDisc       = null,
-                           HTTPResponseLoggerDelegate?  LogHTTPResponse_toDisc      = null,
-
-                           HTTPRequestLoggerDelegate?   LogHTTPRequest_toNetwork    = null,
-                           HTTPResponseLoggerDelegate?  LogHTTPResponse_toNetwork   = null,
-                           HTTPRequestLoggerDelegate?   LogHTTPRequest_toHTTPSSE    = null,
-                           HTTPResponseLoggerDelegate?  LogHTTPResponse_toHTTPSSE   = null,
-
-                           HTTPResponseLoggerDelegate?  LogHTTPError_toConsole      = null,
-                           HTTPResponseLoggerDelegate?  LogHTTPError_toDisc         = null,
-                           HTTPResponseLoggerDelegate?  LogHTTPError_toNetwork      = null,
-                           HTTPResponseLoggerDelegate?  LogHTTPError_toHTTPSSE      = null,
-
-                           LogfileCreatorDelegate?      LogfileCreator              = null)
-
-        {
-
-            #region Init data structures
-
-            this.LoggingPath  = LoggingPath ?? "";
-            this.Context      = Context     ?? "";
-            this._GroupTags   = new ConcurrentDictionary<String, HashSet<String>>();
-
-            #endregion
-
-            #region Set default delegates
-
-            if (LogHTTPRequest_toConsole  == null)
-                LogHTTPRequest_toConsole   = Default_LogHTTPRequest_toConsole;
-
-            if (LogHTTPRequest_toDisc     == null)
-                LogHTTPRequest_toDisc      = Default_LogHTTPRequest_toDisc;
-
-            if (LogHTTPResponse_toConsole == null)
-                LogHTTPResponse_toConsole  = Default_LogHTTPResponse_toConsole;
-
-            if (LogHTTPResponse_toDisc    == null)
-                LogHTTPResponse_toDisc     = Default_LogHTTPResponse_toDisc;
-
-
-            if (LogHTTPRequest_toDisc  != null ||
-                LogHTTPResponse_toDisc != null ||
-                LogHTTPError_toDisc    != null)
-            {
-                if (this.LoggingPath.IsNotNullOrEmpty())
-                    Directory.CreateDirectory(this.LoggingPath);
-            }
-
-            this.LogfileCreator  = LogfileCreator ?? ((loggingPath, context, logfileName) => String.Concat(loggingPath,
-                                                                                                           context != null ? context + "_" : "",
-                                                                                                           logfileName, "_",
-                                                                                                           DateTime.UtcNow.Year, "-",
-                                                                                                           DateTime.UtcNow.Month.ToString("D2"),
-                                                                                                           ".log"));
-
-            #endregion
-
-        }
-
-        #endregion
 
 
         #region Debug(LogEventOrGroupName, LogTarget)

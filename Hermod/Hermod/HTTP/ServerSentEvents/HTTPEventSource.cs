@@ -18,12 +18,7 @@
 
 #region Usings
 
-using System;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Illias.Collections;
@@ -32,6 +27,53 @@ using org.GraphDefined.Vanaheimr.Illias.Collections;
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
+
+    /// <summary>
+    /// Extension methods for event source extensions.
+    /// </summary>
+    public static class HTTPEventSourceExtensions
+    {
+
+        #region SubmitEvent(SubEvent, HTTPRequest)
+
+        /// <summary>
+        /// Submit a new event.
+        /// </summary>
+        /// <param name="SubEvent">A subevent identification.</param>
+        /// <param name="HTTPRequest">The attached HTTP request.</param>
+        public static Task SubmitEvent(this HTTPEventSource<JObject>  HTTPEventSource,
+                                       String                         SubEvent,
+                                       HTTPRequest                    HTTPRequest)
+
+            => HTTPEventSource.SubmitEvent(SubEvent,
+                                           Timestamp.Now,
+                                           new JObject(
+                                               new JProperty("httpRequest", HTTPRequest.EntirePDU)
+                                           ));
+
+        #endregion
+
+        #region SubmitEvent(SubEvent, HTTPResponse)
+
+        /// <summary>
+        /// Submit a new event.
+        /// </summary>
+        /// <param name="SubEvent">A subevent identification.</param>
+        /// <param name="HTTPResponse">The attached HTTP request.</param>
+        public static Task SubmitEvent(this HTTPEventSource<JObject>  HTTPEventSource,
+                                       String                         SubEvent,
+                                       HTTPResponse                   HTTPResponse)
+
+            => HTTPEventSource.SubmitEvent(SubEvent,
+                                           Timestamp.Now,
+                                           new JObject(
+                                               new JProperty("httpRequest", HTTPResponse.EntirePDU)
+                                           ));
+
+        #endregion
+
+    }
+
 
     // In contrast to other popular Comet protocols such as Bayeux or BOSH, Server-Sent Events
     // support a unidirectional server-to-client channel only. The Bayeux protocol on the other
@@ -294,7 +336,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="SubEvent">A subevent identification.</param>
         /// <param name="Data">The attached event data.</param>
-        public Task SubmitEvent(String SubEvent, T Data)
+        public Task SubmitEvent(String  SubEvent,
+                                T       Data)
 
             => SubmitEvent(SubEvent,
                            Timestamp.Now,

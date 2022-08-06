@@ -17,9 +17,6 @@
 
 #region Usings
 
-using System;
-using System.Linq;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -562,7 +559,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            if (!_HTTPClientRequestLoggers. TryGetValue(LogEventName, out HTTPClientRequestLogger httpClientRequestLogger) &&
+            if (!_HTTPClientRequestLoggers. TryGetValue(LogEventName, out HTTPClientRequestLogger? httpClientRequestLogger) &&
                 !_HTTPClientResponseLoggers.ContainsKey(LogEventName))
             {
 
@@ -574,7 +571,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 foreach (var GroupTag in GroupTags.Distinct())
                 {
 
-                    if (_GroupTags.TryGetValue(GroupTag, out HashSet<String> logEventNames))
+                    if (_GroupTags.TryGetValue(GroupTag, out HashSet<String>? logEventNames))
                         logEventNames.Add(LogEventName);
 
                     else
@@ -622,7 +619,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            if (!_HTTPClientResponseLoggers.TryGetValue(LogEventName, out HTTPClientResponseLogger httpClientResponseLogger) &&
+            if (!_HTTPClientResponseLoggers.TryGetValue(LogEventName, out HTTPClientResponseLogger? httpClientResponseLogger) &&
                 !_HTTPClientRequestLoggers. ContainsKey(LogEventName))
             {
 
@@ -634,7 +631,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 foreach (var GroupTag in GroupTags.Distinct())
                 {
 
-                    if (_GroupTags.TryGetValue(GroupTag, out HashSet<String> logEventNames))
+                    if (_GroupTags.TryGetValue(GroupTag, out HashSet<String>? logEventNames))
                         logEventNames.Add(LogEventName);
 
                     else
@@ -664,10 +661,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var found = false;
 
             // HTTP Client
-            if (_HTTPClientRequestLoggers. TryGetValue(LogEventName, out HTTPClientRequestLogger  httpClientRequestLogger))
+            if (_HTTPClientRequestLoggers. TryGetValue(LogEventName, out HTTPClientRequestLogger?  httpClientRequestLogger))
                 found |= httpClientRequestLogger. Subscribe(LogTarget);
 
-            if (_HTTPClientResponseLoggers.TryGetValue(LogEventName, out HTTPClientResponseLogger httpClientResponseLogger))
+            if (_HTTPClientResponseLoggers.TryGetValue(LogEventName, out HTTPClientResponseLogger? httpClientResponseLogger))
                 found |= httpClientResponseLogger.Subscribe(LogTarget);
 
             return found;
@@ -684,10 +681,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var found = false;
 
-            if (_HTTPClientRequestLoggers. TryGetValue(LogEventName, out HTTPClientRequestLogger  httpClientRequestLogger))
+            if (_HTTPClientRequestLoggers. TryGetValue(LogEventName, out HTTPClientRequestLogger?  httpClientRequestLogger))
                 found |= httpClientRequestLogger. Unsubscribe(LogTarget);
 
-            if (_HTTPClientResponseLoggers.TryGetValue(LogEventName, out HTTPClientResponseLogger httpClientResponseLogger))
+            if (_HTTPClientResponseLoggers.TryGetValue(LogEventName, out HTTPClientResponseLogger? httpClientResponseLogger))
                 found |= httpClientResponseLogger.Unsubscribe(LogTarget);
 
             return found;
