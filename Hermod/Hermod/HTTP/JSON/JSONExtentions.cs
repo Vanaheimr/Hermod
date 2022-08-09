@@ -692,22 +692,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseMandatory       (this JSON, PropertyName, PropertyDescription, DefaultServerName,            out Timestamp, HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseMandatory(this JObject              JSON,
-                                             String                    PropertyName,
-                                             String                    PropertyDescription,
-                                             String                    DefaultServerName,
-                                             out DateTime              Timestamp,
-                                             HTTPRequest               HTTPRequest,
-                                             out HTTPResponse.Builder  HTTPResponse)
+        public static Boolean ParseMandatory(this JObject               JSON,
+                                             String                     PropertyName,
+                                             String                     PropertyDescription,
+                                             String                     DefaultServerName,
+                                             out DateTime               Timestamp,
+                                             HTTPRequest                HTTPRequest,
+                                             out HTTPResponse.Builder?  HTTPResponse)
 
         {
 
-            var success = JSON.ParseMandatory(PropertyName,
-                                              PropertyDescription,
-                                              out Timestamp,
-                                              out String ErrorResponse);
-
-            if (ErrorResponse != null)
+            if (!JSON.ParseMandatory(PropertyName,
+                                     PropertyDescription,
+                                     out DateTime  timestamp,
+                                     out String?   errorResponse))
             {
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
@@ -716,16 +714,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     Date            = DateTime.UtcNow,
                     ContentType     = HTTPContentType.JSON_UTF8,
                     Content         = JSONObject.Create(
-                                          new JProperty("description", ErrorResponse)
+                                          errorResponse is not null
+                                              ? new JProperty("description", errorResponse)
+                                              : null
                                       ).ToUTF8Bytes()
                 };
 
+                Timestamp = default;
                 return false;
 
             }
 
-            HTTPResponse = null;
-            return success;
+            Timestamp     = timestamp;
+            HTTPResponse  = null;
+            return true;
 
         }
 
