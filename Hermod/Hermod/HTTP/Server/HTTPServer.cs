@@ -1477,7 +1477,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                         #region Invoke HTTP handler
 
-                                        HTTPResponse _HTTPResponse = null;
+                                        HTTPResponse? _HTTPResponse = default;
 
                                         // ToDo: How to read request body by application code?!
                                         //_HTTPResponse = OnNotification("TCPConnectionId",

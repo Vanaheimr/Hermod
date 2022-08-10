@@ -302,7 +302,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                                     enabledSslProtocols:                AllowedTLSProtocols ?? SslProtocols.Tls12 | SslProtocols.Tls13,
                                                     checkCertificateRevocation:         false);
 
-                if (this.SSLStream.RemoteCertificate != null)
+                if (this.SSLStream.RemoteCertificate is not null)
                     this.ClientCertificate = new X509Certificate2(this.SSLStream.RemoteCertificate);
 
             }
