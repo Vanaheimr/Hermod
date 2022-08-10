@@ -227,13 +227,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public delegate Task OnDataReadDelegate(TimeSpan Timestamp, UInt64 BytesRead, UInt64? BytesExpected = null);
 
-        public event OnDataReadDelegate OnDataRead;
+        public event OnDataReadDelegate? OnDataRead;
 
 
 
         public delegate Task OnChunkDataReadDelegate(TimeSpan Timestamp, UInt32 BytesRead, UInt64 TotalBytes);
 
-        public event OnChunkDataReadDelegate OnChunkDataRead;
+        public event OnChunkDataReadDelegate? OnChunkDataRead;
 
 
 
@@ -244,12 +244,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        Byte[]                             ChunkData,
                                                        UInt64                             TotalBytes);
 
-        public event OnChunkBlockFoundDelegate OnChunkBlockFound;
+        public event OnChunkBlockFoundDelegate? OnChunkBlockFound;
 
         /// <summary>
         /// An event fired whenever an exception occured.
         /// </summary>
-        public event OnExceptionDelegate OnException;
+        public event OnExceptionDelegate? OnException;
 
 
         /// <summary>
@@ -260,7 +260,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event fired whenever a HTTP error occured.
         /// </summary>
-        public event OnHTTPErrorDelegate OnHTTPError;
+        public event OnHTTPErrorDelegate? OnHTTPError;
 
         #endregion
 
@@ -541,22 +541,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    SocketType.Stream,
                                                    ProtocolType.Tcp);
 
-                        TCPSocket!.SendTimeout    = (Int32) RequestTimeout.Value.TotalMilliseconds;
-                        TCPSocket!.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
-                        TCPSocket!.Connect(_FinalIPEndPoint);
-                        TCPSocket!.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+                        if (TCPSocket is not null)
+                        {
+                            TCPSocket.SendTimeout    = (Int32) RequestTimeout.Value.TotalMilliseconds;
+                            TCPSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+                            TCPSocket.Connect(_FinalIPEndPoint);
+                            TCPSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+                        }
 
                     }
 
-                    TCPStream = new MyNetworkStream(TCPSocket, true) {
-                                    ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds
-                                };
+                    TCPStream = TCPSocket is not null
+                                    ? new MyNetworkStream(TCPSocket, true) {
+                                          ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds
+                                      }
+                                    : null;
 
                 #endregion
 
                 #region Create (Crypto-)Stream
 
-                    if (RemoteCertificateValidator is not null)
+                    if (RemoteCertificateValidator is not null &&
+                        TCPStream                  is not null)
                     {
 
                         if (TLSStream is null)
@@ -579,9 +585,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             {
 
                                 await TLSStream.AuthenticateAsClientAsync(RemoteURL.Hostname.Name,
-                                                                          null,
+                                                                          null,  // new X509CertificateCollection(new X509Certificate[] { ClientCert })
                                                                           this.TLSProtocol,
-                                                                          false);//, new X509CertificateCollection(new X509Certificate[] { ClientCert }), SslProtocols.Default, true);
+                                                                          false);// true);
 
                             }
                             catch (Exception)
@@ -646,6 +652,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   ? Math.Min((Int32) Request.ContentLength.Value,
                                                              Request.HTTPBody.Length)
                                                   : Request.HTTPBody.Length;
+
+                DebugX.LogT("RequestBodyLength: " + RequestBodyLength + " bytes, socket: " + TCPStream.Socket.LocalEndPoint?.ToString() + " => " + TCPStream.Socket.RemoteEndPoint?.ToString());
 
                 if (RequestBodyLength > 0)
                     HTTPStream.Write(Request.HTTPBody, 0, RequestBodyLength);
@@ -1183,6 +1191,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
             #endregion
+
+            DebugX.LogT("HTTPClient closed!");
 
             return Response;
 

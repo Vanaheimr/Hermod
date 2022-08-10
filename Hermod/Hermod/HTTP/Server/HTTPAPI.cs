@@ -1028,7 +1028,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The default request timeout for incoming HTTP requests.
         /// </summary>
-        public TimeSpan                 DefaultRequestTimeout       { get; set; }
+        public TimeSpan                 DefaultRequestTimeout       { get; set; } = TimeSpan.FromSeconds(60);
 
         /// <summary>
         /// The API version hash (git commit hash value).
@@ -1289,8 +1289,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this.DefaultRequestTimeout = TimeSpan.FromSeconds(60);
-
             if (Autostart && HTTPServer.Start())
                 DebugX.Log(nameof(HTTPAPI) + " version '" + APIVersionHash + "' started...");
 
@@ -1523,11 +1521,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    LogfileName:              HTTPAPI.LogfileName,
                    LogfileCreator:           HTTPAPI.LogfileCreator)
 
-        {
-
-
-
-        }
+        { }
 
         #endregion
 

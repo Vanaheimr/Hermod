@@ -266,7 +266,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             this.TCPServer            = TCPServer ?? throw new ArgumentNullException(nameof(TCPServer), "The given TCP server must not be null!");
             this.TCPClient            = TCPClient ?? throw new ArgumentNullException(nameof(TCPClient), "The given TCP client must not be null!");
-            this.ServerTimestamp      = DateTime.UtcNow;
+            this.ServerTimestamp      = Timestamp.Now;
             this.ConnectionId         = TCPServer.ConnectionIdBuilder(this,
                                                                       this.ServerTimestamp,
                                                                       base.LocalSocket,
@@ -590,7 +590,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 totalWaitingTime += sleepingTimeMS;
             }
 
-            var Started = DateTime.UtcNow;
+            var Started = Timestamp.Now;
 
             if (NetworkStream.DataAvailable)
             {
@@ -641,7 +641,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                         ByteArray[Position++] = (Byte) ByteValue;
 
-                    } while (DateTime.UtcNow - Started < ReadTimeout);
+                    } while (Timestamp.Now - Started < ReadTimeout);
 
                 }
                 catch (Exception e)
@@ -822,7 +822,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             TCPClient?.Close();
 
             if (!_IsClosed)
-                TCPServer.SendConnectionClosed(DateTime.UtcNow, RemoteSocket, ConnectionId, ClosedBy);
+                TCPServer.SendConnectionClosed(Timestamp.Now, RemoteSocket, ConnectionId, ClosedBy);
 
             _IsClosed = true;
 
