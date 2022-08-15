@@ -1016,17 +1016,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
+
         #region Data
 
         /// <summary>
         /// The default HTTP server name.
         /// </summary>
-        public  const           String           DefaultHTTPServerName  = "GraphDefined Hermod HTTP Server v0.9";
+        public  const           String           DefaultHTTPServerName   = "GraphDefined Hermod HTTP Server v1.0";
+
+        /// <summary>
+        /// The default HTTP service name.
+        /// </summary>
+        public  const           String           DefaultHTTPServiceName  = "GraphDefined Hermod HTTP Service v1.0";
 
         /// <summary>
         /// The default HTTP server TCP port.
         /// </summary>
-        public static readonly  IPPort           DefaultHTTPServerPort  = IPPort.HTTP;
+        public static readonly  IPPort           DefaultHTTPServerPort   = IPPort.HTTP;
 
         private readonly        Dictionary<HTTPHostname,       HostnameNode>      _HostnameNodes;
         private readonly        Dictionary<HTTPEventSource_Id, IHTTPEventSource>  _EventSources;
@@ -1041,12 +1047,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The default HTTP servername, used whenever
         /// no HTTP Host-header had been given.
         /// </summary>
-        public String        DefaultServerName   { get; }
+        public String         DefaultServerName   { get; }
 
         /// <summary>
         /// An associated HTTP security object.
         /// </summary>
-        public HTTPSecurity  HTTPSecurity        { get; }
+        public HTTPSecurity?  HTTPSecurity        { get; }
 
         #endregion
 
@@ -1055,17 +1061,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event called whenever a HTTP request came in.
         /// </summary>
-        public HTTPRequestLogEvent   RequestLog    = new HTTPRequestLogEvent();
+        public HTTPRequestLogEvent   RequestLog    = new ();
 
         /// <summary>
         /// An event called whenever a HTTP request could successfully be processed.
         /// </summary>
-        public HTTPResponseLogEvent  ResponseLog   = new HTTPResponseLogEvent();
+        public HTTPResponseLogEvent  ResponseLog   = new ();
 
         /// <summary>
         /// An event called whenever a HTTP request resulted in an error.
         /// </summary>
-        public HTTPErrorLogEvent     ErrorLog      = new HTTPErrorLogEvent();
+        public HTTPErrorLogEvent     ErrorLog      = new ();
 
         #endregion
 
@@ -1096,7 +1102,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
         public HTTPServer(IPPort?                               TCPPort                            = null,
-                          String                                DefaultServerName                  = DefaultHTTPServerName,
+                          String?                               DefaultServerName                  = null,
                           String?                               ServiceName                        = null,
 
                           ServerCertificateSelectorDelegate?    ServerCertificateSelector          = null,
@@ -1119,8 +1125,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           DNSClient?                            DNSClient                          = null,
                           Boolean                               Autostart                          = false)
 
-            : base(ServiceName,
-                   DefaultServerName,
+            : base(ServiceName       ?? DefaultHTTPServiceName,
+                   DefaultServerName ?? DefaultHTTPServerName,
                    ServerCertificateSelector,
                    ClientCertificateSelector,
                    ClientCertificateValidator,
@@ -1144,14 +1150,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this.DefaultServerName  = DefaultServerName;
+            this.DefaultServerName  = DefaultServerName ?? DefaultHTTPServerName;
             this._HostnameNodes     = new Dictionary<HTTPHostname,       HostnameNode>();
             this._EventSources      = new Dictionary<HTTPEventSource_Id, IHTTPEventSource>();
 
-            if (TCPPort != null)
-                this.AttachTCPPort(TCPPort ?? IPPort.HTTP);
-            else
-                this.AttachTCPPort(DefaultHTTPServerPort);
+            this.AttachTCPPort(TCPPort ?? (ServerCertificateSelector is null
+                                               ? IPPort.HTTP
+                                               : IPPort.HTTPS));
 
             if (Autostart)
                 Start();
