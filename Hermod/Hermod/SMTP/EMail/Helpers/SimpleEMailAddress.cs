@@ -17,7 +17,6 @@
 
 #region Usings
 
-using System;
 using System.Text.RegularExpressions;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -28,11 +27,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 {
 
     /// <summary>
+    /// Extension methods for simple e-mail addresses.
+    /// </summary>
+    public static class SimpleEMailAddressExtensions
+    {
+
+        /// <summary>
+        /// Indicates whether this simple e-mail address is null or empty.
+        /// </summary>
+        /// <param name="SimpleEMailAddress">A simple e-mail address.</param>
+        public static Boolean IsNullOrEmpty(this SimpleEMailAddress? SimpleEMailAddress)
+            => !SimpleEMailAddress.HasValue || SimpleEMailAddress.Value.IsNullOrEmpty;
+
+        /// <summary>
+        /// Indicates whether this simple e-mail address is null or empty.
+        /// </summary>
+        /// <param name="SimpleEMailAddress">A simple e-mail address.</param>
+        public static Boolean IsNotNullOrEmpty(this SimpleEMailAddress? SimpleEMailAddress)
+            => SimpleEMailAddress.HasValue && SimpleEMailAddress.Value.IsNotNullOrEmpty;
+
+    }
+
+
+    /// <summary>
     /// A simple e-mail address.
     /// </summary>
-    public struct SimpleEMailAddress : IId,
-                                       IComparable<SimpleEMailAddress>,
-                                       IEquatable<SimpleEMailAddress>
+    public readonly struct SimpleEMailAddress : IId,
+                                                IComparable<SimpleEMailAddress>,
+                                                IEquatable<SimpleEMailAddress>
     {
 
         #region Data
@@ -61,6 +83,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// Indicates whether this e-mail address is null or empty.
         /// </summary>
         public Boolean IsNullOrEmpty
+            => User.IsNullOrEmpty() || Domain.IsNullOrEmpty();
+
+        /// <summary>
+        /// Indicates whether this e-mail address is NOT null or empty.
+        /// </summary>
+        public Boolean IsNotNullOrEmpty
             => User.IsNullOrEmpty() || Domain.IsNullOrEmpty();
 
         /// <summary>

@@ -153,6 +153,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     }
 
+                    else if (AllowReplacement == URLReplacement.Fail)
+                        throw new ArgumentException("Replacing this URL template is not allowed!");
+
                     else
                         throw new ArgumentException("An URL template without a content type? Does this make sense here!");
 

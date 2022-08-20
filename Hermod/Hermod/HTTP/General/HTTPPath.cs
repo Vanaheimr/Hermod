@@ -60,20 +60,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP path
         /// </summary>
-        /// <param name="URI">The uniform resource identifier.</param>
-        private HTTPPath(String URI)
+        /// <param name="Path">The uniform resource identifier.</param>
+        private HTTPPath(String Path)
         {
-
-            #region Initial checks
-
-            //if (!URI_RegEx.IsMatch(URI))
-            //    throw new ArgumentException("the given URI '" + URI + "' is invalid!", nameof(URI));
-
-            #endregion
-
-            this.InternalId  = URI;
-            //this.Hostname    = HTTPHostname.Parse(URI.Substring(URI.IndexOf("://"), URI.IndexOfAny(new Char[] { '/', ':' }, URI.IndexOf("://") + 3 )));
-
+            this.InternalId  = Path;
         }
 
         #endregion
@@ -88,8 +78,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPPath Parse(String Text)
         {
 
-            if (TryParse(Text, out HTTPPath HTTPPath))
-                return HTTPPath;
+            if (TryParse(Text, out HTTPPath httpPath))
+                return httpPath;
 
             throw new ArgumentException("The given string could not be parsed as a HTTP path!", nameof(Text));
 
@@ -106,8 +96,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPPath? TryParse(String Text)
         {
 
-            if (TryParse(Text, out HTTPPath URI))
-                return URI;
+            if (TryParse(Text, out HTTPPath httpPath))
+                return httpPath;
 
             return null;
 
@@ -125,7 +115,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean TryParse(String Text, out HTTPPath HTTPPath)
         {
 
-            Text = Text?.Trim().Replace("//", "/");
+            Text = Text.Trim().Replace("//", "/");
 
             if (!Text.StartsWith("/"))
                 Text = "/" + Text;
@@ -152,16 +142,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public HTTPPath Clone
 
-            => new HTTPPath(InternalId);
+            => new (InternalId);
 
         #endregion
 
 
         /// <summary>
-        /// /
+        /// / (ROOT)
         /// </summary>
         public static HTTPPath Root
-            => new HTTPPath("/");
+            => new ("/");
 
 
         public Boolean Contains(String Text)

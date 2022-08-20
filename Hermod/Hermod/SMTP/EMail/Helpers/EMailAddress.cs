@@ -50,24 +50,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         #region Properties
 
         /// <summary>
-        /// The name of the owner of the e-mail address.
-        /// </summary>
-        public String              OwnerName        { get; }
-
-        /// <summary>
         /// The e-mail address.
         /// </summary>
         public SimpleEMailAddress  Address          { get; }
 
         /// <summary>
-        /// The secret key ring for the given e-mail address.
+        /// The name of the owner of the e-mail address.
         /// </summary>
-        public PgpSecretKeyRing    SecretKeyRing    { get; }
+        public String?             OwnerName        { get; }
 
         /// <summary>
-        /// The public key ring for the given e-mail address.
+        /// The optional secret key ring for the given e-mail address.
         /// </summary>
-        public PgpPublicKeyRing    PublicKeyRing    { get; }
+        public PgpSecretKeyRing?   SecretKeyRing    { get; }
+
+        /// <summary>
+        /// The optional public key ring for the given e-mail address.
+        /// </summary>
+        public PgpPublicKeyRing?   PublicKeyRing    { get; }
 
 
         #region (private) DebugView
@@ -90,20 +90,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #region Constructor(s)
 
-        #region EMailAddress(           SimpleEMailAddress,       SecretKeyRing = null, PublicKeyRing = null)
+        #region EMailAddress(OwnerName,          SimpleEMailAddress, SecretKeyRing = null, PublicKeyRing = null)
 
         /// <summary>
         /// Create a new e-mail address.
         /// </summary>
+        /// <param name="OwnerName">The name of the owner of the e-mail address.</param>
         /// <param name="SimpleEMailAddress">A simple e-mail address.</param>
-        /// <param name="SecretKeyRing">The secret key ring for an e-mail address.</param>
-        /// <param name="PublicKeyRing">The public key ring for an e-mail address.</param>
-        public EMailAddress(SimpleEMailAddress  SimpleEMailAddress,
-                            PgpSecretKeyRing    SecretKeyRing,
-                            PgpPublicKeyRing    PublicKeyRing   = null)
+        /// <param name="SecretKeyRing">An optional public key ring for an e-mail address.</param>
+        /// <param name="PublicKeyRing">An optional secret key ring for an e-mail address.</param>
+        public EMailAddress(String              OwnerName,
+                            SimpleEMailAddress  SimpleEMailAddress,
+                            PgpSecretKeyRing?   SecretKeyRing   = null,
+                            PgpPublicKeyRing?   PublicKeyRing   = null)
         {
 
-            this.OwnerName      = "";
+            this.OwnerName      = OwnerName;
             this.Address        = SimpleEMailAddress;
             this.PublicKeyRing  = PublicKeyRing;
             this.SecretKeyRing  = SecretKeyRing;
@@ -112,162 +114,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #endregion
 
-        #region EMailAddress(           SimpleEMailAddressString, SecretKeyRing = null, PublicKeyRing = null)
-
-        /// <summary>
-        /// Create a new e-mail address.
-        /// </summary>
-        /// <param name="SimpleEMailAddressString">A string representation of a simple e-mail address.</param>
-        /// <param name="SecretKeyRing">The secret key ring for an e-mail address.</param>
-        /// <param name="PublicKeyRing">The public key ring for an e-mail address.</param>
-        public EMailAddress(String            SimpleEMailAddressString,
-                            PgpSecretKeyRing  SecretKeyRing,
-                            PgpPublicKeyRing  PublicKeyRing   = null)
-        {
-
-            this.OwnerName      = "";
-            this.Address        = SimpleEMailAddress.Parse(SimpleEMailAddressString);
-            this.PublicKeyRing  = PublicKeyRing;
-            this.SecretKeyRing  = SecretKeyRing;
-
-        }
-
-        #endregion
-
-        #region EMailAddress(OwnerName, SimpleEMailAddress,       SecretKeyRing = null, PublicKeyRing = null)
-
-        /// <summary>
-        /// Create a new e-mail address.
-        /// </summary>
-        /// <param name="OwnerName">The name of the owner of the e-mail address.</param>
-        /// <param name="SimpleEMailAddress">A simple e-mail address.</param>
-        /// <param name="SecretKeyRing">The secret key ring for an e-mail address.</param>
-        /// <param name="PublicKeyRing">The public key ring for an e-mail address.</param>
-        public EMailAddress(String              OwnerName,
-                            SimpleEMailAddress  SimpleEMailAddress,
-                            PgpSecretKeyRing    SecretKeyRing,
-                            PgpPublicKeyRing    PublicKeyRing   = null)
-
-        {
-
-            #region Initial checks
-
-            if (OwnerName.IsNotNullOrEmpty())
-                OwnerName = OwnerName.Trim();
-
-            if (OwnerName.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(OwnerName),  "The given OwnerName must not be null or empty!");
-
-            #endregion
-
-            this.OwnerName      = OwnerName.Trim();
-            this.Address        = SimpleEMailAddress;
-            this.PublicKeyRing  = PublicKeyRing;
-            this.SecretKeyRing  = SecretKeyRing;
-
-        }
-
-        #endregion
-
-        #region EMailAddress(OwnerName, SimpleEMailAddressString, SecretKeyRing = null, PublicKeyRing = null)
-
-        /// <summary>
-        /// Create a new e-mail address.
-        /// </summary>
-        /// <param name="OwnerName">The name of the owner of the e-mail address.</param>
-        /// <param name="SimpleEMailAddressString">A string representation of a simple e-mail address.</param>
-        /// <param name="SecretKeyRing">The public key ring for an e-mail address.</param>
-        /// <param name="PublicKeyRing">The secret key ring for an e-mail address.</param>
-        public EMailAddress(String            OwnerName,
-                            String            SimpleEMailAddressString,
-                            PgpSecretKeyRing  SecretKeyRing,
-                            PgpPublicKeyRing  PublicKeyRing   = null)
-
-            : this(OwnerName,
-                   SimpleEMailAddress.Parse(SimpleEMailAddressString),
-                   SecretKeyRing,
-                   PublicKeyRing)
-
-        { }
-
-        #endregion
-
-
-        #region EMailAddress(           SimpleEMailAddress,                             PublicKeyRing = null)
+        #region EMailAddress(SimpleEMailAddress, OwnerName = null,   SecretKeyRing = null, PublicKeyRing = null)
 
         /// <summary>
         /// Create a new e-mail address.
         /// </summary>
         /// <param name="SimpleEMailAddress">A simple e-mail address.</param>
-        /// <param name="PublicKeyRing">The public key ring for an e-mail address.</param>
+        /// <param name="OwnerName">An optional name of the owner of the e-mail address.</param>
+        /// <param name="SecretKeyRing">An optional public key ring for an e-mail address.</param>
+        /// <param name="PublicKeyRing">An optional secret key ring for an e-mail address.</param>
         public EMailAddress(SimpleEMailAddress  SimpleEMailAddress,
-                            PgpPublicKeyRing    PublicKeyRing  = null)
+                            String?             OwnerName       = null,
+                            PgpSecretKeyRing?   SecretKeyRing   = null,
+                            PgpPublicKeyRing?   PublicKeyRing   = null)
+        {
 
-            : this(SimpleEMailAddress:  SimpleEMailAddress,
-                   SecretKeyRing:       null,
-                   PublicKeyRing:       PublicKeyRing)
+            this.Address        = SimpleEMailAddress;
+            this.OwnerName      = OwnerName;
+            this.PublicKeyRing  = PublicKeyRing;
+            this.SecretKeyRing  = SecretKeyRing;
 
-        { }
-
-        #endregion
-
-        #region EMailAddress(           SimpleEMailAddressString,                       PublicKeyRing = null)
-
-        /// <summary>
-        /// Create a new e-mail address.
-        /// </summary>
-        /// <param name="SimpleEMailAddressString">A string representation of a simple e-mail address.</param>
-        /// <param name="PublicKeyRing">The public key ring for an e-mail address.</param>
-        public EMailAddress(String            SimpleEMailAddressString,
-                            PgpPublicKeyRing  PublicKeyRing  = null)
-
-            : this(SimpleEMailAddressString:  SimpleEMailAddressString,
-                   SecretKeyRing:             null,
-                   PublicKeyRing:             PublicKeyRing)
-
-        { }
-
-        #endregion
-
-        #region EMailAddress(OwnerName, SimpleEMailAddress,                             PublicKeyRing = null)
-
-        /// <summary>
-        /// Create a new e-mail address.
-        /// </summary>
-        /// <param name="OwnerName">The name of the owner of the e-mail address.</param>
-        /// <param name="SimpleEMailAddress">A simple e-mail address.</param>
-        /// <param name="PublicKeyRing">The public key ring for an e-mail address.</param>
-        public EMailAddress(String              OwnerName,
-                            SimpleEMailAddress  SimpleEMailAddress,
-                            PgpPublicKeyRing    PublicKeyRing  = null)
-
-            : this(OwnerName:           OwnerName,
-                   SimpleEMailAddress:  SimpleEMailAddress,
-                   SecretKeyRing:       null,
-                   PublicKeyRing:       PublicKeyRing)
-
-        { }
-
-        #endregion
-
-        #region EMailAddress(OwnerName, SimpleEMailAddressString,                       PublicKeyRing = null)
-
-        /// <summary>
-        /// Create a new e-mail address.
-        /// </summary>
-        /// <param name="OwnerName">The name of the owner of the e-mail address.</param>
-        /// <param name="SimpleEMailAddressString">A string representation of a simple e-mail address.</param>
-        /// <param name="PublicKeyRing">The secret key ring for an e-mail address.</param>
-        public EMailAddress(String            OwnerName,
-                            String            SimpleEMailAddressString,
-                            PgpPublicKeyRing  PublicKeyRing  = null)
-
-            : this(OwnerName:                 OwnerName,
-                   SimpleEMailAddressString:  SimpleEMailAddressString,
-                   SecretKeyRing:             null,
-                   PublicKeyRing:             PublicKeyRing)
-
-        { }
+        }
 
         #endregion
 
@@ -281,9 +148,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// </summary>
         /// <param name="SimpleEMailAddress">A simple e-mail address.</param>
         public static implicit operator EMailAddress(SimpleEMailAddress SimpleEMailAddress)
-            => new EMailAddress(SimpleEMailAddress:  SimpleEMailAddress,
-                                SecretKeyRing:       null,
-                                PublicKeyRing:       null);
+
+            => new (SimpleEMailAddress:  SimpleEMailAddress,
+                    SecretKeyRing:       null,
+                    PublicKeyRing:       null);
 
         #endregion
 
@@ -294,10 +162,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// Parse the given e-mail address.
         /// </summary>
         /// <param name="EMailAddressString">A text representation of an e-mail address.</param>
-        public static EMailAddress Parse(String EMailAddressString)
+        public static EMailAddress? Parse(String EMailAddressString)
         {
 
-            EMailAddressString = EMailAddressString?.Trim();
+            EMailAddressString = EMailAddressString.Trim();
 
             if (EMailAddressString.IsNullOrEmpty())
                 return null;
@@ -311,15 +179,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                              ? EMailAddressString.Substring(b + 1, c - b - 1).Trim()
                              : EMailAddressString.Trim();
 
-            if (name.IsNeitherNullNorEmpty())
-                return new EMailAddress(OwnerName:                 name,
-                                        SimpleEMailAddressString:  email,
-                                        SecretKeyRing:             null,
-                                        PublicKeyRing:             null);
-
-            return new EMailAddress(SimpleEMailAddressString:  email,
-                                    SecretKeyRing:             null,
-                                    PublicKeyRing:             null);
+            return new EMailAddress(SimpleEMailAddress.Parse(email),
+                                    name);
 
         }
 
@@ -332,24 +193,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// </summary>
         /// <param name="OwnerName">The name of the owner of the e-mail address.</param>
         /// <param name="EMailAddress">The text representation of an e-mail address.</param>
-        public static EMailAddress Parse(String OwnerName,
-                                         String EMailAddress)
+        public static EMailAddress? Parse(String OwnerName,
+                                          String EMailAddress)
         {
 
-            if (OwnerName != null)
-                OwnerName = OwnerName.Trim();
-
-            if (EMailAddress != null)
-                EMailAddress = EMailAddress.Trim();
+            OwnerName    = OwnerName.Trim();
+            EMailAddress = EMailAddress.Trim();
 
             if (OwnerName.IsNullOrEmpty() || EMailAddress.IsNullOrEmpty())
                 return null;
 
+            var email = SimpleEMailAddress.TryParse(EMailAddress);
 
-            return new EMailAddress(OwnerName:                 OwnerName,
-                                    SimpleEMailAddressString:  EMailAddress,
-                                    SecretKeyRing:             null,
-                                    PublicKeyRing:             null);
+            if (!email.HasValue)
+                return null;
+
+            return new EMailAddress(OwnerName,
+                                    email.Value);
 
         }
 
@@ -369,15 +229,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                        ? new JProperty("@context", JSONLDContext.ToString())
                        : null,
 
-                   new JProperty("ownerName",  OwnerName),
-                   new JProperty("address",    Address.ToString()),
+                         new JProperty("address",           Address.ToString()),
 
-                   SecretKeyRing != null
-                       ? new JProperty("secretKeyRing",  null)
+                   OwnerName is not null
+                       ? new JProperty("ownerName",         OwnerName)
                        : null,
 
-                   PublicKeyRing != null
-                       ? new JProperty("publicKeyRing",  null)
+                   SecretKeyRing is not null
+                       ? new JProperty("secretKeyRing",     null)
+                       : null,
+
+                   PublicKeyRing is not null
+                       ? new JProperty("publicKeyRing",     null)
                        : null
 
                );
@@ -386,10 +249,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #region (static) TryParseJSON(JSONObject, ..., out EMailAddress, out ErrorResponse)
 
-        public static Boolean TryParseJSON(JObject           JSONObject,
-                                           out EMailAddress  EMailAddress,
-                                           out String        ErrorResponse,
-                                           Boolean           IgnoreContext = false)
+        public static Boolean TryParseJSON(JObject            JSONObject,
+                                           out EMailAddress?  EMailAddress,
+                                           out String?        ErrorResponse,
+                                           Boolean            IgnoreContext = false)
         {
 
             try
@@ -461,10 +324,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
                 #endregion
 
-                EMailAddress = new EMailAddress(OwnerName,
-                                                Address,
-                                                null,
-                                                null);
+                EMailAddress = new EMailAddress(Address,
+                                                OwnerName);
 
                 ErrorResponse = null;
                 return true;

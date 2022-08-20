@@ -1482,7 +1482,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                         #region Invoke HTTP handler
 
-                                        HTTPResponse? _HTTPResponse = default;
+                                        HTTPResponse? httpResponse = default;
 
                                         // ToDo: How to read request body by application code?!
                                         //_HTTPResponse = OnNotification("TCPConnectionId",
@@ -1492,14 +1492,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         try
                                         {
 
-                                            _HTTPResponse = InvokeHandler(HttpRequest).Result;
+                                            httpResponse = InvokeHandler(HttpRequest).Result;
 
-                                            if (_HTTPResponse == null)
+                                            if (httpResponse is null)
                                             {
 
                                                 DebugX.Log(nameof(HTTPServer) + ": HTTP response is null!");
 
-                                                _HTTPResponse = new HTTPResponse.Builder(HttpRequest) {
+                                                httpResponse = new HTTPResponse.Builder(HttpRequest) {
                                                                     HTTPStatusCode  = HTTPStatusCode.InternalServerError,
                                                                     ContentType     = HTTPContentType.JSON_UTF8,
                                                                     Content         = new JObject(
@@ -1521,7 +1521,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                             var exception = e.InnerException ?? e;
 
-                                            _HTTPResponse = new HTTPResponse.Builder(HttpRequest) {
+                                            httpResponse = new HTTPResponse.Builder(HttpRequest) {
                                                                 HTTPStatusCode  = HTTPStatusCode.InternalServerError,
                                                                 ContentType     = HTTPContentType.JSON_UTF8,
                                                                 Content         = new JObject(
@@ -1539,7 +1539,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         try
                                         {
 
-                                            TCPConnection.WriteToResponseStream((_HTTPResponse.RawHTTPHeader.Trim() +
+                                            TCPConnection.WriteToResponseStream((httpResponse.RawHTTPHeader.Trim() +
                                                                                 "\r\n\r\n").
                                                                                 ToUTF8Bytes());
 
@@ -1550,7 +1550,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             if (TCPConnection == null)
                                                 DebugX.Log(nameof(HTTPServer) + " TCPConnection is null!");
 
-                                            if (_HTTPResponse.RawHTTPHeader.IsNullOrEmpty())
+                                            if (httpResponse.RawHTTPHeader.IsNullOrEmpty())
                                                 DebugX.Log(nameof(HTTPServer) + " HTTP response header is null or empty!");
 
                                             DebugX.Log(nameof(HTTPServer) + " writing response header: " + Environment.NewLine + e);
@@ -1558,11 +1558,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                         }
 
-                                        if (_HTTPResponse.HTTPBody?.Length > 0)
+                                        if (httpResponse.HTTPBody?.Length > 0)
                                         {
                                             try
                                             {
-                                                TCPConnection.WriteToResponseStream(_HTTPResponse.HTTPBody);
+                                                TCPConnection.WriteToResponseStream(httpResponse.HTTPBody);
                                             }
                                             catch (Exception e)
                                             {
@@ -1571,13 +1571,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             }
                                         }
 
-                                        else if (_HTTPResponse.HTTPBodyStream != null)
+                                        else if (httpResponse.HTTPBodyStream != null)
                                         {
                                             try
                                             {
-                                                TCPConnection.WriteToResponseStream(_HTTPResponse.HTTPBodyStream);
-                                                _HTTPResponse.HTTPBodyStream.Close();
-                                                _HTTPResponse.HTTPBodyStream.Dispose();
+                                                TCPConnection.WriteToResponseStream(httpResponse.HTTPBodyStream);
+                                                httpResponse.HTTPBodyStream.Close();
+                                                httpResponse.HTTPBodyStream.Dispose();
                                             }
                                             catch (Exception e)
                                             {
@@ -1588,7 +1588,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                         try
                                         {
-                                            if (_HTTPResponse.Connection.IndexOf("close", StringComparison.OrdinalIgnoreCase) >= 0)
+                                            if (httpResponse.Connection.IndexOf("close", StringComparison.OrdinalIgnoreCase) >= 0)
                                                 ServerClose = true;
                                         }
                                         catch (Exception e)
@@ -1607,7 +1607,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             ResponseLog?.WhenAll(RequestTimestamp,
                                                                  this as Object as HTTPAPI,
                                                                  HttpRequest,
-                                                                 _HTTPResponse);
+                                                                 httpResponse);
 
                                         }
                                         catch (Exception e)
@@ -1620,9 +1620,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         #region if HTTP Status Code == 4xx | 5xx => Call ErrorLog delegate
 
                                         if ( HttpRequest  != null &&
-                                            _HTTPResponse != null &&
-                                            _HTTPResponse.HTTPStatusCode.Code >  400 &&
-                                            _HTTPResponse.HTTPStatusCode.Code <= 599)
+                                            httpResponse != null &&
+                                            httpResponse.HTTPStatusCode.Code >  400 &&
+                                            httpResponse.HTTPStatusCode.Code <= 599)
                                         {
 
                                             try
@@ -1631,8 +1631,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                 ErrorLog?.WhenAll(RequestTimestamp,
                                                                   this as Object as HTTPAPI,
                                                                   HttpRequest,
-                                                                  _HTTPResponse,
-                                                                  _HTTPResponse.HTTPStatusCode.ToString());
+                                                                  httpResponse,
+                                                                  httpResponse.HTTPStatusCode.ToString());
 
                                             }
                                             catch (Exception e)
@@ -2537,7 +2537,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var HTTPHandlers = GetHandlers(Request);
 
-            if (HTTPHandlers != null)
+            if (HTTPHandlers is not null)
             {
 
                 #region HTTP request logger
