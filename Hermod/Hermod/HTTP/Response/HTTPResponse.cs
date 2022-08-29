@@ -965,8 +965,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         relativelinenumber++;
 
                     }
-                    catch (Exception)
+                    catch (Exception e)
                     {
+                        DebugX.Log(e.Message);
                     }
 
                 }
