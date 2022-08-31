@@ -2510,7 +2510,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 httpResponse = httpFilter(this, Request);
 
-                if (httpResponse != null)
+                if (httpResponse is not null)
                     return httpResponse;
 
             }
