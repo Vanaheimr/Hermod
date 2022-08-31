@@ -73,8 +73,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// </summary>
         public SslProtocols                          AllowedTLSProtocols             { get; }
 
+        /// <summary>
+        /// Whether a SSL/TLS client certificate is required.
+        /// </summary>
         public Boolean                               ClientCertificateRequired       { get; }
 
+        /// <summary>
+        /// Whether the SSL/TLS client certificate should be checked for revocation.
+        /// </summary>
         public Boolean                               CheckCertificateRevocation      { get; }
 
 
@@ -444,37 +450,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// An event fired whenever the TCP servers instance was started.
         /// </summary>
-        public event StartedEventHandler                OnStarted;
+        public event StartedEventHandler?               OnStarted;
 
         /// <summary>
         /// An event fired whenever a new TCP socket was attached.
         /// </summary>
-        public event TCPSocketAttachedHandler           OnTCPSocketAttached;
+        public event TCPSocketAttachedHandler?          OnTCPSocketAttached;
 
         /// <summary>
         /// An event fired whenever a new TCP connection was opened.
         /// </summary>
-        public event NewConnectionHandler               OnNewConnection;
+        public event NewConnectionHandler?              OnNewConnection;
 
         /// <summary>
         /// An event fired whenever an exception occured.
         /// </summary>
-        public event ExceptionOccuredEventHandler       OnExceptionOccured;
+        public event ExceptionOccuredEventHandler?      OnExceptionOccured;
 
         /// <summary>
         /// An event fired whenever a new TCP connection was closed.
         /// </summary>
-        public event ConnectionClosedHandler            OnConnectionClosed;
+        public event ConnectionClosedHandler?           OnConnectionClosed;
 
         /// <summary>
         /// An event fired whenever a new TCP socket was detached.
         /// </summary>
-        public event TCPSocketDetachedHandler           OnTCPSocketDetached;
+        public event TCPSocketDetachedHandler?          OnTCPSocketDetached;
 
         /// <summary>
         /// An event fired whenever the TCP servers instance was stopped.
         /// </summary>
-        public event CompletedEventHandler              OnCompleted;
+        public event CompletedEventHandler?             OnCompleted;
 
         #endregion
 
@@ -490,6 +496,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
         /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
         /// <param name="AllowedTLSProtocols">The SSL/TLS protocol(s) allowed for this connection.</param>
+        /// <param name="ClientCertificateRequired">Whether a SSL/TLS client certificate is required.</param>
+        /// <param name="CheckCertificateRevocation">Whether the SSL/TLS client certificate should be checked for revocation.</param>
         /// 
         /// <param name="ServerThreadName">An optional name of the TCP server threads.</param>
         /// <param name="ServerThreadPriority">An optional priority of the TCP server threads (default: AboveNormal).</param>
@@ -848,8 +856,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             lock (_TCPServers)
             {
 
-                foreach (var _TCPServer in _TCPServers)
-                    _TCPServer.Start();
+                foreach (var tcpServer in _TCPServers)
+                    tcpServer.Start();
 
                 _IsStarted = true;
 

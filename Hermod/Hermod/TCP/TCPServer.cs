@@ -406,6 +406,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 Thread.CurrentThread.Priority       = this.ServerThreadPriority;
                 Thread.CurrentThread.IsBackground   = this.ServerThreadIsBackground;
 
+                var connectionAcceptTime1           = Timestamp.Now;
+                var connectionAcceptTime2           = Timestamp.Now;
+
                 #region SetSocketOptions
 
                 // IOControlCode.*
@@ -430,11 +433,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                         // Wait for a new/pending client connection
                         while (!_StopRequested && !_TCPListener.Pending())
-                            Thread.Sleep(5);
+                            Thread.Sleep(1);
 
                         // Break when a server stop was requested
                         if (_StopRequested)
                             break;
+
+                        connectionAcceptTime1 = Timestamp.Now;
 
                         var tcpConnection = new TCPConnection(TCPServer:                   this,
                                                               TCPClient:                   _TCPListener.AcceptTcpClient(),
@@ -449,6 +454,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                         //_SocketConnections.AddOrUpdate(_TCPConnection.Value.RemoteSocket,
                         //                               _TCPConnection.Value,
                         //                               (RemoteEndPoint, TCPConnection) => TCPConnection);
+
+                        connectionAcceptTime2 = Timestamp.Now;
 
                         await Task.Factory.StartNew(connection => {
 
@@ -467,8 +474,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                                     #endregion
 
-
-                                    DebugX.Log("New TCP connection on " + newTCPConnection.TCPServer.IPSocket.ToString() + " from " + (newTCPConnection.TCPClient.Client.RemoteEndPoint?.ToString() ?? ""));
+                                    DebugX.Log("New TCP connection from ", newTCPConnection.RemoteSocket.ToString(), " on ", newTCPConnection.TCPServer.IPSocket.ToString());
 
                                     // If this event closes the TCP connection the OnNotification event will never be fired!
                                     // Therefore you can use this event for filtering connection initiation requests.
@@ -499,6 +505,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                             }
 
                         }, tcpConnection);
+
+                        DebugX.Log("New TCP connection from ", tcpConnection.RemoteSocket.ToString(), " created after: ", (connectionAcceptTime2 - connectionAcceptTime1).TotalMilliseconds.ToString(), " ms / ", (Timestamp.Now - connectionAcceptTime2).TotalMilliseconds.ToString(), " ms");
 
                     }
 

@@ -1393,7 +1393,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 if (MemoryStream.Length > 0)
                                 {
 
-                                    var RequestTimestamp = DateTime.UtcNow;
+                                    var RequestTimestamp = Timestamp.Now;
 
                                     #region Check UTF8 encoding
 
@@ -1460,7 +1460,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                     #endregion
 
-                                    if (HttpRequest != null)
+                                    if (HttpRequest is not null)
                                     {
 
                                         #region Call RequestLog delegate
@@ -1705,7 +1705,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     DebugX.Log("HTTPServer IO exception: " + Environment.NewLine + ioe);
 
                     //if (OnError != null)
-                    //    OnError(this, DateTime.UtcNow, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), ioe, MemoryStream);
+                    //    OnError(this, Timestamp.Now, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), ioe, MemoryStream);
 
                 }
 
@@ -1717,7 +1717,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 DebugX.Log("HTTPServer exception: " + Environment.NewLine + e);
 
                 //if (OnError != null)
-                //    OnError(this, DateTime.UtcNow, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), e, MemoryStream);
+                //    OnError(this, Timestamp.Now, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), e, MemoryStream);
 
             }
 
@@ -2547,7 +2547,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     try
                     {
 
-                        var HTTPRequestLoggerTask = HTTPHandlers.HTTPRequestLogger(DateTime.UtcNow,
+                        var HTTPRequestLoggerTask = HTTPHandlers.HTTPRequestLogger(Timestamp.Now,
                                                                                    null,
                                                                                    Request);
 
@@ -2594,7 +2594,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     httpResponse = new HTTPResponse.Builder(Request) {
                                         HTTPStatusCode  = HTTPStatusCode.NotFound,
                                         Server          = Request.Host.ToString(),
-                                        Date            = DateTime.UtcNow,
+                                        Date            = Timestamp.Now,
                                         ContentType     = HTTPContentType.TEXT_UTF8,
                                         Content         = "Error 404 - Not Found!".ToUTF8Bytes(),
                                         Connection      = "close"
@@ -2607,7 +2607,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     try
                     {
 
-                        var HTTPResponseLoggerTask = HTTPHandlers.HTTPResponseLogger(DateTime.UtcNow,
+                        var HTTPResponseLoggerTask = HTTPHandlers.HTTPResponseLogger(Timestamp.Now,
                                                                                      null,
                                                                                      Request,
                                                                                      httpResponse);
@@ -2631,7 +2631,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             return httpResponse ?? new HTTPResponse.Builder(Request) {
                                         HTTPStatusCode  = HTTPStatusCode.NotFound,
                                         Server          = Request.Host.ToString(),
-                                        Date            = DateTime.UtcNow,
+                                        Date            = Timestamp.Now,
                                         ContentType     = HTTPContentType.TEXT_UTF8,
                                         Content         = "Error 404 - No HTTP handler found!".ToUTF8Bytes(),
                                         Connection      = "close"
