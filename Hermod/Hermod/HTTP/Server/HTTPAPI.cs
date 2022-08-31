@@ -1045,7 +1045,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An optional HTML template.
         /// </summary>
-        public String                   HTMLTemplate                { get; protected set; }
+        public String?                  HTMLTemplate                { get; protected set; }
 
 
         public X509Certificate?         ServerCert                  { get; }
@@ -1819,20 +1819,64 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       params Tuple<String, Assembly>[]  ResourceAssemblies)
         {
 
+            if (HTMLTemplate is not null)
+            {
+
+                var htmlStream = new MemoryStream();
+
+                foreach (var assembly in ResourceAssemblies)
+                {
+
+                    var resourceStream = assembly.Item2.GetManifestResourceStream(assembly.Item1 + ResourceName);
+                    if (resourceStream is not null)
+                    {
+
+                        resourceStream.Seek(3, SeekOrigin.Begin);
+                        resourceStream.CopyTo(htmlStream);
+
+                        return HTMLTemplate.Replace("<%= content %>",  htmlStream.ToArray().ToUTF8String()).
+                                            Replace("{{BasePath}}",    BasePath?.ToString() ?? "");
+
+                    }
+
+                }
+
+            }
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region (protected virtual) MixWithHTMLTemplate    (Template, ResourceName, ResourceAssemblies)
+
+        protected virtual String? MixWithHTMLTemplate(String  Template,
+                                                      String  ResourceName)
+
+            => MixWithHTMLTemplate(Template,
+                                   ResourceName,
+                                   new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+
+        protected virtual String? MixWithHTMLTemplate(String                            Template,
+                                                      String                            ResourceName,
+                                                      params Tuple<String, Assembly>[]  ResourceAssemblies)
+        {
+
             var htmlStream = new MemoryStream();
 
             foreach (var assembly in ResourceAssemblies)
             {
 
                 var resourceStream = assembly.Item2.GetManifestResourceStream(assembly.Item1 + ResourceName);
-                if (resourceStream != null)
+                if (resourceStream is not null)
                 {
 
                     resourceStream.Seek(3, SeekOrigin.Begin);
                     resourceStream.CopyTo(htmlStream);
 
-                    return HTMLTemplate.Replace("<%= content %>",  htmlStream.ToArray().ToUTF8String()).
-                                        Replace("{{BasePath}}",    BasePath?.ToString() ?? "");
+                    return Template.Replace("<%= content %>",  htmlStream.ToArray().ToUTF8String()).
+                                    Replace("{{BasePath}}",    BasePath?.ToString() ?? "");
 
                 }
 

@@ -457,7 +457,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                         connectionAcceptTime2 = Timestamp.Now;
 
-                        await Task.Factory.StartNew(connection => {
+                        var x = Task.Factory.StartNew(connection =>
+                        {
 
                             try
                             {
@@ -504,7 +505,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                             }
 
-                        }, tcpConnection);
+                        },
+                        tcpConnection,
+                        CancellationToken.None,
+                        TaskCreationOptions.DenyChildAttach,
+                        TaskScheduler.Default);
 
                         DebugX.Log("New TCP connection from ", tcpConnection.RemoteSocket.ToString(), " created after: ", (connectionAcceptTime2 - connectionAcceptTime1).TotalMilliseconds.ToString(), " ms / ", (Timestamp.Now - connectionAcceptTime2).TotalMilliseconds.ToString(), " ms");
 
