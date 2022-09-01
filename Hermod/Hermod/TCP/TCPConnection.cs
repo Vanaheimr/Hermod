@@ -55,47 +55,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// The associated TCP server.
         /// </summary>
-        public TCPServer         TCPServer            { get; }
+        public TCPServer          TCPServer            { get; }
 
         /// <summary>
         /// The associated TCP client.
         /// </summary>
-        public TcpClient         TCPClient            { get; }
+        public TcpClient          TCPClient            { get; }
 
         /// <summary>
         /// The underlying network stream.
         /// </summary>
-        public NetworkStream     NetworkStream        { get; }
+        public NetworkStream      NetworkStream        { get; }
 
         /// <summary>
         /// An optional SSL/TLS server certificate.
         /// </summary>
-        public X509Certificate2  ServerCertificate    { get; }
+        public X509Certificate2?  ServerCertificate    { get; }
 
         /// <summary>
         /// The optional HTTP client certificate.
         /// </summary>
-        public X509Certificate2  ClientCertificate    { get; }
+        public X509Certificate2?  ClientCertificate    { get; }
 
         /// <summary>
         /// The SSL/TLS protocol(s) to use.
         /// </summary>
-        public SslProtocols      TLSProtocols         { get; }
+        public SslProtocols       TLSProtocols         { get; }
 
         /// <summary>
         /// The underlying SSL/TLS stream.
         /// </summary>
-        public SslStream         SSLStream            { get; }
+        public SslStream?         SSLStream            { get; }
 
         /// <summary>
         /// The timestamp of the packet.
         /// </summary>
-        public DateTime          ServerTimestamp      { get; }
+        public DateTime           ServerTimestamp      { get; }
 
         /// <summary>
         /// The TCP connection identification.
         /// </summary>
-        public String            ConnectionId         { get;}
+        public String             ConnectionId         { get;}
 
         #region IsConnected
 
@@ -108,7 +108,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             get
             {
 
-                if (TCPClient == null)
+                if (TCPClient is null)
                     return false;
 
                 // This is not working as expected! Damn you Microsoft! Perhaps
@@ -233,7 +233,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region Events
 
-        public event ExceptionOccuredEventHandler OnExceptionOccured;
+        //public event ExceptionOccuredEventHandler? OnExceptionOccured;
 
         #endregion
 
@@ -248,8 +248,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
         /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
         /// <param name="AllowedTLSProtocols">The SSL/TLS protocol(s) allowed for this connection.</param>
-        public TCPConnection(TCPServer                            TCPServer,
-                             TcpClient                            TCPClient,
+        public TCPConnection(TCPServer                             TCPServer,
+                             TcpClient                             TCPClient,
                              ServerCertificateSelectorDelegate?    ServerCertificateSelector    = null,
                              RemoteCertificateValidationCallback?  ClientCertificateValidator   = null,
                              LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
@@ -288,7 +288,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             this.ServerCertificate    = ServerCertificateSelector?.Invoke(TCPServer, TCPClient);
 
-            if (ServerCertificate != null)
+            if (ServerCertificate is not null)
             {
 
                 this.SSLStream      = new SslStream(innerStream:                        NetworkStream,
@@ -298,7 +298,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                                     encryptionPolicy:                   EncryptionPolicy.RequireEncryption);
 
                 this.SSLStream.AuthenticateAsServer(serverCertificate:                  ServerCertificate,
-                                                    clientCertificateRequired:          ClientCertificateValidator != null,
+                                                    clientCertificateRequired:          ClientCertificateValidator is not null,
                                                     enabledSslProtocols:                AllowedTLSProtocols ?? SslProtocols.Tls12 | SslProtocols.Tls13,
                                                     checkCertificateRevocation:         false);
 
@@ -388,7 +388,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             if (!NetworkStream.CanRead)
                 return TCPClientResponse.CanNotRead;
 
-            if (SSLStream != null)
+            if (SSLStream is not null)
             {
 
                 var value = SSLStream.ReadByte();
@@ -420,7 +420,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             if (NetworkStream.DataAvailable)
             {
-                Value = SSLStream != null
+                Value = SSLStream is not null
                             ? SSLStream.    ReadByte()
                             : NetworkStream.ReadByte();
             }
@@ -804,7 +804,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// </summary>
         public void Flush()
         {
-            SSLStream?.Flush();
+            SSLStream?.    Flush();
             NetworkStream?.Flush();
         }
 
@@ -822,7 +822,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             TCPClient?.Close();
 
             if (!_IsClosed)
-                TCPServer.SendConnectionClosed(Timestamp.Now, RemoteSocket, ConnectionId, ClosedBy);
+                TCPServer.SendConnectionClosed(Timestamp.Now,
+                                               RemoteSocket,
+                                               ConnectionId,
+                                               ClosedBy);
 
             _IsClosed = true;
 

@@ -1728,13 +1728,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             try
             {
 
-                TCPConnection.Close(ClientClose
-                                        ? ConnectionClosedBy.Client
-                                        : ConnectionClosedBy.Server);
+                TCPConnection?.Close(ClientClose
+                                         ? ConnectionClosedBy.Client
+                                         : ConnectionClosedBy.Server);
 
             }
-            catch (Exception)
-            { }
+            catch (Exception e)
+            {
+                DebugX.Log("HTTPServer exception when closing the TCP connection: " + e);
+            }
 
             #endregion
 
