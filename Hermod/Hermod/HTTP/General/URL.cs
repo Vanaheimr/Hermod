@@ -17,10 +17,7 @@
 
 #region Usings
 
-using System;
-
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
@@ -58,6 +55,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
     /// <summary>
+    /// Extension methods for uniform resource locations.
+    /// </summary>
+    public static class URLExtensions
+    {
+
+        /// <summary>
+        /// Indicates whether this uniform resource location is null or empty.
+        /// </summary>
+        /// <param name="URL">An uniform resource location.</param>
+        public static Boolean IsNullOrEmpty(this URL? URL)
+            => !URL.HasValue || URL.Value.IsNullOrEmpty;
+
+        /// <summary>
+        /// Indicates whether this uniform resource location is null or empty.
+        /// </summary>
+        /// <param name="URL">An uniform resource location.</param>
+        public static Boolean IsNotNullOrEmpty(this URL? URL)
+            => URL.HasValue && URL.Value.IsNotNullOrEmpty;
+
+    }
+
+
+    /// <summary>
     /// An uniform resource location (URL).
     /// </summary>
     public readonly struct URL : IId<URL>
@@ -78,8 +98,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Indicates whether this identification is null or empty.
         /// </summary>
         public Boolean IsNullOrEmpty
-
             => InternalId.IsNullOrEmpty();
+
+        /// <summary>
+        /// Indicates whether this identification is NOT null or empty.
+        /// </summary>
+        public Boolean IsNotNullOrEmpty
+            => !InternalId.IsNullOrEmpty();
 
         /// <summary>
         /// The length of the uniform resource location.
