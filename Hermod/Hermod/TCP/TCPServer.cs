@@ -433,7 +433,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                         // Wait for a new/pending client connection
                         while (!_StopRequested && !_TCPListener.Pending())
-                            Thread.Sleep(1);
+                            Thread.Sleep(10);
 
                         // Break when a server stop was requested
                         if (_StopRequested)
@@ -537,6 +537,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                             //DebugX.Log("New TCP connection from ", tcpConnection.RemoteSocket.ToString(), " created after: ", (connectionAcceptTime2 - connectionAcceptTime1).TotalMilliseconds.ToString(), " ms / ", (Timestamp.Now - connectionAcceptTime2).TotalMilliseconds.ToString(), " ms");
 
+                            Thread.Sleep(15);
+
                         }
 
                     }
@@ -555,17 +557,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                     #endregion
 
                 }
-
-                #region Exception handling
-
-                catch (Exception Exception)
+                catch (Exception e)
                 {
+
+                    DebugX.Log(" [", nameof(TCPServer), "] Exception occurred: ", e.Message, e.StackTrace is not null ? Environment.NewLine + e.StackTrace : "");
+
                     var OnExceptionLocal = OnExceptionOccured;
                     if (OnExceptionLocal is not null)
-                        OnExceptionLocal(this, Timestamp.Now, Exception);
-                }
+                        OnExceptionLocal(this, Timestamp.Now, e);
 
-                #endregion
+                }
 
                 _IsRunning = false;
 
