@@ -286,7 +286,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 try
                 {
 
-                    DebugX.Log(" [", nameof(TCPConnection), ":", LocalPort.ToString(), "] New TLS connection using certificate: " + this.ServerCertificate.Subject);
+                    DebugX.Log(" [TCPServer:", LocalPort.ToString(), "] New TLS connection using server certificate: " + this.ServerCertificate.Subject);
 
                     this.SSLStream      = new SslStream(innerStream:                        NetworkStream,
                                                         leaveInnerStreamOpen:               true,
@@ -300,12 +300,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                                         checkCertificateRevocation:         false);
 
                     if (this.SSLStream.RemoteCertificate is not null)
+                    {
+
                         this.ClientCertificate = new X509Certificate2(this.SSLStream.RemoteCertificate);
+
+                        DebugX.Log(" [TCPServer:", LocalPort.ToString(), "] New TLS connection using client certificate: " + this.ClientCertificate.Subject);
+
+                    }
 
                 }
                 catch (Exception e)
                 {
-                    DebugX.Log(" [", nameof(TCPConnection), ":", LocalPort.ToString(), "] TLS exception: ", e.Message, e.StackTrace is not null ? Environment.NewLine + e.StackTrace : "");
+                    DebugX.Log(" [TCPServer:", LocalPort.ToString(), "] TLS exception: ", e.Message, e.StackTrace is not null ? Environment.NewLine + e.StackTrace : "");
                     throw;
                 }
 
@@ -827,7 +833,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             _IsClosed = true;
 
-            DebugX.Log(" [", nameof(TCPServer), ":", LocalPort.ToString(), "] Connection to ", RemoteSocket.ToString(), " closed!");
+            DebugX.Log(" [TCPServer:", LocalPort.ToString(), "] TCP connection to ", RemoteSocket.ToString(), " closed!");
 
         }
 
