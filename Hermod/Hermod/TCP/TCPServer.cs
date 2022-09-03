@@ -443,89 +443,109 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                         connectionAcceptTime1 = Timestamp.Now;
 
-                        var tcpConnection = new TCPConnection(TCPServer:                   this,
-                                                              TCPClient:                   _TCPListener.AcceptTcpClient(),
-                                                              ServerCertificateSelector:   ServerCertificateSelector,
-                                                              ClientCertificateValidator:  ClientCertificateValidator,
-                                                              ClientCertificateSelector:   ClientCertificateSelector,
-                                                              AllowedTLSProtocols:         AllowedTLSProtocols,
-                                                              ReadTimeout:                 ConnectionTimeout,
-                                                              WriteTimeout:                ConnectionTimeout);
 
-                        // Store the new connection
-                        //_SocketConnections.AddOrUpdate(_TCPConnection.Value.RemoteSocket,
-                        //                               _TCPConnection.Value,
-                        //                               (RemoteEndPoint, TCPConnection) => TCPConnection);
+                        TCPConnection? tcpConnection = null;
 
-                        DebugX.Log(" [", nameof(TCPServer), ":", tcpConnection.LocalPort.ToString(), "] New TCP connection accepted: " + tcpConnection.RemoteSocket.ToString());
-
-                        connectionAcceptTime2 = Timestamp.Now;
-
-                        var x = Task.Factory.StartNew(connection =>
+                        try
                         {
 
-                            try
+                            var newTCPClient = _TCPListener.AcceptTcpClient();
+
+                            if (newTCPClient is not null)
                             {
 
-                                var newTCPConnection = connection as TCPConnection;
+                                tcpConnection = new TCPConnection(TCPServer:                   this,
+                                                                  TCPClient:                   newTCPClient,
+                                                                  ServerCertificateSelector:   ServerCertificateSelector,
+                                                                  ClientCertificateValidator:  ClientCertificateValidator,
+                                                                  ClientCertificateSelector:   ClientCertificateSelector,
+                                                                  AllowedTLSProtocols:         AllowedTLSProtocols,
+                                                                  ReadTimeout:                 ConnectionTimeout,
+                                                                  WriteTimeout:                ConnectionTimeout);
 
-                                if (newTCPConnection is not null)
+                                // Store the new connection
+                                //_SocketConnections.AddOrUpdate(_TCPConnection.Value.RemoteSocket,
+                                //                               _TCPConnection.Value,
+                                //                               (RemoteEndPoint, TCPConnection) => TCPConnection);
+
+                                DebugX.Log(" [", nameof(TCPServer), ":", tcpConnection.LocalPort.ToString(), "] New TCP connection accepted: " + tcpConnection.RemoteSocket.ToString());
+
+                            }
+
+                        }
+                        catch (Exception e)
+                        {
+                            DebugX.Log(" [", nameof(TCPServer), "] Could not accept new TCP connection: ", e.Message, e.StackTrace is not null ? Environment.NewLine + e.StackTrace : "");
+                        }
+
+                        if (tcpConnection is not null)
+                        {
+
+                            connectionAcceptTime2 = Timestamp.Now;
+
+                            var x = Task.Factory.StartNew(connection =>
+                            {
+                                if (connection is TCPConnection newTCPConnection)
                                 {
 
-                                    #region Copy ExceptionOccured event handlers
+                                    try
+                                    {
 
-                                    //foreach (var ExceptionOccuredHandler in MyEventStorage)
-                                    //    _TCPConnection.Value.OnExceptionOccured += ExceptionOccuredHandler;
+                                        #region Copy ExceptionOccured event handlers
 
-                                    #endregion
+                                        //foreach (var ExceptionOccuredHandler in MyEventStorage)
+                                        //    _TCPConnection.Value.OnExceptionOccured += ExceptionOccuredHandler;
 
-                                    DebugX.Log(" [", nameof(TCPServer), ":", tcpConnection.LocalPort.ToString(), "] New TCP connection task: ", newTCPConnection.RemoteSocket.ToString());
+                                        #endregion
 
-                                    // If this event closes the TCP connection the OnNotification event will never be fired!
-                                    // Therefore you can use this event for filtering connection initiation requests.
-                                    OnNewConnection?.Invoke(newTCPConnection.TCPServer,
-                                                            newTCPConnection.ServerTimestamp,
-                                                            newTCPConnection.RemoteSocket,
-                                                            newTCPConnection.ConnectionId,
-                                                            newTCPConnection);
+                                        DebugX.Log(" [", nameof(TCPServer), ":", newTCPConnection.LocalPort.ToString(), "] New TCP connection task: ", newTCPConnection.RemoteSocket.ToString());
 
-                                    if (!newTCPConnection.IsClosed)
-                                        OnNotification?.Invoke(newTCPConnection);
+                                        // If this event closes the TCP connection the OnNotification event will never be fired!
+                                        // Therefore you can use this event for filtering connection initiation requests.
+                                        OnNewConnection?.Invoke(newTCPConnection.TCPServer,
+                                                                newTCPConnection.ServerTimestamp,
+                                                                newTCPConnection.RemoteSocket,
+                                                                newTCPConnection.ConnectionId,
+                                                                newTCPConnection);
+
+                                        if (!newTCPConnection.IsClosed)
+                                            OnNotification?.Invoke(newTCPConnection);
+
+                                    }
+                                    catch (Exception e)
+                                    {
+
+                                        while (e.InnerException is not null)
+                                            e = e.InnerException;
+
+                                        OnExceptionOccured?.Invoke(this,
+                                                                   Timestamp.Now,
+                                                                   e);
+
+                                        DebugX.Log(" [", nameof(TCPServer), ":", tcpConnection.LocalPort.ToString(), "] Connection exception: ", e.Message, e.StackTrace is not null ? Environment.NewLine + e.StackTrace : "");
+
+                                        newTCPConnection?.Close();
+
+                                    }
 
                                 }
+                            },
+                            tcpConnection,
+                            CancellationToken.None,
+                            TaskCreationOptions.DenyChildAttach,
+                            TaskScheduler.Default);
 
-                            }
-                            catch (Exception e)
-                            {
+                            //DebugX.Log("New TCP connection from ", tcpConnection.RemoteSocket.ToString(), " created after: ", (connectionAcceptTime2 - connectionAcceptTime1).TotalMilliseconds.ToString(), " ms / ", (Timestamp.Now - connectionAcceptTime2).TotalMilliseconds.ToString(), " ms");
 
-                                while (e.InnerException is not null)
-                                    e = e.InnerException;
-
-                                OnExceptionOccured?.Invoke(this,
-                                                           Timestamp.Now,
-                                                           e);
-
-                                DebugX.Log(" [", nameof(TCPServer), ":", tcpConnection.LocalPort.ToString(), "] Connection exception: ", e.Message, e.StackTrace is not null ? Environment.NewLine + e.StackTrace : "");
-
-                                tcpConnection.Close();
-
-                            }
-
-                        },
-                        tcpConnection,
-                        CancellationToken.None,
-                        TaskCreationOptions.DenyChildAttach,
-                        TaskScheduler.Default);
-
-                        //DebugX.Log("New TCP connection from ", tcpConnection.RemoteSocket.ToString(), " created after: ", (connectionAcceptTime2 - connectionAcceptTime1).TotalMilliseconds.ToString(), " ms / ", (Timestamp.Now - connectionAcceptTime2).TotalMilliseconds.ToString(), " ms");
+                        }
 
                     }
 
                     #region Shutdown
 
                     // Request all client connections to finish!
-                    foreach (var _SocketConnection in _TCPConnections)
-                        _SocketConnection.Value.StopRequested = true;
+                    foreach (var socketConnection in _TCPConnections)
+                        socketConnection.Value.StopRequested = true;
 
                     // After stopping the TCPListener wait for
                     // all client connections to finish!
