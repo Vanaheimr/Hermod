@@ -115,9 +115,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                           Boolean                               ServerThreadIsBackground           = true,
 
                           ConnectionIdBuilder?                  ConnectionIdBuilder                = null,
-                          ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
-                          ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
-                          Boolean                               ConnectionThreadsAreBackground     = true,
+                          //ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
+                          //ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
+                          //Boolean                               ConnectionThreadsAreBackground     = true,
                           TimeSpan?                             ConnectionTimeout                  = null,
 
                           UInt32?                               MaxClientConnections               = null,
@@ -141,9 +141,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                                     ServerThreadIsBackground,
 
                                                     ConnectionIdBuilder,
-                                                    ConnectionThreadsNameBuilder,
-                                                    ConnectionThreadsPriorityBuilder,
-                                                    ConnectionThreadsAreBackground,
+                                                    //ConnectionThreadsNameBuilder,
+                                                    //ConnectionThreadsPriorityBuilder,
+                                                    //ConnectionThreadsAreBackground,
                                                     ConnectionTimeout,
 
                                                     MaxClientConnections,

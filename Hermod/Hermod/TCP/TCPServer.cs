@@ -157,17 +157,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// A delegate to set the name of the TCP connection threads.
         /// </summary>
-        public ConnectionThreadsNameBuilder      ConnectionThreadsNameBuilder           { get; set; }
+        //public ConnectionThreadsNameBuilder      ConnectionThreadsNameBuilder           { get; set; }
 
         /// <summary>
         /// A delegate to set the priority of the TCP connection threads.
         /// </summary>
-        public ConnectionThreadsPriorityBuilder  ConnectionThreadsPriorityBuilder       { get; set; }
+        //public ConnectionThreadsPriorityBuilder  ConnectionThreadsPriorityBuilder       { get; set; }
 
         /// <summary>
         /// Whether the TCP server thread is a background thread or not.
         /// </summary>
-        public Boolean                           ConnectionThreadsAreBackground         { get; set; }
+        //public Boolean                           ConnectionThreadsAreBackground         { get; set; }
 
         /// <summary>
         /// The TCP client timeout for all incoming client connections.
@@ -275,9 +275,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                          Boolean                               ServerThreadIsBackground           = true,
 
                          ConnectionIdBuilder?                  ConnectionIdBuilder                = null,
-                         ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
-                         ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
-                         Boolean                               ConnectionThreadsAreBackground     = true,
+                         //ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
+                         //ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
+                         //Boolean                               ConnectionThreadsAreBackground     = true,
                          TimeSpan?                             ConnectionTimeout                  = null,
 
                          UInt32                                MaxClientConnections               = __DefaultMaxClientConnections,
@@ -299,9 +299,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                    ServerThreadIsBackground,
 
                    ConnectionIdBuilder,
-                   ConnectionThreadsNameBuilder,
-                   ConnectionThreadsPriorityBuilder,
-                   ConnectionThreadsAreBackground,
+                   //ConnectionThreadsNameBuilder,
+                   //ConnectionThreadsPriorityBuilder,
+                   //ConnectionThreadsAreBackground,
                    ConnectionTimeout,
 
                    MaxClientConnections,
@@ -350,9 +350,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                          Boolean                               ServerThreadIsBackground           = true,
 
                          ConnectionIdBuilder?                  ConnectionIdBuilder                = null,
-                         ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
-                         ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
-                         Boolean                               ConnectionThreadsAreBackground     = true,
+                         //ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
+                         //ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
+                         //Boolean                               ConnectionThreadsAreBackground     = true,
                          TimeSpan?                             ConnectionTimeout                  = null,
 
                          UInt32                                MaxClientConnections               = __DefaultMaxClientConnections,
@@ -387,9 +387,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             // TCP Connections
             this._TCPConnections                    = new ConcurrentDictionary<IPSocket, TCPConnection>();
             this.ConnectionIdBuilder                = ConnectionIdBuilder              ?? ((Sender, Timestamp, LocalSocket, RemoteIPSocket) => "TCP Server:"        + RemoteIPSocket.IPAddress + ":" + RemoteIPSocket.Port);
-            this.ConnectionThreadsNameBuilder       = ConnectionThreadsNameBuilder     ?? ((Sender, Timestamp, LocalSocket, RemoteIPSocket) => "TCP Server thread " + RemoteIPSocket.IPAddress + ":" + RemoteIPSocket.Port);
-            this.ConnectionThreadsPriorityBuilder   = ConnectionThreadsPriorityBuilder ?? ((Sender, Timestamp, LocalSocket, RemoteIPSocket) => ThreadPriority.AboveNormal);
-            this.ConnectionThreadsAreBackground     = ConnectionThreadsAreBackground;
+            //this.ConnectionThreadsNameBuilder       = ConnectionThreadsNameBuilder     ?? ((Sender, Timestamp, LocalSocket, RemoteIPSocket) => "TCP Server thread " + RemoteIPSocket.IPAddress + ":" + RemoteIPSocket.Port);
+            //this.ConnectionThreadsPriorityBuilder   = ConnectionThreadsPriorityBuilder ?? ((Sender, Timestamp, LocalSocket, RemoteIPSocket) => ThreadPriority.AboveNormal);
+            //this.ConnectionThreadsAreBackground     = ConnectionThreadsAreBackground;
             this.ConnectionTimeout                  = ConnectionTimeout ?? TimeSpan.FromSeconds(30);
 
             this.MaxClientConnections               = MaxClientConnections;
@@ -614,14 +614,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                          String                                ServiceName                        = __DefaultServiceName,
                          String                                ServiceBanner                      = __DefaultServiceBanner,
-                         String                                ServerThreadName                   = null,
+                         String?                               ServerThreadName                   = null,
                          ThreadPriority                        ServerThreadPriority               = ThreadPriority.AboveNormal,
                          Boolean                               ServerThreadIsBackground           = true,
 
-                         ConnectionIdBuilder                   ConnectionIdBuilder                = null,
-                         ConnectionThreadsNameBuilder          ConnectionThreadsNameBuilder       = null,
-                         ConnectionThreadsPriorityBuilder      ConnectionThreadsPriorityBuilder   = null,
-                         Boolean                               ConnectionThreadsAreBackground     = true,
+                         ConnectionIdBuilder?                  ConnectionIdBuilder                = null,
+                         //ConnectionThreadsNameBuilder          ConnectionThreadsNameBuilder       = null,
+                         //ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
+                         //Boolean                               ConnectionThreadsAreBackground     = true,
                          TimeSpan?                             ConnectionTimeout                  = null,
 
                          UInt32                                MaxClientConnections               = __DefaultMaxClientConnections,
@@ -643,9 +643,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                    ServerThreadIsBackground,
 
                    ConnectionIdBuilder,
-                   ConnectionThreadsNameBuilder,
-                   ConnectionThreadsPriorityBuilder,
-                   ConnectionThreadsAreBackground,
+                   //ConnectionThreadsNameBuilder,
+                   //ConnectionThreadsPriorityBuilder,
+                   //ConnectionThreadsAreBackground,
                    ConnectionTimeout,
 
                    MaxClientConnections,

@@ -190,9 +190,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           ThreadPriority                        ServerThreadPriority               = ThreadPriority.AboveNormal,
                           Boolean                               ServerThreadIsBackground           = true,
                           ConnectionIdBuilder?                  ConnectionIdBuilder                = null,
-                          ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
-                          ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
-                          Boolean                               ConnectionThreadsAreBackground     = true,
+                          //ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
+                          //ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
+                          //Boolean                               ConnectionThreadsAreBackground     = true,
                           TimeSpan?                             ConnectionTimeout                  = null,
                           UInt32                                MaxClientConnections               = TCPServer.__DefaultMaxClientConnections,
 
@@ -214,9 +214,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   ServerThreadIsBackground,
 
                                   ConnectionIdBuilder,
-                                  ConnectionThreadsNameBuilder,
-                                  ConnectionThreadsPriorityBuilder,
-                                  ConnectionThreadsAreBackground,
+                                  //ConnectionThreadsNameBuilder,
+                                  //ConnectionThreadsPriorityBuilder,
+                                  //ConnectionThreadsAreBackground,
                                   ConnectionTimeout,
 
                                   MaxClientConnections,
@@ -1116,17 +1116,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           ThreadPriority?                       ServerThreadPriority               = null,
                           Boolean?                              ServerThreadIsBackground           = null,
                           ConnectionIdBuilder?                  ConnectionIdBuilder                = null,
-                          ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
-                          ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
-                          Boolean?                              ConnectionThreadsAreBackground     = null,
+                          //ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
+                          //ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
+                          //Boolean?                              ConnectionThreadsAreBackground     = null,
                           TimeSpan?                             ConnectionTimeout                  = null,
                           UInt32?                               MaxClientConnections               = null,
 
                           DNSClient?                            DNSClient                          = null,
                           Boolean                               Autostart                          = false)
 
-            : base(ServiceName       ?? DefaultHTTPServiceName,
-                   DefaultServerName ?? DefaultHTTPServerName,
+            : base(ServiceName                  ?? DefaultHTTPServiceName,
+                   DefaultServerName            ?? DefaultHTTPServerName,
                    ServerCertificateSelector,
                    ClientCertificateSelector,
                    ClientCertificateValidator,
@@ -1134,14 +1134,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    ClientCertificateRequired,
                    CheckCertificateRevocation,
 
-                   ServerThreadName,
+                   ServerThreadName             ?? (ServerCertificateSelector is null
+                                                        ? "HTTP Server :"  + (TCPPort ?? (ServerCertificateSelector is null ? IPPort.HTTP : IPPort.HTTPS))
+                                                        : "HTTPS Server :" + (TCPPort ?? (ServerCertificateSelector is null ? IPPort.HTTP : IPPort.HTTPS))),
                    ServerThreadPriority,
                    ServerThreadIsBackground,
 
                    ConnectionIdBuilder,
-                   ConnectionThreadsNameBuilder,
-                   ConnectionThreadsPriorityBuilder,
-                   ConnectionThreadsAreBackground,
+                   //ConnectionThreadsNameBuilder ?? ((Sender, Timestamp, LocalSocket, RemoteIPSocket) => ServerCertificateSelector is null
+                   //                                                                                         ? "HTTP server ["  + (TCPPort ?? (ServerCertificateSelector is null ? IPPort.HTTP : IPPort.HTTPS)) + "] " + RemoteIPSocket.IPAddress + ":" + RemoteIPSocket.Port
+                   //                                                                                         : "HTTPS server [" + (TCPPort ?? (ServerCertificateSelector is null ? IPPort.HTTP : IPPort.HTTPS)) + "] " + RemoteIPSocket.IPAddress + ":" + RemoteIPSocket.Port),
+                   //ConnectionThreadsPriorityBuilder,
+                   //ConnectionThreadsAreBackground,
                    ConnectionTimeout,
 
                    MaxClientConnections,

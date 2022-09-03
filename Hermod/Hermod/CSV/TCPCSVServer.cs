@@ -129,9 +129,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                             Boolean                               ServerThreadIsBackground           = true,
 
                             ConnectionIdBuilder?                  ConnectionIdBuilder                = null,
-                            ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
-                            ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
-                            Boolean                               ConnectionThreadsAreBackground     = true,
+                            //ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
+                            //ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
+                            //Boolean                               ConnectionThreadsAreBackground     = true,
                             TimeSpan?                             ConnectionTimeout                  = null,
 
                             UInt32                                MaxClientConnections               = __DefaultMaxClientConnections,
@@ -154,9 +154,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                    ServerThreadIsBackground,
 
                    ConnectionIdBuilder,
-                   ConnectionThreadsNameBuilder,
-                   ConnectionThreadsPriorityBuilder,
-                   ConnectionThreadsAreBackground,
+                   //ConnectionThreadsNameBuilder,
+                   //ConnectionThreadsPriorityBuilder,
+                   //ConnectionThreadsAreBackground,
                    ConnectionTimeout,
 
                    MaxClientConnections,
@@ -207,9 +207,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                             Boolean                               ServerThreadIsBackground           = true,
 
                             ConnectionIdBuilder?                  ConnectionIdBuilder                = null,
-                            ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
-                            ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
-                            Boolean                               ConnectionThreadsAreBackground     = true,
+                            //ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
+                            //ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
+                            //Boolean                               ConnectionThreadsAreBackground     = true,
                             TimeSpan?                             ConnectionTimeout                  = null,
 
                             UInt32                                MaxClientConnections               = __DefaultMaxClientConnections,
@@ -231,9 +231,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                    ServerThreadIsBackground,
 
                    ConnectionIdBuilder,
-                   ConnectionThreadsNameBuilder,
-                   ConnectionThreadsPriorityBuilder,
-                   ConnectionThreadsAreBackground,
+                   //ConnectionThreadsNameBuilder,
+                   //ConnectionThreadsPriorityBuilder,
+                   //ConnectionThreadsAreBackground,
                    ConnectionTimeout,
 
                    MaxClientConnections,
@@ -297,9 +297,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                             Boolean                               ServerThreadIsBackground           = true,
 
                             ConnectionIdBuilder?                  ConnectionIdBuilder                = null,
-                            ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
-                            ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
-                            Boolean                               ConnectionThreadsAreBackground     = true,
+                            //ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
+                            //ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
+                            //Boolean                               ConnectionThreadsAreBackground     = true,
                             TimeSpan?                             ConnectionTimeout                  = null,
 
                             UInt32                                MaxClientConnections               = __DefaultMaxClientConnections,
@@ -322,9 +322,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                    ServerThreadIsBackground,
 
                    ConnectionIdBuilder,
-                   ConnectionThreadsNameBuilder,
-                   ConnectionThreadsPriorityBuilder,
-                   ConnectionThreadsAreBackground,
+                   //ConnectionThreadsNameBuilder,
+                   //ConnectionThreadsPriorityBuilder,
+                   //ConnectionThreadsAreBackground,
                    ConnectionTimeout,
 
                    MaxClientConnections,

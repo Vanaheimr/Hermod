@@ -1214,9 +1214,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        Boolean?                              ServerThreadIsBackground           = null,
 
                        ConnectionIdBuilder?                  ConnectionIdBuilder                = null,
-                       ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
-                       ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
-                       Boolean?                              ConnectionThreadsAreBackground     = null,
+                       //ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
+                       //ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
+                       //Boolean?                              ConnectionThreadsAreBackground     = null,
                        TimeSpan?                             ConnectionTimeout                  = null,
                        UInt32?                               MaxClientConnections               = null,
 
@@ -1252,9 +1252,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   ServerThreadPriority,
                                   ServerThreadIsBackground,
                                   ConnectionIdBuilder,
-                                  ConnectionThreadsNameBuilder,
-                                  ConnectionThreadsPriorityBuilder,
-                                  ConnectionThreadsAreBackground,
+                                  //ConnectionThreadsNameBuilder,
+                                  //ConnectionThreadsPriorityBuilder,
+                                  //ConnectionThreadsAreBackground,
                                   ConnectionTimeout,
                                   MaxClientConnections,
 

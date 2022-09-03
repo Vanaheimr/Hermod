@@ -17,18 +17,14 @@
 
 #region Usings
 
-using System;
-using System.IO;
 using System.Net;
-using System.Net.Security;
 using System.Text;
-using System.Threading;
 using System.Net.Sockets;
+using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Styx.Arrows;
 
 #endregion
 
@@ -231,12 +227,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
-        #region Events
-
-        //public event ExceptionOccuredEventHandler? OnExceptionOccured;
-
-        #endregion
-
         #region Constructor(s)
 
         /// <summary>
@@ -257,10 +247,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                              TimeSpan?                             ReadTimeout                  = null,
                              TimeSpan?                             WriteTimeout                 = null)
 
-            : base(new IPSocket(new IPv4Address((         TCPClient.Client.LocalEndPoint  as IPEndPoint)?.Address),
-                                IPPort.Parse   ((UInt16) (TCPClient.Client.LocalEndPoint  as IPEndPoint)?.Port)),
-                   new IPSocket(new IPv4Address((         TCPClient.Client.RemoteEndPoint as IPEndPoint)?.Address),
-                                IPPort.Parse   ((UInt16) (TCPClient.Client.RemoteEndPoint as IPEndPoint)?.Port)))
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+            : base(new IPSocket(new IPv4Address((         TCPClient.Client.LocalEndPoint  as IPEndPoint).Address),
+                                IPPort.Parse   ((UInt16) (TCPClient.Client.LocalEndPoint  as IPEndPoint).Port)),
+                   new IPSocket(new IPv4Address((         TCPClient.Client.RemoteEndPoint as IPEndPoint).Address),
+                                IPPort.Parse   ((UInt16) (TCPClient.Client.RemoteEndPoint as IPEndPoint).Port)))
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
 
         {
 
@@ -276,8 +268,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             if (ReadTimeout.HasValue)
             {
-                this.readTimeoutMS              = (Int32) ReadTimeout.Value.TotalMilliseconds;
-                this.NetworkStream.ReadTimeout  = (Int32) ReadTimeout.Value.TotalMilliseconds;
+                this.readTimeoutMS               = (Int32) ReadTimeout.Value.TotalMilliseconds;
+                this.NetworkStream.ReadTimeout   = (Int32) ReadTimeout.Value.TotalMilliseconds;
             }
 
             if (WriteTimeout.HasValue)
@@ -291,19 +283,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             if (ServerCertificate is not null)
             {
 
-                this.SSLStream      = new SslStream(innerStream:                        NetworkStream,
-                                                    leaveInnerStreamOpen:               true,
-                                                    userCertificateValidationCallback:  ClientCertificateValidator,
-                                                    userCertificateSelectionCallback:   ClientCertificateSelector,
-                                                    encryptionPolicy:                   EncryptionPolicy.RequireEncryption);
+                try
+                {
 
-                this.SSLStream.AuthenticateAsServer(serverCertificate:                  ServerCertificate,
-                                                    clientCertificateRequired:          ClientCertificateValidator is not null,
-                                                    enabledSslProtocols:                AllowedTLSProtocols ?? SslProtocols.Tls12 | SslProtocols.Tls13,
-                                                    checkCertificateRevocation:         false);
+                    DebugX.Log(" [", nameof(TCPConnection), ":", LocalPort.ToString(), "] New TLS connection using certificate: " + this.ServerCertificate.Subject);
 
-                if (this.SSLStream.RemoteCertificate is not null)
-                    this.ClientCertificate = new X509Certificate2(this.SSLStream.RemoteCertificate);
+                    this.SSLStream      = new SslStream(innerStream:                        NetworkStream,
+                                                        leaveInnerStreamOpen:               true,
+                                                        userCertificateValidationCallback:  ClientCertificateValidator,
+                                                        userCertificateSelectionCallback:   ClientCertificateSelector,
+                                                        encryptionPolicy:                   EncryptionPolicy.RequireEncryption);
+
+                    this.SSLStream.AuthenticateAsServer(serverCertificate:                  ServerCertificate,
+                                                        clientCertificateRequired:          ClientCertificateValidator is not null,
+                                                        enabledSslProtocols:                AllowedTLSProtocols ?? SslProtocols.Tls12 | SslProtocols.Tls13,
+                                                        checkCertificateRevocation:         false);
+
+                    if (this.SSLStream.RemoteCertificate is not null)
+                        this.ClientCertificate = new X509Certificate2(this.SSLStream.RemoteCertificate);
+
+                }
+                catch (Exception e)
+                {
+                    DebugX.Log(" [", nameof(TCPConnection), ":", LocalPort.ToString(), "] TLS exception: ", e.Message, e.StackTrace is not null ? Environment.NewLine + e.StackTrace : "");
+                    throw;
+                }
 
             }
 
@@ -311,21 +315,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             //_TCPConnection.Value.ReadTimeout    = ClientTimeout;
             //_TCPConnection.Value.StopRequested  = false;
 
-            //#if __MonoCS__
-            //                        // Code for Mono C# compiler
-            //#else
-
-            //            Thread.CurrentThread.Name = (TCPServer.ConnectionThreadsNameBuilder != null)
-            //                                             ? TCPServer.ConnectionThreadsNameBuilder(this,
-            //                                                                                      this._ServerTimestamp,
-            //                                                                                      base.LocalSocket,
-            //                                                                                      base.RemoteSocket)
-            //                                             : "TCP connection from " +
-            //                                                     base.RemoteSocket.IPAddress.ToString() +
-            //                                                     ":" +
-            //                                                     base.RemoteSocket.Port.ToString();
-
-            //#endif
+            //Thread.CurrentThread.Name = (TCPServer.ConnectionThreadsNameBuilder is not null)
+            //                                 ? TCPServer.ConnectionThreadsNameBuilder(this,
+            //                                                                          this.ServerTimestamp,
+            //                                                                          base.LocalSocket,
+            //                                                                          base.RemoteSocket)
+            //                                 : "TCP connection from " +
+            //                                         base.RemoteSocket.IPAddress.ToString() +
+            //                                         ":" +
+            //                                         base.RemoteSocket.Port.ToString();
 
         }
 
@@ -838,9 +836,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         #region IDisposable Members
 
         /// <summary>
-        /// Dispose this packet.
+        /// Dispose this connection.
         /// </summary>
-        public override void Dispose()
+        public void Dispose()
         {
             Close(ConnectionClosedBy.Server);
         }

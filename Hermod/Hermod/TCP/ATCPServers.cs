@@ -266,85 +266,85 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region ConnectionThreadsNameBuilder
 
-        private ConnectionThreadsNameBuilder _ConnectionThreadsNameBuilder;
+        //private ConnectionThreadsNameBuilder _ConnectionThreadsNameBuilder;
 
-        /// <summary>
-        /// A delegate to set the name of the TCP connection threads.
-        /// </summary>
-        public ConnectionThreadsNameBuilder ConnectionThreadsNameBuilder
-        {
+        ///// <summary>
+        ///// A delegate to set the name of the TCP connection threads.
+        ///// </summary>
+        //public ConnectionThreadsNameBuilder ConnectionThreadsNameBuilder
+        //{
 
-            get
-            {
-                return _ConnectionThreadsNameBuilder;
-            }
+        //    get
+        //    {
+        //        return _ConnectionThreadsNameBuilder;
+        //    }
 
-            set
-            {
-                lock (_TCPServers)
-                {
-                    _ConnectionThreadsNameBuilder = value;
-                    _TCPServers.ForEach(_ => _.ConnectionThreadsNameBuilder = value);
-                }
-            }
+        //    set
+        //    {
+        //        lock (_TCPServers)
+        //        {
+        //            _ConnectionThreadsNameBuilder = value;
+        //            _TCPServers.ForEach(_ => _.ConnectionThreadsNameBuilder = value);
+        //        }
+        //    }
 
-        }
+        //}
 
         #endregion
 
         #region ConnectionThreadsPriorityBuilder
 
-        private ConnectionThreadsPriorityBuilder _ConnectionThreadsPriorityBuilder;
+        //private ConnectionThreadsPriorityBuilder _ConnectionThreadsPriorityBuilder;
 
-        /// <summary>
-        /// A delegate to set the priority of the TCP connection threads.
-        /// </summary>
-        public ConnectionThreadsPriorityBuilder ConnectionThreadsPriorityBuilder
-        {
+        ///// <summary>
+        ///// A delegate to set the priority of the TCP connection threads.
+        ///// </summary>
+        //public ConnectionThreadsPriorityBuilder ConnectionThreadsPriorityBuilder
+        //{
 
-            get
-            {
-                return _ConnectionThreadsPriorityBuilder;
-            }
+        //    get
+        //    {
+        //        return _ConnectionThreadsPriorityBuilder;
+        //    }
 
-            set
-            {
-                lock (_TCPServers)
-                {
-                    _ConnectionThreadsPriorityBuilder = value;
-                    _TCPServers.ForEach(_TCPServer => _TCPServer.ConnectionThreadsPriorityBuilder = value);
-                }
-            }
+        //    set
+        //    {
+        //        lock (_TCPServers)
+        //        {
+        //            _ConnectionThreadsPriorityBuilder = value;
+        //            _TCPServers.ForEach(_TCPServer => _TCPServer.ConnectionThreadsPriorityBuilder = value);
+        //        }
+        //    }
 
-        }
+        //}
 
         #endregion
 
         #region ConnectionThreadsAreBackground
 
-        private Boolean _ConnectionThreadsAreBackground;
+        //private Boolean _ConnectionThreadsAreBackground;
 
-        /// <summary>
-        /// Whether the TCP connection threads are background threads or not (default: yes).
-        /// </summary>
-        public Boolean ConnectionThreadsAreBackground
-        {
+        ///// <summary>
+        ///// Whether the TCP connection threads are background threads or not (default: yes).
+        ///// </summary>
+        //public Boolean ConnectionThreadsAreBackground
+        //{
 
-            get
-            {
-                return _ConnectionThreadsAreBackground;
-            }
+        //    get
+        //    {
+        //        return _ConnectionThreadsAreBackground;
+        //    }
 
-            set
-            {
-                lock (_TCPServers)
-                {
-                    _ConnectionThreadsAreBackground = value;
-                    _TCPServers.ForEach(_TCPServer => _TCPServer.ConnectionThreadsAreBackground = value);
-                }
-            }
+        //    set
+        //    {
+        //        lock (_TCPServers)
+        //        {
+        //            _ConnectionThreadsAreBackground = value;
+        //            _TCPServers.ForEach(_TCPServer => _TCPServer.ConnectionThreadsAreBackground = value);
+        //        }
+        //    }
 
-        }
+        //}
 
         #endregion
 
@@ -511,8 +511,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// 
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="Autostart">Start the TCP server threads immediately (default: no).</param>
-        public ATCPServers(String                                ServiceName                        = TCPServer.__DefaultServiceName,
-                           String                                ServiceBanner                      = TCPServer.__DefaultServiceBanner,
+        public ATCPServers(String?                               ServiceName                        = null,
+                           String?                               ServiceBanner                      = null,
 
                            ServerCertificateSelectorDelegate?    ServerCertificateSelector          = null,
                            LocalCertificateSelectionCallback?    ClientCertificateSelector          = null,
@@ -521,15 +521,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                            Boolean?                              ClientCertificateRequired          = null,
                            Boolean?                              CheckCertificateRevocation         = null,
 
-                           String                                ServerThreadName                   = TCPServer.__DefaultServerThreadName,
-                           ThreadPriority?                       ServerThreadPriority               = ThreadPriority.AboveNormal,
-                           Boolean?                              ServerThreadIsBackground           = true,
+                           String?                               ServerThreadName                   = null,
+                           ThreadPriority?                       ServerThreadPriority               = null,
+                           Boolean?                              ServerThreadIsBackground           = null,
                            ConnectionIdBuilder?                  ConnectionIdBuilder                = null,
-                           ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
-                           ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
-                           Boolean?                              ConnectionThreadsAreBackground     = true,
+                           //ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
+                           //ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
+                           //Boolean?                              ConnectionThreadsAreBackground     = null,
                            TimeSpan?                             ConnectionTimeout                  = null,
-                           UInt32?                               MaxClientConnections               = TCPServer.__DefaultMaxClientConnections,
+                           UInt32?                               MaxClientConnections               = null,
 
                            DNSClient?                            DNSClient                          = null,
                            Boolean                               Autostart                          = false)
@@ -551,15 +551,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             this._ServiceBanner                     = ServiceBanner                    ?? TCPServer.__DefaultServiceBanner;
 
             // Server thread related
-            this._ServerThreadName                  = ServerThreadName;
+            this._ServerThreadName                  = ServerThreadName                 ?? TCPServer.__DefaultServerThreadName;
             this._ServerThreadPriority              = ServerThreadPriority             ?? ThreadPriority.AboveNormal;
             this._ServerThreadIsBackground          = ServerThreadIsBackground         ?? true;
 
             // TCP Connection
             this._ConnectionIdBuilder               = ConnectionIdBuilder              ?? ((Sender, Timestamp, LocalSocket, RemoteIPSocket) => "TCP:" + RemoteIPSocket.IPAddress + ":" + RemoteIPSocket.Port);
-            this._ConnectionThreadsNameBuilder      = ConnectionThreadsNameBuilder     ?? ((Sender, Timestamp, LocalSocket, RemoteIPSocket) => "TCP thread " + RemoteIPSocket.IPAddress + ":" + RemoteIPSocket.Port);
-            this._ConnectionThreadsPriorityBuilder  = ConnectionThreadsPriorityBuilder ?? ((Sender, Timestamp, LocalSocket, RemoteIPSocket) => ThreadPriority.AboveNormal);
-            this._ConnectionThreadsAreBackground    = ConnectionThreadsAreBackground   ?? true;
+            //this._ConnectionThreadsNameBuilder      = ConnectionThreadsNameBuilder     ?? ((Sender, Timestamp, LocalSocket, RemoteIPSocket) => "TCP thread " + RemoteIPSocket.IPAddress + ":" + RemoteIPSocket.Port);
+            //this._ConnectionThreadsPriorityBuilder  = ConnectionThreadsPriorityBuilder ?? ((Sender, Timestamp, LocalSocket, RemoteIPSocket) => ThreadPriority.AboveNormal);
+            //this._ConnectionThreadsAreBackground    = ConnectionThreadsAreBackground   ?? true;
             this._ConnectionTimeout                 = ConnectionTimeout                ?? TimeSpan.FromSeconds(30);
             this._MaxClientConnections              = MaxClientConnections             ?? TCPServer.__DefaultMaxClientConnections;
 
@@ -600,9 +600,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                                                                    _ServerThreadIsBackground,
 
                                                                                    _ConnectionIdBuilder,
-                                                                                   _ConnectionThreadsNameBuilder,
-                                                                                   _ConnectionThreadsPriorityBuilder,
-                                                                                   _ConnectionThreadsAreBackground,
+                                                                                   //_ConnectionThreadsNameBuilder,
+                                                                                   //_ConnectionThreadsPriorityBuilder,
+                                                                                   //_ConnectionThreadsAreBackground,
                                                                                    _ConnectionTimeout,
 
                                                                                    _MaxClientConnections,
@@ -651,9 +651,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                                                                    _ServerThreadIsBackground,
 
                                                                                    _ConnectionIdBuilder,
-                                                                                   _ConnectionThreadsNameBuilder,
-                                                                                   _ConnectionThreadsPriorityBuilder,
-                                                                                   _ConnectionThreadsAreBackground,
+                                                                                   //_ConnectionThreadsNameBuilder,
+                                                                                   //_ConnectionThreadsPriorityBuilder,
+                                                                                   //_ConnectionThreadsAreBackground,
                                                                                    _ConnectionTimeout,
 
                                                                                    _MaxClientConnections,

@@ -15,19 +15,13 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using System;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
 {
 
     /// <summary>
     /// An abstract local/remote socket combination.
     /// </summary>
-    public abstract class AReadOnlyLocalRemoteSockets : IDisposable
+    public abstract class AReadOnlyLocalRemoteSockets
     {
 
         #region Properties
@@ -77,7 +71,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
         /// </summary>
         /// <param name="LocalSocket">The local socket.</param>
         /// <param name="RemoteSocket">The remote socket.</param>
-        public AReadOnlyLocalRemoteSockets(IPSocket LocalSocket, IPSocket RemoteSocket)
+        public AReadOnlyLocalRemoteSockets(IPSocket LocalSocket,
+                                           IPSocket RemoteSocket)
         {
             this.LocalSocket   = LocalSocket;
             this.RemoteSocket  = RemoteSocket;
@@ -98,15 +93,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
 
         #endregion
 
-        #region IDisposable Members
-
-        /// <summary>
-        /// Dispose this packet.
-        /// </summary>
-        public virtual void Dispose()
-        { }
-
-        #endregion
 
     }
 

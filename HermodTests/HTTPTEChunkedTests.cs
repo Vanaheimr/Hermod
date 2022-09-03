@@ -17,8 +17,6 @@
 
 #region Usings
 
-using System;
-
 using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -57,9 +55,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
                        null,
                        null,
 
-                       null,
-                       null,
-                       null,
                        null,
                        null,
                        null,

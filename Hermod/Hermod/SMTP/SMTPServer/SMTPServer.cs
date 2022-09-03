@@ -17,10 +17,7 @@
 
 #region Usings
 
-using System;
-using System.Threading;
 using System.Net.Security;
-using System.Collections.Generic;
 using System.Security.Authentication;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -216,18 +213,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                           Boolean?                              CheckCertificateRevocation         = null,
                           Boolean?                              AllowStartTLS                      = true,
 
-                          String                                ServerThreadName                   = null,
+                          String?                               ServerThreadName                   = null,
                           ThreadPriority                        ServerThreadPriority               = ThreadPriority.AboveNormal,
                           Boolean                               ServerThreadIsBackground           = true,
 
-                          ConnectionIdBuilder                   ConnectionIdBuilder                = null,
-                          ConnectionThreadsNameBuilder          ConnectionThreadsNameBuilder       = null,
-                          ConnectionThreadsPriorityBuilder      ConnectionThreadsPriorityBuilder   = null,
-                          Boolean                               ConnectionThreadsAreBackground     = true,
+                          ConnectionIdBuilder?                  ConnectionIdBuilder                = null,
+                          //ConnectionThreadsNameBuilder          ConnectionThreadsNameBuilder       = null,
+                          //ConnectionThreadsPriorityBuilder      ConnectionThreadsPriorityBuilder   = null,
+                          //Boolean                               ConnectionThreadsAreBackground     = true,
                           TimeSpan?                             ConnectionTimeout                  = null,
 
                           UInt32?                               MaxClientConnections               = null,
-                          DNSClient                             DNSClient                          = null,
+                          DNSClient?                            DNSClient                          = null,
                           Boolean                               Autostart                          = false)
 
             : base(ServiceName,
@@ -244,9 +241,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                    ServerThreadIsBackground,
 
                    ConnectionIdBuilder,
-                   ConnectionThreadsNameBuilder,
-                   ConnectionThreadsPriorityBuilder,
-                   ConnectionThreadsAreBackground,
+                   //ConnectionThreadsNameBuilder,
+                   //ConnectionThreadsPriorityBuilder,
+                   //ConnectionThreadsAreBackground,
                    ConnectionTimeout,
 
                    MaxClientConnections,
@@ -266,7 +263,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             _SMTPConnection.ErrorLog        += (HTTPProcessor, ServerTimestamp, SMTPCommand, Request, Response, Error, LastException) =>
                                                      LogError (ServerTimestamp, SMTPCommand, Request, Response, Error, LastException);
 
-            if (TCPPort != null)
+            if (TCPPort is not null)
                 this.AttachTCPPort(TCPPort ?? IPPort.SMTP);
 
             if (Autostart)
