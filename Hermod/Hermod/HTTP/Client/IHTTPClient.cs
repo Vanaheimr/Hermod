@@ -99,7 +99,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The CPO client (HTTP client) logger.
         /// </summary>
-        HTTPClientLogger?                     HTTPLogger                    { get; set; }
+        HTTPClientLogger?                     HTTPLogger                    { get; }
 
         /// <summary>
         /// The DNS client to use.

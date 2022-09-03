@@ -40,9 +40,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private static readonly Object         LockObject                   = new Object();
-        private static          SemaphoreSlim  LogHTTPRequest_toDisc_Lock   = new SemaphoreSlim(1,1);
-        private static          SemaphoreSlim  LogHTTPResponse_toDisc_Lock  = new SemaphoreSlim(1,1);
+        private static readonly Object         LockObject                   = new ();
+        private static          SemaphoreSlim  LogHTTPRequest_toDisc_Lock   = new (1,1);
+        private static          SemaphoreSlim  LogHTTPResponse_toDisc_Lock  = new (1,1);
 
         /// <summary>
         /// The maximum number of retries to write to a logfile.
@@ -191,7 +191,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var PreviousColor = Console.ForegroundColor;
 
                 Console.ForegroundColor = ConsoleColor.Gray;
-                Console.Write("[" + Request.Timestamp.ToLocalTime() + " T:" + Thread.CurrentThread.ManagedThreadId.ToString() + "] ");
+                Console.Write("[" + Request.Timestamp.ToLocalTime() + " T:" + Environment.CurrentManagedThreadId.ToString() + "] ");
 
                 Console.ForegroundColor = ConsoleColor.DarkGray;
                 Console.Write(Context + "/");
@@ -236,7 +236,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var PreviousColor = Console.ForegroundColor;
 
                 Console.ForegroundColor = ConsoleColor.Gray;
-                Console.Write("[" + Request.Timestamp.ToLocalTime() + " T:" + Thread.CurrentThread.ManagedThreadId.ToString() + "] ");
+                Console.Write("[" + Request.Timestamp.ToLocalTime() + " T:" + Environment.CurrentManagedThreadId.ToString() + "] ");
 
                 Console.ForegroundColor = ConsoleColor.DarkGray;
                 Console.Write(Context + "/");
