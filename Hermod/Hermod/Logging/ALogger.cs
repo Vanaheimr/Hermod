@@ -486,13 +486,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
                              LogTargets  LogTarget)
         {
 
-            if (_GroupTags.TryGetValue(LogEventOrGroupName,
-                                       out HashSet<String> _LogEventNames))
+            if (LogEventOrGroupName.IsNullOrEmpty())
+                return false;
 
-                return _LogEventNames.
+            if (_GroupTags.TryGetValue(LogEventOrGroupName,
+                                       out HashSet<String>? logEventNames))
+            {
+                return logEventNames.
                            Select(logname => InternalDebug(logname, LogTarget)).
                            All   (result  => result == true);
-
+            }
 
             return InternalDebug(LogEventOrGroupName, LogTarget);
 
@@ -519,13 +522,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
                                LogTargets  LogTarget)
         {
 
-            if (_GroupTags.TryGetValue(LogEventOrGroupName,
-                                       out HashSet<String> _LogEventNames))
+            if (LogEventOrGroupName.IsNullOrEmpty())
+                return false;
 
-                return _LogEventNames.
+            if (_GroupTags.TryGetValue(LogEventOrGroupName,
+                                       out HashSet<String>? logEventNames))
+            {
+                return logEventNames.
                            Select(logname => InternalUndebug(logname, LogTarget)).
                            All   (result  => result == true);
-
+            }
 
             return InternalUndebug(LogEventOrGroupName, LogTarget);
 
@@ -539,6 +545,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
                                                    LogTargets  LogTarget);
 
         #endregion
+
 
     }
 

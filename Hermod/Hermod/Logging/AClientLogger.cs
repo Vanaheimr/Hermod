@@ -29,7 +29,7 @@ using static org.GraphDefined.Vanaheimr.Hermod.Logging.AClientLogger;
 namespace org.GraphDefined.Vanaheimr.Hermod.Logging
 {
 
-    public static class EXTLogger
+    public static class AClientLoggerExtensions
     {
 
         #region RegisterDefaultConsoleLogTarget(this APIClientRequestLogger,  Logger)

@@ -17,19 +17,16 @@
 
 #region Usings
 
-using System;
-using System.Linq;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
 
 using org.GraphDefined.Vanaheimr.Illias;
+
+using static org.GraphDefined.Vanaheimr.Hermod.Logging.AServerLogger;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Logging
 {
-
-
 
     /// <summary>
     /// The delegate for the request log.
@@ -38,21 +35,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
     /// <param name="ServerAPI">The server API.</param>
     /// <param name="Request">The incoming request.</param>
     public delegate Task RequestLogHandler2(DateTime  Timestamp,
-                                           Object    ServerAPI,
-                                           String    Request);
-
-
-    /// <summary>
-    /// The delegate for the HTTP request log.
-    /// </summary>
-    /// <param name="Timestamp">The timestamp of the incoming request.</param>
-    /// <param name="ServerAPI">The server API.</param>
-    /// <param name="Request">The incoming request.</param>
-    public delegate Task HTTPRequestLogHandler2(DateTime  Timestamp,
-                                               Object    ServerAPI,
-                                               String    Request);
-
-
+                                            Object    ServerAPI,
+                                            String?   Request);
 
     /// <summary>
     /// The delegate for the HTTP access log.
@@ -61,46 +45,98 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
     /// <param name="ServerAPI">The server API.</param>
     /// <param name="Request">The incoming request.</param>
     /// <param name="Response">The outgoing response.</param>
-    public delegate Task AccessLogHandler2(DateTime  Timestamp,
-                                          Object    ServerAPI,
-                                          String    Request,
-                                          String    Response,
-                                          TimeSpan  Runtime);
-
-    /// <summary>
-    /// The delegate for the HTTP access log.
-    /// </summary>
-    /// <param name="Timestamp">The timestamp of the incoming request.</param>
-    /// <param name="ServerAPI">The server API.</param>
-    /// <param name="Request">The incoming request.</param>
-    /// <param name="Response">The outgoing response.</param>
-    public delegate Task HTTPResponseLogHandler(DateTime  Timestamp,
-                                                Object    ServerAPI,
-                                                String    Request,
-                                                String    Response,
-                                                TimeSpan  Runtime);
+    public delegate Task ResponseLogHandler2(DateTime  Timestamp,
+                                             Object    ServerAPI,
+                                             String?   Request,
+                                             String?   Response,
+                                             TimeSpan  Runtime);
 
 
-
-    /// <summary>
-    /// A server API logger.
-    /// </summary>
-    public class AServerLogger : ALogger
+    public static class AServerLoggerExtensions
     {
 
-        #region (class) HTTPServerRequestLogger
+        #region RegisterDefaultConsoleLogTarget(this ServerRequestLogger, HTTPLogger)
 
         /// <summary>
-        /// A wrapper class to manage HTTP API event subscriptions
-        /// for logging purposes.
+        /// Register the default console logger.
         /// </summary>
-        public class HTTPServerRequestLogger
+        /// <param name="ServerRequestLogger">A server request logger.</param>
+        /// <param name="ServerLogger">A Server API logger.</param>
+        public static ServerRequestLogger RegisterDefaultConsoleLogTarget(this ServerRequestLogger  ServerRequestLogger,
+                                                                          AServerLogger             ServerLogger)
+
+            => ServerRequestLogger.RegisterLogTarget(LogTargets.Console,
+                                                     ServerLogger.Default_LogRequest_toConsole);
+
+        #endregion
+
+        #region RegisterDefaultConsoleLogTarget(this ServerResponseLogger, Logger)
+
+        /// <summary>
+        /// Register the default console logger.
+        /// </summary>
+        /// <param name="ServerResponseLogger">A server response logger.</param>
+        /// <param name="ServerLogger">A Server API logger.</param>
+        public static ServerResponseLogger RegisterDefaultConsoleLogTarget(this ServerResponseLogger  ServerResponseLogger,
+                                                                           AServerLogger              ServerLogger)
+
+            => ServerResponseLogger.RegisterLogTarget(LogTargets.Console,
+                                                      ServerLogger.Default_LogResponse_toConsole);
+
+        #endregion
+
+
+        #region RegisterDefaultDiscLogTarget(this ServerRequestLogger,  Logger)
+
+        /// <summary>
+        /// Register the default console logger.
+        /// </summary>
+        /// <param name="ServerRequestLogger">A server request logger.</param>
+        /// <param name="ServerLogger">A Server API logger.</param>
+        public static ServerRequestLogger RegisterDefaultDiscLogTarget(this ServerRequestLogger  ServerRequestLogger,
+                                                                       AServerLogger             ServerLogger)
+
+            => ServerRequestLogger.RegisterLogTarget(LogTargets.Disc,
+                                                     ServerLogger.Default_LogRequest_toDisc);
+
+        #endregion
+
+        #region RegisterDefaultDiscLogTarget(this ServerResponseLogger, Logger)
+
+        /// <summary>
+        /// Register the default console logger.
+        /// </summary>
+        /// <param name="ServerResponseLogger">A server response logger.</param>
+        /// <param name="ServerLogger">A Server API logger.</param>
+        public static ServerResponseLogger RegisterDefaultDiscLogTarget(this ServerResponseLogger  ServerResponseLogger,
+                                                                        AServerLogger              ServerLogger)
+
+            => ServerResponseLogger.RegisterLogTarget(LogTargets.Disc,
+                                                     ServerLogger.Default_LogResponse_toDisc);
+
+        #endregion
+
+    }
+
+
+    /// <summary>
+    /// An abstract server API logger.
+    /// </summary>
+    public abstract class AServerLogger : ALogger
+    {
+
+        #region (class) ServerRequestLogger
+
+        /// <summary>
+        /// A wrapper class to manage API event subscriptions for logging purposes.
+        /// </summary>
+        public class ServerRequestLogger
         {
 
             #region Data
 
             private readonly Dictionary<LogTargets, RequestLogHandler2>  _SubscriptionDelegates;
-            private readonly HashSet<LogTargets>                        _SubscriptionStatus;
+            private readonly HashSet<LogTargets>                         _SubscriptionStatus;
 
             #endregion
 
@@ -133,17 +169,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
             #region Constructor(s)
 
             /// <summary>
-            /// Create a new log event for the linked HTTP API event.
+            /// Create a new log event for the linked Server API event.
             /// </summary>
             /// <param name="Context">The context of the event.</param>
             /// <param name="LogEventName">The name of the event.</param>
             /// <param name="SubscribeToEventDelegate">A delegate for subscribing to the linked event.</param>
             /// <param name="UnsubscribeFromEventDelegate">A delegate for subscribing from the linked event.</param>
-            public HTTPServerRequestLogger(String                     Context,
-                                           String                     LoggingPath,
-                                           String                     LogEventName,
-                                           Action<RequestLogHandler2>  SubscribeToEventDelegate,
-                                           Action<RequestLogHandler2>  UnsubscribeFromEventDelegate)
+            public ServerRequestLogger(String                      Context,
+                                       String                      LoggingPath,
+                                       String                      LogEventName,
+                                       Action<RequestLogHandler2>  SubscribeToEventDelegate,
+                                       Action<RequestLogHandler2>  UnsubscribeFromEventDelegate)
             {
 
                 #region Initial checks
@@ -151,11 +187,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
                 if (LogEventName.IsNullOrEmpty())
                     throw new ArgumentNullException(nameof(LogEventName),                 "The given log event name must not be null or empty!");
 
-                if (SubscribeToEventDelegate == null)
-                    throw new ArgumentNullException(nameof(SubscribeToEventDelegate),     "The given delegate for subscribing to the linked HTTP API event must not be null!");
+                if (SubscribeToEventDelegate is null)
+                    throw new ArgumentNullException(nameof(SubscribeToEventDelegate),     "The given delegate for subscribing to the linked Server API event must not be null!");
 
-                if (UnsubscribeFromEventDelegate == null)
-                    throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate), "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
+                if (UnsubscribeFromEventDelegate is null)
+                    throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate), "The given delegate for unsubscribing from the linked Server API event must not be null!");
 
                 #endregion
 
@@ -180,13 +216,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
             /// <param name="LogTarget">A log target.</param>
             /// <param name="RequestDelegate">A delegate to call.</param>
             /// <returns>A HTTP request logger.</returns>
-            public HTTPServerRequestLogger RegisterLogTarget(LogTargets             LogTarget,
-                                                             RequestLoggerDelegate  RequestDelegate)
+            public ServerRequestLogger RegisterLogTarget(LogTargets             LogTarget,
+                                                         RequestLoggerDelegate  RequestDelegate)
             {
 
                 #region Initial checks
 
-                if (RequestDelegate == null)
+                if (RequestDelegate is null)
                     throw new ArgumentNullException(nameof(RequestDelegate),  "The given delegate must not be null!");
 
                 #endregion
@@ -217,9 +253,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
                     return true;
 
                 if (_SubscriptionDelegates.TryGetValue(LogTarget,
-                                                       out RequestLogHandler2 _RequestLogHandler2))
+                                                       out RequestLogHandler2 requestLogHandler2))
                 {
-                    SubscribeToEventDelegate(_RequestLogHandler2);
+                    SubscribeToEventDelegate(requestLogHandler2);
                     _SubscriptionStatus.Add(LogTarget);
                     return true;
                 }
@@ -256,9 +292,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
                     return true;
 
                 if (_SubscriptionDelegates.TryGetValue(LogTarget,
-                                                       out RequestLogHandler2 _RequestLogHandler2))
+                                                       out RequestLogHandler2? requestLogHandler2))
                 {
-                    UnsubscribeFromEventDelegate(_RequestLogHandler2);
+                    UnsubscribeFromEventDelegate(requestLogHandler2);
                     _SubscriptionStatus.Remove(LogTarget);
                     return true;
                 }
@@ -273,204 +309,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
 
         #endregion
 
-        #region (class) HTTPServerRequestLogger2
+        #region (class) ServerResponseLogger
 
         /// <summary>
-        /// A wrapper class to manage HTTP API event subscriptions
-        /// for logging purposes.
+        /// A wrapper class to manage API event subscriptions for logging purposes.
         /// </summary>
-        public class HTTPServerRequestLogger2
+        public class ServerResponseLogger
         {
 
             #region Data
 
-            private readonly Dictionary<LogTargets, HTTPRequestLogHandler2>  _SubscriptionDelegates;
-            private readonly HashSet<LogTargets>                            _SubscriptionStatus;
-
-            #endregion
-
-            #region Properties
-
-            public String                         LoggingPath                     { get; }
-
-            /// <summary>
-            /// The context of the event to be logged.
-            /// </summary>
-            public String                         Context                         { get; }
-
-            /// <summary>
-            /// The name of the event to be logged.
-            /// </summary>
-            public String                         LogEventName                    { get; }
-
-            /// <summary>
-            /// A delegate called whenever the event is subscriped to.
-            /// </summary>
-            public Action<HTTPRequestLogHandler2>  SubscribeToEventDelegate        { get; }
-
-            /// <summary>
-            /// A delegate called whenever the subscription of the event is stopped.
-            /// </summary>
-            public Action<HTTPRequestLogHandler2>  UnsubscribeFromEventDelegate    { get; }
-
-            #endregion
-
-            #region Constructor(s)
-
-            /// <summary>
-            /// Create a new log event for the linked HTTP API event.
-            /// </summary>
-            /// <param name="Context">The context of the event.</param>
-            /// <param name="LogEventName">The name of the event.</param>
-            /// <param name="SubscribeToEventDelegate">A delegate for subscribing to the linked event.</param>
-            /// <param name="UnsubscribeFromEventDelegate">A delegate for subscribing from the linked event.</param>
-            public HTTPServerRequestLogger2(String                         Context,
-                                            String                         LoggingPath,
-                                            String                         LogEventName,
-                                            Action<HTTPRequestLogHandler2>  SubscribeToEventDelegate,
-                                            Action<HTTPRequestLogHandler2>  UnsubscribeFromEventDelegate)
-            {
-
-                #region Initial checks
-
-                if (LogEventName.IsNullOrEmpty())
-                    throw new ArgumentNullException(nameof(LogEventName),                 "The given log event name must not be null or empty!");
-
-                if (SubscribeToEventDelegate == null)
-                    throw new ArgumentNullException(nameof(SubscribeToEventDelegate),     "The given delegate for subscribing to the linked HTTP API event must not be null!");
-
-                if (UnsubscribeFromEventDelegate == null)
-                    throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate), "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
-
-                #endregion
-
-                this.Context                       = Context ?? "";
-                this.LoggingPath                   = LoggingPath;
-                this.LogEventName                  = LogEventName;
-                this.SubscribeToEventDelegate      = SubscribeToEventDelegate;
-                this.UnsubscribeFromEventDelegate  = UnsubscribeFromEventDelegate;
-                this._SubscriptionDelegates        = new Dictionary<LogTargets, HTTPRequestLogHandler2>();
-                this._SubscriptionStatus           = new HashSet<LogTargets>();
-
-            }
-
-            #endregion
-
-
-            #region RegisterLogTarget(LogTarget, RequestDelegate)
-
-            /// <summary>
-            /// Register the given log target and delegate combination.
-            /// </summary>
-            /// <param name="LogTarget">A log target.</param>
-            /// <param name="RequestDelegate">A delegate to call.</param>
-            /// <returns>A HTTP request logger.</returns>
-            public HTTPServerRequestLogger2 RegisterLogTarget(LogTargets             LogTarget,
-                                                              RequestLoggerDelegate  RequestDelegate)
-            {
-
-                #region Initial checks
-
-                if (RequestDelegate == null)
-                    throw new ArgumentNullException(nameof(RequestDelegate),  "The given delegate must not be null!");
-
-                #endregion
-
-                if (_SubscriptionDelegates.ContainsKey(LogTarget))
-                    throw new ArgumentException("Duplicate log target!", nameof(LogTarget));
-
-                _SubscriptionDelegates.Add(LogTarget,
-                                           (Timestamp, HTTPAPI, Request) => RequestDelegate(LoggingPath, Context, LogEventName, Request));
-
-                return this;
-
-            }
-
-            #endregion
-
-            #region Subscribe   (LogTarget)
-
-            /// <summary>
-            /// Subscribe the given log target to the linked event.
-            /// </summary>
-            /// <param name="LogTarget">A log target.</param>
-            /// <returns>True, if successful; false else.</returns>
-            public Boolean Subscribe(LogTargets LogTarget)
-            {
-
-                if (IsSubscribed(LogTarget))
-                    return true;
-
-                if (_SubscriptionDelegates.TryGetValue(LogTarget,
-                                                       out HTTPRequestLogHandler2 _RequestLogHandler2))
-                {
-                    SubscribeToEventDelegate(_RequestLogHandler2);
-                    _SubscriptionStatus.Add(LogTarget);
-                    return true;
-                }
-
-                return false;
-
-            }
-
-            #endregion
-
-            #region IsSubscribed(LogTarget)
-
-            /// <summary>
-            /// Return the subscription status of the given log target.
-            /// </summary>
-            /// <param name="LogTarget">A log target.</param>
-            public Boolean IsSubscribed(LogTargets LogTarget)
-
-                => _SubscriptionStatus.Contains(LogTarget);
-
-            #endregion
-
-            #region Unsubscribe (LogTarget)
-
-            /// <summary>
-            /// Unsubscribe the given log target from the linked event.
-            /// </summary>
-            /// <param name="LogTarget">A log target.</param>
-            /// <returns>True, if successful; false else.</returns>
-            public Boolean Unsubscribe(LogTargets LogTarget)
-            {
-
-                if (!IsSubscribed(LogTarget))
-                    return true;
-
-                if (_SubscriptionDelegates.TryGetValue(LogTarget,
-                                                       out HTTPRequestLogHandler2 _RequestLogHandler2))
-                {
-                    UnsubscribeFromEventDelegate(_RequestLogHandler2);
-                    _SubscriptionStatus.Remove(LogTarget);
-                    return true;
-                }
-
-                return false;
-
-            }
-
-            #endregion
-
-        }
-
-        #endregion
-
-        #region (class) HTTPServerResponseLogger
-
-        /// <summary>
-        /// A wrapper class to manage HTTP API event subscriptions
-        /// for logging purposes.
-        /// </summary>
-        public class HTTPServerResponseLogger
-        {
-
-            #region Data
-
-            private readonly Dictionary<LogTargets, AccessLogHandler2>  _SubscriptionDelegates;
-            private readonly HashSet<LogTargets>                       _SubscriptionStatus;
+            private readonly Dictionary<LogTargets, ResponseLogHandler2>  _SubscriptionDelegates;
+            private readonly HashSet<LogTargets>                          _SubscriptionStatus;
 
             #endregion
 
@@ -491,29 +341,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
             /// <summary>
             /// A delegate called whenever the event is subscriped to.
             /// </summary>
-            public Action<AccessLogHandler2>  SubscribeToEventDelegate        { get; }
+            public Action<ResponseLogHandler2>  SubscribeToEventDelegate        { get; }
 
             /// <summary>
             /// A delegate called whenever the subscription of the event is stopped.
             /// </summary>
-            public Action<AccessLogHandler2>  UnsubscribeFromEventDelegate    { get; }
+            public Action<ResponseLogHandler2>  UnsubscribeFromEventDelegate    { get; }
 
             #endregion
 
             #region Constructor(s)
 
             /// <summary>
-            /// Create a new log event for the linked HTTP API event.
+            /// Create a new log event for the linked Server API event.
             /// </summary>
             /// <param name="Context">The context of the event.</param>
             /// <param name="LogEventName">The name of the event.</param>
             /// <param name="SubscribeToEventDelegate">A delegate for subscribing to the linked event.</param>
             /// <param name="UnsubscribeFromEventDelegate">A delegate for subscribing from the linked event.</param>
-            public HTTPServerResponseLogger(String                    Context,
-                                            String                    LoggingPath,
-                                            String                    LogEventName,
-                                            Action<AccessLogHandler2>  SubscribeToEventDelegate,
-                                            Action<AccessLogHandler2>  UnsubscribeFromEventDelegate)
+            public ServerResponseLogger(String                       Context,
+                                        String                       LoggingPath,
+                                        String                       LogEventName,
+                                        Action<ResponseLogHandler2>  SubscribeToEventDelegate,
+                                        Action<ResponseLogHandler2>  UnsubscribeFromEventDelegate)
             {
 
                 #region Initial checks
@@ -521,11 +371,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
                 if (LogEventName.IsNullOrEmpty())
                     throw new ArgumentNullException(nameof(LogEventName),                 "The given log event name must not be null or empty!");
 
-                if (SubscribeToEventDelegate == null)
+                if (SubscribeToEventDelegate is null)
                     throw new ArgumentNullException(nameof(SubscribeToEventDelegate),     "The given delegate for subscribing to the linked  HTTP API event must not be null!");
 
-                if (UnsubscribeFromEventDelegate == null)
-                    throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate), "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
+                if (UnsubscribeFromEventDelegate is null)
+                    throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate), "The given delegate for unsubscribing from the linked Server API event must not be null!");
 
                 #endregion
 
@@ -534,7 +384,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
                 this.LogEventName                  = LogEventName;
                 this.SubscribeToEventDelegate      = SubscribeToEventDelegate;
                 this.UnsubscribeFromEventDelegate  = UnsubscribeFromEventDelegate;
-                this._SubscriptionDelegates        = new Dictionary<LogTargets, AccessLogHandler2>();
+                this._SubscriptionDelegates        = new Dictionary<LogTargets, ResponseLogHandler2>();
                 this._SubscriptionStatus           = new HashSet<LogTargets>();
 
             }
@@ -550,13 +400,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
             /// <param name="LogTarget">A log target.</param>
             /// <param name="ResponseDelegate">A delegate to call.</param>
             /// <returns>A HTTP response logger.</returns>
-            public HTTPServerResponseLogger RegisterLogTarget(LogTargets              LogTarget,
-                                                              ResponseLoggerDelegate  ResponseDelegate)
+            public ServerResponseLogger RegisterLogTarget(LogTargets              LogTarget,
+                                                          ResponseLoggerDelegate  ResponseDelegate)
             {
 
                 #region Initial checks
 
-                if (ResponseDelegate == null)
+                if (ResponseDelegate is null)
                     throw new ArgumentNullException(nameof(ResponseDelegate), "The given delegate must not be null!");
 
                 #endregion
@@ -587,9 +437,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
                     return true;
 
                 if (_SubscriptionDelegates.TryGetValue(LogTarget,
-                                                       out AccessLogHandler2 _AccessLogHandler2))
+                                                       out ResponseLogHandler2? responseLogHandler2))
                 {
-                    SubscribeToEventDelegate(_AccessLogHandler2);
+                    SubscribeToEventDelegate(responseLogHandler2);
                     _SubscriptionStatus.Add(LogTarget);
                     return true;
                 }
@@ -626,194 +476,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
                     return true;
 
                 if (_SubscriptionDelegates.TryGetValue(LogTarget,
-                                                       out AccessLogHandler2 _AccessLogHandler2))
+                                                       out ResponseLogHandler2? responseLogHandler2))
                 {
-                    UnsubscribeFromEventDelegate(_AccessLogHandler2);
-                    _SubscriptionStatus.Remove(LogTarget);
-                    return true;
-                }
-
-                return false;
-
-            }
-
-            #endregion
-
-        }
-
-        #endregion
-
-        #region (class) HTTPServerResponseLogger2
-
-        /// <summary>
-        /// A wrapper class to manage HTTP API event subscriptions
-        /// for logging purposes.
-        /// </summary>
-        public class HTTPServerResponseLogger2
-        {
-
-            #region Data
-
-            private readonly Dictionary<LogTargets, HTTPResponseLogHandler>  _SubscriptionDelegates;
-            private readonly HashSet<LogTargets>                       _SubscriptionStatus;
-
-            #endregion
-
-            #region Properties
-
-            public String                    LoggingPath                     { get; }
-
-            /// <summary>
-            /// The context of the event to be logged.
-            /// </summary>
-            public String                    Context                         { get; }
-
-            /// <summary>
-            /// The name of the event to be logged.
-            /// </summary>
-            public String                    LogEventName                    { get; }
-
-            /// <summary>
-            /// A delegate called whenever the event is subscriped to.
-            /// </summary>
-            public Action<HTTPResponseLogHandler>  SubscribeToEventDelegate        { get; }
-
-            /// <summary>
-            /// A delegate called whenever the subscription of the event is stopped.
-            /// </summary>
-            public Action<HTTPResponseLogHandler>  UnsubscribeFromEventDelegate    { get; }
-
-            #endregion
-
-            #region Constructor(s)
-
-            /// <summary>
-            /// Create a new log event for the linked HTTP API event.
-            /// </summary>
-            /// <param name="Context">The context of the event.</param>
-            /// <param name="LogEventName">The name of the event.</param>
-            /// <param name="SubscribeToEventDelegate">A delegate for subscribing to the linked event.</param>
-            /// <param name="UnsubscribeFromEventDelegate">A delegate for subscribing from the linked event.</param>
-            public HTTPServerResponseLogger2(String                          Context,
-                                             String                          LoggingPath,
-                                             String                          LogEventName,
-                                             Action<HTTPResponseLogHandler>  SubscribeToEventDelegate,
-                                             Action<HTTPResponseLogHandler>  UnsubscribeFromEventDelegate)
-            {
-
-                #region Initial checks
-
-                if (LogEventName.IsNullOrEmpty())
-                    throw new ArgumentNullException(nameof(LogEventName),                 "The given log event name must not be null or empty!");
-
-                if (SubscribeToEventDelegate == null)
-                    throw new ArgumentNullException(nameof(SubscribeToEventDelegate),     "The given delegate for subscribing to the linked  HTTP API event must not be null!");
-
-                if (UnsubscribeFromEventDelegate == null)
-                    throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate), "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
-
-                #endregion
-
-                this.Context                       = Context ?? "";
-                this.LoggingPath                   = LoggingPath;
-                this.LogEventName                  = LogEventName;
-                this.SubscribeToEventDelegate      = SubscribeToEventDelegate;
-                this.UnsubscribeFromEventDelegate  = UnsubscribeFromEventDelegate;
-                this._SubscriptionDelegates        = new Dictionary<LogTargets, HTTPResponseLogHandler>();
-                this._SubscriptionStatus           = new HashSet<LogTargets>();
-
-            }
-
-            #endregion
-
-
-            #region RegisterLogTarget(LogTarget, ResponseDelegate)
-
-            /// <summary>
-            /// Register the given log target and delegate combination.
-            /// </summary>
-            /// <param name="LogTarget">A log target.</param>
-            /// <param name="ResponseDelegate">A delegate to call.</param>
-            /// <returns>A HTTP response logger.</returns>
-            public HTTPServerResponseLogger2 RegisterLogTarget(LogTargets              LogTarget,
-                                                               ResponseLoggerDelegate  ResponseDelegate)
-            {
-
-                #region Initial checks
-
-                if (ResponseDelegate == null)
-                    throw new ArgumentNullException(nameof(ResponseDelegate), "The given delegate must not be null!");
-
-                #endregion
-
-                if (_SubscriptionDelegates.ContainsKey(LogTarget))
-                    throw new ArgumentException("Duplicate log target!", nameof(LogTarget));
-
-                _SubscriptionDelegates.Add(LogTarget,
-                                           (Timestamp, HTTPAPI, Request, Response, Runtime) => ResponseDelegate(LoggingPath, Context, LogEventName, Request, Response, Runtime));
-
-                return this;
-
-            }
-
-            #endregion
-
-            #region Subscribe   (LogTarget)
-
-            /// <summary>
-            /// Subscribe the given log target to the linked event.
-            /// </summary>
-            /// <param name="LogTarget">A log target.</param>
-            /// <returns>True, if successful; false else.</returns>
-            public Boolean Subscribe(LogTargets LogTarget)
-            {
-
-                if (IsSubscribed(LogTarget))
-                    return true;
-
-                if (_SubscriptionDelegates.TryGetValue(LogTarget,
-                                                       out HTTPResponseLogHandler _AccessLogHandler2))
-                {
-                    SubscribeToEventDelegate(_AccessLogHandler2);
-                    _SubscriptionStatus.Add(LogTarget);
-                    return true;
-                }
-
-                return false;
-
-            }
-
-            #endregion
-
-            #region IsSubscribed(LogTarget)
-
-            /// <summary>
-            /// Return the subscription status of the given log target.
-            /// </summary>
-            /// <param name="LogTarget">A log target.</param>
-            public Boolean IsSubscribed(LogTargets LogTarget)
-
-                => _SubscriptionStatus.Contains(LogTarget);
-
-            #endregion
-
-            #region Unsubscribe (LogTarget)
-
-            /// <summary>
-            /// Unsubscribe the given log target from the linked event.
-            /// </summary>
-            /// <param name="LogTarget">A log target.</param>
-            /// <returns>True, if successful; false else.</returns>
-            public Boolean Unsubscribe(LogTargets LogTarget)
-            {
-
-                if (!IsSubscribed(LogTarget))
-                    return true;
-
-                if (_SubscriptionDelegates.TryGetValue(LogTarget,
-                                                       out HTTPResponseLogHandler _AccessLogHandler2))
-                {
-                    UnsubscribeFromEventDelegate(_AccessLogHandler2);
+                    UnsubscribeFromEventDelegate(responseLogHandler2);
                     _SubscriptionStatus.Remove(LogTarget);
                     return true;
                 }
@@ -831,10 +496,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
 
         #region Data
 
-        private readonly ConcurrentDictionary<String, HTTPServerRequestLogger>    _HTTPRequestLoggers;
-        private readonly ConcurrentDictionary<String, HTTPServerRequestLogger2>   _HTTPRequestLoggers2;
-        private readonly ConcurrentDictionary<String, HTTPServerResponseLogger>   _HTTPResponseLoggers;
-        private readonly ConcurrentDictionary<String, HTTPServerResponseLogger2>  _HTTPResponseLoggers2;
+        private readonly ConcurrentDictionary<String, ServerRequestLogger>   _ServerRequestLoggers;
+        private readonly ConcurrentDictionary<String, ServerResponseLogger>  _ServerResponseLoggers;
 
         #endregion
 
@@ -843,7 +506,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
         /// <summary>
         /// The HTTP server of this logger.
         /// </summary>
-        public Object  HTTPServer   { get; }
+        public Object  ServerAPI   { get; }
 
         #endregion
 
@@ -891,7 +554,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
                              ResponseLoggerDelegate?  LogError_toNetwork      = null,
                              ResponseLoggerDelegate?  LogError_toHTTPSSE      = null,
 
-                             LogfileCreatorDelegate?  LogfileCreator              = null)
+                             LogfileCreatorDelegate?  LogfileCreator          = null)
 
             : base(LoggingPath,
                    Context,
@@ -915,12 +578,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
 
         {
 
-            this.HTTPServer             = ServerAPI ?? throw new ArgumentNullException(nameof(ServerAPI), "The given HTTP API must not be null!");
+            this.ServerAPI               = ServerAPI ?? throw new ArgumentNullException(nameof(ServerAPI), "The given Server API must not be null!");
 
-            this._HTTPRequestLoggers    = new ConcurrentDictionary<String, HTTPServerRequestLogger>();
-            this._HTTPRequestLoggers2   = new ConcurrentDictionary<String, HTTPServerRequestLogger2>();
-            this._HTTPResponseLoggers2  = new ConcurrentDictionary<String, HTTPServerResponseLogger2>();
-            this._HTTPResponseLoggers   = new ConcurrentDictionary<String, HTTPServerResponseLogger>();
+            this._ServerRequestLoggers   = new ConcurrentDictionary<String, ServerRequestLogger>();
+            this._ServerResponseLoggers  = new ConcurrentDictionary<String, ServerResponseLogger>();
 
         }
 
@@ -930,16 +591,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
         #region (protected) RegisterEvent(LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate, params GroupTags)
 
         /// <summary>
-        /// Register a log event for the linked HTTP API event.
+        /// Register a log event for the linked Server API event.
         /// </summary>
         /// <param name="LogEventName">The name of the log event.</param>
         /// <param name="SubscribeToEventDelegate">A delegate for subscribing to the linked event.</param>
         /// <param name="UnsubscribeFromEventDelegate">A delegate for subscribing from the linked event.</param>
         /// <param name="GroupTags">An array of log event groups the given log event name is part of.</param>
-        protected HTTPServerRequestLogger RegisterEvent(String                     LogEventName,
-                                                        Action<RequestLogHandler2>  SubscribeToEventDelegate,
-                                                        Action<RequestLogHandler2>  UnsubscribeFromEventDelegate,
-                                                        params String[]            GroupTags)
+        protected ServerRequestLogger RegisterEvent(String                      LogEventName,
+                                                    Action<RequestLogHandler2>  SubscribeToEventDelegate,
+                                                    Action<RequestLogHandler2>  UnsubscribeFromEventDelegate,
+                                                    params String[]             GroupTags)
         {
 
             #region Initial checks
@@ -947,39 +608,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
             if (LogEventName.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(LogEventName),                 "The given log event name must not be null or empty!");
 
-            if (SubscribeToEventDelegate == null)
-                throw new ArgumentNullException(nameof(SubscribeToEventDelegate),     "The given delegate for subscribing to the linked HTTP API event must not be null!");
+            if (SubscribeToEventDelegate is null)
+                throw new ArgumentNullException(nameof(SubscribeToEventDelegate),     "The given delegate for subscribing to the linked Server API event must not be null!");
 
-            if (UnsubscribeFromEventDelegate == null)
-                throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate), "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
+            if (UnsubscribeFromEventDelegate is null)
+                throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate), "The given delegate for unsubscribing from the linked Server API event must not be null!");
 
             #endregion
 
-            if (!_HTTPRequestLoggers. TryGetValue(LogEventName, out HTTPServerRequestLogger _HTTPRequestLogger) &&
-                !_HTTPResponseLoggers.ContainsKey(LogEventName))
+            if (!_ServerRequestLoggers. TryGetValue(LogEventName, out ServerRequestLogger? serverRequestLogger) &&
+                !_ServerResponseLoggers.ContainsKey(LogEventName))
             {
 
-                _HTTPRequestLogger = new HTTPServerRequestLogger(Context, LoggingPath, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
-                _HTTPRequestLoggers.TryAdd(LogEventName, _HTTPRequestLogger);
+                serverRequestLogger = new ServerRequestLogger(Context, LoggingPath, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
+                _ServerRequestLoggers.TryAdd(LogEventName, serverRequestLogger);
 
                 #region Register group tag mapping
 
-                HashSet<String> _LogEventNames = null;
-
-                foreach (var GroupTag in GroupTags.Distinct())
+                foreach (var groupTag in GroupTags.Distinct())
                 {
 
-                    if (_GroupTags.TryGetValue(GroupTag, out _LogEventNames))
-                        _LogEventNames.Add(LogEventName);
+                    if (_GroupTags.TryGetValue(groupTag, out var logEventNames))
+                        logEventNames.Add(LogEventName);
 
                     else
-                        _GroupTags.TryAdd(GroupTag, new HashSet<String>(new String[] { LogEventName }));
+                        _GroupTags.TryAdd(groupTag, new HashSet<String>(new String[] { LogEventName }));
 
                 }
 
                 #endregion
 
-                return _HTTPRequestLogger;
+                return serverRequestLogger;
 
             }
 
@@ -992,78 +651,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
         #region (protected) RegisterEvent(LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate, params GroupTags)
 
         /// <summary>
-        /// Register a log event for the linked HTTP API event.
+        /// Register a log event for the linked Server API event.
         /// </summary>
         /// <param name="LogEventName">The name of the log event.</param>
         /// <param name="SubscribeToEventDelegate">A delegate for subscribing to the linked event.</param>
         /// <param name="UnsubscribeFromEventDelegate">A delegate for subscribing from the linked event.</param>
         /// <param name="GroupTags">An array of log event groups the given log event name is part of.</param>
-        protected HTTPServerRequestLogger2 RegisterEvent2(String                         LogEventName,
-                                                          Action<HTTPRequestLogHandler2>  SubscribeToEventDelegate,
-                                                          Action<HTTPRequestLogHandler2>  UnsubscribeFromEventDelegate,
-                                                          params String[]                GroupTags)
-        {
-
-            #region Initial checks
-
-            if (LogEventName.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(LogEventName),                  "The given log event name must not be null or empty!");
-
-            if (SubscribeToEventDelegate == null)
-                throw new ArgumentNullException(nameof(SubscribeToEventDelegate),      "The given delegate for subscribing to the linked HTTP API event must not be null!");
-
-            if (UnsubscribeFromEventDelegate == null)
-                throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate),  "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
-
-            #endregion
-
-            if (!_HTTPRequestLoggers2. TryGetValue(LogEventName, out HTTPServerRequestLogger2 _HTTPRequestLogger) &&
-                !_HTTPResponseLoggers2.ContainsKey(LogEventName))
-            {
-
-                _HTTPRequestLogger = new HTTPServerRequestLogger2(Context, LoggingPath, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
-                _HTTPRequestLoggers2.TryAdd(LogEventName, _HTTPRequestLogger);
-
-                #region Register group tag mapping
-
-                HashSet<String> _LogEventNames = null;
-
-                foreach (var GroupTag in GroupTags.Distinct())
-                {
-
-                    if (_GroupTags.TryGetValue(GroupTag, out _LogEventNames))
-                        _LogEventNames.Add(LogEventName);
-
-                    else
-                        _GroupTags.TryAdd(GroupTag, new HashSet<String>(new String[] { LogEventName }));
-
-                }
-
-                #endregion
-
-                return _HTTPRequestLogger;
-
-            }
-
-            throw new Exception("Duplicate log event name!");
-
-        }
-
-        #endregion
-
-        #region (protected) RegisterEvent(LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate, params GroupTags)
-
-        /// <summary>
-        /// Register a log event for the linked HTTP API event.
-        /// </summary>
-        /// <param name="LogEventName">The name of the log event.</param>
-        /// <param name="SubscribeToEventDelegate">A delegate for subscribing to the linked event.</param>
-        /// <param name="UnsubscribeFromEventDelegate">A delegate for subscribing from the linked event.</param>
-        /// <param name="GroupTags">An array of log event groups the given log event name is part of.</param>
-        protected HTTPServerResponseLogger RegisterEvent(String                    LogEventName,
-                                                         Action<AccessLogHandler2>  SubscribeToEventDelegate,
-                                                         Action<AccessLogHandler2>  UnsubscribeFromEventDelegate,
-                                                         params String[]           GroupTags)
+        protected ServerResponseLogger RegisterEvent(String                       LogEventName,
+                                                     Action<ResponseLogHandler2>  SubscribeToEventDelegate,
+                                                     Action<ResponseLogHandler2>  UnsubscribeFromEventDelegate,
+                                                     params String[]              GroupTags)
         {
 
             #region Initial checks
@@ -1071,101 +668,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
             if (LogEventName.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(LogEventName),                 "The given log event name must not be null or empty!");
 
-            if (SubscribeToEventDelegate == null)
-                throw new ArgumentNullException(nameof(SubscribeToEventDelegate),     "The given delegate for subscribing to the linked HTTP API event must not be null!");
+            if (SubscribeToEventDelegate is null)
+                throw new ArgumentNullException(nameof(SubscribeToEventDelegate),     "The given delegate for subscribing to the linked Server API event must not be null!");
 
-            if (UnsubscribeFromEventDelegate == null)
-                throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate), "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
+            if (UnsubscribeFromEventDelegate is null)
+                throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate), "The given delegate for unsubscribing from the linked Server API event must not be null!");
 
             #endregion
 
-            if (!_HTTPResponseLoggers.TryGetValue(LogEventName, out HTTPServerResponseLogger _HTTPResponseLogger) &&
-                !_HTTPRequestLoggers. ContainsKey(LogEventName))
+            if (!_ServerResponseLoggers.TryGetValue(LogEventName, out ServerResponseLogger? serverResponseLogger) &&
+                !_ServerRequestLoggers. ContainsKey(LogEventName))
             {
 
-                _HTTPResponseLogger = new HTTPServerResponseLogger(Context, LoggingPath, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
-                _HTTPResponseLoggers.TryAdd(LogEventName, _HTTPResponseLogger);
+                serverResponseLogger = new ServerResponseLogger(Context, LoggingPath, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
+                _ServerResponseLoggers.TryAdd(LogEventName, serverResponseLogger);
 
                 #region Register group tag mapping
 
-                HashSet<String> _LogEventNames = null;
-
-                foreach (var GroupTag in GroupTags.Distinct())
+                foreach (var groupTag in GroupTags.Distinct())
                 {
 
-                    if (_GroupTags.TryGetValue(GroupTag, out _LogEventNames))
-                        _LogEventNames.Add(LogEventName);
+                    if (_GroupTags.TryGetValue(groupTag, out var logEventNames))
+                        logEventNames.Add(LogEventName);
 
                     else
-                        _GroupTags.TryAdd(GroupTag, new HashSet<String>(new String[] { LogEventName }));
+                        _GroupTags.TryAdd(groupTag, new HashSet<String>(new String[] { LogEventName }));
 
                 }
 
                 #endregion
 
-                return _HTTPResponseLogger;
-
-            }
-
-            throw new Exception("Duplicate log event name!");
-
-        }
-
-        #endregion
-
-        #region (protected) RegisterEvent(LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate, params GroupTags)
-
-        /// <summary>
-        /// Register a log event for the linked HTTP API event.
-        /// </summary>
-        /// <param name="LogEventName">The name of the log event.</param>
-        /// <param name="SubscribeToEventDelegate">A delegate for subscribing to the linked event.</param>
-        /// <param name="UnsubscribeFromEventDelegate">A delegate for subscribing from the linked event.</param>
-        /// <param name="GroupTags">An array of log event groups the given log event name is part of.</param>
-        protected HTTPServerResponseLogger2 RegisterEvent2(String                          LogEventName,
-                                                           Action<HTTPResponseLogHandler>  SubscribeToEventDelegate,
-                                                           Action<HTTPResponseLogHandler>  UnsubscribeFromEventDelegate,
-                                                           params String[]                 GroupTags)
-        {
-
-            #region Initial checks
-
-            if (LogEventName.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(LogEventName),                  "The given log event name must not be null or empty!");
-
-            if (SubscribeToEventDelegate == null)
-                throw new ArgumentNullException(nameof(SubscribeToEventDelegate),      "The given delegate for subscribing to the linked HTTP API event must not be null!");
-
-            if (UnsubscribeFromEventDelegate == null)
-                throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate),  "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
-
-            #endregion
-
-            if (!_HTTPResponseLoggers2.TryGetValue(LogEventName, out HTTPServerResponseLogger2 _HTTPResponseLogger) &&
-                !_HTTPRequestLoggers2. ContainsKey(LogEventName))
-            {
-
-                _HTTPResponseLogger = new HTTPServerResponseLogger2(Context, LoggingPath, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
-                _HTTPResponseLoggers2.TryAdd(LogEventName, _HTTPResponseLogger);
-
-                #region Register group tag mapping
-
-                HashSet<String> _LogEventNames = null;
-
-                foreach (var GroupTag in GroupTags.Distinct())
-                {
-
-                    if (_GroupTags.TryGetValue(GroupTag, out _LogEventNames))
-                        _LogEventNames.Add(LogEventName);
-
-                    else
-                        _GroupTags.TryAdd(GroupTag, new HashSet<String>(new String[] { LogEventName }));
-
-                }
-
-                #endregion
-
-                return _HTTPResponseLogger;
+                return serverResponseLogger;
 
             }
 
@@ -1176,27 +709,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
         #endregion
 
 
-        #region (protected) InternalDebug(LogEventName, LogTarget)
+        #region (protected) InternalDebug  (LogEventName, LogTarget)
 
         protected override Boolean InternalDebug(String      LogEventName,
                                                  LogTargets  LogTarget)
         {
 
-            var _Found = false;
+            var found = false;
 
-            if (_HTTPRequestLoggers.  TryGetValue(LogEventName, out HTTPServerRequestLogger    _HTTPServerRequestLogger))
-                _Found |= _HTTPServerRequestLogger. Subscribe(LogTarget);
+            if (_ServerRequestLoggers.  TryGetValue(LogEventName, out ServerRequestLogger?    _HTTPServerRequestLogger))
+                found |= _HTTPServerRequestLogger. Subscribe(LogTarget);
 
-            if (_HTTPRequestLoggers2. TryGetValue(LogEventName, out HTTPServerRequestLogger2   _HTTPServerRequestLogger2))
-                _Found |= _HTTPServerRequestLogger2.Subscribe(LogTarget);
+            //if (_ServerRequestLoggers2. TryGetValue(LogEventName, out ServerRequestLogger2?   _HTTPServerRequestLogger2))
+            //    found |= _HTTPServerRequestLogger2.Subscribe(LogTarget);
 
-            if (_HTTPResponseLoggers. TryGetValue(LogEventName, out HTTPServerResponseLogger   _HTTPServerResponseLogger))
-                _Found |= _HTTPServerResponseLogger.Subscribe(LogTarget);
+            if (_ServerResponseLoggers. TryGetValue(LogEventName, out ServerResponseLogger?   _HTTPServerResponseLogger))
+                found |= _HTTPServerResponseLogger.Subscribe(LogTarget);
 
-            if (_HTTPResponseLoggers2.TryGetValue(LogEventName, out HTTPServerResponseLogger2  _HTTPServerResponseLogger2))
-                _Found |= _HTTPServerResponseLogger2.Subscribe(LogTarget);
+            //if (_ServerResponseLoggers2.TryGetValue(LogEventName, out ServerResponseLogger2?  _HTTPServerResponseLogger2))
+            //    found |= _HTTPServerResponseLogger2.Subscribe(LogTarget);
 
-            return _Found;
+            return found;
 
         }
 
@@ -1208,21 +741,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
                                                    LogTargets  LogTarget)
         {
 
-            var _Found = false;
+            var found = false;
 
-            if (_HTTPRequestLoggers.  TryGetValue(LogEventName, out HTTPServerRequestLogger    _HTTPServerRequestLogger))
-                _Found |= _HTTPServerRequestLogger. Unsubscribe(LogTarget);
+            if (_ServerRequestLoggers.  TryGetValue(LogEventName, out ServerRequestLogger?    _HTTPServerRequestLogger))
+                found |= _HTTPServerRequestLogger. Unsubscribe(LogTarget);
 
-            if (_HTTPRequestLoggers2. TryGetValue(LogEventName, out HTTPServerRequestLogger2   _HTTPServerRequestLogger2))
-                _Found |= _HTTPServerRequestLogger2.Unsubscribe(LogTarget);
+            //if (_ServerRequestLoggers2. TryGetValue(LogEventName, out ServerRequestLogger2?   _HTTPServerRequestLogger2))
+            //    found |= _HTTPServerRequestLogger2.Unsubscribe(LogTarget);
 
-            if (_HTTPResponseLoggers. TryGetValue(LogEventName, out HTTPServerResponseLogger   _HTTPServerResponseLogger))
-                _Found |= _HTTPServerResponseLogger.Unsubscribe(LogTarget);
+            if (_ServerResponseLoggers. TryGetValue(LogEventName, out ServerResponseLogger?   _HTTPServerResponseLogger))
+                found |= _HTTPServerResponseLogger.Unsubscribe(LogTarget);
 
-            if (_HTTPResponseLoggers2.TryGetValue(LogEventName, out HTTPServerResponseLogger2  _HTTPServerResponseLogger2))
-                _Found |= _HTTPServerResponseLogger2.Unsubscribe(LogTarget);
+            //if (_ServerResponseLoggers2.TryGetValue(LogEventName, out ServerResponseLogger2?  _HTTPServerResponseLogger2))
+            //    found |= _HTTPServerResponseLogger2.Unsubscribe(LogTarget);
 
-            return _Found;
+            return found;
 
         }
 
