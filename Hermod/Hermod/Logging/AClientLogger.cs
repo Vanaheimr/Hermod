@@ -22,10 +22,79 @@ using System.Collections.Concurrent;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
+using static org.GraphDefined.Vanaheimr.Hermod.Logging.AClientLogger;
+
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Loggers
+namespace org.GraphDefined.Vanaheimr.Hermod.Logging
 {
+
+    public static class EXTLogger
+    {
+
+        #region RegisterDefaultConsoleLogTarget(this APIClientRequestLogger,  Logger)
+
+        /// <summary>
+        /// Register the default console logger.
+        /// </summary>
+        /// <param name="APIClientRequestLogger">A request logger.</param>
+        /// <param name="Logger">A logger.</param>
+        public static APIClientRequestLogger  RegisterDefaultConsoleLogTarget(this APIClientRequestLogger  APIClientRequestLogger,
+                                                                              ALogger                      Logger)
+
+            => APIClientRequestLogger.RegisterLogTarget(LogTargets.Console,
+                                                        Logger.Default_LogRequest_toConsole);
+
+        #endregion
+
+        #region RegisterDefaultConsoleLogTarget(this APIClientResponseLogger, Logger)
+
+        /// <summary>
+        /// Register the default console logger.
+        /// </summary>
+        /// <param name="APIClientResponseLogger">A response logger.</param>
+        /// <param name="Logger">A logger.</param>
+        public static APIClientResponseLogger RegisterDefaultConsoleLogTarget(this APIClientResponseLogger  APIClientResponseLogger,
+                                                                              ALogger                       Logger)
+
+            => APIClientResponseLogger.RegisterLogTarget(LogTargets.Console,
+                                                         Logger.Default_LogResponse_toConsole);
+
+        #endregion
+
+
+        #region RegisterDefaultDiscLogTarget(this APIClientRequestLogger,  Logger)
+
+        /// <summary>
+        /// Register the default console logger.
+        /// </summary>
+        /// <param name="APIClientRequestLogger">A request logger.</param>
+        /// <param name="Logger">A logger.</param>
+        public static APIClientRequestLogger  RegisterDefaultDiscLogTarget(this APIClientRequestLogger  APIClientRequestLogger,
+                                                                           ALogger                      Logger)
+
+            => APIClientRequestLogger.RegisterLogTarget(LogTargets.Disc,
+                                                        Logger.Default_LogRequest_toDisc);
+
+        #endregion
+
+        #region RegisterDefaultDiscLogTarget(this APIClientResponseLogger, Logger)
+
+        /// <summary>
+        /// Register the default console logger.
+        /// </summary>
+        /// <param name="APIClientResponseLogger">A response logger.</param>
+        /// <param name="Logger">A logger.</param>
+        public static APIClientResponseLogger RegisterDefaultDiscLogTarget(this APIClientResponseLogger  APIClientResponseLogger,
+                                                                           ALogger                       Logger)
+
+            => APIClientResponseLogger.RegisterLogTarget(LogTargets.Disc,
+                                                         Logger.Default_LogResponse_toDisc);
+
+        #endregion
+
+    }
+
 
     /// <summary>
     /// An abstract client logger.

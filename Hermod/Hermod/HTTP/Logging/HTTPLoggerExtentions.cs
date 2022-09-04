@@ -17,6 +17,8 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Hermod.Logging;
+
 using static org.GraphDefined.Vanaheimr.Hermod.HTTP.HTTPClientLogger;
 using static org.GraphDefined.Vanaheimr.Hermod.HTTP.HTTPServerLogger;
 

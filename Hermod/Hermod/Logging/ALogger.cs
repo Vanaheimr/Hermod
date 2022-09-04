@@ -25,7 +25,7 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Loggers
+namespace org.GraphDefined.Vanaheimr.Hermod.Logging
 {
 
     /// <summary>
