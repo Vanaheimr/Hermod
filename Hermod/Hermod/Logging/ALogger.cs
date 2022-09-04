@@ -28,6 +28,8 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 namespace org.GraphDefined.Vanaheimr.Hermod.Logging
 {
 
+    public delegate String LogfileCreatorDelegate(String LoggingPath, String Context, String LogfileName);
+
     /// <summary>
     /// An API logger.
     /// </summary>

@@ -28,7 +28,6 @@ using org.GraphDefined.Vanaheimr.Hermod.Logging;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
-    public delegate String LogfileCreatorDelegate    (String LoggingPath, String Context, String LogfileName);
     public delegate Task   HTTPRequestLoggerDelegate (String LoggingPath, String Context, String LogEventName, HTTPRequest Request);
     public delegate Task   HTTPResponseLoggerDelegate(String LoggingPath, String Context, String LogEventName, HTTPRequest Request, HTTPResponse Response);
 
