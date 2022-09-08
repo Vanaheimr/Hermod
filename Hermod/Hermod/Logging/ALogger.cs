@@ -38,7 +38,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
 
         #region Data
 
-        private static readonly Object         LockObject               = new ();
+        private static readonly Object         LockObject               = new();
         private static          SemaphoreSlim  LogRequest_toDisc_Lock   = new (1,1);
         private static          SemaphoreSlim  LogResponse_toDisc_Lock  = new (1,1);
 

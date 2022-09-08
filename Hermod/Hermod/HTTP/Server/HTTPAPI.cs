@@ -935,7 +935,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Internal non-cryptographic random number generator.
         /// </summary>
-        protected static readonly  Random                  _Random                         = new ();
+        protected static readonly  Random                  _Random                         = new();
 
         /// <summary>
         /// The default HTTP server name.
@@ -1129,17 +1129,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event called whenever a HTTP request came in.
         /// </summary>
-        public HTTPRequestLogEvent   RequestLog    = new ();
+        public HTTPRequestLogEvent   RequestLog    = new();
 
         /// <summary>
         /// An event called whenever a HTTP request could successfully be processed.
         /// </summary>
-        public HTTPResponseLogEvent  ResponseLog   = new ();
+        public HTTPResponseLogEvent  ResponseLog   = new();
 
         /// <summary>
         /// An event called whenever a HTTP request resulted in an error.
         /// </summary>
-        public HTTPErrorLogEvent     ErrorLog      = new ();
+        public HTTPErrorLogEvent     ErrorLog      = new();
 
         #endregion
 

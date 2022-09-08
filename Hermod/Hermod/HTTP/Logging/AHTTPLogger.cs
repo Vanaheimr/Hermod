@@ -40,7 +40,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private static readonly Object         LockObject                   = new ();
+        private static readonly Object         LockObject                   = new();
         private static          SemaphoreSlim  LogHTTPRequest_toDisc_Lock   = new (1,1);
         private static          SemaphoreSlim  LogHTTPResponse_toDisc_Lock  = new (1,1);
 
