@@ -653,7 +653,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              Request.HTTPBody.Length)
                                                   : Request.HTTPBody.Length;
 
-                DebugX.LogT("RequestBodyLength: " + RequestBodyLength + " bytes, socket: " + TCPStream.Socket.LocalEndPoint?.ToString() + " => " + TCPStream.Socket.RemoteEndPoint?.ToString());
+                //DebugX.LogT("RequestBodyLength: " + RequestBodyLength + " bytes, socket: " + TCPStream.Socket.LocalEndPoint?.ToString() + " => " + TCPStream.Socket.RemoteEndPoint?.ToString());
 
                 if (RequestBodyLength > 0)
                     HTTPStream.Write(Request.HTTPBody, 0, RequestBodyLength);
@@ -841,7 +841,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                     currentDataLength = HTTPStream.Read(_Buffer, 0, _Buffer.Length);
 
-                                    DebugX.Log("ReadTEBlock read from network: " + currentDataLength);
+                                    //DebugX.Log("ReadTEBlock read from network: " + currentDataLength);
 
                                     if (currentDataLength > 0)
                                         chunkedStream.Write(_Buffer, 0, currentDataLength);
@@ -1192,7 +1192,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            DebugX.LogT("HTTPClient closed!");
+            //DebugX.LogT("HTTPClient closed!");
 
             return Response;
 
