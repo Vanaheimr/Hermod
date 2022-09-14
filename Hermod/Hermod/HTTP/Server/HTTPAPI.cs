@@ -1846,16 +1846,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (protected virtual) MixWithHTMLTemplate    (Template, ResourceName, ResourceAssemblies)
 
-        protected virtual String? MixWithHTMLTemplate(String  Template,
-                                                      String  ResourceName)
+        protected virtual String? MixWithHTMLTemplate(String   Template,
+                                                      String   ResourceName,
+                                                      String?  Content   = null)
 
             => MixWithHTMLTemplate(Template,
                                    ResourceName,
-                                   new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+                                   new Tuple<String, Assembly>[] { new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly) },
+                                   Content);
 
-        protected virtual String? MixWithHTMLTemplate(String                            Template,
-                                                      String                            ResourceName,
-                                                      params Tuple<String, Assembly>[]  ResourceAssemblies)
+        protected virtual String? MixWithHTMLTemplate(String                     Template,
+                                                      String                     ResourceName,
+                                                      Tuple<String, Assembly>[]  ResourceAssemblies,
+                                                      String?                    Content   = null)
         {
 
             var htmlStream = new MemoryStream();
