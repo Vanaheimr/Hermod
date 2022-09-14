@@ -17,9 +17,6 @@
 
 #region Usings
 
-using System;
-using System.Linq;
-
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -35,8 +32,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #region Data
 
-        private        readonly  AbstractEMail   _EMailHeader;
-        private static readonly  Random          _Random         = new Random();
+        private readonly  AbstractEMail   _EMailHeader;
 
         #endregion
 
@@ -281,10 +277,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public MailContentType GenerateMIMEBoundary()
         {
 
-            if (_MIMEBoundary == null)
+            if (_MIMEBoundary is null)
             {
 
-                _MIMEBoundary = "-8<--" + _ContentType.ToString().Replace("_", "/") + "--8<--" + _Random.GetBytes(12).ToHexString() + "--8<-";
+                _MIMEBoundary = "-8<--" + _ContentType.ToString().Replace("_", "/") + "--8<--" + RandomExtensions.GetBytes(12).ToHexString() + "--8<-";
 
                 // Update text-version within the e-mail header
                 if (_EMailHeader != null)

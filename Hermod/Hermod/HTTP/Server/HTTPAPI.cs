@@ -931,12 +931,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected const Char GS = (Char) 0x1D;
 
 
-
-        /// <summary>
-        /// Internal non-cryptographic random number generator.
-        /// </summary>
-        protected static readonly  Random                  _Random                         = new();
-
         /// <summary>
         /// The default HTTP server name.
         /// </summary>

@@ -17,11 +17,7 @@
 
 #region Usings
 
-using System;
-using System.Linq;
 using System.Net.Sockets;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
@@ -47,8 +43,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
     {
 
         #region Data
-
-        private static readonly Random random = new Random();
 
         private readonly TestRunResultDelegate ResultHandler;
 
@@ -96,27 +90,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         /// <param name="TestData">The ICMP echo request test data.</param>
         /// <param name="TTL">The time-to-live of the underlying IP packet.</param>
         /// <param name="DNSClient">An optional DNS client to use.</param>
-        public async Task<PingResults> Ping(String                 Hostname,
-                                            UInt32                 NumberOfTests        = 3,
-                                            TimeSpan?              Timeout              = null,
-                                            TestRunResultDelegate  ResultHandler        = null,
-                                            UInt16?                Identifier           = null,
-                                            UInt16                 SequenceStartValue   = 0,
-                                            String                 TestData             = null,
-                                            Byte                   TTL                  = 64,
-                                            DNSClient              DNSClient            = null)
+        public async Task<PingResults> Ping(String                  Hostname,
+                                            UInt32                  NumberOfTests        = 3,
+                                            TimeSpan?               Timeout              = null,
+                                            TestRunResultDelegate?  ResultHandler        = null,
+                                            UInt16?                 Identifier           = null,
+                                            UInt16                  SequenceStartValue   = 0,
+                                            String?                 TestData             = null,
+                                            Byte                    TTL                  = 64,
+                                            DNSClient?              DNSClient            = null)
         {
 
             var startTimestamp  = Timestamp.Now;
+            var dnsClient       = DNSClient ?? this.DNSClient;
 
-            if (DNSClient != null || this.DNSClient != null)
+            if (dnsClient is not null)
             {
 
-                var ipv6Addresses   = (DNSClient ?? this.DNSClient)?.
+                var ipv6Addresses   = dnsClient.
                                           Query<AAAA>(Hostname).
                                           ContinueWith(AAAARecords => AAAARecords.Result.Select(AAAARecord => AAAARecord.IPv6Address));
 
-                var ipv4Addresses   = (DNSClient ?? this.DNSClient)?.
+                var ipv4Addresses   = dnsClient.
                                           Query<A>   (Hostname).
                                           ContinueWith(ARecords    => ARecords.   Result.Select(ARecord    => ARecord.   IPv4Address));
 
@@ -179,21 +174,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         /// <param name="SequenceStartValue">The ICMP echo request start value.</param>
         /// <param name="TestData">The ICMP echo request test data.</param>
         /// <param name="TTL">The time-to-live of the underlying IP packet.</param>
-        public async Task<PingResults> Ping(IPv4Address            IPv4Address,
-                                            UInt32                 NumberOfTests        = 3,
-                                            TimeSpan?              Timeout              = null,
-                                            TestRunResultDelegate  ResultHandler        = null,
-                                            UInt16?                Identifier           = null,
-                                            UInt16                 SequenceStartValue   = 0,
-                                            String                 TestData             = null,
-                                            Byte                   TTL                  = 64)
+        public async Task<PingResults> Ping(IPv4Address             IPv4Address,
+                                            UInt32                  NumberOfTests        = 3,
+                                            TimeSpan?               Timeout              = null,
+                                            TestRunResultDelegate?  ResultHandler        = null,
+                                            UInt16?                 Identifier           = null,
+                                            UInt16                  SequenceStartValue   = 0,
+                                            String?                 TestData             = null,
+                                            Byte                    TTL                  = 64)
         {
 
             if (!Identifier.HasValue)
-                Identifier  = (UInt16) random.Next(UInt16.MaxValue);
+                Identifier  = (UInt16) Random.Shared.Next(UInt16.MaxValue);
 
-            if (TestData == null)
-                TestData    = random.RandomString(30);
+            if (TestData is null || TestData.IsNullOrEmpty())
+                TestData    = RandomExtensions.RandomString(30);
 
             if (!Timeout.HasValue)
                 Timeout     = TimeSpan.FromSeconds(3);
@@ -205,9 +200,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                                       AddressFamily.InterNetwork,
                                       SocketType.Raw,
                                       ProtocolType.Icmp
-                                  );
-
-            socket.ReceiveTimeout = (Int32) Timeout.Value.TotalMilliseconds;
+                                  ) {
+                                      ReceiveTimeout = (Int32)Timeout.Value.TotalMilliseconds
+                                  };
             socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout,    (Int32) Timeout.Value.TotalMilliseconds);
             socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, (Int32) Timeout.Value.TotalMilliseconds);
             socket.SetSocketOption(SocketOptionLevel.IP,     SocketOptionName.IpTimeToLive,   TTL);
@@ -408,21 +403,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         /// <param name="SequenceStartValue">The ICMP echo request start value.</param>
         /// <param name="TestData">The ICMP echo request test data.</param>
         /// <param name="TTL">The time-to-live of the underlying IP packet.</param>
-        public async Task<PingResults> Ping(IPv6Address         IPv6Address,
-                                            UInt32              NumberOfTests        = 3,
-                                            TimeSpan?           Timeout              = null,
-                                            TestRunResultDelegate  ResultHandler        = null,
-                                            UInt16?             Identifier           = null,
-                                            UInt16              SequenceStartValue   = 0,
-                                            String              TestData             = null,
-                                            Byte                TTL                  = 64)
+        public async Task<PingResults> Ping(IPv6Address             IPv6Address,
+                                            UInt32                  NumberOfTests        = 3,
+                                            TimeSpan?               Timeout              = null,
+                                            TestRunResultDelegate?  ResultHandler        = null,
+                                            UInt16?                 Identifier           = null,
+                                            UInt16                  SequenceStartValue   = 0,
+                                            String?                 TestData             = null,
+                                            Byte                    TTL                  = 64)
         {
 
             if (!Identifier.HasValue)
-                Identifier  = (UInt16) random.Next(UInt16.MaxValue);
+                Identifier  = (UInt16) Random.Shared.Next(UInt16.MaxValue);
 
-            if (TestData == null)
-                TestData    = random.RandomString(30);
+            if (TestData is null || TestData.IsNullOrEmpty())
+                TestData    = RandomExtensions.RandomString(30);
 
             if (!Timeout.HasValue)
                 Timeout     = TimeSpan.FromSeconds(3);
@@ -434,9 +429,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                                       AddressFamily.InterNetworkV6,
                                       SocketType.Raw,
                                       ProtocolType.IcmpV6
-                                  );
-
-            socket.ReceiveTimeout = (Int32) Timeout.Value.TotalMilliseconds;
+                                  ) {
+                                      ReceiveTimeout = (Int32)Timeout.Value.TotalMilliseconds
+                                  };
             socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout,    (Int32) Timeout.Value.TotalMilliseconds);
             socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, (Int32) Timeout.Value.TotalMilliseconds);
             socket.SetSocketOption(SocketOptionLevel.IP,     SocketOptionName.IpTimeToLive,   TTL);

@@ -17,8 +17,6 @@
 
 #region Usings
 
-using System;
-
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -33,12 +31,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                                IEquatable<Message_Id>,
                                IComparable<Message_Id>
     {
-
-        #region Data
-
-        private readonly static Random _Random = new Random(Guid.NewGuid().GetHashCode());
-
-        #endregion
 
         #region Properties
 
@@ -90,8 +82,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public static Message_Id Random(String  DomainPart,
                                         Byte    Length = 30)
 
-            => new Message_Id(_Random.RandomString(Length),
-                              DomainPart);
+            => new (RandomExtensions.RandomString(Length),
+                    DomainPart);
 
         #endregion
 

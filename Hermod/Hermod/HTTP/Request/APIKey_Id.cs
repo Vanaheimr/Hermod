@@ -17,8 +17,6 @@
 
 #region Usings
 
-using System;
-
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -63,11 +61,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The internal identification.
         /// </summary>
         private readonly String InternalId;
-
-        /// <summary>
-        /// Private non-cryptographic random number generator.
-        /// </summary>
-        private static readonly Random _random = new Random();
 
         #endregion
 
@@ -114,7 +107,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Length">The expected length of the organization identification.</param>
         public static APIKey_Id Random(UInt16? Length = 64)
 
-            => new APIKey_Id(_random.RandomString(Length ?? 64));
+            => new (RandomExtensions.RandomString(Length ?? 64));
 
         #endregion
 
@@ -192,9 +185,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public APIKey_Id Clone
 
-            => new APIKey_Id(
-                   new String(InternalId?.ToCharArray())
-               );
+            => new (new String(InternalId?.ToCharArray()));
 
         #endregion
 
