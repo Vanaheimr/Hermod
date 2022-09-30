@@ -59,8 +59,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         //void SetAdminStatus(TAdminStatusType                            NewAdminStatus);
         //void SetAdminStatus(Timestamped<TAdminStatusType>               NewTimestampedAdminStatus);
-        //void SetAdminStatus(IEnumerable<Timestamped<TAdminStatusType>>  NewAdminStatusList,
-        //                    ChangeMethods                               ChangeMethod = ChangeMethods.Replace);
+        void SetAdminStatus(IEnumerable<Timestamped<TAdminStatusType>>  NewAdminStatusList,
+                            ChangeMethods                               ChangeMethod = ChangeMethods.Replace);
         //void SetAdminStatus(TAdminStatusType                            NewAdminStatus,
         //                    DateTime                                    Timestamp);
 
