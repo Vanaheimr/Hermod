@@ -38,8 +38,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Data
 
-        private readonly Dictionary<String, DNSCacheEntry>  _DNSCache;
-        private readonly Timer                              _CleanUpTimer;
+        private readonly Dictionary<String, DNSCacheEntry>  dnsCache;
+        private readonly Timer                              cleanUpTimer;
 
         #endregion
 
@@ -52,50 +52,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public DNSCache(TimeSpan? CleanUpEvery = null)
         {
 
-            _DNSCache      = new Dictionary<String, DNSCacheEntry>();
+            dnsCache = new Dictionary<String, DNSCacheEntry> {
+                {
+                    "localhost",  new DNSCacheEntry(RefreshTime:  DateTime.UtcNow,
+                                                    EndOfLife:    DateTime.UtcNow + TimeSpan.FromDays(3650),
+                                                    DNSInfo:      new DNSInfo(Origin:               new IPSocket(IPv4Address.Parse("127.0.0.1"), IPPort.Parse(53)),
+                                                                              QueryId:              0,
+                                                                              IsAuthorativeAnswer:  true,
+                                                                              IsTruncated:          false,
+                                                                              RecursionDesired:     false,
+                                                                              RecursionAvailable:   false,
+                                                                              ResponseCode:         DNSResponseCodes.NoError,
+                                                                              Answers:              new ADNSResourceRecord[] {
+                                                                                                        new    A("localhost", DNSQueryClasses.IN, TimeSpan.FromDays(3650), IPv4Address.Parse("127.0.0.1")),
+                                                                                                        new AAAA("localhost", DNSQueryClasses.IN, TimeSpan.FromDays(3650), IPv6Address.Parse("::1"))
+                                                                                                    },
+                                                                              Authorities:          Array.Empty<ADNSResourceRecord>(),
+                                                                              AdditionalRecords:    Array.Empty<ADNSResourceRecord>(),
+                                                                              IsValid:              true,
+                                                                              IsTimeout:            false,
+                                                                              Timeout:              TimeSpan.Zero)
+                                                                 )
+                },
+                {
+                    "loopback",   new DNSCacheEntry(RefreshTime:  DateTime.UtcNow,
+                                                    EndOfLife:    DateTime.UtcNow + TimeSpan.FromDays(3650),
+                                                    DNSInfo:      new DNSInfo(Origin:               new IPSocket(IPv4Address.Parse("127.0.0.1"), IPPort.Parse(53)),
+                                                                              QueryId:              0,
+                                                                              IsAuthorativeAnswer:  true,
+                                                                              IsTruncated:          false,
+                                                                              RecursionDesired:     false,
+                                                                              RecursionAvailable:   false,
+                                                                              ResponseCode:         DNSResponseCodes.NoError,
+                                                                              Answers:              new ADNSResourceRecord[] {
+                                                                                                        new    A("loopback", DNSQueryClasses.IN, TimeSpan.FromDays(3650), IPv4Address.Parse("127.0.0.1")),
+                                                                                                        new AAAA("loopback", DNSQueryClasses.IN, TimeSpan.FromDays(3650), IPv6Address.Parse("::1"))
+                                                                                                    },
+                                                                              Authorities:          Array.Empty<ADNSResourceRecord>(),
+                                                                              AdditionalRecords:    Array.Empty<ADNSResourceRecord>(),
+                                                                              IsValid:              true,
+                                                                              IsTimeout:            false,
+                                                                              Timeout:              TimeSpan.Zero)
+                                                                 )
+                }
+            };
 
-            _CleanUpTimer  = new Timer(RemoveExpiredCacheEntries,
-                                       null,
-                                       CleanUpEvery.HasValue ? CleanUpEvery.Value : TimeSpan.FromMinutes(1), // delay one round!
-                                       CleanUpEvery.HasValue ? CleanUpEvery.Value : TimeSpan.FromMinutes(1));
-
-            _DNSCache.Add("localhost",
-                          new DNSCacheEntry(RefreshTime:  DateTime.UtcNow,
-                                            EndOfLife:    DateTime.UtcNow + TimeSpan.FromDays(3650),
-                                            DNSInfo:      new DNSInfo(Origin:               new IPSocket(IPv4Address.Parse("127.0.0.1"), IPPort.Parse(53)),
-                                                                      QueryId:              0,
-                                                                      IsAuthorativeAnswer:  true,
-                                                                      IsTruncated:          false,
-                                                                      RecursionDesired:     false,
-                                                                      RecursionAvailable:   false,
-                                                                      ResponseCode:         DNSResponseCodes.NoError,
-                                                                      Answers:              new ADNSResourceRecord[] {
-                                                                                                new    A("localhost", DNSQueryClasses.IN, TimeSpan.FromDays(3650), IPv4Address.Parse("127.0.0.1")),
-                                                                                                new AAAA("localhost", DNSQueryClasses.IN, TimeSpan.FromDays(3650), IPv6Address.Parse("::1"))
-                                                                                            },
-                                                                      Authorities:          new ADNSResourceRecord[0],
-                                                                      AdditionalRecords:    new ADNSResourceRecord[0])
-                                                         )
-                          );
-
-            _DNSCache.Add("loopback",
-                          new DNSCacheEntry(RefreshTime:  DateTime.UtcNow,
-                                            EndOfLife:    DateTime.UtcNow + TimeSpan.FromDays(3650),
-                                            DNSInfo:      new DNSInfo(Origin:               new IPSocket(IPv4Address.Parse("127.0.0.1"), IPPort.Parse(53)),
-                                                                      QueryId:              0,
-                                                                      IsAuthorativeAnswer:  true,
-                                                                      IsTruncated:          false,
-                                                                      RecursionDesired:     false,
-                                                                      RecursionAvailable:   false,
-                                                                      ResponseCode:         DNSResponseCodes.NoError,
-                                                                      Answers:              new ADNSResourceRecord[] {
-                                                                                                new    A("loopback", DNSQueryClasses.IN, TimeSpan.FromDays(3650), IPv4Address.Parse("127.0.0.1")),
-                                                                                                new AAAA("loopback", DNSQueryClasses.IN, TimeSpan.FromDays(3650), IPv6Address.Parse("::1"))
-                                                                                            },
-                                                                      Authorities:          new ADNSResourceRecord[0],
-                                                                      AdditionalRecords:    new ADNSResourceRecord[0])
-                                                         )
-                          );
+            cleanUpTimer = new Timer(RemoveExpiredCacheEntries,
+                                     null,
+                                     CleanUpEvery ?? TimeSpan.FromMinutes(1), // delay one round!
+                                     CleanUpEvery ?? TimeSpan.FromMinutes(1));
 
         }
 
@@ -113,20 +118,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             DNSInfo  DNSInformation)
         {
 
-            lock (_DNSCache)
+            lock (dnsCache)
             {
 
-                if (!_DNSCache.TryGetValue(Domainname, out DNSCacheEntry CacheEntry))
-                {
-
-                    _DNSCache.Add(Domainname,
-                                  new DNSCacheEntry(
-                                      DateTime.UtcNow + TimeSpan.FromSeconds(DNSInformation.Answers.First().TimeToLive.TotalSeconds / 2),
-                                      DateTime.UtcNow + DNSInformation.Answers.First().TimeToLive,
-                                      DNSInformation)
-                                 );
-
-                }
+                if (!dnsCache.ContainsKey(Domainname))
+                    dnsCache.Add(Domainname,
+                                 new DNSCacheEntry(
+                                     DateTime.UtcNow + TimeSpan.FromSeconds(DNSInformation.Answers.First().TimeToLive.TotalSeconds / 2),
+                                     DateTime.UtcNow + DNSInformation.Answers.First().TimeToLive,
+                                     DNSInformation
+                                 ));
 
                 else
                 {
@@ -135,11 +136,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     {
 
                         // ToDo: Merge of DNS responses!
-                        _DNSCache[Domainname] = new DNSCacheEntry(
-                                                    DateTime.UtcNow + TimeSpan.FromSeconds(DNSInformation.Answers.First().TimeToLive.TotalSeconds / 2),
-                                                    DateTime.UtcNow + DNSInformation.Answers.First().TimeToLive,
-                                                    DNSInformation
-                                                );
+                        dnsCache[Domainname] = new DNSCacheEntry(
+                                                   DateTime.UtcNow + TimeSpan.FromSeconds(DNSInformation.Answers.First().TimeToLive.TotalSeconds / 2),
+                                                   DateTime.UtcNow + DNSInformation.Answers.First().TimeToLive,
+                                                   DNSInformation
+                                               );
 
                     }
 
@@ -168,37 +169,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             params ADNSResourceRecord[]  ResourceRecords)
         {
 
-            lock (_DNSCache)
+            lock (dnsCache)
             {
 
-                if (!_DNSCache.TryGetValue(Domainname, out DNSCacheEntry CacheEntry))
-                {
-
-                    _DNSCache.Add(Domainname,
-                                  new DNSCacheEntry(
-                                      DateTime.UtcNow + TimeSpan.FromSeconds(ResourceRecords.Min(rr => rr.TimeToLive.TotalSeconds) / 2),
-                                      DateTime.UtcNow + ResourceRecords.Min(rr => rr.TimeToLive),
-                                      new DNSInfo(Origin:               Origin,
-                                                  QueryId:              new Random().Next(),
-                                                  IsAuthorativeAnswer:  false,
-                                                  IsTruncated:          false,
-                                                  RecursionDesired:     false,
-                                                  RecursionAvailable:   false,
-                                                  ResponseCode:         DNSResponseCodes.NoError,
-                                                  Answers:              ResourceRecords,
-                                                  Authorities:          new ADNSResourceRecord[0],
-                                                  AdditionalRecords:    new ADNSResourceRecord[0])
-                                  ));
-
-                }
-
-                else
-                {
-
-                    // ToDo: Merge of DNS responses!
-                    Debug.WriteLine("[" + DateTime.UtcNow + "] Resource record for '" + Domainname + "' already exists within the DNS cache!");
-
-                }
+                if (!dnsCache.ContainsKey(Domainname))
+                    dnsCache.Add(Domainname,
+                                 new DNSCacheEntry(
+                                     DateTime.UtcNow + TimeSpan.FromSeconds(ResourceRecords.Min(rr => rr.TimeToLive.TotalSeconds) / 2),
+                                     DateTime.UtcNow + ResourceRecords.Min(rr => rr.TimeToLive),
+                                     new DNSInfo(Origin:               Origin,
+                                                 QueryId:              Random.Shared.Next(),
+                                                 IsAuthorativeAnswer:  false,
+                                                 IsTruncated:          false,
+                                                 RecursionDesired:     false,
+                                                 RecursionAvailable:   false,
+                                                 ResponseCode:         DNSResponseCodes.NoError,
+                                                 Answers:              ResourceRecords,
+                                                 Authorities:          Array.Empty<ADNSResourceRecord>(),
+                                                 AdditionalRecords:    Array.Empty<ADNSResourceRecord>(),
+                                                 IsValid:              true,
+                                                 IsTimeout:            false,
+                                                 Timeout:              TimeSpan.Zero)
+                                 ));
 
                 return this;
 
@@ -214,14 +206,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Get the cached DNS information from the DNS cache.
         /// </summary>
         /// <param name="DomainName">The domain name.</param>
-        public DNSInfo GetDNSInfo(String DomainName)
+        public DNSInfo? GetDNSInfo(String DomainName)
         {
 
-            lock (_DNSCache)
+            lock (dnsCache)
             {
 
-                if (_DNSCache.TryGetValue(DomainName, out DNSCacheEntry CacheEntry))
-                    return CacheEntry.DNSInfo;
+                if (dnsCache.TryGetValue(DomainName, out DNSCacheEntry? cacheEntry))
+                    return cacheEntry.DNSInfo;
 
                 return null;
 
@@ -234,23 +226,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region (private, Timer) RemoveExpiredCacheEntries(State)
 
-        private void RemoveExpiredCacheEntries(Object State)
+        private void RemoveExpiredCacheEntries(Object? State)
         {
 
-            if (Monitor.TryEnter(_DNSCache))
+            if (Monitor.TryEnter(dnsCache))
             {
 
                 try
                 {
 
-                    var Now             = DateTime.UtcNow;
+                    var now             = DateTime.UtcNow;
 
                     // Info: Will remove all resource records even when only a single one is expired!
-                    var ExpiredEntries  = _DNSCache.
-                                              Where(entry => entry.Value.EndOfLife < Now).
+                    var expiredEntries  = dnsCache.
+                                              Where(entry => entry.Value.EndOfLife < now).
                                               ToArray();
 
-                    ExpiredEntries.ForEach(entry => _DNSCache.Remove(entry.Key));
+                    expiredEntries.ForEach(entry => dnsCache.Remove(entry.Key));
 
                 }
 
@@ -261,7 +253,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 finally
                 {
-                    Monitor.Exit(_DNSCache);
+                    Monitor.Exit(dnsCache);
                 }
 
             }
@@ -277,7 +269,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-            => _DNSCache.Count + " cached DNS entries";
+
+            => dnsCache.Count + " cached DNS entries";
 
         #endregion
 

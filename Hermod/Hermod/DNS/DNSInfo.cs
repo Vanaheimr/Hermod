@@ -15,13 +15,7 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using System;
-using System.Linq;
-using System.Collections.Generic;
-
-#endregion
+using Org.BouncyCastle.Crypto.Engines;
 
 namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
@@ -34,62 +28,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The source of the DNS information.
         /// </summary>
-        public IPSocket          Origin                { get; }
+        public IPSocket                         Origin                { get; }
 
-        public Int32             QueryId               { get; }
+        /// <summary>
+        /// The identification of the DNS query.
+        /// </summary>
+        public Int32                            QueryId               { get; }
 
-        public Boolean           AuthorativeAnswer     { get; }
+        public Boolean                          AuthorativeAnswer     { get; }
 
-        public Boolean           IsTruncated           { get; }
+        public Boolean                          IsTruncated           { get; }
 
-        public Boolean           RecursionRequested    { get; }
+        public Boolean                          RecursionRequested    { get; }
 
-        public Boolean           RecursionAvailable    { get; }
+        public Boolean                          RecursionAvailable    { get; }
 
-        public DNSResponseCodes  ResponseCode          { get; }
+        public DNSResponseCodes                 ResponseCode          { get; }
 
 
-        #region Answers
+        public IEnumerable<ADNSResourceRecord>  Answers               { get; }
 
-        private readonly List<ADNSResourceRecord> _Answers;
+        public IEnumerable<ADNSResourceRecord>  Authorities           { get; }
 
-        public IEnumerable<ADNSResourceRecord> Answers
-        {
-            get
-            {
-                return _Answers;
-            }
-        }
+        public IEnumerable<ADNSResourceRecord>  AdditionalRecords     { get; }
 
-        #endregion
 
-        #region Authorities
+        public Boolean                          IsValid               { get; }
 
-        private readonly List<ADNSResourceRecord> _Authorities;
+        public Boolean                          IsTimeout             { get; }
 
-        public IEnumerable<ADNSResourceRecord> Authorities
-        {
-            get
-            {
-                return _Authorities;
-            }
-        }
-
-        #endregion
-
-        #region AdditionalRecords
-
-        private List<ADNSResourceRecord> _AdditionalRecords;
-
-        public IEnumerable<ADNSResourceRecord> AdditionalRecords
-        {
-            get
-            {
-                return _AdditionalRecords;
-            }
-        }
-
-        #endregion
+        public TimeSpan                         Timeout               { get; }
 
         #endregion
 
@@ -104,42 +72,87 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        DNSResponseCodes                 ResponseCode,
                        IEnumerable<ADNSResourceRecord>  Answers,
                        IEnumerable<ADNSResourceRecord>  Authorities,
-                       IEnumerable<ADNSResourceRecord>  AdditionalRecords)
+                       IEnumerable<ADNSResourceRecord>  AdditionalRecords,
+
+                       Boolean                          IsValid,
+                       Boolean                          IsTimeout,
+                       TimeSpan                         Timeout)
         {
 
-            this.Origin               = Origin;
-            this.QueryId              = QueryId;
-            this.AuthorativeAnswer    = IsAuthorativeAnswer;
-            this.IsTruncated          = IsTruncated;
-            this.RecursionRequested   = RecursionDesired;
-            this.RecursionAvailable   = RecursionAvailable;
-            this.ResponseCode         = ResponseCode;
+            this.Origin              = Origin;
+            this.QueryId             = QueryId;
+            this.AuthorativeAnswer   = IsAuthorativeAnswer;
+            this.IsTruncated         = IsTruncated;
+            this.RecursionRequested  = RecursionDesired;
+            this.RecursionAvailable  = RecursionAvailable;
+            this.ResponseCode        = ResponseCode;
 
-            this._Answers             = new List<ADNSResourceRecord>(Answers);
-            this._Authorities         = new List<ADNSResourceRecord>(Authorities);
-            this._AdditionalRecords   = new List<ADNSResourceRecord>(AdditionalRecords);
+            this.Answers             = Answers;
+            this.Authorities         = Authorities;
+            this.AdditionalRecords   = AdditionalRecords;
+
+            this.IsValid             = IsValid;
+            this.IsTimeout           = IsTimeout;
+            this.Timeout             = Timeout;
 
         }
 
         #endregion
 
 
-        internal void AddAnswer(ADNSResourceRecord ResourceRecord)
-        {
-            this._Answers.Add(ResourceRecord);
-        }
+        public static DNSInfo TimedOut(IPSocket  Origin,
+                                       Int32     QueryId,
+                                       TimeSpan  Timeout)
 
-        internal void CleanUp()
-        {
+            => new (Origin,
+                    QueryId,
+                    false,
+                    false,
+                    false,
+                    false,
+                    DNSResponseCodes.ServerFailure,
+                    Array.Empty<ADNSResourceRecord>(),
+                    Array.Empty<ADNSResourceRecord>(),
+                    Array.Empty<ADNSResourceRecord>(),
+                    false,
+                    true,
+                    Timeout);
 
-            var Now       = DateTime.UtcNow;
-            var ToDelete  = new List<ADNSResourceRecord>();
 
-            _Answers.           RemoveAll(RR => RR.EndOfLife > Now);
-            _Authorities.       RemoveAll(RR => RR.EndOfLife > Now);
-            _AdditionalRecords. RemoveAll(RR => RR.EndOfLife > Now);
+        public static DNSInfo Invalid(IPSocket  Origin,
+                                      Int32     QueryId)
 
-        }
+            => new (Origin,
+                    QueryId,
+                    false,
+                    false,
+                    false,
+                    false,
+                    DNSResponseCodes.ServerFailure,
+                    Array.Empty<ADNSResourceRecord>(),
+                    Array.Empty<ADNSResourceRecord>(),
+                    Array.Empty<ADNSResourceRecord>(),
+                    false,
+                    false,
+                    TimeSpan.Zero);
+
+
+        //internal void AddAnswer(ADNSResourceRecord ResourceRecord)
+        //{
+        //    this._Answers.Add(ResourceRecord);
+        //}
+
+        //internal void CleanUp()
+        //{
+
+        //    var Now       = DateTime.UtcNow;
+        //    var ToDelete  = new List<ADNSResourceRecord>();
+
+        //    _Answers.           RemoveAll(RR => RR.EndOfLife > Now);
+        //    _Authorities.       RemoveAll(RR => RR.EndOfLife > Now);
+        //    _AdditionalRecords. RemoveAll(RR => RR.EndOfLife > Now);
+
+        //}
 
     }
 
