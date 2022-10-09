@@ -17,8 +17,6 @@
 
 #region Usings
 
-using System;
-
 using Newtonsoft.Json.Linq;
 
 #endregion
@@ -26,130 +24,193 @@ using Newtonsoft.Json.Linq;
 namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
+    /// <summary>
+    /// The info status of embedded data structures.
+    /// </summary>
     public enum InfoStatus
     {
 
+        /// <summary>
+        /// Expand the embedded data structures.
+        /// </summary>
         Expanded,
+
+        /// <summary>
+        /// Show a short summary of the embedded data structures.
+        /// </summary>
         Short,
+
+        /// <summary>
+        /// Show only the identifications of the embedded data structures.
+        /// </summary>
         ShowIdOnly,
+
+        /// <summary>
+        /// Hide everything.
+        /// </summary>
         Hidden
 
     }
 
 
+    /// <summary>
+    /// Extension methods for the info status of embedded data structures.
+    /// </summary>
     public static class InfoStatusExtensions
     {
 
+        #region Parse   (Text)
+
+        /// <summary>
+        /// Parse the given string as an info status.
+        /// </summary>
+        /// <param name="Text">A text-representation of an info status.</param>
         public static InfoStatus Parse(String Text)
+        {
+
+            if (TryParse(Text, out InfoStatus infoStatus))
+                return infoStatus;
+
+            throw new ArgumentException("Invalid text-representation of an info status: '" + Text + "'!",
+                                        nameof(Text));
+
+        }
+
+        #endregion
+
+        #region TryParse(Text)
+
+        /// <summary>
+        /// Parse the given string as an info status.
+        /// </summary>
+        /// <param name="Text">A text-representation of an info status.</param>
+        public static InfoStatus? TryParse(String Text)
+        {
+
+            if (TryParse(Text, out InfoStatus infoStatus))
+                return infoStatus;
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region TryParse(Text, out InfoStatus)
+
+        /// <summary>
+        /// Try to parse the given string as an info status.
+        /// </summary>
+        /// <param name="Text">A text-representation of an info status.</param>
+        /// <param name="ProcessId">The parsed info status.</param>
+        public static Boolean TryParse(String Text, out InfoStatus InfoStatus)
         {
             switch (Text?.ToLower())
             {
 
                 case "expanded":
-                    return InfoStatus.Expanded;
+                    InfoStatus = InfoStatus.Expanded;
+                    return true;
 
                 case "short":
-                    return InfoStatus.Short;
+                    InfoStatus = InfoStatus.Short;
+                    return true;
 
                 case "hidden":
-                    return InfoStatus.Hidden;
+                    InfoStatus = InfoStatus.Hidden;
+                    return true;
 
                 default:
-                    return InfoStatus.ShowIdOnly;
+                    InfoStatus = InfoStatus.ShowIdOnly;
+                    return true;
 
             }
         }
 
-
-        public static JProperty Switch(this InfoStatus  Status,
-                                       Func<JProperty>  WhenShowIdOnly,
-                                       Func<JProperty>  WhenExpanded)
-        {
-
-            switch (Status)
-            {
-
-                case InfoStatus.ShowIdOnly:
-                    return WhenShowIdOnly();
-
-                case InfoStatus.Expanded:
-                    return WhenExpanded();
-
-                default:
-                    return null;
-
-            }
-
-        }
+        #endregion
 
 
-        public static JContainer Switch(this InfoStatus   Status,
-                                        Func<JContainer>  WhenShowIdOnly,
-                                        Func<JContainer>  WhenExpanded)
-        {
+        #region Switch(this Status, WhenShowIdOnly, WhenExpanded)  [JProperty]
 
-            switch (Status)
-            {
+        public static JProperty? Switch(this InfoStatus  Status,
+                                        Func<JProperty>  WhenShowIdOnly,
+                                        Func<JProperty>  WhenExpanded)
 
-                case InfoStatus.ShowIdOnly:
-                    return WhenShowIdOnly();
+            => Status switch {
+                   InfoStatus.ShowIdOnly  => WhenShowIdOnly(),
+                   InfoStatus.Expanded    => WhenExpanded(),
+                   _                      => null
+               };
 
-                case InfoStatus.Expanded:
-                    return WhenExpanded();
+        public static JProperty? Switch(this InfoStatus?  Status,
+                                        Func<JProperty>   WhenShowIdOnly,
+                                        Func<JProperty>   WhenExpanded)
 
-                default:
-                    return null;
+            => Status.HasValue
+                   ? Status.Value.Switch(WhenShowIdOnly,
+                                         WhenExpanded)
+                   : null;
 
-            }
+        #endregion
 
-        }
+        #region Switch(this Status, WhenShowIdOnly, WhenExpanded)  [JContainer]
 
-        public static JToken Switch(this InfoStatus  Status,
-                                    Func<JToken>     WhenShowIdOnly,
-                                    Func<JToken>     WhenExpanded)
-        {
+        public static JContainer? Switch(this InfoStatus   Status,
+                                         Func<JContainer>  WhenShowIdOnly,
+                                         Func<JContainer>  WhenExpanded)
 
-            switch (Status)
-            {
+            => Status switch {
+                   InfoStatus.ShowIdOnly  => WhenShowIdOnly(),
+                   InfoStatus.Expanded    => WhenExpanded(),
+                   _                      => null
+               };
 
-                case InfoStatus.ShowIdOnly:
-                    return WhenShowIdOnly();
+        public static JContainer? Switch(this InfoStatus?  Status,
+                                         Func<JContainer>  WhenShowIdOnly,
+                                         Func<JContainer>  WhenExpanded)
 
-                case InfoStatus.Expanded:
-                    return WhenExpanded();
+            => Status.HasValue
+                   ? Status.Value.Switch(WhenShowIdOnly,
+                                         WhenExpanded)
+                   : null;
 
-                default:
-                    return null;
+        #endregion
 
-            }
+        #region Switch(this Status, WhenShowIdOnly, WhenExpanded)  [JToken]
 
-        }
+        public static JToken? Switch(this InfoStatus  Status,
+                                     Func<JToken>     WhenShowIdOnly,
+                                     Func<JToken>     WhenExpanded)
+
+            => Status switch {
+                InfoStatus.ShowIdOnly  => WhenShowIdOnly(),
+                InfoStatus.Expanded    => WhenExpanded(),
+                _                      => null
+            };
+
+        public static JToken? Switch(this InfoStatus?  Status,
+                                     Func<JToken>      WhenShowIdOnly,
+                                     Func<JToken>      WhenExpanded)
+
+            => Status.HasValue
+                   ? Status.Value.Switch(WhenShowIdOnly,
+                                         WhenExpanded)
+                   : null;
+
+        #endregion
 
 
-        // -------------------------------------------------------------------------
+        public static JToken? Switch<T>(this InfoStatus  Status,
+                                        T                Element,
+                                        Func<T, JToken>  WhenShowIdOnly,
+                                        Func<T, JToken>  WhenExpanded)
 
+            => Status switch {
+                   InfoStatus.ShowIdOnly  => WhenShowIdOnly(Element),
+                   InfoStatus.Expanded    => WhenExpanded(Element),
+                   _                      => null
+               };
 
-        public static JToken Switch<T>(this InfoStatus  Status,
-                                       T                Element,
-                                       Func<T, JToken>  WhenShowIdOnly,
-                                       Func<T, JToken>  WhenExpanded)
-        {
-
-            switch (Status)
-            {
-
-                case InfoStatus.ShowIdOnly:
-                    return WhenShowIdOnly(Element);
-
-                case InfoStatus.Expanded:
-                    return WhenExpanded(Element);
-
-                default:
-                    return null;
-
-            }
-
-        }
 
     }
 

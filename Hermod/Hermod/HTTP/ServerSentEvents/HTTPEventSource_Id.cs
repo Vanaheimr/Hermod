@@ -168,7 +168,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Clone this HTTP Event Source identification.
         /// </summary>
         public HTTPEventSource_Id Clone
-            => new HTTPEventSource_Id(new String(InternalId.ToCharArray()));
+
+            => new (
+                   new String(InternalId?.ToCharArray())
+               );
 
         #endregion
 
