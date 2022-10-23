@@ -41,7 +41,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The status.
         /// </summary>
-        Timestamped<TStatusType>               Status    { get; set; }
+        Timestamped<TStatusType>  Status    { get; set; }
 
         /// <summary>
         /// The admin status schedule (history).
@@ -55,13 +55,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                               UInt64?                      Skip              = null,
                                                               UInt64?                      Take              = null);
 
-
-        //void SetStatus(TStatusType                            NewStatus);
-        //void SetStatus(Timestamped<TStatusType>               NewTimestampedStatus);
+        void SetStatus(TStatusType                            NewStatus);
+        void SetStatus(Timestamped<TStatusType>               NewTimestampedStatus);
         void SetStatus(IEnumerable<Timestamped<TStatusType>>  NewStatusList,
                        ChangeMethods                          ChangeMethod = ChangeMethods.Replace);
-        //void SetStatus(TStatusType                            NewStatus,
-        //               DateTime                               Timestamp);
+        void SetStatus(TStatusType                            NewStatus,
+                       DateTime                               Timestamp);
 
     }
 
