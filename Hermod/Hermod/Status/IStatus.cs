@@ -41,7 +41,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The status.
         /// </summary>
-        Timestamped<TStatusType>               Status    { get; }
+        Timestamped<TStatusType>               Status    { get; set; }
 
         /// <summary>
         /// The admin status schedule (history).
