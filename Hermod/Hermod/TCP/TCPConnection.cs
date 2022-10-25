@@ -833,7 +833,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             _IsClosed = true;
 
-            DebugX.Log(" [TCPServer:", LocalPort.ToString(), "] TCP connection to ", RemoteSocket.ToString(), " closed!");
+            //DebugX.Log(" [TCPServer:", LocalPort.ToString(), "] TCP connection with ", RemoteSocket.ToString(), " closed!");
 
         }
 
