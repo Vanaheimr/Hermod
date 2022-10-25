@@ -496,10 +496,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
-        public static Boolean TryParseI18NString(HTTPRequest HTTPRequest, JObject DescriptionJSON, out I18NString I18N, out HTTPResponse Response)
+        public static Boolean TryParseI18NString(HTTPRequest HTTPRequest, JObject DescriptionJSON, out I18NString? I18N, out HTTPResponse? Response)
         {
 
-            if (DescriptionJSON == null)
+            if (DescriptionJSON is null)
             {
 
                 I18N     = null;
@@ -516,7 +516,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             Languages  Language;
             JValue     Text;
-            I18N      = I18NString.Empty;
+            I18N = I18NString.Empty;
 
             foreach (var Description in DescriptionJSON)
             {
@@ -553,7 +553,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 }
 
-                I18N.Add(Language, Text.Value<String>());
+                I18N.Set(Language, Text.Value<String>());
 
             }
 
