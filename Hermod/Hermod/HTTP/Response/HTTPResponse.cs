@@ -17,9 +17,10 @@
 
 #region Usings
 
-using System;
 using System.Text;
 using System.Collections.Concurrent;
+
+using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -34,13 +35,176 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public static class HTTPResponseExtensions
     {
 
+        #region GetResponseBodyAsUTF8String  (this Request, HTTPContentType)
+
+        public static String GetResponseBodyAsUTF8String(this HTTPResponse  Response,
+                                                         HTTPContentType    HTTPContentType,
+                                                         Boolean            AllowEmptyHTTPBody = false)
+        {
+
+            if (Response.ContentType != HTTPContentType)
+                return "";
+
+            if (!AllowEmptyHTTPBody)
+            {
+
+                if (Response.ContentLength == 0)
+                    return "";
+
+                if (!Response.TryReadHTTPBodyStream())
+                    return "";
+
+                if (Response.HTTPBody == null || Response.HTTPBody.Length == 0)
+                    return "";
+
+            }
+
+            var ResponseBodyString = Response.HTTPBody.ToUTF8String().Trim();
+
+            return ResponseBodyString.IsNullOrEmpty()
+                       ? AllowEmptyHTTPBody
+                             ? ""
+                             : ResponseBodyString
+                       : ResponseBodyString;
+
+        }
+
+        #endregion
+
+
+        #region TryParseJObjectResponseBody   (this Request, out JSON, out HTTPResponse, AllowEmptyHTTPBody = false)
+
+        public static Boolean TryParseJObjectResponseBody(this HTTPResponse  Response,
+                                                          out JObject        JSON,
+                                                          Boolean            AllowEmptyHTTPBody   = false)
+        {
+
+            #region AllowEmptyHTTPBody
+
+            if (Response.ContentLength == 0 && AllowEmptyHTTPBody)
+            {
+                JSON = new JObject();
+                return false;
+            }
+
+            #endregion
+
+            #region Try to parse the JSON
+
+            try
+            {
+
+                JSON = JObject.Parse(Response.GetResponseBodyAsUTF8String(HTTPContentType.JSON_UTF8,
+                                                                          AllowEmptyHTTPBody));
+
+                return true;
+
+            }
+            catch (Exception)
+            {
+                JSON = new JObject();
+                return false;
+            }
+
+            #endregion
+
+        }
+
+        #endregion
+
+        #region TryParseJArrayResponseBody    (this Request, out JSON, out HTTPResponse, AllowEmptyHTTPBody = false)
+
+        public static Boolean TryParseJArrayResponseBody(this HTTPResponse  Response,
+                                                         out JArray         JSON,
+                                                         Boolean            AllowEmptyHTTPBody   = false)
+        {
+
+            #region AllowEmptyHTTPBody
+
+            if (Response.ContentLength == 0 && AllowEmptyHTTPBody)
+            {
+                JSON = new JArray();
+                return true;
+            }
+
+            #endregion
+
+            #region Try to parse the JSON array
+
+            try
+            {
+
+                JSON = JArray.Parse(Response.GetResponseBodyAsUTF8String(HTTPContentType.JSON_UTF8,
+                                                                         AllowEmptyHTTPBody));
+
+                return true;
+
+            }
+            catch (Exception)
+            {
+                JSON = new JArray();
+                return false;
+            }
+
+            #endregion
+
+        }
+
+        #endregion
+
+
+
+        public static Byte[] CreateError(String Text)
+            => (@"{ ""description"": """ + Text + @""" }").ToUTF8Bytes();
+
+
+        public static HTTPResponse.Builder CreateBadRequest(HTTPRequest HTTPRequest, String Context, String ParameterName)
+        {
+
+            return new HTTPResponse.Builder(HTTPRequest) {
+                HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                ContentType     = HTTPContentType.JSON_UTF8,
+                Content         = new JObject(new JProperty("@context",    Context),
+                                              new JProperty("description", "Missing \"" + ParameterName + "\" JSON property!")).ToString().ToUTF8Bytes()
+            };
+
+        }
+
+        public static HTTPResponse.Builder CreateBadRequest(HTTPRequest HTTPRequest, String Context, String ParameterName, String Value)
+        {
+
+            return new HTTPResponse.Builder(HTTPRequest) {
+                HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                ContentType     = HTTPContentType.JSON_UTF8,
+                Content         = new JObject(new JProperty("@context",    Context),
+                                              new JProperty("value",       Value),
+                                              new JProperty("description", "Invalid \"" + ParameterName + "\" property value!")).ToString().ToUTF8Bytes()
+            };
+
+        }
+
+        public static HTTPResponse.Builder CreateNotFound(HTTPRequest HTTPRequest, String Context, String ParameterName, String Value)
+        {
+
+            return new HTTPResponse.Builder(HTTPRequest) {
+                HTTPStatusCode  = HTTPStatusCode.NotFound,
+                ContentType     = HTTPContentType.JSON_UTF8,
+                Content         = new JObject(new JProperty("@context",    Context),
+                                              new JProperty("value",       Value),
+                                              new JProperty("description", "Unknown \"" + ParameterName + "\" property value!")).ToString().ToUTF8Bytes()
+            };
+
+        }
+
+
+
         #region ParseContent      (this Response, ContentParser)
 
         public static HTTPResponse<TResult> ParseContent<TResult>(this HTTPResponse      Response,
                                                                   Func<Byte[], TResult>  ContentParser)
 
-            => new HTTPResponse<TResult>(Response,
-                                         ContentParser(Response.HTTPBody));
+            => new (Response,
+                    ContentParser(Response.HTTPBody));
 
         #endregion
 
@@ -49,8 +213,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPResponse<TResult> ParseContentStream<TResult>(this HTTPResponse      Response,
                                                                         Func<Stream, TResult>  ContentParser)
 
-            => new HTTPResponse<TResult>(Response,
-                                         ContentParser(Response.HTTPBodyStream));
+            => new (Response,
+                    ContentParser(Response.HTTPBodyStream));
 
         #endregion
 

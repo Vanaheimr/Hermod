@@ -18,10 +18,14 @@
 #region Usings
 
 using System.Text;
+using System.Xml.Linq;
 using System.Collections.Concurrent;
 using System.Security.Cryptography.X509Certificates;
 
+using Newtonsoft.Json.Linq;
+
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.MIME;
 
 #endregion
 
@@ -33,6 +37,386 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// </summary>
     public static class HTTPRequestExtensions
     {
+
+        #region GetRequestBodyAsUTF8String   (this Request, ExpectedContentType, AllowEmptyHTTPBody = false)
+
+        /// <summary>
+        /// Return the HTTP request body as an UTF8 string.
+        /// </summary>
+        /// <param name="Request">A HTTP request.</param>
+        /// <param name="ExpectedContentType">The expected HTTP request content type.</param>
+        /// <param name="AllowEmptyHTTPBody">Allow the HTTP request body to be empty!</param>
+        public static HTTPResult<String> GetRequestBodyAsUTF8String(this HTTPRequest  Request,
+                                                                    HTTPContentType   ExpectedContentType,
+                                                                    Boolean           AllowEmptyHTTPBody = false)
+        {
+
+            if (Request.ContentType != ExpectedContentType)
+                return new HTTPResult<String>(Request, HTTPStatusCode.BadRequest);
+
+            if (!AllowEmptyHTTPBody)
+            {
+
+                if (Request.ContentLength == 0)
+                    return new HTTPResult<String>(Request, HTTPStatusCode.BadRequest);
+
+                if (!Request.TryReadHTTPBodyStream())
+                    return new HTTPResult<String>(Request, HTTPStatusCode.BadRequest);
+
+                if (Request.HTTPBody == null || Request.HTTPBody.Length == 0)
+                    return new HTTPResult<String>(Request, HTTPStatusCode.BadRequest);
+
+            }
+
+            var requestBodyString = Request.HTTPBody.ToUTF8String().Trim();
+
+            return requestBodyString.IsNullOrEmpty()
+                       ? AllowEmptyHTTPBody
+                             ? new HTTPResult<String>(Result: "")
+                             : new HTTPResult<String>(Request, HTTPStatusCode.BadRequest)
+                       : new HTTPResult<String>(Result: requestBodyString);
+
+        }
+
+        #endregion
+
+        #region TryParseUTF8StringRequestBody(this Request, ExpectedContentType, out Text, out HTTPResponse, AllowEmptyHTTPBody = false)
+
+        /// <summary>
+        /// Return the HTTP request body as an UTF8 string.
+        /// </summary>
+        /// <param name="Request">A HTTP request.</param>
+        /// <param name="ExpectedContentType">The expected HTTP request content type.</param>
+        /// <param name="Text">The HTTP request body as an UTF8 string.</param>
+        /// <param name="HTTPResponse">An HTTP error response.</param>
+        /// <param name="AllowEmptyHTTPBody">Allow the HTTP request body to be empty!</param>
+        public static Boolean TryParseUTF8StringRequestBody(this HTTPRequest   Request,
+                                                            HTTPContentType    ExpectedContentType,
+                                                            out String?        Text,
+                                                            out HTTPResponse?  HTTPResponse,
+                                                            Boolean            AllowEmptyHTTPBody   = false)
+        {
+
+            #region AllowEmptyHTTPBody
+
+            Text          = null;
+            HTTPResponse  = null;
+
+            if (Request.ContentLength == 0 && AllowEmptyHTTPBody)
+            {
+                HTTPResponse = HTTPResponse.OK(Request);
+                return false;
+            }
+
+            #endregion
+
+            #region Get text body
+
+            var requestBodyString = Request.GetRequestBodyAsUTF8String(ExpectedContentType,
+                                                                       AllowEmptyHTTPBody);
+
+            if (requestBodyString.HasErrors)
+            {
+                HTTPResponse = requestBodyString.Error;
+                return false;
+            }
+
+            #endregion
+
+            Text = requestBodyString.Data;
+
+            return true;
+
+        }
+
+        #endregion
+
+
+        #region TryParseJObjectRequestBody   (this Request, out JSON, out HTTPResponseBuilder, AllowEmptyHTTPBody = false, JSONLDContext = null)
+
+        /// <summary>
+        /// Return the HTTP request body as JSON object.
+        /// </summary>
+        /// <param name="Request">A HTTP request.</param>
+        /// <param name="JSON">The HTTP request body as a JSON object.</param>
+        /// <param name="HTTPResponseBuilder">An HTTP error response builder.</param>
+        /// <param name="AllowEmptyHTTPBody">Allow the HTTP request body to be empty!</param>
+        /// <param name="JSONLDContext">An optional JSON-LD context for HTTP error responses.</param>
+        public static Boolean TryParseJObjectRequestBody(this HTTPRequest           Request,
+                                                         out JObject                JSON,
+                                                         out HTTPResponse.Builder?  HTTPResponseBuilder,
+                                                         Boolean                    AllowEmptyHTTPBody   = false,
+                                                         String?                    JSONLDContext        = null)
+        {
+
+            #region AllowEmptyHTTPBody
+
+            JSON                 = new JObject();
+            HTTPResponseBuilder  = null;
+
+            if (Request.ContentLength == 0 && AllowEmptyHTTPBody)
+            {
+                HTTPResponseBuilder = HTTPResponse.OK(Request);
+                return false;
+            }
+
+            #endregion
+
+            #region Get text body
+
+            var requestBodyString = Request.GetRequestBodyAsUTF8String(HTTPContentType.JSON_UTF8,
+                                                                       AllowEmptyHTTPBody);
+
+            if (requestBodyString.HasErrors)
+            {
+                HTTPResponseBuilder = requestBodyString.Error;
+                return false;
+            }
+
+            #endregion
+
+            #region Try to parse the JSON object
+
+            try
+            {
+
+                JSON = JObject.Parse(requestBodyString.Data);
+
+            }
+            catch (Exception e)
+            {
+
+                HTTPResponseBuilder  = new HTTPResponse.Builder(Request) {
+                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                    ContentType     = HTTPContentType.JSON_UTF8,
+                    Content         = JSONObject.Create(
+                                          JSONLDContext.IsNotNullOrEmpty()
+                                              ? new JProperty("context",  JSONLDContext?.ToString())
+                                              : null,
+                                          new JProperty("description",  "Invalid JSON object in request body!"),
+                                          new JProperty("exception",    e.Message)
+                                      ).ToUTF8Bytes()
+                };
+
+                return false;
+
+            }
+
+            return true;
+
+            #endregion
+
+        }
+
+        #endregion
+
+        #region TryParseJArrayRequestBody    (this Request, out JSON, out HTTPResponseBuilder, AllowEmptyHTTPBody = false, JSONLDContext = null)
+
+        /// <summary>
+        /// Return the HTTP request body as JSON array.
+        /// </summary>
+        /// <param name="Request">A HTTP request.</param>
+        /// <param name="JSON">The HTTP request body as a JSON array.</param>
+        /// <param name="HTTPResponseBuilder">An HTTP error response builder.</param>
+        /// <param name="AllowEmptyHTTPBody">Allow the HTTP request body to be empty!</param>
+        /// <param name="JSONLDContext">An optional JSON-LD context for HTTP error responses.</param>
+        public static Boolean TryParseJArrayRequestBody(this HTTPRequest           Request,
+                                                        out JArray                 JSON,
+                                                        out HTTPResponse.Builder?  HTTPResponseBuilder,
+                                                        Boolean                    AllowEmptyHTTPBody   = false,
+                                                        String?                    JSONLDContext        = null)
+        {
+
+            #region AllowEmptyHTTPBody
+
+            JSON                 = new JArray();
+            HTTPResponseBuilder  = null;
+
+            if (Request.ContentLength == 0 && AllowEmptyHTTPBody)
+            {
+                HTTPResponseBuilder = HTTPResponse.OK(Request);
+                return false;
+            }
+
+            #endregion
+
+            #region Get text body
+
+            var requestBodyString = Request.GetRequestBodyAsUTF8String(HTTPContentType.JSON_UTF8,
+                                                                       AllowEmptyHTTPBody);
+
+            if (requestBodyString.HasErrors)
+            {
+                HTTPResponseBuilder = requestBodyString.Error;
+                return false;
+            }
+
+            #endregion
+
+            #region Try to parse the JSON array
+
+            try
+            {
+
+                JSON = JArray.Parse(requestBodyString.Data);
+
+            }
+            catch (Exception e)
+            {
+
+                HTTPResponseBuilder = new HTTPResponse.Builder(Request) {
+                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                    ContentType     = HTTPContentType.JSON_UTF8,
+                    Content         = JSONObject.Create(
+                                          JSONLDContext.IsNotNullOrEmpty()
+                                              ? new JProperty("context",  JSONLDContext?.ToString())
+                                              : null,
+                                          new JProperty("description",  "Invalid JSON array in request body!"),
+                                          new JProperty("exception",    e.Message)
+                                      ).ToUTF8Bytes()
+                };
+
+                return false;
+
+            }
+
+            return true;
+
+            #endregion
+
+        }
+
+        #endregion
+
+
+        #region ParseXMLRequestBody(this Request, ContentType = null)
+
+        public static HTTPResult<XDocument> ParseXMLRequestBody(this HTTPRequest  Request,
+                                                                HTTPContentType?  ContentType   = null)
+        {
+
+            var requestBodyString = Request.GetRequestBodyAsUTF8String(ContentType ?? HTTPContentType.XMLTEXT_UTF8);
+            if (requestBodyString.HasErrors)
+                return new HTTPResult<XDocument>(requestBodyString.Error);
+
+            try
+            {
+                return new HTTPResult<XDocument>(XDocument.Parse(requestBodyString.Data));
+            }
+            catch (Exception e)
+            {
+                return new HTTPResult<XDocument>(Request, HTTPStatusCode.BadRequest);
+            }
+
+        }
+
+        #endregion
+
+
+        #region TryParseMultipartFormDataRequestBody(this Request, MimeMultipart, Response)
+
+        public static Boolean TryParseMultipartFormDataRequestBody(this HTTPRequest   Request,
+                                                                   out Multipart?     MimeMultipart,
+                                                                   out HTTPResponse?  Response)
+        {
+
+            #region Initial checks
+
+            if (Request.ContentType     != HTTPContentType.MULTIPART_FORMDATA ||
+                Request.ContentLength   == 0                                  ||
+               !Request.TryReadHTTPBodyStream()                               ||
+                Request.HTTPBody        == null                               ||
+                Request.HTTPBody.Length == 0)
+            {
+
+                MimeMultipart  = null;
+                Response       = HTTPResponse.BadRequest(Request);
+
+                return false;
+
+            }
+
+            #endregion
+
+            Response       = null;
+            MimeMultipart  = Multipart.Parse(Request.HTTPBody,
+                                             Request.ContentType.MIMEBoundary);
+
+            return true;
+
+        }
+
+        #endregion
+
+
+        public static Boolean TryParseI18NString(HTTPRequest HTTPRequest, JObject DescriptionJSON, out I18NString? I18N, out HTTPResponse? Response)
+        {
+
+            if (DescriptionJSON is null)
+            {
+
+                I18N     = null;
+
+                Response = new HTTPResponse.Builder(HTTPRequest) {
+                               HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                               ContentType     = HTTPContentType.JSON_UTF8,
+                               Content         = new JObject(new JProperty("description", "Invalid roaming network description!")).ToUTF8Bytes()
+                           }.AsImmutable;
+
+                return false;
+
+            }
+
+            Languages  Language;
+            JValue     Text;
+            I18N = I18NString.Empty;
+
+            foreach (var Description in DescriptionJSON)
+            {
+
+                if (!Enum.TryParse(Description.Key, out Language))
+                {
+
+                    I18N = null;
+
+                    Response = new HTTPResponse.Builder(HTTPRequest) {
+                                   HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                   ContentType     = HTTPContentType.JSON_UTF8,
+                                   Content         = new JObject(new JProperty("description", "Unknown or invalid language definition '" + Description.Key + "'!")).ToUTF8Bytes()
+                               }.AsImmutable;
+
+                    return false;
+
+                }
+
+                Text = Description.Value as JValue;
+
+                if (Text is null)
+                {
+
+                    I18N = null;
+
+                    Response = new HTTPResponse.Builder(HTTPRequest) {
+                                   HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                   ContentType     = HTTPContentType.JSON_UTF8,
+                                   Content         = new JObject(new JProperty("description", "Invalid description text!")).ToUTF8Bytes()
+                               }.AsImmutable;
+
+                    return false;
+
+                }
+
+                I18N.Set(Language, Text.Value<String>());
+
+            }
+
+            Response = null;
+
+            return true;
+
+        }
+
+
 
         #region Reply(this HTTPRequest)
 
