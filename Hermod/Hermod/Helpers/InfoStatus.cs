@@ -64,14 +64,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Parse the given string as an info status.
         /// </summary>
-        /// <param name="Text">A text-representation of an info status.</param>
+        /// <param name="Text">A text representation of an info status.</param>
         public static InfoStatus Parse(String Text)
         {
 
             if (TryParse(Text, out InfoStatus infoStatus))
                 return infoStatus;
 
-            throw new ArgumentException("Invalid text-representation of an info status: '" + Text + "'!",
+            throw new ArgumentException("Invalid text representation of an info status: '" + Text + "'!",
                                         nameof(Text));
 
         }
@@ -83,7 +83,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Parse the given string as an info status.
         /// </summary>
-        /// <param name="Text">A text-representation of an info status.</param>
+        /// <param name="Text">A text representation of an info status.</param>
         public static InfoStatus? TryParse(String Text)
         {
 
@@ -101,7 +101,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Try to parse the given string as an info status.
         /// </summary>
-        /// <param name="Text">A text-representation of an info status.</param>
+        /// <param name="Text">A text representation of an info status.</param>
         /// <param name="ProcessId">The parsed info status.</param>
         public static Boolean TryParse(String Text, out InfoStatus InfoStatus)
         {

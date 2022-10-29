@@ -201,7 +201,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         #region (override) ToString()
 
         /// <summary>
-        /// Return a text-representation of this object.
+        /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
 

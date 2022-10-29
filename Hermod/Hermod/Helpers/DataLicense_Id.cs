@@ -102,14 +102,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Parse the given string as a data license identification.
         /// </summary>
-        /// <param name="Text">A text-representation of a data license identification.</param>
+        /// <param name="Text">A text representation of a data license identification.</param>
         public static DataLicense_Id Parse(String Text)
         {
 
             if (TryParse(Text, out DataLicense_Id dataLicenseId))
                 return dataLicenseId;
 
-            throw new ArgumentException("Invalid text-representation of a data license identification: '" + Text + "'!",
+            throw new ArgumentException("Invalid text representation of a data license identification: '" + Text + "'!",
                                         nameof(Text));
 
         }
@@ -121,7 +121,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Try to parse the given string as a data license identification.
         /// </summary>
-        /// <param name="Text">A text-representation of a data license identification.</param>
+        /// <param name="Text">A text representation of a data license identification.</param>
         public static DataLicense_Id? TryParse(String Text)
         {
 
@@ -139,7 +139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Try to parse the given string as a data license identification.
         /// </summary>
-        /// <param name="Text">A text-representation of a data license identification.</param>
+        /// <param name="Text">A text representation of a data license identification.</param>
         /// <param name="DataLicenseId">The parsed data license identification.</param>
         public static Boolean TryParse(String Text, out DataLicense_Id DataLicenseId)
         {
@@ -351,7 +351,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region (override) ToString()
 
         /// <summary>
-        /// Return a text-representation of this object.
+        /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
 

@@ -815,7 +815,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        // Parse the HTTP response from its text-representation...
+        // Parse the HTTP response from its text representation...
 
         #region (private) HTTPResponse(ResponseHeader, Request, HTTPBody = null, NumberOfRetry = 0)
 
@@ -934,7 +934,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (static) Parse(HTTPResponseHeader, HTTPRequest, HTTPBody = null, NumberOfRetry = 0, )
 
         /// <summary>
-        /// Parse the HTTP response from its text-representation.
+        /// Parse the HTTP response from its text representation.
         /// </summary>
         /// <param name="HTTPResponseHeader">The HTTP header of the response.</param>
         /// <param name="HTTPRequest">The HTTP request leading to this response.</param>
@@ -957,7 +957,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (static) Parse(HTTPResponseHeader, HTTPResponseBody, HTTPRequest)
 
         /// <summary>
-        /// Parse the HTTP response from its text-representation and
+        /// Parse the HTTP response from its text representation and
         /// attach the given HTTP body.
         /// </summary>
         /// <param name="HTTPResponseHeader">The HTTP header of the response.</param>
@@ -974,7 +974,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 SubprotocolResponse);
 
         /// <summary>
-        /// Parse the HTTP response from its text-representation and
+        /// Parse the HTTP response from its text representation and
         /// attach the given HTTP body.
         /// </summary>
         /// <param name="HTTPResponseHeader">The HTTP header of the response.</param>

@@ -116,14 +116,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Parse the given string as an API key identification.
         /// </summary>
-        /// <param name="Text">A text-representation of an API key identification.</param>
+        /// <param name="Text">A text representation of an API key identification.</param>
         public static APIKey_Id Parse(String Text)
         {
 
             if (TryParse(Text, out APIKey_Id apiKeyId))
                 return apiKeyId;
 
-            throw new ArgumentException("Invalid text-representation of an API key identification: '" + Text + "'!",
+            throw new ArgumentException("Invalid text representation of an API key identification: '" + Text + "'!",
                                         nameof(Text));
 
         }
@@ -135,7 +135,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Try to parse the given string as an API key identification.
         /// </summary>
-        /// <param name="Text">A text-representation of an API key identification.</param>
+        /// <param name="Text">A text representation of an API key identification.</param>
         public static APIKey_Id? TryParse(String Text)
         {
 
@@ -153,7 +153,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Try to parse the given string as an API key identification.
         /// </summary>
-        /// <param name="Text">A text-representation of an API key identification.</param>
+        /// <param name="Text">A text representation of an API key identification.</param>
         /// <param name="APIKeyId">The parsed API key identification.</param>
         public static Boolean TryParse(String Text, out APIKey_Id APIKeyId)
         {
@@ -365,7 +365,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (override) ToString()
 
         /// <summary>
-        /// Return a text-representation of this object.
+        /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
 
