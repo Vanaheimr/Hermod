@@ -53,17 +53,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The media main type.
         /// </summary>
-        public String  MediaMainType    { get; }
+        public String   MediaMainType    { get; }
 
         /// <summary>
         /// The media sub type.
         /// </summary>
-        public String  MediaSubType     { get; }
+        public String   MediaSubType     { get; }
 
         /// <summary>
         /// The (optional) character set.
         /// </summary>
-        public String  CharSet          { get; }
+        public String   CharSet          { get; }
 
 
         private readonly String[] fileExtensions;
@@ -77,12 +77,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The (optional) MIME boundary.
         /// </summary>
-        public String  MIMEBoundary     { get; }
+        public String?  MIMEBoundary     { get; }
 
         /// <summary>
         /// The (optional) (SOAP) action.
         /// </summary>
-        public String  Action           { get; }
+        public String?  Action           { get; }
 
 
         #region DebugView
@@ -111,8 +111,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPContentType(String           MediaMainType,
                                String           MediaSubType,
                                String           CharSet,
-                               String           Action,
-                               String           MIMEBoundary,
+                               String?          Action,
+                               String?          MIMEBoundary,
                                params String[]  FileExtensions)
         {
 
@@ -121,7 +121,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.CharSet          = CharSet;
             this.Action           = Action;
             this.MIMEBoundary     = MIMEBoundary;
-            this.fileExtensions  = FileExtensions ?? Array.Empty<String>();
+            this.fileExtensions   = FileExtensions ?? Array.Empty<String>();
 
             if (!_Lookup.ContainsKey(MediaMainType + "/" + MediaSubType))
                 _Lookup.Add(MediaMainType + "/" + MediaSubType, this);

@@ -391,10 +391,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPResponse<TResult> ConvertContent<TResult>(Func<TContent, TResult> ContentConverter)
         {
 
-            if (ContentConverter == null)
+            if (ContentConverter is null)
                 throw new ArgumentNullException(nameof(ContentConverter),  "The given content converter delegate must not be null!");
 
-            return new HTTPResponse<TResult>(this, ContentConverter(this.Content));
+            return new HTTPResponse<TResult>(this,
+                                             ContentConverter(this.Content));
 
         }
 
@@ -410,18 +411,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
         /// <param name="OnException">A delegate to call whenever an exception during the conversion occures.</param>
         public HTTPResponse<TResult> ConvertContent<TResult>(Func<TContent, OnExceptionDelegate, TResult>  ContentConverter,
-                                                             OnExceptionDelegate                           OnException = null)
+                                                             OnExceptionDelegate?                          OnException   = null)
         {
 
-            if (ContentConverter == null)
+            if (ContentConverter is null)
                 throw new ArgumentNullException(nameof(ContentConverter), "The given content converter delegate must not be null!");
 
-            return new HTTPResponse<TResult>(this, ContentConverter(this.Content, OnException));
+            return new HTTPResponse<TResult>(this,
+                                             ContentConverter(this.Content,
+                                                              OnException));
 
         }
 
         #endregion
 
+
+        #region ConvertContent<TRequest, TResult>(Request, ContentConverter)
+
+        /// <summary>
+        /// Convert the content of the HTTP response body via the given
+        /// content converter delegate.
+        /// </summary>
+        /// <typeparam name="TRequest">The type of the converted HTTP request body content.</typeparam>
+        /// <typeparam name="TResult">The type of the converted HTTP response body content.</typeparam>
+        /// <param name="Request">The request leading to this response.</param>
+        /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
+        public HTTPResponse<TResult> ConvertContent<TRequest, TResult>(TRequest                           Request,
+                                                                       Func<TRequest, TContent, TResult>  ContentConverter)
+        {
+
+            if (ContentConverter is null)
+                throw new ArgumentNullException(nameof(ContentConverter), "The given content converter delegate must not be null!");
+
+            return new HTTPResponse<TResult>(this,
+                                             ContentConverter(Request,
+                                                              this.Content));
+
+        }
+
+        #endregion
 
         #region ConvertContent<TRequest, TResult>(Request, ContentConverter, OnException = null)
 
@@ -436,15 +464,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnException">A delegate to call whenever an exception during the conversion occures.</param>
         public HTTPResponse<TResult> ConvertContent<TRequest, TResult>(TRequest                                                Request,
                                                                        Func<TRequest, TContent, OnExceptionDelegate, TResult>  ContentConverter,
-                                                                       OnExceptionDelegate                                     OnException  = null)
+                                                                       OnExceptionDelegate?                                    OnException   = null)
         {
 
-            if (ContentConverter == null)
+            if (ContentConverter is null)
                 throw new ArgumentNullException(nameof(ContentConverter), "The given content converter delegate must not be null!");
 
             return new HTTPResponse<TResult>(this,
                                              ContentConverter(Request,
-                                                              Content,
+                                                              this.Content,
                                                               OnException));
 
         }
@@ -464,10 +492,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnException">A delegate to call whenever an exception during the conversion occures.</param>
         public HTTPResponse<TResult> ConvertContent<TRequest, TResult>(TRequest                                                              Request,
                                                                        Func<TRequest, TContent, HTTPResponse, OnExceptionDelegate, TResult>  ContentConverter,
-                                                                       OnExceptionDelegate                                                   OnException  = null)
+                                                                       OnExceptionDelegate?                                                  OnException   = null)
         {
 
-            if (ContentConverter == null)
+            if (ContentConverter is null)
                 throw new ArgumentNullException(nameof(ContentConverter), "The given content converter delegate must not be null!");
 
             return new HTTPResponse<TResult>(this,
@@ -485,26 +513,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPResponse<TContent> OK(HTTPRequest  HTTPRequest,
                                                 TContent     Content)
 
-            => new HTTPResponse<TContent>(HTTPRequest, Content);
+            => new (HTTPRequest, Content);
 
         public static HTTPResponse<TContent> OK(TContent Content)
 
-            => new HTTPResponse<TContent>(null, Content);
+            => new (null, Content);
 
         public static HTTPResponse<TContent> ClientError(TContent Content)
 
-            => new HTTPResponse<TContent>(null, Content, IsFault: true);
+            => new (null, Content, IsFault: true);
 
         public static HTTPResponse<TContent> ExceptionThrown(TContent   Content,
                                                              Exception  Exception)
 
-            => new HTTPResponse<TContent>(Content, Exception);
+            => new (Content, Exception);
 
 
         #region (static) GatewayTimeout
 
         public static HTTPResponse<TContent> GatewayTimeout(TContent Content)
-            => new HTTPResponse<TContent>(new Builder(null, HTTPStatusCode.GatewayTimeout), Content);
+
+            => new (new Builder(null,
+                                HTTPStatusCode.GatewayTimeout),
+                    Content);
 
         #endregion
 
