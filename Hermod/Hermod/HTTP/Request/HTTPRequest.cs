@@ -2039,7 +2039,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Authorization
 
-            public IHTTPAuthentication Authorization
+            public IHTTPAuthentication? Authorization
             {
 
                 get

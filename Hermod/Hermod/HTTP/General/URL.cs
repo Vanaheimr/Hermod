@@ -115,11 +115,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public URLProtocols  Protocol    { get; }
 
-        public HTTPHostname   Hostname    { get; }
+        public HTTPHostname  Hostname    { get; }
 
-        public IPPort?        Port        { get; }
+        public IPPort?       Port        { get; }
 
-        public HTTPPath       Path        { get; }
+        public HTTPPath      Path        { get; }
 
         #endregion
 
@@ -129,11 +129,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Create a new uniform resource location based on the given string.
         /// </summary>
         /// <param name="String">The string representation of the uniform resource location.</param>
-        private URL(String         String,
+        private URL(String        String,
                     URLProtocols  Protocol,
-                    HTTPHostname   Hostname,
-                    IPPort?        Port,
-                    HTTPPath       Path)
+                    HTTPHostname  Hostname,
+                    IPPort?       Port,
+                    HTTPPath      Path)
         {
 
             this.InternalId  = String;
@@ -159,10 +159,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (TryParse(Text, out URL url))
                 return url;
 
-            if (Text.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(Text), "The given text representation of an uniform resource location must not be null or empty!");
-
-            throw new ArgumentException("The given text representation of an uniform resource location is invalid!", nameof(Text));
+            throw new ArgumentException("The given text representation of an uniform resource location is invalid: " + Text,
+                                        nameof(Text));
 
         }
 
@@ -196,7 +194,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean TryParse(String Text, out URL URL)
         {
 
-            Text  = Text?.Trim();
+            Text  = Text.Trim();
             URL   = default;
 
             if (Text.IsNotNullOrEmpty())
@@ -314,7 +312,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public URL Clone
 
-            => new URL(
+            => new (
                    new String(InternalId?.ToCharArray()),
                    Protocol,
                    Hostname.Clone,
@@ -460,10 +458,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region CompareTo(Object)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two uniform resource locations for equality.
         /// </summary>
-        /// <param name="Object">An object to compare with.</param>
-        public Int32 CompareTo(Object Object)
+        /// <param name="Object">An uniform resource location to compare with.</param>
+        public Int32 CompareTo(Object? Object)
 
             => Object is URL url
                    ? CompareTo(url)
@@ -475,9 +473,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region CompareTo(URL)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two uniform resource locations for equality.
         /// </summary>
-        /// <param name="URL">An object to compare with.</param>
+        /// <param name="URL">An uniform resource location to compare with.</param>
         public Int32 CompareTo(URL URL)
 
             => String.Compare(InternalId,
@@ -493,11 +491,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Equals(Object)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two uniform resource locations for equality.
         /// </summary>
-        /// <param name="Object">An object to compare with.</param>
-        /// <returns>true|false</returns>
-        public override Boolean Equals(Object Object)
+        /// <param name="Object">An uniform resource location to compare with.</param>
+        public override Boolean Equals(Object? Object)
 
             => Object is URL url &&
                    Equals(url);
@@ -510,7 +507,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Compares two uniform resource locations for equality.
         /// </summary>
         /// <param name="URL">An uniform resource location to compare with.</param>
-        /// <returns>True if both match; False otherwise.</returns>
         public Boolean Equals(URL URL)
 
             => String.Equals(InternalId,

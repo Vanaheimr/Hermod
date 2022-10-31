@@ -230,10 +230,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Cache-Control: no-cache</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField CacheControl = new HTTPHeaderField("Cache-Control",
-                                                                                  typeof(String),
-                                                                                  HeaderFieldType.General,
-                                                                                  RequestPathSemantic.HopToHop);
+        public static readonly HTTPHeaderField CacheControl = new ("Cache-Control",
+                                                                   typeof(String),
+                                                                   HeaderFieldType.General,
+                                                                   RequestPathSemantic.HopToHop);
 
         #endregion
 
@@ -250,10 +250,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Connection: close</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField Connection = new HTTPHeaderField("Connection",
-                                                                                typeof(String),
-                                                                                HeaderFieldType.General,
-                                                                                RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField Connection = new ("Connection",
+                                                                 typeof(String),
+                                                                 HeaderFieldType.General,
+                                                                 RequestPathSemantic.EndToEnd);
 
         #endregion
 
@@ -645,12 +645,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// name; however, it will only be useful if both the client and
         /// server associate the name with the same protocol.
         /// </summary>
-        /// <example>Upgrade: HTTP/2.0, SHTTP/1.3, IRC/6.9, RTA/x11</example>
+        /// <example>Upgrade: websocket</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField Upgrade = new HTTPHeaderField("Upgrade",
-                                                                             typeof(String),
-                                                                             HeaderFieldType.General,
-                                                                             RequestPathSemantic.EndToEnd);
+        /// <seealso cref="https://www.rfc-editor.org/rfc/rfc9110.html#name-upgrade"/>
+        public static readonly HTTPHeaderField Upgrade = new ("Upgrade",
+                                                              typeof(String),
+                                                              HeaderFieldType.General,
+                                                              RequestPathSemantic.EndToEnd);
 
         #endregion
 

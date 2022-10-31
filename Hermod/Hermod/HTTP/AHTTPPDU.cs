@@ -17,14 +17,9 @@
 
 #region Usings
 
-using System;
-using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading;
 using System.Collections;
 using System.Net.Sockets;
-using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -187,15 +182,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Cache-Control
 
-        public String CacheControl
+        public String? CacheControl
+
             => GetHeaderField(HTTPHeaderField.CacheControl);
 
         #endregion
 
         #region Connection
 
-        public String Connection
+        public String? Connection
+
             => GetHeaderField(HTTPHeaderField.Connection);
+
+        #endregion
+
+        #region Upgrade
+
+        public String? Upgrade
+
+            => GetHeaderField(HTTPHeaderField.Upgrade);
 
         #endregion
 
