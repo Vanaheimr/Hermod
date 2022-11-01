@@ -60,6 +60,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public TcpClient                TcpClient                  { get; }
 
         /// <summary>
+        /// The network stream of the TCP connection abstraction.
+        /// </summary>
+        public NetworkStream?           TCPStream                  { get; internal set; }
+
+        /// <summary>
         /// The local TCP socket.
         /// </summary>
         public IPSocket                 LocalSocket                { get; }
@@ -95,6 +100,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.CancellationTokenSource  = new CancellationTokenSource();
             this.WebSocketServer          = WebSocketServer;
             this.TcpClient                = TcpClient;
+            this.TCPStream                = TcpClient.GetStream();
             this.LocalSocket              = IPSocket.FromIPEndPoint(TcpClient.Client.LocalEndPoint!);
             this.RemoteSocket             = IPSocket.FromIPEndPoint(TcpClient.Client.RemoteEndPoint!);
             this.Request                  = Request;
@@ -106,6 +112,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         }
 
         #endregion
+
+
+
+
+
+        public void SendWebSocketFrame(WebSocketFrame  webSocketFrame)
+        {
+
+            if (TCPStream is not null)
+            {
+                lock (TCPStream)
+                {
+                    try
+                    {
+                        TCPStream.Write(webSocketFrame.ToByteArray());
+                        TCPStream.Flush();
+                    }
+                    catch (Exception e)
+                    {
+                        DebugX.LogException(e, "Sending a web socket frame in " + nameof(WebSocketServer));
+                    }
+                }
+            }
+
+        }
+
+        //public async Task SendWebSocketFrameAsync(WebSocketFrame  webSocketFrame)
+        //{
+
+        //    if (TCPStream is not null)
+        //    {
+        //        lock (TCPStream)
+        //        {
+        //            try
+        //            {
+        //                await TCPStream.WriteAsync(webSocketFrame.ToByteArray());
+        //                await TCPStream.FlushAsync();
+        //            }
+        //            catch (Exception e)
+        //            {
+        //                DebugX.LogException(e, "Sending a web socket frame in " + nameof(WebSocketServer));
+        //            }
+        //        }
+        //    }
+
+        //}
+
 
 
         #region AddCustomData(Key, Value)

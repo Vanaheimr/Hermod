@@ -25,6 +25,7 @@ using Newtonsoft.Json.Linq;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using System.Drawing.Text;
 
 #endregion
 
@@ -256,7 +257,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                     #endregion
 
-                    Task.Factory.StartNew(async context => {
+                    Task.Factory.StartNew(async context =>
+                    {
 
                         try
                         {
@@ -264,20 +266,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             if (context is WebSocketConnection webSocketConnection)
                             {
 
-                                webSocketConnections.Add(webSocketConnection);
-                                var stream                      = webSocketConnection.TcpClient.GetStream();
-                                stream.ReadTimeout              = 20000;
-                                stream.WriteTimeout             = 1000;
-                                var cts2                        = CancellationTokenSource.CreateLinkedTokenSource(token);
-                                var token2                      = cts2.Token;
-                                Byte[]? bytes                   = null;
-                                Byte[] bytesLeftOver            = Array.Empty<Byte>();
-                                String? httpMethod              = null;
-                                Boolean IsStillHTTP             = true;
-                                var lastWebSocketPingTimestamp  = Timestamp.Now;
-                                var WebSocketPingEvery          = TimeSpan.FromSeconds(20);
+                                if (webSocketConnection.TCPStream is not null) {
+                                    webSocketConnection.TCPStream.ReadTimeout   = 20000; // msec
+                                    webSocketConnection.TCPStream.WriteTimeout  = 3000;  // msec
+                                }
 
-                                HTTPResponse? httpResponse      = null;
+                                lock (webSocketConnections)
+                                {
+                                    try
+                                    {
+                                        webSocketConnections.Add(webSocketConnection);
+                                    }
+                                    catch { }
+                                }
+
+                                Boolean IsStillHTTP              = true;
+                                String? httpMethod               = null;
+                                Byte[]? bytes                    = null;
+                                Byte[]  bytesLeftOver            = Array.Empty<Byte>();
+
+                                var cts2                         = CancellationTokenSource.CreateLinkedTokenSource(token);
+                                var token2                       = cts2.Token;
+                                var lastWebSocketPingTimestamp   = Timestamp.Now;
+                                var WebSocketPingEvery           = TimeSpan.FromSeconds(20);
+
+                                HTTPResponse? httpResponse       = null;
 
                                 #region Send OnNewTCPConnection event
 
@@ -285,7 +298,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 {
 
                                     var OnNewTCPConnectionLocal = OnNewTCPConnection;
-
                                     if (OnNewTCPConnectionLocal is not null)
                                     {
 
@@ -309,40 +321,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                 DebugX.Log("New web socket connection from: " + webSocketConnection.RemoteSocket.IPAddress + ":" + webSocketConnection.RemoteSocket.Port + "...");
 
-                                while (!token2.IsCancellationRequested && stream is not null)
+                                while (!token2.IsCancellationRequested && webSocketConnection.TCPStream is not null)
                                 {
 
                                     if (bytes is null)
                                     {
 
-                                        while (!stream.DataAvailable)
+                                        while (webSocketConnection.TCPStream is not null &&
+                                               webSocketConnection.TCPStream.DataAvailable == false)
                                         {
 
-                                            #region Send a regular web socket Ping
+                                            #region Send a regular web socket "ping"
 
-                                            if (stream is not null &&
-                                                Timestamp.Now > lastWebSocketPingTimestamp + WebSocketPingEvery)
+                                            if (Timestamp.Now > lastWebSocketPingTimestamp + WebSocketPingEvery)
                                             {
 
                                                 var payload = Guid.NewGuid().ToString();
 
-                                                lock (stream)
-                                                {
+                                                webSocketConnection.SendWebSocketFrame(
+                                                                        new WebSocketFrame(
+                                                                            WebSocketFrame.Fin.Final,
+                                                                            WebSocketFrame.MaskStatus.Off,
+                                                                            new Byte[] { 0x00, 0x00, 0x00, 0x00 },
+                                                                            WebSocketFrame.Opcodes.Ping,
+                                                                            payload.ToUTF8Bytes(),
+                                                                            WebSocketFrame.Rsv.Off,
+                                                                            WebSocketFrame.Rsv.Off,
+                                                                            WebSocketFrame.Rsv.Off
+                                                                        )
+                                                                    );
 
-                                                    stream.Write(new WebSocketFrame(
-                                                                     WebSocketFrame.Fin.Final,
-                                                                     WebSocketFrame.MaskStatus.Off,
-                                                                     new Byte[] { 0x00, 0x00, 0x00, 0x00 },
-                                                                     WebSocketFrame.Opcodes.Ping,
-                                                                     payload.ToUTF8Bytes(),
-                                                                     WebSocketFrame.Rsv.Off,
-                                                                     WebSocketFrame.Rsv.Off,
-                                                                     WebSocketFrame.Rsv.Off
-                                                                 ).ToByteArray());
-
-                                                    stream.Flush();
-
-                                                }
+                                                //lock (stream)
+                                                //{
+                                                //
+                                                //    stream.Write(new WebSocketFrame(
+                                                //                     WebSocketFrame.Fin.Final,
+                                                //                     WebSocketFrame.MaskStatus.Off,
+                                                //                     new Byte[] { 0x00, 0x00, 0x00, 0x00 },
+                                                //                     WebSocketFrame.Opcodes.Ping,
+                                                //                     payload.ToUTF8Bytes(),
+                                                //                     WebSocketFrame.Rsv.Off,
+                                                //                     WebSocketFrame.Rsv.Off,
+                                                //                     WebSocketFrame.Rsv.Off
+                                                //                 ).ToByteArray());
+                                                //
+                                                //    stream.Flush();
+                                                //
+                                                //}
 
                                                 DebugX.Log(nameof(WebSocketServer) + ": Ping sent:     '" + payload + "'!");
 
@@ -356,12 +381,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                         };
 
+                                        if (webSocketConnection.TCPStream is null)
+                                            break;
+
                                         bytes = new Byte[bytesLeftOver.Length + webSocketConnection.TcpClient.Available];
 
                                         if (bytesLeftOver.Length > 0)
                                             Array.Copy(bytesLeftOver, 0, bytes, 0, bytesLeftOver.Length);
 
-                                        stream.Read(bytes, bytesLeftOver.Length, bytes.Length);
+                                        webSocketConnection.TCPStream.Read(bytes, bytesLeftOver.Length, bytes.Length);
 
                                         httpMethod = IsStillHTTP
                                             ? Encoding.UTF8.GetString(bytes, 0, 4)
@@ -433,21 +461,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                             // Sec-WebSocket-Accept:    s3pPLMBiTxaQ9kYGzzhZRbK+xOo=
                                             // Sec-WebSocket-Protocol:  ocpp1.6
                                             // Sec-WebSocket-Version:   13
-                                            if (httpResponse is null)
-                                                httpResponse  = new HTTPResponse.Builder(HTTPStatusCode.SwitchingProtocols) {
-                                                                    Server                = HTTPServiceName,
-                                                                    Connection            = "Upgrade",
-                                                                    Upgrade               = "websocket",
-                                                                    SecWebSocketAccept    = swkaSha1Base64,
-                                                                    SecWebSocketProtocol  = "ocpp1.6",
-                                                                    SecWebSocketVersion   = "13"
-                                                                }.AsImmutable;
+                                            httpResponse ??= new HTTPResponse.Builder(HTTPStatusCode.SwitchingProtocols) {
+                                                                 Server                = HTTPServiceName,
+                                                                 Connection            = "Upgrade",
+                                                                 Upgrade               = "websocket",
+                                                                 SecWebSocketAccept    = swkaSha1Base64,
+                                                                 SecWebSocketProtocol  = "ocpp1.6",
+                                                                 SecWebSocketVersion   = "13"
+                                                             }.AsImmutable;
 
                                         }
 
                                         var response = (httpResponse.EntirePDU + "\r\n\r\n").ToUTF8Bytes();
 
-                                        stream.Write(response, 0, response.Length);
+                                        lock (webSocketConnection.TCPStream)
+                                        {
+                                            webSocketConnection.TCPStream.Write(response, 0, response.Length);
+                                        }
 
                                         if (httpRequest is not null)
                                         {
@@ -468,8 +498,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                         if (httpResponse.Connection == "close")
                                         {
-                                            stream.Close();
-                                            stream = null;
+                                            webSocketConnection.TCPStream.Close();
+                                            webSocketConnection.TCPStream = null;
                                         }
                                         else
                                         {
@@ -480,7 +510,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                             {
 
                                                 var OnNewWebSocketConnectionLocal = OnNewWebSocketConnection;
-
                                                 if (OnNewWebSocketConnectionLocal is not null)
                                                 {
 
@@ -865,17 +894,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                         DebugX.Log(nameof(WebSocketServer) + ": Close received!");
 
-                                                        stream.Close();
-                                                        stream = null;
-
-                                                        lock (webSocketConnections)
-                                                        {
-                                                            try
-                                                            {
-                                                                webSocketConnections.Remove(webSocketConnection);
-                                                            }
-                                                            catch { }
-                                                        }
+                                                        webSocketConnection.TCPStream.Close();
+                                                        webSocketConnection.TCPStream = null;
 
                                                         break;
 
@@ -883,17 +903,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 }
 
-                                                if (responseFrame is not null && stream is not null)
+                                                if (responseFrame is not null && webSocketConnection.TCPStream is not null)
                                                 {
 
-                                                    try
-                                                    {
-                                                        stream.Write(responseFrame.ToByteArray());
-                                                    }
-                                                    catch (Exception e)
-                                                    {
-                                                        DebugX.LogException(e, "Processing a web socket frame in " + nameof(WebSocketServer));
-                                                    }
+                                                    webSocketConnection.SendWebSocketFrame(responseFrame);
 
                                                     #region OnMessageResponse
 
@@ -958,6 +971,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 }
 
                                 DebugX.Log(nameof(WebSocketServer), " Connection closed!");
+
+                                lock (webSocketConnections)
+                                {
+                                    try
+                                    {
+                                        webSocketConnections.Remove(webSocketConnection);
+                                    }
+                                    catch { }
+                                }
 
                             }
                             else
