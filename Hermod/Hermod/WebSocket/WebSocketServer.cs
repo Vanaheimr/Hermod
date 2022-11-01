@@ -236,7 +236,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 tcpListener.Start();
 
-                DebugX.Log("WebSocket server has started on " + IPSocket.IPAddress + ":" + IPSocket.Port + "...");
+                DebugX.Log("Web socket server has started on " + IPSocket.IPAddress + ":" + IPSocket.Port + "...");
 
                 isRunning = true;
 
@@ -326,16 +326,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 var payload = Guid.NewGuid().ToString();
 
-                                                stream.Write(new WebSocketFrame(WebSocketFrame.Fin.Final,
-                                                                                WebSocketFrame.MaskStatus.Off,
-                                                                                new Byte[] { 0x00, 0x00, 0x00, 0x00 },
-                                                                                WebSocketFrame.Opcodes.Ping,
-                                                                                payload.ToUTF8Bytes(),
-                                                                                WebSocketFrame.Rsv.Off,
-                                                                                WebSocketFrame.Rsv.Off,
-                                                                                WebSocketFrame.Rsv.Off).ToByteArray());
+                                                lock (stream)
+                                                {
 
-                                                stream.Flush();
+                                                    stream.Write(new WebSocketFrame(
+                                                                     WebSocketFrame.Fin.Final,
+                                                                     WebSocketFrame.MaskStatus.Off,
+                                                                     new Byte[] { 0x00, 0x00, 0x00, 0x00 },
+                                                                     WebSocketFrame.Opcodes.Ping,
+                                                                     payload.ToUTF8Bytes(),
+                                                                     WebSocketFrame.Rsv.Off,
+                                                                     WebSocketFrame.Rsv.Off,
+                                                                     WebSocketFrame.Rsv.Off
+                                                                 ).ToByteArray());
+
+                                                    stream.Flush();
+
+                                                }
 
                                                 DebugX.Log(nameof(WebSocketServer) + ": Ping sent:     '" + payload + "'!");
 
@@ -941,7 +948,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                         else
                                         {
                                             bytesLeftOver = bytes;
-                                            DebugX.Log("Could not parse the given websocket frame: " + errorResponse);
+                                            DebugX.Log("Could not parse the given web socket frame: " + errorResponse);
                                         }
 
                                     }
