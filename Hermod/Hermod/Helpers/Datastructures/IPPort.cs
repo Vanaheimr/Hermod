@@ -15,12 +15,6 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using System;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
@@ -35,11 +29,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region Data
 
         private readonly UInt16 InternalId;
-
-        /// <summary>
-        /// Private non-cryptographic random number generator.
-        /// </summary>
-        private static readonly Random _random = new Random();
 
         #endregion
 
@@ -62,44 +51,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// SSH.
         /// </summary>
-        public static readonly IPPort SSH       = new IPPort(22);
+        public static readonly IPPort SSH      = new (22);
 
         /// <summary>
         /// TELNET.
         /// </summary>
-        public static readonly IPPort TELNET    = new IPPort(23);
+        public static readonly IPPort TELNET   = new (23);
 
         /// <summary>
         /// SMTP.
         /// </summary>
-        public static readonly IPPort SMTP      = new IPPort(25);
+        public static readonly IPPort SMTP     = new (25);
 
         /// <summary>
         /// DNS.
         /// </summary>
-        public static readonly IPPort DNS       = new IPPort(53);
+        public static readonly IPPort DNS      = new (53);
 
         /// <summary>
         /// HTTP.
         /// </summary>
-        public static readonly IPPort HTTP      = new IPPort(80);
+        public static readonly IPPort HTTP     = new (80);
 
         /// <summary>
         /// HTTPS.
         /// </summary>
-        public static readonly IPPort HTTPS     = new IPPort(443);
+        public static readonly IPPort HTTPS    = new (443);
 
         #endregion
 
 
-        #region (static) Random
+        #region (static) NewRandom
 
         /// <summary>
         /// Create a new random Internet Protocol Layer 4 Port.
         /// </summary>
-        public static IPPort Random
+        public static IPPort NewRandom
 
-            => new IPPort((UInt16) _random.Next(UInt16.MaxValue));
+#pragma warning disable SCS0005 // Weak random number generator.
+            => new ((UInt16) Random.Shared.Next(UInt16.MaxValue));
+#pragma warning restore SCS0005 // Weak random number generator.
 
         #endregion
 
@@ -110,7 +101,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         /// <param name="Number">A numeric representation of an IP port to parse.</param>
         public static IPPort Parse(UInt16 Number)
-            => new IPPort(Number);
+
+            => new (Number);
 
 
         /// <summary>
@@ -118,7 +110,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         /// <param name="Number">A numeric representation of an IP port to parse.</param>
         public static IPPort Parse(Int32 Number)
-            => new IPPort((UInt16) Number);
+
+            => new ((UInt16) Number);
 
         #endregion
 
@@ -131,10 +124,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static IPPort? TryParse(UInt16 Number)
         {
 
-            if (TryParse(Number, out IPPort Port))
-                return Port;
+            if (TryParse(Number, out var port))
+                return port;
 
-            return new IPPort?();
+            return default;
 
         }
 
@@ -145,10 +138,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static IPPort? TryParse(Int32 Number)
         {
 
-            if (TryParse(Number, out IPPort Port))
-                return Port;
+            if (TryParse(Number, out var port))
+                return port;
 
-            return new IPPort?();
+            return default;
 
         }
 
@@ -178,14 +171,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             try
             {
                 IPPort = new IPPort((UInt16) Number);
+                return true;
             }
             catch (Exception)
             {
-                IPPort = default(IPPort);
+                IPPort = default;
                 return false;
             }
-
-            return true;
 
         }
 
@@ -197,10 +189,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Parse the given text representation of an IP port.
         /// </summary>
-        /// <param name="String">A text representation of an IP port to parse.</param>
+        /// <param name="String">A text representation of an IP port.</param>
         public static IPPort Parse(String String)
 
-            => new IPPort(UInt16.Parse(String));
+            => new (UInt16.Parse(String));
 
         #endregion
 
@@ -209,14 +201,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Try to parse the given text representation of an IP port.
         /// </summary>
-        /// <param name="String">A text representation of an IP port to parse.</param>
+        /// <param name="String">A text representation of an IP port.</param>
         public static IPPort? TryParse(String String)
         {
 
-            if (TryParse(String, out IPPort Port))
-                return Port;
+            if (TryParse(String, out var port))
+                return port;
 
-            return new IPPort?();
+            return default;
 
         }
 
@@ -227,18 +219,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Try to parse the given text representation of an IP port.
         /// </summary>
-        /// <param name="String">A text representation of an IP port to parse.</param>
+        /// <param name="String">A text representation of an IP port.</param>
         /// <param name="IPPort">The parsed IP port.</param>
         public static Boolean TryParse(String String, out IPPort IPPort)
         {
 
-            if (UInt16.TryParse(String, out UInt16 Port))
+            if (UInt16.TryParse(String, out var port))
             {
-                IPPort = new IPPort(Port);
+                IPPort = new IPPort(port);
                 return true;
             }
 
-            IPPort = default(IPPort);
+            IPPort = default;
             return false;
 
         }
@@ -252,7 +244,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public IPPort Clone
 
-            => new IPPort(InternalId);
+            => new (InternalId);
 
         #endregion
 
@@ -288,20 +280,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IPPort1">An IP port.</param>
         /// <param name="IPPort2">Another IP port.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (IPPort IPPort1, IPPort IPPort2)
-        {
+        public static Boolean operator == (IPPort IPPort1,
+                                           IPPort IPPort2)
 
-            // If both are null, or both are same instance, return true.
-            if (Object.ReferenceEquals(IPPort1, IPPort2))
-                return true;
-
-            // If one is null, but not both, return false.
-            if (((Object) IPPort1 == null) || ((Object) IPPort2 == null))
-                return false;
-
-            return IPPort1.Equals(IPPort2);
-
-        }
+            => IPPort1.Equals(IPPort2);
 
         #endregion
 
@@ -313,8 +295,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IPPort1">An IP port.</param>
         /// <param name="IPPort2">Another IP port.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator != (IPPort IPPort1, IPPort IPPort2)
-            => !(IPPort1 == IPPort2);
+        public static Boolean operator != (IPPort IPPort1,
+                                           IPPort IPPort2)
+
+            => !IPPort1.Equals(IPPort2);
 
         #endregion
 
@@ -326,41 +310,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IPPort1">An IP port.</param>
         /// <param name="IPPort2">Another IP port.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator < (IPPort IPPort1, IPPort IPPort2)
-        {
+        public static Boolean operator < (IPPort IPPort1,
+                                          IPPort IPPort2)
 
-            if ((Object) IPPort1 == null)
-                throw new ArgumentNullException("Parameter IPPort1 must not be null!");
-
-            if ((Object) IPPort2 == null)
-                throw new ArgumentNullException("Parameter IPPort2 must not be null!");
-
-            return IPPort1.CompareTo(IPPort2) < 0;
-
-        }
-
-        #endregion
-
-        #region Operator >  (IPPort1, IPPort2)
-
-        /// <summary>
-        /// Compares two instances of this object.
-        /// </summary>
-        /// <param name="IPPort1">An IP port.</param>
-        /// <param name="IPPort2">Another IP port.</param>
-        /// <returns>true|false</returns>
-        public static Boolean operator > (IPPort IPPort1, IPPort IPPort2)
-        {
-
-            if ((Object) IPPort1 == null)
-                throw new ArgumentNullException("Parameter IPPort1 must not be null!");
-
-            if ((Object) IPPort2 == null)
-                throw new ArgumentNullException("Parameter IPPort2 must not be null!");
-
-            return IPPort1.CompareTo(IPPort2) > 0;
-
-        }
+            => IPPort1.CompareTo(IPPort2) < 0;
 
         #endregion
 
@@ -372,8 +325,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IPPort1">An IP port.</param>
         /// <param name="IPPort2">Another IP port.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator <= (IPPort IPPort1, IPPort IPPort2)
-            => !(IPPort1 > IPPort2);
+        public static Boolean operator <= (IPPort IPPort1,
+                                           IPPort IPPort2)
+
+            => IPPort1.CompareTo(IPPort2) <= 0;
+
+        #endregion
+
+        #region Operator >  (IPPort1, IPPort2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="IPPort1">An IP port.</param>
+        /// <param name="IPPort2">Another IP port.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator > (IPPort IPPort1,
+                                          IPPort IPPort2)
+
+            => IPPort1.CompareTo(IPPort2) > 0;
 
         #endregion
 
@@ -385,8 +355,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IPPort1">An IP port.</param>
         /// <param name="IPPort2">Another IP port.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator >= (IPPort IPPort1, IPPort IPPort2)
-            => !(IPPort1 < IPPort2);
+        public static Boolean operator >= (IPPort IPPort1,
+                                           IPPort IPPort2)
+
+            => IPPort1.CompareTo(IPPort2) >= 0;
 
         #endregion
 
@@ -397,41 +369,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region CompareTo(Object)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two IP ports.
         /// </summary>
-        /// <param name="Object">An object to compare with.</param>
-        /// <returns>true|false</returns>
-        public Int32 CompareTo(Object Object)
-        {
+        /// <param name="Object">An IP port to compare with.</param>
+        public Int32 CompareTo(Object? Object)
 
-            if (Object == null)
-                throw new ArgumentNullException("The given Object must not be null!");
-
-            if (!(Object is IPPort))
-                throw new ArgumentException("The given Object is an IP port!");
-
-            return CompareTo((IPPort) Object);
-
-        }
+            => Object is IPPort ipPort
+                   ? CompareTo(ipPort)
+                   : throw new ArgumentException("The given object is not an ip port!",
+                                                 nameof(Object));
 
         #endregion
 
         #region CompareTo(IPPort)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two IP ports.
         /// </summary>
-        /// <param name="IPPort">An object to compare with.</param>
-        /// <returns>true|false</returns>
+        /// <param name="IPPort">An IP port to compare with.</param>
         public Int32 CompareTo(IPPort IPPort)
-        {
 
-            if ((Object) IPPort == null)
-                throw new ArgumentNullException("The given IP port must not be null!");
-
-            return IPPort.InternalId.CompareTo(IPPort.InternalId);
-
-        }
+            => InternalId.CompareTo(IPPort.InternalId);
 
         #endregion
 
@@ -442,41 +400,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region Equals(Object)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two IP ports for equality.
         /// </summary>
-        /// <param name="Object">An object to compare with.</param>
-        /// <returns>true|false</returns>
-        public override Boolean Equals(Object Object)
-        {
+        /// <param name="Object">An IP port to compare with.</param>
+        public override Boolean Equals(Object? Object)
 
-            if (Object == null)
-                throw new ArgumentNullException("The given Object must not be null!");
-
-            if (!(Object is IPPort))
-                throw new ArgumentException("The given Object is not an IP port!");
-
-            return Equals((IPPort) Object);
-
-        }
+            => Object is IPPort ipPort &&
+                   Equals(ipPort);
 
         #endregion
 
         #region Equals(IPPort)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two IP ports for equality.
         /// </summary>
-        /// <param name="IPPort">An object to compare with.</param>
-        /// <returns>true|false</returns>
+        /// <param name="IPPort">An IP port to compare with.</param>
         public Boolean Equals(IPPort IPPort)
-        {
 
-            if ((Object) IPPort == null)
-                throw new ArgumentNullException("The given IPPort must not be null!");
-
-            return InternalId.Equals(IPPort.InternalId);
-
-        }
+            => InternalId.Equals(IPPort.InternalId);
 
         #endregion
 
@@ -489,6 +431,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
+
             => InternalId;
 
         #endregion
@@ -500,6 +443,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         /// <returns>A string representation of this object.</returns>
         public override String ToString()
+
             => InternalId.ToString();
 
         #endregion

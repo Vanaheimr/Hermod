@@ -17,43 +17,63 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using org.GraphDefined.Vanaheimr.Illias;
-using System;
 using System.Text.RegularExpressions;
+
+using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
+    /// <summary>
+    /// An IP address (IPv4 or IPv6).
+    /// </summary>
     public static class IPAddress
     {
 
-        //ToDo: Better do this by hand!
-        public static Regex IPv4AddressRegExpr = new Regex(@"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b");
+        #region Data
 
         //ToDo: Better do this by hand!
-        public static Regex IPv6AddressRegExpr = new Regex(@"(([a-f0-9:]+:+)+[a-f0-9]+)");
+        public static readonly Regex IPv4AddressRegExpr = new (@"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b");
+
+        //ToDo: Better do this by hand!
+        public static readonly Regex IPv6AddressRegExpr = new (@"(([a-f0-9:]+:+)+[a-f0-9]+)");
+
+        #endregion
 
 
+        #region (static) Parse   (Text)
+
+        /// <summary>
+        /// Parse the given string as an IP address.
+        /// </summary>
+        /// <param name="Text">A text representation of an IP address.</param>
         public static IIPAddress Parse(String Text)
         {
 
-            if (TryParse(Text, out IIPAddress ipAddress))
-                return ipAddress;
+            if (TryParse(Text, out var ipAddress))
+                return ipAddress!;
 
-            if (Text.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(Text), "The given IP address must not be null or empty!");
-
-            return null;
+            throw new ArgumentException("Invalid text representation of an IP address: '" + Text + "'!",
+                                        nameof(Text));
 
         }
 
-        public static Boolean TryParse(String Text, out IIPAddress IPAddress)
+        #endregion
+
+        #region (static) TryParse(Text, out IPAddress)
+
+        /// <summary>
+        /// Try to parse the given text as an IP address.
+        /// </summary>
+        /// <param name="Text">A text representation of an IP address.</param>
+        /// <param name="IPAddress">The parsed IP address.</param>
+        public static Boolean TryParse(String Text, out IIPAddress? IPAddress)
         {
 
-            Text = Text?.Trim();
+            Text = Text.Trim();
 
             if (Text.IsNotNullOrEmpty())
             {
@@ -77,9 +97,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         }
 
+        #endregion
+
+
+
+
         public static Boolean IsIPv4(String IPAddress)
             => IPAddress.IsNotNullOrEmpty() &&
-               IPv4AddressRegExpr.IsMatch(IPAddress?.Trim());
+               IPv4AddressRegExpr.IsMatch(IPAddress.Trim());
 
         public static Boolean IsIPv4(HTTPHostname Hostname)
             => Hostname.IsNotNullOrEmpty &&
@@ -87,11 +112,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public static Boolean IsIPv6(String IPAddress)
             => IPAddress.IsNotNullOrEmpty() &&
-               IPv6AddressRegExpr.IsMatch(IPAddress?.Trim());
+               IPv6AddressRegExpr.IsMatch(IPAddress.Trim());
 
         public static Boolean IsIPv6(HTTPHostname Hostname)
             => Hostname.IsNotNullOrEmpty &&
                IPv6AddressRegExpr.IsMatch(Hostname.ToString());
+
 
         public static Boolean IsLocalhost(String Text)
             => IsIPv4Localhost(Text) || IsIPv6Localhost(Text);

@@ -17,9 +17,6 @@
 
 #region Usings
 
-using System;
-using System.IO;
-
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
@@ -37,27 +34,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Data
 
-        private static readonly  Char[] Splitter = new Char[1] { '.' };
+        private const            Byte    length = 4;
 
-        private readonly         Byte[] IPAddressArray;
+        private static readonly  Char[]  splitter = new Char[1] { '.' };
+
+        private readonly         Byte[]  ipAddressArray;
 
         #endregion
 
         #region Properties
 
-        #region Length
-
-        private const Byte _Length = 4;
-
         /// <summary>
-        /// The length of an IPv4Address.
+        /// The length of an IPv4 address.
         /// </summary>
         public Byte Length
-            => _Length;
-
-        #endregion
-
-        #region IsMulticast
+            => length;
 
         /// <summary>
         /// Whether the IP address is an IPv4 multicast address.
@@ -65,9 +56,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public Boolean IsMulticast
 
-            => IPAddressArray[0] >= 224 && IPAddressArray[0] <= 239;
-
-        #endregion
+            => ipAddressArray[0] >= 224 && ipAddressArray[0] <= 239;
 
         public Boolean IsIPv4
             => true;
@@ -76,13 +65,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             => false;
 
         public Boolean IsLocalhost
-            => IPAddressArray[0] == 127 &&
-               IPAddressArray[1] ==   0 &&
-               IPAddressArray[2] ==   0 &&
-               IPAddressArray[3] ==   1;
+
+            => ipAddressArray[0] == 127 &&
+               ipAddressArray[1] ==   0 &&
+               ipAddressArray[2] ==   0 &&
+               ipAddressArray[3] ==   1;
 
         public Boolean IsLocalNet
-            => IPAddressArray[0] == 127;
+
+            => ipAddressArray[0] == 127;
 
         #endregion
 
@@ -91,7 +82,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region IPv4Address(IPAddress)
 
         /// <summary>
-        /// Generates a new IPv4Address based on the given System.Net.IPAddress.
+        /// Create a new IPv4 address based on the given System.Net.IPAddress.
         /// </summary>
         public IPv4Address(System.Net.IPAddress IPAddress)
             : this(IPAddress.GetAddressBytes())
@@ -102,12 +93,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region IPv4Address(Int32)
 
         /// <summary>
-        /// Generates a new IPv4Address based on the given Int32 representation.
+        /// Create a new IPv4 address based on the given Int32 representation.
         /// </summary>
         public IPv4Address(Int32 Int32)
         {
 
-            IPAddressArray = new Byte[] {
+            ipAddressArray = new Byte[] {
                                      (Byte) ( Int32        & 0xFF),
                                      (Byte) ((Int32 >>  8) & 0xFF),
                                      (Byte) ((Int32 >> 16) & 0xFF),
@@ -121,12 +112,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region IPv4Address(UInt32)
 
         /// <summary>
-        /// Generates a new IPv4Address based on the given UInt32 representation.
+        /// Create a new IPv4 address based on the given UInt32 representation.
         /// </summary>
         public IPv4Address(UInt32 UInt32)
         {
 
-            IPAddressArray = new Byte[] {
+            ipAddressArray = new Byte[] {
                                      (Byte) ( UInt32        & 0xFF),
                                      (Byte) ((UInt32 >>  8) & 0xFF),
                                      (Byte) ((UInt32 >> 16) & 0xFF),
@@ -140,12 +131,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region IPv4Address(Byte1, Byte2, Byte3, Byte4)
 
         /// <summary>
-        /// Generates a new IPv4Address based on the given bytes.
+        /// Create a new IPv4 address based on the given bytes.
         /// </summary>
         public IPv4Address(Byte Byte1, Byte Byte2, Byte Byte3, Byte Byte4)
         {
 
-            IPAddressArray = new Byte[] {
+            ipAddressArray = new Byte[] {
                                  Byte1,
                                  Byte2,
                                  Byte3,
@@ -159,17 +150,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region IPv4Address(ByteArray)
 
         /// <summary>
-        /// Generates a new IPv4Address based on the given byte array representation.
+        /// Create a new IPv4 address based on the given byte array representation.
         /// </summary>
         public IPv4Address(Byte[] ByteArray)
         {
 
-            if (ByteArray.Length != _Length)
+            if (ByteArray.Length != length)
                 throw new FormatException("The given byte array length is invalid!");
 
-            IPAddressArray = new Byte[_Length];
+            ipAddressArray = new Byte[length];
 
-            Array.Copy(ByteArray, IPAddressArray, _Length);
+            Array.Copy(ByteArray, ipAddressArray, length);
 
         }
 
@@ -186,8 +177,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (!Stream.CanRead)
                 throw new FormatException("The given stream is invalid!");
 
-            IPAddressArray = new Byte[_Length];
-            Stream.Read(IPAddressArray, 0, _Length);
+            ipAddressArray = new Byte[length];
+            Stream.Read(ipAddressArray, 0, length);
 
         }
 
@@ -196,22 +187,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region IPv4Address(String)
 
         /// <summary>
-        /// Generates a new IPv4Address based on the given string representation.
+        /// Create a new IPv4 address based on the given string representation.
         /// </summary>
         public IPv4Address(String IPv4AddressString)
         {
 
-            var splitted = IPv4AddressString.Split(Splitter, StringSplitOptions.None);
+            var splitted = IPv4AddressString.Split(splitter, StringSplitOptions.None);
 
-            if (splitted.Length != _Length)
+            if (splitted.Length != length)
                 throw new ArgumentException("Invalid IPv4 address!");
 
-            IPAddressArray = new Byte[_Length];
+            ipAddressArray = new Byte[length];
 
-            for (var i=0; i<_Length; i++)
+            for (var i=0; i<length; i++)
             {
                 if (Byte.TryParse(splitted[i], out Byte byteValue))
-                    IPAddressArray[i] = byteValue;
+                    ipAddressArray[i] = byteValue;
             }
 
         }
@@ -221,7 +212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        #region IPv4Address.Any / 0.0.0.0
+        #region IPv4Address.Any       / 0.0.0.0
 
         /// <summary>
         /// The IPv4.Any / 0.0.0.0 address.
@@ -229,7 +220,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static IPv4Address Any
 
             => new IPv4Address(
-                   new Byte[_Length]
+                   new Byte[length]
                );
 
         #endregion
@@ -270,11 +261,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public Byte[] GetBytes()
         {
 
-            var result = new Byte[_Length];
+            var result = new Byte[length];
 
-            Array.Copy(IPAddressArray,
+            Array.Copy(ipAddressArray,
                        result,
-                       _Length);
+                       length);
 
             return result;
 
@@ -282,63 +273,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region Parse   (IPv4AddressString)
+        #region Parse   (Text)
 
         /// <summary>
-        /// Parsed the given string representation into a new IPv4Address.
+        /// Parse the given string as an IPv4 address.
         /// </summary>
-        /// <param name="IPv4AddressString">An IPv4Address string representation.</param>
-        public static IPv4Address Parse(String IPv4AddressString)
+        /// <param name="Text">A text representation of an IPv4 address.</param>
+        public static IPv4Address Parse(String Text)
         {
 
-            if (TryParse(IPv4AddressString, out IPv4Address IPAddress))
-                return IPAddress;
+            if (TryParse(Text, out var ipv4Address))
+                return ipv4Address;
 
-            throw new ArgumentException("The given string '" + IPv4AddressString + "' is not a valid IPv4Address!", nameof(IPv4AddressString));
-
-        }
-
-        /// <summary>
-        /// Parsed the given string representation into a new IPv4Address.
-        /// </summary>
-        /// <param name="IPv4AddressString">An IPv4Address string representation.</param>
-        public static IPv4Address Parse(HTTPHostname IPv4AddressString)
-        {
-
-            if (TryParse(IPv4AddressString, out IPv4Address IPAddress))
-                return IPAddress;
-
-            throw new ArgumentException("The given string '" + IPv4AddressString + "' is not a valid IPv4Address!", nameof(IPv4AddressString));
+            throw new ArgumentException("Invalid text representation of an IPv4 address: '" + Text + "'!",
+                                        nameof(Text));
 
         }
 
         #endregion
 
-        #region TryParse(IPv4AddressString)
+        #region Parse   (Hostname)
 
         /// <summary>
-        /// Parsed the given string representation into a new IPv4Address.
+        /// Parsed the given HTTP hostname as an IPv4 address.
         /// </summary>
-        /// <param name="IPv4AddressString">An IPv4Address string representation.</param>
-        public static IPv4Address? TryParse(String IPv4AddressString)
+        /// <param name="Hostname">A HTTP hostname.</param>
+        public static IPv4Address Parse(HTTPHostname Hostname)
         {
 
-            if (TryParse(IPv4AddressString, out IPv4Address IPAddress))
-                return IPAddress;
+            if (TryParse(Hostname, out var ipv4Address))
+                return ipv4Address;
 
-            return default;
+            throw new ArgumentException("Invalid text representation of an IPv4 address: '" + Hostname + "'!",
+                                        nameof(Hostname));
 
         }
 
+        #endregion
+
+        #region TryParse(Text)
+
         /// <summary>
-        /// Parsed the given string representation into a new IPv4Address.
+        /// Try to parse the given text as an IPv4 address.
         /// </summary>
-        /// <param name="IPv4AddressString">An IPv4Address string representation.</param>
-        public static IPv4Address? TryParse(HTTPHostname IPv4AddressString)
+        /// <param name="Text">A text representation of an IPv4 address.</param>
+        public static IPv4Address? TryParse(String Text)
         {
 
-            if (TryParse(IPv4AddressString, out IPv4Address IPAddress))
-                return IPAddress;
+            if (TryParse(Text, out var ipv4Address))
+                return ipv4Address;
 
             return default;
 
@@ -346,35 +329,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region TryParse(IPv4AddressString, out IPv4Address)
+        #region TryParse(Hostname)
 
         /// <summary>
-        /// Parsed the given string representation into a new IPv4Address.
+        /// Try to parse the given text as an IPv4 address.
         /// </summary>
-        /// <param name="IPv4AddressString">An IPv4Address string representation.</param>
+        /// <param name="Hostname">A text representation of an IPv4 address.</param>
+        public static IPv4Address? TryParse(HTTPHostname Hostname)
+        {
+
+            if (TryParse(Hostname, out var ipv4Address))
+                return ipv4Address;
+
+            return default;
+
+        }
+
+        #endregion
+
+        #region TryParse(Text,     out IPv4Address)
+
+        /// <summary>
+        /// Try to parse the given text as an IPv4 address.
+        /// </summary>
+        /// <param name="Text">A text representation of an IPv4 address.</param>
         /// <param name="IPv4Address">The parsed IPv4 address.</param>
-        public static Boolean TryParse(String IPv4AddressString, out IPv4Address IPv4Address)
+        public static Boolean TryParse(String Text, out IPv4Address IPv4Address)
         {
 
             IPv4Address  = default;
 
-            var Elements = IPv4AddressString.Split(Splitter, _Length, StringSplitOptions.None);
+            var elements = Text.Split(splitter, length, StringSplitOptions.None);
 
-            if (Elements.Length != _Length)
+            if (elements.Length != length)
                 return false;
 
-            var ipv4AddressArray = new Byte[_Length];
+            var ipv4AddressArray = new Byte[length];
 
-            if (!Byte.TryParse(Elements[0], out ipv4AddressArray[0]))
+            if (!Byte.TryParse(elements[0], out ipv4AddressArray[0]))
                 return false;
 
-            if (!Byte.TryParse(Elements[1], out ipv4AddressArray[1]))
+            if (!Byte.TryParse(elements[1], out ipv4AddressArray[1]))
                 return false;
 
-            if (!Byte.TryParse(Elements[2], out ipv4AddressArray[2]))
+            if (!Byte.TryParse(elements[2], out ipv4AddressArray[2]))
                 return false;
 
-            if (!Byte.TryParse(Elements[3], out ipv4AddressArray[3]))
+            if (!Byte.TryParse(elements[3], out ipv4AddressArray[3]))
                 return false;
 
             IPv4Address = new IPv4Address(ipv4AddressArray);
@@ -383,14 +384,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         }
 
-        /// <summary>
-        /// Parsed the given string representation into a new IPv4Address.
-        /// </summary>
-        /// <param name="IPv4AddressString">An IPv4Address string representation.</param>
-        /// <param name="IPv4Address">The parsed IPv4 address.</param>
-        public static Boolean TryParse(HTTPHostname IPv4AddressString, out IPv4Address IPv4Address)
+        #endregion
 
-            => TryParse(IPv4AddressString.Name, out IPv4Address);
+        #region TryParse(Hostname, out IPv4Address)
+
+        /// <summary>
+        /// Try to parse the given HTTP hostname as an IPv4 address.
+        /// </summary>
+        /// <param name="Hostname">A HTTP hostname.</param>
+        /// <param name="IPv4Address">The parsed IPv4 address.</param>
+        public static Boolean TryParse(HTTPHostname Hostname, out IPv4Address IPv4Address)
+
+            => TryParse(Hostname.Name, out IPv4Address);
 
         #endregion
 
@@ -403,7 +408,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IPv4Address">The IPv4 address.</param>
         public static implicit operator System.Net.IPAddress(IPv4Address IPv4Address)
 
-            => new System.Net.IPAddress(IPv4Address.GetBytes());
+            => new (IPv4Address.GetBytes());
 
         #endregion
 
@@ -418,7 +423,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IPv4Address1">A IPv4Address.</param>
         /// <param name="IPv4Address2">Another IPv4Address.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (IPv4Address IPv4Address1, IPv4Address IPv4Address2)
+        public static Boolean operator == (IPv4Address IPv4Address1,
+                                           IPv4Address IPv4Address2)
+
             => IPv4Address1.Equals(IPv4Address2);
 
         #endregion
@@ -431,25 +438,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IPv4Address1">A IPv4Address.</param>
         /// <param name="IPv4Address2">Another IPv4Address.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator != (IPv4Address IPv4Address1, IPv4Address IPv4Address2)
+        public static Boolean operator != (IPv4Address IPv4Address1,
+                                           IPv4Address IPv4Address2)
+
             => !IPv4Address1.Equals(IPv4Address2);
 
         #endregion
 
         #endregion
 
-        #region IComparable Members
+        #region IComparable<IPv4Address> Members
 
         #region CompareTo(Object)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two IPv4 addresses.
         /// </summary>
-        /// <param name="Object">An object to compare with.</param>
-        public Int32 CompareTo(Object Object)
+        /// <param name="Object">An IPv4 address to compare with.</param>
+        public Int32 CompareTo(Object? Object)
 
-            => Object is IPv4Address ipAddress
-                   ? CompareTo(ipAddress)
+            => Object is IPv4Address ipv4Address
+                   ? CompareTo(ipv4Address)
                    : throw new ArgumentException("The given object is not an IPv4 address!",
                                                  nameof(Object));
 
@@ -458,10 +467,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region CompareTo(IPv4Address)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two IPv4 addresses.
         /// </summary>
         /// <param name="IPv4Address">An IPv4 address to compare with.</param>
-        /// <returns>true|false</returns>
         public Int32 CompareTo(IPv4Address IPv4Address)
         {
 
@@ -470,10 +478,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             for (var i = 0; i < byteArray.Length; i++)
             {
 
-                var comparision = IPAddressArray[i].CompareTo(byteArray[i]);
+                var c = ipAddressArray[i].CompareTo(byteArray[i]);
 
-                if (comparision != 0)
-                    return comparision;
+                if (c != 0)
+                    return c;
 
             }
 
@@ -486,11 +494,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region CompareTo(IIPAddress)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two IP addresses.
         /// </summary>
-        /// <param name="IIPAddress">An ip address to compare with.</param>
-        /// <returns>true|false</returns>
-        public Int32 CompareTo(IIPAddress IIPAddress)
+        /// <param name="IIPAddress">An IP address to compare with.</param>
+        public Int32 CompareTo(IIPAddress? IIPAddress)
         {
 
             if (IIPAddress is IPv4Address ipv4Address)
@@ -504,29 +511,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region IEquatable Members
+        #region IEquatable<IPv4Address> Members
 
         #region Equals(Object)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two IPv4 addresses.
         /// </summary>
-        /// <param name="Object">An object to compare with.</param>
-        /// <returns>true|false</returns>
-        public override Boolean Equals(Object Object)
+        /// <param name="Object">An IPv4 address to compare with.</param>
+        public override Boolean Equals(Object? Object)
 
-            => Object is IPv4Address ipAddress &&
-                   Equals(ipAddress);
+            => Object is IPv4Address ipv4Address &&
+                   Equals(ipv4Address);
 
         #endregion
 
         #region Equals(IPv4Address)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two IPv4 addresses.
         /// </summary>
-        /// <param name="IPv4Address">An IPv4 address to compare with.</param>
-        /// <returns>true|false</returns>
+        /// <param name="IIPAddress">An IPv4 address to compare with.</param>
         public Boolean Equals(IPv4Address IPv4Address)
         {
 
@@ -534,7 +539,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             for (var i = 0; i < byteArray.Length; i++)
             {
-                if (IPAddressArray[i] != byteArray[i])
+                if (ipAddressArray[i] != byteArray[i])
                     return false;
             }
 
@@ -547,21 +552,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region Equals(IIPAddress)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two IP addresses.
         /// </summary>
-        /// <param name="IIPAddress">An IIPAddress.</param>
-        /// <returns>true|false</returns>
-        public Boolean Equals(IIPAddress IIPAddress)
+        /// <param name="IIPAddress">An IP address to compare with.</param>
+        public Boolean Equals(IIPAddress? IIPAddress)
         {
 
             if (IIPAddress is null)
-                throw new ArgumentNullException(nameof(IIPAddress), "The given IIPAddress must not be null!");
-
-            if (_Length != IIPAddress.Length)
                 return false;
 
-            if (IIPAddress is IPv4Address ipv4address)
-                return Equals(ipv4address);
+            if (length != IIPAddress.Length)
+                return false;
+
+            if (IIPAddress is IPv4Address ipv4Address)
+                return Equals(ipv4Address);
 
             return false;
 
@@ -590,10 +594,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public override String ToString()
 
             => String.Format("{0}.{1}.{2}.{3}",
-                             IPAddressArray[0],
-                             IPAddressArray[1],
-                             IPAddressArray[2],
-                             IPAddressArray[3]);
+                             ipAddressArray[0],
+                             ipAddressArray[1],
+                             ipAddressArray[2],
+                             ipAddressArray[3]);
 
         #endregion
 

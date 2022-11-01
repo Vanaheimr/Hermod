@@ -17,7 +17,6 @@
 
 #region Usings
 
-using System;
 using System.Net;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -27,10 +26,11 @@ using org.GraphDefined.Vanaheimr.Illias;
 namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
-    public static class IPSocketExtensions
+    /// <summary>
+    /// Extention methods for IP sockets.
+    /// </summary>
+    public static class IPSocketExtentions
     {
-
-        #region ToIPEndPoint(this IPSocket)
 
         /// <summary>
         /// Convert this IP socket into an .NET IPEndPoint.
@@ -39,8 +39,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             => new (System.Net.IPAddress.Parse(IPSocket.IPAddress.ToString()),
                     IPSocket.Port.ToUInt16());
-
-        #endregion
 
     }
 
@@ -254,20 +252,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IPSocket1">An IP socket.</param>
         /// <param name="IPSocket2">Another IP socket.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (IPSocket IPSocket1, IPSocket IPSocket2)
-        {
+        public static Boolean operator == (IPSocket IPSocket1,
+                                           IPSocket IPSocket2)
 
-            // If both are null, or both are same instance, return true.
-            if (Object.ReferenceEquals(IPSocket1, IPSocket2))
-                return true;
-
-            // If one is null, but not both, return false.
-            if (((Object) IPSocket1 == null) || ((Object) IPSocket2 == null))
-                return false;
-
-            return IPSocket1.Equals(IPSocket2);
-
-        }
+            => IPSocket1.Equals(IPSocket2);
 
         #endregion
 
@@ -279,8 +267,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IPSocket1">An IP socket.</param>
         /// <param name="IPSocket2">Another IP socket.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator != (IPSocket IPSocket1, IPSocket IPSocket2)
-            => !(IPSocket1 == IPSocket2);
+        public static Boolean operator != (IPSocket IPSocket1,
+                                           IPSocket IPSocket2)
+
+            => !IPSocket1.Equals(IPSocket2);
 
         #endregion
 
@@ -292,15 +282,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IPSocket1">An IP socket.</param>
         /// <param name="IPSocket2">Another IP socket.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator < (IPSocket IPSocket1, IPSocket IPSocket2)
-        {
+        public static Boolean operator < (IPSocket IPSocket1,
+                                          IPSocket IPSocket2)
 
-            if ((Object) IPSocket1 == null)
-                throw new ArgumentNullException(nameof(IPSocket1), "The given IPSocket1 must not be null!");
-
-            return IPSocket1.CompareTo(IPSocket2) < 0;
-
-        }
+            => IPSocket1.CompareTo(IPSocket2) < 0;
 
         #endregion
 
@@ -312,8 +297,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IPSocket1">An IP socket.</param>
         /// <param name="IPSocket2">Another IP socket.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator <= (IPSocket IPSocket1, IPSocket IPSocket2)
-            => !(IPSocket1 > IPSocket2);
+        public static Boolean operator <= (IPSocket IPSocket1,
+                                           IPSocket IPSocket2)
+
+            => IPSocket1.CompareTo(IPSocket2) <= 0;
 
         #endregion
 
@@ -325,15 +312,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IPSocket1">An IP socket.</param>
         /// <param name="IPSocket2">Another IP socket.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator > (IPSocket IPSocket1, IPSocket IPSocket2)
-        {
+        public static Boolean operator > (IPSocket IPSocket1,
+                                          IPSocket IPSocket2)
 
-            if ((Object) IPSocket1 == null)
-                throw new ArgumentNullException(nameof(IPSocket1), "The given IPSocket1 must not be null!");
-
-            return IPSocket1.CompareTo(IPSocket2) > 0;
-
-        }
+            => IPSocket1.CompareTo(IPSocket2) > 0;
 
         #endregion
 
@@ -345,55 +327,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IPSocket1">An IP socket.</param>
         /// <param name="IPSocket2">Another IP socket.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator >= (IPSocket IPSocket1, IPSocket IPSocket2)
-            => !(IPSocket1 < IPSocket2);
+        public static Boolean operator >= (IPSocket IPSocket1,
+                                           IPSocket IPSocket2)
+
+            => IPSocket1.CompareTo(IPSocket2) >= 0;
 
         #endregion
 
         #endregion
 
-        #region IComparable Members
+        #region IComparable<IPSocket> Members
 
         #region CompareTo(Object)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two IP sockets.
         /// </summary>
-        /// <param name="Object">An object to compare with.</param>
-        /// <returns>true|false</returns>
-        public Int32 CompareTo(Object Object)
-        {
+        /// <param name="Object">An IP socket to compare with.</param>
+        public Int32 CompareTo(Object? Object)
 
-            if (Object == null)
-                throw new ArgumentNullException(nameof(Object), "The given object must not be null!");
-
-            if (!((Object) is IPSocket))
-                throw new ArgumentException("The given object is not an IP socket!");
-
-            return CompareTo((IPSocket) Object);
-
-        }
+            => Object is IPSocket ipSocket
+                   ? CompareTo(ipSocket)
+                   : throw new ArgumentException("The given object is not an IP socket!",
+                                                 nameof(Object));
 
         #endregion
 
         #region CompareTo(IPSocket)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two IP sockets.
         /// </summary>
-        /// <param name="IPSocket">An object to compare with.</param>
-        /// <returns>true|false</returns>
+        /// <param name="IPSocket">An IP socket to compare with.</param>
         public Int32 CompareTo(IPSocket IPSocket)
         {
 
-            if (((Object) IPSocket) == null)
-                throw new ArgumentNullException(nameof(IPSocket), "The given IP socket must not be null!");
+            var c = IPAddress.CompareTo(IPSocket.IPAddress);
 
-            var __IPAddress = IPAddress.CompareTo(IPSocket.IPAddress);
-            if (__IPAddress != 0)
-                return __IPAddress;
+            if (c == 0)
+                c = Port.CompareTo(IPSocket.Port);
 
-            return Port.CompareTo(IPSocket.Port);
+            return c;
 
         }
 
@@ -401,50 +375,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region IEquatable Members
+        #region IEquatable<IPSocket> Members
 
         #region Equals(Object)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two IP sockets for equality.
         /// </summary>
-        /// <param name="Object">An object to compare with.</param>
-        /// <returns>true|false</returns>
-        public override Boolean Equals(Object Object)
-        {
+        /// <param name="Object">An IP socket to compare with.</param>
+        public override Boolean Equals(Object? Object)
 
-            if (Object == null)
-                throw new ArgumentNullException(nameof(Object), "The given object must not be null!");
-
-            if (!(Object is IPSocket))
-                throw new ArgumentException("The given object is not an IP socket!");
-
-            return Equals((IPSocket) Object);
-
-        }
+            => Object is IPSocket ipSocket &&
+                   Equals(ipSocket);
 
         #endregion
 
         #region Equals(IPSocket)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two IP sockets for equality.
         /// </summary>
-        /// <param name="IPSocket">An object to compare with.</param>
-        /// <returns>true|false</returns>
+        /// <param name="IPSocket">An IP socket to compare with.</param>
         public Boolean Equals(IPSocket IPSocket)
-        {
 
-            if (IPSocket == null)
-                throw new ArgumentNullException(nameof(IPSocket), "The given IP socket must not be null!");
-
-            var __IPAddress = IPAddress.Equals(IPSocket.IPAddress);
-            if (__IPAddress)
-                return Port.Equals(IPSocket.Port);
-
-            return false;
-
-        }
+            => IPAddress.Equals(IPSocket.IPAddress) &&
+               Port.     Equals(IPSocket.Port);
 
         #endregion
 
@@ -460,7 +415,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         {
             unchecked
             {
-                return IPAddress.GetHashCode() * 7 ^
+                return IPAddress.GetHashCode() * 3 ^
                        Port.     GetHashCode();
             }
         }
