@@ -228,7 +228,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             listenerThread = new Thread(() => {
 
-                Thread.CurrentThread.Name           = "HTTP Web Socket Server";//this.ServerThreadName;
+                Thread.CurrentThread.Name           = "HTTP Web Socket Server :" + IPSocket.Port;//this.ServerThreadName;
                 //Thread.CurrentThread.Priority       = this.ServerThreadPriority;
                 //Thread.CurrentThread.IsBackground   = this.ServerThreadIsBackground;
 
@@ -324,6 +324,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 while (!token2.IsCancellationRequested && webSocketConnection.TCPStream is not null)
                                 {
 
+                                    #region Main loop waiting for data...
+
                                     if (bytes is null)
                                     {
 
@@ -350,24 +352,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                             WebSocketFrame.Rsv.Off
                                                                         )
                                                                     );
-
-                                                //lock (stream)
-                                                //{
-                                                //
-                                                //    stream.Write(new WebSocketFrame(
-                                                //                     WebSocketFrame.Fin.Final,
-                                                //                     WebSocketFrame.MaskStatus.Off,
-                                                //                     new Byte[] { 0x00, 0x00, 0x00, 0x00 },
-                                                //                     WebSocketFrame.Opcodes.Ping,
-                                                //                     payload.ToUTF8Bytes(),
-                                                //                     WebSocketFrame.Rsv.Off,
-                                                //                     WebSocketFrame.Rsv.Off,
-                                                //                     WebSocketFrame.Rsv.Off
-                                                //                 ).ToByteArray());
-                                                //
-                                                //    stream.Flush();
-                                                //
-                                                //}
 
                                                 DebugX.Log(nameof(WebSocketServer) + ": Ping sent:     '" + payload + "'!");
 
@@ -397,7 +381,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                     }
 
-                                    #region Web socket handshake...
+                                    #endregion
+
+
+                                    #region A web socket handshake...
 
                                     if (httpMethod == "GET ")
                                     {
@@ -540,9 +527,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                     #endregion
 
-                                    #region ...or WebSocket frame
+                                    #region ...or a web socket frame...
 
-                                    else
+                                    else if (IsStillHTTP == false)
                                     {
 
                                         if (WebSocketFrame.TryParse(bytes,
@@ -968,6 +955,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                     #endregion
 
+                                    #region ...some other crap!
+
+                                    // Can e.g. be web crawlers etc.pp
+
+                                    else
+                                    {
+
+                                        DebugX.Log(nameof(WebSocketServer) + ": Closing invalid TCP connection!");
+
+                                        webSocketConnection.TCPStream.Close();
+                                        webSocketConnection.TCPStream = null;
+
+                                    }
+
+                                    #endregion
+
                                 }
 
                                 DebugX.Log(nameof(WebSocketServer), " Connection closed!");
@@ -980,6 +983,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                     }
                                     catch { }
                                 }
+
+                                #region OnTCPConnectionClosed
+
+                                //try
+                                //{
+
+                                //    OnCloseMessage?.Invoke(Timestamp.Now,
+                                //                            this,
+                                //                            webSocketConnection,
+                                //                            frame,
+                                //                            eventTrackingId,
+                                //                            token2);
+
+                                //}
+                                //catch (Exception e)
+                                //{
+                                //    DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnCloseMessage));
+                                //}
+
+                                #endregion
 
                             }
                             else
