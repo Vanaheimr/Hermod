@@ -45,39 +45,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The creation timestamp.
         /// </summary>
-        public DateTime                 Created                    { get; }
+        public DateTime                 Created                       { get; }
 
-        public CancellationTokenSource  CancellationTokenSource    { get; }
+        public CancellationTokenSource  CancellationTokenSource       { get; }
 
         /// <summary>
         /// The HTTP web socket server.
         /// </summary>
-        public WebSocketServer          WebSocketServer            { get; }
+        public WebSocketServer          WebSocketServer               { get; }
 
         /// <summary>
         /// The TCP connection abstraction.
         /// </summary>
-        public TcpClient                TcpClient                  { get; }
+        public TcpClient                TcpClient                     { get; }
 
         /// <summary>
         /// The network stream of the TCP connection abstraction.
         /// </summary>
-        public NetworkStream?           TCPStream                  { get; internal set; }
+        public NetworkStream?           TCPStream                     { get; internal set; }
 
         /// <summary>
         /// The local TCP socket.
         /// </summary>
-        public IPSocket                 LocalSocket                { get; }
+        public IPSocket                 LocalSocket                   { get; }
 
         /// <summary>
         /// The remote TCP socket.
         /// </summary>
-        public IPSocket                 RemoteSocket               { get; }
+        public IPSocket                 RemoteSocket                  { get; }
 
         /// <summary>
         /// The optional HTTP request of this web socket connection. Can also be attached later.
         /// </summary>
-        public HTTPRequest?             Request                    { get; internal set; }
+        public HTTPRequest?             Request                       { get; internal set; }
+
+        public TimeSpan?                SlowNetworkSimulationDelay    { get; }
 
         #endregion
 
@@ -92,22 +94,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="CustomData">Optional custom data to be stored within this web socket connection.</param>
         public WebSocketConnection(WebSocketServer                              WebSocketServer,
                                    TcpClient                                    TcpClient,
-                                   HTTPRequest?                                 Request      = null,
-                                   IEnumerable<KeyValuePair<String, Object?>>?  CustomData   = null)
+                                   HTTPRequest?                                 Request                      = null,
+                                   IEnumerable<KeyValuePair<String, Object?>>?  CustomData                   = null,
+                                   TimeSpan?                                    SlowNetworkSimulationDelay   = null)
         {
 
-            this.Created                  = Timestamp.Now;
-            this.CancellationTokenSource  = new CancellationTokenSource();
-            this.WebSocketServer          = WebSocketServer;
-            this.TcpClient                = TcpClient;
-            this.TCPStream                = TcpClient.GetStream();
-            this.LocalSocket              = IPSocket.FromIPEndPoint(TcpClient.Client.LocalEndPoint!);
-            this.RemoteSocket             = IPSocket.FromIPEndPoint(TcpClient.Client.RemoteEndPoint!);
-            this.Request                  = Request;
-            this.customData               = CustomData is not null
-                                                ? CustomData. ToDictionary(kvp => kvp.Key,
-                                                                           kvp => kvp.Value)
-                                                : new Dictionary<String, Object?>();
+            this.Created                     = Timestamp.Now;
+            this.CancellationTokenSource     = new CancellationTokenSource();
+            this.WebSocketServer             = WebSocketServer;
+            this.TcpClient                   = TcpClient;
+            this.TCPStream                   = TcpClient.GetStream();
+            this.LocalSocket                 = IPSocket.FromIPEndPoint(TcpClient.Client.LocalEndPoint!);
+            this.RemoteSocket                = IPSocket.FromIPEndPoint(TcpClient.Client.RemoteEndPoint!);
+            this.Request                     = Request;
+            this.customData                  = CustomData is not null
+                                                   ? CustomData. ToDictionary(kvp => kvp.Key,
+                                                                              kvp => kvp.Value)
+                                                   : new Dictionary<String, Object?>();
+            this.SlowNetworkSimulationDelay  = SlowNetworkSimulationDelay;
 
         }
 
@@ -115,9 +119,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
 
 
-
-
-        public void SendWebSocketFrame(WebSocketFrame  webSocketFrame)
+        public void SendWebSocketFrame(WebSocketFrame webSocketFrame)
         {
 
             if (TCPStream is not null)
@@ -126,8 +128,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 {
                     try
                     {
-                        TCPStream.Write(webSocketFrame.ToByteArray());
-                        TCPStream.Flush();
+
+                        if (SlowNetworkSimulationDelay.HasValue)
+                        {
+                            foreach (var _byte in webSocketFrame.ToByteArray())
+                            {
+                                TCPStream.Write(new Byte[] { _byte });
+                                TCPStream.Flush();
+                                Thread.Sleep(SlowNetworkSimulationDelay.Value);
+                            }
+                        }
+
+                        else
+                        {
+                            TCPStream.Write(webSocketFrame.ToByteArray());
+                            TCPStream.Flush();
+                        }
+
                     }
                     catch (Exception e)
                     {

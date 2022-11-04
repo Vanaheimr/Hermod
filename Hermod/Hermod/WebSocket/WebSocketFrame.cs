@@ -541,7 +541,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 if ((UInt64) ByteArray.Length < offset + payloadLength)
                 {
-                    ErrorResponse = "Invalid byte array!";
+                    ErrorResponse = "Web socket frame is shorter than advertised!";
                     return false;
                 }
 

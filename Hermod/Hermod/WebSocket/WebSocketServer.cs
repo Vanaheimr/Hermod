@@ -69,9 +69,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         private readonly CancellationTokenSource    cancellationTokenSource;
 
-        private volatile Boolean                    isRunning    = false;
+        private volatile Boolean                    isRunning                   = false;
 
-        private const    String                     LogfileName  = "HTTPWebSocketServer.log";
+        private const    String                     LogfileName                 = "HTTPWebSocketServer.log";
+
+        public  readonly TimeSpan                   DefaultWebSocketPingEvery   = TimeSpan.FromSeconds(30);
 
         #endregion
 
@@ -93,7 +95,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The HTTP service name.
         /// </summary>
-        public String                            HTTPServiceName    { get; }
+        public String                            HTTPServiceName               { get; }
 
         /// <summary>
         /// The IP address to listen on.
@@ -110,7 +112,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The IP socket to listen on.
         /// </summary>
-        public IPSocket                          IPSocket           { get; }
+        public IPSocket                          IPSocket                      { get; }
 
         /// <summary>
         /// Whether the TCP listener is currently running.
@@ -119,9 +121,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             => isRunning;
 
         /// <summary>
+        /// Disable web socket pings.
+        /// </summary>
+        public Boolean                           DisableWebSocketPings         { get; set; }
+
+        /// <summary>
+        /// The web socket ping interval.
+        /// </summary>
+        public TimeSpan                          WebSocketPingEvery            { get; set; }
+
+
+        public TimeSpan?                         SlowNetworkSimulationDelay    { get; set; }
+
+
+        /// <summary>
         /// An optional DNS client to use.
         /// </summary>
-        public DNSClient?                        DNSClient          { get; }
+        public DNSClient?                        DNSClient                     { get; }
 
         #endregion
 
@@ -170,15 +186,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="HTTPServiceName">An optional HTTP service name.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         /// <param name="AutoStart">Whether to start the HTTP web socket server automatically.</param>
-        public WebSocketServer(IIPAddress?  IPAddress         = null,
-                               IPPort?      TCPPort           = null,
-                               String?      HTTPServiceName   = null,
-                               DNSClient?   DNSClient         = null,
-                               Boolean      AutoStart         = false)
+        public WebSocketServer(IIPAddress?  IPAddress                    = null,
+                               IPPort?      TCPPort                      = null,
+                               String?      HTTPServiceName              = null,
+
+                               Boolean      DisableWebSocketPings        = false,
+                               TimeSpan?    WebSocketPingEvery           = null,
+                               TimeSpan?    SlowNetworkSimulationDelay   = null,
+
+                               DNSClient?   DNSClient                    = null,
+                               Boolean      AutoStart                    = false)
 
             : this(new IPSocket(IPAddress ?? IPv4Address.Any,   // 0.0.0.0  IPv4+IPv6 sockets seem to fail on Win11!
                                 TCPPort   ?? IPPort.HTTP),
                    HTTPServiceName,
+
+                   DisableWebSocketPings,
+                   WebSocketPingEvery,
+                   SlowNetworkSimulationDelay,
+
                    DNSClient,
                    AutoStart)
 
@@ -196,17 +222,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="DNSClient">An optional DNS client.</param>
         /// <param name="AutoStart">Whether to start the HTTP web socket server automatically.</param>
         public WebSocketServer(IPSocket    IPSocket,
-                               String?     HTTPServiceName   = null,
-                               DNSClient?  DNSClient         = null,
-                               Boolean     AutoStart         = false)
+                               String?     HTTPServiceName              = null,
+
+                               Boolean     DisableWebSocketPings        = false,
+                               TimeSpan?   WebSocketPingEvery           = null,
+                               TimeSpan?   SlowNetworkSimulationDelay   = null,
+
+                               DNSClient?  DNSClient                    = null,
+                               Boolean     AutoStart                    = false)
         {
 
-            this.IPSocket                 = IPSocket;
-            this.HTTPServiceName          = HTTPServiceName ?? "GraphDefined HTTP Web Socket Server v2.0";
-            this.DNSClient                = DNSClient;
+            this.IPSocket                    = IPSocket;
+            this.HTTPServiceName             = HTTPServiceName    ?? "GraphDefined HTTP Web Socket Server v2.0";
+            this.DisableWebSocketPings       = DisableWebSocketPings;
+            this.WebSocketPingEvery          = WebSocketPingEvery ?? DefaultWebSocketPingEvery;
+            this.SlowNetworkSimulationDelay  = SlowNetworkSimulationDelay;
 
-            this.webSocketConnections     = new List<WebSocketConnection>();
-            this.cancellationTokenSource  = new CancellationTokenSource();
+            this.DNSClient                   = DNSClient;
+
+            this.webSocketConnections        = new List<WebSocketConnection>();
+            this.cancellationTokenSource     = new CancellationTokenSource();
 
             if (AutoStart)
                 Start();
@@ -288,7 +323,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 var cts2                         = CancellationTokenSource.CreateLinkedTokenSource(token);
                                 var token2                       = cts2.Token;
                                 var lastWebSocketPingTimestamp   = Timestamp.Now;
-                                var WebSocketPingEvery           = TimeSpan.FromSeconds(20);
+                                //var WebSocketPingEvery           = TimeSpan.FromSeconds(20);
 
                                 HTTPResponse? httpResponse       = null;
 
@@ -335,7 +370,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                             #region Send a regular web socket "ping"
 
-                                            if (Timestamp.Now > lastWebSocketPingTimestamp + WebSocketPingEvery)
+                                            if (!DisableWebSocketPings &&
+                                                Timestamp.Now > lastWebSocketPingTimestamp + WebSocketPingEvery)
                                             {
 
                                                 var payload = Guid.NewGuid().ToString();
@@ -373,7 +409,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                         if (bytesLeftOver.Length > 0)
                                             Array.Copy(bytesLeftOver, 0, bytes, 0, bytesLeftOver.Length);
 
-                                        webSocketConnection.TCPStream.Read(bytes, bytesLeftOver.Length, bytes.Length);
+                                        webSocketConnection.TCPStream.Read(bytes,
+                                                                           bytesLeftOver.Length,
+                                                                           bytes.Length - bytesLeftOver.Length);
 
                                         httpMethod = IsStillHTTP
                                             ? Encoding.UTF8.GetString(bytes, 0, 4)
@@ -542,8 +580,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                             if (frame is not null)
                                             {
 
-                                                var             eventTrackingId  = EventTracking_Id.New;
-                                                WebSocketFrame? responseFrame    = null;
+                                                var              eventTrackingId   = EventTracking_Id.New;
+                                                WebSocketFrame?  responseFrame     = null;
 
                                                 #region OnMessageRequest
 
@@ -948,7 +986,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                         else
                                         {
                                             bytesLeftOver = bytes;
-                                            DebugX.Log("Could not parse the given web socket frame: " + errorResponse);
+                                            DebugX.Log("Could not parse the given web socket frame of " + bytesLeftOver.Length + " byte(s): " + errorResponse);
+                                            bytes = null;
                                         }
 
                                     }
@@ -1015,7 +1054,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         }
 
                     },
-                    new WebSocketConnection(this, newTCPConnection));
+                    new WebSocketConnection(this,
+                                            newTCPConnection,
+                                            SlowNetworkSimulationDelay: SlowNetworkSimulationDelay));
 
                 }
 
