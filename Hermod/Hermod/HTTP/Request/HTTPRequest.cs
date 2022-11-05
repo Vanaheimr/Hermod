@@ -367,14 +367,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            Languages  Language;
-            JValue     Text;
+            JValue Text;
             I18N = I18NString.Empty;
 
             foreach (var Description in DescriptionJSON)
             {
 
-                if (!Enum.TryParse(Description.Key, out Language))
+                if (!Enum.TryParse(Description.Key, out Languages Language))
                 {
 
                     I18N = null;
@@ -1074,14 +1073,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              HTTPServer          HTTPServer,
 
                              String              HTTPHeader,
-                             Byte[]              HTTPBody                    = null,
-                             Stream              HTTPBodyStream              = null,
-                             X509Certificate2    ServerCertificate           = null,
-                             X509Certificate2    ClientCertificate           = null,
+                             Byte[]?             HTTPBody                    = null,
+                             Stream?             HTTPBodyStream              = null,
+                             X509Certificate2?   ServerCertificate           = null,
+                             X509Certificate2?   ClientCertificate           = null,
 
                              UInt32              HTTPBodyReceiveBufferSize   = DefaultHTTPBodyReceiveBufferSize,
                              CancellationToken?  CancellationToken           = null,
-                             EventTracking_Id    EventTrackingId             = null)
+                             EventTracking_Id?   EventTrackingId             = null)
 
             : base(Timestamp,
                    HTTPSource,
