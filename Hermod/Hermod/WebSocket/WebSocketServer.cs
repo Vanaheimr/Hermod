@@ -681,7 +681,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                             // Incoming higher protocol level respones will not produce another response!
                                                             if (textMessageResponse          is not null &&
                                                                 textMessageResponse.Response is not null &&
-                                                                textMessageResponse.Response.IsNotNullOrEmpty())
+                                                                textMessageResponse.Response != "[]")
                                                             {
 
                                                                 responseFrame = new WebSocketFrame(

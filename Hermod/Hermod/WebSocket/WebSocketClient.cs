@@ -819,18 +819,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 }
 
+                                                if ((UInt64) buffer.Length > frameLength)
+                                                {
+                                                    var newBuffer = new Byte[(UInt64) buffer.Length - frameLength];
+                                                    Array.Copy(buffer, (UInt32) frameLength, newBuffer, 0, newBuffer.Length);
+                                                    buffer = newBuffer;
+                                                }
+                                                else
+                                                    buffer = null;
+
                                             }
 
                                         }
-
-                                        if ((UInt64) buffer.Length > frameLength)
-                                        {
-                                            var newBuffer = new Byte[(UInt64) buffer.Length - frameLength];
-                                            Array.Copy(buffer, (UInt32) frameLength, newBuffer, 0, newBuffer.Length);
-                                            buffer = newBuffer;
-                                        }
-                                        else
-                                            buffer = null;
 
                                     } while (buffer is not null);
 
