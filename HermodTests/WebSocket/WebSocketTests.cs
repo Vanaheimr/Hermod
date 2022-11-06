@@ -91,41 +91,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
             var textMessageRequests     = new List<String>();
             var textMessageResponses    = new List<String>();
 
-            webSocketServer.OnNewTCPConnection            += async (Timestamp, WebSocketServer, WebSocketConnection, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnNewTCPConnection            += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 newTCPConnection        = true;
             };
 
-            webSocketServer.OnHTTPRequest                 += async (Timestamp, WebSocketServer, httpRequest) => {
+            webSocketServer.OnHTTPRequest                 += async (timestamp, server, httpRequest) => {
                 httpRequests.Add(httpRequest);
             };
 
-            webSocketServer.OnValidateWebSocketConnection += async (Timestamp, WebSocketServer, WebSocketConnection, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnValidateWebSocketConnection += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 validated               = true;
                 return null;
             };
 
-            webSocketServer.OnHTTPResponse                += async (Timestamp, WebSocketServer, httpRequest, httpResponse) => {
+            webSocketServer.OnHTTPResponse                += async (timestamp, server, httpRequest, httpResponse) => {
                 httpResponses.Add(httpResponse);
             };
 
-            webSocketServer.OnNewWebSocketConnection      += async (Timestamp, WebSocketServer, WebSocketConnection, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnNewWebSocketConnection      += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 newWebSocketConnection  = true;
             };
 
-            webSocketServer.OnWebSocketFrame              += async (Timestamp, WebSocketServer, WebSocketConnection, requestFrame, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnWebSocketFrame              += async (timestamp, server, connection, requestFrame, eventTrackingId, cancellationToken) => {
                 messageRequests.     Add(requestFrame);
             };
 
-            webSocketServer.OnResponseFrame               += async (Timestamp, WebSocketServer, WebSocketConnection, requestFrame, responseFrame, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnResponseFrame               += async (timestamp, server, connection, requestFrame, responseFrame, eventTrackingId, cancellationToken) => {
                 messageResponses.    Add(responseFrame);
             };
 
-            webSocketServer.OnTextMessageRequest          += async (Timestamp, WebSocketServer, WebSocketConnection, requestFrame, cancellationToken) => {
-                textMessageRequests. Add(requestFrame. Request);
+            webSocketServer.OnTextMessageRequest          += async (timestamp, server, connection, message, eventTrackingId) => {
+                textMessageRequests. Add(message);
             };
 
-            webSocketServer.OnTextMessageResponse         += async (Timestamp, WebSocketServer, WebSocketConnection, responseFrame) => {
-                textMessageResponses.Add(responseFrame.ResponseMessage);
+            webSocketServer.OnTextMessageResponse         += async (timestamp, server, connection, eventTrackingId, requestTimestamp, requestMessage, responseTimestamp, responseMessage) => {
+                textMessageResponses.Add(responseMessage ?? "-");
             };
 
             var webSocketClient = new WebSocketClient(URL.Parse("ws://127.0.0.1:" + port));
@@ -188,41 +188,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
             var textMessageRequests     = new List<String>();
             var textMessageResponses    = new List<String>();
 
-            webSocketServer.OnNewTCPConnection            += async (Timestamp, WebSocketServer, WebSocketConnection, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnNewTCPConnection            += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 newTCPConnection        = true;
             };
 
-            webSocketServer.OnHTTPRequest                 += async (Timestamp, WebSocketServer, httpRequest) => {
+            webSocketServer.OnHTTPRequest                 += async (timestamp, server, httpRequest) => {
                 httpRequests.Add(httpRequest);
             };
 
-            webSocketServer.OnValidateWebSocketConnection += async (Timestamp, WebSocketServer, WebSocketConnection, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnValidateWebSocketConnection += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 validated               = true;
                 return null;
             };
 
-            webSocketServer.OnHTTPResponse                += async (Timestamp, WebSocketServer, httpRequest, httpResponse) => {
+            webSocketServer.OnHTTPResponse                += async (timestamp, server, httpRequest, httpResponse) => {
                 httpResponses.Add(httpResponse);
             };
 
-            webSocketServer.OnNewWebSocketConnection      += async (Timestamp, WebSocketServer, WebSocketConnection, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnNewWebSocketConnection      += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 newWebSocketConnection  = true;
             };
 
-            webSocketServer.OnWebSocketFrame              += async (Timestamp, WebSocketServer, WebSocketConnection, requestFrame, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnWebSocketFrame              += async (timestamp, server, connection, requestFrame, eventTrackingId, cancellationToken) => {
                 messageRequests.     Add(requestFrame);
             };
 
-            webSocketServer.OnResponseFrame               += async (Timestamp, WebSocketServer, WebSocketConnection, requestFrame, responseFrame, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnResponseFrame               += async (timestamp, server, connection, requestFrame, responseFrame, eventTrackingId, cancellationToken) => {
                 messageResponses.    Add(responseFrame);
             };
 
-            webSocketServer.OnTextMessageRequest          += async (Timestamp, WebSocketServer, WebSocketConnection, requestFrame, cancellationToken) => {
-                textMessageRequests. Add(requestFrame. Request);
+            webSocketServer.OnTextMessageRequest          += async (timestamp, server, connection, message, eventTrackingId) => {
+                textMessageRequests. Add(message);
             };
 
-            webSocketServer.OnTextMessageResponse         += async (Timestamp, WebSocketServer, WebSocketConnection, responseFrame) => {
-                textMessageResponses.Add(responseFrame.ResponseMessage);
+            webSocketServer.OnTextMessageResponse         += async (timestamp, server, connection, eventTrackingId, requestTimestamp, requestMessage, responseTimestamp, responseMessage) => {
+                textMessageResponses.Add(responseMessage ?? "-");
             };
 
             var webSocketClient = new WebSocketClient(URL.Parse("ws://127.0.0.1:" + port));
