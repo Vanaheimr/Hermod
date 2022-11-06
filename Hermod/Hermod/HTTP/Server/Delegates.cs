@@ -15,14 +15,6 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using Newtonsoft.Json.Linq;
-using System;
-using System.Threading.Tasks;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
@@ -85,8 +77,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          IHTTPServer   HTTPServer,
                                          HTTPRequest   Request,
                                          HTTPResponse  Response,
-                                         String        Error          = null,
-                                         Exception     LastException  = null);
+                                         String?       Error           = null,
+                                         Exception?    LastException   = null);
 
     /// <summary>
     /// The delegate for the HTTP error log.
@@ -101,8 +93,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              HTTPAPI       HTTPAPI,
                                              HTTPRequest   Request,
                                              HTTPResponse  Response,
-                                             String        Error          = null,
-                                             Exception     LastException  = null);
+                                             String?       Error           = null,
+                                             Exception?    LastException   = null);
 
 
 

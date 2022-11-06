@@ -565,14 +565,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 }
 
-                Frame   = new WebSocketFrame(fin,
-                                             mask,
-                                             maskingKey,
-                                             opcode,
-                                             payload,
-                                             rsv1,
-                                             rsv2,
-                                             rsv3);
+                DebugX.Log(String.Concat("Received a '", opcode, "' web socket frame with ", payloadLength, " bytes payload: '", payload.ToUTF8String(), "'!"));
+
+                Frame = new WebSocketFrame(fin,
+                                           mask,
+                                           maskingKey,
+                                           opcode,
+                                           payload,
+                                           rsv1,
+                                           rsv2,
+                                           rsv3);
 
                 Length  = offset + payloadLength;
 

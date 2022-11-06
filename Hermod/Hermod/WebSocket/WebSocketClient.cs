@@ -702,7 +702,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                             var responseData  = buffer.ToUTF8String(pos);
                             var lines         = responseData.Split('\n').Select(line => line?.Trim()).TakeWhile(line => line.IsNotNullOrEmpty()).ToArray();
-                            httpResponse          = HTTPResponse.Parse(lines.AggregateWith(Environment.NewLine),
+                            httpResponse      = HTTPResponse.Parse(lines.AggregateWith(Environment.NewLine),
                                                                    Array.Empty<byte>(),
                                                                    httpRequest);
 
@@ -1118,6 +1118,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
+        #region SendText  (Text)
+
+        /// <summary>
+        /// Send a web socket text frame
+        /// </summary>
+        /// <param name="Text">The text to send.</param>
+        public void SendText(String Text)
+
+            => SendWebSocketFrame(new WebSocketFrame(
+                                      WebSocketFrame.Fin.Final,
+                                      WebSocketFrame.MaskStatus.On,
+                                      new Byte[] { 0xaa, 0xaa, 0xaa, 0xaa },
+                                      WebSocketFrame.Opcodes.Text,
+                                      Text.ToUTF8Bytes(),
+                                      WebSocketFrame.Rsv.Off,
+                                      WebSocketFrame.Rsv.Off,
+                                      WebSocketFrame.Rsv.Off
+                                  ));
+
+        #endregion
+
+        #region SendBinary(Bytes)
+
+        /// <summary>
+        /// Send a web socket binary frame
+        /// </summary>
+        /// <param name="Bytes">The array of bytes to send.</param>
+        public void SendBinary(Byte[] Bytes)
+
+            => SendWebSocketFrame(new WebSocketFrame(
+                                      WebSocketFrame.Fin.Final,
+                                      WebSocketFrame.MaskStatus.On,
+                                      new Byte[] { 0xaa, 0xaa, 0xaa, 0xaa },
+                                      WebSocketFrame.Opcodes.Binary,
+                                      Bytes,
+                                      WebSocketFrame.Rsv.Off,
+                                      WebSocketFrame.Rsv.Off,
+                                      WebSocketFrame.Rsv.Off
+                                  ));
+
+        #endregion
+
         #region SendWebSocketFrame(WebSocketFrame)
 
         public void SendWebSocketFrame(WebSocketFrame WebSocketFrame)
@@ -1168,8 +1210,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             {
                 if (HTTPStream is not null)
                 {
+
+                    SendWebSocketFrame(new WebSocketFrame(
+                                           WebSocketFrame.Fin.Final,
+                                           WebSocketFrame.MaskStatus.On,
+                                           new Byte[] { 0xaa, 0xaa, 0xaa, 0xaa },
+                                           WebSocketFrame.Opcodes.Close,
+                                           Array.Empty<Byte>(),
+                                           WebSocketFrame.Rsv.Off,
+                                           WebSocketFrame.Rsv.Off,
+                                           WebSocketFrame.Rsv.Off
+                                       ));
+
                     HTTPStream.Close();
                     HTTPStream.Dispose();
+
                 }
             }
             catch (Exception)

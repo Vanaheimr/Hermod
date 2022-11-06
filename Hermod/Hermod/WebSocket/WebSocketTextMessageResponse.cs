@@ -17,8 +17,6 @@
 
 #region Usings
 
-using System;
-
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -26,35 +24,67 @@ using org.GraphDefined.Vanaheimr.Illias;
 namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
+    /// <summary>
+    /// A HTTP web socket text message response.
+    /// </summary>
     public class WebSocketTextMessageResponse
     {
 
-        public EventTracking_Id  EventTrackingId      { get; }
+        #region Properties
 
+        /// <summary>
+        /// The request timestamp.
+        /// </summary>
         public DateTime          RequestTimestamp     { get; }
 
-        public String            Request              { get; }
+        /// <summary>
+        /// The request message.
+        /// </summary>
+        public String            RequestMessage       { get; }
 
+        /// <summary>
+        /// The response timestamp.
+        /// </summary>
         public DateTime          ResponseTimestamp    { get; }
 
-        public String            Response             { get; }
+        /// <summary>
+        /// The response message.
+        /// </summary>
+        public String            ResponseMessage      { get; }
 
+        /// <summary>
+        /// The event tracking identification for correlating this request with other events.
+        /// </summary>
+        public EventTracking_Id  EventTrackingId      { get; }
 
-        public WebSocketTextMessageResponse(EventTracking_Id  EventTrackingId,
-                                            DateTime          RequestTimestamp,
-                                            String            Request,
+        #endregion
+
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create a new HTTP web socket text message response.
+        /// </summary>
+        /// <param name="RequestTimestamp">The request timestamp.</param>
+        /// <param name="RequestMessage">The request message.</param>
+        /// <param name="ResponseTimestamp">The response timestamp.</param>
+        /// <param name="ResponseMessage">The response message.</param>
+        /// <param name="EventTrackingId">The event tracking identification for correlating this request with other events.</param>
+        public WebSocketTextMessageResponse(DateTime          RequestTimestamp,
+                                            String            RequestMessage,
                                             DateTime          ResponseTimestamp,
-                                            String            Response)
+                                            String            ResponseMessage,
+                                            EventTracking_Id  EventTrackingId)
         {
 
-            this.EventTrackingId    = EventTrackingId;
             this.RequestTimestamp   = RequestTimestamp;
-            this.Request            = Request;
+            this.RequestMessage     = RequestMessage;
             this.ResponseTimestamp  = ResponseTimestamp;
-            this.Response           = Response;
+            this.ResponseMessage    = ResponseMessage;
+            this.EventTrackingId    = EventTrackingId;
 
         }
 
+        #endregion
 
     }
 

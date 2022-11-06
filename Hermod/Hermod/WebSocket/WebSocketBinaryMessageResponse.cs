@@ -17,52 +17,74 @@
 
 #region Usings
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Net;
-using System.Net.Sockets;
-using System.Collections;
-using System.Threading;
-
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
+    /// <summary>
+    /// A HTTP web socket binary message response.
+    /// </summary>
     public class WebSocketBinaryMessageResponse
     {
 
-        public EventTracking_Id  EventTrackingId      { get; }
+        #region Properties
 
+        /// <summary>
+        /// The request timestamp.
+        /// </summary>
         public DateTime          RequestTimestamp     { get; }
 
-        public Byte[]            Request              { get; }
+        /// <summary>
+        /// The request message.
+        /// </summary>
+        public Byte[]            RequestMessage       { get; }
 
+        /// <summary>
+        /// The response timestamp.
+        /// </summary>
         public DateTime          ResponseTimestamp    { get; }
 
-        public Byte[]            Response             { get; }
+        /// <summary>
+        /// The response message.
+        /// </summary>
+        public Byte[]            ResponseMessage      { get; }
 
+        /// <summary>
+        /// The event tracking identification for correlating this request with other events.
+        /// </summary>
+        public EventTracking_Id  EventTrackingId      { get; }
 
-        public WebSocketBinaryMessageResponse(EventTracking_Id  EventTrackingId,
-                                              DateTime          RequestTimestamp,
-                                              Byte[]            Request,
+        #endregion
+
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create a new HTTP web socket binary message response.
+        /// </summary>
+        /// <param name="RequestTimestamp">The request timestamp.</param>
+        /// <param name="RequestMessage">The request message.</param>
+        /// <param name="ResponseTimestamp">The response timestamp.</param>
+        /// <param name="ResponseMessage">The response message.</param>
+        /// <param name="EventTrackingId">The event tracking identification for correlating this request with other events.</param>
+        public WebSocketBinaryMessageResponse(DateTime          RequestTimestamp,
+                                              Byte[]            RequestMessage,
                                               DateTime          ResponseTimestamp,
-                                              Byte[]            Response)
+                                              Byte[]            ResponseMessage,
+                                              EventTracking_Id  EventTrackingId)
         {
 
-            this.EventTrackingId    = EventTrackingId;
             this.RequestTimestamp   = RequestTimestamp;
-            this.Request            = Request;
+            this.RequestMessage     = RequestMessage;
             this.ResponseTimestamp  = ResponseTimestamp;
-            this.Response           = Response;
+            this.ResponseMessage    = ResponseMessage;
+            this.EventTrackingId    = EventTrackingId;
 
         }
+
+        #endregion
 
     }
 
