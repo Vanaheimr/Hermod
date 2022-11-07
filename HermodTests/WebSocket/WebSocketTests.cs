@@ -112,11 +112,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
                 newWebSocketConnection  = true;
             };
 
-            webSocketServer.OnWebSocketFrameReceived              += async (timestamp, server, connection, requestFrame, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, requestFrame, eventTrackingId) => {
                 messageRequests.     Add(requestFrame);
             };
 
-            webSocketServer.OnWebSocketFrameResponse               += async (timestamp, server, connection, requestFrame, responseFrame, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnWebSocketFrameResponse      += async (timestamp, server, connection, requestFrame, responseFrame, eventTrackingId) => {
                 messageResponses.    Add(responseFrame);
             };
 
@@ -209,11 +209,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
                 newWebSocketConnection  = true;
             };
 
-            webSocketServer.OnWebSocketFrameReceived              += async (timestamp, server, connection, requestFrame, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, requestFrame, eventTrackingId) => {
                 messageRequests.     Add(requestFrame);
             };
 
-            webSocketServer.OnWebSocketFrameResponse               += async (timestamp, server, connection, requestFrame, responseFrame, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnWebSocketFrameResponse      += async (timestamp, server, connection, requestFrame, responseFrame, eventTrackingId) => {
                 messageResponses.    Add(responseFrame);
             };
 

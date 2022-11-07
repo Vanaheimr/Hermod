@@ -119,7 +119,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
 
 
-        public void SendWebSocketFrame(WebSocketFrame webSocketFrame)
+        public Boolean SendWebSocketFrame(WebSocketFrame webSocketFrame)
         {
 
             if (TCPStream is not null)
@@ -145,6 +145,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             TCPStream.Flush();
                         }
 
+                        return true;
+
                     }
                     catch (Exception e)
                     {
@@ -152,6 +154,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     }
                 }
             }
+
+            return false;
 
         }
 

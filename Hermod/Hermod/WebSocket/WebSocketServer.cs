@@ -19,15 +19,13 @@
 
 using System.Text;
 using System.Net.Sockets;
+using System.Collections.Concurrent;
 
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using System.Drawing.Text;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 
 #endregion
 
@@ -324,59 +322,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
-        public void SendFrame(WebSocketConnection  Connection,
-                              WebSocketFrame       Frame,
-                              EventTracking_Id?    EventTrackingId   = null)
+        public Boolean SendFrame(WebSocketConnection  Connection,
+                                 WebSocketFrame       Frame,
+                                 EventTracking_Id?    EventTrackingId   = null)
         {
 
-            Connection.SendWebSocketFrame(Frame);
+            var success = Connection.SendWebSocketFrame(Frame);
 
-            var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
-
-            #region Send OnWebSocketFrameSent event
-
-            try
+            if (success)
             {
 
-                var OnWebSocketFrameSentLocal = OnWebSocketFrameSent;
-                if (OnWebSocketFrameSentLocal is not null)
-                {
+                var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-                    var responseTask = OnWebSocketFrameSentLocal(Timestamp.Now,
-                                                                 this,
-                                                                 Connection,
-                                                                 Frame,
-                                                                 eventTrackingId);
-
-                    responseTask.Wait(TimeSpan.FromSeconds(10));
-
-                }
-
-            }
-            catch (Exception e)
-            {
-                DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnWebSocketFrameSent));
-            }
-
-            #endregion
-
-            #region Send OnTextMessageSent    event
-
-            if (Frame.Opcode == WebSocketFrame.Opcodes.Text)
-            {
+                #region Send OnWebSocketFrameSent event
 
                 try
                 {
 
-                    var OnTextMessageSentLocal = OnTextMessageSent;
-                    if (OnTextMessageSentLocal is not null)
+                    var OnWebSocketFrameSentLocal = OnWebSocketFrameSent;
+                    if (OnWebSocketFrameSentLocal is not null)
                     {
 
-                        var responseTask = OnTextMessageSentLocal(Timestamp.Now,
-                                                                  this,
-                                                                  Connection,
-                                                                  Frame.Payload.ToUTF8String(),
-                                                                  eventTrackingId);
+                        var responseTask = OnWebSocketFrameSentLocal(Timestamp.Now,
+                                                                     this,
+                                                                     Connection,
+                                                                     Frame,
+                                                                     eventTrackingId);
 
                         responseTask.Wait(TimeSpan.FromSeconds(10));
 
@@ -385,46 +356,99 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 }
                 catch (Exception e)
                 {
-                    DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnTextMessageSent));
+                    DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnWebSocketFrameSent));
                 }
 
-            }
+                #endregion
 
-            #endregion
+                #region Send OnTextMessageSent    event
 
-            #region Send OnBinaryMessageSent  event
-
-            if (Frame.Opcode == WebSocketFrame.Opcodes.Binary)
-            {
-
-                try
+                if (Frame.Opcode == WebSocketFrame.Opcodes.Text)
                 {
 
-                    var OnBinaryMessageSentLocal = OnBinaryMessageSent;
-                    if (OnBinaryMessageSentLocal is not null)
+                    try
                     {
 
-                        var responseTask = OnBinaryMessageSentLocal(Timestamp.Now,
-                                                                    this,
-                                                                    Connection,
-                                                                    Frame.Payload,
-                                                                    eventTrackingId);
+                        var OnTextMessageSentLocal = OnTextMessageSent;
+                        if (OnTextMessageSentLocal is not null)
+                        {
 
-                        responseTask.Wait(TimeSpan.FromSeconds(10));
+                            var responseTask = OnTextMessageSentLocal(Timestamp.Now,
+                                                                      this,
+                                                                      Connection,
+                                                                      Frame.Payload.ToUTF8String(),
+                                                                      eventTrackingId);
 
+                            responseTask.Wait(TimeSpan.FromSeconds(10));
+
+                        }
+
+                    }
+                    catch (Exception e)
+                    {
+                        DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnTextMessageSent));
                     }
 
                 }
-                catch (Exception e)
+
+                #endregion
+
+                #region Send OnBinaryMessageSent  event
+
+                if (Frame.Opcode == WebSocketFrame.Opcodes.Binary)
                 {
-                    DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnBinaryMessageSent));
+
+                    try
+                    {
+
+                        var OnBinaryMessageSentLocal = OnBinaryMessageSent;
+                        if (OnBinaryMessageSentLocal is not null)
+                        {
+
+                            var responseTask = OnBinaryMessageSentLocal(Timestamp.Now,
+                                                                        this,
+                                                                        Connection,
+                                                                        Frame.Payload,
+                                                                        eventTrackingId);
+
+                            responseTask.Wait(TimeSpan.FromSeconds(10));
+
+                        }
+
+                    }
+                    catch (Exception e)
+                    {
+                        DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnBinaryMessageSent));
+                    }
+
                 }
+
+                #endregion
 
             }
 
-            #endregion
+            return success;
 
         }
+
+
+        #region RemoveConnection(Connection)
+
+        /// <summary>
+        /// Remove the given web socket connection.
+        /// </summary>
+        /// <param name="Connection">A HTTP web socket connection.</param>
+        public Boolean RemoveConnection(WebSocketConnection Connection)
+        {
+
+            DebugX.Log(nameof(WebSocketServer), " Removing HTTP web socket connection with " + Connection.RemoteSocket);
+
+            return webSocketConnections.Remove(Connection.RemoteSocket, out _);
+
+        }
+
+        #endregion
+
 
 
         #region Start()
