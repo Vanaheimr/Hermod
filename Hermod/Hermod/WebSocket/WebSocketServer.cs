@@ -21,8 +21,6 @@ using System.Text;
 using System.Net.Sockets;
 using System.Collections.Concurrent;
 
-using Newtonsoft.Json.Linq;
-
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
@@ -128,6 +126,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public event OnServerStartedDelegate?                     OnServerStarted;
 
+
+        /// <summary>
+        /// An event sent whenever a new TCP connection was accepted.
+        /// </summary>
+        public event OnValidateTCPConnectionDelegate?             OnValidateTCPConnection;
+
         /// <summary>
         /// An event sent whenever a new TCP connection was accepted.
         /// </summary>
@@ -142,7 +146,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// An event sent whenever the HTTP headers of a new web socket connection
         /// need to be validated or filtered by an upper layer application logic.
         /// </summary>
-        public event OnOnValidateWebSocketConnectionDelegate?     OnValidateWebSocketConnection;
+        public event OnValidateWebSocketConnectionDelegate?       OnValidateWebSocketConnection;
 
         /// <summary>
         /// An event sent whenever the HTTP connection switched successfully to web socket.
@@ -322,6 +326,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
+        #region SendFrame(Connection, Frame, EventTrackingId = null)
+
+        /// <summary>
+        /// Send a web socket frame.
+        /// </summary>
+        /// <param name="Connection">The web socket connection.</param>
+        /// <param name="Frame">The web socket frame to send.</param>
+        /// <param name="EventTrackingId">An event tracking identification for correlating this request with other events.</param>
         public Boolean SendFrame(WebSocketConnection  Connection,
                                  WebSocketFrame       Frame,
                                  EventTracking_Id?    EventTrackingId   = null)
@@ -431,6 +443,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         }
 
+        #endregion
 
         #region RemoveConnection(Connection)
 
@@ -450,7 +463,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
-
         #region Start()
 
         /// <summary>
@@ -460,6 +472,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         {
 
             listenerThread = new Thread(() => {
+
+                #region Server setup
 
                 Thread.CurrentThread.Name          = ServerThreadNameCreator?.Invoke(IPSocket) ?? "HTTP Web Socket Server :" + IPSocket.Port;
                 Thread.CurrentThread.Priority      = ServerThreadPriority;
@@ -471,6 +485,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 tcpListener.Start();
 
                 isRunning = true;
+
+                #endregion
 
                 #region Send OnServerStarted event
 
@@ -516,6 +532,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                     #endregion
 
+                    #region OnValidateTCPConnection
+
+                    var validatedTCPConnection = true;
+
+                    var OnValidateTCPConnectionLocal = OnValidateTCPConnection;
+                    if (OnValidateTCPConnectionLocal is not null)
+                    {
+
+                        validatedTCPConnection = OnValidateTCPConnectionLocal(Timestamp.Now,
+                                                                              this,
+                                                                              newTCPConnection,
+                                                                              EventTracking_Id.New,
+                                                                              token).Result ?? false;
+
+                    }
+
+                    if (!validatedTCPConnection)
+                        newTCPConnection.Close();
+
+                    else
+
+                    #endregion
+
                     Task.Factory.StartNew(async context =>
                     {
 
@@ -552,8 +591,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                     webSocketConnections.TryRemove(webSocketConnection.RemoteSocket, out _);
 
-                                    webSocketConnections.TryAdd(webSocketConnection.RemoteSocket,
-                                                                webSocketConnection);
+                                    webSocketConnections.TryAdd   (webSocketConnection.RemoteSocket,
+                                                                   webSocketConnection);
 
                                 }
 

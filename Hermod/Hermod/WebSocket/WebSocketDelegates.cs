@@ -19,6 +19,7 @@
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 
 #endregion
 
@@ -30,6 +31,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     public delegate Task                                 OnServerStartedDelegate                 (DateTime                         Timestamp,
                                                                                                   WebSocketServer                  Server,
                                                                                                   EventTracking_Id                 EventTrackingId);
+
+    public delegate Task<Boolean?>                       OnValidateTCPConnectionDelegate         (DateTime                         Timestamp,
+                                                                                                  WebSocketServer                  Server,
+                                                                                                  System.Net.Sockets.TcpClient     Connection,
+                                                                                                  EventTracking_Id                 EventTrackingId,
+                                                                                                  CancellationToken                CancellationToken);
 
     public delegate Task                                 OnNewTCPConnectionDelegate              (DateTime                         Timestamp,
                                                                                                   WebSocketServer                  Server,
@@ -47,7 +54,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                                   WebSocketServer                  Server,
                                                                                                   HTTPRequest                      Request);
 
-    public delegate Task<HTTPResponse?>                  OnOnValidateWebSocketConnectionDelegate (DateTime                         Timestamp,
+    public delegate Task<HTTPResponse?>                  OnValidateWebSocketConnectionDelegate   (DateTime                         Timestamp,
                                                                                                   WebSocketServer                  Server,
                                                                                                   WebSocketConnection              Connection,
                                                                                                   EventTracking_Id                 EventTrackingId,

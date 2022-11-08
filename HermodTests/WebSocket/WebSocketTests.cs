@@ -81,8 +81,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
             if (webSocketServer is null)
                 return;
 
+            var validatedTCP            = false;
             var newTCPConnection        = false;
-            var validated               = false;
+            var validatedWebSocket      = false;
             var newWebSocketConnection  = false;
             var httpRequests            = new List<HTTPRequest>();
             var httpResponses           = new List<HTTPResponse>();
@@ -90,6 +91,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
             var messageResponses        = new List<WebSocketFrame>();
             var textMessageRequests     = new List<String>();
             var textMessageResponses    = new List<String>();
+
+            webSocketServer.OnValidateTCPConnection       += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+                validatedTCP            = true;
+                return null;
+            };
 
             webSocketServer.OnNewTCPConnection            += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 newTCPConnection        = true;
@@ -100,7 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
             };
 
             webSocketServer.OnValidateWebSocketConnection += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                validated               = true;
+                validatedWebSocket      = true;
                 return null;
             };
 
@@ -132,7 +138,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
             await webSocketClient.Connect();
 
             Assert.IsTrue  (newTCPConnection);
-            Assert.IsTrue  (validated);
+            Assert.IsTrue  (validatedWebSocket);
             Assert.IsTrue  (newWebSocketConnection);
 
             Assert.AreEqual(1, httpRequests. Count);
@@ -178,8 +184,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
             if (webSocketServer is null)
                 return;
 
+            var validatedTCP            = false;
             var newTCPConnection        = false;
-            var validated               = false;
+            var validatedWebSocket      = false;
             var newWebSocketConnection  = false;
             var httpRequests            = new List<HTTPRequest>();
             var httpResponses           = new List<HTTPResponse>();
@@ -187,6 +194,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
             var messageResponses        = new List<WebSocketFrame>();
             var textMessageRequests     = new List<String>();
             var textMessageResponses    = new List<String>();
+
+            webSocketServer.OnValidateTCPConnection       += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+                validatedTCP            = true;
+                return null;
+            };
 
             webSocketServer.OnNewTCPConnection            += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 newTCPConnection        = true;
@@ -197,7 +209,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
             };
 
             webSocketServer.OnValidateWebSocketConnection += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                validated               = true;
+                validatedWebSocket      = true;
                 return null;
             };
 
@@ -228,8 +240,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
             var webSocketClient = new WebSocketClient(URL.Parse("ws://127.0.0.1:" + port));
             await webSocketClient.Connect();
 
+            Assert.IsTrue  (validatedTCP);
             Assert.IsTrue  (newTCPConnection);
-            Assert.IsTrue  (validated);
+            Assert.IsTrue  (validatedWebSocket);
             Assert.IsTrue  (newWebSocketConnection);
 
             Assert.AreEqual(1, httpRequests. Count);
