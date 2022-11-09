@@ -334,14 +334,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="Connection">The web socket connection.</param>
         /// <param name="Frame">The web socket frame to send.</param>
         /// <param name="EventTrackingId">An event tracking identification for correlating this request with other events.</param>
-        public Boolean SendFrame(WebSocketConnection  Connection,
-                                 WebSocketFrame       Frame,
-                                 EventTracking_Id?    EventTrackingId   = null)
+        public SendStatus SendFrame(WebSocketConnection  Connection,
+                                    WebSocketFrame       Frame,
+                                    EventTracking_Id?    EventTrackingId   = null)
         {
 
             var success = Connection.SendWebSocketFrame(Frame);
 
-            if (success)
+            if (success == SendStatus.Success)
             {
 
                 var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
@@ -568,22 +568,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                 Boolean       IsStillHTTP        = true;
                                 String?       httpMethod         = null;
-                                Byte[]?       bytes              = null;
+                                Byte[]        bytes              = Array.Empty<Byte>();
                                 Byte[]        bytesLeftOver      = Array.Empty<Byte>();
                                 HTTPResponse? httpResponse       = null;
 
                                 var cts2                         = CancellationTokenSource.CreateLinkedTokenSource(token);
                                 var token2                       = cts2.Token;
                                 var lastWebSocketPingTimestamp   = Timestamp.Now;
+                                var sendErrors                   = 0;
 
                                 #endregion
 
                                 #region Config web socket connection
 
-                                if (webSocketConnection.TCPStream is not null) {
-                                    webSocketConnection.TCPStream.ReadTimeout   = 20000; // msec
-                                    webSocketConnection.TCPStream.WriteTimeout  = 3000;  // msec
-                                }
+                                webSocketConnection.ReadTimeout   = TimeSpan.FromSeconds(20);
+                                webSocketConnection.WriteTimeout  = TimeSpan.FromSeconds(3);
 
                                 if (!webSocketConnections.TryAdd(webSocketConnection.RemoteSocket,
                                                                  webSocketConnection))
@@ -625,16 +624,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                 #endregion
 
-                                while (!token2.IsCancellationRequested && webSocketConnection.TCPStream is not null)
+                                while (!token2.IsCancellationRequested &&
+                                       !webSocketConnection.IsClosed   &&
+                                        sendErrors < 3)
                                 {
 
                                     #region Main loop waiting for data... and sending a regular web socket ping
 
-                                    if (bytes is null)
+                                    if (bytes.Length == 0)
                                     {
 
-                                        while (webSocketConnection.TCPStream is not null &&
-                                               webSocketConnection.TCPStream.DataAvailable == false)
+                                        while (webSocketConnection.DataAvailable == false &&
+                                              !webSocketConnection.IsClosed               &&
+                                               sendErrors < 3)
                                         {
 
                                             #region Send a regular web socket "ping"
@@ -659,29 +661,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                        );
 
 
-                                                SendFrame(webSocketConnection,
-                                                          frame,
-                                                          eventTrackingId);
+                                                var success          = SendFrame(webSocketConnection,
+                                                                                 frame,
+                                                                                 eventTrackingId);
 
-                                                #region OnPingMessageSent
-
-                                                try
+                                                if (success == SendStatus.Success)
                                                 {
 
-                                                    OnPingMessageSent?.Invoke(Timestamp.Now,
-                                                                              this,
-                                                                              webSocketConnection,
-                                                                              frame,
-                                                                              eventTrackingId);
+                                                    sendErrors = 0;
+
+                                                    #region OnPingMessageSent
+
+                                                    try
+                                                    {
+
+                                                        OnPingMessageSent?.Invoke(Timestamp.Now,
+                                                                                  this,
+                                                                                  webSocketConnection,
+                                                                                  frame,
+                                                                                  eventTrackingId);
+
+                                                    }
+                                                    catch (Exception e)
+                                                    {
+                                                        DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnTextMessageRequest));
+                                                    }
+
+                                                    #endregion
 
                                                 }
-                                                catch (Exception e)
+                                                else if (success == SendStatus.FatalError)
                                                 {
-                                                    DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnTextMessageRequest));
+                                                    webSocketConnection.Close();
                                                 }
-
-                                                #endregion
-
+                                                else
+                                                {
+                                                    sendErrors++;
+                                                    DebugX.Log("Web socket connection with " + webSocketConnection.RemoteSocket + " ping failed (" + sendErrors + ")!");
+                                                }
 
                                                 lastWebSocketPingTimestamp = Timestamp.Now;
 
@@ -693,17 +710,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                         };
 
-                                        if (webSocketConnection.TCPStream is null)
-                                            break;
-
-                                        bytes = new Byte[bytesLeftOver.Length + webSocketConnection.TcpClient.Available];
+                                        bytes = new Byte[bytesLeftOver.Length + webSocketConnection.Available];
 
                                         if (bytesLeftOver.Length > 0)
                                             Array.Copy(bytesLeftOver, 0, bytes, 0, bytesLeftOver.Length);
 
-                                        webSocketConnection.TCPStream.Read(bytes,
-                                                                           bytesLeftOver.Length,
-                                                                           bytes.Length - bytesLeftOver.Length);
+                                        if (bytes.Length > 0)
+                                            webSocketConnection.Read(bytes,
+                                                                     bytesLeftOver.Length,
+                                                                     bytes.Length - bytesLeftOver.Length);
 
                                         httpMethod = IsStillHTTP
                                             ? Encoding.UTF8.GetString(bytes, 0, 4)
@@ -806,37 +821,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                         #region Send HTTP response
 
-                                        var responseBytes = (httpResponse.EntirePDU + "\r\n\r\n").ToUTF8Bytes();
+                                        var success = webSocketConnection.SendText(httpResponse.EntirePDU + "\r\n\r\n");
 
-                                        lock (webSocketConnection.TCPStream)
-                                        {
-                                            webSocketConnection.TCPStream.Write(responseBytes,
-                                                                                0,
-                                                                                responseBytes.Length);
-                                        }
-
-                                        #region OnHTTPResponse
-
-                                        var OnHTTPResponseLocal = OnHTTPResponse;
-                                        if (OnHTTPResponseLocal is not null)
+                                        if (success == SendStatus.Success)
                                         {
 
-                                            await OnHTTPResponseLocal(Timestamp.Now,
-                                                                      this,
-                                                                      httpRequest,
-                                                                      httpResponse);
+                                            #region OnHTTPResponse
+
+                                            var OnHTTPResponseLocal = OnHTTPResponse;
+                                            if (OnHTTPResponseLocal is not null)
+                                            {
+
+                                                await OnHTTPResponseLocal(Timestamp.Now,
+                                                                          this,
+                                                                          httpRequest,
+                                                                          httpResponse);
+
+                                            }
+
+                                            #endregion
 
                                         }
 
                                         #endregion
 
-                                        #endregion
-
-                                        if (httpResponse.Connection == "close")
+                                        if (success                 != SendStatus.Success ||
+                                            httpResponse.Connection == "close")
                                         {
-                                            webSocketConnection.TCPStream.Close();
-                                            webSocketConnection.TCPStream = null;
+                                            webSocketConnection.Close();
                                         }
+
                                         else
                                         {
 
@@ -868,7 +882,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                             #endregion
 
                                             IsStillHTTP  = false;
-                                            bytes        = null;
+                                            bytes        = Array.Empty<Byte>();
 
                                         }
 
@@ -878,7 +892,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                     #region ...or a web socket frame...
 
-                                    else if (IsStillHTTP == false)
+                                    else if (IsStillHTTP == false &&
+                                             bytes.Length > 0)
                                     {
 
                                         if (WebSocketFrame.TryParse(bytes,
@@ -1185,8 +1200,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                         #endregion
 
-                                                        webSocketConnection.TCPStream.Close();
-                                                        webSocketConnection.TCPStream = null;
+                                                        webSocketConnection.Close();
 
                                                         break;
 
@@ -1196,33 +1210,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 #region Send immediate response frame... when available
 
-                                                if (responseFrame is not null && webSocketConnection.TCPStream is not null)
+                                                if (responseFrame is not null)
                                                 {
 
-                                                    SendFrame(webSocketConnection,
-                                                              responseFrame,
-                                                              eventTrackingId);
+                                                    var success = SendFrame(webSocketConnection,
+                                                                            responseFrame,
+                                                                            eventTrackingId);
 
-                                                    #region OnWebSocketFrameResponse
-
-                                                    try
+                                                    if (success == SendStatus.Success)
                                                     {
 
-                                                        if (responseFrame is not null)
-                                                            OnWebSocketFrameResponse?.Invoke(Timestamp.Now,
-                                                                                             this,
-                                                                                             webSocketConnection,
-                                                                                             frame,
-                                                                                             responseFrame,
-                                                                                             eventTrackingId);
+                                                        sendErrors = 0;
+
+                                                        #region OnWebSocketFrameResponse
+
+                                                        try
+                                                        {
+
+                                                            if (responseFrame is not null)
+                                                                OnWebSocketFrameResponse?.Invoke(Timestamp.Now,
+                                                                                                 this,
+                                                                                                 webSocketConnection,
+                                                                                                 frame,
+                                                                                                 responseFrame,
+                                                                                                 eventTrackingId);
+
+                                                        }
+                                                        catch (Exception e)
+                                                        {
+                                                            DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnWebSocketFrameResponse));
+                                                        }
+
+                                                        #endregion
 
                                                     }
-                                                    catch (Exception e)
+                                                    else if (success == SendStatus.FatalError)
                                                     {
-                                                        DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnWebSocketFrameResponse));
+                                                        webSocketConnection.Close();
                                                     }
-
-                                                    #endregion
+                                                    else
+                                                    {
+                                                        sendErrors++;
+                                                        DebugX.Log("Web socket connection with " + webSocketConnection.RemoteSocket + " sending a web socket frame failed (" + sendErrors + ")!");
+                                                    }
 
                                                 }
 
@@ -1235,7 +1265,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 //}
 
                                                 if ((UInt64) bytes.Length == frameLength)
-                                                    bytes = null;
+                                                    bytes = Array.Empty<Byte>();
 
                                                 else
                                                 {
@@ -1254,9 +1284,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                         {
                                             bytesLeftOver = bytes;
                                             DebugX.Log("Could not parse the given web socket frame of " + bytesLeftOver.Length + " byte(s): " + errorResponse);
-                                            bytes = null;
+                                            bytes = Array.Empty<Byte>();
                                         }
 
+                                    }
+
+                                    #endregion
+
+                                    #region ...0 bytes read...
+
+                                    else if (bytes.Length == 0)
+                                    {
+                                        // Some kind of network error...
                                     }
 
                                     #endregion
@@ -1267,17 +1306,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                     else
                                     {
-
-                                        // DebugX.Log(nameof(WebSocketServer) + ": Closing invalid TCP connection!");
-
-                                        webSocketConnection.TCPStream.Close();
-                                        webSocketConnection.TCPStream = null;
-
+                                        DebugX.Log(nameof(WebSocketServer) + ": Closing invalid TCP connection from: " + webSocketConnection.RemoteSocket);
+                                        webSocketConnection.Close();
                                     }
 
                                     #endregion
 
                                 }
+
+                                webSocketConnection.Close();
 
                                 webSocketConnections.TryRemove(webSocketConnection.RemoteSocket, out _);
 

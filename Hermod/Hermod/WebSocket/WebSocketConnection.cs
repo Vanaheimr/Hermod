@@ -21,12 +21,18 @@ using System.Net.Sockets;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using System.Diagnostics.CodeAnalysis;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
+
+    public enum SendStatus
+    {
+        Success,
+        Error,
+        FatalError
+    }
 
     /// <summary>
     /// A HTTP web socket connection.
@@ -36,7 +42,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region Data
 
-        private readonly Dictionary<String, Object?> customData;
+        private readonly  Dictionary<String, Object?>  customData;
+
+        private readonly  TcpClient                    tcpClient;
+
+        private readonly  NetworkStream                tcpStream;
+
+        public  volatile  Boolean                      IsClosed;
 
         #endregion
 
@@ -55,16 +67,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public WebSocketServer          WebSocketServer               { get; }
 
         /// <summary>
-        /// The TCP connection abstraction.
-        /// </summary>
-        public TcpClient                TcpClient                     { get; }
-
-        /// <summary>
-        /// The network stream of the TCP connection abstraction.
-        /// </summary>
-        public NetworkStream?           TCPStream                     { get; internal set; }
-
-        /// <summary>
         /// The local TCP socket.
         /// </summary>
         public IPSocket                 LocalSocket                   { get; }
@@ -79,7 +81,76 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public HTTPRequest?             Request                       { get; internal set; }
 
+        /// <summary>
+        /// For debugging reasons data can be send really really slow...
+        /// </summary>
         public TimeSpan?                SlowNetworkSimulationDelay    { get; }
+
+        /// <summary>
+        /// The amount of time a read operation blocks waiting for data.
+        /// </summary>
+        public TimeSpan ReadTimeout
+        {
+            get
+            {
+                return TimeSpan.FromMilliseconds(tcpStream.ReadTimeout);
+            }
+            set
+            {
+                tcpStream.ReadTimeout = (Int32) value.TotalMilliseconds;
+            }
+        }
+
+        /// <summary>
+        /// The amount of time a write operation blocks before failing.
+        /// </summary>
+        public TimeSpan WriteTimeout
+        {
+            get
+            {
+                return TimeSpan.FromMilliseconds(tcpStream.WriteTimeout);
+            }
+            set
+            {
+                tcpStream.WriteTimeout = (Int32) value.TotalMilliseconds;
+            }
+        }
+
+        /// <summary>
+        /// Whether data on the network stream is available for reading.
+        /// </summary>
+        public Boolean DataAvailable
+        {
+            get
+            {
+                try
+                {
+                    return tcpStream.DataAvailable;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+        }
+
+        /// <summary>
+        /// The amount of data on the network stream available for reading.
+        /// </summary>
+        public Int32 Available
+        {
+            get
+            {
+                try
+                {
+                    return tcpClient.Available;
+                }
+                catch
+                {
+                    return 0;
+                }
+            }
+        }
 
         #endregion
 
@@ -102,8 +173,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.Created                     = Timestamp.Now;
             this.CancellationTokenSource     = new CancellationTokenSource();
             this.WebSocketServer             = WebSocketServer;
-            this.TcpClient                   = TcpClient;
-            this.TCPStream                   = TcpClient.GetStream();
+            this.tcpClient                   = TcpClient;
+            this.tcpStream                   = TcpClient.GetStream();
             this.LocalSocket                 = IPSocket.FromIPEndPoint(TcpClient.Client.LocalEndPoint!);
             this.RemoteSocket                = IPSocket.FromIPEndPoint(TcpClient.Client.RemoteEndPoint!);
             this.Request                     = Request;
@@ -118,44 +189,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
+        #region (private) SendData_private(Data)
 
-        public Boolean SendWebSocketFrame(WebSocketFrame webSocketFrame)
+        /// <summary>
+        /// Send the given array of bytes.
+        /// </summary>
+        /// <param name="Data">The array of bytes to send.</param>
+        private SendStatus SendData_private(Byte[] Data)
         {
 
-            if (TCPStream is not null)
+            lock (tcpStream)
             {
-                lock (TCPStream)
+                try
                 {
-                    try
+
+                    if (SlowNetworkSimulationDelay.HasValue)
                     {
-
-                        if (SlowNetworkSimulationDelay.HasValue)
+                        foreach (var singleByte in Data)
                         {
-                            foreach (var _byte in webSocketFrame.ToByteArray())
-                            {
-                                TCPStream.Write(new Byte[] { _byte });
-                                TCPStream.Flush();
-                                Thread.Sleep(SlowNetworkSimulationDelay.Value);
-                            }
+                            tcpStream.Write(new Byte[] { singleByte });
+                            tcpStream.Flush();
+                            Thread.Sleep(SlowNetworkSimulationDelay.Value);
                         }
-
-                        else
-                        {
-                            TCPStream.Write(webSocketFrame.ToByteArray());
-                            TCPStream.Flush();
-                        }
-
-                        return true;
-
                     }
-                    catch (Exception e)
+
+                    else
                     {
-                        DebugX.LogException(e, "Sending a web socket frame in " + nameof(WebSocketServer));
+                        tcpStream.Write(Data);
+                        tcpStream.Flush();
                     }
+
+                    return SendStatus.Success;
+
+                }
+                catch (Exception e)
+                {
+
+                    if (e.InnerException is SocketException socketException)
+                    {
+                        if (socketException.SocketErrorCode == SocketError.ConnectionReset)
+                            return SendStatus.FatalError;
+                    }
+
+                    DebugX.LogException(e, "Sending data within web socket connection " + RemoteSocket);
+
                 }
             }
 
-            return false;
+            return SendStatus.Error;
 
         }
 
@@ -180,7 +261,128 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         //}
 
+        #endregion
 
+        #region SendData(Data)
+
+        /// <summary>
+        /// Send the given array of bytes.
+        /// </summary>
+        /// <param name="Data">The array of bytes to send.</param>
+        public SendStatus SendData(Byte[] Data)
+
+            => SendData_private(Data);
+
+        #endregion
+
+        #region SendText(SendText)
+
+        /// <summary>
+        /// Send the given text.
+        /// </summary>
+        /// <param name="SendText">A text to send.</param>
+        public SendStatus SendText(String SendText)
+
+            => SendData_private(SendText.ToUTF8Bytes());
+
+        #endregion
+
+        #region SendWebSocketFrame(WebSocketFrame)
+
+        /// <summary>
+        /// Send the given web socket frame.
+        /// </summary>
+        /// <param name="WebSocketFrame">A web socket frame.</param>
+        public SendStatus SendWebSocketFrame(WebSocketFrame WebSocketFrame)
+
+            => SendData_private(WebSocketFrame.ToByteArray());
+
+        #endregion
+
+
+        #region Read(Buffer, Offset, Count)
+
+        /// <summary>
+        /// Tries to reads the given amount of data from the network stream.
+        /// </summary>
+        /// <param name="Buffer">The byte array for storing the received data.</param>
+        /// <param name="Offset">An offset within the byte array.</param>
+        /// <param name="Count">The maximum number of bytes to read and store.</param>
+        /// <returns>Number of bytes read, or 0.</returns>
+        public UInt32 Read(Byte[]  Buffer,
+                           UInt32  Offset,
+                           UInt32  Count)
+        {
+
+            try
+            {
+
+                return (UInt32) tcpStream.Read(Buffer,
+                                               (Int32) Offset,
+                                               (Int32) Count);
+
+            }
+            catch
+            {
+                return 0;
+            }
+
+        }
+
+        /// <summary>
+        /// Tries to reads the given amount of data from the network stream.
+        /// </summary>
+        /// <param name="Buffer">The byte array for storing the received data.</param>
+        /// <param name="Offset">An offset within the byte array.</param>
+        /// <param name="Count">The maximum number of bytes to read and store.</param>
+        /// <returns>Number of bytes read, or 0.</returns>
+        public UInt32 Read(Byte[]  Buffer,
+                           Int32   Offset,
+                           Int32   Count)
+        {
+
+            try
+            {
+
+                return (UInt32) tcpStream.Read(Buffer,
+                                               Offset,
+                                               Count);
+
+            }
+            catch
+            {
+                return 0;
+            }
+
+        }
+
+        #endregion
+
+        #region Close()
+
+        /// <summary>
+        /// Close this web socket connection.
+        /// </summary>
+        public void Close()
+        {
+            try
+            {
+
+                tcpClient.Close();
+
+                IsClosed = true;
+
+            }
+            catch (Exception e)
+            {
+                DebugX.Log(String.Concat(nameof(WebSocketConnection), ".", nameof(Close), ": Exception occured: ", e.Message));
+            }
+        }
+
+        #endregion
+
+
+        // Custom data
 
         #region AddCustomData(Key, Value)
 
@@ -300,6 +502,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         }
 
         #endregion
+
 
 
         #region Operator overloading
@@ -431,7 +634,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             => Object is WebSocketConnection webSocketConnection
                    ? CompareTo(webSocketConnection)
-                   : throw new ArgumentException("The given object is not an HTTP web socket connection!",
+                   : throw new ArgumentException("The given object is not a HTTP web socket connection!",
                                                  nameof(Object));
 
         #endregion
