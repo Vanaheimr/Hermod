@@ -17,8 +17,6 @@
 
 #region Usings
 
-using System;
-
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -36,7 +34,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #region HTMLText
 
-        private String _HTMLTextBodypart;
+        private String htmlTextBodypart;
 
         /// <summary>
         /// The HTML body of the e-mail.
@@ -46,13 +44,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             get
             {
-                return _HTMLTextBodypart;
+                return htmlTextBodypart;
             }
 
             set
             {
-                if (value != null && value.Trim().IsNotNullOrEmpty())
-                    _HTMLTextBodypart = value;
+                if (value is not null && value.Trim().IsNotNullOrEmpty())
+                    htmlTextBodypart = value.Trim();
             }
 
         }
@@ -61,23 +59,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #region PlainText
 
-        private String _PlainTextBodypart;
+        private String? plainTextBodypart;
 
         /// <summary>
         /// An alternative plaintext body of the e-mail.
         /// </summary>
-        public String PlainText
+        public String? PlainText
         {
 
             get
             {
-                return _PlainTextBodypart;
+                return plainTextBodypart;
             }
 
             set
             {
-                if (value != null && value.Trim().IsNotNullOrEmpty())
-                    _PlainTextBodypart = value;
+                plainTextBodypart = value?.Trim();
             }
 
         }
@@ -93,12 +90,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// </summary>
         /// <param name="HTMLMail">The HTML mail.</param>
         /// <param name="PlainTextMail">An alternative plain text mail.</param>
-        public HTMLEMailBuilder(String  HTMLMail       = null,
-                                String  PlainTextMail  = null)
+        public HTMLEMailBuilder(String?  HTMLMail        = null,
+                                String?  PlainTextMail   = null)
         {
 
-            this.HTMLText   = HTMLMail;
-            this.PlainText  = PlainTextMail;
+            this.htmlTextBodypart   = HTMLMail ?? String.Empty;
+            this.plainTextBodypart  = PlainTextMail;
 
         }
 
@@ -115,8 +112,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             #region HTML & PlainText e-mail...
 
-            if (_HTMLTextBodypart. IsNotNullOrEmpty() &&
-                _PlainTextBodypart.IsNotNullOrEmpty())
+            if (htmlTextBodypart. IsNotNullOrEmpty() &&
+                plainTextBodypart.IsNotNullOrEmpty())
             {
 
                 this.ContentType = new MailContentType(this,
@@ -132,12 +129,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                                                                new EMailBodypart(ContentTypeBuilder:       AMail => new MailContentType(AMail, MailContentTypes.text_plain) { CharSet = "utf-8" },
                                                                                  ContentTransferEncoding:  this.ContentTransferEncoding,
                                                                                  ContentLanguage:          this.ContentLanguage,
-                                                                                 Content:                  _PlainTextBodypart.Split(TextLineSplitter, StringSplitOptions.None)),
+                                                                                 Content:                  plainTextBodypart.Split(TextLineSplitter, StringSplitOptions.None)),
 
                                                                new EMailBodypart(ContentTypeBuilder:       AMail => new MailContentType(AMail, MailContentTypes.text_html)  { CharSet = "utf-8" },
                                                                                  ContentTransferEncoding:  this.ContentTransferEncoding,
                                                                                  ContentLanguage:          this.ContentLanguage,
-                                                                                 Content:                  _HTMLTextBodypart. Split(TextLineSplitter, StringSplitOptions.None))
+                                                                                 Content:                  htmlTextBodypart. Split(TextLineSplitter, StringSplitOptions.None))
 
                                                            });
 
@@ -147,7 +144,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             #region HTML e-mail...
 
-            else if (_HTMLTextBodypart.IsNotNullOrEmpty())
+            else if (htmlTextBodypart.IsNotNullOrEmpty())
             {
 
                 this.ContentType = new MailContentType(this,
@@ -159,7 +156,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                 };
 
                 return new EMailBodypart(EMailBuilder:     this,
-                                         Content:          _HTMLTextBodypart.Split(TextLineSplitter, StringSplitOptions.None));
+                                         Content:          htmlTextBodypart.Split(TextLineSplitter, StringSplitOptions.None));
 
             }
 
@@ -167,7 +164,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             #region PlainText e-mail...
 
-            else if (_PlainTextBodypart.IsNotNullOrEmpty())
+            else if (plainTextBodypart.IsNotNullOrEmpty())
             {
 
                 this.ContentType = new MailContentType(this,
@@ -179,7 +176,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                 };
 
                 return new EMailBodypart(EMailBuilder:     this,
-                                         Content:          _PlainTextBodypart.Split(TextLineSplitter, StringSplitOptions.None));
+                                         Content:          plainTextBodypart.Split(TextLineSplitter, StringSplitOptions.None));
 
             }
 

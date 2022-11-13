@@ -17,14 +17,7 @@
 
 #region Usings
 
-using System;
-using System.IO;
-using System.Linq;
-using System.Collections.Generic;
-
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.BouncyCastle;
-using Org.BouncyCastle.Bcpg;
 
 #endregion
 
@@ -114,7 +107,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
 
     /// <summary>
-    /// An E-Mail builder.
+    /// An abstract E-Mail.
     /// </summary>
     public abstract class AbstractEMail
     {
@@ -208,7 +201,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #region ContentTransferEncoding
 
-        public String ContentTransferEncoding
+        public String? ContentTransferEncoding
         {
 
             get
@@ -228,7 +221,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #region ContentLanguage
 
-        public String ContentLanguage
+        public String? ContentLanguage
         {
 
             get
@@ -251,7 +244,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <summary>
         /// A short text to decripte the content of the e-mail body(part).
         /// </summary>
-        public String ContentDescription
+        public String? ContentDescription
         {
 
             get
@@ -274,7 +267,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <summary>
         /// Content-Disposition
         /// </summary>
-        public String ContentDisposition
+        public String? ContentDisposition
         {
 
             get
@@ -319,18 +312,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// </summary>
         /// <param name="EMail">An e-mail.</param>
         /// <param name="MailTextFilter">A filter delegate for filtering e-mail headers.</param>
-        public AbstractEMail(EMail                  EMail,
-                             Func<String, Boolean>  MailTextFilter = null)
+        public AbstractEMail(EMail                   EMail,
+                             Func<String, Boolean>?  MailTextFilter   = null)
             : this()
         {
 
-            if (EMail.ToText != null)
+            if (EMail.ToText is not null)
             {
                 this._MailText = EMail.ToText;
                 Tools.ParseMail(this._MailText, out _MailHeaders, out _MailBody);
             }
 
-            if (MailTextFilter != null)
+            if (MailTextFilter is not null)
                 _MailHeaders = new List<KeyValuePair<String, String>>(_MailHeaders.Where(header => MailTextFilter(header.Key.ToLower())));
 
         }
@@ -344,18 +337,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// </summary>
         /// <param name="MailText">The E-Mail as an enumeration of strings.</param>
         /// <param name="MailTextFilter">A filter delegate for filtering e-mail headers.</param>
-        public AbstractEMail(IEnumerable<String>    MailText,
-                             Func<String, Boolean>  MailTextFilter = null)
+        public AbstractEMail(IEnumerable<String>     MailText,
+                             Func<String, Boolean>?  MailTextFilter   = null)
             : this()
         {
 
-            if (MailText != null)
+            if (MailText is not null)
             {
                 this._MailText = MailText;
                 Tools.ParseMail(this._MailText, out _MailHeaders, out _MailBody);
             }
 
-            if (MailTextFilter != null)
+            if (MailTextFilter is not null)
                 _MailHeaders = new List<KeyValuePair<String, String>>(_MailHeaders.Where(header => MailTextFilter(header.Key.ToLower())));
 
         }
@@ -372,7 +365,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             : this()
         {
 
-            if (MailHeaders != null)
+            if (MailHeaders is not null)
                 this._MailHeaders.AddRange(MailHeaders);
 
         }

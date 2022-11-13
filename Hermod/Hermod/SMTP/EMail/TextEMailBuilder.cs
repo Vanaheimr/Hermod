@@ -17,7 +17,7 @@
 
 #region Usings
 
-using System;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -34,7 +34,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #region Text
 
-        private String _TextBody;
+        private String textBody;
 
         /// <summary>
         /// The body of the text e-mail.
@@ -44,13 +44,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             get
             {
-                return _TextBody;
+                return textBody;
             }
 
             set
             {
-                if (value != null && value != String.Empty && value.Trim() != "")
-                    _TextBody = value;
+                if (value is not null && value.Trim().IsNotNullOrEmpty())
+                    textBody = value;
             }
 
         }
@@ -59,22 +59,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #region ContentLanguage
 
-        private String _ContentLanguage;
+        private String? contentLanguage;
 
         /// <summary>
         /// The language of the e-mail body.
         /// </summary>
-        public String ContentLanguage
+        public String? ContentLanguage
         {
             get
             {
-                return _ContentLanguage;
+                return contentLanguage;
             }
 
             set
             {
-                if (value != null && value != String.Empty && value.Trim() != "")
-                    _ContentLanguage = value;
+                if (value is not null && value.Trim().IsNotNullOrEmpty())
+                    contentLanguage = value.Trim();
             }
 
         }
@@ -92,7 +92,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         {
 
             this.ContentType  = new MailContentType(this, MailContentTypes.text_plain) { CharSet = "utf-8" };
-
             this.Text         = "";
 
         }

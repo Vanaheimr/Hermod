@@ -15,13 +15,6 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using org.GraphDefined.Vanaheimr.Illias;
-using System;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
@@ -40,66 +33,68 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPMethod   HTTPMethod      { get; private set; }
 
         /// <summary>
-        /// The URI template of this HTTP mapping.
+        /// The URL template of this HTTP mapping.
         /// </summary>
-        public String       UriTemplate     { get; private set; }
+        public String       URLTemplate     { get; private set; }
 
         #endregion
 
         #region Constructor(s)
 
-        #region HTTPMappingAttribute(HTTPMethod, UriTemplate)
+        #region HTTPMappingAttribute(HTTPMethod, URLTemplate)
 
         /// <summary>
         /// Generates a new HTTP mapping.
         /// </summary>
         /// <param name="HTTPMethod">The HTTP method of this HTTP mapping.</param>
-        /// <param name="UriTemplate">The URI template of this HTTP mapping.</param>
-        public HTTPMappingAttribute(HTTPMethod HTTPMethod, String UriTemplate)
+        /// <param name="URLTemplate">The URL template of this HTTP mapping.</param>
+        public HTTPMappingAttribute(HTTPMethod HTTPMethod, String URLTemplate)
         {
             this.HTTPMethod  = HTTPMethod;
-            this.UriTemplate = UriTemplate;
+            this.URLTemplate = URLTemplate;
         }
 
         #endregion
 
-        #region HTTPMappingAttribute(HTTPMethod, UriTemplate)
+        #region HTTPMappingAttribute(HTTPMethod, URLTemplate)
 
         /// <summary>
         /// Generates a new HTTP mapping.
         /// </summary>
         /// <param name="HTTPMethod">The HTTP method of this HTTP mapping.</param>
-        /// <param name="UriTemplate">The URI template of this HTTP mapping.</param>
-        public HTTPMappingAttribute(HTTPMethods HTTPMethod, String UriTemplate)
+        /// <param name="URLTemplate">The URL template of this HTTP mapping.</param>
+        public HTTPMappingAttribute(HTTPMethods HTTPMethod, String URLTemplate)
         {
 
-            var httpMethod  = HTTP.HTTPMethod.Parse(HTTPMethod);
+            var httpMethod  = HTTP.HTTPMethod.TryParse(HTTPMethod);
 
-            if (this.HTTPMethod == null)
-                throw new ArgumentNullException("Invalid HTTPMethod!");
+            if (!httpMethod.HasValue)
+                throw new ArgumentNullException("Invalid HTTP method!");
 
-            this.UriTemplate = UriTemplate;
+            this.HTTPMethod   = httpMethod.Value;
+            this.URLTemplate  = URLTemplate;
 
         }
 
         #endregion
 
-        #region HTTPMappingAttribute(Text, UriTemplate)
+        #region HTTPMappingAttribute(Text, URLTemplate)
 
         /// <summary>
         /// Generates a new HTTP mapping.
         /// </summary>
         /// <param name="Text">The HTTP method of this HTTP mapping.</param>
-        /// <param name="UriTemplate">The URI template of this HTTP mapping.</param>
-        public HTTPMappingAttribute(String Text, String UriTemplate)
+        /// <param name="URLTemplate">The URL template of this HTTP mapping.</param>
+        public HTTPMappingAttribute(String Text, String URLTemplate)
         {
 
             var httpMethod = HTTPMethod.TryParse(Text);
 
-            if (httpMethod.HasValue)
-                this.HTTPMethod = httpMethod.Value;
+            if (!httpMethod.HasValue)
+                throw new ArgumentNullException("Invalid HTTP method!");
 
-            this.UriTemplate = UriTemplate;
+            this.HTTPMethod   = httpMethod.Value;
+            this.URLTemplate  = URLTemplate;
 
         }
 
