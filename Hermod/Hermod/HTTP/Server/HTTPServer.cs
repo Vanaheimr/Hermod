@@ -2330,11 +2330,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return the best matching method handler for the given parameters.
         /// </summary>
-        internal Handlers GetHandlers(HTTPHostname                              Host,
-                                      HTTPPath                                  Path,
-                                      HTTPMethod?                               Method                       = null,
-                                      Func<HTTPContentType[], HTTPContentType>  HTTPContentTypeSelector      = null,
-                                      Action<IEnumerable<String>>               ParsedURLParametersDelegate  = null)
+        internal Handlers? GetHandlers(HTTPHostname                               Host,
+                                       HTTPPath                                   Path,
+                                       HTTPMethod?                                Method                       = null,
+                                       Func<HTTPContentType[], HTTPContentType>?  HTTPContentTypeSelector      = null,
+                                       Action<IEnumerable<String>>?               ParsedURLParametersDelegate  = null)
         {
 
             Path                     = Path.IsNullOrEmpty()     ? HTTPPath.Parse("/") : Path;
@@ -2346,8 +2346,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Get HostNode or "*" or fail
 
-                if (!_HostnameNodes.TryGetValue(Host, out HostnameNode _HostNode))
-                    if (!_HostnameNodes.TryGetValue(HTTPHostname.Any, out _HostNode))
+                if (!_HostnameNodes.TryGetValue(Host, out var hostnameNode))
+                    if (!_HostnameNodes.TryGetValue(HTTPHostname.Any, out hostnameNode))
                         return null;
                         //return GetErrorHandler(Host, URL, HTTPMethod, HTTPContentType, HTTPStatusCode.BadRequest);
 
@@ -2355,37 +2355,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Try to find the best matching URLNode...
 
-                var _RegexList    = from   __URLNode
-                                    in     _HostNode.URLNodes
+                var regexList     = from   urlNode
+                                    in     hostnameNode.URLNodes
                                     select new {
-                                        URLNode = __URLNode,
-                                        Regex   = __URLNode.URLRegex
+                                        URLNode = urlNode,
+                                        Regex   = urlNode.URLRegex
                                     };
 
-                var _AllTemplates = from   _RegexTupel
-                                    in     _RegexList
+                var allTemplates  = from   regexTupel
+                                    in     regexList
                                     select new {
-                                        URLNode = _RegexTupel.URLNode,
-                                        Match   = _RegexTupel.Regex.Match(Path.ToString())
+                                        URLNode = regexTupel.URLNode,
+                                        Match   = regexTupel.Regex.Match(Path.ToString())
                                     };
 
-                var _Matches      = from    _Match
-                                    in      _AllTemplates
-                                    where   _Match.Match.Success
-                                    where   _Match.URLNode.Contains(httpMethod)
-                                    orderby 100*_Match.URLNode.SortLength +
-                                                _Match.URLNode.ParameterCount
+                var matches       = from    match
+                                    in      allTemplates
+                                    where   match.Match.Success
+                                    where   match.URLNode.Contains(httpMethod)
+                                    orderby 100*match.URLNode.SortLength +
+                                                match.URLNode.ParameterCount
                                             descending
                                     select  new {
-                                        URLNode = _Match.URLNode,
-                                        Match   = _Match.Match
+                                        URLNode = match.URLNode,
+                                        Match   = match.Match
                                     };
 
                 #endregion
 
                 #region ...or return HostNode
 
-                if (!_Matches.Any())
+                if (!matches.Any())
                 {
 
                     //if (_HostNode.RequestHandler != null)
@@ -2398,16 +2398,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #endregion
 
 
-                HTTPMethodNode  _HTTPMethodNode       = null;
-                ContentTypeNode _HTTPContentTypeNode  = null;
+                HTTPMethodNode?  httpMethodNode       = null;
+                ContentTypeNode? httpContentTypeNode  = null;
 
                 // Caused e.g. by the naming of the variables within the
                 // URL templates, there could be multiple matches!
                 //foreach (var _Match in _Matches)
                 //{
 
-                var FilteredByMethod = _Matches.Where (match      => match.URLNode.Contains(httpMethod)).
-                                                Select(match      => match.URLNode.Get(httpMethod)).
+                var filteredByMethod  = matches.Where (match      => match.URLNode.Contains(httpMethod)).
+                                                Select(match      => match.URLNode.Get     (httpMethod)).
                                                 Select(methodnode => HTTPContentTypeSelector(methodnode.ContentTypes.ToArray())).
                                                 ToArray();
 
@@ -2421,36 +2421,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 //}
 
                 // Use best matching URL Handler!
-                var _Match2 = _Matches.First();
+                var bestMatch = matches.First();
 
                 #region Copy MethodHandler Parameters
 
-                var _Parameters = new List<String>();
-                for (var i = 1; i < _Match2.Match.Groups.Count; i++)
-                    _Parameters.Add(_Match2.Match.Groups[i].Value);
+                var parameters = new List<String>();
+                for (var i = 1; i < bestMatch.Match.Groups.Count; i++)
+                    parameters.Add(bestMatch.Match.Groups[i].Value);
 
                 var ParsedURLParametersDelegateLocal = ParsedURLParametersDelegate;
-                if (ParsedURLParametersDelegateLocal != null)
-                    ParsedURLParametersDelegate(_Parameters);
+                if (ParsedURLParametersDelegateLocal is not null)
+                    ParsedURLParametersDelegateLocal(parameters);
 
                 #endregion
 
                 // If HTTPMethod was found...
-                if (_Match2.URLNode.TryGet(httpMethod, out _HTTPMethodNode))
+                if (bestMatch.URLNode.TryGet(httpMethod, out httpMethodNode))
                 {
 
-                    var BestMatchingContentType = HTTPContentTypeSelector(_HTTPMethodNode.ContentTypes.ToArray());
+                    var bestMatchingContentType = HTTPContentTypeSelector(httpMethodNode.ContentTypes.ToArray());
 
-                    if (BestMatchingContentType == HTTPContentType.ALL)
+                    if (bestMatchingContentType == HTTPContentType.ALL)
                     {
 
                         // No content types defined...
-                        if (!_HTTPMethodNode.Any())
-                            return Handlers.FromMethodNode(_HTTPMethodNode);
+                        if (!httpMethodNode.Any())
+                            return Handlers.FromMethodNode(httpMethodNode);
 
                         // A single content type is defined...
                     //    else if (_HTTPMethodNode.Count() == 1)
-                            return Handlers.FromContentTypeNode(_HTTPMethodNode.FirstOrDefault());
+                            return Handlers.FromContentTypeNode(httpMethodNode.FirstOrDefault());
 
                     //    else
                     //        throw new ArgumentException(String.Concat(URL, " ", _HTTPMethodNode, " but multiple content type choices!"));
@@ -2458,19 +2458,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     // The requested content type was found...
-                    else if (_HTTPMethodNode.TryGet(BestMatchingContentType, out _HTTPContentTypeNode))
-                        return Handlers.FromContentTypeNode(_HTTPContentTypeNode);
+                    else if (httpMethodNode.TryGet(bestMatchingContentType, out httpContentTypeNode))
+                        return Handlers.FromContentTypeNode(httpContentTypeNode);
 
 
                     else
-                        return Handlers.FromMethodNode(_HTTPMethodNode);
+                        return Handlers.FromMethodNode(httpMethodNode);
 
                 }
 
                 //}
 
                 // No HTTPMethod was found => return best matching URL Handler
-                return Handlers.FromURLNode(_Match2.URLNode);
+                return Handlers.FromURLNode(bestMatch.URLNode);
 
                 //return GetErrorHandler(Host, URL, HTTPMethod, HTTPContentType, HTTPStatusCode.BadRequest);
 

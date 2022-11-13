@@ -675,12 +675,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                     // RCPT TO:<user@example.com>
                                     // 250 2.1.5 Ok
-                                    EMailEnvelop.RcptTo.ForEach(Rcpt =>
+                                    EMailEnvelop.RcptTo.ForEach(rcpt =>
                                     {
 
-                                        var _RcptToResponse = SendCommandAndWaitForResponse("RCPT TO: <" + Rcpt.Address.ToString() + ">");
+                                        var rcptToResponse = SendCommandAndWaitForResponse("RCPT TO: <" + rcpt.Address.ToString() + ">");
 
-                                        switch (_RcptToResponse.StatusCode)
+                                        switch (rcptToResponse.StatusCode)
                                         {
 
                                             case SMTPStatusCode.UserNotLocalWillForward:
@@ -694,7 +694,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                             //    throw new SmtpCommandException(SmtpErrorCode.RecipientNotAccepted, _RcptToResponse.StatusCode, mailbox, _RcptToResponse.Response);
 
                                             case SMTPStatusCode.AuthenticationRequired:
-                                                throw new UnauthorizedAccessException(_RcptToResponse.Response);
+                                                throw new UnauthorizedAccessException(rcptToResponse.Response);
 
                                                 //default:
                                                 //    throw new SmtpCommandException(SmtpErrorCode.UnexpectedStatusCode, _RcptToResponse.StatusCode, _RcptToResponse.Response);
