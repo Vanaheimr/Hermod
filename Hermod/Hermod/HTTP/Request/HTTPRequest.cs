@@ -1109,9 +1109,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             // Parse HTTP method
             // Propably not usefull to define here, as we can not send a response having an "Allow-header" here!
-            this.HTTPMethod = HTTPMethod.TryParseString(_HTTPMethodHeader[0], out HTTPMethod _HTTPMethod)
+            this.HTTPMethod = HTTPMethod.TryParse(_HTTPMethodHeader[0], out HTTPMethod _HTTPMethod)
                                   ? _HTTPMethod
-                                  : HTTPMethod.Create(_HTTPMethodHeader[0]);
+                                  : new HTTPMethod(_HTTPMethodHeader[0]);
 
             #endregion
 

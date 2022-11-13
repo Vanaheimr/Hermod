@@ -79,7 +79,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPErrorAttribute(HTTPMethods HTTPMethod, String UriTemplate, HTTPStatusCode myHTTPStatusCode)
         {
             
-            this.HTTPMethod     = org.GraphDefined.Vanaheimr.Hermod.HTTP.HTTPMethod.ParseEnum(HTTPMethod);
+            this.HTTPMethod     = org.GraphDefined.Vanaheimr.Hermod.HTTP.HTTPMethod.Parse(HTTPMethod);
 
             if (this.HTTPMethod == null)
                 throw new ArgumentNullException("Invalid HTTPMethod!");

@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Illias;
 using System;
 
 #endregion
@@ -72,31 +73,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPMappingAttribute(HTTPMethods HTTPMethod, String UriTemplate)
         {
 
-            this.HTTPMethod  = HTTP.HTTPMethod.ParseEnum(HTTPMethod);
+            var httpMethod  = HTTP.HTTPMethod.Parse(HTTPMethod);
 
             if (this.HTTPMethod == null)
                 throw new ArgumentNullException("Invalid HTTPMethod!");
-            
+
             this.UriTemplate = UriTemplate;
 
         }
 
         #endregion
 
-        #region HTTPMappingAttribute(HTTPMethodString, UriTemplate)
+        #region HTTPMappingAttribute(Text, UriTemplate)
 
         /// <summary>
         /// Generates a new HTTP mapping.
         /// </summary>
-        /// <param name="HTTPMethodString">The HTTP method of this HTTP mapping.</param>
+        /// <param name="Text">The HTTP method of this HTTP mapping.</param>
         /// <param name="UriTemplate">The URI template of this HTTP mapping.</param>
-        public HTTPMappingAttribute(String HTTPMethodString, String UriTemplate)
+        public HTTPMappingAttribute(String Text, String UriTemplate)
         {
 
-            this.HTTPMethod = HTTPMethod.ParseString(HTTPMethodString);
+            var httpMethod = HTTPMethod.TryParse(Text);
 
-            if (this.HTTPMethod == null)
-                this.HTTPMethod = HTTPMethod.Create(HTTPMethodString);
+            if (httpMethod.HasValue)
+                this.HTTPMethod = httpMethod.Value;
 
             this.UriTemplate = UriTemplate;
 

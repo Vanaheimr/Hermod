@@ -17,9 +17,6 @@
 
 #region Usings
 
-using System;
-using System.Linq;
-
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -220,7 +217,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The description of this HTTP method.
         /// </summary>
-        public String   Description     { get; }
+        public String?  Description     { get; }
 
 
         /// <summary>
@@ -248,10 +245,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="IsSafe"></param>
         /// <param name="IsIdempotent">This HTTP methods has no side-effects for N > 0 identical requests, as it is the same as for a single request.</param>
         /// <param name="Description">The description of this HTTP method.</param>
-        private HTTPMethod(String  MethodName,
-                           Boolean IsSafe        = false,
-                           Boolean IsIdempotent  = false,
-                           String  Description   = null)
+        public HTTPMethod(String   MethodName,
+                          Boolean  IsSafe         = false,
+                          Boolean  IsIdempotent   = false,
+                          String?  Description    = null)
         {
 
             this.MethodName    = MethodName;
@@ -260,28 +257,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.Description   = Description;
 
         }
-
-        #endregion
-
-
-        #region (static) Create(MethodName, IsSafe = false, IsIdempotent = false, Description = null)
-
-        /// <summary>
-        /// Creates a new HTTP method based on the given parameters.
-        /// </summary>
-        /// <param name="MethodName">The name of the HTTP method.</param>
-        /// <param name="IsSafe"></param>
-        /// <param name="IsIdempotent">This HTTP methods has no side-effects for N > 0 identical requests, as it is the same as for a single request.</param>
-        /// <param name="Description">The description of this HTTP method.</param>
-        public static HTTPMethod Create(String  MethodName,
-                                        Boolean IsSafe        = false,
-                                        Boolean IsIdempotent  = false,
-                                        String  Description   = null)
-
-            => new HTTPMethod(MethodName,
-                              IsSafe,
-                              IsIdempotent,
-                              Description);
 
         #endregion
 
@@ -482,49 +457,102 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-
-        #region ParseEnum  (HTTPMethodsEnum)
+ 
+        #region Parse   (Text)
 
         /// <summary>
-        /// Tries to find the appropriate HTTPMethod for the given HTTPMethods.
+        /// Tries to find the appropriate HTTP method for the given string representation.
         /// </summary>
-        /// <param name="HTTPMethodsEnum">A HTTPMethod code as string</param>
-        /// <returns>A HTTPMethod</returns>
-        public static HTTPMethod ParseEnum(HTTPMethods HTTPMethodsEnum)
+        /// <param name="Text">A string representation of a HTTP method.</param>
+        /// <returns>A HTTP method.</returns>
+        public static HTTPMethod Parse(String Text)
+
+            => (from   fieldInfo in typeof(HTTPMethod).GetFields()
+                let    httpMethod = (HTTPMethod) fieldInfo.GetValue(null)
+                where  httpMethod.MethodName == Text
+
+                select httpMethod).FirstOrDefault();
+
+        #endregion
+
+        #region Parse   (HTTPMethodEnum)
+
+        /// <summary>
+        /// Tries to find the appropriate HTTP method for the given HTTP methods.
+        /// </summary>
+        /// <param name="HTTPMethodEnum">A HTTP method code as string</param>
+        /// <returns>A HTTP method</returns>
+        public static HTTPMethod Parse(HTTPMethods HTTPMethodEnum)
+
+            => (from   fieldInfo in typeof(HTTPMethod).GetFields()
+                let    httpMethod = (HTTPMethod) fieldInfo.GetValue(null)
+                where  httpMethod.MethodName == HTTPMethodEnum.ToString()
+                select httpMethod).FirstOrDefault();
+
+        #endregion
+
+        #region TryParse(Text)
+
+        /// <summary>
+        /// Try to parse the given text as a HTTP method.
+        /// </summary>
+        /// <param name="Text">A text representation of a HTTP method.</param>
+        public static HTTPMethod? TryParse(String Text)
         {
 
-            return (from   _FieldInfo in typeof(HTTPMethod).GetFields()
-                    let    __HTTPMethod = (HTTPMethod) _FieldInfo.GetValue(null)
-                    where  __HTTPMethod != null
-                    where  __HTTPMethod.MethodName == HTTPMethodsEnum.ToString()
-                    select __HTTPMethod).FirstOrDefault();
+            if (TryParse(Text, out var httpMethod))
+                return httpMethod!;
+
+            return null;
 
         }
 
         #endregion
 
-        #region ParseString(MethodNameAsString)
+        #region TryParse(HTTPMethodEnum)
 
         /// <summary>
-        /// Tries to find the appropriate HTTPMethod for the given string representation.
+        /// Try to parse the given text as a HTTP method.
         /// </summary>
-        /// <param name="MethodNameAsString">A string representation of a HTTPMethod.</param>
-        /// <returns>A HTTPMethod.</returns>
-        public static HTTPMethod ParseString(String MethodNameAsString)
+        /// <param name="HTTPMethodEnum">A HTTP method.</param>
+        public static HTTPMethod? TryParse(HTTPMethods HTTPMethodEnum)
         {
 
-            return (from   _FieldInfo in typeof(HTTPMethod).GetFields()
-                    let    __HTTPMethod = (HTTPMethod) _FieldInfo.GetValue(null)
-                    where  __HTTPMethod != null
-                    where  __HTTPMethod.MethodName == MethodNameAsString
-                    select __HTTPMethod).FirstOrDefault();
+            if (TryParse(HTTPMethodEnum, out var httpMethod))
+                return httpMethod!;
+
+            return null;
 
         }
 
         #endregion
 
+        #region TryParse(Text,           out HTTPMethod)
 
-        #region TryParseEnum(HTTPMethodEnum, out HTTPMethod)
+        /// <summary>
+        /// Tries to find the appropriate HTTPMethod for the given string.
+        /// </summary>
+        /// <param name="Text">A HTTP method name.</param>
+        /// <param name="HTTPMethod">The parsed HTTP method.</param>
+        /// <returns>true or false</returns>
+        public static Boolean TryParse(String Text, out HTTPMethod HTTPMethod)
+        {
+
+            HTTPMethod = (from   fieldInfo in typeof(HTTPMethod).GetFields()
+                          let    httpMethod = (HTTPMethod) fieldInfo.GetValue(null)
+                          where  httpMethod.MethodName == Text
+                          select httpMethod).FirstOrDefault();
+
+            if (HTTPMethod.MethodName.IsNullOrEmpty())
+                HTTPMethod = new HTTPMethod(Text);
+
+            return true;
+
+        }
+
+        #endregion
+
+        #region TryParse(HTTPMethodEnum, out HTTPMethod)
 
         /// <summary>
         /// Tries to find the appropriate HTTPMethod for the given HTTPMethods.
@@ -532,45 +560,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethodEnum">A HTTP method.</param>
         /// <param name="HTTPMethod">The parsed HTTP method.</param>
         /// <returns>true or false</returns>
-        public static Boolean TryParseEnum(HTTPMethods HTTPMethodEnum, out HTTPMethod HTTPMethod)
+        public static Boolean TryParse(HTTPMethods HTTPMethodEnum, out HTTPMethod HTTPMethod)
         {
 
-            HTTPMethod = (from   _FieldInfo in typeof(HTTPMethod).GetFields()
-                          let    __HTTPMethod = (HTTPMethod) _FieldInfo.GetValue(null)
-                          where  __HTTPMethod != null
-                          where  __HTTPMethod.MethodName == HTTPMethodEnum.ToString()
-                          select __HTTPMethod).FirstOrDefault();
+            HTTPMethod = (from   fieldInfo in typeof(HTTPMethod).GetFields()
+                          let    httpMethod = (HTTPMethod) fieldInfo.GetValue(null)
+                          where  httpMethod.MethodName == HTTPMethodEnum.ToString()
+                          select httpMethod).FirstOrDefault();
 
-            if (HTTPMethod.MethodName == null)
+            if (HTTPMethod.MethodName.IsNullOrEmpty())
                 HTTPMethod = new HTTPMethod(HTTPMethodEnum.ToString());
 
-            return (HTTPMethod != null) ? true : false;
-
-        }
-
-        #endregion
-
-        #region TryParseString(MethodName, out HTTPMethod)
-
-        /// <summary>
-        /// Tries to find the appropriate HTTPMethod for the given string.
-        /// </summary>
-        /// <param name="MethodName">A HTTP method name.</param>
-        /// <param name="HTTPMethod">The parsed HTTP method.</param>
-        /// <returns>true or false</returns>
-        public static Boolean TryParseString(String MethodName, out HTTPMethod HTTPMethod)
-        {
-
-            HTTPMethod = (from   _FieldInfo in typeof(HTTPMethod).GetFields()
-                          let    __HTTPMethod = (HTTPMethod) _FieldInfo.GetValue(null)
-                          where  __HTTPMethod != null
-                          where  __HTTPMethod.MethodName == MethodName
-                          select __HTTPMethod).FirstOrDefault();
-
-            if (HTTPMethod.MethodName == null)
-                HTTPMethod = new HTTPMethod(MethodName);
-
-            return (HTTPMethod != null) ? true : false;
+            return true;
 
         }
 
@@ -605,7 +606,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean operator != (HTTPMethod HTTPMethod1,
                                            HTTPMethod HTTPMethod2)
 
-            => !(HTTPMethod1 == HTTPMethod2);
+            => !HTTPMethod1.Equals(HTTPMethod2);
 
         #endregion
 
@@ -635,7 +636,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean operator <= (HTTPMethod HTTPMethod1,
                                            HTTPMethod HTTPMethod2)
 
-            => !(HTTPMethod1 > HTTPMethod2);
+            => HTTPMethod1.CompareTo(HTTPMethod2) <= 0;
 
         #endregion
 
@@ -665,7 +666,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean operator >= (HTTPMethod HTTPMethod1,
                                            HTTPMethod HTTPMethod2)
 
-            => !(HTTPMethod1 < HTTPMethod2);
+            => HTTPMethod1.CompareTo(HTTPMethod2) >= 0;
 
         #endregion
 
