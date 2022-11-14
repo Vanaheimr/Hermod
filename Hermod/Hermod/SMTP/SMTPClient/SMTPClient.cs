@@ -17,13 +17,8 @@
 
 #region Usings
 
-using System;
 using System.Text;
-using System.Linq;
-using System.Threading;
 using System.Net.Sockets;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 using System.Security.Cryptography;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -44,13 +39,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #region Data
 
-        private                 Byte[]                       input;
-        private static readonly Byte[]                       ByteZero    = new Byte[1] { 0x00 };
+        private static readonly Byte[]         ByteZero            = new Byte[1] { 0x00 };
 
-        private static readonly Random                       _Random     = new Random();
-        private static readonly SHA256CryptoServiceProvider  _SHAHasher  = new SHA256CryptoServiceProvider();
-
-        private static readonly SemaphoreSlim SendEMailSemaphore = new SemaphoreSlim(1, 1);
+        private static readonly SemaphoreSlim  SendEMailSemaphore  = new (1, 1);
 
         #endregion
 
@@ -61,52 +52,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// the SMTP server. If left unset, the local IP address will be
         /// used instead.
         /// </summary>
-        public String LocalDomain   { get; }
+        public String               LocalDomain             { get; }
 
         /// <summary>
         /// A login name which can be used for SMTP authentication.
         /// </summary>
-        public String Login         { get; }
+        public String?              Login                   { get; }
 
         /// <summary>
         /// The password for the login name, which both will be used
         /// for SMTP authentication.
         /// </summary>
-        public String Password      { get; }
+        public String?              Password                { get; }
 
 
 
-        public UInt64 MaxMailSize { get; }
+        public UInt64               MaxMailSize             { get; }
 
 
-        public SMTPAuthMethods AuthMethods { get; }
+        public SMTPAuthMethods      AuthMethods             { get; }
 
 
-        //#region UnknownAuthMethods
+        public IEnumerable<String>  UnknownAuthMethods      { get; }
 
-        //private List<String> _UnknownAuthMethods;
 
-        public IEnumerable<String> UnknownAuthMethods { get; }
-        //{
-        //    get
-        //    {
-        //        return _UnknownAuthMethods;
-        //    }
-        //}
-
-        //#endregion
-
-        public SmtpCapabilities Capabilities;
+        public SmtpCapabilities     Capabilities;
 
         #endregion
 
         #region Events
 
 
-        public event OnSendEMailRequestDelegate   OnSendEMailRequest;
+        public event OnSendEMailRequestDelegate?   OnSendEMailRequest;
 
 
-        public event OnSendEMailResponseDelegate  OnSendEMailResponse;
+        public event OnSendEMailResponseDelegate?  OnSendEMailResponse;
 
         #endregion
 
@@ -129,20 +109,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <param name="DNSClient">An optional DNS client used to resolve DNS names.</param>
         /// <param name="AutoConnect">Connect to the TCP service automatically on startup. Default is false.</param>
         /// <param name="CancellationToken"></param>
-        public SMTPClient(String                             RemoteHost,
-                          IPPort                             RemotePort,
-                          String                             Login                      = null,
-                          String                             Password                   = null,
-                          String                             LocalDomain                = null,
-                          Boolean                            UseIPv4                    = true,
-                          Boolean                            UseIPv6                    = false,
-                          Boolean                            PreferIPv6                 = false,
-                          TLSUsage                           UseTLS                     = TLSUsage.STARTTLS,
-                          ValidateRemoteCertificateDelegate  ValidateServerCertificate  = null,
-                          TimeSpan?                          ConnectionTimeout          = null,
-                          DNSClient                          DNSClient                  = null,
-                          Boolean                            AutoConnect                = false,
-                          CancellationToken?                 CancellationToken          = null)
+        public SMTPClient(String                              RemoteHost,
+                          IPPort                              RemotePort,
+                          String?                             Login                       = null,
+                          String?                             Password                    = null,
+                          String?                             LocalDomain                 = null,
+                          Boolean                             UseIPv4                     = true,
+                          Boolean                             UseIPv6                     = false,
+                          Boolean                             PreferIPv6                  = false,
+                          TLSUsage                            UseTLS                      = TLSUsage.STARTTLS,
+                          ValidateRemoteCertificateDelegate?  ValidateServerCertificate   = null,
+                          TimeSpan?                           ConnectionTimeout           = null,
+                          DNSClient?                          DNSClient                   = null,
+                          Boolean                             AutoConnect                 = false,
+                          CancellationToken?                  CancellationToken           = null)
 
             : base(RemoteHost,
                    RemotePort,
@@ -158,9 +138,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         {
 
-            this.Login                = Login;
-            this.Password             = Password;
-            this.LocalDomain          = LocalDomain ?? System.Net.Dns.GetHostName();
+            this.Login               = Login;
+            this.Password            = Password;
+            this.LocalDomain         = LocalDomain ?? System.Net.Dns.GetHostName();
             this.UnknownAuthMethods  = new List<String>();
 
         }
@@ -170,23 +150,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #region (private) GenerateMessageId(Mail, DomainPart = null)
 
-        private Message_Id GenerateMessageId(EMail Mail, String DomainPart = null)
+        private Message_Id GenerateMessageId(EMail    Mail,
+                                             String?  DomainPart   = null)
         {
 
-            if (DomainPart != null)
-                DomainPart = DomainPart.Trim();
+            DomainPart       = DomainPart?.Trim();
 
-            var RandomBytes  = new Byte[16];
-            _Random.NextBytes(RandomBytes);
+            var randomBytes  = new Byte[16];
+            Random.Shared.NextBytes(randomBytes);
 
-            var HashedBytes = _SHAHasher.ComputeHash(RandomBytes.
-                                                     Concat(Mail.From.   ToString(). ToUTF8Bytes()).
-                                                     Concat(Mail.Subject.            ToUTF8Bytes()).
-                                                     Concat(Mail.Date.   ToIso8601().ToUTF8Bytes()).
-                                                     ToArray());
+            var hashedBytes  = SHA256.Create().ComputeHash(randomBytes.
+                                                               Concat(Mail.From.   ToString(). ToUTF8Bytes()).
+                                                               Concat(Mail.Subject.            ToUTF8Bytes()).
+                                                               Concat(Mail.Date.   ToIso8601().ToUTF8Bytes()).
+                                                               ToArray());
 
-            return Message_Id.Parse(HashedBytes.ToHexString().Substring(0, 24),
-                                    DomainPart.IsNeitherNullNorEmpty() ? DomainPart : RemoteHost);
+            return Message_Id.Parse(hashedBytes.ToHexString()[..24],
+                                    DomainPart is not null ? DomainPart : RemoteHost);
 
         }
 
@@ -203,19 +183,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             TCPSocket.Poll(SelectMode.SelectWrite, CancellationToken.Value);
             Stream.Write(CommandBytes, 0, CommandBytes.Length);
 
+            DebugX.Log(nameof(SMTPClient) + ": " + Command);
+
         }
 
         #endregion
+
+        #region (protected) SendCommandAndWaitForResponse (Command)
+
+        protected SMTPExtendedResponse SendCommandAndWaitForResponse(String Command)
+        {
+
+            SendCommand(Command);
+
+            return ReadSMTPResponse();
+
+        }
+
+        #endregion
+
+        #region (protected) SendCommandAndWaitForResponses(Command)
+
+        protected IEnumerable<SMTPExtendedResponse> SendCommandAndWaitForResponses(String Command)
+        {
+
+            SendCommand(Command);
+
+            return ReadSMTPResponses();
+
+        }
+
+        #endregion
+
 
         #region (private)   ReadSMTPResponse()
 
         private SMTPExtendedResponse ReadSMTPResponse()
         {
 
+            Byte[] input = Array.Empty<Byte>();
+
             try
             {
 
-                if (input == null || input.Length == 0)
+                if (input.Length == 0)
                 {
 
                     input = new Byte[64 * 1024];
@@ -231,7 +242,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                 }
 
-                var aa = input.TakeWhile(b => b != ' ' && b != '-').ToArray().ToUTF8String();
+                var aa   = input.TakeWhile(b => b != ' ' && b != '-').ToArray().ToUTF8String();
                 var more = input[aa.Length] == '-';
                 var resp = input.Skip(aa.Length + 1).
                                  TakeWhile(b => b != '\r' && b != '\n').
@@ -246,13 +257,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     input = input.Skip(aa.Length + 1 + resp.Length).SkipWhile(b => b == '\r' || b == '\n').
                                   ToArray();
                 else
-                    input = null;
+                    input = Array.Empty<Byte>();
 
-                return new SMTPExtendedResponse(scode, resp.ToUTF8String().Trim(), more);
+                return new SMTPExtendedResponse(scode,
+                                                resp.ToUTF8String().Trim(),
+                                                more);
 
             } catch (Exception e)
             {
-                return new SMTPExtendedResponse(SMTPStatusCode.TransactionFailed, e.Message);
+
+                return new SMTPExtendedResponse(SMTPStatusCode.TransactionFailed,
+                                                e.Message);
+
             }
 
         }
@@ -264,51 +280,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         protected IEnumerable<SMTPExtendedResponse> ReadSMTPResponses()
         {
 
-            var ResponseList = new List<SMTPExtendedResponse>();
-            SMTPExtendedResponse SR = null;
-            do
-            {
-                SR = this.ReadSMTPResponse();
-                ResponseList.Add(SR);
-            } while (SR.MoreDataAvailable);
+            var responseList  = new List<SMTPExtendedResponse>();
+            var response      = responseList.AddAndReturnElement(ReadSMTPResponse());
 
-            return ResponseList;
+            while (response?.MoreDataAvailable == true) {
+                response = responseList.AddAndReturnElement(ReadSMTPResponse());
+            }
 
-        }
-
-        #endregion
-
-
-        #region (protected) SendCommandAndWaitForResponse (Command)
-
-        protected SMTPExtendedResponse SendCommandAndWaitForResponse(String Command)
-        {
-
-            SendCommand(Command);
-            //Debug.WriteLine(">> " + Command);
-
-            return ReadSMTPResponse();
-
-        }
-
-        #endregion
-
-        #region (protected) SendCommandAndWaitForResponses(Command)
-
-        protected IEnumerable<SMTPExtendedResponse> SendCommandAndWaitForResponses(String Command)
-        {
-
-            SendCommand(Command);
-            //Debug.WriteLine(">> " + Command);
-
-            return ReadSMTPResponses();
+            return responseList;
 
         }
 
         #endregion
 
 
-        #region Send(EMail,        NumberOfRetries = 3, RequestTimeout = null)
+        #region Send(EMail,        NumberOfRetries = 3, EventTrackingId = null, RequestTimeout = null)
 
         /// <summary>
         /// Send the given e-mail.
@@ -316,17 +302,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <param name="EMail">An e-mail.</param>
         /// <param name="NumberOfRetries">The number of retries to send the given e-mail.</param>
         /// <param name="RequestTimeout">The request timeout for sending the given e-mail.</param>
-        public Task<MailSentStatus> Send(EMail      EMail,
-                                         Byte       NumberOfRetries  = 3,
-                                         TimeSpan?  RequestTimeout   = null)
+        public Task<MailSentStatus> Send(EMail              EMail,
+                                         Byte               NumberOfRetries   = 3,
+                                         EventTracking_Id?  EventTrackingId   = null,
+                                         TimeSpan?          RequestTimeout    = null)
 
-            => Send(new EMailEnvelop(EMail ?? throw new ArgumentNullException(nameof(EMail), "The given e-mail must not be null!")),
+            => Send(new EMailEnvelop(EMail),
                     NumberOfRetries,
+                    EventTrackingId,
                     RequestTimeout);
 
         #endregion
 
-        #region Send(EMailEnvelop, NumberOfRetries = 3, RequestTimeout = null)
+        #region Send(EMailEnvelop, NumberOfRetries = 3, EventTrackingId = null, RequestTimeout = null)
 
         /// <summary>
         /// Send the given e-mail envelop.
@@ -334,33 +322,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <param name="EMailEnvelop">An e-mail envelop.</param>
         /// <param name="NumberOfRetries">The number of retries to send the given e-mail.</param>
         /// <param name="RequestTimeout">The request timeout for sending the given e-mail.</param>
-        public async Task<MailSentStatus> Send(EMailEnvelop  EMailEnvelop,
-                                               Byte          NumberOfRetries  = 3,
-                                               TimeSpan?     RequestTimeout   = null)
+        public async Task<MailSentStatus> Send(EMailEnvelop       EMailEnvelop,
+                                               Byte               NumberOfRetries   = 3,
+                                               EventTracking_Id?  EventTrackingId   = null,
+                                               TimeSpan?          RequestTimeout    = null)
         {
 
-            #region Initial checks
-
-            if (EMailEnvelop is null)
-                throw new ArgumentNullException(nameof(EMailEnvelop), "The given e-mail envelop must not be null!");
-
-            var result = MailSentStatus.failed;
-
-            #endregion
+            var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
             #region Send OnSendEMailRequest event
 
-            var StartTime = DateTime.UtcNow;
+            var startTime = Timestamp.Now;
 
             try
             {
 
-                if (OnSendEMailRequest != null)
+                if (OnSendEMailRequest is not null)
                     await Task.WhenAll(OnSendEMailRequest.GetInvocationList().
                                        Cast<OnSendEMailRequestDelegate>().
-                                       Select(e => e(StartTime,
+                                       Select(e => e(startTime,
                                                      this,
-                                                     EMailEnvelop.EventTrackingId,
+                                                     eventTrackingId,
                                                      EMailEnvelop,
                                                      RequestTimeout))).
                                        ConfigureAwait(false);
@@ -373,6 +355,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             #endregion
 
+
+            var result = MailSentStatus.failed;
 
             if (await SendEMailSemaphore.WaitAsync(RequestTimeout ?? TimeSpan.FromSeconds(60)))
             {
@@ -792,23 +776,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 }
             }
 
+
             #region Send OnSendEMailResponse event
 
-            var Endtime = DateTime.UtcNow;
+            var endtime = Timestamp.Now;
 
             try
             {
 
-                if (OnSendEMailResponse != null)
+                if (OnSendEMailResponse is not null)
                     await Task.WhenAll(OnSendEMailResponse.GetInvocationList().
                                        Cast<OnSendEMailResponseDelegate>().
-                                       Select(e => e(Endtime,
+                                       Select(e => e(endtime,
                                                      this,
-                                                     EMailEnvelop.EventTrackingId,
+                                                     eventTrackingId,
                                                      EMailEnvelop,
                                                      RequestTimeout,
                                                      result,
-                                                     Endtime - StartTime))).
+                                                     endtime - startTime))).
                                        ConfigureAwait(false);
 
             }

@@ -27,19 +27,19 @@ using org.GraphDefined.Vanaheimr.Hermod.Mail;
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
-    public delegate Task OnSendEMailRequestDelegate (DateTime                        LogTimestamp,
-                                                     ISMTPClient                     Sender,
-                                                     EventTracking_Id                EventTrackingId,
-                                                     EMailEnvelop                    EMailEnvelop,
-                                                     TimeSpan?                       RequestTimeout);
+    public delegate Task OnSendEMailRequestDelegate (DateTime           LogTimestamp,
+                                                     ISMTPClient        Sender,
+                                                     EventTracking_Id   EventTrackingId,
+                                                     EMailEnvelop       EMailEnvelop,
+                                                     TimeSpan?          RequestTimeout);
 
-    public delegate Task OnSendEMailResponseDelegate(DateTime                        LogTimestamp,
-                                                     ISMTPClient                     Sender,
-                                                     EventTracking_Id                EventTrackingId,
-                                                     EMailEnvelop                    EMailEnvelop,
-                                                     TimeSpan?                       RequestTimeout,
-                                                     MailSentStatus                  Result,
-                                                     TimeSpan                        Runtime);
+    public delegate Task OnSendEMailResponseDelegate(DateTime           LogTimestamp,
+                                                     ISMTPClient        Sender,
+                                                     EventTracking_Id   EventTrackingId,
+                                                     EMailEnvelop       EMailEnvelop,
+                                                     TimeSpan?          RequestTimeout,
+                                                     MailSentStatus     Result,
+                                                     TimeSpan           Runtime);
 
 
     public static class ISMTPClientExtensions
@@ -144,8 +144,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         event OnSendEMailResponseDelegate  OnSendEMailResponse;
 
 
-        Task<MailSentStatus> Send(EMail        EMail,        Byte NumberOfRetries = 3, TimeSpan? RequestTimeout = null);
-        Task<MailSentStatus> Send(EMailEnvelop EMailEnvelop, Byte NumberOfRetries = 3, TimeSpan? RequestTimeout = null);
+        Task<MailSentStatus> Send(EMail              EMail,
+                                  Byte               NumberOfRetries   = 3,
+                                  EventTracking_Id?  EventTrackingId   = null,
+                                  TimeSpan?          RequestTimeout    = null);
+        Task<MailSentStatus> Send(EMailEnvelop       EMailEnvelop,
+                                  Byte               NumberOfRetries   = 3,
+                                  EventTracking_Id?  EventTrackingId   = null,
+                                  TimeSpan?          RequestTimeout    = null);
 
         void Dispose();
 

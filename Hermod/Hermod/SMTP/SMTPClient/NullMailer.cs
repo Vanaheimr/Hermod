@@ -17,19 +17,10 @@
 
 #region Usings
 
-using System;
-using System.Text;
-using System.Linq;
-using System.Threading;
-using System.Net.Sockets;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 using System.Security.Cryptography;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.Mail;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 
 #endregion
 
@@ -44,10 +35,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #region Data
 
-        private static readonly Random                       _Random               = new Random();
-        private static readonly SHA256CryptoServiceProvider  _SHAHasher            = new SHA256CryptoServiceProvider();
-        private static readonly SemaphoreSlim                EMailsSemaphore       = new SemaphoreSlim(1, 1);
-        public  static readonly TimeSpan                     SemaphoreSlimTimeout  = TimeSpan.FromSeconds(30);
+        private readonly        Dictionary<Message_Id, EMailEnvelop>  eMailEnvelops;
+        private static readonly SemaphoreSlim                         eMailEnvelopsSemaphore   = new (1, 1);
+        public  static readonly TimeSpan                              SemaphoreSlimTimeout     = TimeSpan.FromSeconds(30);
 
         #endregion
 
@@ -55,15 +45,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         public SmtpCapabilities Capabilities;
 
+        #region EMails
+
+        /// <summary>
+        /// An enumeration of all e-mails sent.
+        /// </summary>
+        public IEnumerable<EMailEnvelop> EMailEnvelops
+        {
+            get
+            {
+
+                if (eMailEnvelopsSemaphore.Wait(SemaphoreSlimTimeout))
+                {
+                    try
+                    {
+
+                        return eMailEnvelops.Values.ToArray();
+
+                    }
+                    finally
+                    {
+                        try
+                        {
+                            eMailEnvelopsSemaphore.Release();
+                        }
+                        catch
+                        { }
+                    }
+                }
+
+                return Array.Empty<EMailEnvelop>();
+
+            }
+        }
+
+        #endregion
+
         #endregion
 
         #region Events
 
 
-        public event OnSendEMailRequestDelegate   OnSendEMailRequest;
+        public event OnSendEMailRequestDelegate?   OnSendEMailRequest;
 
 
-        public event OnSendEMailResponseDelegate  OnSendEMailResponse;
+        public event OnSendEMailResponseDelegate?  OnSendEMailResponse;
 
         #endregion
 
@@ -75,122 +101,75 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         public NullMailer()
         {
 
+            this.eMailEnvelops = new Dictionary<Message_Id, EMailEnvelop>();
+
         }
 
         #endregion
-
-
-
-        #region EMails
-
-        #region Data
-
-        private readonly Dictionary<Message_Id, EMailEnvelop> _EMails = new Dictionary<Message_Id, EMailEnvelop>();
-
-        /// <summary>
-        /// An enumeration of all sent e-mails.
-        /// </summary>
-        public IEnumerable<EMailEnvelop> EMails
-        {
-            get
-            {
-
-                if (EMailsSemaphore.Wait(SemaphoreSlimTimeout))
-                {
-                    try
-                    {
-
-                        return _EMails.Values.ToArray();
-
-                    }
-                    finally
-                    {
-                        try
-                        {
-                            EMailsSemaphore.Release();
-                        }
-                        catch
-                        { }
-                    }
-                }
-
-                return new EMailEnvelop[0];
-
-            }
-        }
-
-        #endregion
-
-        #endregion
-
 
 
         #region (private) GenerateMessageId(Mail, DomainPart = null)
 
-        private Message_Id GenerateMessageId(EMail Mail, String DomainPart = null)
+        private Message_Id GenerateMessageId(EMail    Mail,
+                                             String?  DomainPart   = null)
         {
 
-            if (DomainPart != null)
-                DomainPart = DomainPart.Trim();
+            DomainPart       = DomainPart?.Trim();
 
-            var RandomBytes  = new Byte[16];
-            _Random.NextBytes(RandomBytes);
+            var randomBytes  = new Byte[16];
+            Random.Shared.NextBytes(randomBytes);
 
-            var HashedBytes = _SHAHasher.ComputeHash(RandomBytes.
-                                                     Concat(Mail.From.   ToString(). ToUTF8Bytes()).
-                                                     Concat(Mail.Subject.            ToUTF8Bytes()).
-                                                     Concat(Mail.Date.   ToIso8601().ToUTF8Bytes()).
-                                                     ToArray());
+            var hashedBytes  = SHA256.Create().ComputeHash(randomBytes.
+                                                               Concat(Mail.From.   ToString(). ToUTF8Bytes()).
+                                                               Concat(Mail.Subject.            ToUTF8Bytes()).
+                                                               Concat(Mail.Date.   ToIso8601().ToUTF8Bytes()).
+                                                               ToArray());
 
-            return Message_Id.Parse(HashedBytes.ToHexString().Substring(0, 24),
-                                    DomainPart.IsNeitherNullNorEmpty() ? DomainPart : "NullMailer");
+            return Message_Id.Parse(hashedBytes.ToHexString()[..24],
+                                    DomainPart is not null ? DomainPart : "NullMailer");
 
         }
 
         #endregion
 
 
-        #region Send(EMail,        NumberOfRetries = 3, RequestTimeout = null)
+        #region Send(EMail,        NumberOfRetries = 3, EventTrackingId = null, RequestTimeout = null)
 
-        public Task<MailSentStatus> Send(EMail      EMail,
-                                         Byte       NumberOfRetries  = 3,
-                                         TimeSpan?  RequestTimeout   = null)
+        public Task<MailSentStatus> Send(EMail              EMail,
+                                         Byte               NumberOfRetries   = 3,
+                                         EventTracking_Id?  EventTrackingId   = null,
+                                         TimeSpan?          RequestTimeout    = null)
 
-            => Send(new EMailEnvelop(EMail ?? throw new ArgumentNullException(nameof(EMail), "The given e-mail must not be null!")),
+            => Send(new EMailEnvelop(EMail),
                     NumberOfRetries,
+                    EventTrackingId,
                     RequestTimeout);
 
         #endregion
 
-        #region Send(EMailEnvelop, NumberOfRetries = 3, RequestTimeout = null)
+        #region Send(EMailEnvelop, NumberOfRetries = 3, EventTrackingId = null, RequestTimeout = null)
 
-        public async Task<MailSentStatus> Send(EMailEnvelop  EMailEnvelop,
-                                               Byte          NumberOfRetries  = 3,
-                                               TimeSpan?     RequestTimeout   = null)
+        public async Task<MailSentStatus> Send(EMailEnvelop       EMailEnvelop,
+                                               Byte               NumberOfRetries   = 3,
+                                               EventTracking_Id?  EventTrackingId   = null,
+                                               TimeSpan?          RequestTimeout    = null)
         {
 
-            #region Initial checks
-
-            if (EMailEnvelop is null)
-                throw new ArgumentNullException(nameof(EMailEnvelop), "The given e-mail envelop must not be null!");
-
-            var result = MailSentStatus.failed;
-
-            #endregion
+            var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
             #region Send OnSendEMailRequest event
 
-            var StartTime = DateTime.UtcNow;
+            var startTime = Timestamp.Now;
 
             try
             {
 
-                if (OnSendEMailRequest != null)
+                if (OnSendEMailRequest is not null)
                     await Task.WhenAll(OnSendEMailRequest.GetInvocationList().
                                         Cast<OnSendEMailRequestDelegate>().
-                                        Select(e => e(StartTime,
+                                        Select(e => e(startTime,
                                                       this,
-                                                      EMailEnvelop.EventTrackingId,
+                                                      eventTrackingId,
                                                       EMailEnvelop,
                                                       RequestTimeout))).
                                         ConfigureAwait(false);
@@ -204,12 +183,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             #endregion
 
 
-            if (await EMailsSemaphore.WaitAsync(RequestTimeout ?? TimeSpan.FromSeconds(60)))
+            var result = MailSentStatus.failed;
+
+            if (await eMailEnvelopsSemaphore.WaitAsync(RequestTimeout ?? TimeSpan.FromSeconds(60)))
             {
                 try
                 {
 
-                    _EMails.Add(EMailEnvelop.Mail.MessageId ?? Message_Id.Random("opendata.social"), EMailEnvelop);
+                    eMailEnvelops.Add(EMailEnvelop.Mail.MessageId ?? Message_Id.Random("opendata.social"), EMailEnvelop);
 
                     result = MailSentStatus.ok;
 
@@ -221,27 +202,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 }
                 finally
                 {
-                    EMailsSemaphore.Release();
+                    eMailEnvelopsSemaphore.Release();
                 }
             }
 
             #region Send OnSendEMailResponse event
 
-            var Endtime = DateTime.UtcNow;
+            var endTime = Timestamp.Now;
 
             try
             {
 
-                if (OnSendEMailResponse != null)
+                if (OnSendEMailResponse is not null)
                     await Task.WhenAll(OnSendEMailResponse.GetInvocationList().
                                        Cast<OnSendEMailResponseDelegate>().
-                                       Select(e => e(Endtime,
+                                       Select(e => e(endTime,
                                                      this,
-                                                     EMailEnvelop.EventTrackingId,
+                                                     eventTrackingId,
                                                      EMailEnvelop,
                                                      RequestTimeout,
                                                      result,
-                                                     Endtime - StartTime))).
+                                                     endTime - startTime))).
                                        ConfigureAwait(false);
 
             }
@@ -263,11 +244,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         public void Clear()
         {
-            if (EMailsSemaphore.Wait(TimeSpan.FromSeconds(60)))
+            if (eMailEnvelopsSemaphore.Wait(TimeSpan.FromSeconds(60)))
             {
                 try
                 {
-                    _EMails.Clear();
+                    eMailEnvelops.Clear();
                 }
                 catch (Exception e)
                 {
@@ -275,7 +256,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 }
                 finally
                 {
-                    EMailsSemaphore.Release();
+                    eMailEnvelopsSemaphore.Release();
                 }
             }
         }

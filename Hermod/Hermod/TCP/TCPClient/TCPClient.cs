@@ -17,13 +17,8 @@
 
 #region Usings
 
-using System;
-using System.IO;
-using System.Threading;
 using System.Net.Sockets;
 using System.Net.Security;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
@@ -129,17 +124,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
-        #region DNSClient
-
-        private readonly DNSClient _DNSClient;
-
-        /// <summary>
-        /// The default DNS server.
-        /// </summary>
-        public virtual DNSClient DNSClient
-            => _DNSClient;
-
-        #endregion
+        public DNSClient?                 DNSClient                { get; }
 
         public CancellationToken?         CancellationToken        { get; private set; }
 
@@ -197,7 +182,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             this.UseTLS                     = UseTLS;
             this.ValidateServerCertificate  = ValidateServerCertificate;
             this._ConnectionTimeout         = ConnectionTimeout ?? TimeSpan.FromSeconds(60);
-            this._DNSClient                 = DNSClient         ?? new DNSClient(SearchForIPv4DNSServers: this.UseIPv4,
+            this.DNSClient                  = DNSClient         ?? new DNSClient(SearchForIPv4DNSServers: this.UseIPv4,
                                                                                  SearchForIPv6DNSServers: this.UseIPv6);
 
             this._IPSocketList               = new List<IPSocket>() {
@@ -250,7 +235,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             this.UseTLS                     = UseTLS;
             this.ValidateServerCertificate  = ValidateServerCertificate;
             this._ConnectionTimeout         = ConnectionTimeout ?? TimeSpan.FromSeconds(60);
-            this._DNSClient                 = DNSClient         ?? new DNSClient(SearchForIPv4DNSServers: this.UseIPv4,
+            this.DNSClient                  = DNSClient         ?? new DNSClient(SearchForIPv4DNSServers: this.UseIPv4,
                                                                                  SearchForIPv6DNSServers: this.UseIPv6);
 
             this._IPSocketList              = new List<IPSocket>();
@@ -284,17 +269,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="DNSClient">An optional DNS client used to resolve DNS names.</param>
         /// <param name="AutoConnect">Connect to the TCP service automatically on startup. Default is false.</param>
         /// <param name="CancellationToken"></param>
-        public TCPClient(String                             RemoteHost,
-                         IPPort                             RemotePort,
-                         Boolean                            UseIPv4                     = true,
-                         Boolean                            UseIPv6                     = false,
-                         Boolean                            PreferIPv6                  = false,
-                         TLSUsage                           UseTLS                      = TLSUsage.STARTTLS,
-                         ValidateRemoteCertificateDelegate  ValidateServerCertificate   = null,
-                         TimeSpan?                          ConnectionTimeout           = null,
-                         DNSClient                          DNSClient                   = null,
-                         Boolean                            AutoConnect                 = false,
-                         CancellationToken?                 CancellationToken           = null)
+        public TCPClient(String                              RemoteHost,
+                         IPPort                              RemotePort,
+                         Boolean                             UseIPv4                     = true,
+                         Boolean                             UseIPv6                     = false,
+                         Boolean                             PreferIPv6                  = false,
+                         TLSUsage                            UseTLS                      = TLSUsage.STARTTLS,
+                         ValidateRemoteCertificateDelegate?  ValidateServerCertificate   = null,
+                         TimeSpan?                           ConnectionTimeout           = null,
+                         DNSClient?                          DNSClient                   = null,
+                         Boolean                             AutoConnect                 = false,
+                         CancellationToken?                  CancellationToken           = null)
         {
 
             this.RemoteHost                 = RemoteHost?.Trim();
@@ -309,7 +294,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             this.UseTLS                     = UseTLS;
             this.ValidateServerCertificate  = ValidateServerCertificate ?? ((TCPClient, Certificate, CertificateChain, PolicyErrors) => false);
             this._ConnectionTimeout         = ConnectionTimeout         ?? TimeSpan.FromSeconds(60);
-            this._DNSClient                 = DNSClient                 ?? new DNSClient(SearchForIPv6DNSServers: true);
+            this.DNSClient                  = DNSClient                 ?? new DNSClient(SearchForIPv4DNSServers: this.UseIPv4,
+                                                                                         SearchForIPv6DNSServers: this.UseIPv6);
 
             this._IPSocketList              = new List<IPSocket>();
 
@@ -333,13 +319,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         private async Task QueryDNS()
         {
+            if (DNSClient is not null)
+            {
 
-            foreach (var socket in (await _DNSClient.Query<A   >(RemoteHost)).SafeSelect(ARecord => new IPSocket(ARecord.IPv4Address, RemotePort)))
-                _IPSocketList.Add(socket);
+                foreach (var socket in (await DNSClient.Query<A>   (RemoteHost)).SafeSelect(ARecord => new IPSocket(ARecord.IPv4Address, RemotePort)))
+                    _IPSocketList.Add(socket);
 
-            foreach (var socket in (await _DNSClient.Query<AAAA>(RemoteHost)).SafeSelect(ARecord => new IPSocket(ARecord.IPv6Address, RemotePort)))
-                _IPSocketList.Add(socket);
+                foreach (var socket in (await DNSClient.Query<AAAA>(RemoteHost)).SafeSelect(ARecord => new IPSocket(ARecord.IPv6Address, RemotePort)))
+                    _IPSocketList.Add(socket);
 
+            }
         }
 
         #endregion
