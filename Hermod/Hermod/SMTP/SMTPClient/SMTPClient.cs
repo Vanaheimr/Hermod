@@ -651,21 +651,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                     #region MAIL FROM:
 
-                                    foreach (var MailFrom in EMailEnvelop.MailFrom)
-                                    {
+                                    foreach (var MailFrom in EMailEnvelop.MailFrom) {
 
                                         // MAIL FROM:<test@example.com>
                                         // 250 2.1.0 Ok
-                                        var MailFromCommand = "MAIL FROM: <" + MailFrom.Address.ToString() + ">";
+                                        var mailFromCommand = "MAIL FROM: <" + MailFrom.Address.ToString() + ">";
 
                                         if (Capabilities.HasFlag(SmtpCapabilities.EightBitMime))
-                                            MailFromCommand += " BODY=8BITMIME";
+                                            mailFromCommand += " BODY=8BITMIME";
                                         else if (Capabilities.HasFlag(SmtpCapabilities.BinaryMime))
-                                            MailFromCommand += " BODY=BINARYMIME";
+                                            mailFromCommand += " BODY=BINARYMIME";
 
-                                        var _MailFromResponse = SendCommandAndWaitForResponse(MailFromCommand);
-                                        if (_MailFromResponse.StatusCode != SMTPStatusCode.Ok)
-                                            throw new SMTPClientException("SMTP MAIL FROM command error: " + _MailFromResponse.ToString());
+                                        var mailFromResponse = SendCommandAndWaitForResponse(mailFromCommand);
+                                        if (mailFromResponse.StatusCode != SMTPStatusCode.Ok)
+                                            throw new SMTPClientException("SMTP MAIL FROM command error: " + mailFromResponse.ToString());
 
                                     }
 
@@ -675,8 +674,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                     // RCPT TO:<user@example.com>
                                     // 250 2.1.5 Ok
-                                    EMailEnvelop.RcptTo.ForEach(rcpt =>
-                                    {
+                                    EMailEnvelop.RcptTo.ForEach(rcpt => {
 
                                         var rcptToResponse = SendCommandAndWaitForResponse("RCPT TO: <" + rcpt.Address.ToString() + ">");
 
@@ -691,13 +689,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                             case SMTPStatusCode.MailboxNameNotAllowed:
                                             case SMTPStatusCode.MailboxUnavailable:
                                             case SMTPStatusCode.MailboxBusy:
-                                            //    throw new SmtpCommandException(SmtpErrorCode.RecipientNotAccepted, _RcptToResponse.StatusCode, mailbox, _RcptToResponse.Response);
+                                                throw new SMTPClientException        (rcpt.Address.ToString() + " => " + rcptToResponse.StatusCode);
 
                                             case SMTPStatusCode.AuthenticationRequired:
-                                                throw new UnauthorizedAccessException(rcptToResponse.Response);
+                                                throw new UnauthorizedAccessException(rcpt.Address.ToString() + " => " + rcptToResponse.StatusCode);
 
-                                                //default:
-                                                //    throw new SmtpCommandException(SmtpErrorCode.UnexpectedStatusCode, _RcptToResponse.StatusCode, _RcptToResponse.Response);
+                                            default:
+                                                throw new SMTPClientException        (rcpt.Address.ToString() + " => " + rcptToResponse.StatusCode);
 
                                         }
 
@@ -712,18 +710,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     // The encoded MIME text lines must not be longer than 76 characters!
 
                                     // 354 End data with <CR><LF>.<CR><LF>
-                                    var _DataResponse = SendCommandAndWaitForResponse("DATA");
-                                    if (_DataResponse.StatusCode != SMTPStatusCode.StartMailInput)
-                                        throw new SMTPClientException("SMTP DATA command error: " + _DataResponse.ToString());
+                                    var dataResponse = SendCommandAndWaitForResponse("DATA");
+                                    if (dataResponse.StatusCode != SMTPStatusCode.StartMailInput)
+                                        throw new SMTPClientException("SMTP DATA command error: " + dataResponse.ToString());
 
                                     // Send e-mail headers...
-                                    if (EMailEnvelop.Mail != null)
-                                    {
+                                    if (EMailEnvelop.Mail is not null) {
 
                                         EMailEnvelop.Mail.
-                                                        Header.
-                                                        Select(header => header.Key + ": " + header.Value).
-                                                        ForEach(line => SendCommand(line));
+                                                     Header.
+                                                     Select (header => header.Key + ": " + header.Value).
+                                                     ForEach(line   => SendCommand(line));
 
                                         //SendCommand("Message-Id: <" + (EMailEnvelop.Mail.MessageId != null
                                         //                                    ? EMailEnvelop.Mail.MessageId.ToString()
@@ -740,10 +737,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                     }
 
-                                    else if (EMailEnvelop.Mail.ToText != null)
-                                    {
+                                    else if (EMailEnvelop.Mail?.ToText is not null) {
+
                                         EMailEnvelop.Mail.ToText.ForEach(line => SendCommand(line));
                                         SendCommand("");
+
                                     }
 
                                     #endregion
