@@ -1109,9 +1109,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         }
 
-        protected internal virtual async Task DoMaintenanceAsyncStep2(Object? State)
+        protected internal virtual Task DoMaintenanceAsyncStep2(Object? State)
         {
 
+            return Task.CompletedTask;
 
         }
 

@@ -137,12 +137,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="AutoStart">Start the server immediately.</param>
         protected ASOAPServer(String            HTTPServerName            = DefaultHTTPServerName,
                               IPPort?           TCPPort                   = null,
-                              String            ServiceName               = null,
+                              String?           ServiceName               = null,
 
                               HTTPPath?         URLPrefix                 = null,
-                              HTTPContentType   SOAPContentType           = null,
+                              HTTPContentType?  SOAPContentType           = null,
                               Boolean           RegisterHTTPRootService   = true,
-                              DNSClient         DNSClient                 = null,
+                              DNSClient?        DNSClient                 = null,
                               Boolean           AutoStart                 = false)
 
             : this(new SOAPServer(TCPPort:            TCPPort         ?? DefaultHTTPServerPort,
@@ -287,8 +287,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                                                  "This is a HTTP/SOAP/XML endpoint!" + Environment.NewLine + Environment.NewLine +
 
                                                                  ((Request.HTTPBodyStream is SslStream)
-                                                                      ? (Request.HTTPBodyStream as SslStream)?.RemoteCertificate.Subject + Environment.NewLine +
-                                                                        (Request.HTTPBodyStream as SslStream)?.RemoteCertificate.Issuer  + Environment.NewLine +
+                                                                      ? ((Request.HTTPBodyStream as SslStream)?.RemoteCertificate?.Subject ?? "-") + Environment.NewLine +
+                                                                        ((Request.HTTPBodyStream as SslStream)?.RemoteCertificate?.Issuer  ?? "-") + Environment.NewLine +
                                                                          Environment.NewLine
                                                                       : "") +
 
