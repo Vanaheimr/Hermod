@@ -341,9 +341,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             var success = JSON.ParseMandatoryEnum(PropertyName,
-                                              PropertyDescription,
-                                              out EnumValue,
-                                              out String ErrorResponse);
+                                                  PropertyDescription,
+                                                  out EnumValue,
+                                                  out String ErrorResponse);
 
             if (ErrorResponse != null)
             {
