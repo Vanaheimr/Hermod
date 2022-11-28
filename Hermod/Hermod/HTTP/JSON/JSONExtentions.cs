@@ -51,7 +51,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   out Text,
                                                   out String ErrorResponse);
 
-            if (ErrorResponse != null)
+            if (ErrorResponse is not null)
             {
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
@@ -93,7 +93,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         //                                      out Value,
         //                                      out String ErrorResponse);
 
-        //    if (ErrorResponse != null)
+        //    if (ErrorResponse is not null)
         //    {
 
         //        HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
@@ -134,7 +134,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         //                                      out Value,
         //                                      out String ErrorResponse);
 
-        //    if (ErrorResponse != null)
+        //    if (ErrorResponse is not null)
         //    {
 
         //        HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
@@ -176,7 +176,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               out Value,
                                               out String ErrorResponse);
 
-            if (ErrorResponse != null)
+            if (ErrorResponse is not null)
             {
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
@@ -217,7 +217,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         //                                      out Value,
         //                                      out String ErrorResponse);
 
-        //    if (ErrorResponse != null)
+        //    if (ErrorResponse is not null)
         //    {
 
         //        HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
@@ -259,7 +259,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         //                                          out Value,
         //                                          out String ErrorResponse);
 
-        //    if (ErrorResponse != null)
+        //    if (ErrorResponse is not null)
         //    {
 
         //        HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
@@ -300,7 +300,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   out Value,
                                                   out String ErrorResponse);
 
-            if (ErrorResponse != null)
+            if (ErrorResponse is not null)
             {
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
@@ -345,7 +345,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   out EnumValue,
                                                   out String ErrorResponse);
 
-            if (ErrorResponse != null)
+            if (ErrorResponse is not null)
             {
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
@@ -386,7 +386,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               out BooleanValue,
                                               out String ErrorResponse);
 
-            if (ErrorResponse != null)
+            if (ErrorResponse is not null)
             {
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
@@ -426,7 +426,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               out SingleValue,
                                               out String ErrorResponse);
 
-            if (ErrorResponse != null)
+            if (ErrorResponse is not null)
             {
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
@@ -466,7 +466,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               out DoubleValue,
                                               out String ErrorResponse);
 
-            if (ErrorResponse != null)
+            if (ErrorResponse is not null)
             {
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
@@ -506,7 +506,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               out DecimalValue,
                                               out String ErrorResponse);
 
-            if (ErrorResponse != null)
+            if (ErrorResponse is not null)
             {
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
@@ -546,7 +546,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               out ByteValue,
                                               out String ErrorResponse);
 
-            if (ErrorResponse != null)
+            if (ErrorResponse is not null)
             {
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
@@ -586,7 +586,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               out SByteValue,
                                               out String ErrorResponse);
 
-            if (ErrorResponse != null)
+            if (ErrorResponse is not null)
             {
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
@@ -626,7 +626,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               out Int32Value,
                                               out String ErrorResponse);
 
-            if (ErrorResponse != null)
+            if (ErrorResponse is not null)
             {
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
@@ -666,7 +666,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               out Int64Value,
                                               out String ErrorResponse);
 
-            if (ErrorResponse != null)
+            if (ErrorResponse is not null)
             {
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
@@ -750,7 +750,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               out I18NText,
                                               out String ErrorResponse);
 
-            if (ErrorResponse != null)
+            if (ErrorResponse is not null)
             {
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
@@ -790,7 +790,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               out JObject,
                                               out String ErrorResponse);
 
-            if (ErrorResponse != null)
+            if (ErrorResponse is not null)
             {
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
@@ -830,7 +830,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               out JArray,
                                               out String ErrorResponse);
 
-            if (ErrorResponse != null)
+            if (ErrorResponse is not null)
             {
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
@@ -870,7 +870,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               out StringArray,
                                               out String ErrorResponse);
 
-            if (ErrorResponse != null)
+            if (ErrorResponse is not null)
             {
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
