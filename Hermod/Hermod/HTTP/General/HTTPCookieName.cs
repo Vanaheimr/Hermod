@@ -107,10 +107,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPCookieName Parse(String Text)
         {
 
-            if (TryParse(Text, out HTTPCookieName httpCookieName))
+            if (TryParse(Text, out var httpCookieName))
                 return httpCookieName;
 
-            throw new ArgumentException("The given text representation of a HTTP cookie name is invalid!", nameof(Text));
+            throw new ArgumentException("Invalid text representation of a HTTP cookie name: '" + Text + "'!",
+                                        nameof(Text));
 
         }
 
@@ -125,7 +126,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPCookieName? TryParse(String Text)
         {
 
-            if (TryParse(Text, out HTTPCookieName httpCookieName))
+            if (TryParse(Text, out var httpCookieName))
                 return httpCookieName;
 
             return null;
@@ -167,8 +168,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Clone this HTTP cookie name.
         /// </summary>
-
         public HTTPCookieName Clone
+
             => new (
                    new String(InternalName?.ToCharArray())
                );

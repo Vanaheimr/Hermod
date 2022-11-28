@@ -944,38 +944,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseOptionalStruct<TStruct?>(this JSON, PropertyName, PropertyDescription, DefaultServerName, Parser, out Value, HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseOptionalStruct2<TStruct>(this JObject             JSON,
-                                                           String                    PropertyName,
-                                                           String                    PropertyDescription,
-                                                           String                    DefaultServerName,
-                                                           TryParser<TStruct>        Parser,
-                                                           out TStruct?              Value,
-                                                           HTTPRequest               HTTPRequest,
-                                                           out HTTPResponse.Builder  HTTPResponse)
+        public static Boolean ParseOptionalStruct2<TStruct>(this JObject              JSON,
+                                                           String                     PropertyName,
+                                                           String                     PropertyDescription,
+                                                           String                     DefaultServerName,
+                                                           TryParser<TStruct>         Parser,
+                                                           out TStruct?               Value,
+                                                           HTTPRequest                HTTPRequest,
+                                                           out HTTPResponse.Builder?  HTTPResponse)
 
             where TStruct : struct
 
         {
 
-            var result = JSON.ParseOptionalStruct(PropertyName,
-                                                  PropertyDescription,
-                                                  Parser,
-                                                  out Value,
-                                                  out String ErrorResponse);
+            var result = JSON.ParseOptional(PropertyName,
+                                            PropertyDescription,
+                                            Parser,
+                                            out TStruct value,
+                                            out var     errorResponse);
 
-            if (ErrorResponse == null)
-                HTTPResponse = null;
+            if (errorResponse is null)
+            {
+                Value         = value;
+                HTTPResponse  = null;
+            }
 
             else
-                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
-                                   HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                   Server          = DefaultServerName,
-                                   Date            = DateTime.UtcNow,
-                                   ContentType     = HTTPContentType.JSON_UTF8,
-                                   Content         = JSONObject.Create(
-                                                         new JProperty("description", ErrorResponse)
-                                                     ).ToUTF8Bytes()
-                               };
+            {
+                Value         = default;
+                HTTPResponse  = new HTTPResponse.Builder(HTTPRequest) {
+                                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                    Server          = DefaultServerName,
+                                    Date            = DateTime.UtcNow,
+                                    ContentType     = HTTPContentType.JSON_UTF8,
+                                    Content         = JSONObject.Create(
+                                                          new JProperty("description", errorResponse)
+                                                      ).ToUTF8Bytes()
+                                };
+            }
 
             return result;
 
@@ -985,14 +991,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ParseOptionalStruct<TStruct> (this JSON, PropertyName, PropertyDescription, DefaultServerName, Parser, out Value, HTTPRequest, out HTTPResponse)
 
-        public static Boolean ParseOptionalStruct<TStruct>(this JObject              JSON,
-                                                           String                    PropertyName,
-                                                           String                    PropertyDescription,
-                                                           String                    DefaultServerName,
-                                                           TryParser<TStruct>        Parser,
-                                                           out TStruct               Value,
-                                                           HTTPRequest               HTTPRequest,
-                                                           out HTTPResponse.Builder  HTTPResponse)
+        public static Boolean ParseOptionalStruct<TStruct>(this JObject               JSON,
+                                                           String                     PropertyName,
+                                                           String                     PropertyDescription,
+                                                           String                     DefaultServerName,
+                                                           TryParser<TStruct>         Parser,
+                                                           out TStruct                Value,
+                                                           HTTPRequest                HTTPRequest,
+                                                           out HTTPResponse.Builder?  HTTPResponse)
 
             where TStruct : struct
 
@@ -1001,24 +1007,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var result = JSON.ParseOptionalStruct(PropertyName,
                                                   PropertyDescription,
                                                   Parser,
-                                                  out TStruct? NullableValue,
-                                                  out String   ErrorResponse);
+                                                  out TStruct NullableValue,
+                                                  out var     errorResponse);
 
-            if (ErrorResponse == null)
-                HTTPResponse = null;
+            if (errorResponse is null)
+            {
+                Value         = NullableValue;
+                HTTPResponse  = null;
+            }
 
             else
-                HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
-                                   HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                   Server          = DefaultServerName,
-                                   Date            = DateTime.UtcNow,
-                                   ContentType     = HTTPContentType.JSON_UTF8,
-                                   Content         = JSONObject.Create(
-                                                         new JProperty("description", ErrorResponse)
-                                                     ).ToUTF8Bytes()
-                               };
-
-            Value = NullableValue ?? default(TStruct);
+            {
+                Value         = default;
+                HTTPResponse  = new HTTPResponse.Builder(HTTPRequest) {
+                                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                    Server          = DefaultServerName,
+                                    Date            = DateTime.UtcNow,
+                                    ContentType     = HTTPContentType.JSON_UTF8,
+                                    Content         = JSONObject.Create(
+                                                          new JProperty("description", errorResponse)
+                                                      ).ToUTF8Bytes()
+                                };
+            }
 
             return result;
 
