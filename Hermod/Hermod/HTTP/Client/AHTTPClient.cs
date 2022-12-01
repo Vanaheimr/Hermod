@@ -240,7 +240,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public delegate Task OnChunkBlockFoundDelegate(TimeSpan                           Timestamp,
                                                        UInt32                             ChunkNumber,
                                                        UInt32                             ChunkLength,
-                                                       Dictionary<String, List<String>>?  ChunkExtentions,
+                                                       Dictionary<String, List<String>>?  ChunkExtensions,
                                                        Byte[]                             ChunkData,
                                                        UInt64                             TotalBytes);
 
@@ -929,7 +929,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             OnChunkBlockFound?.Invoke(sw.Elapsed,
                                                                       currentBlockNumber,
                                                                       0,
-                                                                      chunkInfo.Extentions,
+                                                                      chunkInfo.Extensions,
                                                                       Array.Empty<Byte>(),
                                                                       (UInt64) decodedStream.Length);
 
@@ -956,7 +956,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                 await OnChunkBlockFound.Invoke(sw.Elapsed,
                                                                                currentBlockNumber,
                                                                                chunkInfo.Length,
-                                                                               chunkInfo.Extentions,
+                                                                               chunkInfo.Extensions,
                                                                                chunkData,
                                                                                (UInt64) decodedStream.Length);
 

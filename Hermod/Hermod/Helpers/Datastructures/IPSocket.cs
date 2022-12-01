@@ -29,7 +29,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <summary>
     /// Extention methods for IP sockets.
     /// </summary>
-    public static class IPSocketExtentions
+    public static class IPSocketExtensions
     {
 
         /// <summary>

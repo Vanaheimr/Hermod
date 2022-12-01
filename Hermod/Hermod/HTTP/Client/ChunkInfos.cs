@@ -30,17 +30,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public UInt32                             Length        { get; }
 
-        public Dictionary<String, List<String>>?  Extentions    { get; }
+        public Dictionary<String, List<String>>?  Extensions    { get; }
 
         #endregion
 
         #region Constructor(s)
 
         private ChunkInfos(UInt32                             Length,
-                           Dictionary<String, List<String>>?  Extentions)
+                           Dictionary<String, List<String>>?  Extensions)
         {
             this.Length     = Length;
-            this.Extentions = Extentions;
+            this.Extensions = Extensions;
         }
 
         #endregion
