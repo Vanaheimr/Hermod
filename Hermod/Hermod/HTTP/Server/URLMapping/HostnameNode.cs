@@ -40,7 +40,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// A mapping from URIs to URINodes.
         /// </summary>
-        private readonly Dictionary<HTTPPath, URL_Node> _URINodes;
+        private readonly Dictionary<HTTPPath, URL_Node> urlNodes;
 
         #endregion
 
@@ -56,13 +56,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return all defined URIs.
         /// </summary>
         public IEnumerable<HTTPPath> URIs
-            => _URINodes.Keys;
+            => urlNodes.Keys;
 
         /// <summary>
         /// Return all URI nodes.
         /// </summary>
         public IEnumerable<URL_Node> URLNodes
-            => _URINodes.Values;
+            => urlNodes.Values;
 
         #endregion
 
@@ -105,7 +105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            this._URINodes  = new Dictionary<HTTPPath, URL_Node>();
+            this.urlNodes  = new Dictionary<HTTPPath, URL_Node>();
 
         }
 
@@ -114,52 +114,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddHandler(...)
 
-        public void AddHandler(HTTPDelegate              HTTPDelegate,
+        public void AddHandler(HTTPDelegate             HTTPDelegate,
 
-                               HTTPPath?                 URLTemplate                 = null,
-                               HTTPMethod?               Method                      = null,
-                               HTTPContentType           HTTPContentType             = null,
+                               HTTPPath?                URLTemplate                 = null,
+                               HTTPMethod?              Method                      = null,
+                               HTTPContentType?         HTTPContentType             = null,
 
-                               HTTPAuthentication        URIAuthentication           = null,
-                               HTTPAuthentication        HTTPMethodAuthentication    = null,
-                               HTTPAuthentication        ContentTypeAuthentication   = null,
+                               HTTPAuthentication?      URLAuthentication           = null,
+                               HTTPAuthentication?      HTTPMethodAuthentication    = null,
+                               HTTPAuthentication?      ContentTypeAuthentication   = null,
 
-                               HTTPRequestLogHandler     HTTPRequestLogger           = null,
-                               HTTPResponseLogHandler    HTTPResponseLogger          = null,
+                               HTTPRequestLogHandler?   HTTPRequestLogger           = null,
+                               HTTPResponseLogHandler?  HTTPResponseLogger          = null,
 
-                               HTTPDelegate              DefaultErrorHandler         = null,
-                               URLReplacement            AllowReplacement            = URLReplacement.Fail)
+                               HTTPDelegate?            DefaultErrorHandler         = null,
+                               URLReplacement           AllowReplacement            = URLReplacement.Fail)
 
         {
 
-            lock (_URINodes)
+            lock (urlNodes)
             {
 
                 if (!URLTemplate.HasValue)
                     URLTemplate = HTTPPath.Parse("/");
 
-                if (!_URINodes.TryGetValue(URLTemplate.Value, out URL_Node _URINode))
+                if (!urlNodes.TryGetValue(URLTemplate.Value, out var urlNode))
                 {
 
-                    _URINode = _URINodes.AddAndReturnValue(URLTemplate.Value,
-                                                           new URL_Node(URLTemplate.Value,
-                                                                       URIAuthentication));
+                    urlNode = urlNodes.AddAndReturnValue(URLTemplate.Value,
+                                                          new URL_Node(URLTemplate.Value,
+                                                                       URLAuthentication));
 
                 }
 
-                _URINode.AddHandler(HTTPDelegate,
+                urlNode.AddHandler(HTTPDelegate,
 
-                                    Method ?? HTTPMethod.GET,
-                                    HTTPContentType,
+                                   Method ?? HTTPMethod.GET,
+                                   HTTPContentType,
 
-                                    HTTPMethodAuthentication,
-                                    ContentTypeAuthentication,
+                                   HTTPMethodAuthentication,
+                                   ContentTypeAuthentication,
 
-                                    HTTPRequestLogger,
-                                    HTTPResponseLogger,
+                                   HTTPRequestLogger,
+                                   HTTPResponseLogger,
 
-                                    DefaultErrorHandler,
-                                    AllowReplacement);
+                                   DefaultErrorHandler,
+                                   AllowReplacement);
 
             }
 
@@ -176,7 +176,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URITemplate">An URI template.</param>
         public Boolean Contains(HTTPPath URITemplate)
 
-            => _URINodes.ContainsKey(URITemplate);
+            => urlNodes.ContainsKey(URITemplate);
 
         #endregion
 
@@ -189,7 +189,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public URL_Node Get(HTTPPath URITemplate)
         {
 
-            if (_URINodes.TryGetValue(URITemplate, out URL_Node uriNode))
+            if (urlNodes.TryGetValue(URITemplate, out URL_Node uriNode))
                 return uriNode;
 
             return null;
@@ -207,7 +207,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URINode">The attached URI node.</param>
         public Boolean TryGet(HTTPPath URITemplate, out URL_Node URINode)
 
-            => _URINodes.TryGetValue(URITemplate, out URINode);
+            => urlNodes.TryGetValue(URITemplate, out URINode);
 
         #endregion
 
@@ -218,13 +218,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return all URI nodes.
         /// </summary>
         public IEnumerator<URL_Node> GetEnumerator()
-            => _URINodes.Values.GetEnumerator();
+            => urlNodes.Values.GetEnumerator();
 
         /// <summary>
         /// Return all URI nodes.
         /// </summary>
         IEnumerator IEnumerable.GetEnumerator()
-            => _URINodes.Values.GetEnumerator();
+            => urlNodes.Values.GetEnumerator();
 
         #endregion
 

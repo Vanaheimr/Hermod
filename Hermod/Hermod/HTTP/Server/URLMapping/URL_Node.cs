@@ -41,7 +41,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// A mapping from HTTPMethods to HTTPMethodNodes.
         /// </summary>
-        private readonly Dictionary<HTTPMethod, HTTPMethodNode> _HTTPMethodNodes;
+        private readonly Dictionary<HTTPMethod, HTTPMethodNode> httpMethodNodes;
 
         #endregion
 
@@ -102,13 +102,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return all defined HTTP methods.
         /// </summary>
         public IEnumerable<HTTPMethod> HTTPMethods
-            => _HTTPMethodNodes.Keys;
+            => httpMethodNodes.Keys;
 
         /// <summary>
         /// Return all HTTP method nodes.
         /// </summary>
         public IEnumerable<HTTPMethodNode> HTTPMethodNodes
-            => _HTTPMethodNodes.Values;
+            => httpMethodNodes.Values;
 
         #endregion
 
@@ -129,7 +129,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.RequestHandler         = RequestHandler;
             this.DefaultErrorHandler    = DefaultErrorHandler;
             this.ErrorHandlers          = new Dictionary<HTTPStatusCode, HTTPDelegate>();
-            this._HTTPMethodNodes       = new Dictionary<HTTPMethod, HTTPMethodNode>();
+            this.httpMethodNodes       = new Dictionary<HTTPMethod, HTTPMethodNode>();
 
             var _ReplaceLastParameter   = new Regex(@"\{[^/]+\}$");
             this.ParameterCount         = (UInt16) _ReplaceLastParameter.Matches(URITemplate.ToString()).Count;
@@ -148,45 +148,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddHandler(...)
 
-        public void AddHandler(HTTPDelegate            HTTPDelegate,
+        public void AddHandler(HTTPDelegate             HTTPDelegate,
 
-                               HTTPMethod              HTTPMethod,
-                               HTTPContentType         HTTPContentType             = null,
+                               HTTPMethod               HTTPMethod,
+                               HTTPContentType?         HTTPContentType             = null,
 
-                               HTTPAuthentication      HTTPMethodAuthentication    = null,
-                               HTTPAuthentication      ContentTypeAuthentication   = null,
+                               HTTPAuthentication?      HTTPMethodAuthentication    = null,
+                               HTTPAuthentication?      ContentTypeAuthentication   = null,
 
-                               HTTPRequestLogHandler   HTTPRequestLogger           = null,
-                               HTTPResponseLogHandler  HTTPResponseLogger          = null,
+                               HTTPRequestLogHandler?   HTTPRequestLogger           = null,
+                               HTTPResponseLogHandler?  HTTPResponseLogger          = null,
 
-                               HTTPDelegate            DefaultErrorHandler         = null,
-                               URLReplacement          AllowReplacement            = URLReplacement.Fail)
+                               HTTPDelegate?            DefaultErrorHandler         = null,
+                               URLReplacement           AllowReplacement            = URLReplacement.Fail)
 
         {
 
-            lock (_HTTPMethodNodes)
+            lock (httpMethodNodes)
             {
 
-                if (!_HTTPMethodNodes.TryGetValue(HTTPMethod, out HTTPMethodNode _HTTPMethodNode))
+                if (!httpMethodNodes.TryGetValue(HTTPMethod, out var httpMethodNode))
                 {
 
-                    _HTTPMethodNode = _HTTPMethodNodes.AddAndReturnValue(HTTPMethod,
-                                                                         new HTTPMethodNode(HTTPMethod,
-                                                                                            HTTPMethodAuthentication));
+                    httpMethodNode = httpMethodNodes.AddAndReturnValue(HTTPMethod,
+                                                                        new HTTPMethodNode(HTTPMethod,
+                                                                                           HTTPMethodAuthentication));
 
                 }
 
-                _HTTPMethodNode.AddHandler(HTTPDelegate,
+                httpMethodNode.AddHandler(HTTPDelegate,
 
-                                           HTTPContentType,
+                                          HTTPContentType,
 
-                                           ContentTypeAuthentication,
+                                          ContentTypeAuthentication,
 
-                                           HTTPRequestLogger,
-                                           HTTPResponseLogger,
+                                          HTTPRequestLogger,
+                                          HTTPResponseLogger,
 
-                                           DefaultErrorHandler,
-                                           AllowReplacement);
+                                          DefaultErrorHandler,
+                                          AllowReplacement);
 
             }
 
@@ -203,7 +203,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Method">A HTTP method.</param>
         public Boolean Contains(HTTPMethod Method)
 
-            => _HTTPMethodNodes.ContainsKey(Method);
+            => httpMethodNodes.ContainsKey(Method);
 
         #endregion
 
@@ -216,7 +216,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPMethodNode Get(HTTPMethod Method)
         {
 
-            if (_HTTPMethodNodes.TryGetValue(Method, out HTTPMethodNode methodNode))
+            if (httpMethodNodes.TryGetValue(Method, out HTTPMethodNode methodNode))
                 return methodNode;
 
             return null;
@@ -234,7 +234,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="MethodNode">The attached HTTP method node.</param>
         public Boolean TryGet(HTTPMethod Method, out HTTPMethodNode MethodNode)
 
-            => _HTTPMethodNodes.TryGetValue(Method, out MethodNode);
+            => httpMethodNodes.TryGetValue(Method, out MethodNode);
 
         #endregion
 
@@ -245,13 +245,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return all HTTP method nodes.
         /// </summary>
         public IEnumerator<HTTPMethodNode> GetEnumerator()
-            => _HTTPMethodNodes.Values.GetEnumerator();
+            => httpMethodNodes.Values.GetEnumerator();
 
         /// <summary>
         /// Return all HTTP method nodes.
         /// </summary>
         IEnumerator IEnumerable.GetEnumerator()
-            => _HTTPMethodNodes.Values.GetEnumerator();
+            => httpMethodNodes.Values.GetEnumerator();
 
         #endregion
 
@@ -273,9 +273,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 _URLErrorHandler = " (errhdl)";
 
             var _HTTPMethods = "";
-            if (_HTTPMethodNodes.Count > 0)
+            if (httpMethodNodes.Count > 0)
             {
-                var _StringBuilder = _HTTPMethodNodes.Keys.ForEach(new StringBuilder(" ["), (__StringBuilder, __HTTPMethod) => __StringBuilder.Append(__HTTPMethod.MethodName).Append(", "));
+                var _StringBuilder = httpMethodNodes.Keys.ForEach(new StringBuilder(" ["), (__StringBuilder, __HTTPMethod) => __StringBuilder.Append(__HTTPMethod.MethodName).Append(", "));
                 _StringBuilder.Length -= 2;
                 _HTTPMethods = _StringBuilder.Append("]").ToString();
             }

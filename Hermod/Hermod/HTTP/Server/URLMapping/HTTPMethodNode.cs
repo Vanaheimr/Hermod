@@ -126,13 +126,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddHandler(...)
 
-        public void AddHandler(HTTPDelegate              RequestHandler,
-                               HTTPContentType           HTTPContentType             = null,
-                               HTTPAuthentication        ContentTypeAuthentication   = null,
-                               HTTPRequestLogHandler     HTTPRequestLogger           = null,
-                               HTTPResponseLogHandler    HTTPResponseLogger          = null,
-                               HTTPDelegate              DefaultErrorHandler         = null,
-                               URLReplacement            AllowReplacement            = URLReplacement.Fail)
+        public void AddHandler(HTTPDelegate?            RequestHandler,
+                               HTTPContentType?         HTTPContentType             = null,
+                               HTTPAuthentication?      ContentTypeAuthentication   = null,
+                               HTTPRequestLogHandler?   HTTPRequestLogger           = null,
+                               HTTPResponseLogHandler?  HTTPResponseLogger          = null,
+                               HTTPDelegate?            DefaultErrorHandler         = null,
+                               URLReplacement           AllowReplacement            = URLReplacement.Fail)
 
         {
 
@@ -145,12 +145,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (this.RequestHandler is null || AllowReplacement == URLReplacement.Allow)
                     {
-
                         this.HTTPRequestLogger    = HTTPRequestLogger;
                         this.RequestHandler       = RequestHandler;
                         this.DefaultErrorHandler  = DefaultErrorHandler;
                         this.HTTPResponseLogger   = HTTPResponseLogger;
-
                     }
 
                     else if (AllowReplacement == URLReplacement.Fail)

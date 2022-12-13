@@ -1034,7 +1034,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public static readonly  IPPort           DefaultHTTPServerPort   = IPPort.HTTP;
 
-        private readonly        Dictionary<HTTPHostname,       HostnameNode>      _HostnameNodes;
+        private readonly        Dictionary<HTTPHostname,       HostnameNode>      hostnameNodes;
         private readonly        Dictionary<HTTPEventSource_Id, IHTTPEventSource>  _EventSources;
 
         private const    UInt32 ReadTimeout           = 180000U;
@@ -1155,7 +1155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             this.DefaultServerName  = DefaultServerName ?? DefaultHTTPServerName;
-            this._HostnameNodes     = new Dictionary<HTTPHostname,       HostnameNode>();
+            this.hostnameNodes     = new Dictionary<HTTPHostname,       HostnameNode>();
             this._EventSources      = new Dictionary<HTTPEventSource_Id, IHTTPEventSource>();
 
             this.AttachTCPPort(TCPPort ?? (ServerCertificateSelector is null
@@ -1915,58 +1915,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
         /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
-        internal void AddHandler(HTTPDelegate              HTTPDelegate,
+        internal void AddHandler(HTTPDelegate             HTTPDelegate,
 
-                                 HTTPHostname?             Hostname                    = null,
-                                 HTTPPath?                 URLTemplate                 = null,
-                                 HTTPMethod?               HTTPMethod                  = null,
-                                 HTTPContentType           HTTPContentType             = null,
+                                 HTTPHostname?            Hostname                    = null,
+                                 HTTPPath?                URLTemplate                 = null,
+                                 HTTPMethod?              HTTPMethod                  = null,
+                                 HTTPContentType?         HTTPContentType             = null,
 
-                                 HTTPAuthentication        URLAuthentication           = null,
-                                 HTTPAuthentication        HTTPMethodAuthentication    = null,
-                                 HTTPAuthentication        ContentTypeAuthentication   = null,
+                                 HTTPAuthentication?      URLAuthentication           = null,
+                                 HTTPAuthentication?      HTTPMethodAuthentication    = null,
+                                 HTTPAuthentication?      ContentTypeAuthentication   = null,
 
-                                 HTTPRequestLogHandler     HTTPRequestLogger           = null,
-                                 HTTPResponseLogHandler    HTTPResponseLogger          = null,
+                                 HTTPRequestLogHandler?   HTTPRequestLogger           = null,
+                                 HTTPResponseLogHandler?  HTTPResponseLogger          = null,
 
-                                 HTTPDelegate              DefaultErrorHandler         = null,
-                                 URLReplacement            AllowReplacement            = URLReplacement.Fail)
+                                 HTTPDelegate?            DefaultErrorHandler         = null,
+                                 URLReplacement           AllowReplacement            = URLReplacement.Fail)
 
         {
 
-            lock (_HostnameNodes)
+            lock (hostnameNodes)
             {
 
                 #region Initial Checks
 
-                if (HTTPDelegate == null)
+                if (HTTPDelegate is null)
                     throw new ArgumentNullException(nameof(HTTPDelegate), "The given parameter must not be null!");
 
-                var _Hostname = Hostname ?? HTTPHostname.Any;
+                var hostname = Hostname ?? HTTPHostname.Any;
 
-                if (HTTPMethod == null && HTTPContentType != null)
+                if (HTTPMethod is null && HTTPContentType is not null)
                     throw new ArgumentException("If HTTPMethod is null the HTTPContentType must also be null!");
 
                 #endregion
 
-                if (!_HostnameNodes.TryGetValue(_Hostname, out HostnameNode _HostnameNode))
-                    _HostnameNode = _HostnameNodes.AddAndReturnValue(_Hostname, new HostnameNode(_Hostname));
+                if (!hostnameNodes.TryGetValue(hostname, out var hostnameNode))
+                    hostnameNode = hostnameNodes.AddAndReturnValue(hostname, new HostnameNode(hostname));
 
-                _HostnameNode.AddHandler(HTTPDelegate,
+                hostnameNode.AddHandler(HTTPDelegate,
 
-                                         URLTemplate,
-                                         HTTPMethod,
-                                         HTTPContentType,
+                                        URLTemplate,
+                                        HTTPMethod,
+                                        HTTPContentType,
 
-                                         URLAuthentication,
-                                         HTTPMethodAuthentication,
-                                         ContentTypeAuthentication,
+                                        URLAuthentication,
+                                        HTTPMethodAuthentication,
+                                        ContentTypeAuthentication,
 
-                                         HTTPRequestLogger,
-                                         HTTPResponseLogger,
+                                        HTTPRequestLogger,
+                                        HTTPResponseLogger,
 
-                                         DefaultErrorHandler,
-                                         AllowReplacement);
+                                        DefaultErrorHandler,
+                                        AllowReplacement);
 
             }
 
@@ -1990,33 +1990,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
-        public void AddMethodCallback(HTTPHostname            Hostname,
-                                      HTTPMethod              HTTPMethod,
-                                      HTTPPath                URLTemplate,
-                                      HTTPContentType         HTTPContentType             = null,
-                                      HTTPAuthentication      URLAuthentication           = null,
-                                      HTTPAuthentication      HTTPMethodAuthentication    = null,
-                                      HTTPAuthentication      ContentTypeAuthentication   = null,
-                                      HTTPRequestLogHandler   HTTPRequestLogger           = null,
-                                      HTTPResponseLogHandler  HTTPResponseLogger          = null,
-                                      HTTPDelegate            DefaultErrorHandler         = null,
-                                      HTTPDelegate            HTTPDelegate                = null,
-                                      URLReplacement          AllowReplacement            = URLReplacement.Fail)
+        public void AddMethodCallback(HTTPHostname             Hostname,
+                                      HTTPMethod               HTTPMethod,
+                                      HTTPPath                 URLTemplate,
+                                      HTTPContentType?         HTTPContentType             = null,
+                                      HTTPAuthentication?      URLAuthentication           = null,
+                                      HTTPAuthentication?      HTTPMethodAuthentication    = null,
+                                      HTTPAuthentication?      ContentTypeAuthentication   = null,
+                                      HTTPRequestLogHandler?   HTTPRequestLogger           = null,
+                                      HTTPResponseLogHandler?  HTTPResponseLogger          = null,
+                                      HTTPDelegate?            DefaultErrorHandler         = null,
+                                      HTTPDelegate?            HTTPDelegate                = null,
+                                      URLReplacement           AllowReplacement            = URLReplacement.Fail)
 
         {
 
             #region Initial checks
 
-            if (Hostname == null)
-                throw new ArgumentNullException(nameof(Hostname),      "The given HTTP hostname must not be null!");
-
-            if (HTTPMethod == null)
-                throw new ArgumentNullException(nameof(HTTPMethod),    "The given HTTP method must not be null!");
-
             if (URLTemplate.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(URLTemplate),   "The given URL template must not be null or empty!");
 
-            if (HTTPDelegate == null)
+            if (HTTPDelegate is null)
                 throw new ArgumentNullException(nameof(HTTPDelegate),  "The given HTTP delegate must not be null!");
 
             #endregion
@@ -2269,7 +2263,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            lock (_HostnameNodes)
+            lock (hostnameNodes)
             {
 
                 #region Initial Checks
@@ -2284,8 +2278,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #endregion
 
-                if (!_HostnameNodes.TryGetValue(_Hostname, out HostnameNode _HostnameNode))
-                    _HostnameNode = _HostnameNodes.AddAndReturnValue(_Hostname, new HostnameNode(_Hostname));
+                if (!hostnameNodes.TryGetValue(_Hostname, out HostnameNode _HostnameNode))
+                    _HostnameNode = hostnameNodes.AddAndReturnValue(_Hostname, new HostnameNode(_Hostname));
 
                 _HostnameNode.AddHandler(HTTPDelegate,
 
@@ -2341,13 +2335,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var httpMethod           = Method                  ?? HTTPMethod.GET;
             HTTPContentTypeSelector  = HTTPContentTypeSelector ?? (v => HTTPContentType.HTML_UTF8);
 
-            lock (_HostnameNodes)
+            lock (hostnameNodes)
             {
 
                 #region Get HostNode or "*" or fail
 
-                if (!_HostnameNodes.TryGetValue(Host, out var hostnameNode))
-                    if (!_HostnameNodes.TryGetValue(HTTPHostname.Any, out hostnameNode))
+                if (!hostnameNodes.TryGetValue(Host, out var hostnameNode))
+                    if (!hostnameNodes.TryGetValue(HTTPHostname.Any, out hostnameNode))
                         return null;
                         //return GetErrorHandler(Host, URL, HTTPMethod, HTTPContentType, HTTPStatusCode.BadRequest);
 
@@ -2678,7 +2672,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            lock (_HostnameNodes)
+            lock (hostnameNodes)
             {
 
                 if (_EventSources.ContainsKey(EventIdentification))
@@ -2924,7 +2918,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IEnumerable<IHTTPEventSource> EventSources(Func<IHTTPEventSource, Boolean> IncludeEventSource = null)
         {
 
-            lock (_HostnameNodes)
+            lock (hostnameNodes)
             {
 
                 if (IncludeEventSource == null)
@@ -2944,7 +2938,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IEnumerable<IHTTPEventSource<TData>> EventSources<TData>(Func<IHTTPEventSource, Boolean> IncludeEventSource = null)
         {
 
-            lock (_HostnameNodes)
+            lock (hostnameNodes)
             {
 
                 if (IncludeEventSource == null)
@@ -2978,7 +2972,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            lock (_HostnameNodes)
+            lock (hostnameNodes)
             {
                 return null;
             }
