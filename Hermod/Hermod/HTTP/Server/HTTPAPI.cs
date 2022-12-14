@@ -907,6 +907,115 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     #endregion
 
 
+
+    public static class HTTPAPIExtensions
+    {
+
+        /// <summary>
+        /// Add a HTTP Sever Sent Events source.
+        /// </summary>
+        /// <param name="EventIdentification">The unique identification of the event source.</param>
+        /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
+        /// <param name="RetryIntervall">The retry intervall.</param>
+        /// <param name="EnableLogging">Enables storing and reloading events </param>
+        /// <param name="LogfilePrefix">A prefix for the log file names or locations.</param>
+        /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
+        /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
+        public static HTTPEventSource<JObject> AddJSONEventSource(this HTTPAPI                     HTTPAPI,
+                                                                  HTTPEventSource_Id               EventIdentification,
+                                                                  UInt32                           MaxNumberOfCachedEvents      = 500,
+                                                                  TimeSpan?                        RetryIntervall               = null,
+                                                                  Boolean                          EnableLogging                = true,
+                                                                  String?                          LogfilePath                  = null,
+                                                                  String?                          LogfilePrefix                = null,
+                                                                  Func<String, DateTime, String>?  LogfileName                  = null,
+                                                                  String?                          LogfileReloadSearchPattern   = null)
+
+
+            => HTTPAPI.AddEventSource(EventIdentification,
+                                      HTTPAPI,
+                                      MaxNumberOfCachedEvents,
+                                      RetryIntervall,
+                                      data => data.ToString(Newtonsoft.Json.Formatting.None),
+                                      text => JObject.Parse(text),
+                                      EnableLogging,
+                                      LogfilePath,
+                                      LogfilePrefix,
+                                      LogfileName,
+                                      LogfileReloadSearchPattern);
+
+
+
+        /// <summary>
+        /// Add a HTTP Sever Sent Events source and a method call back for the given URL template.
+        /// </summary>
+        /// <param name="EventIdentification">The unique identification of the event source.</param>
+        /// <param name="URLTemplate">The URL template.</param>
+        /// 
+        /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
+        /// <param name="IncludeFilterAtRuntime">Include this events within the HTTP SSE output. Can e.g. be used to filter events by HTTP users.</param>
+        /// <param name="RetryIntervall">The retry intervall.</param>
+        /// <param name="EnableLogging">Enables storing and reloading events </param>
+        /// <param name="LogfilePrefix">A prefix for the log file names or locations.</param>
+        /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
+        /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
+        /// 
+        /// <param name="Hostname">The HTTP host.</param>
+        /// <param name="HTTPMethod">The HTTP method.</param>
+        /// <param name="HTTPContentType">The HTTP content type.</param>
+        /// 
+        /// <param name="URIAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
+        /// 
+        /// <param name="DefaultErrorHandler">The default error handler.</param>
+        public static HTTPEventSource<JObject> AddJSONEventSource(this HTTPAPI                        HTTPAPI,
+                                                                  HTTPEventSource_Id                  EventIdentification,
+                                                                  HTTPPath                            URLTemplate,
+
+                                                                  UInt32                              MaxNumberOfCachedEvents      = 500,
+                                                                  Func<HTTPEvent<JObject>, Boolean>?  IncludeFilterAtRuntime       = null,
+                                                                  TimeSpan?                           RetryIntervall               = null,
+                                                                  Boolean                             EnableLogging                = false,
+                                                                  String?                             LogfilePath                  = null,
+                                                                  String?                             LogfilePrefix                = null,
+                                                                  Func<String, DateTime, String>?     LogfileName                  = null,
+                                                                  String?                             LogfileReloadSearchPattern   = null,
+
+                                                                  HTTPHostname?                       Hostname                     = null,
+                                                                  HTTPMethod?                         HTTPMethod                   = null,
+                                                                  HTTPContentType?                    HTTPContentType              = null,
+
+                                                                  HTTPAuthentication?                 URIAuthentication            = null,
+                                                                  HTTPAuthentication?                 HTTPMethodAuthentication     = null,
+
+                                                                  HTTPDelegate?                       DefaultErrorHandler          = null)
+
+            => HTTPAPI.AddEventSource(EventIdentification,
+                                      HTTPAPI,
+                                      URLTemplate,
+
+                                      MaxNumberOfCachedEvents,
+                                      IncludeFilterAtRuntime,
+                                      RetryIntervall,
+                                      data => data.ToString(Newtonsoft.Json.Formatting.None),
+                                      text => JObject.Parse(text),
+                                      EnableLogging,
+                                      LogfilePath,
+                                      LogfilePrefix,
+                                      LogfileName,
+                                      LogfileReloadSearchPattern,
+
+                                      Hostname,
+                                      HTTPMethod,
+                                      HTTPContentType,
+
+                                      URIAuthentication,
+                                      HTTPMethodAuthentication,
+
+                                      DefaultErrorHandler);
+
+    }
+
     /// <summary>
     /// A HTTP API.
     /// </summary>
