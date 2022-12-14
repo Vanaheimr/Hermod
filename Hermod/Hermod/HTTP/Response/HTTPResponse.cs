@@ -1847,7 +1847,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            public Object SubprotocolResponse { get; set; }
+            public Object? SubprotocolResponse { get; set; }
 
             #region Constructor(s)
 
@@ -1890,7 +1890,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 this.ProtocolVersion    = new HTTPVersion(1, 1);
                 this.CancellationToken  = HTTPRequest?.CancellationToken ?? new CancellationTokenSource().Token;
                 base.EventTrackingId    = HTTPRequest?.EventTrackingId   ?? EventTracking_Id.New;
-                this.Runtime            = HTTPRequest != null
+                this.Runtime            = HTTPRequest is not null
                                               ? Illias.Timestamp.Now - HTTPRequest.Timestamp
                                               : TimeSpan.Zero;
 

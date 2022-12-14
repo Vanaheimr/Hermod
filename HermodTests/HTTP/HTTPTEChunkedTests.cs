@@ -88,7 +88,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
                 // -------------------------------------------------------------
                 // curl -v -H "Accept: text/html" http://127.0.0.1:1234/test01
                 // -------------------------------------------------------------
-                HTTPServer.AddMethodCallback(HTTPHostname.Any,
+                HTTPServer.AddMethodCallback(null,
+                                             HTTPHostname.Any,
                                              HTTPMethod.GET,
                                              URLPathPrefix + "test01",
                                              HTTPDelegate: Request =>
@@ -112,7 +113,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
                 // -------------------------------------------------------------
                 // curl -v -H "Accept: text/html" http://127.0.0.1:1234/test02
                 // -------------------------------------------------------------
-                HTTPServer.AddMethodCallback(HTTPHostname.Any,
+                HTTPServer.AddMethodCallback(null,
+                                             HTTPHostname.Any,
                                              HTTPMethod.GET,
                                              URLPathPrefix + "test02",
                                              HTTPDelegate: Request =>
@@ -137,7 +139,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
                 // -------------------------------------------------------------
                 // curl -v -H "Accept: text/html" http://127.0.0.1:1234/test03
                 // -------------------------------------------------------------
-                HTTPServer.AddMethodCallback(HTTPHostname.Any,
+                HTTPServer.AddMethodCallback(null,
+                                             HTTPHostname.Any,
                                              HTTPMethod.GET,
                                              URLPathPrefix + "test03",
                                              HTTPDelegate: Request =>
@@ -162,7 +165,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
                 // -------------------------------------------------------------
                 // curl -v -H "Accept: text/html" http://127.0.0.1:1234/test04
                 // -------------------------------------------------------------
-                HTTPServer.AddMethodCallback(HTTPHostname.Any,
+                HTTPServer.AddMethodCallback(null,
+                                             HTTPHostname.Any,
                                              HTTPMethod.GET,
                                              URLPathPrefix + "test04",
                                              HTTPDelegate: Request =>
@@ -187,7 +191,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
                 // -------------------------------------------------------------
                 // curl -v -H "Accept: text/html" http://127.0.0.1:1234/test05
                 // -------------------------------------------------------------
-                HTTPServer.AddMethodCallback(HTTPHostname.Any,
+                HTTPServer.AddMethodCallback(null,
+                                             HTTPHostname.Any,
                                              HTTPMethod.GET,
                                              URLPathPrefix + "test05",
                                              HTTPDelegate: Request =>
@@ -212,7 +217,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
                 // -------------------------------------------------------------
                 // curl -v -H "Accept: text/html" http://127.0.0.1:1234/test06
                 // -------------------------------------------------------------
-                HTTPServer.AddMethodCallback(HTTPHostname.Any,
+                HTTPServer.AddMethodCallback(null,
+                                             HTTPHostname.Any,
                                              HTTPMethod.GET,
                                              URLPathPrefix + "test06",
                                              HTTPDelegate: Request =>

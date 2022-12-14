@@ -17,11 +17,7 @@
 
 #region Usings
 
-using System;
-using System.Linq;
 using System.Net.Security;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 using System.Security.Authentication;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -92,11 +88,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         public IEnumerable<IPPort> IPPorts
             => SOAPServer.HTTPServer.IPPorts;
 
-
         /// <summary>
         /// The SOAP server logger.
         /// </summary>
-        public HTTPServerLogger  HTTPLogger    { get; set; }
+        public HTTPServerLogger?  HTTPLogger    { get; set; }
 
         #endregion
 
@@ -105,17 +100,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// An event called whenever a HTTP request came in.
         /// </summary>
-        public HTTPRequestLogEvent   RequestLog    = new HTTPRequestLogEvent();
+        public HTTPRequestLogEvent   RequestLog    = new ();
 
         /// <summary>
         /// An event called whenever a HTTP request could successfully be processed.
         /// </summary>
-        public HTTPResponseLogEvent  ResponseLog   = new HTTPResponseLogEvent();
+        public HTTPResponseLogEvent  ResponseLog   = new ();
 
         /// <summary>
         /// An event called whenever a HTTP request resulted in an error.
         /// </summary>
-        public HTTPErrorLogEvent     ErrorLog      = new HTTPErrorLogEvent();
+        public HTTPErrorLogEvent     ErrorLog      = new ();
 
         #endregion
 
@@ -184,19 +179,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="DNSClient">An optional DNS client to use.</param>
         /// <param name="RegisterHTTPRootService">Register HTTP root services for sending a notice to clients connecting via HTML or plain text.</param>
         /// <param name="AutoStart">Start the server immediately.</param>
-        protected ASOAPServer(String                               HTTPServerName               = DefaultHTTPServerName,
-                              IPPort?                              TCPPort                      = null,
-                              String                               ServiceName                  = null,
+        protected ASOAPServer(String                                HTTPServerName               = DefaultHTTPServerName,
+                              IPPort?                               TCPPort                      = null,
+                              String?                               ServiceName                  = null,
 
-                              ServerCertificateSelectorDelegate    ServerCertificateSelector    = null,
-                              RemoteCertificateValidationCallback  ClientCertificateValidator   = null,
-                              LocalCertificateSelectionCallback    ClientCertificateSelector    = null,
-                              SslProtocols                         AllowedTLSProtocols          = SslProtocols.Tls12,
-                              HTTPPath?                            URLPrefix                    = null,
-                              HTTPContentType                      SOAPContentType              = null,
-                              Boolean                              RegisterHTTPRootService      = true,
-                              DNSClient                            DNSClient                    = null,
-                              Boolean                              AutoStart                    = false)
+                              ServerCertificateSelectorDelegate?    ServerCertificateSelector    = null,
+                              RemoteCertificateValidationCallback?  ClientCertificateValidator   = null,
+                              LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
+                              SslProtocols                          AllowedTLSProtocols          = SslProtocols.Tls12,
+                              HTTPPath?                             URLPrefix                    = null,
+                              HTTPContentType?                      SOAPContentType              = null,
+                              Boolean                               RegisterHTTPRootService      = true,
+                              DNSClient?                            DNSClient                    = null,
+                              Boolean                               AutoStart                    = false)
 
             : this(new SOAPServer(TCPPort:                     TCPPort ?? DefaultHTTPServerPort,
                                   DefaultServerName:           HTTPServerName,
@@ -263,7 +258,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         {
 
             SOAPServer.HTTPServer.
-                AddMethodCallback(HTTPHostname.Any,
+                AddMethodCallback(null,
+                                  HTTPHostname.Any,
                                   HTTPMethod.GET,
 
                                   new HTTPPath[] {
@@ -333,8 +329,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// </summary>
         /// <param name="Message">An optional shutdown message.</param>
         /// <param name="Wait">Wait for a clean shutdown of the API.</param>
-        public virtual void Shutdown(String   Message  = null,
-                                     Boolean  Wait     = true)
+        public virtual void Shutdown(String?  Message   = null,
+                                     Boolean  Wait      = true)
         {
             SOAPServer.HTTPServer.Shutdown(Message, Wait);
         }

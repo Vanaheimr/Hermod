@@ -17,9 +17,6 @@
 
 #region Usings
 
-using System;
-using System.Threading.Tasks;
-
 using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -50,34 +47,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
 
         #region Start/Stop HTTPServer
 
-        private HTTPServer _HTTPServer;
+        private HTTPServer? httpServer;
 
         [OneTimeSetUp]
         public void Init_HTTPServer()
         {
 
-            _HTTPServer = new HTTPServer(
-                              IPPort.Parse(81),
-                              Autostart: true
-                          );
+            httpServer = new HTTPServer(
+                             IPPort.Parse(81),
+                             Autostart: true
+                         );
 
             #region /
 
-            _HTTPServer.AddMethodCallback(HTTPHostname.Any,
-                                          HTTPMethod.GET,
-                                          HTTPPath.Root,
-                                          HTTPDelegate: Request => Task.FromResult(
-                                                                        new HTTPResponse.Builder(Request) {
-                                                                            HTTPStatusCode             = HTTPStatusCode.OK,
-                                                                            Server                     = "Test Server",
-                                                                            Date                       = DateTime.UtcNow,
-                                                                            AccessControlAllowOrigin   = "*",
-                                                                            AccessControlAllowMethods  = "GET",
-                                                                            AccessControlAllowHeaders  = "Content-Type, Accept, Authorization",
-                                                                            ContentType                = HTTPContentType.TEXT_UTF8,
-                                                                            Content                    = "Hello World!".ToUTF8Bytes(),
-                                                                            Connection                 = "close"
-                                                                        }.AsImmutable));
+            httpServer.AddMethodCallback(null,
+                                         HTTPHostname.Any,
+                                         HTTPMethod.GET,
+                                         HTTPPath.Root,
+                                         HTTPDelegate: Request => Task.FromResult(
+                                                                       new HTTPResponse.Builder(Request) {
+                                                                           HTTPStatusCode             = HTTPStatusCode.OK,
+                                                                           Server                     = "Test Server",
+                                                                           Date                       = DateTime.UtcNow,
+                                                                           AccessControlAllowOrigin   = "*",
+                                                                           AccessControlAllowMethods  = "GET",
+                                                                           AccessControlAllowHeaders  = "Content-Type, Accept, Authorization",
+                                                                           ContentType                = HTTPContentType.TEXT_UTF8,
+                                                                           Content                    = "Hello World!".ToUTF8Bytes(),
+                                                                           Connection                 = "close"
+                                                                       }.AsImmutable));
 
             #endregion
 
@@ -86,7 +84,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         [OneTimeTearDown]
         public void Shutdown_HTTPServer()
         {
-            _HTTPServer.Shutdown();
+            httpServer?.Shutdown();
         }
 
         #endregion

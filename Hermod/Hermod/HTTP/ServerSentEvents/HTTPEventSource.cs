@@ -157,6 +157,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogfileName">A delegate to create a filename for storing events.</param>
         /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
         public HTTPEventSource(HTTPEventSource_Id               EventIdentification,
+                               HTTPAPI                          HTTPAPI,
                                UInt64                           MaxNumberOfCachedEvents      = 500,
                                TimeSpan?                        RetryIntervall               = null,
                                Func<T, String>?                 DataSerializer               = null,

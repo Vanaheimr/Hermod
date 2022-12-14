@@ -17,13 +17,11 @@
 
 #region Usings
 
-using System;
 using System.Text;
-using System.Collections.Generic;
+using System.Collections;
 using System.Text.RegularExpressions;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using System.Collections;
 
 #endregion
 
@@ -48,9 +46,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Properties
 
         /// <summary>
+        /// The hosting HTTP API.
+        /// </summary>
+        public HTTPAPI                                   HTTPAPI                { get; }
+
+        /// <summary>
         /// The URL template for this service.
         /// </summary>
-        public HTTPPath                                   URITemplate            { get; }
+        public HTTPPath                                  URITemplate            { get; }
 
         /// <summary>
         /// The URI regex for this service.
@@ -70,22 +73,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// A HTTP request logger.
         /// </summary>
-        public HTTPRequestLogHandler                   HTTPRequestLogger      { get; private set; }
+        public HTTPRequestLogHandler?                    HTTPRequestLogger      { get; private set; }
 
         /// <summary>
         /// This and all subordinated nodes demand an explicit URI authentication.
         /// </summary>
-        public HTTPAuthentication                        URIAuthentication      { get; }
+        public HTTPAuthentication?                       URIAuthentication      { get; }
 
         /// <summary>
         /// A HTTP delegate.
         /// </summary>
-        public HTTPDelegate                              RequestHandler         { get; private set; }
+        public HTTPDelegate?                             RequestHandler         { get; private set; }
 
         /// <summary>
         /// A general error handling method.
         /// </summary>
-        public HTTPDelegate                              DefaultErrorHandler    { get; private set; }
+        public HTTPDelegate?                             DefaultErrorHandler    { get; private set; }
 
         /// <summary>
         /// Error handling methods for specific http status codes.
@@ -95,7 +98,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// A HTTP response logger.
         /// </summary>
-        public HTTPResponseLogHandler                    HTTPResponseLogger     { get; private set; }
+        public HTTPResponseLogHandler?                   HTTPResponseLogger     { get; private set; }
 
 
         /// <summary>
@@ -119,17 +122,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="URITemplate">The URI template for this service.</param>
         /// <param name="URIAuthentication">This and all subordinated nodes demand an explicit URI authentication.</param>
-        internal URL_Node(HTTPPath             URITemplate,
-                         HTTPAuthentication  URIAuthentication  = null)
+        internal URL_Node(HTTPAPI              HTTPAPI,
+                          HTTPPath             URITemplate,
+                          HTTPAuthentication?  URIAuthentication   = null)
 
         {
 
+            this.HTTPAPI                = HTTPAPI;
             this.URITemplate            = URITemplate;
             this.URIAuthentication      = URIAuthentication;
             this.RequestHandler         = RequestHandler;
             this.DefaultErrorHandler    = DefaultErrorHandler;
             this.ErrorHandlers          = new Dictionary<HTTPStatusCode, HTTPDelegate>();
-            this.httpMethodNodes       = new Dictionary<HTTPMethod, HTTPMethodNode>();
+            this.httpMethodNodes        = new Dictionary<HTTPMethod, HTTPMethodNode>();
 
             var _ReplaceLastParameter   = new Regex(@"\{[^/]+\}$");
             this.ParameterCount         = (UInt16) _ReplaceLastParameter.Matches(URITemplate.ToString()).Count;
@@ -148,7 +153,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddHandler(...)
 
-        public void AddHandler(HTTPDelegate             HTTPDelegate,
+        public void AddHandler(HTTPAPI                  HTTPAPI,
+                               HTTPDelegate             HTTPDelegate,
 
                                HTTPMethod               HTTPMethod,
                                HTTPContentType?         HTTPContentType             = null,
@@ -171,12 +177,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 {
 
                     httpMethodNode = httpMethodNodes.AddAndReturnValue(HTTPMethod,
-                                                                        new HTTPMethodNode(HTTPMethod,
-                                                                                           HTTPMethodAuthentication));
+                                                                       new HTTPMethodNode(HTTPAPI,
+                                                                                          HTTPMethod,
+                                                                                          HTTPMethodAuthentication));
 
                 }
 
-                httpMethodNode.AddHandler(HTTPDelegate,
+                httpMethodNode.AddHandler(HTTPAPI,
+                                          HTTPDelegate,
 
                                           HTTPContentType,
 
@@ -213,10 +221,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return the HTTP method node for the given HTTP method.
         /// </summary>
         /// <param name="Method">A HTTP method.</param>
-        public HTTPMethodNode Get(HTTPMethod Method)
+        public HTTPMethodNode? Get(HTTPMethod Method)
         {
 
-            if (httpMethodNodes.TryGetValue(Method, out HTTPMethodNode methodNode))
+            if (httpMethodNodes.TryGetValue(Method, out var methodNode))
                 return methodNode;
 
             return null;
@@ -232,7 +240,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Method">A HTTP method.</param>
         /// <param name="MethodNode">The attached HTTP method node.</param>
-        public Boolean TryGet(HTTPMethod Method, out HTTPMethodNode MethodNode)
+        public Boolean TryGet(HTTPMethod Method, out HTTPMethodNode? MethodNode)
 
             => httpMethodNodes.TryGetValue(Method, out MethodNode);
 

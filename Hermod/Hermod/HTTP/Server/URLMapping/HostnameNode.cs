@@ -17,10 +17,7 @@
 
 #region Usings
 
-using System;
-using System.Linq;
 using System.Collections;
-using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -45,6 +42,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
         #region Properties
+
+        /// <summary>
+        /// The hosting HTTP API.
+        /// </summary>
+        public HTTPAPI       HTTPAPI     { get; }
 
         /// <summary>
         /// The hostname for this (virtual) http service.
@@ -72,13 +74,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Creates a new hostname node.
         /// </summary>
         /// <param name="Hostname">The hostname(s) for this (virtual) http service.</param>
-        internal HostnameNode(HTTPHostname Hostname)
+        internal HostnameNode(HTTPAPI       HTTPAPI,
+                              HTTPHostname  Hostname)
         {
 
             #region Check Hostname
-
-            if (Hostname == null)
-                throw new ArgumentNullException(nameof(Hostname), "The given HTTP hostname must not be null!");
 
             var    HostHeader  = Hostname.ToString().Split(new Char[1] { ':' }, StringSplitOptions.None).Select(v => v.Trim()).ToArray();
             UInt16 HostPort    = 80;
@@ -96,7 +96,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (HostHeader.Length == 1)
                 this.Hostname = HTTPHostname.Parse(Hostname + ":" + HostPort);
 
-            else if ((HostHeader.Length == 2 && (!UInt16.TryParse(HostHeader[1], out HostPort) && HostHeader[1] != "*")) ||
+            else if ((HostHeader.Length == 2 && !UInt16.TryParse(HostHeader[1], out HostPort) && HostHeader[1] != "*") ||
                       HostHeader.Length  > 2)
                       throw new ArgumentException("Invalid Hostname!", nameof(Hostname));
 
@@ -105,6 +105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
+            this.HTTPAPI   = HTTPAPI;
             this.urlNodes  = new Dictionary<HTTPPath, URL_Node>();
 
         }
@@ -114,7 +115,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddHandler(...)
 
-        public void AddHandler(HTTPDelegate             HTTPDelegate,
+        public void AddHandler(HTTPAPI                  HTTPAPI,
+                               HTTPDelegate             HTTPDelegate,
 
                                HTTPPath?                URLTemplate                 = null,
                                HTTPMethod?              Method                      = null,
@@ -142,12 +144,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 {
 
                     urlNode = urlNodes.AddAndReturnValue(URLTemplate.Value,
-                                                          new URL_Node(URLTemplate.Value,
-                                                                       URLAuthentication));
+                                                         new URL_Node(HTTPAPI,
+                                                                      URLTemplate.Value,
+                                                                      URLAuthentication));
 
                 }
 
-                urlNode.AddHandler(HTTPDelegate,
+                urlNode.AddHandler(HTTPAPI,
+                                   HTTPDelegate,
 
                                    Method ?? HTTPMethod.GET,
                                    HTTPContentType,
@@ -168,29 +172,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region Contains(URITemplate)
+        #region Contains(HTTPPath)
 
         /// <summary>
-        /// Determines whether the given URI template is defined.
+        /// Determines whether the given HTTP path template is defined.
         /// </summary>
-        /// <param name="URITemplate">An URI template.</param>
-        public Boolean Contains(HTTPPath URITemplate)
+        /// <param name="HTTPPath">A HTTP path template.</param>
+        public Boolean Contains(HTTPPath HTTPPath)
 
-            => urlNodes.ContainsKey(URITemplate);
+            => urlNodes.ContainsKey(HTTPPath);
 
         #endregion
 
-        #region Get     (URITemplate)
+        #region Get     (HTTPPath)
 
         /// <summary>
-        /// Return the URI node for the given URI template.
+        /// Return the URL node for the given HTTP path template.
         /// </summary>
-        /// <param name="URITemplate">An URI template.</param>
-        public URL_Node Get(HTTPPath URITemplate)
+        /// <param name="HTTPPath">A HTTP path template.</param>
+        public URL_Node? Get(HTTPPath HTTPPath)
         {
 
-            if (urlNodes.TryGetValue(URITemplate, out URL_Node uriNode))
-                return uriNode;
+            if (urlNodes.TryGetValue(HTTPPath, out var urlNode))
+                return urlNode;
 
             return null;
 
@@ -198,16 +202,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region TryGet  (URITemplate, out URINode)
+        #region TryGet  (HTTPPath, out URLNode)
 
         /// <summary>
-        /// Return the URI node for the given URI template.
+        /// Return the URL node for the given HTTP path template.
         /// </summary>
-        /// <param name="URITemplate">An URI template.</param>
-        /// <param name="URINode">The attached URI node.</param>
-        public Boolean TryGet(HTTPPath URITemplate, out URL_Node URINode)
+        /// <param name="HTTPPath">A HTTP path template.</param>
+        /// <param name="URLNode">The attached URL node.</param>
+        public Boolean TryGet(HTTPPath HTTPPath, out URL_Node? URLNode)
 
-            => urlNodes.TryGetValue(URITemplate, out URINode);
+            => urlNodes.TryGetValue(HTTPPath, out URLNode);
 
         #endregion
 

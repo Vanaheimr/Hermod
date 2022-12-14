@@ -31,9 +31,9 @@ using Org.BouncyCastle.Crypto.Parameters;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Warden;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 
 #endregion
 
@@ -1164,9 +1164,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
         /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information.</param>
-        /// <param name="ConnectionThreadsNameBuilder">An optional delegate to set the name of the TCP connection threads.</param>
-        /// <param name="ConnectionThreadsPriorityBuilder">An optional delegate to set the priority of the TCP connection threads.</param>
-        /// <param name="ConnectionThreadsAreBackground">Whether the TCP connection threads are background threads or not (default: yes).</param>
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// 
@@ -1519,6 +1516,255 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region Add Methon Callbacks
+
+        #region AddMethodCallback(Hostname, HTTPMethod, URLTemplate,  HTTPContentType = null, URLAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false, HTTPDelegate = null)
+
+        /// <summary>
+        /// Add a method callback for the given URL template.
+        /// </summary>
+        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <param name="HTTPMethod">The HTTP method.</param>
+        /// <param name="URLTemplate">The URL template.</param>
+        /// <param name="HTTPContentType">The HTTP content type.</param>
+        /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
+        /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
+        /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
+        /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
+        /// <param name="DefaultErrorHandler">The default error handler.</param>
+        /// <param name="HTTPDelegate">The method to call.</param>
+        public void AddMethodCallback(HTTPHostname             Hostname,
+                                      HTTPMethod               HTTPMethod,
+                                      HTTPPath                 URLTemplate,
+                                      HTTPContentType?         HTTPContentType             = null,
+                                      HTTPAuthentication?      URLAuthentication           = null,
+                                      HTTPAuthentication?      HTTPMethodAuthentication    = null,
+                                      HTTPAuthentication?      ContentTypeAuthentication   = null,
+                                      HTTPRequestLogHandler?   HTTPRequestLogger           = null,
+                                      HTTPResponseLogHandler?  HTTPResponseLogger          = null,
+                                      HTTPDelegate?            DefaultErrorHandler         = null,
+                                      HTTPDelegate?            HTTPDelegate                = null,
+                                      URLReplacement           AllowReplacement            = URLReplacement.Fail)
+
+        {
+
+            #region Initial checks
+
+            if (URLTemplate.IsNullOrEmpty())
+                throw new ArgumentNullException(nameof(URLTemplate),   "The given URL template must not be null or empty!");
+
+            if (HTTPDelegate is null)
+                throw new ArgumentNullException(nameof(HTTPDelegate),  "The given HTTP delegate must not be null!");
+
+            #endregion
+
+            HTTPServer.AddMethodCallback(this,
+                                         Hostname,
+                                         HTTPMethod,
+                                         URLTemplate,
+                                         HTTPContentType,
+                                         URLAuthentication,
+                                         HTTPMethodAuthentication,
+                                         ContentTypeAuthentication,
+                                         HTTPRequestLogger,
+                                         HTTPResponseLogger,
+                                         DefaultErrorHandler,
+                                         HTTPDelegate,
+                                         AllowReplacement);
+
+        }
+
+        #endregion
+
+        #region AddMethodCallback(Hostname, HTTPMethod, URLTemplates, HTTPContentType = null, ..., HTTPDelegate = null, AllowReplacement = URLReplacement.Fail)
+
+        /// <summary>
+        /// Add a method callback for the given URL template.
+        /// </summary>
+        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <param name="HTTPMethod">The HTTP method.</param>
+        /// <param name="URLTemplates">An enumeration of URL templates.</param>
+        /// <param name="HTTPContentType">The HTTP content type.</param>
+        /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
+        /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
+        /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
+        /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
+        /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
+        /// <param name="DefaultErrorHandler">The default error handler.</param>
+        /// <param name="HTTPDelegate">The method to call.</param>
+        public void AddMethodCallback(HTTPHostname             Hostname,
+                                      HTTPMethod               HTTPMethod,
+                                      IEnumerable<HTTPPath>    URLTemplates,
+                                      HTTPContentType?         HTTPContentType             = null,
+                                      HTTPAuthentication?      URLAuthentication           = null,
+                                      HTTPAuthentication?      HTTPMethodAuthentication    = null,
+                                      HTTPAuthentication?      ContentTypeAuthentication   = null,
+                                      HTTPRequestLogHandler?   HTTPRequestLogger           = null,
+                                      HTTPResponseLogHandler?  HTTPResponseLogger          = null,
+                                      HTTPDelegate?            DefaultErrorHandler         = null,
+                                      HTTPDelegate?            HTTPDelegate                = null,
+                                      URLReplacement           AllowReplacement            = URLReplacement.Fail)
+
+        {
+
+            #region Initial checks
+
+            if (!URLTemplates.SafeAny())
+                throw new ArgumentNullException(nameof(URLTemplates),  "The given URL template must not be null or empty!");
+
+            if (HTTPDelegate is null)
+                throw new ArgumentNullException(nameof(HTTPDelegate),  "The given HTTP delegate must not be null!");
+
+            #endregion
+
+            HTTPServer.AddMethodCallback(this,
+                                         Hostname,
+                                         HTTPMethod,
+                                         URLTemplates,
+                                         HTTPContentType,
+                                         URLAuthentication,
+                                         HTTPMethodAuthentication,
+                                         ContentTypeAuthentication,
+                                         HTTPRequestLogger,
+                                         HTTPResponseLogger,
+                                         DefaultErrorHandler,
+                                         HTTPDelegate,
+                                         AllowReplacement);
+
+        }
+
+        #endregion
+
+        #region AddMethodCallback(Hostname, HTTPMethod, URLTemplate,  HTTPContentTypes, URLAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false, HTTPDelegate = null)
+
+        /// <summary>
+        /// Add a method callback for the given URL template.
+        /// </summary>
+        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <param name="HTTPMethod">The HTTP method.</param>
+        /// <param name="URLTemplate">The URL template.</param>
+        /// <param name="HTTPContentTypes">An enumeration of HTTP content types.</param>
+        /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
+        /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
+        /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
+        /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
+        /// <param name="DefaultErrorHandler">The default error handler.</param>
+        /// <param name="HTTPDelegate">The method to call.</param>
+        public void AddMethodCallback(HTTPAPI                       HTTPAPI,
+                                      HTTPHostname                  Hostname,
+                                      HTTPMethod                    HTTPMethod,
+                                      HTTPPath                      URLTemplate,
+                                      IEnumerable<HTTPContentType>  HTTPContentTypes,
+                                      HTTPAuthentication?           URLAuthentication           = null,
+                                      HTTPAuthentication?           HTTPMethodAuthentication    = null,
+                                      HTTPAuthentication?           ContentTypeAuthentication   = null,
+                                      HTTPRequestLogHandler?        HTTPRequestLogger           = null,
+                                      HTTPResponseLogHandler?       HTTPResponseLogger          = null,
+                                      HTTPDelegate?                 DefaultErrorHandler         = null,
+                                      HTTPDelegate?                 HTTPDelegate                = null,
+                                      URLReplacement                AllowReplacement            = URLReplacement.Fail)
+
+        {
+
+            #region Initial checks
+
+            if (URLTemplate.IsNullOrEmpty())
+                throw new ArgumentNullException(nameof(URLTemplate),       "The given URL template must not be null or empty!");
+
+            if (!HTTPContentTypes.Any())
+                throw new ArgumentNullException(nameof(HTTPContentTypes),  "The given content types must not be null or empty!");
+
+            if (HTTPDelegate is null)
+                throw new ArgumentNullException(nameof(HTTPDelegate),      "The given HTTP delegate must not be null!");
+
+            #endregion
+
+            HTTPServer.AddMethodCallback(this,
+                                         Hostname,
+                                         HTTPMethod,
+                                         URLTemplate,
+                                         HTTPContentTypes,
+                                         URLAuthentication,
+                                         HTTPMethodAuthentication,
+                                         ContentTypeAuthentication,
+                                         HTTPRequestLogger,
+                                         HTTPResponseLogger,
+                                         DefaultErrorHandler,
+                                         HTTPDelegate,
+                                         AllowReplacement);
+
+        }
+
+        #endregion
+
+        #region AddMethodCallback(Hostname, HTTPMethod, URLTemplate,  HTTPContentTypes, HostAuthentication = false, URLAuthentication = false, HTTPMethodAuthentication = false, ContentTypeAuthentication = false, HTTPDelegate = null)
+
+        /// <summary>
+        /// Add a method callback for the given URL template.
+        /// </summary>
+        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <param name="HTTPMethod">The HTTP method.</param>
+        /// <param name="URLTemplates">An enumeration of URL templates.</param>
+        /// <param name="HTTPContentTypes">An enumeration of HTTP content types.</param>
+        /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
+        /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
+        /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
+        /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
+        /// <param name="DefaultErrorHandler">The default error handler.</param>
+        /// <param name="HTTPDelegate">The method to call.</param>
+        public void AddMethodCallback(HTTPAPI                       HTTPAPI,
+                                      HTTPHostname                  Hostname,
+                                      HTTPMethod                    HTTPMethod,
+                                      IEnumerable<HTTPPath>         URLTemplates,
+                                      IEnumerable<HTTPContentType>  HTTPContentTypes,
+                                      HTTPAuthentication?           URLAuthentication           = null,
+                                      HTTPAuthentication?           HTTPMethodAuthentication    = null,
+                                      HTTPAuthentication?           ContentTypeAuthentication   = null,
+                                      HTTPRequestLogHandler?        HTTPRequestLogger           = null,
+                                      HTTPResponseLogHandler?       HTTPResponseLogger          = null,
+                                      HTTPDelegate?                 DefaultErrorHandler         = null,
+                                      HTTPDelegate?                 HTTPDelegate                = null,
+                                      URLReplacement                AllowReplacement            = URLReplacement.Fail)
+
+        {
+
+            #region Initial checks
+
+            if (!URLTemplates.Any())
+                throw new ArgumentNullException(nameof(URLTemplates),      "The given URL template must not be null or empty!");
+
+            if (!HTTPContentTypes.Any())
+                throw new ArgumentNullException(nameof(HTTPContentTypes),  "The given content types must not be null or empty!");
+
+            if (HTTPDelegate is null)
+                throw new ArgumentNullException(nameof(HTTPDelegate),      "The given HTTP delegate must not be null!");
+
+            #endregion
+
+            HTTPServer.AddMethodCallback(this,
+                                         Hostname,
+                                         HTTPMethod,
+                                         URLTemplates,
+                                         HTTPContentTypes,
+                                         URLAuthentication,
+                                         HTTPMethodAuthentication,
+                                         ContentTypeAuthentication,
+                                         HTTPRequestLogger,
+                                         HTTPResponseLogger,
+                                         DefaultErrorHandler,
+                                         HTTPDelegate,
+                                         AllowReplacement);
+
+        }
+
+        #endregion
+
+        #endregion
+
         #region HTTP Server Sent Events
 
         #region AddEventSource(EventIdentification, MaxNumberOfCachedEvents = 500, RetryIntervall = null, LogfileName = null)
@@ -1535,18 +1781,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogfilePrefix">A prefix for the log file names or locations.</param>
         /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
         /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
-        public HTTPEventSource<TData> AddEventSource<TData>(HTTPEventSource_Id              EventIdentification,
-                                                            UInt32                          MaxNumberOfCachedEvents      = 500,
-                                                            TimeSpan?                       RetryIntervall               = null,
-                                                            Func<TData, String>             DataSerializer               = null,
-                                                            Func<String, TData>             DataDeserializer             = null,
-                                                            Boolean                         EnableLogging                = true,
-                                                            String                          LogfilePath                  = null,
-                                                            String                          LogfilePrefix                = null,
-                                                            Func<String, DateTime, String>  LogfileName                  = null,
-                                                            String                          LogfileReloadSearchPattern   = null)
+        public HTTPEventSource<TData> AddEventSource<TData>(HTTPEventSource_Id               EventIdentification,
+                                                            HTTPAPI                          HTTPAPI,
+                                                            UInt32                           MaxNumberOfCachedEvents      = 500,
+                                                            TimeSpan?                        RetryIntervall               = null,
+                                                            Func<TData, String>?             DataSerializer               = null,
+                                                            Func<String, TData>?             DataDeserializer             = null,
+                                                            Boolean                          EnableLogging                = true,
+                                                            String?                          LogfilePath                  = null,
+                                                            String?                          LogfilePrefix                = null,
+                                                            Func<String, DateTime, String>?  LogfileName                  = null,
+                                                            String?                          LogfileReloadSearchPattern   = null)
 
             => HTTPServer.AddEventSource(EventIdentification,
+                                         HTTPAPI,
                                          MaxNumberOfCachedEvents,
                                          RetryIntervall,
                                          DataSerializer,
@@ -1585,30 +1833,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// 
         /// <param name="DefaultErrorHandler">The default error handler.</param>
-        public HTTPEventSource<T> AddEventSource<T>(HTTPEventSource_Id              EventIdentification,
-                                                    HTTPPath                        URITemplate,
+        public HTTPEventSource<T> AddEventSource<T>(HTTPEventSource_Id               EventIdentification,
+                                                    HTTPAPI                          HTTPAPI,
+                                                    HTTPPath                         URITemplate,
 
-                                                    UInt32                          MaxNumberOfCachedEvents      = 500,
-                                                    Func<HTTPEvent<T>, Boolean>     IncludeFilterAtRuntime       = null,
-                                                    TimeSpan?                       RetryIntervall               = null,
-                                                    Func<T, String>                 DataSerializer               = null,
-                                                    Func<String, T>                 DataDeserializer             = null,
-                                                    Boolean                         EnableLogging                = true,
-                                                    String                          LogfilePath                  = null,
-                                                    String                          LogfilePrefix                = null,
-                                                    Func<String, DateTime, String>  LogfileName                  = null,
-                                                    String                          LogfileReloadSearchPattern   = null,
+                                                    UInt32                           MaxNumberOfCachedEvents      = 500,
+                                                    Func<HTTPEvent<T>, Boolean>?     IncludeFilterAtRuntime       = null,
+                                                    TimeSpan?                        RetryIntervall               = null,
+                                                    Func<T, String>?                 DataSerializer               = null,
+                                                    Func<String, T>?                 DataDeserializer             = null,
+                                                    Boolean                          EnableLogging                = true,
+                                                    String?                          LogfilePath                  = null,
+                                                    String?                          LogfilePrefix                = null,
+                                                    Func<String, DateTime, String>?  LogfileName                  = null,
+                                                    String?                          LogfileReloadSearchPattern   = null,
 
-                                                    HTTPHostname?                   Hostname                     = null,
-                                                    HTTPMethod?                     HttpMethod                   = null,
-                                                    HTTPContentType                 HTTPContentType              = null,
+                                                    HTTPHostname?                    Hostname                     = null,
+                                                    HTTPMethod?                      HttpMethod                   = null,
+                                                    HTTPContentType?                 HTTPContentType              = null,
 
-                                                    HTTPAuthentication              URIAuthentication            = null,
-                                                    HTTPAuthentication              HTTPMethodAuthentication     = null,
+                                                    HTTPAuthentication?              URIAuthentication            = null,
+                                                    HTTPAuthentication?              HTTPMethodAuthentication     = null,
 
-                                                    HTTPDelegate                    DefaultErrorHandler          = null)
+                                                    HTTPDelegate?                    DefaultErrorHandler          = null)
 
             => HTTPServer.AddEventSource(EventIdentification,
+                                         HTTPAPI,
                                          URITemplate,
 
                                          MaxNumberOfCachedEvents,

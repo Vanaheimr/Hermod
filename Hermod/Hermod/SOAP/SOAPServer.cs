@@ -17,11 +17,7 @@
 
 #region Usings
 
-using System;
-using System.Linq;
-using System.Threading;
 using System.Net.Security;
-using System.Collections.Generic;
 using System.Security.Authentication;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
@@ -47,7 +43,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// </summary>
         public static readonly HTTPContentType DefaultSOAPContentType = HTTPContentType.SOAPXML_UTF8;
 
-        private readonly Dictionary<HTTPPath, SOAPDispatcher> _SOAPDispatchers;
+        private readonly Dictionary<HTTPPath, SOAPDispatcher> soapDispatchers;
 
         #endregion
 
@@ -67,7 +63,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// All registered SOAP dispatchers.
         /// </summary>
         public ILookup<HTTPPath, SOAPDispatcher> SOAPDispatchers
-            => _SOAPDispatchers.ToLookup(_ => _.Key, _ => _.Value);
+
+            => soapDispatchers.ToLookup(kvp => kvp.Key,
+                                        kvp => kvp.Value);
 
         #endregion
 
@@ -91,67 +89,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
         /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information.</param>
-        /// <param name="ConnectionThreadsNameBuilder">An optional delegate to set the name of the TCP connection threads.</param>
-        /// <param name="ConnectionThreadsPriorityBuilder">An optional delegate to set the priority of the TCP connection threads.</param>
-        /// <param name="ConnectionThreadsAreBackground">Whether the TCP connection threads are background threads or not (default: yes).</param>
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
         public SOAPServer(IPPort                                TCPPort,
-                          String                                DefaultServerName                  = HTTPServer.DefaultHTTPServerName,
-                          String?                               ServiceName                        = null,
+                          String                                DefaultServerName             = HTTPServer.DefaultHTTPServerName,
+                          String?                               ServiceName                   = null,
 
-                          HTTPContentType?                      SOAPContentType                    = null,
-                          ServerCertificateSelectorDelegate?    ServerCertificateSelector          = null,
-                          LocalCertificateSelectionCallback?    ClientCertificateSelector          = null,
-                          RemoteCertificateValidationCallback?  ClientCertificateValidator         = null,
-                          SslProtocols?                         AllowedTLSProtocols                = null,
-                          Boolean?                              ClientCertificateRequired          = null,
-                          Boolean?                              CheckCertificateRevocation         = null,
+                          HTTPContentType?                      SOAPContentType               = null,
+                          ServerCertificateSelectorDelegate?    ServerCertificateSelector     = null,
+                          LocalCertificateSelectionCallback?    ClientCertificateSelector     = null,
+                          RemoteCertificateValidationCallback?  ClientCertificateValidator    = null,
+                          SslProtocols?                         AllowedTLSProtocols           = null,
+                          Boolean?                              ClientCertificateRequired     = null,
+                          Boolean?                              CheckCertificateRevocation    = null,
 
-                          String?                               ServerThreadName                   = null,
-                          ThreadPriority                        ServerThreadPriority               = ThreadPriority.AboveNormal,
-                          Boolean                               ServerThreadIsBackground           = true,
+                          String?                               ServerThreadName              = null,
+                          ThreadPriority                        ServerThreadPriority          = ThreadPriority.AboveNormal,
+                          Boolean                               ServerThreadIsBackground      = true,
 
-                          ConnectionIdBuilder?                  ConnectionIdBuilder                = null,
-                          //ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
-                          //ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
-                          //Boolean                               ConnectionThreadsAreBackground     = true,
-                          TimeSpan?                             ConnectionTimeout                  = null,
+                          ConnectionIdBuilder?                  ConnectionIdBuilder           = null,
+                          TimeSpan?                             ConnectionTimeout             = null,
 
-                          UInt32?                               MaxClientConnections               = null,
-                          DNSClient?                            DNSClient                          = null,
-                          Boolean                               Autostart                          = false)
+                          UInt32?                               MaxClientConnections          = null,
+                          DNSClient?                            DNSClient                     = null,
+                          Boolean                               Autostart                     = false)
 
         {
 
-            this.HTTPServer        = new HTTPServer(TCPPort,
-                                                    DefaultServerName,
-                                                    ServiceName,
-                                                    ServerCertificateSelector,
-                                                    ClientCertificateSelector,
-                                                    ClientCertificateValidator,
-                                                    AllowedTLSProtocols,
-                                                    ClientCertificateRequired,
-                                                    CheckCertificateRevocation,
+            this.HTTPServer  = new HTTPServer(TCPPort,
+                                              DefaultServerName,
+                                              ServiceName,
+                                              ServerCertificateSelector,
+                                              ClientCertificateSelector,
+                                              ClientCertificateValidator,
+                                              AllowedTLSProtocols,
+                                              ClientCertificateRequired,
+                                              CheckCertificateRevocation,
 
-                                                    ServerThreadName,
-                                                    ServerThreadPriority,
-                                                    ServerThreadIsBackground,
+                                              ServerThreadName,
+                                              ServerThreadPriority,
+                                              ServerThreadIsBackground,
 
-                                                    ConnectionIdBuilder,
-                                                    //ConnectionThreadsNameBuilder,
-                                                    //ConnectionThreadsPriorityBuilder,
-                                                    //ConnectionThreadsAreBackground,
-                                                    ConnectionTimeout,
+                                              ConnectionIdBuilder,
+                                              ConnectionTimeout,
 
-                                                    MaxClientConnections,
-                                                    DNSClient,
-                                                    false);
+                                              MaxClientConnections,
+                                              DNSClient,
+                                              false);
 
-            this.SOAPContentType   = SOAPContentType ?? DefaultSOAPContentType;
-            this._SOAPDispatchers  = new Dictionary<HTTPPath, SOAPDispatcher>();
+            this.SOAPContentType  = SOAPContentType ?? DefaultSOAPContentType;
+            this.soapDispatchers  = new Dictionary<HTTPPath, SOAPDispatcher>();
 
             if (Autostart)
                 HTTPServer.Start();
@@ -167,14 +156,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// </summary>
         /// <param name="HTTPServer">The underlying HTTP server.</param>
         /// <param name="SOAPContentType">The default HTTP content type used for all SOAP requests/responses.</param>
-        public SOAPServer(HTTPServer       HTTPServer,
-                          HTTPContentType  SOAPContentType   = null)
+        public SOAPServer(HTTPServer        HTTPServer,
+                          HTTPContentType?  SOAPContentType   = null)
 
         {
 
-            this.HTTPServer        = HTTPServer;
-            this.SOAPContentType   = SOAPContentType ?? DefaultSOAPContentType;
-            this._SOAPDispatchers  = new Dictionary<HTTPPath, SOAPDispatcher>();
+            this.HTTPServer       = HTTPServer;
+            this.SOAPContentType  = SOAPContentType ?? DefaultSOAPContentType;
+            this.soapDispatchers  = new Dictionary<HTTPPath, SOAPDispatcher>();
 
         }
 
@@ -193,52 +182,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="Description">A description of this SOAP delegate.</param>
         /// <param name="SOAPMatch">A delegate to check whether this dispatcher matches the given XML.</param>
         /// <param name="SOAPBodyDelegate">A delegate to process a matching SOAP request.</param>
-        public void RegisterSOAPDelegate(HTTPHostname      Hostname,
+        public void RegisterSOAPDelegate(HTTPAPI           HTTPAPI,
+                                         HTTPHostname      Hostname,
                                          HTTPPath          URITemplate,
                                          String            Description,
                                          SOAPMatch         SOAPMatch,
                                          SOAPBodyDelegate  SOAPBodyDelegate)
         {
 
-            SOAPDispatcher _SOAPDispatcher = null;
+            SOAPDispatcher? soapDispatcher = null;
 
             // Check if there are other SOAP dispatchers at the given URI template.
-            var _Handlers = HTTPServer.GetHandlers(HTTPHostname.Any,
-                                                   URITemplate,
-                                                   HTTPMethod.POST,
-                                                   hTTPContentTypes => SOAPContentType);
+            var requestHandle = HTTPServer.GetRequestHandle(HTTPHostname.Any,
+                                                            URITemplate,
+                                                            HTTPMethod.POST,
+                                                            hTTPContentTypes => SOAPContentType);
 
-            if (_Handlers == null)
+            if (requestHandle is null)
             {
 
-                _SOAPDispatcher = new SOAPDispatcher(URITemplate, SOAPContentType);
-                _SOAPDispatchers.Add(URITemplate, _SOAPDispatcher);
+                soapDispatcher = new SOAPDispatcher(URITemplate, SOAPContentType);
+                soapDispatchers.Add(URITemplate, soapDispatcher);
 
                 // Register a new SOAP dispatcher
-                HTTPServer.AddMethodCallback(Hostname,
+                HTTPServer.AddMethodCallback(HTTPAPI,
+                                             Hostname,
                                              HTTPMethod.POST,
                                              URITemplate,
                                              SOAPContentType,
-                                             HTTPDelegate: _SOAPDispatcher.Invoke);
+                                             HTTPDelegate: soapDispatcher.Invoke);
 
                 // Register some information text for people using HTTP GET
-                HTTPServer.AddMethodCallback(Hostname,
+                HTTPServer.AddMethodCallback(HTTPAPI,
+                                             Hostname,
                                              HTTPMethod.GET,
                                              URITemplate,
                                              SOAPContentType,
-                                             HTTPDelegate: _SOAPDispatcher.EndpointTextInfo);
+                                             HTTPDelegate: soapDispatcher.EndpointTextInfo);
 
             }
 
             else
-                _SOAPDispatcher = _Handlers.RequestHandler.Target as SOAPDispatcher;
+                soapDispatcher = requestHandle.RequestHandler?.Target as SOAPDispatcher;
 
-            if (_SOAPDispatcher == null)
+            if (soapDispatcher is null)
                 throw new Exception("'" + URITemplate.ToString() + "' does not seem to be a valid SOAP endpoint!");
 
-            _SOAPDispatcher.RegisterSOAPDelegate(Description,
-                                                 SOAPMatch,
-                                                 SOAPBodyDelegate);
+            soapDispatcher.RegisterSOAPDelegate(Description,
+                                                SOAPMatch,
+                                                SOAPBodyDelegate);
 
         }
 
@@ -254,50 +246,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="Description">A description of this SOAP delegate.</param>
         /// <param name="SOAPMatch">A delegate to check whether this dispatcher matches the given XML.</param>
         /// <param name="SOAPHeaderAndBodyDelegate">A delegate to process a matching SOAP request.</param>
-        public void RegisterSOAPDelegate(HTTPHostname               Hostname,
-                                         HTTPPath                    URITemplate,
+        public void RegisterSOAPDelegate(HTTPAPI                    HTTPAPI,
+                                         HTTPHostname               Hostname,
+                                         HTTPPath                   URITemplate,
                                          String                     Description,
                                          SOAPMatch                  SOAPMatch,
                                          SOAPHeaderAndBodyDelegate  SOAPHeaderAndBodyDelegate)
         {
 
-            SOAPDispatcher _SOAPDispatcher = null;
+            SOAPDispatcher? soapDispatcher = null;
 
             // Check if there are other SOAP dispatchers at the given URI template.
-            var _Handlers = HTTPServer.GetHandlers(HTTPHostname.Any,
-                                                   URITemplate,
-                                                   HTTPMethod.POST,
-                                                   hTTPContentTypes => SOAPContentType);
+            var requestHandle = HTTPServer.GetRequestHandle(HTTPHostname.Any,
+                                                            URITemplate,
+                                                            HTTPMethod.POST,
+                                                            hTTPContentTypes => SOAPContentType);
 
-            if (_Handlers == null)
+            if (requestHandle is null)
             {
 
-                _SOAPDispatcher = new SOAPDispatcher(URITemplate, SOAPContentType);
-                _SOAPDispatchers.Add(URITemplate, _SOAPDispatcher);
+                soapDispatcher = new SOAPDispatcher(URITemplate, SOAPContentType);
+                soapDispatchers.Add(URITemplate, soapDispatcher);
 
                 // Register a new SOAP dispatcher
-                HTTPServer.AddMethodCallback(Hostname,
+                HTTPServer.AddMethodCallback(HTTPAPI,
+                                             Hostname,
                                              HTTPMethod.POST,
                                              URITemplate,
                                              SOAPContentType,
-                                             HTTPDelegate: _SOAPDispatcher.Invoke);
+                                             HTTPDelegate: soapDispatcher.Invoke);
 
                 // Register some information text for people using HTTP GET
-                HTTPServer.AddMethodCallback(Hostname,
+                HTTPServer.AddMethodCallback(HTTPAPI,
+                                             Hostname,
                                              HTTPMethod.GET,
                                              URITemplate,
                                              SOAPContentType,
-                                             HTTPDelegate: _SOAPDispatcher.EndpointTextInfo);
+                                             HTTPDelegate: soapDispatcher.EndpointTextInfo);
 
             }
 
             else
-                _SOAPDispatcher = _Handlers.RequestHandler.Target as SOAPDispatcher;
+                soapDispatcher = requestHandle.RequestHandler?.Target as SOAPDispatcher;
 
+            if (soapDispatcher is null)
+                throw new Exception("'" + URITemplate.ToString() + "' does not seem to be a valid SOAP endpoint!");
 
-            _SOAPDispatcher.RegisterSOAPDelegate(Description,
-                                                 SOAPMatch,
-                                                 SOAPHeaderAndBodyDelegate);
+            soapDispatcher.RegisterSOAPDelegate(Description,
+                                                SOAPMatch,
+                                                SOAPHeaderAndBodyDelegate);
 
         }
 

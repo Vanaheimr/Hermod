@@ -64,8 +64,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private readonly HTTPServer                             _HTTPServer;
-        private readonly ConcurrentDictionary<HTTPHostname, T>  _Multitenancy;
+        private readonly HTTPServer                             httpServer;
+        private readonly ConcurrentDictionary<HTTPHostname, T>  multitenancy;
 
         #endregion
 
@@ -76,55 +76,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// no HTTP Host-header had been given.
         /// </summary>
         public String DefaultServerName
-            => _HTTPServer.DefaultServerName;
+            => httpServer.DefaultServerName;
 
         /// <summary>
         /// An associated HTTP security object.
         /// </summary>
         public HTTPSecurity HTTPSecurity
-            => _HTTPServer.HTTPSecurity;
+            => httpServer.HTTPSecurity;
 
         /// <summary>
         /// The DNS defines which DNS servers to use.
         /// </summary>
         public DNSClient DNSClient
-            => _HTTPServer.DNSClient;
+            => httpServer.DNSClient;
 
         /// <summary>
         /// The optional delegate to select a SSL/TLS server certificate.
         /// </summary>
         public ServerCertificateSelectorDelegate ServerCertificateSelector
-            => _HTTPServer.ServerCertificateSelector;
+            => httpServer.ServerCertificateSelector;
 
         /// <summary>
         /// The optional delegate to verify the SSL/TLS client certificate used for authentication.
         /// </summary>
         public RemoteCertificateValidationCallback ClientCertificateValidator
-            => _HTTPServer.ClientCertificateValidator;
+            => httpServer.ClientCertificateValidator;
 
         /// <summary>
         /// The optional delegate to select the SSL/TLS client certificate used for authentication.
         /// </summary>
         public LocalCertificateSelectionCallback ClientCertificateSelector
-            => _HTTPServer.ClientCertificateSelector;
+            => httpServer.ClientCertificateSelector;
 
         /// <summary>
         /// The SSL/TLS protocol(s) allowed for this connection.
         /// </summary>
         public SslProtocols AllowedTLSProtocols
-            => _HTTPServer.AllowedTLSProtocols;
+            => httpServer.AllowedTLSProtocols;
 
         /// <summary>
         /// Is the server already started?
         /// </summary>
         public Boolean IsStarted
-            => _HTTPServer.IsStarted;
+            => httpServer.IsStarted;
 
         /// <summary>
         /// The current number of attached TCP clients.
         /// </summary>
         public UInt64 NumberOfClients
-            => _HTTPServer.NumberOfClients;
+            => httpServer.NumberOfClients;
 
         #endregion
 
@@ -133,17 +133,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event called whenever a HTTP request came in.
         /// </summary>
-        public HTTPRequestLogEvent   RequestLog    = new HTTPRequestLogEvent();
+        public HTTPRequestLogEvent   RequestLog    = new ();
 
         /// <summary>
         /// An event called whenever a HTTP request could successfully be processed.
         /// </summary>
-        public HTTPResponseLogEvent  ResponseLog   = new HTTPResponseLogEvent();
+        public HTTPResponseLogEvent  ResponseLog   = new ();
 
         /// <summary>
         /// An event called whenever a HTTP request resulted in an error.
         /// </summary>
-        public HTTPErrorLogEvent     ErrorLog      = new HTTPErrorLogEvent();
+        public HTTPErrorLogEvent     ErrorLog      = new ();
 
         #endregion
 
@@ -167,37 +167,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
         /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information.</param>
-        /// <param name="ConnectionThreadsNameBuilder">An optional delegate to set the name of the TCP connection threads.</param>
-        /// <param name="ConnectionThreadsPriorityBuilder">An optional delegate to set the priority of the TCP connection threads.</param>
-        /// <param name="ConnectionThreadsAreBackground">Whether the TCP connection threads are background threads or not (default: yes).</param>
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// 
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
-        public HTTPServer(IPPort?                               TCPPort                            = null,
-                          String                                DefaultServerName                  = HTTPServer.DefaultHTTPServerName,
-                          String?                               ServiceName                        = null,
+        public HTTPServer(IPPort?                               TCPPort                      = null,
+                          String                                DefaultServerName            = HTTPServer.DefaultHTTPServerName,
+                          String?                               ServiceName                  = null,
 
-                          ServerCertificateSelectorDelegate?    ServerCertificateSelector          = null,
-                          LocalCertificateSelectionCallback?    ClientCertificateSelector          = null,
-                          RemoteCertificateValidationCallback?  ClientCertificateValidator         = null,
-                          SslProtocols?                         AllowedTLSProtocols                = null,
-                          Boolean?                              ClientCertificateRequired          = null,
-                          Boolean?                              CheckCertificateRevocation         = null,
+                          ServerCertificateSelectorDelegate?    ServerCertificateSelector    = null,
+                          LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
+                          RemoteCertificateValidationCallback?  ClientCertificateValidator   = null,
+                          SslProtocols?                         AllowedTLSProtocols          = null,
+                          Boolean?                              ClientCertificateRequired    = null,
+                          Boolean?                              CheckCertificateRevocation   = null,
 
-                          String?                               ServerThreadName                   = null,
-                          ThreadPriority                        ServerThreadPriority               = ThreadPriority.AboveNormal,
-                          Boolean                               ServerThreadIsBackground           = true,
-                          ConnectionIdBuilder?                  ConnectionIdBuilder                = null,
-                          //ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
-                          //ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
-                          //Boolean                               ConnectionThreadsAreBackground     = true,
-                          TimeSpan?                             ConnectionTimeout                  = null,
-                          UInt32                                MaxClientConnections               = TCPServer.__DefaultMaxClientConnections,
+                          String?                               ServerThreadName             = null,
+                          ThreadPriority                        ServerThreadPriority         = ThreadPriority.AboveNormal,
+                          Boolean                               ServerThreadIsBackground     = true,
+                          ConnectionIdBuilder?                  ConnectionIdBuilder          = null,
+                          TimeSpan?                             ConnectionTimeout            = null,
+                          UInt32                                MaxClientConnections         = TCPServer.__DefaultMaxClientConnections,
 
-                          DNSClient?                            DNSClient                          = null,
-                          Boolean                               Autostart                          = false)
+                          DNSClient?                            DNSClient                    = null,
+                          Boolean                               Autostart                    = false)
 
             : this(new HTTPServer(TCPPort,
                                   DefaultServerName,
@@ -214,9 +208,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   ServerThreadIsBackground,
 
                                   ConnectionIdBuilder,
-                                  //ConnectionThreadsNameBuilder,
-                                  //ConnectionThreadsPriorityBuilder,
-                                  //ConnectionThreadsAreBackground,
                                   ConnectionTimeout,
 
                                   MaxClientConnections,
@@ -236,8 +227,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPServer(HTTPServer HTTPServer)
         {
 
-            this._HTTPServer    = HTTPServer;
-            this._Multitenancy  = new ConcurrentDictionary<HTTPHostname, T>();
+            this.httpServer    = HTTPServer;
+            this.multitenancy  = new ConcurrentDictionary<HTTPHostname, T>();
 
             // Link HTTP events...
             HTTPServer.RequestLog   += (HTTPProcessor, ServerTimestamp, Request)                                 => RequestLog. WhenAll(HTTPProcessor, ServerTimestamp, Request);
@@ -266,19 +257,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var Set = new HashSet<U>();
 
-            if (_Multitenancy.TryGetValue(Hostname, out Tenants))
+            if (multitenancy.TryGetValue(Hostname, out Tenants))
                 foreach (var Tenant in Tenants)
                     Set.Add(Tenant);
 
-            if (_Multitenancy.TryGetValue(Hostname.AnyHost, out Tenants))
+            if (multitenancy.TryGetValue(Hostname.AnyHost, out Tenants))
                 foreach (var Tenant in Tenants)
                     Set.Add(Tenant);
 
-            if (_Multitenancy.TryGetValue(Hostname.AnyPort, out Tenants))
+            if (multitenancy.TryGetValue(Hostname.AnyPort, out Tenants))
                 foreach (var Tenant in Tenants)
                     Set.Add(Tenant);
 
-            if (_Multitenancy.TryGetValue(HTTPHostname.Any, out Tenants))
+            if (multitenancy.TryGetValue(HTTPHostname.Any, out Tenants))
                 foreach (var Tenant in Tenants)
                     Set.Add(Tenant);
 
@@ -317,7 +308,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean TryGetTenants(HTTPHostname  Hostname,
                                      out T         Tenants)
 
-            => _Multitenancy.TryGetValue(Hostname, out Tenants);
+            => multitenancy.TryGetValue(Hostname, out Tenants);
 
         #endregion
 
@@ -331,7 +322,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean TryAddTenants(HTTPHostname  Hostname,
                                      T             Tenants)
 
-            => _Multitenancy.TryAdd(Hostname, Tenants);
+            => multitenancy.TryAdd(Hostname, Tenants);
 
         #endregion
 
@@ -348,7 +339,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             T _Tenants;
 
-            if (_Multitenancy.TryRemove(Hostname, out _Tenants))
+            if (multitenancy.TryRemove(Hostname, out _Tenants))
                 return _Tenants;
 
             return default(T);
@@ -367,7 +358,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IHTTPServer AttachTCPPorts(params IPPort[] Ports)
         {
 
-            _HTTPServer.AttachTCPPorts(Ports);
+            httpServer.AttachTCPPorts(Ports);
 
             return this;
 
@@ -380,7 +371,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IHTTPServer AttachTCPSockets(params IPSocket[] Sockets)
         {
 
-            _HTTPServer.AttachTCPSockets(Sockets);
+            httpServer.AttachTCPSockets(Sockets);
 
             return this;
 
@@ -393,7 +384,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IHTTPServer DetachTCPPorts(params IPPort[] Ports)
         {
 
-            _HTTPServer.DetachTCPPorts(Ports);
+            httpServer.DetachTCPPorts(Ports);
 
             return this;
 
@@ -406,7 +397,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Method Callbacks
 
-        #region Redirect(Hostname, HTTPMethod, URLTemplate, HTTPContentType, URLTarget)
+        #region Redirect(HTTPAPI, Hostname, HTTPMethod, URLTemplate, HTTPContentType, URLTarget)
 
         /// <summary>
         /// Add a URL based method redirect for the given URL template.
@@ -416,25 +407,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLTemplate">The URL template.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
         /// <param name="URLTarget">The target URL of the redirect.</param>
-        public void Redirect(HTTPHostname     Hostname,
+        public void Redirect(HTTPAPI          HTTPAPI,
+                             HTTPHostname     Hostname,
                              HTTPMethod       HTTPMethod,
-                             HTTPPath          URLTemplate,
+                             HTTPPath         URLTemplate,
                              HTTPContentType  HTTPContentType,
-                             HTTPPath          URLTarget)
+                             HTTPPath         URLTarget)
 
         {
 
-            _HTTPServer.Redirect(Hostname,
-                                 HTTPMethod,
-                                 URLTemplate,
-                                 HTTPContentType,
-                                 URLTarget);
+            httpServer.Redirect(HTTPAPI,
+                                Hostname,
+                                HTTPMethod,
+                                URLTemplate,
+                                HTTPContentType,
+                                URLTarget);
 
         }
 
         #endregion
 
-        #region Redirect(HTTPMethod, URLTemplate, HTTPContentType, URLTarget)
+        #region Redirect(HTTPAPI, HTTPMethod, URLTemplate, HTTPContentType, URLTarget)
 
         /// <summary>
         /// Add a URL based method redirect for the given URL template.
@@ -443,17 +436,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLTemplate">The URL template.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
         /// <param name="URLTarget">The target URL of the redirect.</param>
-        public void Redirect(HTTPMethod       HTTPMethod,
+        public void Redirect(HTTPAPI          HTTPAPI,
+                             HTTPMethod       HTTPMethod,
                              HTTPPath         URLTemplate,
                              HTTPContentType  HTTPContentType,
                              HTTPPath         URLTarget)
 
         {
 
-            _HTTPServer.Redirect(HTTPMethod,
-                                 URLTemplate,
-                                 HTTPContentType,
-                                 URLTarget);
+            httpServer.Redirect(HTTPAPI,
+                                HTTPMethod,
+                                URLTemplate,
+                                HTTPContentType,
+                                URLTarget);
 
         }
 
@@ -476,22 +471,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
-        public void AddMethodCallback(HTTPHostname            Hostname,
-                                      HTTPMethod              HTTPMethod,
+        public void AddMethodCallback(HTTPAPI                  HTTPAPI,
+                                      HTTPHostname             Hostname,
+                                      HTTPMethod               HTTPMethod,
                                       HTTPPath                 URLTemplate,
-                                      HTTPContentType         HTTPContentType             = null,
-                                      HTTPAuthentication      URLAuthentication           = null,
-                                      HTTPAuthentication      HTTPMethodAuthentication    = null,
-                                      HTTPAuthentication      ContentTypeAuthentication   = null,
-                                      HTTPRequestLogHandler   HTTPRequestLogger           = null,
-                                      HTTPResponseLogHandler  HTTPResponseLogger          = null,
-                                      HTTPDelegate            DefaultErrorHandler         = null,
-                                      HTTPDelegate            HTTPDelegate                = null,
-                                      URLReplacement          AllowReplacement            = URLReplacement.Fail)
+                                      HTTPContentType?         HTTPContentType             = null,
+                                      HTTPAuthentication?      URLAuthentication           = null,
+                                      HTTPAuthentication?      HTTPMethodAuthentication    = null,
+                                      HTTPAuthentication?      ContentTypeAuthentication   = null,
+                                      HTTPRequestLogHandler?   HTTPRequestLogger           = null,
+                                      HTTPResponseLogHandler?  HTTPResponseLogger          = null,
+                                      HTTPDelegate?            DefaultErrorHandler         = null,
+                                      HTTPDelegate?            HTTPDelegate                = null,
+                                      URLReplacement           AllowReplacement            = URLReplacement.Fail)
 
         {
 
-            _HTTPServer.AddMethodCallback(Hostname,
+            httpServer.AddMethodCallback(HTTPAPI,
+                                          Hostname,
                                           HTTPMethod,
                                           URLTemplate,
                                           HTTPContentType,
@@ -524,22 +521,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
-        public void AddMethodCallback(HTTPHostname            Hostname,
-                                      HTTPMethod              HTTPMethod,
+        public void AddMethodCallback(HTTPAPI                  HTTPAPI,
+                                      HTTPHostname             Hostname,
+                                      HTTPMethod               HTTPMethod,
                                       IEnumerable<HTTPPath>    URLTemplates,
-                                      HTTPContentType         HTTPContentType             = null,
-                                      HTTPAuthentication      URLAuthentication           = null,
-                                      HTTPAuthentication      HTTPMethodAuthentication    = null,
-                                      HTTPAuthentication      ContentTypeAuthentication   = null,
-                                      HTTPRequestLogHandler   HTTPRequestLogger           = null,
-                                      HTTPResponseLogHandler  HTTPResponseLogger          = null,
-                                      HTTPDelegate            DefaultErrorHandler         = null,
-                                      HTTPDelegate            HTTPDelegate                = null,
-                                      URLReplacement          AllowReplacement            = URLReplacement.Fail)
+                                      HTTPContentType?         HTTPContentType             = null,
+                                      HTTPAuthentication?      URLAuthentication           = null,
+                                      HTTPAuthentication?      HTTPMethodAuthentication    = null,
+                                      HTTPAuthentication?      ContentTypeAuthentication   = null,
+                                      HTTPRequestLogHandler?   HTTPRequestLogger           = null,
+                                      HTTPResponseLogHandler?  HTTPResponseLogger          = null,
+                                      HTTPDelegate?            DefaultErrorHandler         = null,
+                                      HTTPDelegate?            HTTPDelegate                = null,
+                                      URLReplacement           AllowReplacement            = URLReplacement.Fail)
 
         {
 
-            _HTTPServer.AddMethodCallback(Hostname,
+            httpServer.AddMethodCallback(HTTPAPI,
+                                          Hostname,
                                           HTTPMethod,
                                           URLTemplates,
                                           HTTPContentType,
@@ -572,22 +571,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
-        public void AddMethodCallback(HTTPHostname                  Hostname,
-                                      HTTPMethod                    HTTPMethod,
+        public void AddMethodCallback(HTTPAPI                        HTTPAPI,
+                                      HTTPHostname                   Hostname,
+                                      HTTPMethod                     HTTPMethod,
                                       HTTPPath                       URLTemplate,
-                                      IEnumerable<HTTPContentType>  HTTPContentTypes,
-                                      HTTPAuthentication            URLAuthentication           = null,
-                                      HTTPAuthentication            HTTPMethodAuthentication    = null,
-                                      HTTPAuthentication            ContentTypeAuthentication   = null,
-                                      HTTPRequestLogHandler         HTTPRequestLogger           = null,
-                                      HTTPResponseLogHandler        HTTPResponseLogger          = null,
-                                      HTTPDelegate                  DefaultErrorHandler         = null,
-                                      HTTPDelegate                  HTTPDelegate                = null,
-                                      URLReplacement                AllowReplacement            = URLReplacement.Fail)
+                                      IEnumerable<HTTPContentType>   HTTPContentTypes,
+                                      HTTPAuthentication?            URLAuthentication           = null,
+                                      HTTPAuthentication?            HTTPMethodAuthentication    = null,
+                                      HTTPAuthentication?            ContentTypeAuthentication   = null,
+                                      HTTPRequestLogHandler?         HTTPRequestLogger           = null,
+                                      HTTPResponseLogHandler?        HTTPResponseLogger          = null,
+                                      HTTPDelegate?                  DefaultErrorHandler         = null,
+                                      HTTPDelegate?                  HTTPDelegate                = null,
+                                      URLReplacement                 AllowReplacement            = URLReplacement.Fail)
 
         {
 
-            _HTTPServer.AddMethodCallback(Hostname,
+            httpServer.AddMethodCallback(HTTPAPI,
+                                          Hostname,
                                           HTTPMethod,
                                           URLTemplate,
                                           HTTPContentTypes,
@@ -620,22 +621,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
-        public void AddMethodCallback(HTTPHostname                  Hostname,
+        public void AddMethodCallback(HTTPAPI                       HTTPAPI,
+                                      HTTPHostname                  Hostname,
                                       HTTPMethod                    HTTPMethod,
-                                      IEnumerable<HTTPPath>          URLTemplates,
+                                      IEnumerable<HTTPPath>         URLTemplates,
                                       IEnumerable<HTTPContentType>  HTTPContentTypes,
-                                      HTTPAuthentication            URLAuthentication           = null,
-                                      HTTPAuthentication            HTTPMethodAuthentication    = null,
-                                      HTTPAuthentication            ContentTypeAuthentication   = null,
-                                      HTTPRequestLogHandler         HTTPRequestLogger           = null,
-                                      HTTPResponseLogHandler        HTTPResponseLogger          = null,
-                                      HTTPDelegate                  DefaultErrorHandler         = null,
-                                      HTTPDelegate                  HTTPDelegate                = null,
+                                      HTTPAuthentication?           URLAuthentication           = null,
+                                      HTTPAuthentication?           HTTPMethodAuthentication    = null,
+                                      HTTPAuthentication?           ContentTypeAuthentication   = null,
+                                      HTTPRequestLogHandler?        HTTPRequestLogger           = null,
+                                      HTTPResponseLogHandler?       HTTPResponseLogger          = null,
+                                      HTTPDelegate?                 DefaultErrorHandler         = null,
+                                      HTTPDelegate?                 HTTPDelegate                = null,
                                       URLReplacement                AllowReplacement            = URLReplacement.Fail)
 
         {
 
-            _HTTPServer.AddMethodCallback(Hostname,
+            httpServer.AddMethodCallback(HTTPAPI,
+                                          Hostname,
                                           HTTPMethod,
                                           URLTemplates,
                                           HTTPContentTypes,
@@ -658,13 +661,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Call the best matching method handler for the given HTTP request.
         /// </summary>
-        protected HTTPServer.Handlers GetHandlers(HTTPHostname                              Host,
+        protected HTTPServer.HTTPRequestHandle GetHandlers(HTTPHostname                              Host,
                                                   HTTPPath                                   URL,
                                                   HTTPMethod?                               HTTPMethod                   = null,
                                                   Func<HTTPContentType[], HTTPContentType>  HTTPContentTypeSelector      = null,
                                                   Action<IEnumerable<String>>               ParsedURLParametersDelegate  = null)
 
-            => _HTTPServer.GetHandlers(Host,
+            => httpServer.GetRequestHandle(Host,
                                        URL,
                                        HTTPMethod,
                                        HTTPContentTypeSelector,
@@ -674,22 +677,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public void AddFilter(HTTPFilter1Delegate Filter)
         {
-            _HTTPServer.AddFilter(Filter);
+            httpServer.AddFilter(Filter);
         }
 
         public void AddFilter(HTTPFilter2Delegate Filter)
         {
-            _HTTPServer.AddFilter(Filter);
+            httpServer.AddFilter(Filter);
         }
 
         public void Rewrite(HTTPRewrite1Delegate Rewrite)
         {
-            _HTTPServer.Rewrite(Rewrite);
+            httpServer.Rewrite(Rewrite);
         }
 
         public void Rewrite(HTTPRewrite2Delegate Rewrite)
         {
-            _HTTPServer.Rewrite(Rewrite);
+            httpServer.Rewrite(Rewrite);
         }
 
 
@@ -698,9 +701,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Call the best matching method handler for the given HTTP request.
         /// </summary>
-        public Task<HTTPResponse> InvokeHandler(HTTPRequest Request)
+        public Task<HTTPResponse> InvokeRequestHandle(HTTPRequest Request)
 
-            => _HTTPServer.InvokeHandler(Request);
+            => httpServer.InvokeRequestHandle(Request);
 
         #endregion
 
@@ -722,27 +725,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogfilePrefix">A prefix for the log file names or locations.</param>
         /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
         /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
-        public HTTPEventSource<TData> AddEventSource<TData>(HTTPEventSource_Id              EventIdentification,
-                                                            UInt32                          MaxNumberOfCachedEvents      = 500,
-                                                            TimeSpan?                       RetryIntervall               = null,
-                                                            Func<TData, String>             DataSerializer               = null,
-                                                            Func<String, TData>             DataDeserializer             = null,
-                                                            Boolean                         EnableLogging                = true,
-                                                            String                          LogfilePath                  = null,
-                                                            String                          LogfilePrefix                = null,
-                                                            Func<String, DateTime, String>  LogfileName                  = null,
-                                                            String                          LogfileReloadSearchPattern   = null)
+        public HTTPEventSource<TData> AddEventSource<TData>(HTTPEventSource_Id               EventIdentification,
+                                                            HTTPAPI                          HTTPAPI,
+                                                            UInt32                           MaxNumberOfCachedEvents      = 500,
+                                                            TimeSpan?                        RetryIntervall               = null,
+                                                            Func<TData, String>?             DataSerializer               = null,
+                                                            Func<String, TData>?             DataDeserializer             = null,
+                                                            Boolean                          EnableLogging                = true,
+                                                            String?                          LogfilePath                  = null,
+                                                            String?                          LogfilePrefix                = null,
+                                                            Func<String, DateTime, String>?  LogfileName                  = null,
+                                                            String?                          LogfileReloadSearchPattern   = null)
 
-            => _HTTPServer.AddEventSource(EventIdentification,
-                                          MaxNumberOfCachedEvents,
-                                          RetryIntervall,
-                                          DataSerializer,
-                                          DataDeserializer,
-                                          EnableLogging,
-                                          LogfilePath,
-                                          LogfilePrefix,
-                                          LogfileName,
-                                          LogfileReloadSearchPattern);
+            => httpServer.AddEventSource(EventIdentification,
+                                         HTTPAPI,
+                                         MaxNumberOfCachedEvents,
+                                         RetryIntervall,
+                                         DataSerializer,
+                                         DataDeserializer,
+                                         EnableLogging,
+                                         LogfilePath,
+                                         LogfilePrefix,
+                                         LogfileName,
+                                         LogfileReloadSearchPattern);
 
         #endregion
 
@@ -772,51 +777,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// 
         /// <param name="DefaultErrorHandler">The default error handler.</param>
-        public HTTPEventSource<TData> AddEventSource<TData>(HTTPEventSource_Id               EventIdentification,
-                                                            HTTPPath                         URLTemplate,
+        public HTTPEventSource<TData> AddEventSource<TData>(HTTPEventSource_Id                EventIdentification,
+                                                            HTTPAPI                           HTTPAPI,
+                                                            HTTPPath                          URLTemplate,
 
-                                                            UInt32                           MaxNumberOfCachedEvents      = 500,
-                                                            Func<HTTPEvent<TData>, Boolean>  IncludeFilterAtRuntime       = null,
-                                                            TimeSpan?                        RetryIntervall               = null,
-                                                            Func<TData, String>              DataSerializer               = null,
-                                                            Func<String, TData>              DataDeserializer             = null,
-                                                            Boolean                          EnableLogging                = true,
-                                                            String                           LogfilePath                  = null,
-                                                            String                           LogfilePrefix                = null,
-                                                            Func<String, DateTime, String>   LogfileName                  = null,
-                                                            String                           LogfileReloadSearchPattern   = null,
+                                                            UInt32                            MaxNumberOfCachedEvents      = 500,
+                                                            Func<HTTPEvent<TData>, Boolean>?  IncludeFilterAtRuntime       = null,
+                                                            TimeSpan?                         RetryIntervall               = null,
+                                                            Func<TData, String>?              DataSerializer               = null,
+                                                            Func<String, TData>?              DataDeserializer             = null,
+                                                            Boolean                           EnableLogging                = true,
+                                                            String?                           LogfilePath                  = null,
+                                                            String?                           LogfilePrefix                = null,
+                                                            Func<String, DateTime, String>?   LogfileName                  = null,
+                                                            String?                           LogfileReloadSearchPattern   = null,
 
-                                                            HTTPHostname?                    Hostname                     = null,
-                                                            HTTPMethod?                      HTTPMethod                   = null,
-                                                            HTTPContentType                  HTTPContentType              = null,
+                                                            HTTPHostname?                     Hostname                     = null,
+                                                            HTTPMethod?                       HTTPMethod                   = null,
+                                                            HTTPContentType?                  HTTPContentType              = null,
 
-                                                            HTTPAuthentication               URLAuthentication            = null,
-                                                            HTTPAuthentication               HTTPMethodAuthentication     = null,
+                                                            HTTPAuthentication?               URLAuthentication            = null,
+                                                            HTTPAuthentication?               HTTPMethodAuthentication     = null,
 
-                                                            HTTPDelegate                     DefaultErrorHandler          = null)
+                                                            HTTPDelegate?                     DefaultErrorHandler          = null)
 
-            => _HTTPServer.AddEventSource(EventIdentification,
-                                          URLTemplate,
+            => httpServer.AddEventSource(EventIdentification,
+                                         HTTPAPI,
+                                         URLTemplate,
 
-                                          MaxNumberOfCachedEvents,
-                                          IncludeFilterAtRuntime,
-                                          RetryIntervall,
-                                          DataSerializer,
-                                          DataDeserializer,
-                                          EnableLogging,
-                                          LogfilePath,
-                                          LogfilePrefix,
-                                          LogfileName,
-                                          LogfileReloadSearchPattern,
+                                         MaxNumberOfCachedEvents,
+                                         IncludeFilterAtRuntime,
+                                         RetryIntervall,
+                                         DataSerializer,
+                                         DataDeserializer,
+                                         EnableLogging,
+                                         LogfilePath,
+                                         LogfilePrefix,
+                                         LogfileName,
+                                         LogfileReloadSearchPattern,
 
-                                          Hostname,
-                                          HTTPMethod,
-                                          HTTPContentType,
+                                         Hostname,
+                                         HTTPMethod,
+                                         HTTPContentType,
 
-                                          URLAuthentication,
-                                          HTTPMethodAuthentication,
+                                         URLAuthentication,
+                                         HTTPMethodAuthentication,
 
-                                          DefaultErrorHandler);
+                                         DefaultErrorHandler);
 
         #endregion
 
@@ -829,7 +836,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="EventSourceIdentification">A string to identify an event source.</param>
         public IHTTPEventSource Get(HTTPEventSource_Id EventSourceIdentification)
 
-            => _HTTPServer.Get(EventSourceIdentification);
+            => httpServer.Get(EventSourceIdentification);
 
 
         /// <summary>
@@ -838,7 +845,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="EventSourceIdentification">A string to identify an event source.</param>
         public IHTTPEventSource<TData> Get<TData>(HTTPEventSource_Id EventSourceIdentification)
 
-            => _HTTPServer.Get<TData>(EventSourceIdentification);
+            => httpServer.Get<TData>(EventSourceIdentification);
 
         #endregion
 
@@ -849,9 +856,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="EventSourceIdentification">A string to identify an event source.</param>
         /// <param name="EventSource">The event source.</param>
-        public Boolean TryGet(HTTPEventSource_Id EventSourceIdentification, out IHTTPEventSource EventSource)
+        public Boolean TryGet(HTTPEventSource_Id    EventSourceIdentification,
+                              out IHTTPEventSource  EventSource)
 
-            => _HTTPServer.TryGet(EventSourceIdentification, out EventSource);
+            => httpServer.TryGet(EventSourceIdentification,
+                                 out EventSource);
 
 
         /// <summary>
@@ -859,9 +868,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="EventSourceIdentification">A string to identify an event source.</param>
         /// <param name="EventSource">The event source.</param>
-        public Boolean TryGet<TData>(HTTPEventSource_Id EventSourceIdentification, out IHTTPEventSource<TData> EventSource)
+        public Boolean TryGet<TData>(HTTPEventSource_Id           EventSourceIdentification,
+                                     out IHTTPEventSource<TData>  EventSource)
 
-            => _HTTPServer.TryGet<TData>(EventSourceIdentification, out EventSource);
+            => httpServer.TryGet(EventSourceIdentification,
+                                 out EventSource);
 
         #endregion
 
@@ -871,18 +882,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a filtered enumeration of all event sources.
         /// </summary>
         /// <param name="IncludeEventSource">An event source filter delegate.</param>
-        public IEnumerable<IHTTPEventSource> EventSources(Func<IHTTPEventSource, Boolean> IncludeEventSource = null)
+        public IEnumerable<IHTTPEventSource> EventSources(Func<IHTTPEventSource, Boolean>?  IncludeEventSource   = null)
 
-            => _HTTPServer.EventSources(IncludeEventSource);
+            => httpServer.EventSources(IncludeEventSource);
 
 
         /// <summary>
         /// Return a filtered enumeration of all event sources.
         /// </summary>
         /// <param name="IncludeEventSource">An event source filter delegate.</param>
-        public IEnumerable<IHTTPEventSource<TData>> EventSources<TData>(Func<IHTTPEventSource, Boolean> IncludeEventSource = null)
+        public IEnumerable<IHTTPEventSource<TData>> EventSources<TData>(Func<IHTTPEventSource, Boolean>?  IncludeEventSource   = null)
 
-            => _HTTPServer.EventSources<TData>(IncludeEventSource);
+            => httpServer.EventSources<TData>(IncludeEventSource);
 
         #endregion
 
@@ -899,7 +910,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                       HTTPContentType  HTTPContentType  = null,
                                                                       HTTPStatusCode   HTTPStatusCode   = null)
 
-            => _HTTPServer.GetErrorHandler(Host,
+            => httpServer.GetErrorHandler(Host,
                                            URL,
                                            HTTPMethod,
                                            HTTPContentType,
@@ -912,7 +923,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public Boolean Start()
 
-            => _HTTPServer.Start();
+            => httpServer.Start();
 
         #endregion
 
@@ -920,7 +931,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public Boolean Start(TimeSpan Delay, Boolean InBackground = true)
 
-            => _HTTPServer.Start(Delay,
+            => httpServer.Start(Delay,
                                  InBackground);
 
         #endregion
@@ -930,7 +941,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean Shutdown(String Message = null, Boolean Wait = true)
         {
 
-            _HTTPServer.Shutdown(Message,
+            httpServer.Shutdown(Message,
                                  Wait);
 
             return true;
@@ -944,7 +955,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public void Dispose()
         {
-            _HTTPServer.Dispose();
+            httpServer.Dispose();
         }
 
         #endregion
@@ -961,27 +972,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               IArrowReceiver<TCPConnection>
     {
 
-        public class Handlers
+        public class HTTPRequestHandle
         {
 
             #region Properties
 
-            public HTTPDelegate                              RequestHandler         { get; }
-            public HTTPRequestLogHandler                     HTTPRequestLogger      { get; }
-            public HTTPResponseLogHandler                    HTTPResponseLogger     { get; }
-            public HTTPDelegate                              DefaultErrorHandler    { get; }
-            public Dictionary<HTTPStatusCode, HTTPDelegate>  ErrorHandlers          { get; }
+            public HTTPAPI                                    HTTPAPI                { get; }
+            public HTTPDelegate?                              RequestHandler         { get; }
+            public HTTPRequestLogHandler?                     HTTPRequestLogger      { get; }
+            public HTTPResponseLogHandler?                    HTTPResponseLogger     { get; }
+            public HTTPDelegate?                              DefaultErrorHandler    { get; }
+            public Dictionary<HTTPStatusCode, HTTPDelegate>?  ErrorHandlers          { get; }
 
             #endregion
 
-            public Handlers(HTTPDelegate                              RequestHandler,
-                            HTTPRequestLogHandler                     HTTPRequestLogger,
-                            HTTPResponseLogHandler                    HTTPResponseLogger,
-                            HTTPDelegate                              DefaultErrorHandler,
-                            Dictionary<HTTPStatusCode, HTTPDelegate>  ErrorHandlers)
+            public HTTPRequestHandle(HTTPAPI                                    HTTPAPI,
+                                     HTTPDelegate?                              RequestHandler,
+                                     HTTPRequestLogHandler?                     HTTPRequestLogger,
+                                     HTTPResponseLogHandler?                    HTTPResponseLogger,
+                                     HTTPDelegate?                              DefaultErrorHandler,
+                                     Dictionary<HTTPStatusCode, HTTPDelegate>?  ErrorHandlers)
 
             {
 
+                this.HTTPAPI              = HTTPAPI;
                 this.RequestHandler       = RequestHandler;
                 this.HTTPRequestLogger    = HTTPRequestLogger;
                 this.HTTPResponseLogger   = HTTPResponseLogger;
@@ -990,29 +1004,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            public static Handlers FromURLNode(URL_Node URLNode)
+            public static HTTPRequestHandle FromURLNode(URL_Node URLNode)
 
-                => new Handlers(URLNode?.RequestHandler,
-                                URLNode?.HTTPRequestLogger,
-                                URLNode?.HTTPResponseLogger,
-                                URLNode?.DefaultErrorHandler,
-                                URLNode?.ErrorHandlers);
+                => new (URLNode.HTTPAPI,
+                        URLNode.RequestHandler,
+                        URLNode.HTTPRequestLogger,
+                        URLNode.HTTPResponseLogger,
+                        URLNode.DefaultErrorHandler,
+                        URLNode.ErrorHandlers);
 
-            public static Handlers FromMethodNode(HTTPMethodNode MethodNode)
+            public static HTTPRequestHandle FromMethodNode(HTTPMethodNode MethodNode)
 
-                => new Handlers(MethodNode?.RequestHandler,
-                                MethodNode?.HTTPRequestLogger,
-                                MethodNode?.HTTPResponseLogger,
-                                MethodNode?.DefaultErrorHandler,
-                                MethodNode?.ErrorHandlers);
+                => new (MethodNode.HTTPAPI,
+                        MethodNode.RequestHandler,
+                        MethodNode.HTTPRequestLogger,
+                        MethodNode.HTTPResponseLogger,
+                        MethodNode.DefaultErrorHandler,
+                        MethodNode.ErrorHandlers);
 
-            public static Handlers FromContentTypeNode(ContentTypeNode ContentTypeNode)
+            public static HTTPRequestHandle FromContentTypeNode(ContentTypeNode ContentTypeNode)
 
-                => new Handlers(ContentTypeNode?.RequestHandler,
-                                ContentTypeNode?.HTTPRequestLogger,
-                                ContentTypeNode?.HTTPResponseLogger,
-                                ContentTypeNode?.DefaultErrorHandler,
-                                ContentTypeNode?.ErrorHandlers);
+                => new (ContentTypeNode.HTTPAPI,
+                        ContentTypeNode.RequestHandler,
+                        ContentTypeNode.HTTPRequestLogger,
+                        ContentTypeNode.HTTPResponseLogger,
+                        ContentTypeNode.DefaultErrorHandler,
+                        ContentTypeNode.ErrorHandlers);
 
         }
 
@@ -1035,7 +1052,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly  IPPort           DefaultHTTPServerPort   = IPPort.HTTP;
 
         private readonly        Dictionary<HTTPHostname,       HostnameNode>      hostnameNodes;
-        private readonly        Dictionary<HTTPEventSource_Id, IHTTPEventSource>  _EventSources;
+        private readonly        Dictionary<HTTPEventSource_Id, IHTTPEventSource>  eventSources;
 
         private const    UInt32 ReadTimeout           = 180000U;
 
@@ -1047,12 +1064,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The default HTTP servername, used whenever
         /// no HTTP Host-header had been given.
         /// </summary>
-        public String         DefaultServerName   { get; }
+        public String              DefaultServerName    { get; }
 
         /// <summary>
         /// An associated HTTP security object.
         /// </summary>
-        public HTTPSecurity?  HTTPSecurity        { get; }
+        public HTTPSecurity?       HTTPSecurity         { get; }
+
+        public RequestLogHandler?  RequestLogger        { get; }
+
+        public AccessLogHandler?   ResponseLogger       { get; }
 
         #endregion
 
@@ -1156,7 +1177,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.DefaultServerName  = DefaultServerName ?? DefaultHTTPServerName;
             this.hostnameNodes     = new Dictionary<HTTPHostname,       HostnameNode>();
-            this._EventSources      = new Dictionary<HTTPEventSource_Id, IHTTPEventSource>();
+            this.eventSources      = new Dictionary<HTTPEventSource_Id, IHTTPEventSource>();
 
             this.AttachTCPPort(TCPPort ?? (ServerCertificateSelector is null
                                                ? IPPort.HTTP
@@ -1496,7 +1517,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         try
                                         {
 
-                                            httpResponse = InvokeHandler(HttpRequest).Result;
+                                            httpResponse = InvokeRequestHandle(HttpRequest).Result;
 
                                             if (httpResponse is null)
                                             {
@@ -1846,17 +1867,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLTemplate">The URL template.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
         /// <param name="URLTarget">The target URL of the redirect.</param>
-        public void Redirect(HTTPHostname     Hostname,
+        public void Redirect(HTTPAPI          HTTPAPI,
+                             HTTPHostname     Hostname,
                              HTTPMethod       HTTPMethod,
-                             HTTPPath          URLTemplate,
+                             HTTPPath         URLTemplate,
                              HTTPContentType  HTTPContentType,
-                             HTTPPath          URLTarget)
+                             HTTPPath         URLTarget)
 
         {
 
-            AddHandler(req => InvokeHandler(new HTTPRequest.Builder(req).SetURL(URLTarget)),
+            AddHandler(HTTPAPI,
+                       req => InvokeRequestHandle(new HTTPRequest.Builder(req).SetURL(URLTarget)),
                        Hostname,
-                       (URLTemplate.IsNotNullOrEmpty()) ? URLTemplate     : HTTPPath.Parse("/"),
+                       URLTemplate,
                        HTTPMethod,
                        HTTPContentType ?? HTTPContentType.HTML_UTF8,
                        null,
@@ -1877,16 +1900,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLTemplate">The URL template.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
         /// <param name="URLTarget">The target URL of the redirect.</param>
-        public void Redirect(HTTPMethod       HTTPMethod,
-                             HTTPPath          URLTemplate,
+        public void Redirect(HTTPAPI          HTTPAPI,
+                             HTTPMethod       HTTPMethod,
+                             HTTPPath         URLTemplate,
                              HTTPContentType  HTTPContentType,
-                             HTTPPath          URLTarget)
+                             HTTPPath         URLTarget)
 
         {
 
-            AddHandler(req => InvokeHandler(new HTTPRequest.Builder(req).SetURL(URLTarget)),
+            AddHandler(HTTPAPI,
+                       req => InvokeRequestHandle(new HTTPRequest.Builder(req).SetURL(URLTarget)),
                        HTTPHostname.Any,
-                       (URLTemplate.IsNotNullOrEmpty()) ? URLTemplate     : HTTPPath.Parse("/"),
+                       URLTemplate,
                        HTTPMethod,
                        HTTPContentType ?? HTTPContentType.HTML_UTF8,
                        null,
@@ -1915,7 +1940,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
         /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
-        internal void AddHandler(HTTPDelegate             HTTPDelegate,
+        internal void AddHandler(HTTPAPI                  HTTPAPI,
+                                 HTTPDelegate             HTTPDelegate,
 
                                  HTTPHostname?            Hostname                    = null,
                                  HTTPPath?                URLTemplate                 = null,
@@ -1950,9 +1976,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #endregion
 
                 if (!hostnameNodes.TryGetValue(hostname, out var hostnameNode))
-                    hostnameNode = hostnameNodes.AddAndReturnValue(hostname, new HostnameNode(hostname));
+                    hostnameNode = hostnameNodes.AddAndReturnValue(hostname, new HostnameNode(HTTPAPI, hostname));
 
-                hostnameNode.AddHandler(HTTPDelegate,
+                hostnameNode.AddHandler(HTTPAPI,
+                                        HTTPDelegate,
 
                                         URLTemplate,
                                         HTTPMethod,
@@ -1990,7 +2017,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
-        public void AddMethodCallback(HTTPHostname             Hostname,
+        public void AddMethodCallback(HTTPAPI                  HTTPAPI,
+                                      HTTPHostname             Hostname,
                                       HTTPMethod               HTTPMethod,
                                       HTTPPath                 URLTemplate,
                                       HTTPContentType?         HTTPContentType             = null,
@@ -2015,7 +2043,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            AddHandler(HTTPDelegate,
+            AddHandler(HTTPAPI,
+                       HTTPDelegate,
                        Hostname,
                        URLTemplate,
                        HTTPMethod,
@@ -2049,18 +2078,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
-        public void AddMethodCallback(HTTPHostname              Hostname,
-                                      HTTPMethod                HTTPMethod,
-                                      IEnumerable<HTTPPath>     URLTemplates,
-                                      HTTPContentType           HTTPContentType             = null,
-                                      HTTPAuthentication        URLAuthentication           = null,
-                                      HTTPAuthentication        HTTPMethodAuthentication    = null,
-                                      HTTPAuthentication        ContentTypeAuthentication   = null,
-                                      HTTPRequestLogHandler     HTTPRequestLogger           = null,
-                                      HTTPResponseLogHandler    HTTPResponseLogger          = null,
-                                      HTTPDelegate              DefaultErrorHandler         = null,
-                                      HTTPDelegate              HTTPDelegate                = null,
-                                      URLReplacement            AllowReplacement            = URLReplacement.Fail)
+        public void AddMethodCallback(HTTPAPI                  HTTPAPI,
+                                      HTTPHostname             Hostname,
+                                      HTTPMethod               HTTPMethod,
+                                      IEnumerable<HTTPPath>    URLTemplates,
+                                      HTTPContentType?         HTTPContentType             = null,
+                                      HTTPAuthentication?      URLAuthentication           = null,
+                                      HTTPAuthentication?      HTTPMethodAuthentication    = null,
+                                      HTTPAuthentication?      ContentTypeAuthentication   = null,
+                                      HTTPRequestLogHandler?   HTTPRequestLogger           = null,
+                                      HTTPResponseLogHandler?  HTTPResponseLogger          = null,
+                                      HTTPDelegate?            DefaultErrorHandler         = null,
+                                      HTTPDelegate?            HTTPDelegate                = null,
+                                      URLReplacement           AllowReplacement            = URLReplacement.Fail)
 
         {
 
@@ -2069,13 +2099,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (!URLTemplates.SafeAny())
                 throw new ArgumentNullException(nameof(URLTemplates),  "The given URL template must not be null or empty!");
 
-            if (HTTPDelegate == null)
+            if (HTTPDelegate is null)
                 throw new ArgumentNullException(nameof(HTTPDelegate),  "The given HTTP delegate must not be null!");
 
             #endregion
 
             URLTemplates.ForEach(URLTemplate =>
-                AddHandler(HTTPDelegate,
+                AddHandler(HTTPAPI,
+                           HTTPDelegate,
                            Hostname,
                            URLTemplate,
                            HTTPMethod,
@@ -2108,42 +2139,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
-        public void AddMethodCallback(HTTPHostname                  Hostname,
+        public void AddMethodCallback(HTTPAPI                       HTTPAPI,
+                                      HTTPHostname                  Hostname,
                                       HTTPMethod                    HTTPMethod,
-                                      HTTPPath                       URLTemplate,
+                                      HTTPPath                      URLTemplate,
                                       IEnumerable<HTTPContentType>  HTTPContentTypes,
-                                      HTTPAuthentication            URLAuthentication           = null,
-                                      HTTPAuthentication            HTTPMethodAuthentication    = null,
-                                      HTTPAuthentication            ContentTypeAuthentication   = null,
-                                      HTTPRequestLogHandler         HTTPRequestLogger           = null,
-                                      HTTPResponseLogHandler        HTTPResponseLogger          = null,
-                                      HTTPDelegate                  DefaultErrorHandler         = null,
-                                      HTTPDelegate                  HTTPDelegate                = null,
+                                      HTTPAuthentication?           URLAuthentication           = null,
+                                      HTTPAuthentication?           HTTPMethodAuthentication    = null,
+                                      HTTPAuthentication?           ContentTypeAuthentication   = null,
+                                      HTTPRequestLogHandler?        HTTPRequestLogger           = null,
+                                      HTTPResponseLogHandler?       HTTPResponseLogger          = null,
+                                      HTTPDelegate?                 DefaultErrorHandler         = null,
+                                      HTTPDelegate?                 HTTPDelegate                = null,
                                       URLReplacement                AllowReplacement            = URLReplacement.Fail)
 
         {
 
             #region Initial checks
 
-            if (Hostname == null)
-                throw new ArgumentNullException(nameof(Hostname),          "The given HTTP hostname must not be null!");
-
-            if (HTTPMethod == null)
-                throw new ArgumentNullException(nameof(HTTPMethod),        "The given HTTP method must not be null!");
-
             if (URLTemplate.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(URLTemplate),       "The given URL template must not be null or empty!");
 
-            if (HTTPContentTypes == null || !HTTPContentTypes.Any())
+            if (!HTTPContentTypes.Any())
                 throw new ArgumentNullException(nameof(HTTPContentTypes),  "The given content types must not be null or empty!");
 
-            if (HTTPDelegate == null)
+            if (HTTPDelegate is null)
                 throw new ArgumentNullException(nameof(HTTPDelegate),      "The given HTTP delegate must not be null!");
 
             #endregion
 
             foreach (var contenttype in HTTPContentTypes)
-                AddHandler(HTTPDelegate,
+                AddHandler(HTTPAPI,
+                           HTTPDelegate,
                            Hostname,
                            URLTemplate,
                            HTTPMethod,
@@ -2176,43 +2203,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
-        public void AddMethodCallback(HTTPHostname                  Hostname,
+        public void AddMethodCallback(HTTPAPI                       HTTPAPI,
+                                      HTTPHostname                  Hostname,
                                       HTTPMethod                    HTTPMethod,
                                       IEnumerable<HTTPPath>         URLTemplates,
                                       IEnumerable<HTTPContentType>  HTTPContentTypes,
-                                      HTTPAuthentication            URLAuthentication           = null,
-                                      HTTPAuthentication            HTTPMethodAuthentication    = null,
-                                      HTTPAuthentication            ContentTypeAuthentication   = null,
-                                      HTTPRequestLogHandler         HTTPRequestLogger           = null,
-                                      HTTPResponseLogHandler        HTTPResponseLogger          = null,
-                                      HTTPDelegate                  DefaultErrorHandler         = null,
-                                      HTTPDelegate                  HTTPDelegate                = null,
+                                      HTTPAuthentication?           URLAuthentication           = null,
+                                      HTTPAuthentication?           HTTPMethodAuthentication    = null,
+                                      HTTPAuthentication?           ContentTypeAuthentication   = null,
+                                      HTTPRequestLogHandler?        HTTPRequestLogger           = null,
+                                      HTTPResponseLogHandler?       HTTPResponseLogger          = null,
+                                      HTTPDelegate?                 DefaultErrorHandler         = null,
+                                      HTTPDelegate?                 HTTPDelegate                = null,
                                       URLReplacement                AllowReplacement            = URLReplacement.Fail)
 
         {
 
             #region Initial checks
 
-            if (Hostname == null)
-                throw new ArgumentNullException(nameof(Hostname),          "The given HTTP hostname must not be null!");
-
-            if (HTTPMethod == null)
-                throw new ArgumentNullException(nameof(HTTPMethod),        "The given HTTP method must not be null!");
-
-            if (URLTemplates     == null || !URLTemplates.Any())
+            if (!URLTemplates.Any())
                 throw new ArgumentNullException(nameof(URLTemplates),      "The given URL template must not be null or empty!");
 
-            if (HTTPContentTypes == null || !HTTPContentTypes.Any())
+            if (!HTTPContentTypes.Any())
                 throw new ArgumentNullException(nameof(HTTPContentTypes),  "The given content types must not be null or empty!");
 
-            if (HTTPDelegate == null)
+            if (HTTPDelegate is null)
                 throw new ArgumentNullException(nameof(HTTPDelegate),      "The given HTTP delegate must not be null!");
 
             #endregion
 
             foreach (var uritemplate in URLTemplates)
                 foreach (var contenttype in HTTPContentTypes)
-                    AddHandler(HTTPDelegate,
+                    AddHandler(HTTPAPI,
+                               HTTPDelegate,
                                Hostname,
                                uritemplate,
                                HTTPMethod,
@@ -2245,21 +2268,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
         /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
-        internal void ReplaceHandler(HTTPDelegate              HTTPDelegate,
+        internal void ReplaceHandler(HTTPAPI                  HTTPAPI,
+                                     HTTPDelegate             HTTPDelegate,
 
-                                     HTTPHostname?             Hostname                    = null,
-                                     HTTPPath?                  URLTemplate                 = null,
-                                     HTTPMethod?               HTTPMethod                  = null,
-                                     HTTPContentType           HTTPContentType             = null,
+                                     HTTPHostname?            Hostname                    = null,
+                                     HTTPPath?                URLTemplate                 = null,
+                                     HTTPMethod?              HTTPMethod                  = null,
+                                     HTTPContentType?         HTTPContentType             = null,
 
-                                     HTTPAuthentication        URLAuthentication           = null,
-                                     HTTPAuthentication        HTTPMethodAuthentication    = null,
-                                     HTTPAuthentication        ContentTypeAuthentication   = null,
+                                     HTTPAuthentication?      URLAuthentication           = null,
+                                     HTTPAuthentication?      HTTPMethodAuthentication    = null,
+                                     HTTPAuthentication?      ContentTypeAuthentication   = null,
 
-                                     HTTPRequestLogHandler     HTTPRequestLogger           = null,
-                                     HTTPResponseLogHandler    HTTPResponseLogger          = null,
+                                     HTTPRequestLogHandler?   HTTPRequestLogger           = null,
+                                     HTTPResponseLogHandler?  HTTPResponseLogger          = null,
 
-                                     HTTPDelegate              DefaultErrorHandler         = null)
+                                     HTTPDelegate?            DefaultErrorHandler         = null)
 
         {
 
@@ -2268,33 +2292,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Initial Checks
 
-                if (HTTPDelegate == null)
+                if (HTTPDelegate is null)
                     throw new ArgumentNullException(nameof(HTTPDelegate), "The given parameter must not be null!");
 
-                var _Hostname = Hostname ?? HTTPHostname.Any;
+                var hostname = Hostname ?? HTTPHostname.Any;
 
-                if (HTTPMethod == null && HTTPContentType != null)
-                    throw new ArgumentException("If HTTPMethod is null the HTTPContentType must also be null!");
+                if (!HTTPMethod.HasValue && HTTPContentType is not null)
+                    throw new ArgumentException("If HTTP method is null the HTTP content type must also be null!");
 
                 #endregion
 
-                if (!hostnameNodes.TryGetValue(_Hostname, out HostnameNode _HostnameNode))
-                    _HostnameNode = hostnameNodes.AddAndReturnValue(_Hostname, new HostnameNode(_Hostname));
+                if (!hostnameNodes.TryGetValue(hostname, out var hostnameNode))
+                    hostnameNode = hostnameNodes.AddAndReturnValue(hostname, new HostnameNode(HTTPAPI, hostname));
 
-                _HostnameNode.AddHandler(HTTPDelegate,
+                hostnameNode.AddHandler(HTTPAPI,
+                                        HTTPDelegate,
 
-                                         URLTemplate,
-                                         HTTPMethod,
-                                         HTTPContentType,
+                                        URLTemplate,
+                                        HTTPMethod,
+                                        HTTPContentType,
 
-                                         URLAuthentication,
-                                         HTTPMethodAuthentication,
-                                         ContentTypeAuthentication,
+                                        URLAuthentication,
+                                        HTTPMethodAuthentication,
+                                        ContentTypeAuthentication,
 
-                                         HTTPRequestLogger,
-                                         HTTPResponseLogger,
+                                        HTTPRequestLogger,
+                                        HTTPResponseLogger,
 
-                                         DefaultErrorHandler);
+                                        DefaultErrorHandler);
 
             }
 
@@ -2303,37 +2328,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (internal) GetHandler(Request)
+        #region (internal) GetRequestHandle(Request)
 
         /// <summary>
         /// Return the best matching method handler for the given parameters.
         /// </summary>
         /// <param name="Request">A HTTP request.</param>
-        internal Handlers GetHandlers(HTTPRequest Request)
+        internal HTTPRequestHandle? GetRequestHandle(HTTPRequest Request)
 
-            => GetHandlers(Request.Host,
-                           Request.Path.IsNullOrEmpty() ? HTTPPath.Parse("/") : Request.Path,
-                           Request.HTTPMethod,
-                           AvailableContentTypes => Request.Accept.BestMatchingContentType(AvailableContentTypes),
-                           ParsedURLParameters   => Request.ParsedURLParameters = ParsedURLParameters.ToArray());
+            => GetRequestHandle(Request.Host,
+                                Request.Path.IsNullOrEmpty() ? HTTPPath.Parse("/") : Request.Path,
+                                Request.HTTPMethod,
+                                AvailableContentTypes => Request.Accept.BestMatchingContentType(AvailableContentTypes),
+                                ParsedURLParameters   => Request.ParsedURLParameters = ParsedURLParameters.ToArray());
 
         #endregion
 
-        #region (internal) GetHandler(Host = "*", Path = "/", HTTPMethod = HTTPMethod.GET, HTTPContentTypeSelector = null)
+        #region (internal) GetRequestHandle(Host = "*", Path = "/", HTTPMethod = HTTPMethod.GET, HTTPContentTypeSelector = null)
 
         /// <summary>
         /// Return the best matching method handler for the given parameters.
         /// </summary>
-        internal Handlers? GetHandlers(HTTPHostname                               Host,
-                                       HTTPPath                                   Path,
-                                       HTTPMethod?                                Method                       = null,
-                                       Func<HTTPContentType[], HTTPContentType>?  HTTPContentTypeSelector      = null,
-                                       Action<IEnumerable<String>>?               ParsedURLParametersDelegate  = null)
+        internal HTTPRequestHandle? GetRequestHandle(HTTPHostname                               Host,
+                                                     HTTPPath                                   Path,
+                                                     HTTPMethod?                                HTTPMethod                    = null,
+                                                     Func<HTTPContentType[], HTTPContentType>?  HTTPContentTypeSelector       = null,
+                                                     Action<IEnumerable<String>>?               ParsedURLParametersDelegate   = null)
         {
 
-            Path                     = Path.IsNullOrEmpty()     ? HTTPPath.Parse("/") : Path;
-            var httpMethod           = Method                  ?? HTTPMethod.GET;
-            HTTPContentTypeSelector  = HTTPContentTypeSelector ?? (v => HTTPContentType.HTML_UTF8);
+            Path                       = Path.IsNullOrEmpty()
+                                             ? HTTPPath.Parse("/")
+                                             : Path;
+            HTTPMethod               ??= HTTP.HTTPMethod.GET;
+            HTTPContentTypeSelector  ??= (v => HTTPContentType.HTML_UTF8);
 
             lock (hostnameNodes)
             {
@@ -2366,7 +2393,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var matches       = from    match
                                     in      allTemplates
                                     where   match.Match.Success
-                                    where   match.URLNode.Contains(httpMethod)
+                                    where   match.URLNode.Contains(HTTPMethod.Value)
                                     orderby 100*match.URLNode.SortLength +
                                                 match.URLNode.ParameterCount
                                             descending
@@ -2392,16 +2419,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #endregion
 
 
-                HTTPMethodNode?  httpMethodNode       = null;
-                ContentTypeNode? httpContentTypeNode  = null;
+                HTTPMethodNode?  httpMethodNode        = null;
+                ContentTypeNode? httpContentTypeNode   = null;
 
                 // Caused e.g. by the naming of the variables within the
                 // URL templates, there could be multiple matches!
                 //foreach (var _Match in _Matches)
                 //{
 
-                var filteredByMethod  = matches.Where (match      => match.URLNode.Contains(httpMethod)).
-                                                Select(match      => match.URLNode.Get     (httpMethod)).
+                var filteredByMethod  = matches.Where (match      => match.URLNode.Contains(HTTPMethod.Value)).
+                                                Select(match      => match.URLNode.Get     (HTTPMethod.Value)).
                                                 Select(methodnode => HTTPContentTypeSelector(methodnode.ContentTypes.ToArray())).
                                                 ToArray();
 
@@ -2430,7 +2457,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #endregion
 
                 // If HTTPMethod was found...
-                if (bestMatch.URLNode.TryGet(httpMethod, out httpMethodNode))
+                if (bestMatch.URLNode.TryGet(HTTPMethod.Value, out httpMethodNode))
                 {
 
                     var bestMatchingContentType = HTTPContentTypeSelector(httpMethodNode.ContentTypes.ToArray());
@@ -2440,11 +2467,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         // No content types defined...
                         if (!httpMethodNode.Any())
-                            return Handlers.FromMethodNode(httpMethodNode);
+                            return HTTPRequestHandle.FromMethodNode(httpMethodNode);
 
                         // A single content type is defined...
                     //    else if (_HTTPMethodNode.Count() == 1)
-                            return Handlers.FromContentTypeNode(httpMethodNode.FirstOrDefault());
+                            return HTTPRequestHandle.FromContentTypeNode(httpMethodNode.FirstOrDefault());
 
                     //    else
                     //        throw new ArgumentException(String.Concat(URL, " ", _HTTPMethodNode, " but multiple content type choices!"));
@@ -2453,18 +2480,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     // The requested content type was found...
                     else if (httpMethodNode.TryGet(bestMatchingContentType, out httpContentTypeNode))
-                        return Handlers.FromContentTypeNode(httpContentTypeNode);
+                        return HTTPRequestHandle.FromContentTypeNode(httpContentTypeNode);
 
 
                     else
-                        return Handlers.FromMethodNode(httpMethodNode);
+                        return HTTPRequestHandle.FromMethodNode(httpMethodNode);
 
                 }
 
                 //}
 
                 // No HTTPMethod was found => return best matching URL Handler
-                return Handlers.FromURLNode(bestMatch.URLNode);
+                return HTTPRequestHandle.FromURLNode(bestMatch.URLNode);
 
                 //return GetErrorHandler(Host, URL, HTTPMethod, HTTPContentType, HTTPStatusCode.BadRequest);
 
@@ -2475,12 +2502,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region InvokeHandler(HTTPRequest)
+        #region InvokeRequestHandle(HTTPRequest)
 
         /// <summary>
         /// Call the best matching method handler for the given HTTP request.
         /// </summary>
-        public async Task<HTTPResponse> InvokeHandler(HTTPRequest Request)
+        public async Task<HTTPResponse> InvokeRequestHandle(HTTPRequest Request)
         {
 
             #region Process HTTP auths...
@@ -2535,24 +2562,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #endregion
 
 
-            var HTTPHandlers = GetHandlers(Request);
 
-            if (HTTPHandlers is not null)
+            #region HTTP request logger
+
+            if (RequestLogger is not null)
+            {
+                try
+                {
+
+                    var HTTPRequestLoggerTask = RequestLogger(Timestamp.Now,
+                                                              this,
+                                                              Request);
+
+                    // RequestLog wrappers might return null!
+                    if (HTTPRequestLoggerTask is not null)
+                        await HTTPRequestLoggerTask;
+
+                }
+                catch (Exception e)
+                {
+                    DebugX.LogT("HTTP server request logger exception: " + e.Message);
+                }
+            }
+
+            #endregion
+
+
+            var httpRequestHandle = GetRequestHandle(Request);
+
+            if (httpRequestHandle is not null)
             {
 
                 #region HTTP request logger
 
-                if (HTTPHandlers.HTTPRequestLogger != null)
+                if (httpRequestHandle.HTTPRequestLogger is not null)
                 {
                     try
                     {
 
-                        var HTTPRequestLoggerTask = HTTPHandlers.HTTPRequestLogger(Timestamp.Now,
-                                                                                   null,
-                                                                                   Request);
+                        var HTTPRequestLoggerTask = httpRequestHandle.HTTPRequestLogger(Timestamp.Now,
+                                                                                        null,
+                                                                                        Request);
 
                         // RequestLog wrappers might return null!
-                        if (!(HTTPRequestLoggerTask is null))
+                        if (HTTPRequestLoggerTask is not null)
                             await HTTPRequestLoggerTask;
 
                     }
@@ -2567,7 +2620,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    httpResponse = await HTTPHandlers.RequestHandler(Request);
+                    if (httpRequestHandle is not null)
+                    {
+
+                        var requestHandler = httpRequestHandle.RequestHandler;
+
+                        if (requestHandler is not null)
+                            httpResponse = await requestHandler(Request);
+
+                    }
+                    else
+                        httpResponse = new HTTPResponse.Builder(Request) {
+                                           HTTPStatusCode  = HTTPStatusCode.InternalServerError,
+                                           ContentType     = HTTPContentType.JSON_UTF8,
+                                           Content         = JSONObject.Create(
+                                                                 new JProperty("description", "HTTP request handle must not be null!")
+                                                             ).ToUTF8Bytes(),
+                                           Server          = DefaultServerName,
+                                           Connection      = "close"
+                                       };
 
                 }
                 catch (Exception e)
@@ -2576,44 +2647,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     DebugX.LogT("HTTP server request processing exception: " + e.Message);
 
                     httpResponse = new HTTPResponse.Builder(Request) {
-                                        HTTPStatusCode  = HTTPStatusCode.InternalServerError,
-                                        ContentType     = HTTPContentType.JSON_UTF8,
-                                        Content         = JSONObject.Create(
-                                                              new JProperty("description",  e.Message),
-                                                              new JProperty("stacktrace",   e.StackTrace),
-                                                              new JProperty("source",       e.TargetSite.Module.Name),
-                                                              new JProperty("type",         e.TargetSite.ReflectedType.Name)
-                                                          ).ToUTF8Bytes(),
-                                        Server          = DefaultServerName,
-                                        Connection      = "close"
-                                    };
+                                       HTTPStatusCode  = HTTPStatusCode.InternalServerError,
+                                       ContentType     = HTTPContentType.JSON_UTF8,
+                                       Content         = JSONObject.Create(
+                                                             new JProperty("description", e.Message),
+                                                             new JProperty("stacktrace",  e.StackTrace),
+                                                             new JProperty("source",      e.TargetSite?.Module.Name),
+                                                             new JProperty("type",        e.TargetSite?.ReflectedType?.Name)
+                                                         ).ToUTF8Bytes(),
+                                       Server          = DefaultServerName,
+                                       Connection      = "close"
+                                   };
 
                 }
 
-                if (httpResponse is null)
-                    httpResponse = new HTTPResponse.Builder(Request) {
-                                        HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                        Server          = Request.Host.ToString(),
-                                        Date            = Timestamp.Now,
-                                        ContentType     = HTTPContentType.TEXT_UTF8,
-                                        Content         = "Error 404 - Not Found!".ToUTF8Bytes(),
-                                        Connection      = "close"
-                                    };
+                httpResponse ??= new HTTPResponse.Builder(Request) {
+                                     HTTPStatusCode  = HTTPStatusCode.NotFound,
+                                     Server          = Request.Host.ToString(),
+                                     Date            = Timestamp.Now,
+                                     ContentType     = HTTPContentType.TEXT_UTF8,
+                                     Content         = "Error 404 - Not Found!".ToUTF8Bytes(),
+                                     Connection      = "close"
+                                 };
 
                 #region HTTP response logger
 
-                if (HTTPHandlers.HTTPResponseLogger != null)
+                if (ResponseLogger is not null)
                 {
                     try
                     {
 
-                        var HTTPResponseLoggerTask = HTTPHandlers.HTTPResponseLogger(Timestamp.Now,
-                                                                                     null,
-                                                                                     Request,
-                                                                                     httpResponse);
+                        var HTTPResponseLoggerTask = ResponseLogger(Timestamp.Now,
+                                                                    this,
+                                                                    Request,
+                                                                    httpResponse);
 
                         // ResponseLog wrappers might return null!
-                        if (!(HTTPResponseLoggerTask is null))
+                        if (HTTPResponseLoggerTask is not null)
                             await HTTPResponseLoggerTask;
 
 
@@ -2629,13 +2699,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
             return httpResponse ?? new HTTPResponse.Builder(Request) {
-                                        HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                        Server          = Request.Host.ToString(),
-                                        Date            = Timestamp.Now,
-                                        ContentType     = HTTPContentType.TEXT_UTF8,
-                                        Content         = "Error 404 - No HTTP handler found!".ToUTF8Bytes(),
-                                        Connection      = "close"
-                                    };
+                                       HTTPStatusCode  = HTTPStatusCode.NotFound,
+                                       Server          = Request.Host.ToString(),
+                                       Date            = Timestamp.Now,
+                                       ContentType     = HTTPContentType.TEXT_UTF8,
+                                       Content         = "Error 404 - No HTTP handler found!".ToUTF8Bytes(),
+                                       Connection      = "close"
+                                   };
 
         }
 
@@ -2645,7 +2715,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region HTTP Server Sent Events
 
-        #region AddEventSource(EventIdentification, MaxNumberOfCachedEvents = 500, RetryIntervall = null, LogfileName = null)
+        #region AddEventSource(HTTPAPI, EventIdentification, MaxNumberOfCachedEvents = 500, RetryIntervall = null, LogfileName = null)
 
         /// <summary>
         /// Add a HTTP Sever Sent Events source.
@@ -2659,33 +2729,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogfilePrefix">The prefix of the logfile names.</param>
         /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
         /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
-        public HTTPEventSource<T> AddEventSource<T>(HTTPEventSource_Id              EventIdentification,
-                                                    UInt32                          MaxNumberOfCachedEvents      = 500,
-                                                    TimeSpan?                       RetryIntervall               = null,
-                                                    Func<T, String>                 DataSerializer               = null,
-                                                    Func<String, T>                 DataDeserializer             = null,
-                                                    Boolean                         EnableLogging                = true,
-                                                    String                          LogfilePath                  = null,
-                                                    String                          LogfilePrefix                = null,
-                                                    Func<String, DateTime, String>  LogfileName                  = null,
-                                                    String                          LogfileReloadSearchPattern   = null)
+        public HTTPEventSource<T> AddEventSource<T>(HTTPEventSource_Id               EventIdentification,
+                                                    HTTPAPI                          HTTPAPI,
+                                                    UInt32                           MaxNumberOfCachedEvents      = 500,
+                                                    TimeSpan?                        RetryIntervall               = null,
+                                                    Func<T, String>?                 DataSerializer               = null,
+                                                    Func<String, T>?                 DataDeserializer             = null,
+                                                    Boolean                          EnableLogging                = true,
+                                                    String?                          LogfilePath                  = null,
+                                                    String?                          LogfilePrefix                = null,
+                                                    Func<String, DateTime, String>?  LogfileName                  = null,
+                                                    String?                          LogfileReloadSearchPattern   = null)
 
         {
 
             lock (hostnameNodes)
             {
 
-                if (_EventSources.ContainsKey(EventIdentification))
+                if (eventSources.ContainsKey(EventIdentification))
                     throw new ArgumentException("Duplicate event identification!");
 
                 var eventSource = new HTTPEventSource<T>(EventIdentification,
+                                                         HTTPAPI,
                                                          MaxNumberOfCachedEvents,
                                                          RetryIntervall,
                                                          DataSerializer,
                                                          DataDeserializer,
                                                          EnableLogging,
                                                          LogfilePath,
-                                                         EnableLogging || LogfileName != null
+                                                         EnableLogging || LogfileName is not null
                                                              ? LogfileName ?? ((eventid, time) => String.Concat(LogfilePrefix ?? "",
                                                                                                                 eventid, "_",
                                                                                                                 time.Year, "-", time.Month.ToString("D2"),
@@ -2693,8 +2765,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              : null,
                                                          LogfileReloadSearchPattern ?? String.Concat(LogfilePrefix ?? "", EventIdentification, "_*.log"));
 
-                _EventSources.Add(EventIdentification,
-                                  eventSource);
+                eventSources.Add(EventIdentification,
+                                 eventSource);
 
                 return eventSource;
 
@@ -2730,71 +2802,74 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// 
         /// <param name="DefaultErrorHandler">The default error handler.</param>
-        public HTTPEventSource<T> AddEventSource<T>(HTTPEventSource_Id              EventIdentification,
-                                                    HTTPPath                        URLTemplate,
+        public HTTPEventSource<T> AddEventSource<T>(HTTPEventSource_Id               EventIdentification,
+                                                    HTTPAPI                          HTTPAPI,
+                                                    HTTPPath                         URLTemplate,
 
-                                                    UInt32                          MaxNumberOfCachedEvents      = 500,
-                                                    Func<HTTPEvent<T>, Boolean>     IncludeFilterAtRuntime       = null,
-                                                    TimeSpan?                       RetryIntervall               = null,
-                                                    Func<T, String>                 DataSerializer               = null,
-                                                    Func<String, T>                 DataDeserializer             = null,
-                                                    Boolean                         EnableLogging                = true,
-                                                    String                          LogfilePath                  = null,
-                                                    String                          LogfilePrefix                = null,
-                                                    Func<String, DateTime, String>  LogfileName                  = null,
-                                                    String                          LogfileReloadSearchPattern   = null,
+                                                    UInt32                           MaxNumberOfCachedEvents      = 500,
+                                                    Func<HTTPEvent<T>, Boolean>?     IncludeFilterAtRuntime       = null,
+                                                    TimeSpan?                        RetryIntervall               = null,
+                                                    Func<T, String>?                 DataSerializer               = null,
+                                                    Func<String, T>?                 DataDeserializer             = null,
+                                                    Boolean                          EnableLogging                = true,
+                                                    String?                          LogfilePath                  = null,
+                                                    String?                          LogfilePrefix                = null,
+                                                    Func<String, DateTime, String>?  LogfileName                  = null,
+                                                    String?                          LogfileReloadSearchPattern   = null,
 
-                                                    HTTPHostname?                   Hostname                     = null,
-                                                    HTTPMethod?                     HttpMethod                   = null,
-                                                    HTTPContentType                 HTTPContentType              = null,
+                                                    HTTPHostname?                    Hostname                     = null,
+                                                    HTTPMethod?                      HttpMethod                   = null,
+                                                    HTTPContentType?                 HTTPContentType              = null,
 
-                                                    HTTPAuthentication              URLAuthentication            = null,
-                                                    HTTPAuthentication              HTTPMethodAuthentication     = null,
+                                                    HTTPAuthentication?              URLAuthentication            = null,
+                                                    HTTPAuthentication?              HTTPMethodAuthentication     = null,
 
-                                                    HTTPDelegate                    DefaultErrorHandler          = null)
+                                                    HTTPDelegate?                    DefaultErrorHandler          = null)
 
         {
 
-            lock (_EventSources)
+            lock (eventSources)
             {
 
-                var _EventSource = AddEventSource(EventIdentification,
-                                                  MaxNumberOfCachedEvents,
-                                                  RetryIntervall,
-                                                  DataSerializer,
-                                                  DataDeserializer,
-                                                  EnableLogging,
-                                                  LogfilePath,
-                                                  LogfilePrefix,
-                                                  LogfileName,
-                                                  LogfileReloadSearchPattern);
+                var eventSource = AddEventSource(EventIdentification,
+                                                 HTTPAPI,
+                                                 MaxNumberOfCachedEvents,
+                                                 RetryIntervall,
+                                                 DataSerializer,
+                                                 DataDeserializer,
+                                                 EnableLogging,
+                                                 LogfilePath,
+                                                 LogfilePrefix,
+                                                 LogfileName,
+                                                 LogfileReloadSearchPattern);
 
-                if (IncludeFilterAtRuntime == null)
+                if (IncludeFilterAtRuntime is null)
                     IncludeFilterAtRuntime = httpEvent => true;
 
-                AddHandler(Request => {
+                AddHandler(HTTPAPI,
+                           request => {
 
-                              var _HTTPEvents = _EventSource.GetAllEventsGreater(Request.GetHeaderField_UInt64("Last-Event-ID")).
-                                                             Where(IncludeFilterAtRuntime).
-                                                             Aggregate(new StringBuilder(),
-                                                                       (stringBuilder, httpEvent) => stringBuilder.Append    (httpEvent.SerializedHeader).
-                                                                                                                   AppendLine(httpEvent.SerializedData).
-                                                                                                                   AppendLine()).
-                                                             Append(Environment.NewLine).
-                                                             Append("retry: ").Append((UInt32) _EventSource.RetryIntervall.TotalMilliseconds).
-                                                             Append(Environment.NewLine).
-                                                             Append(Environment.NewLine).
-                                                             ToString();
+                              var _HTTPEvents = eventSource.GetAllEventsGreater(request.GetHeaderField_UInt64("Last-Event-ID")).
+                                                            Where(IncludeFilterAtRuntime).
+                                                            Aggregate(new StringBuilder(),
+                                                                      (stringBuilder, httpEvent) => stringBuilder.Append    (httpEvent.SerializedHeader).
+                                                                                                                  AppendLine(httpEvent.SerializedData).
+                                                                                                                  AppendLine()).
+                                                            Append(Environment.NewLine).
+                                                            Append("retry: ").Append((UInt32) eventSource.RetryIntervall.TotalMilliseconds).
+                                                            Append(Environment.NewLine).
+                                                            Append(Environment.NewLine).
+                                                            ToString();
 
 
                                return Task.FromResult(
-                                   new HTTPResponse.Builder(Request) {
+                                   new HTTPResponse.Builder(request) {
                                        HTTPStatusCode  = HTTPStatusCode.OK,
                                        Server          = HTTPServer.DefaultHTTPServerName,
                                        ContentType     = HTTPContentType.EVENTSTREAM,
                                        CacheControl    = "no-cache",
                                        Connection      = "keep-alive",
-                                       KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * _EventSource.RetryIntervall.TotalSeconds)),
+                                       KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryIntervall.TotalSeconds)),
                                        Content         = _HTTPEvents.ToUTF8Bytes()
                                    }.AsImmutable);
 
@@ -2813,7 +2888,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                            DefaultErrorHandler);
 
-                return _EventSource;
+                return eventSource;
 
             }
 
@@ -2831,10 +2906,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IHTTPEventSource Get(HTTPEventSource_Id EventSourceIdentification)
         {
 
-            lock (_EventSources)
+            lock (eventSources)
             {
 
-                if (_EventSources.TryGetValue(EventSourceIdentification, out IHTTPEventSource _HTTPEventSource))
+                if (eventSources.TryGetValue(EventSourceIdentification, out IHTTPEventSource _HTTPEventSource))
                     return _HTTPEventSource;
 
                 return null;
@@ -2851,10 +2926,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IHTTPEventSource<TData> Get<TData>(HTTPEventSource_Id EventSourceIdentification)
         {
 
-            lock (_EventSources)
+            lock (eventSources)
             {
 
-                if (_EventSources.TryGetValue(EventSourceIdentification, out IHTTPEventSource _HTTPEventSource))
+                if (eventSources.TryGetValue(EventSourceIdentification, out IHTTPEventSource _HTTPEventSource))
                     return _HTTPEventSource as IHTTPEventSource<TData>;
 
                 return null;
@@ -2875,9 +2950,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean TryGet(HTTPEventSource_Id EventSourceIdentification, out IHTTPEventSource EventSource)
         {
 
-            lock (_EventSources)
+            lock (eventSources)
             {
-                return _EventSources.TryGetValue(EventSourceIdentification, out EventSource);
+                return eventSources.TryGetValue(EventSourceIdentification, out EventSource);
             }
 
         }
@@ -2891,10 +2966,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean TryGet<TData>(HTTPEventSource_Id EventSourceIdentification, out IHTTPEventSource<TData> EventSource)
         {
 
-            lock (_EventSources)
+            lock (eventSources)
             {
 
-                if (_EventSources.TryGetValue(EventSourceIdentification, out IHTTPEventSource eventSource))
+                if (eventSources.TryGetValue(EventSourceIdentification, out IHTTPEventSource eventSource))
                 {
                     EventSource = eventSource as IHTTPEventSource<TData>;
                     return EventSource != null;
@@ -2915,16 +2990,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a filtered enumeration of all event sources.
         /// </summary>
         /// <param name="IncludeEventSource">An event source filter delegate.</param>
-        public IEnumerable<IHTTPEventSource> EventSources(Func<IHTTPEventSource, Boolean> IncludeEventSource = null)
+        public IEnumerable<IHTTPEventSource> EventSources(Func<IHTTPEventSource, Boolean>? IncludeEventSource = null)
         {
 
             lock (hostnameNodes)
             {
 
-                if (IncludeEventSource == null)
-                    IncludeEventSource = eventSource => true;
+                IncludeEventSource ??= eventSource => true;
 
-                return _EventSources.Values.Where(IncludeEventSource);
+                return eventSources.Values.Where(IncludeEventSource);
 
             }
 
@@ -2935,19 +3009,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a filtered enumeration of all event sources.
         /// </summary>
         /// <param name="IncludeEventSource">An event source filter delegate.</param>
-        public IEnumerable<IHTTPEventSource<TData>> EventSources<TData>(Func<IHTTPEventSource, Boolean> IncludeEventSource = null)
+        public IEnumerable<IHTTPEventSource<TData>> EventSources<TData>(Func<IHTTPEventSource, Boolean>? IncludeEventSource = null)
         {
 
             lock (hostnameNodes)
             {
 
-                if (IncludeEventSource == null)
-                    IncludeEventSource = eventSource => true;
+                IncludeEventSource ??= eventSource => true;
 
-                return _EventSources.Values.
-                           Where (IncludeEventSource).
-                           Select(eventSource => eventSource as IHTTPEventSource<TData>).
-                           Where (eventSource => eventSource != null);
+                var filteredEventSources = new List<IHTTPEventSource<TData>>();
+
+                foreach (var eventSource in eventSources.Values.
+                                                Where (IncludeEventSource).
+                                                Select(eventSource => eventSource as IHTTPEventSource<TData>))
+                {
+
+                    if (eventSource is not null)
+                        filteredEventSources.Add(eventSource);
+
+                }
+
+                return filteredEventSources;
 
             }
 
@@ -2964,11 +3046,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return the best matching error handler for the given parameters.
         /// </summary>
-        public Tuple<MethodInfo, IEnumerable<Object>> GetErrorHandler(String           Host,
-                                                                      String           URL,
-                                                                      HTTPMethod?      HTTPMethod       = null,
-                                                                      HTTPContentType  HTTPContentType  = null,
-                                                                      HTTPStatusCode   HTTPStatusCode   = null)
+        public Tuple<MethodInfo, IEnumerable<Object>> GetErrorHandler(String            Host,
+                                                                      String            URL,
+                                                                      HTTPMethod?       HTTPMethod       = null,
+                                                                      HTTPContentType?  HTTPContentType  = null,
+                                                                      HTTPStatusCode?   HTTPStatusCode   = null)
 
         {
 

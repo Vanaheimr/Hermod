@@ -15,13 +15,6 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using System;
-using System.Collections.Generic;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
@@ -34,31 +27,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Properties
 
         /// <summary>
+        /// The hosting HTTP API.
+        /// </summary>
+        public HTTPAPI                                   HTTPAPI                          { get; }
+
+        /// <summary>
         /// The HTTP content type for this service.
         /// </summary>
         public HTTPContentType                           HTTPContentType                  { get; }
 
-        public HTTPDelegate                              RequestHandler                   { get; }
+        public HTTPDelegate?                             RequestHandler                   { get; }
 
         /// <summary>
         /// This and all subordinated nodes demand an explicit HTTP content type authentication.
         /// </summary>
-        public HTTPAuthentication                        HTTPContentTypeAuthentication    { get; }
+        public HTTPAuthentication?                       HTTPContentTypeAuthentication    { get; }
 
         /// <summary>
         /// A HTTP request logger.
         /// </summary>
-        public HTTPRequestLogHandler                   HTTPRequestLogger                { get; }
+        public HTTPRequestLogHandler?                    HTTPRequestLogger                { get; }
 
         /// <summary>
         /// A HTTP response logger.
         /// </summary>
-        public HTTPResponseLogHandler                    HTTPResponseLogger               { get; }
+        public HTTPResponseLogHandler?                   HTTPResponseLogger               { get; }
 
         /// <summary>
         /// A general error handling method.
         /// </summary>
-        public HTTPDelegate                              DefaultErrorHandler              { get; }
+        public HTTPDelegate?                             DefaultErrorHandler              { get; }
 
         public URLReplacement                            AllowReplacement                 { get; }
 
@@ -82,15 +80,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handling delegate.</param>
         /// <param name="AllowReplacement">How to handle duplicate URI handlers.</param>
-        internal ContentTypeNode(HTTPContentType           HTTPContentType,
-                                 HTTPAuthentication        HTTPContentTypeAuthentication   = null,
-                                 HTTPRequestLogHandler   HTTPRequestLogger               = null,
-                                 HTTPDelegate              RequestHandler                  = null,
-                                 HTTPResponseLogHandler    HTTPResponseLogger              = null,
-                                 HTTPDelegate              DefaultErrorHandler             = null,
-                                 URLReplacement            AllowReplacement                = URLReplacement.Fail)
+        internal ContentTypeNode(HTTPAPI                  HTTPAPI,
+                                 HTTPContentType          HTTPContentType,
+                                 HTTPAuthentication?      HTTPContentTypeAuthentication   = null,
+                                 HTTPRequestLogHandler?   HTTPRequestLogger               = null,
+                                 HTTPDelegate?            RequestHandler                  = null,
+                                 HTTPResponseLogHandler?  HTTPResponseLogger              = null,
+                                 HTTPDelegate?            DefaultErrorHandler             = null,
+                                 URLReplacement           AllowReplacement                = URLReplacement.Fail)
         {
 
+            this.HTTPAPI                         = HTTPAPI;
             this.HTTPContentType                 = HTTPContentType ?? throw new ArgumentNullException(nameof(HTTPContentType),  "The given HTTP content type must not be null!");
             this.HTTPContentTypeAuthentication   = HTTPContentTypeAuthentication;
             this.HTTPRequestLogger               = HTTPRequestLogger;

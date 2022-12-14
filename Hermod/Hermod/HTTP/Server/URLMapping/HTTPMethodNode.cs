@@ -17,12 +17,9 @@
 
 #region Usings
 
-using System;
-using System.Linq;
-using System.Collections.Generic;
+using System.Collections;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using System.Collections;
 
 #endregion
 
@@ -40,11 +37,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// A mapping from HTTPContentTypes to HTTPContentTypeNodes.
         /// </summary>
-        private readonly Dictionary<HTTPContentType, ContentTypeNode> _ContentTypeNodes;
+        private readonly Dictionary<HTTPContentType, ContentTypeNode> contentTypeNodes;
 
         #endregion
 
         #region Properties
+
+        /// <summary>
+        /// The hosting HTTP API.
+        /// </summary>
+        public HTTPAPI                                       HTTPAPI                     { get; }
 
         /// <summary>
         /// The http method for this service.
@@ -59,22 +61,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// A HTTP request logger.
         /// </summary>
-        public HTTPRequestLogHandler                       HTTPRequestLogger           { get; private set; }
+        public HTTPRequestLogHandler?                        HTTPRequestLogger           { get; private set; }
 
         /// <summary>
         /// This and all subordinated nodes demand an explicit HTTP method authentication.
         /// </summary>
-        public HTTPAuthentication                            HTTPMethodAuthentication    { get; }
+        public HTTPAuthentication?                           HTTPMethodAuthentication    { get; }
 
         /// <summary>
         /// A HTTP delegate.
         /// </summary>
-        public HTTPDelegate                                  RequestHandler              { get; private set; }
+        public HTTPDelegate?                                 RequestHandler              { get; private set; }
 
         /// <summary>
         /// A general error handling method.
         /// </summary>
-        public HTTPDelegate                                  DefaultErrorHandler         { get; private set; }
+        public HTTPDelegate?                                 DefaultErrorHandler         { get; private set; }
 
         /// <summary>
         /// Error handling methods for specific http status codes.
@@ -84,7 +86,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// A HTTP response logger.
         /// </summary>
-        public HTTPResponseLogHandler                        HTTPResponseLogger          { get; private set; }
+        public HTTPResponseLogHandler?                       HTTPResponseLogger          { get; private set; }
 
 
 
@@ -92,13 +94,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return all defined HTTP content types.
         /// </summary>
         public IEnumerable<HTTPContentType> ContentTypes
-            => _ContentTypeNodes.Keys;
+            => contentTypeNodes.Keys;
 
         /// <summary>
         /// Return all HTTP content type nodes.
         /// </summary>
         public IEnumerable<ContentTypeNode> ContentTypeNodes
-            => _ContentTypeNodes.Values;
+            => contentTypeNodes.Values;
 
         #endregion
 
@@ -109,15 +111,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPMethod">The http method for this service.</param>
         /// <param name="HTTPMethodAuthentication">This and all subordinated nodes demand an explicit HTTP method authentication.</param>
-        internal HTTPMethodNode(HTTPMethod          HTTPMethod,
-                                HTTPAuthentication  HTTPMethodAuthentication  = null)
+        internal HTTPMethodNode(HTTPAPI              HTTPAPI,
+                                HTTPMethod           HTTPMethod,
+                                HTTPAuthentication?  HTTPMethodAuthentication  = null)
 
         {
 
+            this.HTTPAPI                   = HTTPAPI;
             this.HTTPMethod                = HTTPMethod;
             this.HTTPMethodAuthentication  = HTTPMethodAuthentication;
             this.ErrorHandlers             = new Dictionary<HTTPStatusCode,  HTTPDelegate>();
-            this._ContentTypeNodes         = new Dictionary<HTTPContentType, ContentTypeNode>();
+            this.contentTypeNodes          = new Dictionary<HTTPContentType, ContentTypeNode>();
 
         }
 
@@ -126,7 +130,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddHandler(...)
 
-        public void AddHandler(HTTPDelegate?            RequestHandler,
+        public void AddHandler(HTTPAPI                  HTTPAPI,
+                               HTTPDelegate?            RequestHandler,
                                HTTPContentType?         HTTPContentType             = null,
                                HTTPAuthentication?      ContentTypeAuthentication   = null,
                                HTTPRequestLogHandler?   HTTPRequestLogger           = null,
@@ -136,7 +141,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            lock (_ContentTypeNodes)
+            lock (contentTypeNodes)
             {
 
                 // For ANY content type...
@@ -164,23 +169,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 {
 
                     // The content type already exists!
-                    if (_ContentTypeNodes.TryGetValue(HTTPContentType, out ContentTypeNode? _ContentTypeNode))
+                    if (contentTypeNodes.TryGetValue(HTTPContentType, out var contentTypeNode))
                     {
 
-                        if (_ContentTypeNode.AllowReplacement == URLReplacement.Allow)
+                        if (contentTypeNode.AllowReplacement == URLReplacement.Allow)
                         {
 
-                            _ContentTypeNodes[HTTPContentType] = new ContentTypeNode(HTTPContentType,
-                                                                                     ContentTypeAuthentication,
-                                                                                     HTTPRequestLogger,
-                                                                                     RequestHandler,
-                                                                                     HTTPResponseLogger,
-                                                                                     DefaultErrorHandler,
-                                                                                     AllowReplacement);
+                            contentTypeNodes[HTTPContentType] = new ContentTypeNode(HTTPAPI,
+                                                                                    HTTPContentType,
+                                                                                    ContentTypeAuthentication,
+                                                                                    HTTPRequestLogger,
+                                                                                    RequestHandler,
+                                                                                    HTTPResponseLogger,
+                                                                                    DefaultErrorHandler,
+                                                                                    AllowReplacement);
 
                         }
 
-                        else if (_ContentTypeNode.AllowReplacement == URLReplacement.Ignore)
+                        else if (contentTypeNode.AllowReplacement == URLReplacement.Ignore)
                         {
                         }
 
@@ -194,14 +200,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     else
                     {
 
-                        _ContentTypeNodes.Add(HTTPContentType,
-                                              new ContentTypeNode(HTTPContentType,
-                                                                  ContentTypeAuthentication,
-                                                                  HTTPRequestLogger,
-                                                                  RequestHandler,
-                                                                  HTTPResponseLogger,
-                                                                  DefaultErrorHandler,
-                                                                  AllowReplacement));
+                        contentTypeNodes.Add(HTTPContentType,
+                                             new ContentTypeNode(HTTPAPI,
+                                                                 HTTPContentType,
+                                                                 ContentTypeAuthentication,
+                                                                 HTTPRequestLogger,
+                                                                 RequestHandler,
+                                                                 HTTPResponseLogger,
+                                                                 DefaultErrorHandler,
+                                                                 AllowReplacement));
 
                     }
 
@@ -222,7 +229,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ContentType">A HTTP content type.</param>
         public Boolean Contains(HTTPContentType ContentType)
 
-            => _ContentTypeNodes.ContainsKey(ContentType);
+            => contentTypeNodes.ContainsKey(ContentType);
 
         #endregion
 
@@ -232,10 +239,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return the HTTP content type node for the given HTTP content type.
         /// </summary>
         /// <param name="ContentType">A HTTP content type.</param>
-        public ContentTypeNode Get(HTTPContentType ContentType)
+        public ContentTypeNode? Get(HTTPContentType ContentType)
         {
 
-            if (_ContentTypeNodes.TryGetValue(ContentType, out ContentTypeNode contentTypeNode))
+            if (contentTypeNodes.TryGetValue(ContentType, out var contentTypeNode))
                 return contentTypeNode;
 
             return null;
@@ -251,9 +258,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="ContentType">A HTTP content type.</param>
         /// <param name="ContentTypeNode">The attached HTTP content type node.</param>
-        public Boolean TryGet(HTTPContentType ContentType, out ContentTypeNode ContentTypeNode)
+        public Boolean TryGet(HTTPContentType ContentType, out ContentTypeNode? ContentTypeNode)
 
-            => _ContentTypeNodes.TryGetValue(ContentType, out ContentTypeNode);
+            => contentTypeNodes.TryGetValue(ContentType, out ContentTypeNode);
 
         #endregion
 
@@ -264,13 +271,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return all HTTP method nodes.
         /// </summary>
         public IEnumerator<ContentTypeNode> GetEnumerator()
-            => _ContentTypeNodes.Values.GetEnumerator();
+            => contentTypeNodes.Values.GetEnumerator();
 
         /// <summary>
         /// Return all HTTP method nodes.
         /// </summary>
         IEnumerator IEnumerable.GetEnumerator()
-            => _ContentTypeNodes.Values.GetEnumerator();
+            => contentTypeNodes.Values.GetEnumerator();
 
         #endregion
 
@@ -284,7 +291,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             => String.Concat(HTTPMethod,
                              " (",
-                             _ContentTypeNodes.Select(contenttype => contenttype.Value.ToString()).AggregateWith(", "),
+                             contentTypeNodes.Select(contenttype => contenttype.Value.ToString()).AggregateWith(", "),
                              ")");
 
         #endregion

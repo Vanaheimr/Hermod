@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2011-2018 Achim Friedland <achim@graphdefined.com>
+ * Copyright (c) 2011-2022 Achim Friedland <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  * 
  * This program is free software; you can redistribute it and/or modify
@@ -18,11 +18,7 @@
 
 #region Usings
 
-using System;
-using System.IO;
-using System.Linq;
 using System.Reflection;
-using System.Threading.Tasks;
 
 using Newtonsoft.Json.Linq;
 
@@ -45,11 +41,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return the RAW request header.
         /// </summary>
         public static void RegisterRAWRequestHandler(this HTTPServer  HTTPServer,
+                                                     HTTPAPI          HTTPAPI,
                                                      HTTPHostname     Hostname,
-                                                     HTTPPath          URLTemplate,
+                                                     HTTPPath         URLTemplate,
                                                      HTTPMethod?      Method = null)
 
-            => HTTPServer?.AddMethodCallback(Hostname,
+            => HTTPServer?.AddMethodCallback(HTTPAPI,
+                                             Hostname,
                                              HTTPMethod:    Method ?? HTTPMethod.GET,
                                              URLTemplate:   URLTemplate,
                                              HTTPDelegate:  async Request => {
@@ -84,12 +82,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Register a MovedTemporarily handler.
         /// </summary>
         public static void RegisterMovedTemporarilyHandler(this HTTPServer  HTTPServer,
+                                                           HTTPAPI          HTTPAPI,
                                                            HTTPHostname     Hostname,
-                                                           HTTPPath          URLTemplate,
-                                                           HTTPPath          URITarget)
+                                                           HTTPPath         URLTemplate,
+                                                           HTTPPath         URITarget)
         {
 
-            HTTPServer.AddMethodCallback(Hostname,
+            HTTPServer.AddMethodCallback(HTTPAPI,
+                                         Hostname,
                                          HTTPMethod.GET,
                                          URLTemplate,
                                          HTTPDelegate: async Request => HTTPTools.MovedTemporarily(Request, URITarget));
@@ -112,11 +112,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ResponseContentType">Set the HTTP MIME content-type of the file. If null try to autodetect the content type based on the filename extention.</param>
         /// <param name="CacheControl">Set the HTTP cache control response header.</param>
         public static void RegisterResourcesFile(this IHTTPServer  HTTPServer,
+                                                 HTTPAPI           HTTPAPI,
                                                  HTTPHostname      Hostname,
                                                  HTTPPath          URLTemplate,
                                                  Assembly          ResourceAssembly,
                                                  String            ResourceFilename,
-                                                 HTTPContentType   ResponseContentType  = null,
+                                                 HTTPContentType?  ResponseContentType  = null,
                                                  String            CacheControl         = "no-cache")
         {
 
@@ -143,7 +144,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            HTTPServer.AddMethodCallback(Hostname,
+            HTTPServer.AddMethodCallback(HTTPAPI,
+                                         Hostname,
                                          HTTPMethod.GET,
                                          URLTemplate,
                                          HTTPContentType: ResponseContentType,
@@ -250,18 +252,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPLogin">An optional login for HTTP basic authentication.</param>
         /// <param name="HTTPPassword">An optional password for HTTP basic authentication.</param>
         public static void RegisterResourcesFolder(this IHTTPServer  HTTPServer,
+                                                   HTTPAPI           HTTPAPI,
                                                    HTTPHostname      Hostname,
                                                    HTTPPath          URLTemplate,
                                                    String            ResourcePath,
-                                                   Assembly          ResourceAssembly  = null,
+                                                   Assembly?         ResourceAssembly  = null,
                                                    String            DefaultFilename   = "index.html",
-                                                   String            HTTPRealm         = null,
-                                                   String            HTTPLogin         = null,
-                                                   String            HTTPPassword      = null)
+                                                   String?           HTTPRealm         = null,
+                                                   String?           HTTPLogin         = null,
+                                                   String?           HTTPPassword      = null)
         {
 
-            if (ResourceAssembly == null)
-                ResourceAssembly = Assembly.GetCallingAssembly();
+            ResourceAssembly ??= Assembly.GetCallingAssembly();
 
 
             HTTPDelegate GetEmbeddedResources = async Request => {
@@ -417,7 +419,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
             // ~/map
-            HTTPServer.AddMethodCallback(Hostname,
+            HTTPServer.AddMethodCallback(HTTPAPI,
+                                         Hostname,
                                          HTTPMethod.GET,
                                          URLTemplate.EndsWith("/", StringComparison.InvariantCulture)
                                              ? URLTemplate.Substring(0, (Int32) URLTemplate.Length)
@@ -433,7 +436,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //                             HTTPDelegate: GetEmbeddedResources);
 
             // ~/map/file.name
-            HTTPServer.AddMethodCallback(Hostname,
+            HTTPServer.AddMethodCallback(HTTPAPI,
+                                         Hostname,
                                          HTTPMethod.GET,
                                          URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? "{ResourceName}" : "/{ResourceName}"),
                                          HTTPContentType.ALL,
@@ -457,12 +461,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ResponseContentType">Set the HTTP MIME content-type of the file. If null try to autodetect the content type based on the filename extention.</param>
         /// <param name="CacheControl">Set the HTTP cache control response header.</param>
         public static void RegisterFilesystemFile(this IHTTPServer         HTTPServer,
+                                                  HTTPAPI                  HTTPAPI,
                                                   HTTPHostname             Hostname,
-                                                  HTTPPath                  URLTemplate,
+                                                  HTTPPath                 URLTemplate,
                                                   Func<String[], String>   ResourceFilenameBuilder,
-                                                  String                   DefaultFile          = null,
-                                                  HTTPContentType          ResponseContentType  = null,
-                                                  String                   CacheControl         = "no-cache")
+                                                  String?                  DefaultFile           = null,
+                                                  HTTPContentType?         ResponseContentType   = null,
+                                                  String                   CacheControl          = "no-cache")
         {
 
             #region Get the appropriate content type based on the suffix returned by the ResourceFilenameBuilder
@@ -490,7 +495,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            HTTPServer.AddMethodCallback(Hostname,
+            HTTPServer.AddMethodCallback(HTTPAPI,
+                                         Hostname,
                                          HTTPMethod.GET,
                                          URLTemplate,
                                          HTTPContentType: ResponseContentType,
@@ -549,13 +555,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ResourcePath">The path to the file within the assembly.</param>
         /// <param name="DefaultFilename">The default file to load.</param>
         public static void RegisterFilesystemFolder(this IHTTPServer         HTTPServer,
+                                                    HTTPAPI                  HTTPAPI,
                                                     HTTPHostname             Hostname,
-                                                    HTTPPath                  URLTemplate,
+                                                    HTTPPath                 URLTemplate,
                                                     Func<String[], String>   ResourcePath,
                                                     String                   DefaultFilename  = "index.html")
         {
 
-            HTTPServer.AddMethodCallback(Hostname,
+            HTTPServer.AddMethodCallback(HTTPAPI,
+                                         Hostname,
                                          HTTPMethod.GET,
                                          URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? "{ResourceName}" : "/{ResourceName}"),
                                          HTTPContentType: HTTPContentType.PNG,
@@ -683,14 +691,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLTemplate">An URL template.</param>
         /// <param name="DefaultFilename">The default file to load.</param>
         public static void RegisterWatchedFileSystemFolder(this IHTTPServer    HTTPServer,
-                                                           HTTPPath             URLTemplate,
+                                                           HTTPAPI             HTTPAPI,
+                                                           HTTPPath            URLTemplate,
                                                            String              FileSystemLocation,
                                                            HTTPEventSource_Id  HTTPSSE_EventIdentification,
-                                                           HTTPPath             HTTPSSE_URLTemplate,
+                                                           HTTPPath            HTTPSSE_URLTemplate,
                                                            String              DefaultFilename  = "index.html")
         {
 
             RegisterWatchedFileSystemFolder(HTTPServer,
+                                            HTTPAPI,
                                             HTTPHostname.Any,
                                             URLTemplate,
                                             FileSystemLocation,
@@ -707,6 +717,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLTemplate">An URL template.</param>
         /// <param name="DefaultFilename">The default file to load.</param>
         public static void RegisterWatchedFileSystemFolder(this IHTTPServer        HTTPServer,
+                                                           HTTPAPI                 HTTPAPI,
                                                            HTTPHostname            Hostname,
                                                            HTTPPath                URLTemplate,
                                                            String                  FileSystemLocation,
@@ -736,9 +747,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            HTTPServer.AddEventSource<String>(HTTPSSE_EventIdentification, URLTemplate: HTTPSSE_URLTemplate);
+            HTTPServer.AddEventSource<String>(HTTPSSE_EventIdentification,
+                                              HTTPAPI,
+                                              URLTemplate: HTTPSSE_URLTemplate);
 
-            HTTPServer.AddMethodCallback(Hostname,
+            HTTPServer.AddMethodCallback(HTTPAPI,
+                                         Hostname,
                                          HTTPMethod.GET,
                                          URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? "{ResourceName}" : "/{ResourceName}"),
                                          HTTPContentType.PNG,
