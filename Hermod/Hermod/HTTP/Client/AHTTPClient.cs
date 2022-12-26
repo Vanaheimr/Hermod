@@ -561,7 +561,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Create (Crypto-)Stream
 
-                    if (RemoteCertificateValidator is not null &&
+                    if (RemoteURL.Protocol == URLProtocols.https &&
+                        RemoteCertificateValidator is not null   &&
                         TCPStream                  is not null)
                     {
 
