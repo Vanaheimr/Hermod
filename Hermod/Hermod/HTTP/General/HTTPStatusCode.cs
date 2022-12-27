@@ -121,7 +121,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        public static readonly HTTPStatusCode ClientError = new HTTPStatusCode(
+        public static readonly HTTPStatusCode ClientError = new (
                                               0,
                                               "ClientError",
                                               "Indicates that the client can not process or send this request.");
@@ -138,7 +138,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Indicates that the client can continue with its request.
         /// </summary>
-        public static readonly HTTPStatusCode Continue = new HTTPStatusCode(
+        public static readonly HTTPStatusCode Continue = new (
                                               100,
                                               "Continue",
                                               "Indicates that the client can continue with its request.");
@@ -146,7 +146,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Indicates that the protocol version or protocol is being changed.
         /// </summary>
-        public static readonly HTTPStatusCode SwitchingProtocols = new HTTPStatusCode(
+        public static readonly HTTPStatusCode SwitchingProtocols = new (
                                               101,
                                               "Switching Protocols",
                                               "Indicates that the protocol version or protocol is being changed.");
@@ -164,7 +164,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Indicates that the request succeeded and that the requested information
         /// is in the response.
         /// </summary>
-        public static readonly HTTPStatusCode OK = new HTTPStatusCode(
+        public static readonly HTTPStatusCode OK = new (
                                               200,
                                               "OK",
                                               "Indicates that the request succeeded and that the requested information is in the response.");
@@ -173,7 +173,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The request has been fulfilled and resulted in a new resource being created.
         /// The newly created resource can be referenced by the URI(s) returned in the Location header field.
         /// </summary>
-        public static readonly HTTPStatusCode Created = new HTTPStatusCode(
+        public static readonly HTTPStatusCode Created = new (
                                               201,
                                               "Created",
                                               "The request has been fulfilled and resulted in a new resource being created. " +
@@ -184,7 +184,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// not been completed. The request might or might not eventually be acted
         /// upon, as it might be disallowed when processing actually takes place.
         /// </summary>
-        public static readonly HTTPStatusCode Accepted = new HTTPStatusCode(
+        public static readonly HTTPStatusCode Accepted = new (
                                               202,
                                               "Accepted",
                                               "The request has been accepted for processing, but the processing has not been completed. " +
@@ -198,7 +198,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// required and is only appropriate when the response would otherwise be
         /// 200 (OK).
         /// </summary>
-        public static readonly HTTPStatusCode NonAuthoritativeInformation = new HTTPStatusCode(
+        public static readonly HTTPStatusCode NonAuthoritativeInformation = new (
                                               203,
                                               "Non-Authoritative Information",
                                               "The returned metainformation in the entity-header is not the definitive set as available " +
@@ -210,7 +210,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The server has fulfilled the request but does not need to return an
         /// entity-body, and might want to return updated metainformation.
         /// </summary>
-        public static readonly HTTPStatusCode NoContent = new HTTPStatusCode(
+        public static readonly HTTPStatusCode NoContent = new (
                                               204,
                                               "No Content",
                                               "The server has fulfilled the request but does not need to return an entity-body, " +
@@ -221,7 +221,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// the document view which caused the request to be sent. The response
         /// MUST NOT include an entity.
         /// </summary>
-        public static readonly HTTPStatusCode ResetContent = new HTTPStatusCode(
+        public static readonly HTTPStatusCode ResetContent = new (
                                               205,
                                               "Reset Content",
                                               "The server has fulfilled the request and the user agent SHOULD reset the document " +
@@ -233,7 +233,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// desired range, and MAY have included an If-Range header field to
         /// make the request conditional.
         /// </summary>
-        public static readonly HTTPStatusCode PartialContent = new HTTPStatusCode(
+        public static readonly HTTPStatusCode PartialContent = new (
                                               206,
                                               "Partial Content",
                                               "The server has fulfilled the partial GET request for the resource. " +
@@ -244,7 +244,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The response is a MultiStatus response as requested by a WebDAV PROPFIND
         /// request that contains the content of a requested destination.
         /// </summary>
-        public static readonly HTTPStatusCode MultiStatus = new HTTPStatusCode(
+        public static readonly HTTPStatusCode MultiStatus = new (
                                               207,
                                               "Multi-Status",
                                               "The response is a MultiStatus response as requested by a WebDAV PROPFIND " +
@@ -264,7 +264,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// each with its own specific location. The client can select a preferred
         /// representation and redirect its request to that location.
         /// </summary>
-        public static readonly HTTPStatusCode MultipleChoices = new HTTPStatusCode(
+        public static readonly HTTPStatusCode MultipleChoices = new (
                                               300,
                                               "Multiple Choices",
                                               "The requested resource corresponds to any one of a set of representations, " +
@@ -276,7 +276,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// future references to this resource SHOULD use one of the returned URIs
         /// provided in the location field of the response header.
         /// </summary>
-        public static readonly HTTPStatusCode MovedPermanently = new HTTPStatusCode(
+        public static readonly HTTPStatusCode MovedPermanently = new (
                                               301,
                                               "Moved Permanently",
                                               "The requested resource has been assigned a new permanent URI and any " +
@@ -287,7 +287,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The requested resource resides temporarily under a different URI
         /// provided in the location field of the response header.
         /// </summary>
-        public static readonly HTTPStatusCode Found = new HTTPStatusCode(
+        public static readonly HTTPStatusCode Found = new (
                                               302,
                                               "Found",
                                               "The requested resource resides temporarily under a different URI " +
@@ -297,7 +297,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The response to the request can be found under a different URI and
         /// SHOULD be retrieved using a GET method on that resource.
         /// </summary>
-        public static readonly HTTPStatusCode SeeOther = new HTTPStatusCode(
+        public static readonly HTTPStatusCode SeeOther = new (
                                               303,
                                               "See Other",
                                               "The response to the request can be found under a different URI and " +
@@ -308,7 +308,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// allowed, but the document has not been modified, the server SHOULD
         /// respond with this status code and MUST NOT send a message-body.
         /// </summary>
-        public static readonly HTTPStatusCode NotModified = new HTTPStatusCode(
+        public static readonly HTTPStatusCode NotModified = new (
                                               304,
                                               "Not Modified",
                                               "If the client has performed a conditional GET request and access is " +
@@ -319,7 +319,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The requested resource MUST be accessed through the proxy given by
         /// the Location field.
         /// </summary>
-        public static readonly HTTPStatusCode UseProxy = new HTTPStatusCode(
+        public static readonly HTTPStatusCode UseProxy = new (
                                               305,
                                               "Use Proxy",
                                               "The requested resource MUST be accessed through the proxy given by " +
@@ -328,7 +328,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Switch Proxy
         /// </summary>
-        public static readonly HTTPStatusCode SwitchProxy = new HTTPStatusCode(
+        public static readonly HTTPStatusCode SwitchProxy = new (
                                               306,
                                               "Switch Proxy");
         
@@ -337,7 +337,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Since the redirection MAY be altered on occasion, the client SHOULD
         /// continue to use the Request-URI for future requests.
         /// </summary>
-        public static readonly HTTPStatusCode TemporaryRedirect = new HTTPStatusCode(
+        public static readonly HTTPStatusCode TemporaryRedirect = new (
                                               307,
                                               "Temporary Redirect",
                                               "The requested resource resides temporarily under a different URI. " +
@@ -361,7 +361,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The request could not be understood by the server due to malformed
         /// syntax. The client SHOULD NOT repeat the request without modifications.
         /// </summary>
-        public static readonly HTTPStatusCode BadRequest = new HTTPStatusCode(
+        public static readonly HTTPStatusCode BadRequest = new (
                                               400,
                                               "Bad Request",
                                               "The request could not be understood by the server due to malformed " +
@@ -374,7 +374,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// credentials, then the 401 response indicates that authorization has
         /// been refused for those credentials.
         /// </summary>
-        public static readonly HTTPStatusCode Unauthorized = new HTTPStatusCode(
+        public static readonly HTTPStatusCode Unauthorized = new (
                                               401,
                                               "Unauthorized",
                                               "The request requires user authentication. The response MUST include a " +
@@ -386,7 +386,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// This code is reserved for future use.
         /// </summary>
-        public static readonly HTTPStatusCode PaymentRequired = new HTTPStatusCode(
+        public static readonly HTTPStatusCode PaymentRequired = new (
                                               402,
                                               "Payment Required",
                                               "This code is reserved for future use.");
@@ -395,7 +395,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The server understood the request, but is refusing to fulfill it.
         /// Authorization will not help and the request SHOULD NOT be repeated.
         /// </summary>
-        public static readonly HTTPStatusCode Forbidden = new HTTPStatusCode(
+        public static readonly HTTPStatusCode Forbidden = new (
                                               403,
                                               "Forbidden",
                                               "The server understood the request, but is refusing to fulfill it. " +
@@ -405,7 +405,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The server has not found anything matching the Request-URI.
         /// No indication is given of whether the condition is temporary or permanent.
         /// </summary>
-        public static readonly HTTPStatusCode NotFound = new HTTPStatusCode(
+        public static readonly HTTPStatusCode NotFound = new (
                                               404,
                                               "Not Found",
                                               "The server has not found anything matching the Request-URI. " +
@@ -416,7 +416,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// resource identified by the Request-URI. The response MUST include an
         /// Allow header containing a list of valid methods for the requested resource.
         /// </summary>
-        public static readonly HTTPStatusCode MethodNotAllowed = new HTTPStatusCode(
+        public static readonly HTTPStatusCode MethodNotAllowed = new (
                                               405,
                                               "Method Not Allowed",
                                               "The method specified in the Request-Line is not allowed for the " +
@@ -427,7 +427,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The client has indicated with Accept headers that it will not
         /// accept any of the available representations of the resource.
         /// </summary>
-        public static readonly HTTPStatusCode NotAcceptable = new HTTPStatusCode(
+        public static readonly HTTPStatusCode NotAcceptable = new (
                                               406,
                                               "Not Acceptable",
                                               "The client has indicated with Accept headers that it will not " +
@@ -439,7 +439,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// return a Proxy-Authenticate header field containing a challenge
         /// applicable to the proxy for the requested resource.
         /// </summary>
-        public static readonly HTTPStatusCode ProxyAuthenticationRequired   = new HTTPStatusCode(
+        public static readonly HTTPStatusCode ProxyAuthenticationRequired = new (
                                               407,
                                               "Proxy Authentication Required",
                                               "This code is similar to 401 (Unauthorized), but indicates that the " +
@@ -452,7 +452,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// was prepared to wait. The client MAY repeat the request without
         /// modifications at any later time.
         /// </summary>
-        public static readonly HTTPStatusCode RequestTimeout = new HTTPStatusCode(
+        public static readonly HTTPStatusCode RequestTimeout = new (
                                               408,
                                               "Request Timeout",
                                               "The client did not produce a request within the time that the server " +
@@ -465,7 +465,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// it is expected that the user might be able to resolve the conflict
         /// and resubmit the request.
         /// </summary>
-        public static readonly HTTPStatusCode Conflict = new HTTPStatusCode(
+        public static readonly HTTPStatusCode Conflict = new (
                                               409,
                                               "Conflict",
                                               "The request could not be completed due to a conflict with the current " +
@@ -478,7 +478,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// no forwarding address is known. This condition is expected to be
         /// considered permanent.
         /// </summary>
-        public static readonly HTTPStatusCode Gone = new HTTPStatusCode(
+        public static readonly HTTPStatusCode Gone = new (
                                               410,
                                               "Gone",
                                               "The requested resource is no longer available at the server and " +
@@ -489,7 +489,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The server refuses to accept the request without a
         /// content-length header.
         /// </summary>
-        public static readonly HTTPStatusCode LengthRequired = new HTTPStatusCode(
+        public static readonly HTTPStatusCode LengthRequired = new (
                                               411,
                                               "Length Required",
                                               "The server refuses to accept the request without a content-length header.");
@@ -498,7 +498,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The precondition given in one or more of the request-header
         /// fields evaluated to false when it was tested on the server.
         /// </summary>
-        public static readonly HTTPStatusCode PreconditionFailed = new HTTPStatusCode(
+        public static readonly HTTPStatusCode PreconditionFailed = new (
                                               412,
                                               "Precondition Failed",
                                               "The precondition given in one or more of the request-header fields " +
@@ -510,7 +510,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// server MAY close the connection to prevent the client from continuing
         /// the request.
         /// </summary>
-        public static readonly HTTPStatusCode RequestEntityTooLarge = new HTTPStatusCode(
+        public static readonly HTTPStatusCode RequestEntityTooLarge = new (
                                               413,
                                               "Request Entity Too Large",
                                               "The server is refusing to process a request because the request " +
@@ -522,7 +522,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The server is refusing to service the request because the
         /// Request-URI is longer than the server is willing to interpret.
         /// </summary>
-        public static readonly HTTPStatusCode RequestURITooLong = new HTTPStatusCode(
+        public static readonly HTTPStatusCode RequestURITooLong = new (
                                               414,
                                               "Request-URI Too Long",
                                               "The server is refusing to service the request because the Request-URI " +
@@ -533,7 +533,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// the request is in a format not supported by the requested resource
         /// for the requested method.
         /// </summary>
-        public static readonly HTTPStatusCode UnsupportedMediaType = new HTTPStatusCode(
+        public static readonly HTTPStatusCode UnsupportedMediaType = new (
                                               415,
                                               "Unsupported Media Type",
                                               "The server is refusing to service the request because the entity of " +
@@ -546,7 +546,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// values in this field overlap the current extent of the selected
         /// resource, and the request did not include an If-Range request-header field.
         /// </summary>
-        public static readonly HTTPStatusCode RequestedRangeNotSatisfiable = new HTTPStatusCode(
+        public static readonly HTTPStatusCode RequestedRangeNotSatisfiable = new (
                                               416,
                                               "Requested Range Not Satisfiable",
                                               "A server SHOULD return a response with this status code if a request " +
@@ -559,7 +559,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// by this server, or, if the server is a proxy, the server has unambiguous
         /// evidence that the request could not be met by the next-hop server.
         /// </summary>
-        public static readonly HTTPStatusCode ExpectationFailed = new HTTPStatusCode(
+        public static readonly HTTPStatusCode ExpectationFailed = new (
                                               417,
                                               "Expectation Failed",
                                               "The expectation given in an Expect request-header field could not be met " +
@@ -570,7 +570,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Unfortunately this coffee machine is out of coffee.
         /// See RFC 2324 for details!
         /// </summary>
-        public static readonly HTTPStatusCode ImATeapot = new HTTPStatusCode(
+        public static readonly HTTPStatusCode ImATeapot = new (
                                               418,
                                               "I'm a teapot",
                                               "Unfortunately this coffee machine is out of coffee." + 
@@ -580,7 +580,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The server understands the media type of the request entity,
         /// but was unable to process the contained instructions.
         /// </summary>
-        public static readonly HTTPStatusCode UnprocessableEntity = new HTTPStatusCode(
+        public static readonly HTTPStatusCode UnprocessableEntity = new (
                                               422,
                                               "Unprocessable Entity",
                                               "The server understands the media type of the request entity, " +
@@ -591,7 +591,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The lock must be released or proper identification
         /// given before the method can be applied.
         /// </summary>
-        public static readonly HTTPStatusCode Locked = new HTTPStatusCode(
+        public static readonly HTTPStatusCode Locked = new (
                                               423,
                                               "Locked",
                                               "The requested resource is currently locked. " +
@@ -603,7 +603,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// requested action depended on another action and that other
         /// action failed.
         /// </summary>
-        public static readonly HTTPStatusCode FailedDependency = new HTTPStatusCode(
+        public static readonly HTTPStatusCode FailedDependency = new (
                                               424,
                                               "Failed Dependency",
                                               "The method could not be performed on the resource because " +
@@ -613,7 +613,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// No code
         /// </summary>
-        public static readonly HTTPStatusCode NoCode = new HTTPStatusCode(
+        public static readonly HTTPStatusCode NoCode = new (
                                               425,
                                               "No code");
 
@@ -623,7 +623,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// but your client doesn't support it. Either upgrade your client,
         /// or try requesting the page using https://
         /// </summary>
-        public static readonly HTTPStatusCode UpgradeRequired = new HTTPStatusCode(
+        public static readonly HTTPStatusCode UpgradeRequired = new (
                                               426,
                                               "Upgrade Required",
                                               "The requested resource can only be retrieved using SSL. " +
@@ -645,7 +645,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// For example: This request is required to be conditional;
         /// try using the 'If-Match'-header.
         /// </summary>
-        public static readonly HTTPStatusCode PreconditionRequired = new HTTPStatusCode(
+        public static readonly HTTPStatusCode PreconditionRequired = new (
                                               428,
                                               "Precondition Required",
                                               "The 428 status code indicates that the origin server requires the " +
@@ -674,7 +674,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The server encountered an unexpected condition which
         /// prevented it from fulfilling the request.
         /// </summary>
-        public static readonly HTTPStatusCode InternalServerError = new HTTPStatusCode(
+        public static readonly HTTPStatusCode InternalServerError = new (
                                               500,
                                               "Internal Server Error",
                                               "The server encountered an unexpected condition which prevented " +
@@ -686,7 +686,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// recognize the request method and is not capable of supporting it for
         /// any resource.
         /// </summary>
-        public static readonly HTTPStatusCode NotImplemented = new HTTPStatusCode(
+        public static readonly HTTPStatusCode NotImplemented = new (
                                               501,
                                               "Not Implemented",
                                               "The server does not support the functionality required to fulfill the " +
@@ -699,7 +699,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// response from the upstream server it accessed in attempting to
         /// fulfill the request.
         /// </summary>
-        public static readonly HTTPStatusCode BadGateway = new HTTPStatusCode(
+        public static readonly HTTPStatusCode BadGateway = new (
                                               502,
                                               "Bad Gateway",
                                               "The server, while acting as a gateway or proxy, received an invalid " +
@@ -714,7 +714,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Retry-After header. If no Retry-After is given, the client SHOULD
         /// handle the response as it would for a 500 response.
         /// </summary>
-        public static readonly HTTPStatusCode ServiceUnavailable = new HTTPStatusCode(
+        public static readonly HTTPStatusCode ServiceUnavailable = new (
                                               503,
                                               "Service Unavailable",
                                               "The server is currently unable to handle the request due to a " +
@@ -730,7 +730,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// auxiliary server (e.g. DNS) it needed to access in attempting to
         /// complete the request.
         /// </summary>
-        public static readonly HTTPStatusCode GatewayTimeout = new HTTPStatusCode(
+        public static readonly HTTPStatusCode GatewayTimeout = new (
                                               504,
                                               "Gateway Timeout",
                                               "The server, while acting as a gateway or proxy, did not receive a " +
@@ -742,7 +742,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The server does not support, or refuses to support, the HTTP
         /// protocol version that was used in the request message.
         /// </summary>
-        public static readonly HTTPStatusCode HTTPVersionNotSupported = new HTTPStatusCode(
+        public static readonly HTTPStatusCode HTTPVersionNotSupported = new (
                                               505,
                                               "HTTP Version Not Supported",
                                               "The server does not support, or refuses to support, the HTTP protocol " +
@@ -751,7 +751,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Transparent content negotiation for the request results in a circular reference.
         /// </summary>
-        public static readonly HTTPStatusCode VariantAlsoNegotiates = new HTTPStatusCode(
+        public static readonly HTTPStatusCode VariantAlsoNegotiates = new (
                                               506,
                                               "Variant Also Negotiates",
                                               "Transparent content negotiation for the request results in a " +
@@ -760,7 +760,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Indicates a InsufficientStorage of a WebDAV upload request.
         /// </summary>
-        public static readonly HTTPStatusCode InsufficientStorage = new HTTPStatusCode(
+        public static readonly HTTPStatusCode InsufficientStorage = new (
                                               507,
                                               "Insufficient Storage",
                                               "Indicates a InsufficientStorage of a WebDAV upload request.");
@@ -768,14 +768,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Bandwidth Limit Exceeded
         /// </summary>
-        public static readonly HTTPStatusCode BandwidthLimitExceeded = new HTTPStatusCode(
+        public static readonly HTTPStatusCode BandwidthLimitExceeded = new (
                                               509,
                                               "Bandwidth Limit Exceeded");
 
         /// <summary>
         /// Further extensions to the request are required for the server to fulfill it.
         /// </summary>
-        public static readonly HTTPStatusCode NotExtended = new HTTPStatusCode(
+        public static readonly HTTPStatusCode NotExtended = new (
                                               510,
                                               "Not Extended",
                                               "Further extensions to the request are required for the server to " +
