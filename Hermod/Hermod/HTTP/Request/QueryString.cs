@@ -103,7 +103,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private        readonly Dictionary<String, List<String>> _Dictionary;
+        private        readonly Dictionary<String, List<String>> internalDictionary;
 
         private static readonly Char[] AndSign     = { '&' };
         private static readonly Char[] EqualsSign  = { '=' };
@@ -117,12 +117,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Create a new query string based on the optional given string repesentation.
         /// </summary>
         /// <param name="Text">An optional text to parse.</param>
-        private QueryString(String Text = null)
+        private QueryString(String? Text = null)
         {
 
-            _Dictionary = new Dictionary<String, List<String>>();
+            internalDictionary = new Dictionary<String, List<String>>();
 
-            if (Text.IsNotNullOrEmpty())
+            if (Text is not null && Text.IsNotNullOrEmpty())
             {
 
                 Text = HttpUtility.UrlDecode(Text.Trim());
@@ -131,14 +131,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (position >= 0)
                     Text = Text.Remove(0, position + 1);
 
-                String[] split = null;
-
                 if (Text.IsNotNullOrEmpty())
                 {
                     foreach (var keyValuePair in Text.Split(AndSign, StringSplitOptions.RemoveEmptyEntries))
                     {
 
-                        split = keyValuePair.Split(EqualsSign, StringSplitOptions.RemoveEmptyEntries);
+                        var split = keyValuePair.Split(EqualsSign, StringSplitOptions.RemoveEmptyEntries);
 
                         switch (split.Length)
                         {
@@ -173,7 +171,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public static QueryString New
 
-            => new QueryString();
+            => new ();
 
         #endregion
 
@@ -185,7 +183,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Text">The text to parse.</param>
         public static QueryString Parse(String Text)
 
-            => new QueryString(Text);
+            => new (Text);
 
         #endregion
 
@@ -206,16 +204,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Key.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(Key),  "The given key must not be null or empty!");
 
-            if (Value == null)
+            if (Value is null)
                 return this;
 
             #endregion
 
-            if (_Dictionary.TryGetValue(Key, out List<String> ValueList))
-                ValueList.Add(Value);
+            if (internalDictionary.TryGetValue(Key, out var valueList))
+                valueList.Add(Value);
 
             else
-                _Dictionary.Add(Key, new List<String>() { Value });
+                internalDictionary.Add(Key, new List<String>() { Value });
 
             return this;
 
@@ -239,16 +237,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Key.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(Key),     "The key must not be null or empty!");
 
-            if (Values == null || !Values.Any())
+            if (Values is null || !Values.Any())
                 return this;
 
             #endregion
 
-            if (_Dictionary.TryGetValue(Key, out List<String> ValueList))
-                ValueList.AddRange(Values);
+            if (internalDictionary.TryGetValue(Key, out var valueList))
+                valueList.AddRange(Values);
 
             else
-                _Dictionary.Add(Key, new List<String>(Values));
+                internalDictionary.Add(Key, new List<String>(Values));
 
             return this;
 
@@ -273,7 +271,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            _Dictionary.Remove(Key);
+            internalDictionary.Remove(Key);
 
             return this;
 
@@ -297,18 +295,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Key.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(Key),    "The key must not be null or empty!");
 
-            if (Value == null)
+            if (Value is null)
                 return this;
 
             #endregion
 
-            if (_Dictionary.TryGetValue(Key, out List<String> ValueList))
+            if (internalDictionary.TryGetValue(Key, out var valueList))
             {
 
-                ValueList.Remove(Value);
+                valueList.Remove(Value);
 
-                if (ValueList.Count == 0)
-                    _Dictionary.Remove(Key);
+                if (valueList.Count == 0)
+                    internalDictionary.Remove(Key);
 
             }
 
@@ -334,19 +332,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Key.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(Key), "The key must not be null or empty!");
 
-            if (Values == null || !Values.Any())
+            if (Values is null || !Values.Any())
                 return this;
 
             #endregion
 
-            if (_Dictionary.TryGetValue(Key, out List<String> ValueList))
+            if (internalDictionary.TryGetValue(Key, out var valueList))
             {
 
                 foreach (var value in Values)
-                    ValueList.Remove(value);
+                    valueList.Remove(value);
 
-                if (ValueList.Count == 0)
-                    _Dictionary.Remove(Key);
+                if (valueList.Count == 0)
+                    internalDictionary.Remove(Key);
 
             }
 
@@ -363,11 +361,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             Char    DefaultValue)
         {
 
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values       != null                                            &&
-                Values.Count  > 0)
+            if (internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count  > 0)
             {
-                return Values.Last()[0];
+                return values.Last()[0];
             }
 
             return DefaultValue;
@@ -382,11 +380,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                  String? DefaultValue = null)
         {
 
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values       != null                                            &&
-                Values.Count  > 0)
+            if (internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count  > 0)
             {
-                return Values.Last();
+                return values.Last();
             }
 
             return DefaultValue;
@@ -400,13 +398,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IEnumerable<String> GetStrings(String  ParameterName)
         {
 
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Value) &&
-                Value       != null &&
-                Value.Count  > 0)
+            if (internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count  > 0)
             {
 
-                return Value.SelectMany(item => item.Split(new Char[] { ',' }, StringSplitOptions.RemoveEmptyEntries)).
-                             Select    (item => item.Trim());
+                return values.SelectMany(item => item.Split(new Char[] { ',' }, StringSplitOptions.RemoveEmptyEntries)).
+                              Select    (item => item.Trim());
 
             }
 
@@ -418,15 +416,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region TryGetString (ParameterName, out Value)
 
-        public Boolean TryGetString(String      ParameterName,
-                                    out String  Value)
+        public Boolean TryGetString(String       ParameterName,
+                                    out String?  Value)
         {
 
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values       != null                                            &&
-                Values.Count  > 0)
+            if (internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count  > 0)
             {
-                Value = Values.Last();
+                Value = values.Last();
                 return true;
             }
 
@@ -449,13 +447,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       Func<T, String, Boolean>  FilterDelegate)
         {
 
-            if (FilterDelegate != null &&
-                TryGetString(ParameterName, out String Value))
+            if (FilterDelegate is not null &&
+                TryGetString(ParameterName, out var value) &&
+                value is not null)
             {
 
-                return item => Value.StartsWith("!", StringComparison.Ordinal)
-                                   ? !FilterDelegate(item, Value.Substring(1))
-                                   :  FilterDelegate(item, Value);
+                return item => value.StartsWith("!", StringComparison.Ordinal)
+                                   ? !FilterDelegate(item, value.Substring(1))
+                                   :  FilterDelegate(item, value);
 
             }
 
@@ -475,12 +474,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean? GetBoolean(String ParameterName)
         {
 
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values != null &&
-                Values.Count > 0)
+            if (internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count > 0)
             {
 
-                var LastValue = Values.LastOrDefault()?.ToLower();
+                var LastValue = values.LastOrDefault()?.ToLower();
 
                 if (LastValue == ""  || LastValue == "1" || LastValue == "true")
                     return true;
@@ -507,12 +506,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   Boolean DefaultValue)
         {
 
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values != null &&
-                Values.Count > 0)
+            if (internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count > 0)
             {
 
-                var LastValue = Values.LastOrDefault()?.ToLower();
+                var LastValue = values.LastOrDefault()?.ToLower();
 
                 return LastValue == "" || LastValue == "1" || LastValue == "true";
 
@@ -531,12 +530,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                      Boolean?     DefaultValue = false)
         {
 
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values != null &&
-                Values.Count > 0)
+            if (internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count > 0)
             {
 
-                var LastValue = Values.LastOrDefault()?.ToLower();
+                var LastValue = values.LastOrDefault()?.ToLower();
 
                 if (LastValue == "" || LastValue == "1" || LastValue == "true")
                 {
@@ -559,12 +558,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Int16? GetInt16(String ParameterName)
         {
 
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values       != null                                            &&
-                Values.Count  > 0                                               &&
-                Int16.TryParse(Values.LastOrDefault(), out Int16 Number))
+            if (internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count  > 0 &&
+                Int16.TryParse(values.LastOrDefault(), out var number))
             {
-                return Number;
+                return number;
             }
 
             return null;
@@ -579,12 +578,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               Int16  DefaultValue)
         {
 
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values       != null                                            &&
-                Values.Count  > 0                                               &&
-                Int16.TryParse(Values.Last(), out Int16 Number))
+            if (internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count > 0 &&
+                Int16.TryParse(values.Last(), out var number))
             {
-                return Number;
+                return number;
             }
 
             return DefaultValue;
@@ -598,12 +597,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public UInt16? GetUInt16(String ParameterName)
         {
 
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values       != null                                            &&
-                Values.Count  > 0                                               &&
-                UInt16.TryParse(Values.LastOrDefault(), out UInt16 Number))
+            if (internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count > 0 &&
+                UInt16.TryParse(values.LastOrDefault(), out var number))
             {
-                return Number;
+                return number;
             }
 
             return null;
@@ -618,12 +617,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 UInt16 DefaultValue)
         {
 
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values       != null                                            &&
-                Values.Count  > 0                                               &&
-                UInt16.TryParse(Values.Last(), out UInt16 Number))
+            if (internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count > 0 &&
+                UInt16.TryParse(values.Last(), out var number))
             {
-                return Number;
+                return number;
             }
 
             return DefaultValue;
@@ -638,12 +637,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Int32? GetInt32(String ParameterName)
         {
 
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values       != null                                            &&
-                Values.Count  > 0                                               &&
-                Int32.TryParse(Values.LastOrDefault(), out Int32 Number))
+            if (internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count > 0 &&
+                Int32.TryParse(values.LastOrDefault(), out var number))
             {
-                return Number;
+                return number;
             }
 
             return null;
@@ -658,12 +657,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               Int32  DefaultValue)
         {
 
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values       != null                                            &&
-                Values.Count  > 0                                               &&
-                Int32.TryParse(Values.Last(), out Int32 Number))
+            if (internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count > 0 &&
+                Int32.TryParse(values.Last(), out var number))
             {
-                return Number;
+                return number;
             }
 
             return DefaultValue;
@@ -677,12 +676,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public UInt32? GetUInt32(String ParameterName)
         {
 
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values       != null                                            &&
-                Values.Count  > 0                                               &&
-                UInt32.TryParse(Values.LastOrDefault(), out UInt32 Number))
+            if (internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count  > 0 &&
+                UInt32.TryParse(values.LastOrDefault(), out var number))
             {
-                return Number;
+                return number;
             }
 
             return null;
@@ -697,12 +696,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 UInt32 DefaultValue)
         {
 
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values       != null                                            &&
-                Values.Count  > 0                                               &&
-                UInt32.TryParse(Values.Last(), out UInt32 Number))
+            if (internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count > 0 &&
+                UInt32.TryParse(values.Last(), out var number))
             {
-                return Number;
+                return number;
             }
 
             return DefaultValue;
@@ -717,12 +716,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Int64? GetInt64(String ParameterName)
         {
 
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values       != null                                            &&
-                Values.Count  > 0                                               &&
-                Int64.TryParse(Values.LastOrDefault(), out Int64 Number))
+            if (internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count > 0 &&
+                Int64.TryParse(values.LastOrDefault(), out var number))
             {
-                return Number;
+                return number;
             }
 
             return null;
@@ -737,12 +736,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               Int64  DefaultValue)
         {
 
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values       != null                                            &&
-                Values.Count  > 0                                               &&
-                Int64.TryParse(Values.Last(), out Int64 Number))
+            if (internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count > 0 &&
+                Int64.TryParse(values.Last(), out var number))
             {
-                return Number;
+                return number;
             }
 
             return DefaultValue;
@@ -756,12 +755,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public UInt64? GetUInt64(String ParameterName)
         {
 
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values       != null                                            &&
-                Values.Count  > 0                                               &&
-                UInt64.TryParse(Values.LastOrDefault(), out UInt64 Number))
+            if (internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count > 0 &&
+                UInt64.TryParse(values.LastOrDefault(), out var number))
             {
-                return Number;
+                return number;
             }
 
             return null;
@@ -776,12 +775,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 UInt64 DefaultValue)
         {
 
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values       != null                                            &&
-                Values.Count  > 0                                               &&
-                UInt64.TryParse(Values.Last(), out UInt64 Number))
+            if (internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count > 0 &&
+                UInt64.TryParse(values.Last(), out var number))
             {
-                return Number;
+                return number;
             }
 
             return DefaultValue;
@@ -796,12 +795,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Single? GetSingle(String  ParameterName)
         {
 
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values       != null                                            &&
-                Values.Count  > 0                                               &&
-                Single.TryParse(Values.LastOrDefault(), NumberStyles.Any, CultureInfo.InvariantCulture, out Single Number))
+            if (internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count > 0 &&
+                Single.TryParse(values.LastOrDefault(),
+                                NumberStyles.Any,
+                                CultureInfo.InvariantCulture,
+                                out var number))
             {
-                return Number;
+                return number;
             }
 
             return null;
@@ -816,12 +818,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 Single  DefaultValue)
         {
 
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values       != null                                            &&
-                Values.Count  > 0                                               &&
-                Single.TryParse(Values.Last(), NumberStyles.Any, CultureInfo.InvariantCulture, out Single Number))
+            if (internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count > 0 &&
+                Single.TryParse(values.Last(),
+                                NumberStyles.Any,
+                                CultureInfo.InvariantCulture,
+                                out var number))
             {
-                return Number;
+                return number;
             }
 
             return DefaultValue;
@@ -835,12 +840,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Double? GetDouble(String  ParameterName)
         {
 
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values       != null                                            &&
-                Values.Count  > 0                                               &&
-                Double.TryParse(Values.LastOrDefault(), NumberStyles.Any, CultureInfo.InvariantCulture, out Double Number))
+            if (internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count > 0 &&
+                Double.TryParse(values.LastOrDefault(),
+                                NumberStyles.Any,
+                                CultureInfo.InvariantCulture,
+                                out var number))
             {
-                return Number;
+                return number;
             }
 
             return null;
@@ -855,12 +863,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 Double  DefaultValue)
         {
 
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values       != null                                            &&
-                Values.Count  > 0                                               &&
-                Double.TryParse(Values.Last(), NumberStyles.Any, CultureInfo.InvariantCulture, out Double Number))
+            if (internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count > 0 &&
+                Double.TryParse(values.Last(),
+                                NumberStyles.Any,
+                                CultureInfo.InvariantCulture,
+                                out var number))
             {
-                return Number;
+                return number;
             }
 
             return DefaultValue;
@@ -874,12 +885,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Decimal? GetDecimal(String  ParameterName)
         {
 
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values       != null                                            &&
-                Values.Count  > 0                                               &&
-                Decimal.TryParse(Values.LastOrDefault(), NumberStyles.Any, CultureInfo.InvariantCulture, out Decimal Number))
+            if (internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count > 0 &&
+                Decimal.TryParse(values.LastOrDefault(),
+                                 NumberStyles.Any,
+                                 CultureInfo.InvariantCulture,
+                                 out var number))
             {
-                return Number;
+                return number;
             }
 
             return null;
@@ -894,12 +908,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   Decimal  DefaultValue)
         {
 
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values       != null                                            &&
-                Values.Count  > 0                                               &&
-                Decimal.TryParse(Values.Last(), NumberStyles.Any, CultureInfo.InvariantCulture, out Decimal Number))
+            if (internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count > 0 &&
+                Decimal.TryParse(values.Last(),
+                                 NumberStyles.Any,
+                                 CultureInfo.InvariantCulture,
+                                 out var number))
             {
-                return Number;
+                return number;
             }
 
             return DefaultValue;
@@ -916,14 +933,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="ParameterName">The name of the query parameter.</param>
         /// <param name="DefaultValue">An optional default timestamp.</param>
-        public DateTime? GetDateTime(String    ParameterName,
-                                     DateTime? DefaultValue  = null)
+        public DateTime? GetDateTime(String     ParameterName,
+                                     DateTime?  DefaultValue   = null)
         {
 
-            if (TryGetString(ParameterName, out String Value) &&
-                DateTime.TryParse(Value, out DateTime _Timestamp))
+            if (TryGetString(ParameterName, out var value) &&
+                DateTime.TryParse(value, out var timestamp))
             {
-                return DateTime.SpecifyKind(_Timestamp, DateTimeKind.Utc);
+                return DateTime.SpecifyKind(timestamp, DateTimeKind.Utc);
             }
 
             return DefaultValue;
@@ -941,8 +958,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public DateTime? TryGetDateTime(String ParameterName)
         {
 
-            if (TryGetString(ParameterName, out String Value) &&
-                DateTime.TryParse(Value, out DateTime timestamp))
+            if (TryGetString(ParameterName, out var value) &&
+                DateTime.TryParse(value, out var timestamp))
             {
                 return DateTime.SpecifyKind(timestamp, DateTimeKind.Utc);
             }
@@ -964,8 +981,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       out DateTime  Timestamp)
         {
 
-            if (TryGetString(ParameterName, out String Value) &&
-                DateTime.TryParse(Value, out DateTime timestamp))
+            if (TryGetString(ParameterName, out var value) &&
+                DateTime.TryParse(value, out var timestamp))
             {
                 Timestamp = DateTime.SpecifyKind(timestamp, DateTimeKind.Utc);
                 return true;
@@ -991,8 +1008,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             if (FilterDelegate != null &&
-                TryGetString(ParameterName, out String Value) &&
-                DateTime.TryParse(Value, out DateTime timestamp))
+                TryGetString(ParameterName, out var value) &&
+                DateTime.TryParse(value, out var timestamp))
             {
                 return item => FilterDelegate(item, DateTime.SpecifyKind(timestamp, DateTimeKind.Utc));
             }
@@ -1008,18 +1025,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public T? Map<T>(String            ParameterName,
                          Func<String, T?>  Parser)
-
             where T : struct
-
         {
 
-
-            if (Parser != null                                                  &&
-                _Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values != null                                                  &&
-                Values.Count > 0)
+            if (Parser is not null &&
+                internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count > 0)
             {
-                return Parser(Values.LastOrDefault());
+                return Parser(values.Last());
             }
 
             return new T?();
@@ -1035,13 +1049,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         T                DefaultValue)
         {
 
-
-            if (Parser != null                                                  &&
-                _Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values != null                                                  &&
-                Values.Count > 0)
+            if (Parser is not null &&
+                internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count > 0)
             {
-                return Parser(Values.LastOrDefault());
+                return Parser(values.Last());
             }
 
             return DefaultValue;
@@ -1058,10 +1071,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
              where TEnum : struct
         {
 
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values != null &&
-                Values.Count > 0 &&
-                Enum.TryParse(Values.Last(), out TEnum ValueT))
+            if (internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count > 0   &&
+                Enum.TryParse(values.Last(), out TEnum ValueT))
             {
                 return ValueT;
             }
@@ -1080,9 +1093,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values != null &&
-                Values.Count > 0 &&
+            if (internalDictionary.TryGetValue(ParameterName, out var Values) &&
+                Values is not null &&
+                Values.Count > 0   &&
                 Enum.TryParse(Values.Last(), out TEnum ValueT))
             {
                 return new TEnum?(ValueT);
@@ -1102,22 +1115,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
 
-            if (FilterDelegate != null &&
-                _Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values != null &&
-                Values.Count > 0)
+            if (FilterDelegate is not null &&
+                internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count > 0)
             {
 
-                var Value = Values.Last();
+                var value = values.Last();
 
-                if (Enum.TryParse(Value.StartsWith("!", StringComparison.Ordinal)
-                                      ? Value.Substring(1)
-                                      : Value,
+                if (Enum.TryParse(value.StartsWith("!", StringComparison.Ordinal)
+                                      ? value[1..]
+                                      : value,
                                   true,
                                   out TEnum ValueT))
                 {
 
-                    return item => Value.StartsWith("!", StringComparison.Ordinal)
+                    return item => value.StartsWith("!", StringComparison.Ordinal)
                                       ? !FilterDelegate(item, ValueT)
                                       :  FilterDelegate(item, ValueT);
 
@@ -1139,23 +1152,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
 
-            if (FilterDelegate != null &&
-                _Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values != null &&
-                Values.Count > 0)
+            if (FilterDelegate is not null &&
+                internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count > 0)
             {
 
-                var Value = Values.Last();
+                var Value = values.Last();
 
                 if (TryParser(Value.StartsWith("!", StringComparison.Ordinal)
-                                  ? Value.Substring(1)
+                                  ? Value[1..]
                                   : Value,
-                              out T2 ValueT))
+                              out var valueT) &&
+                    valueT is not null)
                 {
 
                     return item => Value.StartsWith("!", StringComparison.Ordinal)
-                                      ? !FilterDelegate(item, ValueT)
-                                      :  FilterDelegate(item, ValueT);
+                                      ? !FilterDelegate(item, valueT)
+                                      :  FilterDelegate(item, valueT);
 
                 }
 
@@ -1173,45 +1187,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
              where TEnum : struct
         {
 
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values != null &&
-                Values.Count > 0)
+            if (internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count > 0)
             {
 
-                var Includes = new List<TEnum>();
-                var Excludes = new List<TEnum>();
+                var includes = new List<TEnum>();
+                var excludes = new List<TEnum>();
 
-                foreach (var Value in Values)
+                foreach (var Value in values)
                 {
 
                     if (Enum.TryParse(Value.StartsWith("!", StringComparison.Ordinal)
-                                          ? Value.Substring(1)
+                                          ? Value[1..]
                                           : Value,
                                       true,
-                                      out TEnum ValueT))
+                                      out TEnum valueT))
                     {
 
                         if (Value.StartsWith("!", StringComparison.Ordinal))
-                            Excludes.Add(ValueT);
+                            excludes.Add(valueT);
 
                         else
-                            Includes.Add(ValueT);
+                            includes.Add(valueT);
 
                     }
 
                 }
 
-                if (Includes.Count == 0 && Excludes.Count == 0)
+                if (includes.Count == 0 && excludes.Count == 0)
                     return item =>  true;
 
-                if (Includes.Count > 0 && Excludes.Count == 0)
-                    return item =>  Includes.Contains(item);
+                if (includes.Count > 0 && excludes.Count == 0)
+                    return item =>  includes.Contains(item);
 
-                if (Includes.Count == 0 && Excludes.Count > 0)
-                    return item => !Excludes.Contains(item);
+                if (includes.Count == 0 && excludes.Count > 0)
+                    return item => !excludes.Contains(item);
 
-                return item => Includes.Contains(item) &&
-                              !Excludes.Contains(item);
+                return item => includes.Contains(item) &&
+                              !excludes.Contains(item);
 
             }
 
@@ -1227,44 +1241,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      TryParser<T>  TryParser)
         {
 
-            if (_Dictionary.TryGetValue(ParameterName, out List<String> Values) &&
-                Values != null &&
-                Values.Count > 0)
+            if (internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count > 0)
             {
 
-                var Includes = new List<T>();
-                var Excludes = new List<T>();
+                var includes = new List<T>();
+                var excludes = new List<T>();
 
-                foreach (var Value in Values)
+                foreach (var Value in values)
                 {
 
                     if (TryParser(Value.StartsWith("!", StringComparison.Ordinal)
-                                      ? Value.Substring(1)
+                                      ? Value[1..]
                                       : Value,
-                                  out T ValueT))
+                                  out var valueT) &&
+                        valueT is not null)
                     {
 
                         if (Value.StartsWith("!", StringComparison.Ordinal))
-                            Excludes.Add(ValueT);
+                            excludes.Add(valueT);
 
                         else
-                            Includes.Add(ValueT);
+                            includes.Add(valueT);
 
                     }
 
                 }
 
-                if (Includes.Count == 0 && Excludes.Count == 0)
+                if (includes.Count == 0 && excludes.Count == 0)
                     return item =>  true;
 
-                if (Includes.Count > 0 && Excludes.Count == 0)
-                    return item =>  Includes.Contains(item);
+                if (includes.Count  > 0 && excludes.Count == 0)
+                    return item =>  includes.Contains(item);
 
-                if (Includes.Count == 0 && Excludes.Count > 0)
-                    return item => !Excludes.Contains(item);
+                if (includes.Count == 0 && excludes.Count > 0)
+                    return item => !excludes.Contains(item);
 
-                return item => Includes.Contains(item) &&
-                              !Excludes.Contains(item);
+                return item => includes.Contains(item) &&
+                              !excludes.Contains(item);
 
             }
 
@@ -1279,13 +1294,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public IEnumerator<KeyValuePair<String, IEnumerable<String>>> GetEnumerator()
 
-            => _Dictionary.
+            => internalDictionary.
                    Select(v => new KeyValuePair<String, IEnumerable<String>>(v.Key, v.Value)).
                    GetEnumerator();
 
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
 
-            => _Dictionary.
+            => internalDictionary.
                    Select(v => new KeyValuePair<String, IEnumerable<String>>(v.Key, v.Value)).
                    GetEnumerator();
 
@@ -1299,12 +1314,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public override String ToString()
         {
 
-            if (_Dictionary.Count == 0)
+            if (internalDictionary.Count == 0)
                 return String.Empty;
 
             var _StringBuilder = new StringBuilder();
 
-            foreach (var KeyValuePair in _Dictionary)
+            foreach (var KeyValuePair in internalDictionary)
                 foreach (var Value in KeyValuePair.Value)
                     _StringBuilder.Append("&").
                                    Append(HttpUtility.UrlEncode(KeyValuePair.Key)).
