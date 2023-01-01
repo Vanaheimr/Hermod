@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2022 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2023 GraphDefined GmbH
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -50,6 +50,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Web Sockets Secure
         /// </summary>
         wss,
+
+        /// <summary>
+        /// Modbus/TCP
+        /// </summary>
+        modbus,
+
+        /// <summary>
+        /// Modbus/TLS (Modbus/TCP Security Protocol Specification)
+        /// </summary>
+        smodbus
 
     }
 

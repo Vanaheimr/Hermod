@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2022 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2023 GraphDefined GmbH
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -140,7 +140,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public TransmissionRetryDelayDelegate        TransmissionRetryDelay        { get; }
 
         /// <summary>
-        /// The maximum number of retries when communicationg with the remote OICP service.
+        /// The maximum number of retries when communicationg with the remote HTTP service.
         /// </summary>
         public UInt16                                MaxNumberOfRetries            { get; }
 
@@ -150,7 +150,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean                               UseHTTPPipelining             { get; }
 
         /// <summary>
-        /// The CPO client (HTTP client) logger.
+        /// The HTTP client logger.
         /// </summary>
         public HTTPClientLogger?                     HTTPLogger                    { get; set; }
 
@@ -172,7 +172,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IIPAddress?                           RemoteIPAddress               { get; private set; }
 
         /// <summary>
-        /// The IP port to connect to.
+        /// The HTTP/TCP port to connect to.
         /// </summary>
         public IPPort?                               RemotePort                    { get; }
 
@@ -307,8 +307,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
             this.ClientCertificateSelector   = ClientCertificateSelector;
             this.ClientCert                  = ClientCert;
-            this.PreferIPv4                  = PreferIPv4             ?? false;
             this.TLSProtocol                 = TLSProtocol            ?? SslProtocols.Tls12;
+            this.PreferIPv4                  = PreferIPv4             ?? false;
             this.HTTPUserAgent               = HTTPUserAgent          ?? DefaultHTTPUserAgent;
             this.RequestTimeout              = RequestTimeout         ?? DefaultRequestTimeout;
             this.TransmissionRetryDelay      = TransmissionRetryDelay ?? (retryCounter => TimeSpan.FromSeconds(retryCounter * retryCounter * DefaultTransmissionRetryDelay.TotalSeconds));
