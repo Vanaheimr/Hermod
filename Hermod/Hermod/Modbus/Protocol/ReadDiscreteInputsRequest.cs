@@ -19,7 +19,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 {
 
     /// <summary>
-    /// Read discrete inputs.
+    /// The Modbus/TCP Read Discrete Inputs request.
+    /// 
+    /// This function code is used to read from 1 to 2000 contiguous status of discrete inputs in a
+    /// remote device.The Request PDU specifies the starting address, i.e.the address of the first
+    /// input specified, and the number of inputs. In the PDU Discrete Inputs are addressed starting
+    /// at zero. Therefore Discrete inputs numbered 1-16 are addressed as 0-15.
     /// </summary>
     public class ReadDiscreteInputsRequest : ModbusTCPRequest
     {
@@ -48,20 +53,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <param name="StartAddress">The starting address.</param>
         /// <param name="NumberOfInputs">The number of discrete inputs to read.</param>
         /// <param name="UnitIdentifier">An optional device/unit identifier.</param>
+        /// <param name="ProtocolIdentifier">An optional protocol identifier.</param>
         public ReadDiscreteInputsRequest(ModbusTCPClient  ModbusClient,
                                          UInt16           TransactionId,
                                          UInt16           StartAddress,
                                          UInt16           NumberOfInputs,
-                                         Byte?            UnitIdentifier   = 0)
+                                         Byte?            UnitIdentifier       = null,
+                                         UInt16?          ProtocolIdentifier   = null)
 
             : base(ModbusClient,
                    TransactionId,
                    FunctionCode.ReadDiscreteInputs,
-                   ModbusProtocol.CreateReadHeader(TransactionId,
-                                                   UnitIdentifier ?? 0,
-                                                   FunctionCode.ReadDiscreteInputs,
+                   //ModbusProtocol.CreateReadHeader(TransactionId,
+                   //                                FunctionCode.ReadDiscreteInputs,
                                                    StartAddress,
-                                                   NumberOfInputs))
+                                                   NumberOfInputs,
+                                                   UnitIdentifier,
+                                                   ProtocolIdentifier)
 
         {
 

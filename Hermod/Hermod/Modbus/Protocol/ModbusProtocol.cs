@@ -57,32 +57,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #endregion
 
-        #region CreateReadHeader     (TransactionId, UnitIdentifier, FunctionCode, StartAddress, Length)
+        #region CreateReadHeader     (TransactionId, FunctionCode, StartAddress, Length, UnitIdentifier = 0, ProtocolIdentifier = 0)
 
         /// <summary>
         /// Create a new modbus header for reading data.
         /// </summary>
         /// <param name="TransactionId">An invocation/transaction identifier.</param>
-        /// <param name="UnitIdentifier">An device/unit identifier.</param>
         /// <param name="FunctionCode">The function code.</param>
         /// <param name="StartAddress">A start address for reading data.</param>
         /// <param name="Length">The length of the data to read.</param>
+        /// <param name="UnitIdentifier">An optional device/unit identifier.</param>
+        /// <param name="ProtocolIdentifier">An optional protocol identifier.</param>
         public static Byte[] CreateReadHeader(UInt16        TransactionId,
-                                              Byte          UnitIdentifier,
                                               FunctionCode  FunctionCode,
                                               UInt16        StartAddress,
-                                              UInt16        Length)
+                                              UInt16        Length,
+                                              Byte?         UnitIdentifier       = 0,
+                                              UInt16?       ProtocolIdentifier   = 0)
         {
 
             // The start address within the application starts at 1, but on the network at 0!
             if (StartAddress == 0)
                 StartAddress = 1;
 
-            var invocationId        = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16) TransactionId));
-            var protocolIdentifier  = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16) 0));
-            var messageSize         = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16) 6));
-            var startAddress        = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16) StartAddress - 1));
-            var length              = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16) Length));
+            var invocationId        = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16)  TransactionId));
+            var protocolIdentifier  = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16) (ProtocolIdentifier ?? 0)));
+            var messageSize         = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16)  6));
+            var startAddress        = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16)  StartAddress - 1));
+            var length              = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16)  Length));
 
             var header = new Byte[12];
 
@@ -95,15 +97,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             header[4]  = messageSize[0];         // high byte
             header[5]  = messageSize[1];         // low  byte
 
-            header[6]  = UnitIdentifier;
+            header[6]  = UnitIdentifier ?? 0;
 
             header[7]  = FunctionCode.Value;
 
             header[8]  = startAddress[0];        // high byte
             header[9]  = startAddress[1];        // low  byte
 
-            header[10] = length[0];             // high byte
-            header[11] = length[1];             // low  byte
+            header[10] = length[0];              // high byte
+            header[11] = length[1];              // low  byte
 
             return header;
 

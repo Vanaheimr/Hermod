@@ -99,10 +99,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #region (static) Static definitions
 
-        public static readonly FunctionCode ReadCoils                       = new ("Read coils",                          1, AccessRight.Read,      AccessGroup.Bit,         "Read multiple boolean values");
-        public static readonly FunctionCode ReadDiscreteInputs              = new ("Read discrete inputs",                2, AccessRight.Read,      AccessGroup.Bit,         "Single sensor bit");
-        public static readonly FunctionCode ReadHoldingRegister             = new ("Read holding register",               3, AccessRight.Read,      AccessGroup.Word,        "16-bit sensor word");
-        public static readonly FunctionCode ReadInputRegister               = new ("Read input register",                 4, AccessRight.Read,      AccessGroup.Word,        "16-bit sensor word");
+        public static readonly FunctionCode ReadCoils                       = new ("Read coils",                          1, AccessRight.Read,      AccessGroup.Bit,         "Single coil bits");
+        public static readonly FunctionCode ReadDiscreteInputs              = new ("Read discrete inputs",                2, AccessRight.Read,      AccessGroup.Bit,         "Single sensor bits");
+        public static readonly FunctionCode ReadHoldingRegisters            = new ("Read holding registers",              3, AccessRight.Read,      AccessGroup.Word,        "16-bit sensor words");
+        public static readonly FunctionCode ReadInputRegisters              = new ("Read input registers",                4, AccessRight.Read,      AccessGroup.Word,        "16-bit sensor words");
 
         public static readonly FunctionCode WriteSingleCoil                 = new ("Write single coil",                   5, AccessRight.ReadWrite, AccessGroup.Bit,         "Single actor bit");
         public static readonly FunctionCode WriteSingleRegister             = new ("Write single register",               6, AccessRight.ReadWrite, AccessGroup.Word);

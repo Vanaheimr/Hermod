@@ -33,6 +33,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 {
 
     /// <summary>
+    /// https://modbus.org/docs/Modbus_Application_Protocol_V1_1b3.pdf
     /// https://modbus.org/docs/Modbus_Messaging_Implementation_Guide_V1_0b.pdf
     /// </summary>
     public class ModbusTCPRequest
@@ -81,17 +82,61 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #region Constructor(s)
 
+        /// <summary>
+        /// Create Read Header
+        /// </summary>
+        /// <param name="ModbusClient">A Modbus/TCP client.</param>
+        /// <param name="TransactionId">A transaction identifier.</param>
+        /// <param name="FunctionCode"></param>
+        /// <param name="StartAddress">The starting address.</param>
+        /// <param name="Length"></param>
+        /// <param name="UnitIdentifier">An optional device/unit identifier.</param>
+        /// <param name="ProtocolIdentifier">An optional protocol identifier.</param>
         public ModbusTCPRequest(ModbusTCPClient  ModbusClient,
                                 UInt16           TransactionId,
                                 FunctionCode     FunctionCode,
-                                Byte[]           EntirePDU)
+                                UInt16           StartAddress,
+                                UInt16           Length,
+                                Byte?            UnitIdentifier       = 0,
+                                UInt16?          ProtocolIdentifier   = 0)
+
         {
 
-            this.ModbusClient   = ModbusClient;
-            this.Timestamp      = Illias.Timestamp.Now;
-            this.TransactionId  = TransactionId;
-            this.FunctionCode   = FunctionCode;
-            this.EntirePDU      = EntirePDU;
+            this.ModbusClient       = ModbusClient;
+            this.Timestamp          = Illias.Timestamp.Now;
+            this.TransactionId      = TransactionId;
+            this.FunctionCode       = FunctionCode;
+
+            // The start address within the application starts at 1, but on the network at 0!
+            if (StartAddress == 0)
+                StartAddress        = 1;
+
+            var invocationId        = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16)  TransactionId));
+            var protocolIdentifier  = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16) (ProtocolIdentifier ?? 0)));
+            var messageSize         = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16)  6));
+            var startAddress        = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16)  StartAddress - 1));
+            var length              = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16)  Length));
+
+            this.EntirePDU          = new Byte[12];
+
+            this.EntirePDU[0]       = invocationId[0];        // high byte
+            this.EntirePDU[1]       = invocationId[1];        // low  byte
+
+            this.EntirePDU[2]       = protocolIdentifier[0];  // high byte
+            this.EntirePDU[3]       = protocolIdentifier[1];  // low  byte
+
+            this.EntirePDU[4]       = messageSize[0];         // high byte
+            this.EntirePDU[5]       = messageSize[1];         // low  byte
+
+            this.EntirePDU[6]       = UnitIdentifier ?? 0;
+
+            this.EntirePDU[7]       = FunctionCode.Value;
+
+            this.EntirePDU[8]       = startAddress[0];        // high byte
+            this.EntirePDU[9]       = startAddress[1];        // low  byte
+
+            this.EntirePDU[10]      = length[0];              // high byte
+            this.EntirePDU[11]      = length[1];              // low  byte
 
         }
 

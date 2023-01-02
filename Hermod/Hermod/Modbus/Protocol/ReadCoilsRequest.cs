@@ -19,10 +19,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 {
 
     /// <summary>
-    /// This class is a Modbus PDU for the Read Coils function code (0x01).
-    /// It is used to read from 1 to 2000 contiguous status coils (bits)
-    /// in a remote device starting at the given address and for the given
-    /// number of coils (bits).
+    /// The Modbus/TCP Read Coils request.
+    /// 
+    /// This function code (0x01) is used to read from 1 to 2000 contiguous status of coils (bits)
+    /// in a remote device.The Request PDU specifies the starting address, i.e.the address of the
+    /// first coil specified, and the number of coils. In the PDU Coils are addressed starting at
+    /// zero. Therefore coils numbered 1-16 are addressed as 0-15.
     /// </summary>
     public class ReadCoilsRequest : ModbusTCPRequest
     {
@@ -44,32 +46,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         #region Constructor(s)
 
         /// <summary>
-        /// This creates a new Modbus PDU for the Read Coils function code (0x01).
-        /// It is used to read from 1 to 2000 contiguous status coils (bits)
-        /// in a remote device starting at the given address and for the given
-        /// number of coils (bits).
+        /// Create a new Read Coils request.
         /// </summary>
         /// <param name="ModbusClient">A Modbus/TCP client.</param>
         /// <param name="TransactionId">A transaction identifier.</param>
         /// <param name="StartAddress">The starting address.</param>
         /// <param name="NumberOfCoils">The number of coils to read (1-2000).</param>
         /// <param name="UnitIdentifier">An optional device/unit identifier.</param>
+        /// <param name="ProtocolIdentifier">An optional protocol identifier.</param>
         public ReadCoilsRequest(ModbusTCPClient  ModbusClient,
                                 UInt16           TransactionId,
                                 UInt16           StartAddress,
                                 UInt16           NumberOfCoils,
-                                Byte?            UnitIdentifier   = 0)
+                                Byte?            UnitIdentifier       = null,
+                                UInt16?          ProtocolIdentifier   = null)
 
             : base(ModbusClient,
                    TransactionId,
                    FunctionCode.ReadCoils,
-                   ModbusProtocol.CreateReadHeader(TransactionId,
-                                                   UnitIdentifier ?? 0,
-                                                   FunctionCode.ReadCoils,
+                   //ModbusProtocol.CreateReadHeader(TransactionId,
+                   //                                FunctionCode.ReadCoils,
                                                    StartAddress,
                                                    NumberOfCoils < 1
                                                        ? (UInt16) 1
-                                                       : Math.Min(NumberOfCoils, (UInt16) 2000)))
+                                                       : Math.Min(NumberOfCoils, (UInt16) 2000),
+                                                   UnitIdentifier,
+                                                   ProtocolIdentifier)
 
         {
 

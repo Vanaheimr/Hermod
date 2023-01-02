@@ -19,7 +19,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 {
 
     /// <summary>
-    /// A Modbus/TCP Read Coils Response.
+    /// The Modbus/TCP Read Coils response.
+    /// 
+    /// The coils in the response message are packed as one coil per bit of the data field.Status is
+    /// indicated as 1= ON and 0= OFF.The LSB of the first data byte contains the output addressed
+    /// in the query.The other coils follow toward the high order end of this byte, and from low order
+    /// to high order in subsequent bytes.
+    /// 
+    /// If the returned output quantity is not a multiple of eight, the remaining bits in the final data
+    /// byte will be padded with zeros (toward the high order end of the byte). The Byte Count field
+    /// specifies the quantity of complete bytes of data.
     /// </summary>
     public class ReadCoilsResponse : ModbusTCPResponse<ReadCoilsRequest>
     {

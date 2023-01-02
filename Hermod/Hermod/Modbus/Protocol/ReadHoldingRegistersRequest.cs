@@ -19,7 +19,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 {
 
     /// <summary>
-    /// Read holding registers.
+    /// The Modbus/TCP Read Holding Registers request.
+    /// 
+    /// This function code is used to read the contents of a contiguous block of holding registers in a
+    /// remote device. The Request PDU specifies the starting register address and the number of
+    /// registers. In the PDU Registers are addressed starting at zero. Therefore registers numbered
+    /// 1-16 are addressed as 0-15.
     /// </summary>
     public class ReadHoldingRegistersRequest : ModbusTCPRequest
     {
@@ -48,20 +53,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <param name="StartAddress">The starting address.</param>
         /// <param name="NumberOfRegisters">The number of holding registers to read.</param>
         /// <param name="UnitIdentifier">An optional device/unit identifier.</param>
+        /// <param name="ProtocolIdentifier">An optional protocol identifier.</param>
         public ReadHoldingRegistersRequest(ModbusTCPClient  ModbusClient,
                                            UInt16           TransactionId,
                                            UInt16           StartAddress,
                                            UInt16           NumberOfRegisters,
-                                           Byte?            UnitIdentifier   = 0)
+                                           Byte?            UnitIdentifier       = null,
+                                           UInt16?          ProtocolIdentifier   = null)
 
             : base(ModbusClient,
                    TransactionId,
                    FunctionCode.ReadDiscreteInputs,
-                   ModbusProtocol.CreateReadHeader(TransactionId,
-                                                   UnitIdentifier ?? 0,
-                                                   FunctionCode.ReadHoldingRegister,
+                   //ModbusProtocol.CreateReadHeader(TransactionId,
+                   //                                FunctionCode.ReadHoldingRegisters,
                                                    StartAddress,
-                                                   NumberOfRegisters))
+                                                   NumberOfRegisters,
+                                                   UnitIdentifier,
+                                                   ProtocolIdentifier)
 
         {
 

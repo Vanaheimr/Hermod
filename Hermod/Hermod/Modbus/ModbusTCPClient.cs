@@ -497,12 +497,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         {
 
-            var readCoilsRequest  = new ReadCoilsRequest(this,
-                                                         NextInvocationId,
-                                                         StartAddress,
-                                                         NumberOfCoils);
+            var request  = new ReadCoilsRequest(this,
+                                                NextInvocationId,
+                                                StartAddress,
+                                                NumberOfCoils);
 
-            var response          = new ReadCoilsResponse(readCoilsRequest, await WriteAsyncData(readCoilsRequest));
+            var response = new ReadCoilsResponse(request,
+                                                 await WriteAsyncData(request));
 
             return response;
 
@@ -517,21 +518,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// </summary>
         /// <param name="StartAddress">The start address for reading the data.</param>
         /// <param name="NumberOfInputs">The number of input inputs to read.</param>
-        public async Task<ModbusTCPResponse<ReadDiscreteInputsRequest>>
+        public async Task<ReadDiscreteInputsResponse>
 
             ReadDiscreteInputs(UInt16  StartAddress,
                                UInt16  NumberOfInputs)
 
         {
 
-            var readDiscreteInputsRequest  = new ReadDiscreteInputsRequest(this,
-                                                                           NextInvocationId,
-                                                                           StartAddress,
-                                                                           NumberOfInputs);
+            var request  = new ReadDiscreteInputsRequest(this,
+                                                         NextInvocationId,
+                                                         StartAddress,
+                                                         NumberOfInputs);
 
-            var response                   = await WriteAsyncData(readDiscreteInputsRequest);
+            var response = new ReadDiscreteInputsResponse(request,
+                                                          await WriteAsyncData(request));
 
-            return null; // response;
+            return response;
 
         }
 
