@@ -49,20 +49,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// in a remote device starting at the given address and for the given
         /// number of coils (bits).
         /// </summary>
+        /// <param name="ModbusClient">A Modbus/TCP client.</param>
+        /// <param name="TransactionId">A transaction identifier.</param>
         /// <param name="StartAddress">The starting address.</param>
-        /// <param name="NumberOfCoils">The number of coils to read.</param>
+        /// <param name="NumberOfCoils">The number of coils to read (1-2000).</param>
+        /// <param name="UnitIdentifier">An optional device/unit identifier.</param>
         public ReadCoilsRequest(ModbusTCPClient  ModbusClient,
-                                UInt16           InvocationId,
+                                UInt16           TransactionId,
                                 UInt16           StartAddress,
-                                UInt16           NumberOfCoils)
+                                UInt16           NumberOfCoils,
+                                Byte?            UnitIdentifier   = 0)
 
             : base(ModbusClient,
-                   InvocationId,
+                   TransactionId,
                    FunctionCode.ReadCoils,
-                   ModbusProtocol.CreateReadHeader(InvocationId,
+                   ModbusProtocol.CreateReadHeader(TransactionId,
+                                                   UnitIdentifier ?? 0,
+                                                   FunctionCode.ReadCoils,
                                                    StartAddress,
-                                                   NumberOfCoils,
-                                                   FunctionCode.ReadCoils).ToArray())
+                                                   NumberOfCoils < 1
+                                                       ? (UInt16) 1
+                                                       : Math.Min(NumberOfCoils, (UInt16) 2000)))
 
         {
 

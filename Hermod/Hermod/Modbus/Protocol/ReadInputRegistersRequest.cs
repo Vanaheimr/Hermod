@@ -43,20 +43,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <summary>
         /// Read holding registers.
         /// </summary>
+        /// <param name="ModbusClient">A Modbus/TCP client.</param>
+        /// <param name="TransactionId">A transaction identifier.</param>
         /// <param name="StartAddress">The starting address.</param>
         /// <param name="NumberOfRegisters">The number of input registers to read.</param>
+        /// <param name="UnitIdentifier">An optional device/unit identifier.</param>
         public ReadInputRegistersRequest(ModbusTCPClient  ModbusClient,
-                                         UInt16           InvocationId,
+                                         UInt16           TransactionId,
                                          UInt16           StartAddress,
-                                         UInt16           NumberOfRegisters)
+                                         UInt16           NumberOfRegisters,
+                                         Byte?            UnitIdentifier   = 0)
 
             : base(ModbusClient,
-                   InvocationId,
+                   TransactionId,
                    FunctionCode.ReadDiscreteInputs,
-                   ModbusProtocol.CreateReadHeader(InvocationId,
+                   ModbusProtocol.CreateReadHeader(TransactionId,
+                                                   UnitIdentifier ?? 0,
+                                                   FunctionCode.ReadInputRegister,
                                                    StartAddress,
-                                                   NumberOfRegisters,
-                                                   FunctionCode.ReadInputRegister).ToArray())
+                                                   NumberOfRegisters))
 
         {
 

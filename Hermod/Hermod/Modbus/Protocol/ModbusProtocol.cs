@@ -21,9 +21,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
     public static class ModbusProtocol
     {
 
-        // The byte length of the "MODBUS Application Protocol" header.
-        const Byte MBAP_LENGTH = 7;
-
         // An exception response from a MODBUS slave (server) will have
         // the high-bit (0x80) set on it's function code.
         const Byte EXCEPTION_BIT = 1 << 7;
@@ -48,9 +45,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
             var memoryStream = new MemoryStream(20);
 
-            memoryStream.WriteWord(InvocationId);
-            memoryStream.WriteWord(ProtocolIdentifier);
-            memoryStream.WriteWord(MessageSize, ByteOrder.HostToNetwork);
+            memoryStream.WriteWord(InvocationId,       ByteOrder.HostToNetwork);
+            memoryStream.WriteWord(ProtocolIdentifier, ByteOrder.HostToNetwork);
+            memoryStream.WriteWord(MessageSize,        ByteOrder.HostToNetwork);
             memoryStream.WriteByte(UnitIdentifier);
             memoryStream.WriteByte(FunctionCode.Value);
 
@@ -60,32 +57,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #endregion
 
-        #region CreateReadHeader     (InvocationId, StartAddress, Length, FunctionCode)
+        #region CreateReadHeader     (TransactionId, UnitIdentifier, FunctionCode, StartAddress, Length)
 
         /// <summary>
         /// Create a new modbus header for reading data.
         /// </summary>
-        /// <param name="InvocationId">An invocation/transaction identifier.</param>
+        /// <param name="TransactionId">An invocation/transaction identifier.</param>
+        /// <param name="UnitIdentifier">An device/unit identifier.</param>
+        /// <param name="FunctionCode">The function code.</param>
         /// <param name="StartAddress">A start address for reading data.</param>
         /// <param name="Length">The length of the data to read.</param>
-        /// <param name="FunctionCode">The function code.</param>
-        public static MemoryStream CreateReadHeader(UInt16        InvocationId,
-                                                    UInt16        StartAddress,
-                                                    UInt16        Length,
-                                                    FunctionCode  FunctionCode)
+        public static Byte[] CreateReadHeader(UInt16        TransactionId,
+                                              Byte          UnitIdentifier,
+                                              FunctionCode  FunctionCode,
+                                              UInt16        StartAddress,
+                                              UInt16        Length)
         {
 
-            var header = CreateGenericHeader(InvocationId,
-                                             6,
-                                             FunctionCode);
+            // The start address within the application starts at 1, but on the network at 0!
+            if (StartAddress == 0)
+                StartAddress = 1;
 
-            var startAddress  = BitConverter.GetBytes((Int16) System.Net.IPAddress.HostToNetworkOrder((Int16) StartAddress));
-            header.WriteByte(startAddress[0]);  // high byte
-            header.WriteByte(startAddress[1]);  // low  byte
+            var invocationId        = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16) TransactionId));
+            var protocolIdentifier  = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16) 0));
+            var messageSize         = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16) 6));
+            var startAddress        = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16) StartAddress - 1));
+            var length              = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16) Length));
 
-            var length        = BitConverter.GetBytes((Int16) System.Net.IPAddress.HostToNetworkOrder((Int16) Length));
-            header.WriteByte(length[0]);        // high byte
-            header.WriteByte(length[1]);        // low  byte
+            var header = new Byte[12];
+
+            header[0]  = invocationId[0];        // high byte
+            header[1]  = invocationId[1];        // low  byte
+
+            header[2]  = protocolIdentifier[0];  // high byte
+            header[3]  = protocolIdentifier[1];  // low  byte
+
+            header[4]  = messageSize[0];         // high byte
+            header[5]  = messageSize[1];         // low  byte
+
+            header[6]  = UnitIdentifier;
+
+            header[7]  = FunctionCode.Value;
+
+            header[8]  = startAddress[0];        // high byte
+            header[9]  = startAddress[1];        // low  byte
+
+            header[10] = length[0];             // high byte
+            header[11] = length[1];             // low  byte
 
             return header;
 

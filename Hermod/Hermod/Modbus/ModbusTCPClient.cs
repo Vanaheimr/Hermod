@@ -17,6 +17,7 @@
 
 #region Usings
 
+using System.Diagnostics;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
@@ -24,138 +25,17 @@ using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 {
 
-    public class ModbusTCPRequest
-    {
-
-        #region Properties
-
-        /// <summary>
-        /// The Modbus/TCP client.
-        /// </summary>
-        public ModbusTCPClient  ModbusClient    { get; }
-
-        /// <summary>
-        /// The local TCP/IP socket used.
-        /// </summary>
-        public IPSocket         LocalSocket     { get; internal set; }
-
-        /// <summary>
-        /// The remote TCP/IP socket used.
-        /// </summary>
-        public IPSocket         RemoteSocket    { get; internal set; }
-
-        /// <summary>
-        /// The request timestamp.
-        /// </summary>
-        public DateTime         Timestamp       { get; }
-
-        /// <summary>
-        /// The Modbus/TCP invocation/request identification.
-        /// </summary>
-        public UInt16           InvocationId    { get; }
-
-        /// <summary>
-        /// The Modbus/TCP function code.
-        /// </summary>
-        public FunctionCode     FunctionCode    { get; }
-
-        public Byte[]           EntirePDU       { get; internal set; }
-
-        #endregion
-
-        #region Constructor(s)
-
-        public ModbusTCPRequest(ModbusTCPClient  ModbusClient,
-                                UInt16           InvocationId,
-                                FunctionCode     FunctionCode,
-                                Byte[]           EntirePDU)
-        {
-
-            this.ModbusClient  = ModbusClient;
-            this.Timestamp     = Illias.Timestamp.Now;
-            this.InvocationId  = InvocationId;
-            this.FunctionCode  = FunctionCode;
-            this.EntirePDU     = EntirePDU;
-
-        }
-
-        #endregion
-
-    }
-
-    public class ModbusTCPResponse
-    {
-
-        #region Properties
-
-        public ModbusTCPRequest  Request         { get; }
-
-        public DateTime          Timestamp       { get; }
-
-        public IPSocket          LocalSocket     { get; internal set; }
-
-        public IPSocket          RemoteSocket    { get; internal set; }
-
-        public Byte[]            EntirePDU       { get; }
-
-        #endregion
-
-        #region Constructor(s)
-
-        public ModbusTCPResponse(ModbusTCPRequest  Request,
-                                 Byte[]            PDU)
-        {
-
-            this.Request    = Request;
-            this.Timestamp  = Illias.Timestamp.Now;
-            this.EntirePDU  = PDU;
-
-        }
-
-        #endregion
-
-    }
-
-
-    public class ModbusTCPResponse<TRequest> : ModbusTCPResponse
-
-        where TRequest: ModbusTCPRequest
-
-    {
-
-        #region Properties
-
-        public new TRequest  Request    { get; }
-
-        #endregion
-
-        #region Constructor(s)
-
-        public ModbusTCPResponse(TRequest  Request,
-                                 Byte[]    PDU)
-
-            : base(Request,
-                   PDU)
-
-        {
-            this.Request    = Request;
-        }
-
-        #endregion
-
-
-    }
-
-
     /// <summary>
     /// The Modbus/TCP Client.
     /// </summary>
+    /// <seealso cref="https://modbus.org/docs/Modbus_Messaging_Implementation_Guide_V1_0b.pdf"/>
     /// <seealso cref="https://modbus.org/docs/MB-TCP-Security-v21_2018-07-24.pdf"/>
     public class ModbusTCPClient : IModbusClient
     {
@@ -429,7 +309,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             this.RequestTimeout              = RequestTimeout         ?? DefaultRequestTimeout;
             this.TransmissionRetryDelay      = TransmissionRetryDelay ?? (retryCounter => TimeSpan.FromSeconds(retryCounter * retryCounter * DefaultTransmissionRetryDelay.TotalSeconds));
             this.MaxNumberOfRetries          = MaxNumberOfRetries     ?? DefaultMaxNumberOfRetries;
-            this.UseRequestPipelining               = UseRequestPipelining;
+            this.UseRequestPipelining        = UseRequestPipelining;
             this.Logger                      = Logger;
             this.DNSClient                   = DNSClient              ?? new DNSClient();
 
@@ -440,7 +320,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             if (this.ClientCertificateSelector is null && this.ClientCert is not null)
                 this.ClientCertificateSelector = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => this.ClientCert;
 
-            this.internalInvocationId        = 0;
+            this.internalInvocationId        = 15;
 
         }
 
@@ -610,7 +490,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// </summary>
         /// <param name="StartAddress">The start address for reading data.</param>
         /// <param name="NumberOfCoils">The number of coils to read.</param>
-        public async Task<ModbusTCPResponse<ReadCoilsRequest>>
+        public async Task<ReadCoilsResponse>
 
             ReadCoils(UInt16  StartAddress,
                       UInt16  NumberOfCoils)
@@ -622,7 +502,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                                          StartAddress,
                                                          NumberOfCoils);
 
-            var response          = await WriteAsyncData(readCoilsRequest);
+            var response          = new ReadCoilsResponse(readCoilsRequest, await WriteAsyncData(readCoilsRequest));
 
             return response;
 
@@ -651,7 +531,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
             var response                   = await WriteAsyncData(readDiscreteInputsRequest);
 
-            return response;
+            return null; // response;
 
         }
 
@@ -678,7 +558,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
             var response                     = await WriteAsyncData(readHoldingRegistersRequest);
 
-            return response;
+            return null; // response;
 
         }
 
@@ -705,7 +585,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
             var response                   = await WriteAsyncData(readInputRegistersRequest);
 
-            return response;
+            return null; // response;
 
         }
 
@@ -778,26 +658,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #endregion
 
-        #region WriteMultipleCoils       (StartAddress, Bits)
+        #region WriteMultipleCoils       (StartAddress, Coils)
 
         /// <summary>
-        /// Write multiple coils in slave synchronous.
+        /// Send multiple coils to a unit/device.
         /// </summary>
         /// <param name="StartAddress">The start address for writing the data.</param>
-        /// <param name="Bits">The array of bit information.</param>
+        /// <param name="Coils">The array of coils.</param>
         public async Task<ModbusTCPResponse> WriteMultipleCoils(UInt16            StartAddress,
-                                                                params Boolean[]  Bits)
+                                                                params Boolean[]  Coils)
         {
 
-            var numberOfBits   = Bits.Length;
-            var numberOfBytes  = Convert.ToByte(Bits.Length);
-            var bits           = new Byte[numberOfBytes];
+            var numberOfBits   = Coils.Length;
+            var numberOfBytes  = Convert.ToByte(Coils.Length);
+            var coils          = new Byte[numberOfBytes];
             var bitPosition    = 0;
 
-            for (var i=0; i<Bits.Length; i++)
+            for (var i=0; i<Coils.Length; i++)
             {
-                if (Bits[i])
-                    bits[bitPosition / 8] |= (Byte) (1 << (bitPosition % 8));
+                if (Coils[i])
+                    coils[bitPosition / 8] |= (Byte) (1 << (bitPosition % 8));
             }
 
             var header         = ModbusProtocol.CreateWriteHeader(
@@ -808,7 +688,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                      FunctionCode.WriteMultipleCoils
                                  );
 
-            header.Write(bits,
+            header.Write(coils,
                          13,
                          numberOfBytes);
 
@@ -957,11 +837,242 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         }
 
-        private async Task<ModbusTCPResponse<TRequest>> WriteAsyncData<TRequest>(TRequest Request)
-
-            where TRequest : ModbusTCPRequest
-
+        private async Task<Byte[]> WriteAsyncData(ModbusTCPRequest Request)
         {
+
+            var sw = new Stopwatch();
+
+            var _FinalIPEndPoint = new System.Net.IPEndPoint(System.Net.IPAddress.Loopback,
+                                                             502);
+
+            TCPSocket = new Socket(AddressFamily.InterNetwork,
+                                   SocketType.   Stream,
+                                   ProtocolType. Tcp);
+
+            if (TCPSocket is not null)
+            {
+
+                TCPSocket.SendTimeout    = (Int32) RequestTimeout.TotalMilliseconds;
+                TCPSocket.ReceiveTimeout = (Int32) RequestTimeout.TotalMilliseconds;
+                TCPSocket.Connect(_FinalIPEndPoint);
+                TCPSocket.ReceiveTimeout = (Int32) RequestTimeout.TotalMilliseconds;
+
+                TCPStream = new MyNetworkStream(TCPSocket, true) {
+                    ReadTimeout = (Int32) RequestTimeout.TotalMilliseconds
+                };
+
+                Request.LocalSocket   = IPSocket.FromIPEndPoint(TCPSocket.LocalEndPoint!);
+                Request.RemoteSocket  = IPSocket.FromIPEndPoint(TCPSocket.RemoteEndPoint!);
+
+            }
+
+            #region Create TCP connection (possibly also do DNS lookups)
+
+            //Boolean restart;
+
+            //do
+            //{
+
+            //    restart = false;
+
+            //    if (TCPSocket is null)
+            //    {
+
+            //        System.Net.IPEndPoint? _FinalIPEndPoint = null;
+
+            //        if (RemoteIPAddress is null)
+            //        {
+
+            //            #region Localhost
+
+            //            if (IPAddress.IsIPv4Localhost(RemoteURL.Hostname))
+            //                RemoteIPAddress = IPv4Address.Localhost;
+
+            //            else if (IPAddress.IsIPv6Localhost(RemoteURL.Hostname))
+            //                RemoteIPAddress = IPv6Address.Localhost;
+
+            //            else if (IPAddress.IsIPv4(RemoteURL.Hostname.Name))
+            //                RemoteIPAddress = IPv4Address.Parse(RemoteURL.Hostname.Name);
+
+            //            else if (IPAddress.IsIPv6(RemoteURL.Hostname.Name))
+            //                RemoteIPAddress = IPv6Address.Parse(RemoteURL.Hostname.Name);
+
+            //            #endregion
+
+            //            #region DNS lookup...
+
+            //            if (RemoteIPAddress is null)
+            //            {
+
+            //                var IPv4AddressLookupTask = DNSClient.
+            //                                                Query<A>(RemoteURL.Hostname.Name).
+            //                                                ContinueWith(query => query.Result.Select(ARecord    => ARecord.IPv4Address));
+
+            //                var IPv6AddressLookupTask = DNSClient.
+            //                                                Query<AAAA>(RemoteURL.Hostname.Name).
+            //                                                ContinueWith(query => query.Result.Select(AAAARecord => AAAARecord.IPv6Address));
+
+            //                await Task.WhenAll(IPv4AddressLookupTask,
+            //                                    IPv6AddressLookupTask).
+            //                            ConfigureAwait(false);
+
+            //                if (PreferIPv4)
+            //                {
+            //                    if (IPv6AddressLookupTask.Result.Any())
+            //                        RemoteIPAddress = IPv6AddressLookupTask.Result.First();
+
+            //                    if (IPv4AddressLookupTask.Result.Any())
+            //                        RemoteIPAddress = IPv4AddressLookupTask.Result.First();
+            //                }
+            //                else
+            //                {
+            //                    if (IPv4AddressLookupTask.Result.Any())
+            //                        RemoteIPAddress = IPv4AddressLookupTask.Result.First();
+
+            //                    if (IPv6AddressLookupTask.Result.Any())
+            //                        RemoteIPAddress = IPv6AddressLookupTask.Result.First();
+            //                }
+
+            //            }
+
+            //            #endregion
+
+            //        }
+
+            //        if (RemoteIPAddress is not null && RemotePort is not null)
+            //            _FinalIPEndPoint = new System.Net.IPEndPoint(new System.Net.IPAddress(RemoteIPAddress.GetBytes()),
+            //                                                            RemotePort.Value.ToInt32());
+            //        else
+            //            throw new Exception("DNS lookup failed!");
+
+
+            //        sw.Start();
+
+            //        //TCPClient = new TcpClient();
+            //        //TCPClient.Connect(_FinalIPEndPoint);
+            //        //TCPClient.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+
+            //        if (RemoteIPAddress.IsIPv4)
+            //            TCPSocket = new Socket(AddressFamily.InterNetwork,
+            //                                    SocketType.Stream,
+            //                                    ProtocolType.Tcp);
+
+            //        if (RemoteIPAddress.IsIPv6)
+            //            TCPSocket = new Socket(AddressFamily.InterNetworkV6,
+            //                                    SocketType.Stream,
+            //                                    ProtocolType.Tcp);
+
+            //        if (TCPSocket is not null)
+            //        {
+            //            TCPSocket.SendTimeout    = (Int32) RequestTimeout.Value.TotalMilliseconds;
+            //            TCPSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+            //            TCPSocket.Connect(_FinalIPEndPoint);
+            //            TCPSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+            //        }
+
+            //    }
+
+            //    TCPStream = TCPSocket is not null
+            //                    ? new MyNetworkStream(TCPSocket, true) {
+            //                            ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds
+            //                        }
+            //                    : null;
+
+                #endregion
+
+            #region Create (Crypto-)Stream
+
+                //    if (RemoteURL.Protocol == URLProtocols.https &&
+                //        RemoteCertificateValidator is not null   &&
+                //        TCPStream                  is not null)
+                //    {
+
+                //        if (TLSStream is null)
+                //        {
+
+                //            TLSStream = new SslStream(TCPStream,
+                //                                      false,
+                //                                      RemoteCertificateValidator,
+                //                                      ClientCertificateSelector,
+                //                                      EncryptionPolicy.RequireEncryption)
+                //            {
+
+                //                ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds
+
+                //            };
+
+                //            HTTPStream = TLSStream;
+
+                //            try
+                //            {
+
+                //                await TLSStream.AuthenticateAsClientAsync(RemoteURL.Hostname.Name,
+                //                                                          null,  // new X509CertificateCollection(new X509Certificate[] { ClientCert })
+                //                                                          this.TLSProtocol,
+                //                                                          false);// true);
+
+                //            }
+                //            catch (Exception)
+                //            {
+                //                TCPSocket = null;
+                //                restart   = true;
+                //            }
+
+                //        }
+
+                //    }
+
+                //    else
+                //    {
+                //        TLSStream  = null;
+                //        HTTPStream = TCPStream;
+                //    }
+
+                //    HTTPStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+
+                //}
+                //while (restart);
+
+                #endregion
+
+
+            TCPStream?.Write(Request.EntirePDU);
+
+
+            #region Wait timeout for the server to react!
+
+
+            while (!TCPStream.DataAvailable)
+            {
+
+                if (sw.ElapsedMilliseconds >= RequestTimeout.TotalMilliseconds)
+                    throw new HTTPTimeoutException(sw.Elapsed);
+
+                Thread.Sleep(1);
+
+            }
+
+            //DebugX.LogT("ModbusTCP Client (" + Request.HTTPMethod + " " + Request.URL + ") got first response after " + sw.ElapsedMilliseconds + "ms!");
+
+            #endregion
+
+
+            HTTPStream = TCPStream;
+
+            var responseBuffer = new Byte[65536];
+
+            //do
+            //{
+
+                var bytesRead = await HTTPStream.ReadAsync(responseBuffer);
+
+            //} while (HeaderEndsAt == 0 &&
+            //             sw.ElapsedMilliseconds < HTTPStream.ReadTimeout);
+
+
+            Array.Resize(ref responseBuffer,
+                         bytesRead);
+
 
             //if (tcpSynCl.Connected)
             //{
@@ -1008,8 +1119,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
             await Task.Delay(500);
 
-            return new ModbusTCPResponse<TRequest>(Request,
-                                                   new Byte[0]);
+            return responseBuffer;
 
         }
 
