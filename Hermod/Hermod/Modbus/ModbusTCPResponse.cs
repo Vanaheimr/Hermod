@@ -98,15 +98,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             this.ProtocolId         = BitConverter.ToUInt16(new Byte[] { ResponseBytes[3], ResponseBytes[2] });
             this.Length             = BitConverter.ToUInt16(new Byte[] { ResponseBytes[5], ResponseBytes[4] });
             this.UnitIdentifier     = ResponseBytes[6]; // Should be: 0x00 or 0xff
-
-            this.FunctionCode       = ResponseBytes[7] switch {
-
-                                          0x01  => FunctionCode.ReadCoils,
-
-                                          _     => throw new ArgumentException("Unknown function code '" + ResponseBytes[7] + "'!", nameof(FunctionCode)),
-
-                                      };
-
+            this.FunctionCode       = FunctionCode.TryParseValue(ResponseBytes[7]) ?? throw new ArgumentException("Unknown function code '" + ResponseBytes[7] + "'!", nameof(Request));
             this.NumberOfBytes      = ResponseBytes[8];
 
         }

@@ -27,6 +27,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                 IComparable
     {
 
+        #region Data
+
+        private static readonly Dictionary<Byte, FunctionCode> lookup = new ();
+
+        #endregion
+
         #region Properties
 
         /// <summary>
@@ -80,6 +86,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             this.AccessGroup  = AccessGroup;
             this.Description  = Description;
 
+            if (lookup is not null)
+            {
+                if (!lookup.ContainsKey(Value))
+                    lookup.Add(this.Value, this);
+            }
+
         }
 
         #endregion
@@ -87,7 +99,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #region (static) Static definitions
 
-        public static readonly FunctionCode ReadCoils                       = new ("Read coils",                          1, AccessRight.Read,      AccessGroup.Bit);
+        public static readonly FunctionCode ReadCoils                       = new ("Read coils",                          1, AccessRight.Read,      AccessGroup.Bit,         "Read multiple boolean values");
         public static readonly FunctionCode ReadDiscreteInputs              = new ("Read discrete inputs",                2, AccessRight.Read,      AccessGroup.Bit,         "Single sensor bit");
         public static readonly FunctionCode ReadHoldingRegister             = new ("Read holding register",               3, AccessRight.Read,      AccessGroup.Word,        "16-bit sensor word");
         public static readonly FunctionCode ReadInputRegister               = new ("Read input register",                 4, AccessRight.Read,      AccessGroup.Word,        "16-bit sensor word");
@@ -111,6 +123,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         public static readonly FunctionCode ReadFIFOQueue                   = new ("Read FIFO Queue",                    24, AccessRight.ReadWrite, AccessGroup.Word);
 
         public static readonly FunctionCode EncapsulatedInterfaceTransport  = new ("Encapsulated Interface Transport",   43, AccessRight.Read,      AccessGroup.Diagnostics);
+
+        #endregion
+
+        #region (static) TryParseValue(Value)
+
+        public static FunctionCode? TryParseValue(Byte Value)
+        {
+
+            if (lookup.TryGetValue(Value, out var functionCode))
+                return functionCode;
+
+            return null;
+
+        }
 
         #endregion
 
