@@ -64,14 +64,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             : base(ModbusClient,
                    TransactionId,
                    FunctionCode.ReadCoils,
-                   //ModbusProtocol.CreateReadHeader(TransactionId,
-                   //                                FunctionCode.ReadCoils,
-                                                   StartAddress,
-                                                   NumberOfCoils < 1
-                                                       ? (UInt16) 1
-                                                       : Math.Min(NumberOfCoils, (UInt16) 2000),
-                                                   UnitIdentifier,
-                                                   ProtocolIdentifier)
+                   StartAddress,
+                   NumberOfCoils < 1
+                       ? (UInt16) 1
+                       : Math.Min(NumberOfCoils, (UInt16) 2000),
+                   UnitIdentifier,
+                   ProtocolIdentifier)
 
         {
 

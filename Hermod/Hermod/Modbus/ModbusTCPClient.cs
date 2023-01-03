@@ -17,15 +17,17 @@
 
 #region Usings
 
+using System.Text;
+using System.Net.Sockets;
 using System.Diagnostics;
 using System.Net.Security;
-using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.Modbus.Toolbox;
 
 #endregion
 
@@ -87,6 +89,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// The remote URL of the Modbus device to connect to.
         /// </summary>
         public URL                                   RemoteURL                     { get; }
+
+        /// <summary>
+        /// The remote Modbus unit/device address.
+        /// </summary>
+        public Byte                                  UnitAddress                   { get; }
 
         /// <summary>
         /// An optional description of this Modbus/TCP client.
@@ -266,12 +273,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #region Constructor(s)
 
-        #region ModbusTCPMaster(RemoteURL, ...)
+        #region ModbusTCPClient(RemoteURL, ...)
 
         /// <summary>
         /// Create a new Modbus/TCP client.
         /// </summary>
         /// <param name="RemoteURL">The remote URL of the Modbus/TCP device to connect to.</param>
+        /// <param name="UnitAddress">An optional remote Modbus unit/device address.</param>
         /// <param name="Description">An optional description of this Modbus/TCP client.</param>
         /// <param name="RemoteCertificateValidator">The remote SSL/TLS certificate validator.</param>
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
@@ -285,6 +293,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <param name="Logger">A Modbus/TCP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         public ModbusTCPClient(URL                                   RemoteURL,
+                               Byte?                                 UnitAddress                  = null,
                                String?                               Description                  = null,
                                RemoteCertificateValidationCallback?  RemoteCertificateValidator   = null,
                                LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
@@ -300,6 +309,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         {
 
             this.RemoteURL                   = RemoteURL;
+            this.UnitAddress                 = UnitAddress            ?? 1;
             this.Description                 = Description;
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
             this.ClientCertificateSelector   = ClientCertificateSelector;
@@ -326,13 +336,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #endregion
 
-        #region ModbusTCPMaster(RemoteIPAddress, RemotePort = null, ...)
+        #region ModbusTCPClient(RemoteIPAddress, RemotePort = null, ...)
 
         /// <summary>
         /// Create a new Modbus/TCP client.
         /// </summary>
         /// <param name="RemoteIPAddress">The remote IP address to connect to.</param>
         /// <param name="RemotePort">An optional remote TCP port to connect to.</param>
+        /// <param name="UnitAddress">An optional remote Modbus unit/device address.</param>
         /// <param name="Description">An optional description of this Modbus/TCP client.</param>
         /// <param name="RemoteCertificateValidator">The remote SSL/TLS certificate validator.</param>
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
@@ -347,6 +358,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <param name="DNSClient">The DNS client to use.</param>
         public ModbusTCPClient(IIPAddress                            RemoteIPAddress,
                                IPPort?                               RemotePort                   = null,
+                               Byte?                                 UnitAddress                  = null,
                                String?                               Description                  = null,
                                RemoteCertificateValidationCallback?  RemoteCertificateValidator   = null,
                                LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
@@ -356,11 +368,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                TimeSpan?                             RequestTimeout               = null,
                                TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
                                UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
-                               Boolean                               UseRequestPipelining                = false,
+                               Boolean                               UseRequestPipelining         = false,
                                ModbusTCPClientLogger?                Logger                       = null,
                                DNSClient?                            DNSClient                    = null)
 
             : this(URL.Parse("http://" + RemoteIPAddress + (RemotePort.HasValue ? ":" + RemotePort.Value.ToString() : "")),
+                   UnitAddress,
                    Description,
                    RemoteCertificateValidator,
                    ClientCertificateSelector,
@@ -378,12 +391,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #endregion
 
-        #region ModbusTCPMaster(RemoteSocket, ...)
+        #region ModbusTCPClient(RemoteSocket, ...)
 
         /// <summary>
         /// Create a new Modbus/TCP client.
         /// </summary>
         /// <param name="RemoteSocket">The remote IP socket to connect to.</param>
+        /// <param name="UnitAddress">An optional remote Modbus unit/device address.</param>
         /// <param name="Description">An optional description of this Modbus/TCP client.</param>
         /// <param name="RemoteCertificateValidator">The remote SSL/TLS certificate validator.</param>
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
@@ -397,6 +411,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <param name="Logger">A Modbus/TCP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         public ModbusTCPClient(IPSocket                              RemoteSocket,
+                               Byte?                                 UnitAddress                  = null,
                                String?                               Description                  = null,
                                RemoteCertificateValidationCallback?  RemoteCertificateValidator   = null,
                                LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
@@ -406,11 +421,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                TimeSpan?                             RequestTimeout               = null,
                                TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
                                UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
-                               Boolean                               UseRequestPipelining                = false,
+                               Boolean                               UseRequestPipelining         = false,
                                ModbusTCPClientLogger?                Logger                       = null,
                                DNSClient?                            DNSClient                    = null)
 
             : this(URL.Parse("http://" + RemoteSocket.IPAddress + ":" + RemoteSocket.Port),
+                   UnitAddress,
                    Description,
                    RemoteCertificateValidator,
                    ClientCertificateSelector,
@@ -428,13 +444,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #endregion
 
-        #region ModbusTCPMaster(RemoteHost, ...)
+        #region ModbusTCPClient(RemoteHost, ...)
 
         /// <summary>
         /// Create a new Modbus/TCP client.
         /// </summary>
         /// <param name="RemoteHost">The remote hostname to connect to.</param>
         /// <param name="RemotePort">An optional remote TCP port to connect to.</param>
+        /// <param name="UnitAddress">An optional remote Modbus unit/device address.</param>
         /// <param name="Description">An optional description of this Modbus/TCP client.</param>
         /// <param name="RemoteCertificateValidator">The remote SSL/TLS certificate validator.</param>
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
@@ -449,6 +466,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <param name="DNSClient">The DNS client to use.</param>
         public ModbusTCPClient(HTTPHostname                          RemoteHost,
                                IPPort?                               RemotePort                   = null,
+                               Byte?                                 UnitAddress                  = null,
                                String?                               Description                  = null,
                                RemoteCertificateValidationCallback?  RemoteCertificateValidator   = null,
                                LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
@@ -463,6 +481,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                DNSClient?                            DNSClient                    = null)
 
             : this(URL.Parse("http://" + RemoteHost + (RemotePort.HasValue ? ":" + RemotePort.Value.ToString() : "")),
+                   UnitAddress,
                    Description,
                    RemoteCertificateValidator,
                    ClientCertificateSelector,
@@ -809,7 +828,211 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
 
 
+        // Read Holding Registers
 
+        #region ReadInt16(StartingAddress, out Value)
+
+        public Boolean ReadInt16(UInt16 StartingAddress, out Int16 Value)
+        {
+            return TryRead(StartingAddress, 1, out Value, array => BitConverter.ToInt16(array.Reverse(3, 2), 0));
+        }
+
+        #endregion
+
+        #region ReadInt32(StartingAddress, out Value)
+
+        public Boolean ReadInt32(UInt16 StartingAddress, out Int32 Value)
+        {
+            return TryRead(StartingAddress, 2, out Value, array => BitConverter.ToInt32(array.Reverse(3, 4), 0));
+        }
+
+        #endregion
+
+
+        #region TryReadSingle(StartingAddress, out Value)
+
+        public Boolean TryReadSingle(UInt16 StartingAddress, out Single Value)
+        {
+            return TryRead(StartingAddress, 2, out Value, array => BitConverter.ToSingle(array.Reverse(3, 4), 0));
+        }
+
+        #endregion
+
+        #region ReadSingle(StartingAddress)
+
+        public Single ReadSingle(UInt16 StartingAddress)
+        {
+            return Read<Single>(StartingAddress, 2, array => BitConverter.ToSingle(array.Reverse(3, 4), 0));
+        }
+
+        #endregion
+
+        #region TryReadSingles(StartingAddress, Num, out Value)
+
+        public Boolean TryReadSingles(UInt16 StartingAddress, Int32 Num, out Single[] Values)
+        {
+            return TryRead(StartingAddress, (ushort)(2*Num), out Values, array => MultiConverters.NetworkBytesToHostSingle(array));
+        }
+
+        #endregion
+
+        #region ReadSingles(StartingAddress, Num)
+
+        public Single[] ReadSingles(UInt16 StartingAddress, Int32 Num)
+        {
+            return Read<Single[]>(StartingAddress, (ushort)(2 * Num), array => MultiConverters.NetworkBytesToHostSingle(array));
+        }
+
+        #endregion
+
+
+        #region TryReadDateTime32(StartingAddress, out Value)
+
+        public Boolean TryReadDateTime32(UInt16 StartingAddress, out DateTime Value)
+        {
+            return TryRead(StartingAddress, 2, out Value, array => ByteExtensions.UNIXTime.AddSeconds(BitConverter.ToInt32(array.Reverse(3, 4), 0)), OnError: DateTime.MinValue);
+        }
+
+        #endregion
+
+        #region ReadDateTime32(StartingAddress)
+
+        public DateTime ReadDateTime32(UInt16 StartingAddress)
+        {
+            return Read<DateTime>(StartingAddress, 2, array => ByteExtensions.UNIXTime.AddSeconds(BitConverter.ToInt32(array.Reverse(3, 4), 0)), OnError: DateTime.MinValue);
+        }
+
+        #endregion
+
+        #region ReadDateTime64(StartingAddress, out Value)
+
+        public Boolean ReadDateTime64(UInt16 StartingAddress, out DateTime Value)
+        {
+            return TryRead(StartingAddress, 4, out Value, array => ByteExtensions.UNIXTime.AddSeconds(BitConverter.ToInt64(array.Reverse(3, 8), 0)), OnError: DateTime.MinValue);
+        }
+
+        #endregion
+
+        #region ReadString(StartingAddress, NumberOfRegisters, out Value)
+
+        public Boolean ReadString(UInt16       StartingAddress,
+                                  UInt16       NumberOfRegisters,
+                                  out String?  Text)
+        {
+
+            return TryRead(StartingAddress,
+                           NumberOfRegisters,
+                           out Text,
+                           array => Encoding.UTF8.GetString(array.Skip(3).TakeWhile(b => b != 0x00).ToArray()));
+
+        }
+
+        #endregion
+
+
+        #region TryRead<T>(StartingAddress, NumberOfRegisters, out Value, BitConverter, OnError = default)
+
+        public Boolean TryRead<T>(UInt16           StartingAddress,
+                                  UInt16           NumberOfRegisters,
+                                  out T?           Value,
+                                  Func<Byte[], T>  BitConverter,
+                                  T?               OnError   = default)
+        {
+
+            if (GetByteArray(StartingAddress,
+                             NumberOfRegisters,
+                             out var byteArray))
+            {
+                Value = BitConverter(byteArray);
+                return true;
+            }
+
+            Value = OnError;
+            return false;
+
+        }
+
+        #endregion
+
+        #region Read<T>   (StartingAddress, NumberOfRegisters,            BitConverter, OnError = default)
+
+        public T? Read<T>(UInt16           StartingAddress,
+                          UInt16           NumberOfRegisters,
+                          Func<Byte[], T>  BitConverter,
+                          T?               OnError   = default)
+        {
+
+            if (TryRead(StartingAddress,
+                     NumberOfRegisters,
+                     out var value,
+                     BitConverter,
+                     OnError))
+            {
+                return value;
+            }
+
+            return OnError;
+
+        }
+
+        #endregion
+
+
+        #region GetByteArray(StartingAddress, NumberOfRegisters, out ByteArray)
+
+        public Boolean GetByteArray(UInt16 StartingAddress, UInt16 NumberOfRegisters, out Byte[] ByteArray)
+        {
+
+            return GetByteArray(new ModbusPacket(NumberOfRegisters,
+                                                 UnitAddress,
+                                                 FunctionCode.ReadHoldingRegisters,
+                                                 StartingAddress),
+                                out ByteArray);
+
+        }
+
+        #endregion
+
+        #region GetByteArray(ModbusPacket, out ByteArray)
+
+        public Boolean GetByteArray(ModbusPacket ModbusPacket, out Byte[] ByteArray)
+        {
+
+            ByteArray = Array.Empty<Byte>();
+            Boolean _CRC = false;
+            var retries = 0;
+
+            do
+            {
+
+                //if (retries > 0)
+                //{
+                //    if (SerialPort != null)
+                //    {
+                //        SerialPort.Close();
+                //        SerialPort.Open();
+                //    }
+                //    Debug.Print("Retry: " + retries);
+                //}
+
+                //ByteArray = RequestDelegate(ModbusPacket);
+                //if (SerialPort != null)
+                //    _CRC = CRC16.CheckCRC16(ByteArray);
+                //else
+                //    _CRC = true;
+                //retries++;
+
+            } while (!_CRC || retries > 5);
+
+            if (_CRC)
+                return true;
+
+            ByteArray = Array.Empty<Byte>();
+            return false;
+
+        }
+
+        #endregion
 
 
 

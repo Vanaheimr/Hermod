@@ -64,12 +64,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             : base(ModbusClient,
                    TransactionId,
                    FunctionCode.ReadDiscreteInputs,
-                   //ModbusProtocol.CreateReadHeader(TransactionId,
-                   //                                FunctionCode.ReadHoldingRegisters,
-                                                   StartAddress,
-                                                   NumberOfRegisters,
-                                                   UnitIdentifier,
-                                                   ProtocolIdentifier)
+                   StartAddress,
+                   NumberOfRegisters,
+                   UnitIdentifier,
+                   ProtocolIdentifier)
 
         {
 

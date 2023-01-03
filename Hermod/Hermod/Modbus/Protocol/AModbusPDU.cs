@@ -32,9 +32,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         public IModbusDevice    ModbusDevice    { get; }
 
         /// <summary>
-        /// The Modbus InvocationId.
+        /// The Modbus transaction identification.
         /// </summary>
-        public UInt16           InvocationId    { get; }
+        public UInt16           TransactionId    { get; }
 
         /// <summary>
         /// The function code of this PDU.
@@ -59,10 +59,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                              FunctionCode   FunctionCode)
         {
 
-            this.ModbusDevice  = ModbusDevice;
-            this.FunctionCode  = FunctionCode;
+            this.ModbusDevice   = ModbusDevice;
+            this.FunctionCode   = FunctionCode;
 
-            this.InvocationId  = this.ModbusDevice.NextInvocationId;
+            this.TransactionId  = this.ModbusDevice.NextInvocationId;
 
         }
 
