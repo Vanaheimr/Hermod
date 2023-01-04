@@ -565,21 +565,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// </summary>
         /// <param name="StartAddress">Address from where the data read begins.</param>
         /// <param name="NumberOfRegisters">The number of input registers to read.</param>
-        public async Task<ModbusTCPResponse<ReadHoldingRegistersRequest>>
+        public async Task<ReadHoldingRegistersResponse>
 
             ReadHoldingRegisters(UInt16  StartAddress,
                                  UInt16  NumberOfRegisters)
 
         {
 
-            var readHoldingRegistersRequest  = new ReadHoldingRegistersRequest(this,
-                                                                               NextInvocationId,
-                                                                               StartAddress,
-                                                                               NumberOfRegisters);
+            var request  = new ReadHoldingRegistersRequest(this,
+                                                           NextInvocationId,
+                                                           StartAddress,
+                                                           NumberOfRegisters);
 
-            var response                     = await WriteAsyncData(readHoldingRegistersRequest);
+            var response = new ReadHoldingRegistersResponse(request,
+                                                            await WriteAsyncData(request));
 
-            return null; // response;
+            return response;
 
         }
 
@@ -592,21 +593,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// </summary>
         /// <param name="StartAddress">The start address for reading the data.</param>
         /// <param name="NumberOfInputRegisters">Length of data.</param>
-        public async Task<ModbusTCPResponse<ReadInputRegistersRequest>>
+        public async Task<ReadInputRegistersResponse>
 
             ReadInputRegisters(UInt16  StartAddress,
                                UInt16  NumberOfInputRegisters)
 
         {
 
-            var readInputRegistersRequest  = new ReadInputRegistersRequest(this,
-                                                                           NextInvocationId,
-                                                                           StartAddress,
-                                                                           NumberOfInputRegisters);
+            var request  = new ReadInputRegistersRequest(this,
+                                                         NextInvocationId,
+                                                         StartAddress,
+                                                         NumberOfInputRegisters);
 
-            var response                   = await WriteAsyncData(readInputRegistersRequest);
+            var response = new ReadInputRegistersResponse(request,
+                                                          await WriteAsyncData(request));
 
-            return null; // response;
+            return response;
 
         }
 

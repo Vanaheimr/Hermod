@@ -38,6 +38,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         //Task<Byte[]> WriteSingleRegister      (UInt16 StartAddress,     Byte[] Values);
 
 
+
+
+        // Read Holding Registers
+
+        Boolean ReadInt16(UInt16 StartingAddress, out Int16 Value);
+        Boolean ReadInt32(UInt16 StartingAddress, out Int32 Value);
+        Boolean TryReadSingle(UInt16 StartingAddress, out Single Value);
+        Single ReadSingle(UInt16 StartingAddress);
+        Boolean TryReadSingles(UInt16 StartingAddress, Int32 Num, out Single[] Values);
+        Single[] ReadSingles(UInt16 StartingAddress, Int32 Num);
+        Boolean TryReadDateTime32(UInt16 StartingAddress, out DateTime Value);
+        DateTime ReadDateTime32(UInt16 StartingAddress);
+        Boolean ReadDateTime64(UInt16 StartingAddress, out DateTime Value);
+        Boolean ReadString(UInt16       StartingAddress,
+                           UInt16       NumberOfRegisters,
+                           out String?  Text);
+        Boolean TryRead<T>(UInt16           StartingAddress,
+                           UInt16           NumberOfRegisters,
+                           out T?           Value,
+                           Func<Byte[], T>  BitConverter,
+                           T?               OnError   = default);
+        T? Read<T>(UInt16           StartingAddress,
+                   UInt16           NumberOfRegisters,
+                   Func<Byte[], T>  BitConverter,
+                   T?               OnError   = default);
+        Boolean GetByteArray(UInt16      StartingAddress,
+                             UInt16      NumberOfRegisters,
+                             out Byte[]  ByteArray);
+        Boolean GetByteArray(ModbusPacket  ModbusPacket,
+                             out Byte[]    ByteArray);
+
+
     }
 
 }
