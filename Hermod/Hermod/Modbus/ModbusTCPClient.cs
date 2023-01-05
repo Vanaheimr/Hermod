@@ -57,12 +57,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         public const           String    DefaultDescription              = "GraphDefined Modbus/TCP Client";
 
         /// <summary>
-        /// The default remote TCP port to connect to.
+        /// The default remote TCP port to connect to (502).
         /// </summary>
         public static readonly IPPort    DefaultRemotePort               = IPPort.Parse(502);
 
         /// <summary>
-        /// The default remote TLS port to connect to.
+        /// The default remote TLS port to connect to (802).
         /// </summary>
         public static readonly IPPort    DefaultSecurePort               = IPPort.Parse(802);
 
@@ -86,14 +86,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         #region Properties
 
         /// <summary>
-        /// The remote URL of the Modbus device to connect to.
+        /// The remote hostname of the Modbus device to connect to.
         /// </summary>
-        public URL                                   RemoteURL                     { get; }
+        public HTTPHostname?                         RemoteHostname                { get; }
+
+        /// <summary>
+        /// The remote IP address of the Modbus device to connect to.
+        /// </summary>
+        public IIPAddress?                           RemoteIPAddress               { get; }
+
+        /// <summary>
+        /// The remote TCP port of the Modbus device to connect to.
+        /// </summary>
+        public IPPort                                RemoteTCPPort                 { get; }
 
         /// <summary>
         /// The remote Modbus unit/device address.
         /// </summary>
         public Byte                                  UnitAddress                   { get; }
+
+
+        public Int16                                 StartingAddressOffset         { get; }
 
         /// <summary>
         /// An optional description of this Modbus/TCP client.
@@ -154,16 +167,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// The DNS client defines which DNS servers to use.
         /// </summary>
         public DNSClient                             DNSClient                     { get; }
-
-        /// <summary>
-        /// The IP Address to connect to.
-        /// </summary>
-        public IIPAddress?                           RemoteIPAddress               { get; private set; }
-
-        /// <summary>
-        /// The TCP port to connect to.
-        /// </summary>
-        public IPPort?                               RemotePort                    { get; private set; }
 
 
         #region Available
@@ -273,6 +276,144 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #region Constructor(s)
 
+        #region ModbusTCPClient(RemoteHostname,  RemoteTCPPort = null, ...)
+
+        /// <summary>
+        /// Create a new Modbus/TCP client.
+        /// </summary>
+        /// <param name="RemoteHostname">The remote hostname to connect to.</param>
+        /// <param name="RemoteTCPPort">An optional remote TCP port to connect to.</param>
+        /// <param name="UnitAddress">An optional remote Modbus unit/device address.</param>
+        /// <param name="Description">An optional description of this Modbus/TCP client.</param>
+        /// <param name="RemoteCertificateValidator">The remote SSL/TLS certificate validator.</param>
+        /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
+        /// <param name="ClientCert">The SSL/TLS client certificate to use of Modbus/TLS authentication.</param>
+        /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
+        /// <param name="TLSProtocol">The TLS protocol to use.</param>
+        /// <param name="RequestTimeout">An optional request timeout.</param>
+        /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
+        /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for Modbus/TCP request.</param>
+        /// <param name="UseRequestPipelining">Whether to pipeline multiple Modbus/TCP request through a single TCP/TLS connection.</param>
+        /// <param name="Logger">A Modbus/TCP logger.</param>
+        /// <param name="DNSClient">The DNS client to use.</param>
+        public ModbusTCPClient(HTTPHostname                          RemoteHostname,
+                               IPPort?                               RemoteTCPPort                = null,
+                               Byte?                                 UnitAddress                  = null,
+                               Int16?                                StartingAddressOffset        = null,
+                               String?                               Description                  = null,
+                               RemoteCertificateValidationCallback?  RemoteCertificateValidator   = null,
+                               LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
+                               X509Certificate?                      ClientCert                   = null,
+                               SslProtocols?                         TLSProtocol                  = null,
+                               Boolean?                              PreferIPv4                   = null,
+                               TimeSpan?                             RequestTimeout               = null,
+                               TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
+                               UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
+                               Boolean                               UseRequestPipelining         = false,
+                               ModbusTCPClientLogger?                Logger                       = null,
+                               DNSClient?                            DNSClient                    = null)
+
+        {
+
+            this.RemoteHostname              = RemoteHostname;
+            this.RemoteTCPPort               = RemoteTCPPort          ?? (TLSProtocol.HasValue
+                                                                             ? DefaultSecurePort
+                                                                             : DefaultRemotePort);
+            this.UnitAddress                 = UnitAddress            ?? 1;
+            this.StartingAddressOffset       = StartingAddressOffset  ?? 0;
+            this.Description                 = Description;
+            this.RemoteCertificateValidator  = RemoteCertificateValidator;
+            this.ClientCertificateSelector   = ClientCertificateSelector;
+            this.ClientCert                  = ClientCert;
+            this.TLSProtocol                 = TLSProtocol            ?? SslProtocols.Tls12;
+            this.PreferIPv4                  = PreferIPv4             ?? false;
+            this.RequestTimeout              = RequestTimeout         ?? DefaultRequestTimeout;
+            this.TransmissionRetryDelay      = TransmissionRetryDelay ?? (retryCounter => TimeSpan.FromSeconds(retryCounter * retryCounter * DefaultTransmissionRetryDelay.TotalSeconds));
+            this.MaxNumberOfRetries          = MaxNumberOfRetries     ?? DefaultMaxNumberOfRetries;
+            this.UseRequestPipelining        = UseRequestPipelining;
+            this.Logger                      = Logger;
+            this.DNSClient                   = DNSClient              ?? new DNSClient();
+
+            if (this.ClientCertificateSelector is null && this.ClientCert is not null)
+                this.ClientCertificateSelector = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => this.ClientCert;
+
+#pragma warning disable SCS0005 // Weak random number generator.
+            this.internalInvocationId        = Random.Shared.Next(1000);
+#pragma warning restore SCS0005 // Weak random number generator.
+
+        }
+
+        #endregion
+
+        #region ModbusTCPClient(RemoteIPAddress, RemoteTCPPort = null, ...)
+
+        /// <summary>
+        /// Create a new Modbus/TCP client.
+        /// </summary>
+        /// <param name="RemoteIPAddress">The remote IP address to connect to.</param>
+        /// <param name="RemoteTCPPort">An optional remote TCP port to connect to.</param>
+        /// <param name="UnitAddress">An optional remote Modbus unit/device address.</param>
+        /// <param name="Description">An optional description of this Modbus/TCP client.</param>
+        /// <param name="RemoteCertificateValidator">The remote SSL/TLS certificate validator.</param>
+        /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
+        /// <param name="ClientCert">The SSL/TLS client certificate to use of Modbus/TLS authentication.</param>
+        /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
+        /// <param name="TLSProtocol">The TLS protocol to use.</param>
+        /// <param name="RequestTimeout">An optional request timeout.</param>
+        /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
+        /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for Modbus/TCP request.</param>
+        /// <param name="UseRequestPipelining">Whether to pipeline multiple Modbus/TCP request through a single TCP/TLS connection.</param>
+        /// <param name="Logger">A Modbus/TCP logger.</param>
+        /// <param name="DNSClient">The DNS client to use.</param>
+        public ModbusTCPClient(IIPAddress                            RemoteIPAddress,
+                               IPPort?                               RemoteTCPPort                = null,
+                               Byte?                                 UnitAddress                  = null,
+                               Int16?                                StartingAddressOffset        = null,
+                               String?                               Description                  = null,
+                               RemoteCertificateValidationCallback?  RemoteCertificateValidator   = null,
+                               LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
+                               X509Certificate?                      ClientCert                   = null,
+                               SslProtocols?                         TLSProtocol                  = null,
+                               Boolean?                              PreferIPv4                   = null,
+                               TimeSpan?                             RequestTimeout               = null,
+                               TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
+                               UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
+                               Boolean                               UseRequestPipelining         = false,
+                               ModbusTCPClientLogger?                Logger                       = null,
+                               DNSClient?                            DNSClient                    = null)
+
+        {
+
+            this.RemoteIPAddress             = RemoteIPAddress;
+            this.RemoteTCPPort               = RemoteTCPPort          ?? (TLSProtocol.HasValue
+                                                                             ? DefaultSecurePort
+                                                                             : DefaultRemotePort);
+            this.UnitAddress                 = UnitAddress            ?? 1;
+            this.StartingAddressOffset       = StartingAddressOffset  ?? 0;
+            this.Description                 = Description;
+            this.RemoteCertificateValidator  = RemoteCertificateValidator;
+            this.ClientCertificateSelector   = ClientCertificateSelector;
+            this.ClientCert                  = ClientCert;
+            this.TLSProtocol                 = TLSProtocol            ?? SslProtocols.Tls12;
+            this.PreferIPv4                  = PreferIPv4             ?? false;
+            this.RequestTimeout              = RequestTimeout         ?? DefaultRequestTimeout;
+            this.TransmissionRetryDelay      = TransmissionRetryDelay ?? (retryCounter => TimeSpan.FromSeconds(retryCounter * retryCounter * DefaultTransmissionRetryDelay.TotalSeconds));
+            this.MaxNumberOfRetries          = MaxNumberOfRetries     ?? DefaultMaxNumberOfRetries;
+            this.UseRequestPipelining        = UseRequestPipelining;
+            this.Logger                      = Logger;
+            this.DNSClient                   = DNSClient              ?? new DNSClient();
+
+            if (this.ClientCertificateSelector is null && this.ClientCert is not null)
+                this.ClientCertificateSelector = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => this.ClientCert;
+
+#pragma warning disable SCS0005 // Weak random number generator.
+            this.internalInvocationId        = Random.Shared.Next(1000);
+#pragma warning restore SCS0005 // Weak random number generator.
+
+        }
+
+        #endregion
+
         #region ModbusTCPClient(RemoteURL, ...)
 
         /// <summary>
@@ -294,71 +435,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <param name="DNSClient">The DNS client to use.</param>
         public ModbusTCPClient(URL                                   RemoteURL,
                                Byte?                                 UnitAddress                  = null,
-                               String?                               Description                  = null,
-                               RemoteCertificateValidationCallback?  RemoteCertificateValidator   = null,
-                               LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
-                               X509Certificate?                      ClientCert                   = null,
-                               SslProtocols?                         TLSProtocol                  = null,
-                               Boolean?                              PreferIPv4                   = null,
-                               TimeSpan?                             RequestTimeout               = null,
-                               TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
-                               UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
-                               Boolean                               UseRequestPipelining                = false,
-                               ModbusTCPClientLogger?                Logger                       = null,
-                               DNSClient?                            DNSClient                    = null)
-        {
-
-            this.RemoteURL                   = RemoteURL;
-            this.UnitAddress                 = UnitAddress            ?? 1;
-            this.Description                 = Description;
-            this.RemoteCertificateValidator  = RemoteCertificateValidator;
-            this.ClientCertificateSelector   = ClientCertificateSelector;
-            this.ClientCert                  = ClientCert;
-            this.TLSProtocol                 = TLSProtocol            ?? SslProtocols.Tls12;
-            this.PreferIPv4                  = PreferIPv4             ?? false;
-            this.RequestTimeout              = RequestTimeout         ?? DefaultRequestTimeout;
-            this.TransmissionRetryDelay      = TransmissionRetryDelay ?? (retryCounter => TimeSpan.FromSeconds(retryCounter * retryCounter * DefaultTransmissionRetryDelay.TotalSeconds));
-            this.MaxNumberOfRetries          = MaxNumberOfRetries     ?? DefaultMaxNumberOfRetries;
-            this.UseRequestPipelining        = UseRequestPipelining;
-            this.Logger                      = Logger;
-            this.DNSClient                   = DNSClient              ?? new DNSClient();
-
-            this.RemotePort                  = RemoteURL.Port         ?? (RemoteURL.Protocol == URLProtocols.modbus
-                                                                             ? DefaultRemotePort
-                                                                             : DefaultSecurePort);
-
-            if (this.ClientCertificateSelector is null && this.ClientCert is not null)
-                this.ClientCertificateSelector = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => this.ClientCert;
-
-            this.internalInvocationId        = 15;
-
-        }
-
-        #endregion
-
-        #region ModbusTCPClient(RemoteIPAddress, RemotePort = null, ...)
-
-        /// <summary>
-        /// Create a new Modbus/TCP client.
-        /// </summary>
-        /// <param name="RemoteIPAddress">The remote IP address to connect to.</param>
-        /// <param name="RemotePort">An optional remote TCP port to connect to.</param>
-        /// <param name="UnitAddress">An optional remote Modbus unit/device address.</param>
-        /// <param name="Description">An optional description of this Modbus/TCP client.</param>
-        /// <param name="RemoteCertificateValidator">The remote SSL/TLS certificate validator.</param>
-        /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
-        /// <param name="ClientCert">The SSL/TLS client certificate to use of Modbus/TLS authentication.</param>
-        /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
-        /// <param name="TLSProtocol">The TLS protocol to use.</param>
-        /// <param name="RequestTimeout">An optional request timeout.</param>
-        /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
-        /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for Modbus/TCP request.</param>
-        /// <param name="UseRequestPipelining">Whether to pipeline multiple Modbus/TCP request through a single TCP/TLS connection.</param>
-        /// <param name="Logger">A Modbus/TCP logger.</param>
-        /// <param name="DNSClient">The DNS client to use.</param>
-        public ModbusTCPClient(IIPAddress                            RemoteIPAddress,
-                               IPPort?                               RemotePort                   = null,
-                               Byte?                                 UnitAddress                  = null,
+                               Int16?                                StartingAddressOffset        = null,
                                String?                               Description                  = null,
                                RemoteCertificateValidationCallback?  RemoteCertificateValidator   = null,
                                LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
@@ -372,116 +449,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                ModbusTCPClientLogger?                Logger                       = null,
                                DNSClient?                            DNSClient                    = null)
 
-            : this(URL.Parse("http://" + RemoteIPAddress + (RemotePort.HasValue ? ":" + RemotePort.Value.ToString() : "")),
+            : this(RemoteURL.Hostname,
+                   RemoteURL.Port,
                    UnitAddress,
-                   Description,
-                   RemoteCertificateValidator,
-                   ClientCertificateSelector,
-                   ClientCert,
-                   TLSProtocol,
-                   PreferIPv4,
-                   RequestTimeout,
-                   TransmissionRetryDelay,
-                   MaxNumberOfRetries,
-                   UseRequestPipelining,
-                   Logger,
-                   DNSClient)
-
-        { }
-
-        #endregion
-
-        #region ModbusTCPClient(RemoteSocket, ...)
-
-        /// <summary>
-        /// Create a new Modbus/TCP client.
-        /// </summary>
-        /// <param name="RemoteSocket">The remote IP socket to connect to.</param>
-        /// <param name="UnitAddress">An optional remote Modbus unit/device address.</param>
-        /// <param name="Description">An optional description of this Modbus/TCP client.</param>
-        /// <param name="RemoteCertificateValidator">The remote SSL/TLS certificate validator.</param>
-        /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
-        /// <param name="ClientCert">The SSL/TLS client certificate to use of Modbus/TLS authentication.</param>
-        /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
-        /// <param name="TLSProtocol">The TLS protocol to use.</param>
-        /// <param name="RequestTimeout">An optional request timeout.</param>
-        /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
-        /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for Modbus/TCP request.</param>
-        /// <param name="UseRequestPipelining">Whether to pipeline multiple Modbus/TCP request through a single TCP/TLS connection.</param>
-        /// <param name="Logger">A Modbus/TCP logger.</param>
-        /// <param name="DNSClient">The DNS client to use.</param>
-        public ModbusTCPClient(IPSocket                              RemoteSocket,
-                               Byte?                                 UnitAddress                  = null,
-                               String?                               Description                  = null,
-                               RemoteCertificateValidationCallback?  RemoteCertificateValidator   = null,
-                               LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
-                               X509Certificate?                      ClientCert                   = null,
-                               SslProtocols?                         TLSProtocol                  = null,
-                               Boolean?                              PreferIPv4                   = null,
-                               TimeSpan?                             RequestTimeout               = null,
-                               TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
-                               UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
-                               Boolean                               UseRequestPipelining         = false,
-                               ModbusTCPClientLogger?                Logger                       = null,
-                               DNSClient?                            DNSClient                    = null)
-
-            : this(URL.Parse("http://" + RemoteSocket.IPAddress + ":" + RemoteSocket.Port),
-                   UnitAddress,
-                   Description,
-                   RemoteCertificateValidator,
-                   ClientCertificateSelector,
-                   ClientCert,
-                   TLSProtocol,
-                   PreferIPv4,
-                   RequestTimeout,
-                   TransmissionRetryDelay,
-                   MaxNumberOfRetries,
-                   UseRequestPipelining,
-                   Logger,
-                   DNSClient)
-
-        { }
-
-        #endregion
-
-        #region ModbusTCPClient(RemoteHost, ...)
-
-        /// <summary>
-        /// Create a new Modbus/TCP client.
-        /// </summary>
-        /// <param name="RemoteHost">The remote hostname to connect to.</param>
-        /// <param name="RemotePort">An optional remote TCP port to connect to.</param>
-        /// <param name="UnitAddress">An optional remote Modbus unit/device address.</param>
-        /// <param name="Description">An optional description of this Modbus/TCP client.</param>
-        /// <param name="RemoteCertificateValidator">The remote SSL/TLS certificate validator.</param>
-        /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
-        /// <param name="ClientCert">The SSL/TLS client certificate to use of Modbus/TLS authentication.</param>
-        /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
-        /// <param name="TLSProtocol">The TLS protocol to use.</param>
-        /// <param name="RequestTimeout">An optional request timeout.</param>
-        /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
-        /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for Modbus/TCP request.</param>
-        /// <param name="UseRequestPipelining">Whether to pipeline multiple Modbus/TCP request through a single TCP/TLS connection.</param>
-        /// <param name="Logger">A Modbus/TCP logger.</param>
-        /// <param name="DNSClient">The DNS client to use.</param>
-        public ModbusTCPClient(HTTPHostname                          RemoteHost,
-                               IPPort?                               RemotePort                   = null,
-                               Byte?                                 UnitAddress                  = null,
-                               String?                               Description                  = null,
-                               RemoteCertificateValidationCallback?  RemoteCertificateValidator   = null,
-                               LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
-                               X509Certificate?                      ClientCert                   = null,
-                               SslProtocols?                         TLSProtocol                  = null,
-                               Boolean?                              PreferIPv4                   = null,
-                               TimeSpan?                             RequestTimeout               = null,
-                               TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
-                               UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
-                               Boolean                               UseRequestPipelining         = false,
-                               ModbusTCPClientLogger?                Logger                       = null,
-                               DNSClient?                            DNSClient                    = null)
-
-            : this(URL.Parse("http://" + RemoteHost + (RemotePort.HasValue ? ":" + RemotePort.Value.ToString() : "")),
-                   UnitAddress,
+                   StartingAddressOffset,
                    Description,
                    RemoteCertificateValidator,
                    ClientCertificateSelector,
@@ -502,24 +473,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         #endregion
 
 
-        #region ReadCoils           (StartAddress, NumberOfCoils)
+        #region ReadCoils           (StartingAddress, NumberOfCoils)
 
         /// <summary>
         /// Read multiple coils.
         /// </summary>
-        /// <param name="StartAddress">The start address for reading data.</param>
+        /// <param name="StartingAddress">The starting address for reading data.</param>
         /// <param name="NumberOfCoils">The number of coils to read.</param>
         public async Task<ReadCoilsResponse>
 
-            ReadCoils(UInt16  StartAddress,
+            ReadCoils(UInt16  StartingAddress,
                       UInt16  NumberOfCoils)
 
         {
 
             var request  = new ReadCoilsRequest(this,
                                                 NextInvocationId,
-                                                StartAddress,
-                                                NumberOfCoils);
+                                                (UInt16) (StartingAddress + StartingAddressOffset),
+                                                NumberOfCoils,
+                                                UnitAddress);
 
             var response = new ReadCoilsResponse(request,
                                                  await WriteAsyncData(request));
@@ -530,24 +502,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #endregion
 
-        #region ReadDiscreteInputs  (StartAddress, NumberOfInputs)
+        #region ReadDiscreteInputs  (StartingAddress, NumberOfInputs)
 
         /// <summary>
         /// Read discrete inputs.
         /// </summary>
-        /// <param name="StartAddress">The start address for reading the data.</param>
+        /// <param name="StartingAddress">The starting address for reading the data.</param>
         /// <param name="NumberOfInputs">The number of input inputs to read.</param>
         public async Task<ReadDiscreteInputsResponse>
 
-            ReadDiscreteInputs(UInt16  StartAddress,
+            ReadDiscreteInputs(UInt16  StartingAddress,
                                UInt16  NumberOfInputs)
 
         {
 
             var request  = new ReadDiscreteInputsRequest(this,
                                                          NextInvocationId,
-                                                         StartAddress,
-                                                         NumberOfInputs);
+                                                         (UInt16) (StartingAddress + StartingAddressOffset),
+                                                         NumberOfInputs,
+                                                         UnitAddress);
 
             var response = new ReadDiscreteInputsResponse(request,
                                                           await WriteAsyncData(request));
@@ -558,24 +531,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #endregion
 
-        #region ReadHoldingRegisters(StartAddress, NumberOfRegisters)
+        #region ReadHoldingRegisters(StartingAddress, NumberOfRegisters)
 
         /// <summary>
         /// Read holding registers.
         /// </summary>
-        /// <param name="StartAddress">Address from where the data read begins.</param>
+        /// <param name="StartingAddress">Address from where the data read begins.</param>
         /// <param name="NumberOfRegisters">The number of input registers to read.</param>
         public async Task<ReadHoldingRegistersResponse>
 
-            ReadHoldingRegisters(UInt16  StartAddress,
+            ReadHoldingRegisters(UInt16  StartingAddress,
                                  UInt16  NumberOfRegisters)
 
         {
 
             var request  = new ReadHoldingRegistersRequest(this,
                                                            NextInvocationId,
-                                                           StartAddress,
-                                                           NumberOfRegisters);
+                                                           (UInt16) (StartingAddress + StartingAddressOffset),
+                                                           NumberOfRegisters,
+                                                           UnitAddress);
 
             var response = new ReadHoldingRegistersResponse(request,
                                                             await WriteAsyncData(request));
@@ -586,24 +560,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #endregion
 
-        #region ReadInputRegisters  (StartAddress, NumberOfInputRegisters)
+        #region ReadInputRegisters  (StartingAddress, NumberOfInputRegisters)
 
         /// <summary>
         /// Read input registers.
         /// </summary>
-        /// <param name="StartAddress">The start address for reading the data.</param>
+        /// <param name="StartingAddress">The starting address for reading the data.</param>
         /// <param name="NumberOfInputRegisters">Length of data.</param>
         public async Task<ReadInputRegistersResponse>
 
-            ReadInputRegisters(UInt16  StartAddress,
+            ReadInputRegisters(UInt16  StartingAddress,
                                UInt16  NumberOfInputRegisters)
 
         {
 
             var request  = new ReadInputRegistersRequest(this,
                                                          NextInvocationId,
-                                                         StartAddress,
-                                                         NumberOfInputRegisters);
+                                                         (UInt16) (StartingAddress + StartingAddressOffset),
+                                                         NumberOfInputRegisters,
+                                                         UnitAddress);
 
             var response = new ReadInputRegistersResponse(request,
                                                           await WriteAsyncData(request));
@@ -615,19 +590,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         #endregion
 
 
-        #region WriteSingleCoils         (StartAddress, OnOff)
+        #region WriteSingleCoils         (StartingAddress, OnOff)
 
         /// <summary>
         /// Write single coil in slave synchronous.
         /// </summary>
-        /// <param name="StartAddress">The start address for writing the data.</param>
+        /// <param name="StartingAddress">The starting address for writing the data.</param>
         /// <param name="OnOff">Specifys if the coil should be switched on or off.</param>
-        public async Task<Byte[]> WriteSingleCoils(UInt16   StartAddress,
+        public async Task<Byte[]> WriteSingleCoils(UInt16   StartingAddress,
                                                    Boolean  OnOff)
         {
 
             var header  = ModbusProtocol.CreateWriteHeader(NextInvocationId,
-                                                           StartAddress,
+                                                           StartingAddress,
                                                            1,
                                                            1,
                                                            FunctionCode.WriteSingleCoil);
@@ -646,15 +621,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #endregion
 
-        #region WriteMultipleCoils       (StartAddress, NumberOfBits, Values)
+        #region WriteMultipleCoils       (StartingAddress, NumberOfBits, Values)
 
         /// <summary>
         /// Write multiple coils in slave synchronous.
         /// </summary>
-        /// <param name="StartAddress">The start address for writing the data.</param>
+        /// <param name="StartingAddress">The starting address for writing the data.</param>
         /// <param name="NumberOfBits">Specifys number of bits.</param>
         /// <param name="Values">Contains the bit information in byte format.</param>
-        public async Task<Byte[]> WriteMultipleCoils(UInt16  StartAddress,
+        public async Task<Byte[]> WriteMultipleCoils(UInt16  StartingAddress,
                                                      UInt16  NumberOfBits,
                                                      Byte[]  Values)
         {
@@ -663,7 +638,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
             var header         = ModbusProtocol.CreateWriteHeader(
                                      NextInvocationId,
-                                     StartAddress,
+                                     StartingAddress,
                                      NumberOfBits,
                                      (byte) (numberOfBytes + 2),
                                      FunctionCode.WriteMultipleCoils
@@ -681,14 +656,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #endregion
 
-        #region WriteMultipleCoils       (StartAddress, Coils)
+        #region WriteMultipleCoils       (StartingAddress, Coils)
 
         /// <summary>
         /// Send multiple coils to a unit/device.
         /// </summary>
-        /// <param name="StartAddress">The start address for writing the data.</param>
+        /// <param name="StartingAddress">The starting address for writing the data.</param>
         /// <param name="Coils">The array of coils.</param>
-        public async Task<ModbusTCPResponse> WriteMultipleCoils(UInt16            StartAddress,
+        public async Task<ModbusTCPResponse> WriteMultipleCoils(UInt16            StartingAddress,
                                                                 params Boolean[]  Coils)
         {
 
@@ -705,7 +680,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
             var header         = ModbusProtocol.CreateWriteHeader(
                                      NextInvocationId,
-                                     StartAddress,
+                                     StartingAddress,
                                      (UInt16) numberOfBits,
                                      (Byte)  (numberOfBytes + 2),
                                      FunctionCode.WriteMultipleCoils
@@ -725,20 +700,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #endregion
 
-        #region WriteSingleRegister      (StartAddress, Values)
+        #region WriteSingleRegister      (StartingAddress, Values)
 
         /// <summary>
         /// Write single register in slave synchronous.
         /// </summary>
-        /// <param name="StartAddress">Address to where the data is written.</param>
+        /// <param name="StartingAddress">Address to where the data is written.</param>
         /// <param name="Values">Contains the register information.</param>
-        public async Task<Byte[]> WriteSingleRegister(UInt16  StartAddress,
+        public async Task<Byte[]> WriteSingleRegister(UInt16  StartingAddress,
                                                       Byte[]  Values)
         {
 
             var header    = ModbusProtocol.CreateWriteHeader(
                                 NextInvocationId,
-                                StartAddress,
+                                StartingAddress,
                                 1,
                                 1,
                                 FunctionCode.WriteSingleRegister
@@ -756,14 +731,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #endregion
 
-        #region WriteMultipleRegister    (StartAddress, Values)
+        #region WriteMultipleRegister    (StartingAddress, Values)
 
         /// <summary>
         /// Write multiple registers in slave synchronous.
         /// </summary>
-        /// <param name="StartAddress">Address to where the data is written.</param>
+        /// <param name="StartingAddress">Address to where the data is written.</param>
         /// <param name="Values">Contains the register information.</param>
-        public async Task<Byte[]> WriteMultipleRegister(UInt16  StartAddress,
+        public async Task<Byte[]> WriteMultipleRegister(UInt16  StartingAddress,
                                                         Byte[]  Values)
         {
 
@@ -774,7 +749,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
             var header    = ModbusProtocol.CreateWriteHeader(
                                 NextInvocationId,
-                                StartAddress,
+                                StartingAddress,
                                 Convert.ToUInt16(numBytes / 2),
                                 Convert.ToByte  (numBytes + 2),
                                 FunctionCode.WriteMultipleRegister
@@ -791,7 +766,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #endregion
 
-        #region ReadWriteMultipleRegister(StartAddress, Values)
+        #region ReadWriteMultipleRegister(StartingAddress, Values)
 
         /// <summary>
         /// Read/Write multiple registers in slave synchronous. The result is given in the response function.
@@ -915,12 +890,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #endregion
 
-        #region ReadString(StartingAddress, NumberOfRegisters, out Value)
 
-        public Boolean ReadString(UInt16       StartingAddress,
-                                  UInt16       NumberOfRegisters,
-                                  out String?  Text)
+        #region TryReadString(StartingAddress, NumberOfRegisters, out Value)
+
+        public Boolean TryReadString(UInt16       StartingAddress,
+                                     UInt16       NumberOfRegisters,
+                                     out String?  Text)
         {
+
+            var response = ReadHoldingRegisters(StartingAddress, NumberOfRegisters).Result;
+
+            Text = Encoding.UTF8.GetString(response.EntirePDU.Skip(9).TakeWhile(b => b != 0x00).ToArray());
+
+            return Text.Length > 0;
+
 
             return TryRead(StartingAddress,
                            NumberOfRegisters,
@@ -1069,20 +1052,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
             var sw = new Stopwatch();
 
-            var _FinalIPEndPoint = new System.Net.IPEndPoint(System.Net.IPAddress.Loopback,
-                                                             502);
-
-            TCPSocket = new Socket(AddressFamily.InterNetwork,
-                                   SocketType.   Stream,
-                                   ProtocolType. Tcp);
-
-            if (TCPSocket is not null)
+            if (TCPSocket is null)
             {
 
-                TCPSocket.SendTimeout    = (Int32) RequestTimeout.TotalMilliseconds;
-                TCPSocket.ReceiveTimeout = (Int32) RequestTimeout.TotalMilliseconds;
-                TCPSocket.Connect(_FinalIPEndPoint);
-                TCPSocket.ReceiveTimeout = (Int32) RequestTimeout.TotalMilliseconds;
+                TCPSocket = new Socket(AddressFamily.InterNetwork,
+                                       SocketType.   Stream,
+                                       ProtocolType. Tcp) {
+
+                    SendTimeout    = (Int32) RequestTimeout.TotalMilliseconds,
+                    ReceiveTimeout = (Int32) RequestTimeout.TotalMilliseconds
+
+                };
+
+                TCPSocket.Connect(new System.Net.IPEndPoint(System.Net.IPAddress.Parse(RemoteIPAddress.ToString()),
+                                                            RemoteTCPPort.ToInt32()));
+
+            }
+
+            if (TCPSocket is not null && TCPStream is null)
+            {
 
                 TCPStream = new MyNetworkStream(TCPSocket, true) {
                     ReadTimeout = (Int32) RequestTimeout.TotalMilliseconds
@@ -1349,6 +1337,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             return responseBuffer;
 
         }
+
+
+
+        public void Close()
+        {
+            TCPStream?.Close();
+            TCPSocket?.Close();
+        }
+
+
+        public void Dispose()
+        {
+
+            TCPStream?.Close();
+            TCPSocket?.Close();
+
+            TCPStream?.Dispose();
+            TCPSocket?.Dispose();
+
+        }
+
 
     }
 

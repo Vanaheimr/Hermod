@@ -24,18 +24,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
     public interface IModbusClient : IModbusDevice
     {
 
-        //Task<ModbusTCPResponse> ReadCoils           (UInt16 StartAddress, UInt16 NumberOfCoils);
-        //Task<Byte[]> ReadDiscreteInputs  (UInt16 StartAddress, UInt16 NumberOfInputs);
-        //Task<Byte[]> ReadHoldingRegister (UInt16 StartAddress, UInt16 NumberOfInputs);
-        //Task<Byte[]> ReadInputRegister   (UInt16 StartAddress, UInt16 NumberOfInputs);
+        Task<ReadCoilsResponse>             ReadCoils            (UInt16 StartAddress, UInt16 NumberOfCoils);
+        Task<ReadDiscreteInputsResponse>    ReadDiscreteInputs   (UInt16 StartAddress, UInt16 NumberOfInputs);
+        Task<ReadHoldingRegistersResponse>  ReadHoldingRegisters (UInt16 StartAddress, UInt16 NumberOfInputs);
+        Task<ReadInputRegistersResponse>    ReadInputRegisters   (UInt16 StartAddress, UInt16 NumberOfInputs);
 
-        //Task<Byte[]> ReadWriteMultipleRegister(UInt16 ReadStartAddress, UInt16 NumberOfInputs, UInt16 WriteStartAddress, Byte[] Values);
+
+        //Task<Byte[]> ReadWriteMultipleRegisters(UInt16 ReadStartAddress, UInt16 NumberOfInputs, UInt16 WriteStartAddress, Byte[] Values);
 
         //Task<Byte[]> WriteMultipleCoils       (UInt16 StartAddress,     UInt16 NumberOfBits, Byte[] Values);
-        //Task<Byte[]> WriteMultipleRegister    (UInt16 StartAddress,     Byte[] Values);
+        //Task<Byte[]> WriteMultipleRegisters   (UInt16 StartAddress,     Byte[] Values);
 
         //Task<Byte[]> WriteSingleCoils         (UInt16 StartAddress,     Boolean OnOff);
-        //Task<Byte[]> WriteSingleRegister      (UInt16 StartAddress,     Byte[] Values);
+        //Task<Byte[]> WriteSingleRegisters     (UInt16 StartAddress,     Byte[] Values);
 
 
 
@@ -51,9 +52,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         Boolean TryReadDateTime32(UInt16 StartingAddress, out DateTime Value);
         DateTime ReadDateTime32(UInt16 StartingAddress);
         Boolean ReadDateTime64(UInt16 StartingAddress, out DateTime Value);
-        Boolean ReadString(UInt16       StartingAddress,
-                           UInt16       NumberOfRegisters,
-                           out String?  Text);
+        Boolean TryReadString(UInt16       StartingAddress,
+                              UInt16       NumberOfRegisters,
+                              out String?  Text);
         Boolean TryRead<T>(UInt16           StartingAddress,
                            UInt16           NumberOfRegisters,
                            out T?           Value,
@@ -69,6 +70,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         Boolean GetByteArray(ModbusPacket  ModbusPacket,
                              out Byte[]    ByteArray);
 
+
+
+
+        void Close();
+        void Dispose();
 
     }
 

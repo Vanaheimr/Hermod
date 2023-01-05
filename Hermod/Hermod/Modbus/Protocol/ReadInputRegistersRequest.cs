@@ -63,7 +63,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
             : base(ModbusClient,
                    TransactionId,
-                   FunctionCode.ReadDiscreteInputs,
+                   FunctionCode.ReadInputRegisters,
                    StartAddress,
                    NumberOfRegisters,
                    UnitIdentifier,

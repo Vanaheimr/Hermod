@@ -208,6 +208,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         // ...
         // 4104     Minwert Frequenz       1     FLOAT
 
+
+        public void Close()
+        {
+            ModbusClient.Close();
+        }
+
+        public void Dispose()
+        {
+            ModbusClient.Dispose();
+        }
+
+
     }
 
 }

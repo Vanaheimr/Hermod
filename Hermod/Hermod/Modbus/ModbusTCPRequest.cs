@@ -107,14 +107,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             this.TransactionId      = TransactionId;
             this.FunctionCode       = FunctionCode;
 
-            // The start address within the application starts at 1, but on the network at 0!
-            if (StartAddress == 0)
-                StartAddress        = 1;
+            //// The start address within the application starts at 1, but on the network at 0!
+            //if (StartAddress == 0)
+            //    StartAddress        = 1;
 
             var invocationId        = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16)  TransactionId));
             var protocolIdentifier  = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16) (ProtocolIdentifier ?? 0)));
             var messageSize         = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16)  6));
-            var startAddress        = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16)  StartAddress - 1));
+            var startAddress        = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16) (StartAddress - 1)));
             var length              = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16)  Length));
 
             this.EntirePDU          = new Byte[12];
