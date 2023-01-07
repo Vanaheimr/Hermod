@@ -9,6 +9,7 @@ Hermod is a .NET library for simplified advanced networking tasks.
 - WebSocket server / client
 - ModbusTCP server / client
 - ModbusUDP server / client
+- SMTP client with PGP support
 
 
 #### TCPServer Usage
