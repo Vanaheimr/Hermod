@@ -47,9 +47,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <param name="Request">The Modbus/TCP Read Holding Registers request leading to this response.</param>
         /// <param name="ResponseBytes">The array of bytes to be parsed.</param>
         public ReadInputRegistersResponse(ReadInputRegistersRequest  Request,
-                                          Byte[]                     ResponseBytes)
+                                          Byte[]                     ResponseBytes,
+                                          DateTime?                  ResponseTimestamp   = null)
 
             : base(Request,
+                   ResponseTimestamp,
                    ResponseBytes)
 
         {
@@ -75,10 +77,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         public ReadInputRegistersResponse(ReadInputRegistersRequest  Request,
                                           UInt16                     TransactionId,
                                           IEnumerable<UInt16>        InputRegisters,
-                                          UInt16                     ProtocolId       = 0,
-                                          Byte                       UnitIdentifier   = 0)
+                                          UInt16                     ProtocolId          = 0,
+                                          Byte                       UnitIdentifier      = 0,
+                                          DateTime?                  ResponseTimestamp   = null)
 
             : base(Request,
+                   ResponseTimestamp,
                    TransactionId,
                    ProtocolId,
                    (UInt16) (3 + (InputRegisters.Count() / 8) + (InputRegisters.Count() % 8 > 0 ? 1 : 0)),

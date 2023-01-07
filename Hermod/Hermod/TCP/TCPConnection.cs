@@ -459,8 +459,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public Int32 Read(Byte[] Buffer, UInt16 SleepingTimeMS = 5, UInt32 MaxInitialWaitingTimeMS = 500)
         {
 
-            if (Buffer == null || Buffer.Length < 1)
-                throw new ArgumentNullException("The given buffer is not valid!");
+            if (Buffer is null || Buffer.Length < 1)
+                throw new ArgumentNullException(nameof(Buffer), "The given buffer must not be null or empty!");
 
             if (!NetworkStream.CanRead)
                 return 0;

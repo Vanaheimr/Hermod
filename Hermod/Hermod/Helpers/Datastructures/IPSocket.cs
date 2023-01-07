@@ -187,6 +187,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
+        #region IPv4Address.AnyV4 / 0.0.0.0
+
+        /// <summary>
+        /// A socket on IPv4 0.0.0.0 and the given port.
+        /// </summary>
+        /// <param name="Port">The IP port.</param>
+        public static IPSocket AnyV4(IPPort Port)
+
+            => new IPSocket(IPv4Address.Any,
+                            Port);
+
+        #endregion
+
+        #region IPv4Address.AnyV6 / ::0
+
+        /// <summary>
+        /// A socket on IPv6 ::0 and the given port.
+        /// </summary>
+        /// <param name="Port">The IP port.</param>
+        public static IPSocket AnyV6(IPPort Port)
+
+            => new IPSocket(IPv6Address.Any,
+                            Port);
+
+        #endregion
+
         #region IPv4Address.LocalhostV4 / 127.0.0.1
 
         /// <summary>
@@ -195,8 +221,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Port">The IP port.</param>
         public static IPSocket LocalhostV4(IPPort Port)
 
-            => new IPSocket(IPv4Address.Localhost,
-                            Port);
+            => new (IPv4Address.Localhost,
+                    Port);
 
         #endregion
 
@@ -208,8 +234,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Port">The IP port.</param>
         public static IPSocket LocalhostV6(IPPort Port)
 
-            => new IPSocket(IPv6Address.Localhost,
-                            Port);
+            => new (IPv6Address.Localhost,
+                    Port);
 
         #endregion
 

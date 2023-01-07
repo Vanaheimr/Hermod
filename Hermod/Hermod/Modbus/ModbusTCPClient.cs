@@ -34,6 +34,22 @@ using org.GraphDefined.Vanaheimr.Hermod.Modbus.Toolbox;
 namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 {
 
+    public delegate Task ReadHoldingRegistersClientRequestDelegate (DateTime                       Timestamp,
+                                                                    ModbusTCPClient                Sender,
+                                                                    IPSocket                       RemoteSocket,
+                                                                    String                         ConnectionId,
+                                                                    ReadHoldingRegistersRequest    ReadHoldingRegistersRequest);
+
+    public delegate Task ReadHoldingRegistersClientResponseDelegate(DateTime                       Timestamp,
+                                                                    ModbusTCPClient                Sender,
+                                                                    IPSocket                       RemoteSocket,
+                                                                    String                         ConnectionId,
+                                                                    ReadHoldingRegistersRequest    ReadHoldingRegistersRequest,
+                                                                    ReadHoldingRegistersResponse   ReadHoldingRegistersResponse,
+                                                                    TimeSpan                       Runtime);
+
+
+
     /// <summary>
     /// The Modbus/TCP Client.
     /// </summary>
@@ -93,12 +109,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <summary>
         /// The remote IP address of the Modbus device to connect to.
         /// </summary>
-        public IIPAddress?                           RemoteIPAddress               { get; }
+        public IIPAddress                            RemoteIPAddress               { get; }
 
         /// <summary>
         /// The remote TCP port of the Modbus device to connect to.
         /// </summary>
         public IPPort                                RemoteTCPPort                 { get; }
+
+        /// <summary>
+        /// The remote TCP socket of the Modbus device to connect to.
+        /// </summary>
+        public IPSocket?                             RemoteTCPSocket               { get; }
 
         /// <summary>
         /// The remote Modbus unit/device address.
@@ -271,6 +292,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         }
 
         #endregion
+
+        #endregion
+
+        #region Events
+
+        public event ReadHoldingRegistersClientRequestDelegate?   OnReadHoldingRegistersRequest;
+
+        public event ReadHoldingRegistersClientResponseDelegate?  OnReadHoldingRegistersResponse;
 
         #endregion
 
@@ -551,8 +580,83 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                                            NumberOfRegisters,
                                                            UnitAddress);
 
-            var response = new ReadHoldingRegistersResponse(request,
+            #region Send OnReadHoldingRegistersRequest event
+
+            var startTime = Timestamp.Now;
+
+            //Counters.ReadHoldingRegisters.IncRequests_OK();
+
+            try
+            {
+
+                if (OnReadHoldingRegistersRequest is not null)
+                    await Task.WhenAll(OnReadHoldingRegistersRequest.GetInvocationList().
+                                       Cast<ReadHoldingRegistersClientRequestDelegate>().
+                                       Select(e => e(startTime,
+                                                     this,
+                                                     RemoteTCPSocket ?? IPSocket.AnyV4(RemoteTCPPort),
+                                                     "",
+                                                     request))).
+                                       ConfigureAwait(false);
+
+            }
+            catch (Exception e)
+            {
+                DebugX.LogException(e, nameof(ModbusTCPClient) + "." + nameof(OnReadHoldingRegistersRequest));
+            }
+
+            #endregion
+
+
+            ReadHoldingRegistersResponse? response = null;
+
+            try
+            {
+
+                response = new ReadHoldingRegistersResponse(request,
                                                             await WriteAsyncData(request));
+
+                //Counters.ReadHoldingRegisters.IncResponses_OK();
+
+            }
+            catch (Exception e)
+            {
+                //Counters.ReadHoldingRegisters.IncResponses_Error();
+            }
+
+            response ??= new ReadHoldingRegistersResponse(request,
+                                                          request.TransactionId,
+                                                          Array.Empty<UInt16>(),
+                                                          request.ProtocolId,
+                                                          request.UnitId);
+
+
+            #region Send OnReadHoldingRegistersResponse event
+
+            var endtime = Timestamp.Now;
+
+            try
+            {
+
+                if (OnReadHoldingRegistersResponse is not null)
+                    await Task.WhenAll(OnReadHoldingRegistersResponse.GetInvocationList().
+                                       Cast<ReadHoldingRegistersClientResponseDelegate>().
+                                       Select(e => e(endtime,
+                                                     this,
+                                                     RemoteTCPSocket ?? IPSocket.AnyV4(RemoteTCPPort),
+                                                     "",
+                                                     request,
+                                                     response,
+                                                     endtime - startTime))).
+                                       ConfigureAwait(false);
+
+            }
+            catch (Exception e)
+            {
+                DebugX.LogException(e, nameof(ModbusTCPClient) + "." + nameof(OnReadHoldingRegistersResponse));
+            }
+
+            #endregion
 
             return response;
 
@@ -692,6 +796,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
 
             var response = new ModbusTCPResponse(null,
+                                                 null,
                                                  await WriteAsyncData(header));
 
             return response;

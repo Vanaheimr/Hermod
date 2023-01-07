@@ -76,6 +76,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// </summary>
         public FunctionCode     FunctionCode    { get; }
 
+        /// <summary>
+        /// The Modbus/TCP unit identification.
+        /// </summary>
+        public Byte             UnitId          { get; }
+
         public Byte[]           EntirePDU       { get; internal set; }
 
         #endregion
@@ -90,29 +95,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <param name="FunctionCode"></param>
         /// <param name="StartAddress">The starting address.</param>
         /// <param name="Length"></param>
-        /// <param name="UnitIdentifier">An optional device/unit identifier.</param>
-        /// <param name="ProtocolIdentifier">An optional protocol identifier.</param>
+        /// <param name="UnitId">An optional device/unit identifier.</param>
+        /// <param name="ProtocolId">An optional protocol identifier.</param>
         public ModbusTCPRequest(ModbusTCPClient  ModbusClient,
                                 UInt16           TransactionId,
                                 FunctionCode     FunctionCode,
                                 UInt16           StartAddress,
                                 UInt16           Length,
-                                Byte?            UnitIdentifier       = 0,
-                                UInt16?          ProtocolIdentifier   = 0)
+                                Byte?            UnitId       = 0,
+                                UInt16?          ProtocolId   = 0)
 
         {
 
             this.ModbusClient       = ModbusClient;
             this.Timestamp          = Illias.Timestamp.Now;
             this.TransactionId      = TransactionId;
+            this.ProtocolId         = ProtocolId ?? 0;
             this.FunctionCode       = FunctionCode;
-
-            //// The start address within the application starts at 1, but on the network at 0!
-            //if (StartAddress == 0)
-            //    StartAddress        = 1;
+            this.UnitId             = UnitId     ?? 0;
 
             var invocationId        = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16)  TransactionId));
-            var protocolIdentifier  = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16) (ProtocolIdentifier ?? 0)));
+            var protocolIdentifier  = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16) (ProtocolId ?? 0)));
             var messageSize         = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16)  6));
             var startAddress        = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16) (StartAddress - 1)));
             var length              = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16)  Length));
@@ -128,7 +131,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             this.EntirePDU[4]       = messageSize[0];         // high byte
             this.EntirePDU[5]       = messageSize[1];         // low  byte
 
-            this.EntirePDU[6]       = UnitIdentifier ?? 0;
+            this.EntirePDU[6]       = UnitId ?? 0;
 
             this.EntirePDU[7]       = FunctionCode.Value;
 

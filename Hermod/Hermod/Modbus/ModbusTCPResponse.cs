@@ -40,104 +40,124 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #region Properties
 
-        public ModbusTCPRequest  Request             { get; }
+        public ModbusTCPRequest?  Request             { get; }
 
-        public DateTime          Timestamp           { get; }
+        public DateTime           Timestamp           { get; }
 
-        public IPSocket          LocalSocket         { get; internal set; }
+        public IPSocket?          LocalSocket         { get; internal set; }
 
-        public IPSocket          RemoteSocket        { get; internal set; }
+        public IPSocket?          RemoteSocket        { get; internal set; }
 
         /// <summary>
         /// The Modbus/TCP transaction identification.
         /// </summary>
-        public UInt16            TransactionId       { get; }
+        public UInt16             TransactionId       { get; }
 
         /// <summary>
         /// The Modbus/TCP protocol identification.
         /// </summary>
-        public UInt16            ProtocolId          { get; }
+        public UInt16             ProtocolId          { get; }
 
         /// <summary>
         /// The Modbus/TCP PDU length.
         /// </summary>
-        public UInt16            Length              { get; }
+        public UInt16             Length              { get; }
 
         /// <summary>
         /// The Modbus/TCP unit/device identification.
         /// </summary>
-        public Byte              UnitIdentifier      { get; }
+        public Byte               UnitIdentifier      { get; }
 
         /// <summary>
         /// The Modbus/TCP function code.
         /// </summary>
-        public FunctionCode      FunctionCode        { get; }
+        public FunctionCode       FunctionCode        { get; }
 
         /// <summary>
         /// The number of bytes.
         /// </summary>
-        public Byte              NumberOfBytes       { get; }
+        public Byte               NumberOfBytes       { get; }
 
-        public Byte[]            EntirePDU           { get; protected set; }
+        public Byte[]             EntirePDU           { get; protected set; }
 
         #endregion
 
         #region Constructor(s)
 
-        public ModbusTCPResponse(ModbusTCPRequest  Request,
-                                 Byte[]            ResponseBytes)
+        public ModbusTCPResponse(ModbusTCPRequest?  Request,
+                                 DateTime?          ResponseTimestamp,
+                                 Byte[]             PDU)
         {
 
-            this.Request            = Request;
-            this.Timestamp          = Illias.Timestamp.Now;
-            this.LocalSocket        = Request.RemoteSocket;
-            this.RemoteSocket       = Request.LocalSocket;
-            this.EntirePDU          = ResponseBytes;
+            #region Initial checks
 
-            this.TransactionId      = BitConverter.ToUInt16(new Byte[] { ResponseBytes[1], ResponseBytes[0] });
-            this.ProtocolId         = BitConverter.ToUInt16(new Byte[] { ResponseBytes[3], ResponseBytes[2] });
-            this.Length             = BitConverter.ToUInt16(new Byte[] { ResponseBytes[5], ResponseBytes[4] });
-            this.UnitIdentifier     = ResponseBytes[6]; // Should be: 0x00 or 0xff
-            this.FunctionCode       = FunctionCode.TryParseValue(ResponseBytes[7]) ?? throw new ArgumentException("Unknown function code '" + ResponseBytes[7] + "'!", nameof(Request));
-            this.NumberOfBytes      = ResponseBytes[8];
+            if (PDU.Length  < 9)
+                throw new ArgumentException("The given byte array is too short!",              nameof(PDU));
+
+            if (PDU.Length != System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt16(PDU, 4)) + 6)
+                throw new ArgumentException("The length of the given byte array is invalid!",  nameof(PDU));
+
+            var numberOfBytes     = PDU[8];
+
+            if (numberOfBytes % 2 == 1)
+                throw new ArgumentException("The length of the given byte array is invalid!",  nameof(PDU));
+
+            if (PDU.Length != numberOfBytes + 9)
+                throw new ArgumentException("The length of the given byte array is invalid!",  nameof(PDU));
+
+            #endregion
+
+            this.Request          = Request;
+            this.Timestamp        = ResponseTimestamp ?? Illias.Timestamp.Now;
+            this.LocalSocket      = Request?.RemoteSocket;
+            this.RemoteSocket     = Request?.LocalSocket;
+            this.EntirePDU        = PDU;
+
+            this.TransactionId    = (UInt16) System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt16(PDU, 0));
+            this.ProtocolId       = (UInt16) System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt16(PDU, 2));
+            this.Length           = (UInt16) System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt16(PDU, 4));
+            this.UnitIdentifier   = PDU[6];
+            this.FunctionCode     = FunctionCode.TryParseValue(PDU[7]) ?? throw new ArgumentException("Unknown function code '" + PDU[7] + "'!", nameof(Request));
+            this.NumberOfBytes    = PDU[8];
 
         }
 
-        public ModbusTCPResponse(ModbusTCPRequest  Request,
-                                 UInt16            TransactionId,
-                                 UInt16            ProtocolId,
-                                 UInt16            Length,
-                                 FunctionCode      FunctionCode,
-                                 Byte              UnitIdentifier,
-                                 Byte              NumberOfBytes,
-                                 Byte[]            ResponseBytes)
+        public ModbusTCPResponse(ModbusTCPRequest?  Request,
+                                 DateTime?          ResponseTimestamp,
+                                 UInt16             TransactionId,
+                                 UInt16             ProtocolId,
+                                 UInt16             Length,
+                                 FunctionCode       FunctionCode,
+                                 Byte               UnitIdentifier,
+                                 Byte               NumberOfBytes,
+                                 Byte[]             PDU)
         {
 
-            this.Request            = Request;
-            this.Timestamp          = Illias.Timestamp.Now;
-            this.LocalSocket        = Request.RemoteSocket;
-            this.RemoteSocket       = Request.LocalSocket;
-            this.TransactionId      = TransactionId;
-            this.ProtocolId         = ProtocolId;
-            this.Length             = Length;
-            this.UnitIdentifier     = UnitIdentifier;
-            this.FunctionCode       = FunctionCode;
-            this.NumberOfBytes      = 0;
-            this.EntirePDU          = ResponseBytes;
+            this.Request          = Request;
+            this.Timestamp        = ResponseTimestamp ?? Illias.Timestamp.Now;
+            this.LocalSocket      = Request?.RemoteSocket;
+            this.RemoteSocket     = Request?.LocalSocket;
+            this.TransactionId    = TransactionId;
+            this.ProtocolId       = ProtocolId;
+            this.Length           = Length;
+            this.UnitIdentifier   = UnitIdentifier;
+            this.FunctionCode     = FunctionCode;
+            this.NumberOfBytes    = 0;
+            this.EntirePDU        = PDU;
 
-            var transactionId       = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16) this.TransactionId));
-            var protocolId          = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16) this.ProtocolId));
-            var length              = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16) this.Length));
+            var transactionId     = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16) TransactionId));
+            var protocolId        = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16) ProtocolId));
+            var length            = BitConverter.GetBytes(System.Net.IPAddress.HostToNetworkOrder((Int16) Length));
 
-            this.EntirePDU[0]       = transactionId[0];
-            this.EntirePDU[1]       = transactionId[1];
-            this.EntirePDU[2]       = protocolId[0];
-            this.EntirePDU[3]       = protocolId[1];
-            this.EntirePDU[4]       = length[0];
-            this.EntirePDU[5]       = length[1];
-            this.EntirePDU[6]       = UnitIdentifier;
-            this.EntirePDU[7]       = FunctionCode.Value;
-            this.EntirePDU[8]       = NumberOfBytes;
+            this.EntirePDU[0]     = transactionId[0];
+            this.EntirePDU[1]     = transactionId[1];
+            this.EntirePDU[2]     = protocolId[0];
+            this.EntirePDU[3]     = protocolId[1];
+            this.EntirePDU[4]     = length[0];
+            this.EntirePDU[5]     = length[1];
+            this.EntirePDU[6]     = UnitIdentifier;
+            this.EntirePDU[7]     = FunctionCode.Value;
+            this.EntirePDU[8]     = NumberOfBytes;
 
         }
 
@@ -158,16 +178,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #region Properties
 
-        public new TRequest  Request    { get; }
+        public new TRequest?  Request    { get; }
 
         #endregion
 
         #region Constructor(s)
 
-        public ModbusTCPResponse(TRequest  Request,
-                                 Byte[]    PDU)
+        public ModbusTCPResponse(TRequest?  Request,
+                                 DateTime?  ResponseTimestamp,
+                                 Byte[]     PDU)
 
             : base(Request,
+                   ResponseTimestamp,
                    PDU)
 
         {
@@ -176,7 +198,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         }
 
-        public ModbusTCPResponse(TRequest      Request,
+        public ModbusTCPResponse(TRequest?     Request,
+                                 DateTime?     ResponseTimestamp,
                                  UInt16        TransactionId,
                                  UInt16        ProtocolId,
                                  UInt16        Length,
@@ -186,6 +209,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                  Byte[]        PDU)
 
             : base(Request,
+                   ResponseTimestamp,
                    TransactionId,
                    ProtocolId,
                    Length,

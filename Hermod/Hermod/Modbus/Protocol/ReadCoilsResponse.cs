@@ -52,9 +52,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <param name="Request">The Modbus/TCP Read Coils request leading to this response.</param>
         /// <param name="ResponseBytes">The array of bytes to be parsed.</param>
         public ReadCoilsResponse(ReadCoilsRequest  Request,
-                                 Byte[]            ResponseBytes)
+                                 Byte[]            ResponseBytes,
+                                 DateTime?         ResponseTimestamp   = null)
 
             : base(Request,
+                   ResponseTimestamp,
                    ResponseBytes)
 
         {
@@ -80,10 +82,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         public ReadCoilsResponse(ReadCoilsRequest      Request,
                                  UInt16                TransactionId,
                                  IEnumerable<Boolean>  Coils,
-                                 UInt16                ProtocolId       = 0,
-                                 Byte                  UnitIdentifier   = 0)
+                                 UInt16                ProtocolId          = 0,
+                                 Byte                  UnitIdentifier      = 0,
+                                 DateTime?             ResponseTimestamp   = null)
 
             : base(Request,
+                   ResponseTimestamp,
                    TransactionId,
                    ProtocolId,
                    (UInt16) (3 + (Coils.Count() / 8) + (Coils.Count() % 8 > 0 ? 1 : 0)),

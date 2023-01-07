@@ -139,7 +139,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public static IPv6Address Any
 
-            => new (new Byte[length]);
+            => new (
+                   new Byte[length]
+               );
 
         #endregion
 
