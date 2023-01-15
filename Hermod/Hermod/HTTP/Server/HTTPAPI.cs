@@ -2236,7 +2236,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            return String.Empty;
+            return Template.Replace("<%= content %>", "").
+                            Replace("{{BasePath}}",   "");
 
         }
 
