@@ -1976,8 +1976,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          DataSerializer,
                                          DataDeserializer,
                                          EnableLogging,
-                                         LogfilePrefix,
                                          LogfilePath,
+                                         LogfilePrefix,
                                          LogfileName,
                                          LogfileReloadSearchPattern,
 
