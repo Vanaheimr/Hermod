@@ -286,7 +286,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 try
                 {
 
-                    DebugX.Log(" [TCPServer:", LocalPort.ToString(), "] New TLS connection using server certificate: " + this.ServerCertificate.Subject);
+                    //DebugX.Log(" [TCPServer:", LocalPort.ToString(), "] New TLS connection using server certificate: " + this.ServerCertificate.Subject);
 
                     this.SSLStream      = new SslStream(innerStream:                        NetworkStream,
                                                         leaveInnerStreamOpen:               true,
@@ -304,7 +304,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                         this.ClientCertificate = new X509Certificate2(this.SSLStream.RemoteCertificate);
 
-                        DebugX.Log(" [TCPServer:", LocalPort.ToString(), "] New TLS connection using client certificate: " + this.ClientCertificate.Subject);
+                        //DebugX.Log(" [TCPServer:", LocalPort.ToString(), "] New TLS connection using client certificate: " + this.ClientCertificate.Subject);
 
                     }
 
