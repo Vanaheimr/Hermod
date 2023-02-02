@@ -21,6 +21,10 @@ using System.IO.Ports;
 using System.Diagnostics;
 
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.Modbus.Toolbox;
+using System.Text;
+using System;
 
 #endregion
 
@@ -30,13 +34,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
     /// <summary>
     /// A Janitza UMG 604.
     /// </summary>
-    public class JanitzaUMG604 : ModbusTCPClient
+    public class JanitzaUMG604
     {
 
         public static class Addr
         {
 
-            public static readonly ushort SYSTIME           = 4;
+            public static readonly ushort REALTIME          = 0;  // UInt64
+            public static readonly ushort SYSTIME           = 4;  // UInt32
             public static readonly ushort Serialnumber      = 10176;
 
             public static readonly ushort U1                = 1317;
@@ -58,10 +63,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         }
 
+        #region Data
+
+        private readonly IModbusClient ModbusClient;
+
+        #endregion
 
         #region Properties
 
         #region Device
+
+        #region RealTime
+
+        public DateTime RealTime
+        {
+            get
+            {
+
+                var response = ModbusClient.ReadHoldingRegisters(Addr.REALTIME, 4).Result;
+
+                return ByteExtensions.UNIXTime.AddSeconds(System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt64(response.EntirePDU, 9)));
+
+
+
+                if (ModbusClient.TryReadDateTime32(Addr.SYSTIME, out var value))
+                    return value;
+
+                Debug.Print("Could not read SysTime!");
+
+                return DateTime.MinValue;
+
+            }
+        }
+
+        #endregion
 
         #region SysTime
 
@@ -70,7 +105,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             get
             {
 
-                if (TryReadDateTime32(Addr.SYSTIME, out var value))
+                var response = ModbusClient.ReadHoldingRegisters(Addr.SYSTIME, 2).Result;
+
+                return ByteExtensions.UNIXTime.AddSeconds(System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt32(response.EntirePDU, 9)));
+
+
+
+                if (ModbusClient.TryReadDateTime32(Addr.SYSTIME, out var value))
                     return value;
 
                 Debug.Print("Could not read SysTime!");
@@ -92,7 +133,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             get
             {
 
-                if (ReadInt32(Addr.Serialnumber, out var value))
+                if (ModbusClient.ReadInt32(Addr.Serialnumber, out var value))
                     return value;
 
                 Debug.Print("Could not read the device serialnumber!");
@@ -114,7 +155,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             get
             {
 
-                if (ReadInt32(10178, out var value))
+                var response = ModbusClient.ReadHoldingRegisters(10178, 2).Result;
+
+                return System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt32(response.EntirePDU, 9));
+
+                if (ModbusClient.ReadInt32(10178, out var value))
                     return value;
 
                 Debug.Print("Could not read the device productnumber!");
@@ -136,9 +181,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             get
             {
 
-                // 64 characters!
-                if (ReadString(10072, 32, out var value))
-                    return value;
+                // Always 64 characters!
+                if (ModbusClient.TryReadString(10072, 32, out var value))
+                    return value ?? String.Empty;
 
                 Debug.Print("Could not read device name!");
 
@@ -159,9 +204,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             get
             {
 
-                // 128 characters!
-                if (ReadString(10104, 64, out var value))
-                    return value;
+                // Always 128 characters!
+                if (ModbusClient.TryReadString(10104, 64, out var value))
+                    return value ?? String.Empty;
 
                 Debug.Print("Could not read device description!");
 
@@ -189,7 +234,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             get
             {
 
-                if (ReadInt16(6, out var value))
+                var response = ModbusClient.ReadHoldingRegisters(19000, 40).Result;
+
+                return System.Net.IPAddress.NetworkToHostOrder(BitConverter.ToInt16(response.EntirePDU, 9));
+
+
+
+                if (ModbusClient.ReadInt16(6, out var value))
                     return value;
 
                 Debug.Print("Could not read the device day!");
@@ -211,7 +262,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             get
             {
 
-                if (ReadInt16(7, out var value))
+                if (ModbusClient.ReadInt16(7, out var value))
                     return value;
 
                 Debug.Print("Could not read the device month!");
@@ -233,7 +284,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             get
             {
 
-                if (ReadInt16(8, out var value))
+                if (ModbusClient.ReadInt16(8, out var value))
                     return value;
 
                 Debug.Print("Could not read the device year!");
@@ -256,7 +307,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             get
             {
 
-                if (ReadInt16(9, out var value))
+                if (ModbusClient.ReadInt16(9, out var value))
                     return value;
 
                 Debug.Print("Could not read the device hour!");
@@ -278,7 +329,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             get
             {
 
-                if (ReadInt16(10, out var value))
+                if (ModbusClient.ReadInt16(10, out var value))
                     return value;
 
                 Debug.Print("Could not read the device minute!");
@@ -300,7 +351,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             get
             {
 
-                if (ReadInt16(11, out var value))
+                if (ModbusClient.ReadInt16(11, out var value))
                     return value;
 
                 Debug.Print("Could not read the device second!");
@@ -323,7 +374,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             get
             {
 
-                if (ReadInt16(12, out var value))
+                if (ModbusClient.ReadInt16(12, out var value))
                     return value;
 
                 Debug.Print("Could not read the device weekday!");
@@ -349,7 +400,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             get
             {
 
-                if (TryReadSingle(Addr.U1, out var value))
+                if (ModbusClient.TryReadSingle(Addr.U1, out var value))
                     return value;
 
                 Debug.Print("Could not read voltage U1!");
@@ -371,7 +422,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             get
             {
 
-                if (TryReadSingle(Addr.U2, out var value))
+                if (ModbusClient.TryReadSingle(Addr.U2, out var value))
                     return value;
 
                 Debug.Print("Could not read voltage U2!");
@@ -393,7 +444,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             get
             {
 
-                if (TryReadSingle(Addr.U3, out var value))
+                if (ModbusClient.TryReadSingle(Addr.U3, out var value))
                     return value;
 
                 Debug.Print("Could not read voltage U3!");
@@ -415,7 +466,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             get
             {
 
-                if (TryReadSingle(Addr.U4, out var value))
+                if (ModbusClient.TryReadSingle(Addr.U4, out var value))
                     return value;
 
                 Debug.Print("Could not read voltage U4!");
@@ -438,7 +489,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             get
             {
 
-                if (TryReadSingle(Addr.I1, out var value))
+                if (ModbusClient.TryReadSingle(Addr.I1, out var value))
                     return value;
 
                 Debug.Print("Could not read current I1!");
@@ -460,7 +511,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             get
             {
 
-                if (TryReadSingle(Addr.I2, out var value))
+                if (ModbusClient.TryReadSingle(Addr.I2, out var value))
                     return value;
 
                 Debug.Print("Could not read current I2!");
@@ -482,7 +533,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             get
             {
 
-                if (TryReadSingle(Addr.I3, out var value))
+                if (ModbusClient.TryReadSingle(Addr.I3, out var value))
                     return value;
 
                 Debug.Print("Could not read current I3!");
@@ -504,7 +555,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             get
             {
 
-                if (TryReadSingle(Addr.I4, out var value))
+                if (ModbusClient.TryReadSingle(Addr.I4, out var value))
                     return value;
 
                 Debug.Print("Could not read current I4!");
@@ -548,7 +599,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             get
             {
 
-                if (TryReadSingle(Addr.CosPhi1, out var value))
+                if (ModbusClient.TryReadSingle(Addr.CosPhi1, out var value))
                     return value;
 
                 Debug.Print("Could not read cos phi of L1!");
@@ -570,7 +621,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             get
             {
 
-                if (TryReadSingle(Addr.CosPhi2, out var value))
+                if (ModbusClient.TryReadSingle(Addr.CosPhi2, out var value))
                     return value;
 
                 Debug.Print("Could not read cos phi of L2!");
@@ -592,7 +643,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             get
             {
 
-                if (TryReadSingle(Addr.CosPhi3, out var value))
+                if (ModbusClient.TryReadSingle(Addr.CosPhi3, out var value))
                     return value;
 
                 Debug.Print("Could not read cos phi of L3!");
@@ -614,7 +665,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             get
             {
 
-                if (TryReadSingle(Addr.CosPhi4, out var value))
+                if (ModbusClient.TryReadSingle(Addr.CosPhi4, out var value))
                     return value;
 
                 Debug.Print("Could not read cos phi of L4!");
@@ -637,7 +688,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             get
             {
 
-                if (TryReadSingle(1439, out var value))
+                if (ModbusClient.TryReadSingle(1439, out var value))
                     return value;
 
                 Debug.Print("Could not read grid frequency!");
@@ -925,57 +976,114 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <param name="ReadTimeout">The number of milliseconds before a time-out occurs when a read operation does not finish. The default is 1 second.</param>
         /// <param name="WriteTimeout">The number of milliseconds before a time-out occurs. The default is 1 second.</param>
         /// <param name="UnitAddress"></param>
-        //public JanitzaUMG604(String    PortName       = "COM1",
-        //                     Int32     BaudRate       = 115200,
-        //                     Parity    Parity         = Parity.None,
-        //                     Int32     DataBits       = 8,
-        //                     StopBits  StopBits       = StopBits.One,
-        //                     Int32     ReadTimeout    = 1500,
-        //                     Int32     WriteTimeout   = 15000,
-        //                     Byte      UnitAddress    = 1)
+        public JanitzaUMG604(String    PortName       = "COM1",
+                             Int32     BaudRate       = 115200,
+                             Parity    Parity         = Parity.None,
+                             Int32     DataBits       = 8,
+                             StopBits  StopBits       = StopBits.One,
+                             Int32     ReadTimeout    = 1500,
+                             Int32     WriteTimeout   = 15000,
+                             Byte      UnitAddress    = 1)
+        {
 
-        //    : base(PortName,
-        //           BaudRate,
-        //           Parity,
-        //           DataBits,
-        //           StopBits,
-        //           ReadTimeout,
-        //           WriteTimeout,
-        //           UnitAddress)
+        //    this.ModbusClient = new ModbusRTUClient(PortName,
+        //                                            BaudRate,
+        //                                            Parity,
+        //                                            DataBits,
+        //                                            StopBits,
+        //                                            ReadTimeout,
+        //                                            WriteTimeout,
+        //                                            UnitAddress);
 
-        //{ }
+        }
 
         #endregion
 
         #region JanitzaUMG604(IPAddress,  RemotePort = null, UnitAddress = null)
 
+        /// <summary>
+        /// Create a new Janitza UMG 604 Modbus client and connect to a remote Modbus/TCP device.
+        /// </summary>
+        /// <param name="IPAddress">An remote IP address.</param>
+        /// <param name="RemotePort">An optional remote TCP/IP port [default: 502].</param>
+        /// <param name="UnitAddress">An optional remote Modbus unit/device address.</param>
         public JanitzaUMG604(IIPAddress  IPAddress,
                              IPPort?     RemotePort    = null,
                              Byte?       UnitAddress   = null)
+        {
 
-            : base(IPAddress,
-                   RemotePort,
-                   UnitAddress)
+            this.ModbusClient = new ModbusTCPClient(IPAddress,
+                                                    RemotePort,
+                                                    UnitAddress,
+                                                    1);
 
-        { }
+        }
 
         #endregion
 
-        #region JanitzaUMG604(RemoteHost, RemotePort = null, UnitAddress = null)
+        #region JanitzaUMG604(RemoteHostname, RemotePort = null, UnitAddress = null)
 
-        public JanitzaUMG604(HTTPHostname  RemoteHost,
+        /// <summary>
+        /// Create a new Janitza UMG 604 Modbus client and connect to a remote Modbus/TCP device.
+        /// </summary>
+        /// <param name="RemoteHostname">A remote hostname.</param>
+        /// <param name="RemotePort">An optional remote TCP/IP port [default: 502].</param>
+        /// <param name="UnitAddress">An optional remote Modbus unit/device address.</param>
+        public JanitzaUMG604(HTTPHostname  RemoteHostname,
                              IPPort?       RemotePort    = null,
                              Byte?         UnitAddress   = null)
+        {
 
-            : base(RemoteHost,
-                   RemotePort ?? IPPort.Parse(502),
-                   UnitAddress)
+            this.ModbusClient = new ModbusTCPClient(RemoteHostname,
+                                                    RemotePort,
+                                                    UnitAddress,
+                                                    1);
 
-        { }
+        }
 
         #endregion
 
         #endregion
+
+
+
+        #region ReadSingle(StartingAddress)
+
+        public Single ReadSingle(UInt16 StartingAddress)
+        {
+            return ModbusClient.Read<Single>(StartingAddress, 2, array => BitConverter.ToSingle(array.Reverse(3, 4), 0));
+        }
+
+        #endregion
+
+        #region ReadSingles(StartingAddress, Num)
+
+        public Single[] ReadSingles(UInt16 StartingAddress, Int32 Num)
+        {
+            return ModbusClient.Read<Single[]>(StartingAddress, (ushort)(2 * Num), array => MultiConverters.NetworkBytesToHostSingle(array));
+        }
+
+        #endregion
+
+        #region ReadDateTime32(StartingAddress)
+
+        public DateTime ReadDateTime32(UInt16 StartingAddress)
+        {
+            return ModbusClient.Read<DateTime>(StartingAddress, 2, array => ByteExtensions.UNIXTime.AddSeconds(BitConverter.ToInt32(array.Reverse(3, 4), 0)), OnError: DateTime.MinValue);
+        }
+
+        #endregion
+
+
+        public void Close()
+        {
+            ModbusClient.Close();
+        }
+
+        public void Dispose()
+        {
+            ModbusClient.Dispose();
+        }
 
     }
 

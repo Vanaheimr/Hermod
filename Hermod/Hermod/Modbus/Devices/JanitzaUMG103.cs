@@ -29,7 +29,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
     /// <summary>
     /// A Janitza UMG 103.
     /// </summary>
-    public class JanitzaUMG103 : ModbusTCPClient
+    public class JanitzaUMG103
     {
 
         public static class Addr
@@ -53,14 +53,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         }
 
+        #region Data
 
+        private readonly IModbusClient ModbusClient;
+
+        #endregion
 
         #region Constructor(s)
 
         #region JanitzaUMG103(via Serialport...)
 
         /// <summary>
-        /// Create a new Janitza UMG 103.
+        /// Create a new Janitza UMG 103 Modbus client and connect to a remote Modbus/RTU device.
         /// </summary>
         /// <param name="PortName">The communications port. The default is COM1.</param>
         /// <param name="BaudRate">The baud rate. The default is 115200.</param>
@@ -70,53 +74,68 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <param name="ReadTimeout">The number of milliseconds before a time-out occurs when a read operation does not finish. The default is 1 second.</param>
         /// <param name="WriteTimeout">The number of milliseconds before a time-out occurs. The default is 1 second.</param>
         /// <param name="UnitAddress"></param>
-        //public JanitzaUMG103(String    PortName       = "COM1",
-        //                     Int32     BaudRate       = 115200,
-        //                     Parity    Parity         = Parity.None,
-        //                     Int32     DataBits       = 8,
-        //                     StopBits  StopBits       = StopBits.One,
-        //                     Int32     ReadTimeout    = 1500,
-        //                     Int32     WriteTimeout   = 15000,
-        //                     Byte      UnitAddress    = 1)
+        public JanitzaUMG103(String    PortName       = "COM1",
+                             Int32     BaudRate       = 115200,
+                             Parity    Parity         = Parity.None,
+                             Int32     DataBits       = 8,
+                             StopBits  StopBits       = StopBits.One,
+                             Int32     ReadTimeout    = 1500,
+                             Int32     WriteTimeout   = 15000,
+                             Byte      UnitAddress    = 1)
+        {
 
-        //    : base(PortName,
-        //           BaudRate,
-        //           Parity,
-        //           DataBits,
-        //           StopBits,
-        //           ReadTimeout,
-        //           WriteTimeout,
-        //           UnitAddress)
+            //    this.ModbusClient = new ModbusRTUClient(PortName,
+            //                                            BaudRate,
+            //                                            Parity,
+            //                                            DataBits,
+            //                                            StopBits,
+            //                                            ReadTimeout,
+            //                                            WriteTimeout,
+            //                                            UnitAddress);
 
-        //{ }
+        }
 
         #endregion
 
         #region JanitzaUMG103(IPAddress,  RemotePort = null, UnitAddress = null)
 
+        /// <summary>
+        /// Create a new Janitza UMG 103 Modbus client and connect to a remote Modbus/TCP device.
+        /// </summary>
+        /// <param name="IPAddress">An remote IP address.</param>
+        /// <param name="RemotePort">An optional remote TCP/IP port [default: 502].</param>
+        /// <param name="UnitAddress">An optional remote Modbus unit/device address.</param>
         public JanitzaUMG103(IIPAddress  IPAddress,
                              IPPort?     RemotePort    = null,
                              Byte?       UnitAddress   = null)
+        {
 
-            : base(IPAddress,
-                   RemotePort,
-                   UnitAddress)
+            this.ModbusClient = new ModbusTCPClient(IPAddress,
+                                                    RemotePort,
+                                                    UnitAddress);
 
-        { }
+        }
 
         #endregion
 
-        #region JanitzaUMG103(RemoteHost, RemotePort = null, UnitAddress = null)
+        #region JanitzaUMG103(RemoteHostname, RemotePort = null, UnitAddress = null)
 
-        public JanitzaUMG103(HTTPHostname  RemoteHost,
+        /// <summary>
+        /// Create a new Janitza UMG 103 Modbus client and connect to a remote Modbus/TCP device.
+        /// </summary>
+        /// <param name="RemoteHostname">A remote hostname.</param>
+        /// <param name="RemotePort">An optional remote TCP/IP port [default: 502].</param>
+        /// <param name="UnitAddress">An optional remote Modbus unit/device address.</param>
+        public JanitzaUMG103(HTTPHostname  RemoteHostname,
                              IPPort?       RemotePort    = null,
                              Byte?         UnitAddress   = null)
+        {
 
-            : base(RemoteHost,
-                   RemotePort ?? IPPort.Parse(502),
-                   UnitAddress)
+            this.ModbusClient = new ModbusTCPClient(RemoteHostname,
+                                                    RemotePort ?? IPPort.Parse(502),
+                                                    UnitAddress);
 
-        { }
+        }
 
         #endregion
 
@@ -188,6 +207,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         // 4016     Minwert CosPhi L2      1     FLOAT
         // ...
         // 4104     Minwert Frequenz       1     FLOAT
+
+
+        public void Close()
+        {
+            ModbusClient.Close();
+        }
+
+        public void Dispose()
+        {
+            ModbusClient.Dispose();
+        }
+
 
     }
 

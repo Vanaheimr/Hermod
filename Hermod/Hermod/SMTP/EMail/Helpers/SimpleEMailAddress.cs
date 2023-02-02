@@ -17,6 +17,7 @@
 
 #region Usings
 
+using System.Net.NetworkInformation;
 using System.Text.RegularExpressions;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -62,8 +63,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <summary>
         /// A regular expression to validate a simple e-mail address.
         /// </summary>
-        public static readonly Regex SimpleEMail_RegEx = new Regex("^<?([^@]+)@([^@\\>]+)>?$",
-                                                                   RegexOptions.IgnorePatternWhitespace);
+        public static readonly Regex SimpleEMail_RegEx = new ("^<?([^@]+)@([^@\\>]+)>?$",
+                                                              RegexOptions.IgnorePatternWhitespace);
 
         #endregion
 
@@ -143,21 +144,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public static SimpleEMailAddress Parse(String Text)
         {
 
-            #region Initial checks
+            var matchCollection = SimpleEMail_RegEx.Matches(Text.Trim());
 
-            if (Text.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(Text), "The given text representation of an email address must not be null or empty!");
-
-            #endregion
-
-            var MatchCollection = SimpleEMail_RegEx.Matches(Text.Trim());
-
-            if (MatchCollection.Count != 1)
+            if (matchCollection.Count != 1)
                 throw new ArgumentException("Illegal email address '" + Text + "'!",
                                             nameof(Text));
 
-            return new SimpleEMailAddress(MatchCollection[0].Groups[1].Value,
-                                          MatchCollection[0].Groups[2].Value);
+            return new SimpleEMailAddress(matchCollection[0].Groups[1].Value,
+                                          matchCollection[0].Groups[2].Value);
 
         }
 
@@ -172,10 +166,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public static SimpleEMailAddress? TryParse(String Text)
         {
 
-            if (TryParse(Text, out SimpleEMailAddress _SimpleEMailAddress))
-                return _SimpleEMailAddress;
+            if (TryParse(Text, out var simpleEMailAddress))
+                return simpleEMailAddress;
 
-            return new SimpleEMailAddress?();
+            return null;
 
         }
 
@@ -195,7 +189,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             if (Text.IsNullOrEmpty())
             {
-                EMailAddress = default(SimpleEMailAddress);
+                EMailAddress = default;
                 return false;
             }
 
@@ -204,13 +198,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             try
             {
 
-                var MatchCollection = SimpleEMail_RegEx.Matches(Text.Trim());
+                var matchCollection = SimpleEMail_RegEx.Matches(Text.Trim());
 
-                if (MatchCollection.Count == 1)
+                if (matchCollection.Count == 1)
                 {
 
-                    EMailAddress = new SimpleEMailAddress(MatchCollection[0].Groups[1].Value,
-                                                          MatchCollection[0].Groups[2].Value);
+                    EMailAddress = new SimpleEMailAddress(matchCollection[0].Groups[1].Value,
+                                                          matchCollection[0].Groups[2].Value);
 
                     return true;
 
@@ -224,7 +218,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 #pragma warning restore RECS0022 // A catch clause that catches System.Exception and has an empty body
 #pragma warning restore RCS1075  // Avoid empty catch clause that catches System.Exception.
 
-            EMailAddress = default(SimpleEMailAddress);
+            EMailAddress = default;
             return false;
 
         }
@@ -256,20 +250,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="SimpleEMailAddress1">A SimpleEMailAddress.</param>
         /// <param name="SimpleEMailAddress2">Another SimpleEMailAddress.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (SimpleEMailAddress SimpleEMailAddress1, SimpleEMailAddress SimpleEMailAddress2)
-        {
+        public static Boolean operator == (SimpleEMailAddress SimpleEMailAddress1,
+                                           SimpleEMailAddress SimpleEMailAddress2)
 
-            // If both are null, or both are same instance, return true.
-            if (Object.ReferenceEquals(SimpleEMailAddress1, SimpleEMailAddress2))
-                return true;
-
-            // If one is null, but not both, return false.
-            if (((Object) SimpleEMailAddress1 == null) || ((Object) SimpleEMailAddress2 == null))
-                return false;
-
-            return SimpleEMailAddress1.Equals(SimpleEMailAddress2);
-
-        }
+            => SimpleEMailAddress1.Equals(SimpleEMailAddress2);
 
         #endregion
 
@@ -281,8 +265,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="SimpleEMailAddress1">A SimpleEMailAddress.</param>
         /// <param name="SimpleEMailAddress2">Another SimpleEMailAddress.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator != (SimpleEMailAddress SimpleEMailAddress1, SimpleEMailAddress SimpleEMailAddress2)
-            => !(SimpleEMailAddress1 == SimpleEMailAddress2);
+        public static Boolean operator != (SimpleEMailAddress SimpleEMailAddress1,
+                                           SimpleEMailAddress SimpleEMailAddress2)
+
+            => !SimpleEMailAddress1.Equals(SimpleEMailAddress2);
 
         #endregion
 
@@ -294,7 +280,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="SimpleEMailAddress1">A SimpleEMailAddress.</param>
         /// <param name="SimpleEMailAddress2">Another SimpleEMailAddress.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator < (SimpleEMailAddress SimpleEMailAddress1, SimpleEMailAddress SimpleEMailAddress2)
+        public static Boolean operator < (SimpleEMailAddress SimpleEMailAddress1,
+                                          SimpleEMailAddress SimpleEMailAddress2)
+
             => SimpleEMailAddress1.Value.CompareTo(SimpleEMailAddress2.Value) < 0;
 
         #endregion
@@ -307,8 +295,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="SimpleEMailAddress1">A SimpleEMailAddress.</param>
         /// <param name="SimpleEMailAddress2">Another SimpleEMailAddress.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator <= (SimpleEMailAddress SimpleEMailAddress1, SimpleEMailAddress SimpleEMailAddress2)
-            => !(SimpleEMailAddress1 > SimpleEMailAddress2);
+        public static Boolean operator <= (SimpleEMailAddress SimpleEMailAddress1,
+                                           SimpleEMailAddress SimpleEMailAddress2)
+
+            => SimpleEMailAddress1.Value.CompareTo(SimpleEMailAddress2.Value) <= 0;
 
         #endregion
 
@@ -320,7 +310,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="SimpleEMailAddress1">A SimpleEMailAddress.</param>
         /// <param name="SimpleEMailAddress2">Another SimpleEMailAddress.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator >(SimpleEMailAddress SimpleEMailAddress1, SimpleEMailAddress SimpleEMailAddress2)
+        public static Boolean operator > (SimpleEMailAddress SimpleEMailAddress1,
+                                          SimpleEMailAddress SimpleEMailAddress2)
+
             => SimpleEMailAddress1.Value.CompareTo(SimpleEMailAddress2.Value) > 0;
 
         #endregion
@@ -333,8 +325,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="SimpleEMailAddress1">A SimpleEMailAddress.</param>
         /// <param name="SimpleEMailAddress2">Another SimpleEMailAddress.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator >= (SimpleEMailAddress SimpleEMailAddress1, SimpleEMailAddress SimpleEMailAddress2)
-            => !(SimpleEMailAddress1 < SimpleEMailAddress2);
+        public static Boolean operator >= (SimpleEMailAddress SimpleEMailAddress1,
+                                           SimpleEMailAddress SimpleEMailAddress2)
+
+            => SimpleEMailAddress1.Value.CompareTo(SimpleEMailAddress2.Value) >= 0;
 
         #endregion
 
@@ -345,39 +339,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         #region CompareTo(Object)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two simple e-mail addresses.
         /// </summary>
-        /// <param name="Object">An object to compare with.</param>
-        public Int32 CompareTo(Object Object)
-        {
+        /// <param name="SimpleEMailAddress">A simple e-mail address to compare with.</param>
+        public Int32 CompareTo(Object? Object)
 
-            if (Object == null)
-                throw new ArgumentNullException(nameof(Object), "The given object must not be null!");
-
-            if (!(Object is SimpleEMailAddress))
-                throw new ArgumentException("The given object is not a SimpleEMailAddress!", nameof(Object));
-
-            return CompareTo((SimpleEMailAddress) Object);
-
-        }
+            => Object is SimpleEMailAddress simpleEMailAddress
+                   ? CompareTo(simpleEMailAddress)
+                   : throw new ArgumentException("The given object is not a simple e-mail address!",
+                                                 nameof(Object));
 
         #endregion
 
         #region CompareTo(SimpleEMailAddress)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two simple e-mail addresses.
         /// </summary>
-        /// <param name="SimpleEMailAddress">A SimpleEMailAddress to compare with.</param>
+        /// <param name="SimpleEMailAddress">A simple e-mail address to compare with.</param>
         public Int32 CompareTo(SimpleEMailAddress SimpleEMailAddress)
-        {
 
-            if ((Object) SimpleEMailAddress == null)
-                throw new ArgumentNullException();
-
-            return String.Compare(Value, SimpleEMailAddress.Value, StringComparison.OrdinalIgnoreCase);
-
-        }
+            => String.Compare(Value,
+                              SimpleEMailAddress.Value,
+                              StringComparison.OrdinalIgnoreCase);
 
         #endregion
 
@@ -388,41 +372,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         #region Equals(Object)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two simple e-mail addresses for equality.
         /// </summary>
-        /// <param name="Object">An object to compare with.</param>
-        /// <returns>true|false</returns>
-        public override Boolean Equals(Object Object)
-        {
+        /// <param name="SimpleEMailAddress">A simple e-mail address to compare with.</param>
+        public override Boolean Equals(Object? Object)
 
-            if (Object == null)
-                return false;
-
-            if (!(Object is SimpleEMailAddress))
-                return false;
-
-            return Equals((SimpleEMailAddress) Object);
-
-        }
+            => Object is SimpleEMailAddress simpleEMailAddress &&
+                   Equals(simpleEMailAddress);
 
         #endregion
 
         #region Equals(SimpleEMailAddress)
 
         /// <summary>
-        /// Compares two SimpleEMailAddresss for equality.
+        /// Compares two simple e-mail addresses for equality.
         /// </summary>
-        /// <param name="SimpleEMailAddress">A SimpleEMailAddress to compare with.</param>
-        /// <returns>True if both match; False otherwise.</returns>
+        /// <param name="SimpleEMailAddress">A simple e-mail address to compare with.</param>
         public Boolean Equals(SimpleEMailAddress SimpleEMailAddress)
-        {
 
-            if ((Object) SimpleEMailAddress == null)
-                return false;
-
-            return Value.ToLower().Equals(SimpleEMailAddress.Value.ToLower());
-
-        }
+            => Value.ToLower().Equals(SimpleEMailAddress.Value.ToLower());
 
         #endregion
 
@@ -435,7 +403,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// </summary>
         /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
-            => Value.ToLower().GetHashCode();
+
+            => Value?.GetHashCode() ?? 0;
 
         #endregion
 
@@ -445,6 +414,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// Returns a text representation of this object.
         /// </summary>
         public override String ToString()
+
             => Value;
 
         #endregion

@@ -286,7 +286,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 try
                 {
 
-                    DebugX.Log(" [TCPServer:", LocalPort.ToString(), "] New TLS connection using server certificate: " + this.ServerCertificate.Subject);
+                    //DebugX.Log(" [TCPServer:", LocalPort.ToString(), "] New TLS connection using server certificate: " + this.ServerCertificate.Subject);
 
                     this.SSLStream      = new SslStream(innerStream:                        NetworkStream,
                                                         leaveInnerStreamOpen:               true,
@@ -304,7 +304,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                         this.ClientCertificate = new X509Certificate2(this.SSLStream.RemoteCertificate);
 
-                        DebugX.Log(" [TCPServer:", LocalPort.ToString(), "] New TLS connection using client certificate: " + this.ClientCertificate.Subject);
+                        //DebugX.Log(" [TCPServer:", LocalPort.ToString(), "] New TLS connection using client certificate: " + this.ClientCertificate.Subject);
 
                     }
 
@@ -459,8 +459,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public Int32 Read(Byte[] Buffer, UInt16 SleepingTimeMS = 5, UInt32 MaxInitialWaitingTimeMS = 500)
         {
 
-            if (Buffer == null || Buffer.Length < 1)
-                throw new ArgumentNullException("The given buffer is not valid!");
+            if (Buffer is null || Buffer.Length < 1)
+                throw new ArgumentNullException(nameof(Buffer), "The given buffer must not be null or empty!");
 
             if (!NetworkStream.CanRead)
                 return 0;

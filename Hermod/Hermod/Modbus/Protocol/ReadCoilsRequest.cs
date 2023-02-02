@@ -34,12 +34,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <summary>
         /// The starting address.
         /// </summary>
-        public UInt16  StartAddress     { get; }
+        public UInt16  StartingAddress    { get; }
 
         /// <summary>
         /// The number of coils (bits) to read.
         /// </summary>
-        public UInt16  NumberOfCoils    { get; }
+        public UInt16  NumberOfCoils      { get; }
 
         #endregion
 
@@ -50,13 +50,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// </summary>
         /// <param name="ModbusClient">A Modbus/TCP client.</param>
         /// <param name="TransactionId">A transaction identifier.</param>
-        /// <param name="StartAddress">The starting address.</param>
+        /// <param name="StartingAddress">The starting address.</param>
         /// <param name="NumberOfCoils">The number of coils to read (1-2000).</param>
         /// <param name="UnitIdentifier">An optional device/unit identifier.</param>
         /// <param name="ProtocolIdentifier">An optional protocol identifier.</param>
         public ReadCoilsRequest(ModbusTCPClient  ModbusClient,
                                 UInt16           TransactionId,
-                                UInt16           StartAddress,
+                                UInt16           StartingAddress,
                                 UInt16           NumberOfCoils,
                                 Byte?            UnitIdentifier       = null,
                                 UInt16?          ProtocolIdentifier   = null)
@@ -64,7 +64,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             : base(ModbusClient,
                    TransactionId,
                    FunctionCode.ReadCoils,
-                   StartAddress,
+                   StartingAddress,
                    NumberOfCoils < 1
                        ? (UInt16) 1
                        : Math.Min(NumberOfCoils, (UInt16) 2000),
@@ -73,8 +73,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         {
 
-            this.StartAddress   = StartAddress;
-            this.NumberOfCoils  = NumberOfCoils;
+            this.StartingAddress  = StartingAddress;
+            this.NumberOfCoils    = NumberOfCoils;
 
         }
 

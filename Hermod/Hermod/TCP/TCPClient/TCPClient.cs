@@ -83,24 +83,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region Properties
 
-        public String                     RemoteHost               { get; }
+        public String                      RemoteHost               { get; }
 
-        public String                     ServiceName              { get; }
+        public String                      ServiceName              { get; }
 
-        public IPPort                     RemotePort               { get; }
+        public IPPort                      RemotePort               { get; }
 
-        public IEnumerable<IPSocket>      IPSocketList
+        public IEnumerable<IPSocket>       IPSocketList
             => _IPSocketList;
 
-        public IPSocket                   CurrentIPSocket          { get; private set; }
+        public IPSocket                    CurrentIPSocket          { get; private set; }
 
-        public Boolean                    UseIPv4                  { get; }
+        public Boolean                     UseIPv4                  { get; }
 
-        public Boolean                    UseIPv6                  { get; }
+        public Boolean                     UseIPv6                  { get; }
 
-        public Boolean                    PreferIPv6               { get; }
+        public Boolean                     PreferIPv6               { get; }
 
-        public TLSUsage                   UseTLS                   { get; }
+        public TLSUsage                    UseTLS                   { get; }
 
         #region ConnectionTimeout
 
@@ -124,19 +124,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
-        public DNSClient?                 DNSClient                { get; }
+        public DNSClient?                  DNSClient                { get; }
 
-        public CancellationToken?         CancellationToken        { get; private set; }
+        public CancellationToken?          CancellationToken        { get; private set; }
 
-        public Socket                     TCPSocket                { get; private set; }
+        public Socket?                     TCPSocket                { get; private set; }
 
-        public Stream                     Stream                   { get; private set; }
+        public Stream?                     Stream                   { get; private set; }
 
-        public NetworkStream              TCPStream                { get; private set; }
+        public NetworkStream?              TCPStream                { get; private set; }
 
-        public SslStream                  TLSStream                { get; private set; }
+        public SslStream?                  TLSStream                { get; private set; }
 
-        public X509CertificateCollection  TLSClientCertificates    { get; }
+        public X509CertificateCollection?  TLSClientCertificates    { get; }
 
         #endregion
 
@@ -387,7 +387,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                     try
                     {
 
-                        if (TCPStream != null)
+                        if (TCPStream is not null)
                         {
                             TCPStream.Close();
                             TCPStream = null;
@@ -400,7 +400,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                     try
                     {
 
-                        if (TLSStream != null)
+                        if (TLSStream is not null)
                         {
                             TLSStream.Close();
                             TLSStream = null;
@@ -415,7 +415,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                     try
                     {
 
-                        if (TCPSocket != null)
+                        if (TCPSocket is not null)
                         {
                             TCPSocket.Close();
                             TCPSocket = null;
@@ -431,7 +431,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                     {
 
                         TCPSocket  = CreateAndConnectTCPSocket(CurrentIPSocket.IPAddress, CurrentIPSocket.Port);
-                        TCPStream  = new NetworkStream(TCPSocket, true);
+                        TCPStream = new NetworkStream(TCPSocket, true);// {
+                        //    ReadTimeout = 5000
+                        //};
                         Stream     = TCPStream;
 
                         if (UseTLS == TLSUsage.TLSSocket)

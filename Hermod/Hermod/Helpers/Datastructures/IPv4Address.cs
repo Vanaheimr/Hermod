@@ -219,7 +219,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public static IPv4Address Any
 
-            => new IPv4Address(
+            => new (
                    new Byte[length]
                );
 
@@ -232,7 +232,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public static IPv4Address Localhost
 
-            => new IPv4Address(
+            => new (
                    new Byte[] {
                        127, 0, 0, 1
                    }
@@ -247,7 +247,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public static IPv4Address Broadcast
 
-            => new IPv4Address(
+            => new (
                    new Byte[] {
                        255, 255, 255, 255
                    }

@@ -1976,8 +1976,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          DataSerializer,
                                          DataDeserializer,
                                          EnableLogging,
-                                         LogfilePrefix,
                                          LogfilePath,
+                                         LogfilePrefix,
                                          LogfileName,
                                          LogfileReloadSearchPattern,
 
@@ -2063,13 +2063,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (protected virtual) GetResourceStream      (ResourceName, ResourceAssemblies)
 
-        protected virtual Stream GetResourceStream(String ResourceName)
+        protected virtual Stream? GetResourceStream(String ResourceName)
 
             => GetResourceStream(ResourceName,
-                                 new Tuple<String, Assembly>(HTTPAPI. HTTPRoot, typeof(HTTPAPI). Assembly));
+                                 new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
 
-        protected virtual Stream GetResourceStream(String                            ResourceName,
-                                                   params Tuple<String, Assembly>[]  ResourceAssemblies)
+        protected virtual Stream? GetResourceStream(String                            ResourceName,
+                                                    params Tuple<String, Assembly>[]  ResourceAssemblies)
         {
 
             foreach (var resourceAssembly in ResourceAssemblies)
@@ -2079,7 +2079,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     var resourceStream = resourceAssembly.Item2.GetManifestResourceStream(resourceAssembly.Item1 + ResourceName);
 
-                    if (resourceStream != null)
+                    if (resourceStream is not null)
                         return resourceStream;
 
                 }
@@ -2095,13 +2095,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (protected virtual) GetResourceMemoryStream(ResourceName, ResourceAssemblies)
 
-        protected virtual MemoryStream GetResourceMemoryStream(String ResourceName)
+        protected virtual MemoryStream? GetResourceMemoryStream(String ResourceName)
 
             => GetResourceMemoryStream(ResourceName,
-                                       new Tuple<String, Assembly>(HTTPAPI. HTTPRoot, typeof(HTTPAPI). Assembly));
+                                       new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
 
-        protected virtual MemoryStream GetResourceMemoryStream(String                            ResourceName,
-                                                               params Tuple<String, Assembly>[]  ResourceAssemblies)
+        protected virtual MemoryStream? GetResourceMemoryStream(String                            ResourceName,
+                                                                params Tuple<String, Assembly>[]  ResourceAssemblies)
         {
 
             try
@@ -2110,7 +2110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var resourceStream = GetResourceStream(ResourceName,
                                                        ResourceAssemblies);
 
-                if (resourceStream != null)
+                if (resourceStream is not null)
                 {
 
                     var outputStream = new MemoryStream();
@@ -2125,7 +2125,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             catch
             { }
 
-            return new MemoryStream();
+            return null;
 
         }
 
@@ -2133,13 +2133,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (protected virtual) GetResourceString      (ResourceName, ResourceAssemblies)
 
-        protected virtual String? GetResourceString(String ResourceName)
+        protected virtual String GetResourceString(String ResourceName)
 
             => GetResourceString(ResourceName,
                                  new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
 
-        protected virtual String? GetResourceString(String                            ResourceName,
-                                                    params Tuple<String, Assembly>[]  ResourceAssemblies)
+        protected virtual String GetResourceString(String                            ResourceName,
+                                                   params Tuple<String, Assembly>[]  ResourceAssemblies)
 
             => GetResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToUTF8String() ?? String.Empty;
 
@@ -2155,19 +2155,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected virtual Byte[] GetResourceBytes(String                            ResourceName,
                                                   params Tuple<String, Assembly>[]  ResourceAssemblies)
 
-            => GetResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToArray() ?? new Byte[0];
+            => GetResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToArray() ?? Array.Empty<Byte>();
 
         #endregion
 
         #region (protected virtual) MixWithHTMLTemplate    (ResourceName, ResourceAssemblies)
 
-        protected virtual String? MixWithHTMLTemplate(String ResourceName)
+        protected virtual String MixWithHTMLTemplate(String ResourceName)
 
             => MixWithHTMLTemplate(ResourceName,
                                    new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
 
-        protected virtual String? MixWithHTMLTemplate(String                            ResourceName,
-                                                      params Tuple<String, Assembly>[]  ResourceAssemblies)
+        protected virtual String MixWithHTMLTemplate(String                            ResourceName,
+                                                     params Tuple<String, Assembly>[]  ResourceAssemblies)
         {
 
             if (HTMLTemplate is not null)
@@ -2192,9 +2192,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 }
 
+                return HTMLTemplate.Replace("<%= content %>",  "").
+                                    Replace("{{BasePath}}",    "");
+
             }
 
-            return null;
+            return String.Empty;
 
         }
 
@@ -2202,19 +2205,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (protected virtual) MixWithHTMLTemplate    (Template, ResourceName, ResourceAssemblies)
 
-        protected virtual String? MixWithHTMLTemplate(String   Template,
-                                                      String   ResourceName,
-                                                      String?  Content   = null)
+        protected virtual String MixWithHTMLTemplate(String   Template,
+                                                     String   ResourceName,
+                                                     String?  Content   = null)
 
             => MixWithHTMLTemplate(Template,
                                    ResourceName,
                                    new Tuple<String, Assembly>[] { new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly) },
                                    Content);
 
-        protected virtual String? MixWithHTMLTemplate(String                     Template,
-                                                      String                     ResourceName,
-                                                      Tuple<String, Assembly>[]  ResourceAssemblies,
-                                                      String?                    Content   = null)
+        protected virtual String MixWithHTMLTemplate(String                     Template,
+                                                     String                     ResourceName,
+                                                     Tuple<String, Assembly>[]  ResourceAssemblies,
+                                                     String?                    Content   = null)
         {
 
             var htmlStream = new MemoryStream();
@@ -2236,7 +2239,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            return null;
+            return Template.Replace("<%= content %>",  "").
+                            Replace("{{BasePath}}",    "");
 
         }
 
