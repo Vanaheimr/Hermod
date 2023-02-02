@@ -2669,15 +2669,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region HTTP response logger
 
-                if (ResponseLogger is not null)
+                if (httpRequestHandle?.HTTPResponseLogger is not null)
                 {
                     try
                     {
 
-                        var HTTPResponseLoggerTask = ResponseLogger(Timestamp.Now,
-                                                                    this,
-                                                                    Request,
-                                                                    httpResponse);
+                        var HTTPResponseLoggerTask = httpRequestHandle.HTTPResponseLogger(Timestamp.Now,
+                                                                                          null,
+                                                                                          Request,
+                                                                                          httpResponse);
 
                         // ResponseLog wrappers might return null!
                         if (HTTPResponseLoggerTask is not null)
