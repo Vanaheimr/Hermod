@@ -196,7 +196,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
             SendCommand(Command);
 
-            return ReadSMTPResponse();
+            return ReadSMTPResponses().First();
 
         }
 
@@ -216,78 +216,76 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         #endregion
 
 
-        #region (private)   ReadSMTPResponse()
+        #region (private)   ReadSMTPResponses()
 
-        private SMTPExtendedResponse ReadSMTPResponse()
+        private IEnumerable<SMTPExtendedResponse> ReadSMTPResponses()
         {
 
-            Byte[] input = Array.Empty<Byte>();
+            var buffer = Array.Empty<Byte>();
 
             try
             {
 
-                if (input.Length == 0)
+                if (buffer.Length == 0)
                 {
 
-                    input = new Byte[64 * 1024];
-
-                    var nread = 0;
+                    buffer     = new Byte[64 * 1024];
 
                     TCPSocket.Poll(SelectMode.SelectRead, CancellationToken.Value);
 
-                    if ((nread = Stream.Read(input, 0, input.Length)) == 0)
-                        throw new Exception("The SMTP server unexpectedly disconnected.");
+                    var nread = Stream.Read(buffer, 0, buffer.Length);
 
-                    Array.Resize(ref input, nread);
+                    Array.Resize(ref buffer, nread);
 
                 }
 
-                var aa   = input.TakeWhile(b => b != ' ' && b != '-').ToArray().ToUTF8String();
-                var more = input[aa.Length] == '-';
-                var resp = input.Skip(aa.Length + 1).
-                                 TakeWhile(b => b != '\r' && b != '\n').
-                                 ToArray();
+                // 250-mail.ahzf.de
+                // 250-PIPELINING
+                // 250-SIZE 204800000
+                // 250-VRFY
+                // 250-ETRN
+                // 250-STARTTLS
+                // 250-AUTH PLAIN LOGIN CRAM-MD5 DIGEST-MD5
+                // 250-AUTH=PLAIN LOGIN CRAM-MD5 DIGEST-MD5
+                // 250-ENHANCEDSTATUSCODES
+                // 250-8BITMIME
+                // 250-DSN
+                // 250-SMTPUTF8
+                // 250 CHUNKING
 
-                var scode = SMTPStatusCode.SyntaxError;
+                var responses = new List<SMTPExtendedResponse>();
 
-                if (UInt16.TryParse(aa, out ushort _scode))
-                    scode = (SMTPStatusCode)_scode;
+                var lines     = buffer.ToUTF8String().
+                                       Split("\r\n").
+                                       Where(line => line.IsNotNullOrEmpty()).
+                                       ToArray();
 
-                if (more)
-                    input = input.Skip(aa.Length + 1 + resp.Length).SkipWhile(b => b == '\r' || b == '\n').
-                                  ToArray();
-                else
-                    input = Array.Empty<Byte>();
+                foreach (var line in lines) {
 
-                return new SMTPExtendedResponse(scode,
-                                                resp.ToUTF8String().Trim(),
-                                                more);
+                    var statusCodeChars  = line.TakeWhile(b => b != ' ' && b != '-').ToArray();
+                    var more             = line[statusCodeChars.Length] == '-';
+                    var description      = line.Skip(statusCodeChars.Length + 1).ToArray();
+
+                    if (UInt16.TryParse(new String(statusCodeChars), out var statusCode))
+                        responses.Add(new SMTPExtendedResponse((SMTPStatusCode) statusCode,
+                                                               new String(description),
+                                                               more));
+
+                }
+
+                return responses;
 
             } catch (Exception e)
             {
 
-                return new SMTPExtendedResponse(SMTPStatusCode.TransactionFailed,
-                                                e.Message);
+                return new SMTPExtendedResponse[] {
+                           new SMTPExtendedResponse(
+                               SMTPStatusCode.TransactionFailed,
+                               e.Message
+                           )
+                       };
 
             }
-
-        }
-
-        #endregion
-
-        #region (protected) ReadSMTPResponses()
-
-        protected IEnumerable<SMTPExtendedResponse> ReadSMTPResponses()
-        {
-
-            var responseList  = new List<SMTPExtendedResponse>();
-            var response      = responseList.AddAndReturnElement(ReadSMTPResponse());
-
-            while (response?.MoreDataAvailable == true) {
-                response = responseList.AddAndReturnElement(ReadSMTPResponse());
-            }
-
-            return responseList;
 
         }
 
@@ -384,13 +382,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                         case TCPConnectResult.Ok:
 
+                            TCPStream.ReadTimeout = 3000;
+
                             var authMethods         = SMTPAuthMethods.None;
                             var unknownAuthMethods  = new HashSet<String>();
 
                             // 220 mail.ahzf.de ESMTP Postfix (Debian/GNU)
-                            var LoginResponse       = ReadSMTPResponse();
+                            var LoginResponse       = ReadSMTPResponses();
 
-                            switch (LoginResponse.StatusCode)
+                            switch (LoginResponse.First().StatusCode)
                             {
 
                                 case SMTPStatusCode.ServiceReady:
