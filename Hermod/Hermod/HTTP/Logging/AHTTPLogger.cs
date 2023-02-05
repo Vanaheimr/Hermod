@@ -181,18 +181,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Set default delegates
 
-            if (LogHTTPRequest_toConsole  is null)
-                LogHTTPRequest_toConsole   = Default_LogHTTPRequest_toConsole;
-
-            if (LogHTTPRequest_toDisc     is null)
-                LogHTTPRequest_toDisc      = Default_LogHTTPRequest_toDisc;
-
-            if (LogHTTPResponse_toConsole is null)
-                LogHTTPResponse_toConsole  = Default_LogHTTPResponse_toConsole;
-
-            if (LogHTTPResponse_toDisc    is null)
-                LogHTTPResponse_toDisc     = Default_LogHTTPResponse_toDisc;
-
+            LogHTTPRequest_toConsole   ??= Default_LogHTTPRequest_toConsole;
+            LogHTTPRequest_toDisc      ??= Default_LogHTTPRequest_toDisc;
+            LogHTTPResponse_toConsole  ??= Default_LogHTTPResponse_toConsole;
+            LogHTTPResponse_toDisc     ??= Default_LogHTTPResponse_toDisc;
 
             if (LogHTTPRequest_toDisc  is not null ||
                 LogHTTPResponse_toDisc is not null ||
@@ -203,7 +195,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
             this.LogfileCreator  = LogfileCreator ?? ((loggingPath, context, logfileName) => String.Concat(loggingPath,
-                                                                                                           context != null ? context + "_" : "",
+                                                                                                           context is not null ? context + "_" : "",
                                                                                                            logfileName, "_",
                                                                                                            DateTime.UtcNow.Year, "-",
                                                                                                            DateTime.UtcNow.Month.ToString("D2"),
