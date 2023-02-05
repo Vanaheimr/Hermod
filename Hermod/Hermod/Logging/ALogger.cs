@@ -312,8 +312,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
                         {
 
                             File.AppendAllText(this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName),
-                                               String.Concat("[" + Timestamp.Now.ToLocalTime() + " T:" + Environment.CurrentManagedThreadId.ToString() + "] ",
-                                                             this.Context + "/",
+                                               String.Concat("[", Timestamp.Now.ToLocalTime(), " T:", Environment.CurrentManagedThreadId.ToString(), "] ",
+                                                             this.Context, "/",
                                                              loggingData.LogEventName,
                                                              loggingData.Request,
                                                              Environment.NewLine),
@@ -374,8 +374,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
                         {
 
                             File.AppendAllText(this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName),
-                                               String.Concat("[" + Timestamp.Now.ToLocalTime() + " T:" + Environment.CurrentManagedThreadId.ToString() + "] ",
-                                                             Context + "/",
+                                               String.Concat("[", Timestamp.Now.ToLocalTime(), " T:", Environment.CurrentManagedThreadId.ToString(), "] ",
+                                                             Context, "/",
                                                              loggingData.LogEventName,
                                                              loggingData.Request,
                                                              " => ",
