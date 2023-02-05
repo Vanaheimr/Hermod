@@ -86,11 +86,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
 
         #region Data
 
-        private readonly Channel<RequestData>  cliRequestChannel;
-        private readonly Channel<ResponseData> cliResponseChannel;
+        private readonly Channel<RequestData>     cliRequestChannel;
+        private readonly Channel<ResponseData>    cliResponseChannel;
 
-        private readonly Channel<RequestData>  discRequestChannel;
-        private readonly Channel<ResponseData> discResponseChannel;
+        private readonly Channel<RequestData>     discRequestChannel;
+        private readonly Channel<ResponseData>    discResponseChannel;
+
+        private readonly CancellationTokenSource  cancellationTokenSource;
 
         /// <summary>
         /// The maximum number of retries to write to a logfile.
@@ -204,196 +206,222 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
 
             #endregion
 
-            cliRequestChannel    = Channel.CreateUnbounded<RequestData>();
-            cliResponseChannel   = Channel.CreateUnbounded<ResponseData>();
+            cliRequestChannel        = Channel.CreateUnbounded<RequestData>();
+            cliResponseChannel       = Channel.CreateUnbounded<ResponseData>();
 
-            discRequestChannel   = Channel.CreateUnbounded<RequestData>();
-            discResponseChannel  = Channel.CreateUnbounded<ResponseData>();
+            discRequestChannel       = Channel.CreateUnbounded<RequestData>();
+            discResponseChannel      = Channel.CreateUnbounded<ResponseData>();
+
+            cancellationTokenSource  = new CancellationTokenSource();
 
 
             // cli
             _ = Task.Factory.StartNew(async () => {
 
-                var loggingData = await cliRequestChannel.Reader.ReadAsync();
+                do
+                {
 
-                var PreviousColor = Console.ForegroundColor;
+                    var loggingData = await cliRequestChannel.Reader.ReadAsync(cancellationTokenSource.Token);
 
-                Console.ForegroundColor = ConsoleColor.Gray;
-                Console.Write("[" + Timestamp.Now.ToLocalTime() + " T:" + Environment.CurrentManagedThreadId.ToString() + "] ");
+                    var PreviousColor = Console.ForegroundColor;
 
-                Console.ForegroundColor = ConsoleColor.DarkGray;
-                Console.Write(this.Context + "/");
+                    Console.ForegroundColor = ConsoleColor.Gray;
+                    Console.Write("[" + Timestamp.Now.ToLocalTime() + " T:" + Environment.CurrentManagedThreadId.ToString() + "] ");
 
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.Write(loggingData.LogEventName);
+                    Console.ForegroundColor = ConsoleColor.DarkGray;
+                    Console.Write(this.Context + "/");
 
-                Console.Write(" ");
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.Write(loggingData.LogEventName);
 
-                //Console.ForegroundColor = ConsoleColor.Gray;
-                //Console.WriteLine(Request.HTTPSource.Socket == Request.LocalSocket
-                //                      ? String.Concat(Request.LocalSocket, " -> ", Request.RemoteSocket)
-                //                      : String.Concat(Request.HTTPSource,  " -> ", Request.LocalSocket));
-                Console.WriteLine(loggingData.Request);
+                    Console.Write(" ");
 
-                Console.ForegroundColor = PreviousColor;
+                    //Console.ForegroundColor = ConsoleColor.Gray;
+                    //Console.WriteLine(Request.HTTPSource.Socket == Request.LocalSocket
+                    //                      ? String.Concat(Request.LocalSocket, " -> ", Request.RemoteSocket)
+                    //                      : String.Concat(Request.HTTPSource,  " -> ", Request.LocalSocket));
+                    Console.WriteLine(loggingData.Request);
 
-            });
+                    Console.ForegroundColor = PreviousColor;
+
+                }
+                while (!cancellationTokenSource.IsCancellationRequested);
+
+            }, cancellationTokenSource.Token);
 
             _ = Task.Factory.StartNew(async () => {
 
-                var loggingData = await cliResponseChannel.Reader.ReadAsync();
+                do
+                {
 
-                var PreviousColor = Console.ForegroundColor;
+                    var loggingData = await cliResponseChannel.Reader.ReadAsync(cancellationTokenSource.Token);
 
-                Console.ForegroundColor = ConsoleColor.Gray;
-                Console.Write("[" + Timestamp.Now.ToLocalTime() + " T:" + Environment.CurrentManagedThreadId.ToString() + "] ");
+                    var PreviousColor = Console.ForegroundColor;
 
-                Console.ForegroundColor = ConsoleColor.DarkGray;
-                Console.Write(this.Context + "/");
+                    Console.ForegroundColor = ConsoleColor.Gray;
+                    Console.Write("[" + Timestamp.Now.ToLocalTime() + " T:" + Environment.CurrentManagedThreadId.ToString() + "] ");
 
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.Write(loggingData.LogEventName);
+                    Console.ForegroundColor = ConsoleColor.DarkGray;
+                    Console.Write(this.Context + "/");
 
-                Console.Write(" ");
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.Write(loggingData.LogEventName);
 
-                //Console.ForegroundColor = ConsoleColor.Gray;
-                //Console.Write(String.Concat(" from ", Request.HTTPSource, " => "));
+                    Console.Write(" ");
 
-                //if (Response.HTTPStatusCode == HTTPStatusCode.OK ||
-                //    Response.HTTPStatusCode == HTTPStatusCode.Created)
-                //    Console.ForegroundColor = ConsoleColor.Green;
+                    //Console.ForegroundColor = ConsoleColor.Gray;
+                    //Console.Write(String.Concat(" from ", Request.HTTPSource, " => "));
 
-                //else if (Response.HTTPStatusCode == HTTPStatusCode.NoContent)
-                //    Console.ForegroundColor = ConsoleColor.Yellow;
+                    //if (Response.HTTPStatusCode == HTTPStatusCode.OK ||
+                    //    Response.HTTPStatusCode == HTTPStatusCode.Created)
+                    //    Console.ForegroundColor = ConsoleColor.Green;
 
-                //else
-                //    Console.ForegroundColor = ConsoleColor.Red;
+                    //else if (Response.HTTPStatusCode == HTTPStatusCode.NoContent)
+                    //    Console.ForegroundColor = ConsoleColor.Yellow;
 
-                //Console.Write(Response.HTTPStatusCode);
+                    //else
+                    //    Console.ForegroundColor = ConsoleColor.Red;
 
-                Console.ForegroundColor = ConsoleColor.Gray;
-                Console.WriteLine(String.Concat(loggingData.Response, " in ", Math.Round(loggingData.Runtime.TotalMilliseconds), "ms"));
+                    //Console.Write(Response.HTTPStatusCode);
 
-                Console.ForegroundColor = PreviousColor;
+                    Console.ForegroundColor = ConsoleColor.Gray;
+                    Console.WriteLine(String.Concat(loggingData.Response, " in ", Math.Round(loggingData.Runtime.TotalMilliseconds), "ms"));
 
-            });
+                    Console.ForegroundColor = PreviousColor;
+
+                }
+                while (!cancellationTokenSource.IsCancellationRequested);
+
+            }, cancellationTokenSource.Token);
 
 
             // disc
             _ = Task.Factory.StartNew(async () => {
 
-                var loggingData = await discRequestChannel.Reader.ReadAsync();
-
-                var retry = 0;
-
                 do
                 {
 
-                    try
+                    var loggingData = await discRequestChannel.Reader.ReadAsync(cancellationTokenSource.Token);
+
+                    var retry = 0;
+
+                    do
                     {
 
-                        File.AppendAllText(this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName),
-                                           String.Concat("[" + Timestamp.Now.ToLocalTime() + " T:" + Environment.CurrentManagedThreadId.ToString() + "] ",
-                                                         this.Context + "/",
-                                                         loggingData.LogEventName,
-                                                         loggingData.Request,
-                                                         Environment.NewLine),
-                                           Encoding.UTF8);
-
-                        break;
-
-                    }
-                    catch (IOException e)
-                    {
-
-                        if (e.HResult != -2147024864)
+                        try
                         {
-                            DebugX.LogT("File access error while logging to '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "' (retry: " + retry + "): " + e.Message);
-                            Thread.Sleep(100);
-                        }
 
-                        else
+                            File.AppendAllText(this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName),
+                                               String.Concat("[" + Timestamp.Now.ToLocalTime() + " T:" + Environment.CurrentManagedThreadId.ToString() + "] ",
+                                                             this.Context + "/",
+                                                             loggingData.LogEventName,
+                                                             loggingData.Request,
+                                                             Environment.NewLine),
+                                               Encoding.UTF8);
+
+                            break;
+
+                        }
+                        catch (IOException e)
+                        {
+
+                            if (e.HResult != -2147024864)
+                            {
+                                DebugX.LogT("File access error while logging to '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "' (retry: " + retry + "): " + e.Message);
+                                Thread.Sleep(100);
+                            }
+
+                            else
+                            {
+                                DebugX.LogT("Could not log to '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "': " + e.Message);
+                                break;
+                            }
+
+                        }
+                        catch (Exception e)
                         {
                             DebugX.LogT("Could not log to '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "': " + e.Message);
                             break;
                         }
 
                     }
-                    catch (Exception e)
-                    {
-                        DebugX.LogT("Could not log to '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "': " + e.Message);
-                        break;
-                    }
+                    while (retry++ < MaxRetries);
+
+                    if (retry >= MaxRetries)
+                        DebugX.LogT("Could not write to logfile '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "' for " + retry + " retries!");
+
+                    else if (retry > 0)
+                        DebugX.LogT("Successfully written to logfile '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "' after " + retry + " retries!");
 
                 }
-                while (retry++ < MaxRetries);
+                while (!cancellationTokenSource.IsCancellationRequested);
 
-                if (retry >= MaxRetries)
-                    DebugX.LogT("Could not write to logfile '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "' for " + retry + " retries!");
-
-                else if (retry > 0)
-                    DebugX.LogT("Successfully written to logfile '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "' after " + retry + " retries!");
-
-            });
+            }, cancellationTokenSource.Token);
 
             _ = Task.Factory.StartNew(async () => {
 
-                var loggingData = await discResponseChannel.Reader.ReadAsync();
-
-                var retry = 0;
-
                 do
                 {
 
-                    try
+                    var loggingData = await discResponseChannel.Reader.ReadAsync(cancellationTokenSource.Token);
+
+                    var retry = 0;
+
+                    do
                     {
 
-                        File.AppendAllText(this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName),
-                                           String.Concat("[" + Timestamp.Now.ToLocalTime() + " T:" + Environment.CurrentManagedThreadId.ToString() + "] ",
-                                                         Context + "/",
-                                                         loggingData.LogEventName,
-                                                         loggingData.Request,
-                                                         " => ",
-                                                         loggingData.Response,
-                                                         " in ", Math.Round(loggingData.Runtime.TotalMilliseconds), "ms",
-                                                         Environment.NewLine),
-                                           Encoding.UTF8);
-
-                        break;
-
-                    }
-                    catch (IOException e)
-                    {
-
-                        if (e.HResult != -2147024864)
+                        try
                         {
-                            DebugX.LogT("File access error while logging to '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "' (retry: " + retry + "): " + e.Message);
-                            Thread.Sleep(100);
-                        }
 
-                        else
+                            File.AppendAllText(this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName),
+                                               String.Concat("[" + Timestamp.Now.ToLocalTime() + " T:" + Environment.CurrentManagedThreadId.ToString() + "] ",
+                                                             Context + "/",
+                                                             loggingData.LogEventName,
+                                                             loggingData.Request,
+                                                             " => ",
+                                                             loggingData.Response,
+                                                             " in ", Math.Round(loggingData.Runtime.TotalMilliseconds), "ms",
+                                                             Environment.NewLine),
+                                               Encoding.UTF8);
+
+                            break;
+
+                        }
+                        catch (IOException e)
+                        {
+
+                            if (e.HResult != -2147024864)
+                            {
+                                DebugX.LogT("File access error while logging to '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "' (retry: " + retry + "): " + e.Message);
+                                Thread.Sleep(100);
+                            }
+
+                            else
+                            {
+                                DebugX.LogT("Could not log to '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "': " + e.Message);
+                                break;
+                            }
+
+                        }
+                        catch (Exception e)
                         {
                             DebugX.LogT("Could not log to '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "': " + e.Message);
                             break;
                         }
 
                     }
-                    catch (Exception e)
-                    {
-                        DebugX.LogT("Could not log to '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "': " + e.Message);
-                        break;
-                    }
+                    while (retry++ < MaxRetries);
+
+                    if (retry >= MaxRetries)
+                        DebugX.LogT("Could not write to logfile '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "' for " + retry + " retries!");
+
+                    else if (retry > 0)
+                        DebugX.LogT("Successfully written to logfile '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "' after " + retry + " retries!");
 
                 }
-                while (retry++ < MaxRetries);
+                while (!cancellationTokenSource.IsCancellationRequested);
 
-                if (retry >= MaxRetries)
-                    DebugX.LogT("Could not write to logfile '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "' for " + retry + " retries!");
-
-                else if (retry > 0)
-                    DebugX.LogT("Successfully written to logfile '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "' after " + retry + " retries!");
-
-            });
+            }, cancellationTokenSource.Token);
 
 
         }
@@ -739,6 +767,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
 
         #endregion
 
+
+        public void Stop()
+        {
+            cancellationTokenSource.Cancel();
+        }
 
     }
 
