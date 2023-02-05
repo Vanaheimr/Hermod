@@ -18,6 +18,7 @@
 #region Usings
 
 using System.Text;
+using System.Threading.Channels;
 using System.Collections.Concurrent;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -28,8 +29,8 @@ using org.GraphDefined.Vanaheimr.Hermod.Logging;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
-    public delegate Task   HTTPRequestLoggerDelegate (String LoggingPath, String Context, String LogEventName, HTTPRequest Request);
-    public delegate Task   HTTPResponseLoggerDelegate(String LoggingPath, String Context, String LogEventName, HTTPRequest Request, HTTPResponse Response);
+    public delegate Task HTTPRequestLoggerDelegate (String LoggingPath, String Context, String LogEventName, HTTPRequest Request);
+    public delegate Task HTTPResponseLoggerDelegate(String LoggingPath, String Context, String LogEventName, HTTPRequest Request, HTTPResponse Response);
 
 
     /// <summary>
@@ -38,29 +39,69 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public abstract class AHTTPLogger
     {
 
+        public class RequestData
+        {
+            public String       LoggingPath     { get; }
+            public String       Context         { get; }
+            public String       LogEventName    { get; }
+            public HTTPRequest  Request         { get; }
+
+            public RequestData(String       loggingPath,
+                               String       context,
+                               String       logEventName,
+                               HTTPRequest  request)
+            {
+                LoggingPath   = loggingPath;
+                Context       = context;
+                LogEventName  = logEventName;
+                Request       = request;
+            }
+
+        }
+
+        public class ResponseData
+        {
+            public String        LoggingPath     { get; }
+            public String        Context         { get; }
+            public String        LogEventName    { get; }
+            public HTTPRequest   Request         { get; }
+            public HTTPResponse  Response        { get; }
+
+            public ResponseData(String        loggingPath,
+                                String        context,
+                                String        logEventName,
+                                HTTPRequest   request,
+                                HTTPResponse  response)
+            {
+                LoggingPath   = loggingPath;
+                Context       = context;
+                LogEventName  = logEventName;
+                Request       = request;
+                Response      = response;
+            }
+
+        }
+
+
         #region Data
 
-        private static readonly Object         LockObject                   = new();
-        private static          SemaphoreSlim  LogHTTPRequest_toDisc_Lock   = new (1,1);
-        private static          SemaphoreSlim  LogHTTPResponse_toDisc_Lock  = new (1,1);
+        private readonly Channel<RequestData>  cliRequestChannel;
+        private readonly Channel<ResponseData> cliResponseChannel;
+
+        private readonly Channel<RequestData>  discRequestChannel;
+        private readonly Channel<ResponseData> discResponseChannel;
 
         /// <summary>
         /// The maximum number of retries to write to a logfile.
         /// </summary>
-        public  static readonly Byte           MaxRetries                   = 5;
+        public  static readonly Byte      MaxRetries          = 5;
 
         /// <summary>
         /// Maximum waiting time to enter a lock around a logfile.
         /// </summary>
-        public  static readonly TimeSpan       MaxWaitingForALock           = TimeSpan.FromSeconds(15);
+        public  static readonly TimeSpan  MaxWaitingForALock  = TimeSpan.FromSeconds(15);
 
-        /// <summary>
-        /// A delegate for the default ToDisc logger returning a
-        /// valid logfile name based on the given log event name.
-        /// </summary>
-        public         LogfileCreatorDelegate  LogfileCreator               { get; }
-
-        protected readonly ConcurrentDictionary<String, HashSet<String>> _GroupTags;
+        protected readonly ConcurrentDictionary<String, HashSet<String>> groupTags;
 
         #endregion
 
@@ -69,12 +110,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The logging path.
         /// </summary>
-        public String  LoggingPath    { get; }
+        public String                  LoggingPath       { get; }
 
         /// <summary>
         /// The context of this HTTP logger.
         /// </summary>
-        public String  Context        { get; }
+        public String                  Context           { get; }
+
+        /// <summary>
+        /// A delegate for the default ToDisc logger returning a
+        /// valid logfile name based on the given log event name.
+        /// </summary>
+        public LogfileCreatorDelegate  LogfileCreator    { get; }
 
         #endregion
 
@@ -128,7 +175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.LoggingPath  = LoggingPath ?? "";
             this.Context      = Context     ?? "";
-            this._GroupTags   = new ConcurrentDictionary<String, HashSet<String>>();
+            this.groupTags    = new ConcurrentDictionary<String, HashSet<String>>();
 
             #endregion
 
@@ -164,6 +211,213 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
+            cliRequestChannel    = Channel.CreateUnbounded<RequestData>();
+            cliResponseChannel   = Channel.CreateUnbounded<ResponseData>();
+
+            discRequestChannel   = Channel.CreateUnbounded<RequestData>();
+            discResponseChannel  = Channel.CreateUnbounded<ResponseData>();
+
+            // cli
+            _ = Task.Factory.StartNew(async () => {
+
+                var loggingData = await cliRequestChannel.Reader.ReadAsync();
+
+                var PreviousColor = Console.ForegroundColor;
+
+                Console.ForegroundColor = ConsoleColor.Gray;
+                Console.Write("[" + loggingData.Request.Timestamp.ToLocalTime() + " T:" + Environment.CurrentManagedThreadId.ToString() + "] ");
+
+                Console.ForegroundColor = ConsoleColor.DarkGray;
+                Console.Write(this.Context + "/");
+
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.Write(loggingData.LogEventName);
+
+                //Console.ForegroundColor = ConsoleColor.Gray;
+                //Console.WriteLine(Request.HTTPSource.Socket == Request.LocalSocket
+                //                      ? String.Concat(Request.LocalSocket, " -> ", Request.RemoteSocket)
+                //                      : String.Concat(Request.HTTPSource,  " -> ", Request.LocalSocket));
+
+                Console.ForegroundColor = PreviousColor;
+
+            });
+
+            _ = Task.Factory.StartNew(async () => {
+
+                var loggingData = await cliResponseChannel.Reader.ReadAsync();
+
+                var PreviousColor = Console.ForegroundColor;
+
+                Console.ForegroundColor = ConsoleColor.Gray;
+                Console.Write("[" + loggingData.Request.Timestamp.ToLocalTime() + " T:" + Environment.CurrentManagedThreadId.ToString() + "] ");
+
+                Console.ForegroundColor = ConsoleColor.DarkGray;
+                Console.Write(this.Context + "/");
+
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.Write(loggingData.LogEventName);
+
+                Console.ForegroundColor = ConsoleColor.Gray;
+                Console.Write(String.Concat(" from ", loggingData.Request.HTTPSource, " => "));
+
+                if (loggingData.Response.HTTPStatusCode == HTTPStatusCode.OK ||
+                    loggingData.Response.HTTPStatusCode == HTTPStatusCode.Created)
+                    Console.ForegroundColor = ConsoleColor.Green;
+
+                else if (loggingData.Response.HTTPStatusCode == HTTPStatusCode.NoContent)
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+
+                else
+                    Console.ForegroundColor = ConsoleColor.Red;
+
+                Console.Write(loggingData.Response.HTTPStatusCode);
+
+                Console.ForegroundColor = ConsoleColor.Gray;
+                Console.WriteLine(String.Concat(" in ", Math.Round((loggingData.Response.Timestamp - loggingData.Request.Timestamp).TotalMilliseconds), "ms"));
+
+                Console.ForegroundColor = PreviousColor;
+
+            });
+
+
+            // disc
+            _ = Task.Factory.StartNew(async () => {
+
+                var loggingData = await discRequestChannel.Reader.ReadAsync();
+
+                var retry = 0;
+
+                do
+                {
+
+                    try
+                    {
+
+                        File.AppendAllText(
+                            this.LogfileCreator(
+                                this.LoggingPath,
+                                this.Context,
+                                loggingData.LogEventName
+                            ),
+                            String.Concat(
+                                loggingData.Request.HTTPSource.Socket == loggingData.Request.LocalSocket
+                                    ? String.Concat(loggingData.Request.LocalSocket, " -> ", loggingData.Request.RemoteSocket)
+                                    : String.Concat(loggingData.Request.HTTPSource,  " -> ", loggingData.Request.LocalSocket),
+                                Environment.NewLine,
+                                ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------",  Environment.NewLine,
+                                loggingData.Request.Timestamp.ToIso8601(),                                           Environment.NewLine,
+                                loggingData.Request.EntirePDU,                                                       Environment.NewLine,
+                                "--------------------------------------------------------------------------------",  Environment.NewLine),
+                            Encoding.UTF8
+                        );
+
+                        break;
+
+                    }
+                    catch (IOException e)
+                    {
+
+                        if (e.HResult != -2147024864)
+                        {
+                            DebugX.LogT("File access error while logging to '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "' (retry: " + retry + "): " + e.Message);
+                            Thread.Sleep(100);
+                        }
+
+                        else
+                        {
+                            DebugX.LogT("Could not log to '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "': " + e.Message);
+                            break;
+                        }
+
+                    }
+                    catch (Exception e)
+                    {
+                        DebugX.LogT("Could not log to '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "': " + e.Message);
+                        break;
+                    }
+
+                }
+                while (retry++ < MaxRetries);
+
+                if (retry >= MaxRetries)
+                    DebugX.LogT("Could not write to logfile '"      + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "' for "   + retry + " retries!");
+
+                else if (retry > 0)
+                    DebugX.LogT("Successfully written to logfile '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "' after " + retry + " retries!");
+
+            });
+
+            _ = Task.Factory.StartNew(async () => {
+
+                var loggingData = await discResponseChannel.Reader.ReadAsync();
+
+                var retry = 0;
+
+                do
+                {
+
+                    try
+                    {
+
+                        File.AppendAllText(
+                            this.LogfileCreator(
+                                this.LoggingPath,
+                                this.Context,
+                                loggingData.LogEventName
+                            ),
+                            String.Concat(
+                                loggingData.Request.HTTPSource.Socket == loggingData.Request.LocalSocket
+                                    ? String.Concat(loggingData.Request.LocalSocket, " -> ", loggingData.Request.RemoteSocket)
+                                    : String.Concat(loggingData.Request.HTTPSource,  " -> ", loggingData.Request.LocalSocket),
+                                Environment.NewLine,
+                                ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------",                    Environment.NewLine,
+                                loggingData.Request.Timestamp.ToIso8601(),                                                             Environment.NewLine,
+                                loggingData.Request.EntirePDU,                                                                         Environment.NewLine,
+                                "<<<<<<--Response----<<<<<<------<<<<<<------<<<<<<------<<<<<<------<<<<<<------",                    Environment.NewLine,
+                                loggingData.Response.Timestamp.ToIso8601(),
+                                    " -> ",
+                                    (loggingData.Response.Timestamp - loggingData.Request.Timestamp).TotalMilliseconds, "ms runtime",  Environment.NewLine,
+                                loggingData.Response.EntirePDU,                                                                        Environment.NewLine,
+                                "--------------------------------------------------------------------------------",                    Environment.NewLine),
+                            Encoding.UTF8
+                        );
+
+                        break;
+
+                    }
+                    catch (IOException e)
+                    {
+
+                        if (e.HResult != -2147024864)
+                        {
+                            DebugX.LogT("File access error while logging to '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "' (retry: " + retry + "): " + e.Message);
+                            Thread.Sleep(100);
+                        }
+
+                        else
+                        {
+                            DebugX.LogT("Could not log to '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "': " + e.Message);
+                            break;
+                        }
+
+                    }
+                    catch (Exception e)
+                    {
+                        DebugX.LogT("Could not log to '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "': " + e.Message);
+                        break;
+                    }
+
+                }
+                while (retry++ < MaxRetries);
+
+                if (retry >= MaxRetries)
+                    DebugX.LogT("Could not write to logfile '"      + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "' for "   + retry + " retries!");
+
+                else if (retry > 0)
+                    DebugX.LogT("Successfully written to logfile '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "' after " + retry + " retries!");
+
+            });
+
         }
 
         #endregion
@@ -179,36 +433,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Context">The context of the log request.</param>
         /// <param name="LogEventName">The name of the log event.</param>
         /// <param name="Request">The HTTP request to log.</param>
-        public Task Default_LogHTTPRequest_toConsole(String       LoggingPath,
-                                                     String       Context,
-                                                     String       LogEventName,
-                                                     HTTPRequest  Request)
+        public async Task Default_LogHTTPRequest_toConsole(String       LoggingPath,
+                                                           String       Context,
+                                                           String       LogEventName,
+                                                           HTTPRequest  Request)
         {
 
-            lock (LockObject)
-            {
+            if (Request is null)
+                return;
 
-                var PreviousColor = Console.ForegroundColor;
-
-                Console.ForegroundColor = ConsoleColor.Gray;
-                Console.Write("[" + Request.Timestamp.ToLocalTime() + " T:" + Environment.CurrentManagedThreadId.ToString() + "] ");
-
-                Console.ForegroundColor = ConsoleColor.DarkGray;
-                Console.Write(Context + "/");
-
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.Write(LogEventName);
-
-                //Console.ForegroundColor = ConsoleColor.Gray;
-                //Console.WriteLine(Request.HTTPSource.Socket == Request.LocalSocket
-                //                      ? String.Concat(Request.LocalSocket, " -> ", Request.RemoteSocket)
-                //                      : String.Concat(Request.HTTPSource,  " -> ", Request.LocalSocket));
-
-                Console.ForegroundColor = PreviousColor;
-
-            }
-
-            return Task.CompletedTask;
+            await cliRequestChannel.Writer.WriteAsync(new RequestData(LoggingPath,
+                                                                      Context,
+                                                                      LogEventName,
+                                                                      Request));
 
         }
 
@@ -223,50 +460,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogEventName">The name of the log event.</param>
         /// <param name="Request">The HTTP request to log.</param>
         /// <param name="Response">The HTTP response to log.</param>
-        public Task Default_LogHTTPResponse_toConsole(String        LoggingPath,
-                                                      String        Context,
-                                                      String        LogEventName,
-                                                      HTTPRequest   Request,
-                                                      HTTPResponse  Response)
+        public async Task Default_LogHTTPResponse_toConsole(String        LoggingPath,
+                                                            String        Context,
+                                                            String        LogEventName,
+                                                            HTTPRequest   Request,
+                                                            HTTPResponse  Response)
         {
 
-            lock (LockObject)
-            {
+            if (Response is null)
+                return;
 
-                var PreviousColor = Console.ForegroundColor;
-
-                Console.ForegroundColor = ConsoleColor.Gray;
-                Console.Write("[" + Request.Timestamp.ToLocalTime() + " T:" + Environment.CurrentManagedThreadId.ToString() + "] ");
-
-                Console.ForegroundColor = ConsoleColor.DarkGray;
-                Console.Write(Context + "/");
-
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.Write(LogEventName);
-
-                Console.ForegroundColor = ConsoleColor.Gray;
-                Console.Write(String.Concat(" from ", Request.HTTPSource, " => "));
-
-                if (Response.HTTPStatusCode == HTTPStatusCode.OK ||
-                    Response.HTTPStatusCode == HTTPStatusCode.Created)
-                    Console.ForegroundColor = ConsoleColor.Green;
-
-                else if (Response.HTTPStatusCode == HTTPStatusCode.NoContent)
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-
-                else
-                    Console.ForegroundColor = ConsoleColor.Red;
-
-                Console.Write(Response.HTTPStatusCode);
-
-                Console.ForegroundColor = ConsoleColor.Gray;
-                Console.WriteLine(String.Concat(" in ", Math.Round((Response.Timestamp - Request.Timestamp).TotalMilliseconds), "ms"));
-
-                Console.ForegroundColor = PreviousColor;
-
-            }
-
-            return Task.CompletedTask;
+            await cliResponseChannel.Writer.WriteAsync(new ResponseData(LoggingPath,
+                                                                        Context,
+                                                                        LogEventName,
+                                                                        Request,
+                                                                        Response));
 
         }
 
@@ -287,79 +495,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                         HTTPRequest  Request)
         {
 
-            //ToDo: Can we have a lock per logfile?
-            var LockTaken = await LogHTTPRequest_toDisc_Lock.WaitAsync(MaxWaitingForALock);
+            if (Request is null)
+                return;
 
-            try
-            {
-
-                if (LockTaken)
-                {
-
-                    var retry = 0;
-
-                    do
-                    {
-
-                        try
-                        {
-
-                            File.AppendAllText(LogfileCreator(LoggingPath, Context, LogEventName),
-                                               String.Concat(Request.HTTPSource.Socket == Request.LocalSocket
-                                                                 ? String.Concat(Request.LocalSocket, " -> ", Request.RemoteSocket)
-                                                                 : String.Concat(Request.HTTPSource,  " -> ", Request.LocalSocket),
-                                                             Environment.NewLine,
-                                                             ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------",  Environment.NewLine,
-                                                             Request.Timestamp.ToIso8601(),                                                       Environment.NewLine,
-                                                             Request.EntirePDU,                                                                   Environment.NewLine,
-                                                             "--------------------------------------------------------------------------------",  Environment.NewLine),
-                                               Encoding.UTF8);
-
-                            break;
-
-                        }
-                        catch (IOException e)
-                        {
-
-                            if (e.HResult != -2147024864)
-                            {
-                                DebugX.LogT("File access error while logging to '" + LogfileCreator(LoggingPath, Context, LogEventName) + "' (retry: " + retry + "): " + e.Message);
-                                Thread.Sleep(100);
-                            }
-
-                            else
-                            {
-                                DebugX.LogT("Could not log to '" + LogfileCreator(LoggingPath, Context, LogEventName) + "': " + e.Message);
-                                break;
-                            }
-
-                        }
-                        catch (Exception e)
-                        {
-                            DebugX.LogT("Could not log to '" + LogfileCreator(LoggingPath, Context, LogEventName) + "': " + e.Message);
-                            break;
-                        }
-
-                    }
-                    while (retry++ < MaxRetries);
-
-                    if (retry >= MaxRetries)
-                        DebugX.LogT("Could not write to logfile '"      + LogfileCreator(LoggingPath, Context, LogEventName) + "' for "   + retry + " retries!");
-
-                    else if (retry > 0)
-                        DebugX.LogT("Successfully written to logfile '" + LogfileCreator(LoggingPath, Context, LogEventName) + "' after " + retry + " retries!");
-
-                }
-
-                else
-                    DebugX.LogT("Could not get lock to log to '" + LogfileCreator(LoggingPath, Context, LogEventName) + "'!");
-
-            }
-            finally
-            {
-                if (LockTaken)
-                    LogHTTPRequest_toDisc_Lock.Release();
-            }
+            await discRequestChannel.Writer.WriteAsync(new RequestData(LoggingPath,
+                                                                       Context,
+                                                                       LogEventName,
+                                                                       Request));
 
         }
 
@@ -381,84 +523,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          HTTPResponse  Response)
         {
 
-            //ToDo: Can we have a lock per logfile?
-            var LockTaken = await LogHTTPResponse_toDisc_Lock.WaitAsync(MaxWaitingForALock);
+            if (Response is null)
+                return;
 
-            try
-            {
-
-                if (LockTaken)
-                {
-
-                    var retry = 0;
-
-                    do
-                    {
-
-                        try
-                        {
-
-                            File.AppendAllText(LogfileCreator(LoggingPath, Context, LogEventName),
-                                               String.Concat(Request.HTTPSource.Socket == Request.LocalSocket
-                                                                 ? String.Concat(Request.LocalSocket, " -> ", Request.RemoteSocket)
-                                                                 : String.Concat(Request.HTTPSource,  " -> ", Request.LocalSocket),
-                                                             Environment.NewLine,
-                                                             ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------",  Environment.NewLine,
-                                                             Request.Timestamp.ToIso8601(),                                                       Environment.NewLine,
-                                                             Request.EntirePDU,                                                                   Environment.NewLine,
-                                                             "<<<<<<--Response----<<<<<<------<<<<<<------<<<<<<------<<<<<<------<<<<<<------",  Environment.NewLine,
-                                                             Response.Timestamp.ToIso8601(),
-                                                                 " -> ",
-                                                                 (Response.Timestamp - Request.Timestamp).TotalMilliseconds, "ms runtime",        Environment.NewLine,
-                                                             Response.EntirePDU,                                                                  Environment.NewLine,
-                                                             "--------------------------------------------------------------------------------",  Environment.NewLine),
-                                               Encoding.UTF8);
-
-                            break;
-
-                        }
-                        catch (IOException e)
-                        {
-
-                            if (e.HResult != -2147024864)
-                            {
-                                DebugX.LogT("File access error while logging to '" + LogfileCreator(LoggingPath, Context, LogEventName) + "' (retry: " + retry + "): " + e.Message);
-                                Thread.Sleep(100);
-                            }
-
-                            else
-                            {
-                                DebugX.LogT("Could not log to '" + LogfileCreator(LoggingPath, Context, LogEventName) + "': " + e.Message);
-                                break;
-                            }
-
-                        }
-                        catch (Exception e)
-                        {
-                            DebugX.LogT("Could not log to '" + LogfileCreator(LoggingPath, Context, LogEventName) + "': " + e.Message);
-                            break;
-                        }
-
-                    }
-                    while (retry++ < MaxRetries);
-
-                    if (retry >= MaxRetries)
-                        DebugX.LogT("Could not write to logfile '"      + LogfileCreator(LoggingPath, Context, LogEventName) + "' for "   + retry + " retries!");
-
-                    else if (retry > 0)
-                        DebugX.LogT("Successfully written to logfile '" + LogfileCreator(LoggingPath, Context, LogEventName) + "' after " + retry + " retries!");
-
-                }
-
-                else
-                    DebugX.LogT("Could not get lock to log to '" + LogfileCreator(LoggingPath, Context, LogEventName) + "'!");
-
-            }
-            finally
-            {
-                if (LockTaken)
-                    LogHTTPResponse_toDisc_Lock.Release();
-            }
+            await discResponseChannel.Writer.WriteAsync(new ResponseData(LoggingPath,
+                                                                         Context,
+                                                                         LogEventName,
+                                                                         Request,
+                                                                         Response));
 
         }
 
@@ -477,7 +549,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              LogTargets  LogTarget)
         {
 
-            if (_GroupTags.TryGetValue(LogEventOrGroupName,
+            if (groupTags.TryGetValue(LogEventOrGroupName,
                                        out HashSet<String> _LogEventNames))
 
                 return _LogEventNames.
@@ -510,7 +582,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                LogTargets  LogTarget)
         {
 
-            if (_GroupTags.TryGetValue(LogEventOrGroupName,
+            if (groupTags.TryGetValue(LogEventOrGroupName,
                                        out HashSet<String> _LogEventNames))
 
                 return _LogEventNames.

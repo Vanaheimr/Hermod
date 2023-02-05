@@ -639,11 +639,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
                 foreach (var GroupTag in GroupTags.Distinct())
                 {
 
-                    if (_GroupTags.TryGetValue(GroupTag, out HashSet<String>? logEventNames))
+                    if (groupTags.TryGetValue(GroupTag, out HashSet<String>? logEventNames))
                         logEventNames.Add(LogEventName);
 
                     else
-                        _GroupTags.TryAdd(GroupTag, new HashSet<String>(new String[] { LogEventName }));
+                        groupTags.TryAdd(GroupTag, new HashSet<String>(new String[] { LogEventName }));
 
                 }
 
@@ -699,11 +699,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
                 foreach (var GroupTag in GroupTags.Distinct())
                 {
 
-                    if (_GroupTags.TryGetValue(GroupTag, out HashSet<String>? logEventNames))
+                    if (groupTags.TryGetValue(GroupTag, out HashSet<String>? logEventNames))
                         logEventNames.Add(LogEventName);
 
                     else
-                        _GroupTags.TryAdd(GroupTag, new HashSet<String>(new String[] { LogEventName }));
+                        groupTags.TryAdd(GroupTag, new HashSet<String>(new String[] { LogEventName }));
 
                 }
 

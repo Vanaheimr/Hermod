@@ -914,11 +914,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 foreach (var GroupTag in GroupTags.Distinct())
                 {
 
-                    if (_GroupTags.TryGetValue(GroupTag, out _LogEventNames))
+                    if (groupTags.TryGetValue(GroupTag, out _LogEventNames))
                         _LogEventNames.Add(LogEventName);
 
                     else
-                        _GroupTags.TryAdd(GroupTag, new HashSet<String>(new String[] { LogEventName }));
+                        groupTags.TryAdd(GroupTag, new HashSet<String>(new String[] { LogEventName }));
 
                 }
 
@@ -976,11 +976,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 foreach (var GroupTag in GroupTags.Distinct())
                 {
 
-                    if (_GroupTags.TryGetValue(GroupTag, out _LogEventNames))
+                    if (groupTags.TryGetValue(GroupTag, out _LogEventNames))
                         _LogEventNames.Add(LogEventName);
 
                     else
-                        _GroupTags.TryAdd(GroupTag, new HashSet<String>(new String[] { LogEventName }));
+                        groupTags.TryAdd(GroupTag, new HashSet<String>(new String[] { LogEventName }));
 
                 }
 
@@ -1038,11 +1038,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 foreach (var GroupTag in GroupTags.Distinct())
                 {
 
-                    if (_GroupTags.TryGetValue(GroupTag, out _LogEventNames))
+                    if (groupTags.TryGetValue(GroupTag, out _LogEventNames))
                         _LogEventNames.Add(LogEventName);
 
                     else
-                        _GroupTags.TryAdd(GroupTag, new HashSet<String>(new String[] { LogEventName }));
+                        groupTags.TryAdd(GroupTag, new HashSet<String>(new String[] { LogEventName }));
 
                 }
 
@@ -1100,11 +1100,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 foreach (var GroupTag in GroupTags.Distinct())
                 {
 
-                    if (_GroupTags.TryGetValue(GroupTag, out _LogEventNames))
+                    if (groupTags.TryGetValue(GroupTag, out _LogEventNames))
                         _LogEventNames.Add(LogEventName);
 
                     else
-                        _GroupTags.TryAdd(GroupTag, new HashSet<String>(new String[] { LogEventName }));
+                        groupTags.TryAdd(GroupTag, new HashSet<String>(new String[] { LogEventName }));
 
                 }
 
