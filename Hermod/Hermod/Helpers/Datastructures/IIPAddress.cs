@@ -126,13 +126,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             => IsIPv4Localhost(Hostname) || IsIPv6Localhost(Hostname);
 
         public static Boolean IsIPv4Localhost(String Text)
-            => IsIPv4(Text) && (Text.StartsWith("127.") || Text.ToLower() == "localhost");
+            => (IsIPv4(Text) && Text.StartsWith("127.")) || Text.ToLower() == "localhost";
 
         public static Boolean IsIPv4Localhost(HTTPHostname Hostname)
             => Hostname.IsNotNullOrEmpty && IsIPv4Localhost(Hostname.ToString());
 
         public static Boolean IsIPv6Localhost(String Text)
-            => IsIPv6(Text) && (Text == "::1" || Text.ToLower() == "localhost6");
+            => (IsIPv6(Text) && Text == "::1") || Text.ToLower() == "localhost6";
 
         public static Boolean IsIPv6Localhost(HTTPHostname Hostname)
             => Hostname.IsNotNullOrEmpty && IsIPv6Localhost(Hostname.ToString());
