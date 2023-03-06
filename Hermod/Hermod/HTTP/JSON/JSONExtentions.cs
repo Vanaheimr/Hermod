@@ -921,7 +921,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             out Value,
                                             out String ErrorResponse);
 
-            if (ErrorResponse == null)
+            if (ErrorResponse is null)
                 HTTPResponse = null;
 
             else
