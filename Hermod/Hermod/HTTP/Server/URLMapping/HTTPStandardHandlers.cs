@@ -294,7 +294,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #endregion
 
 
-                HTTPContentType ResponseContentType = null;
+                HTTPContentType? ResponseContentType = null;
 
                 var FilePath    = (Request.ParsedURLParameters != null && Request.ParsedURLParameters.Length > 0)
                                       ? Request.ParsedURLParameters.Last().Replace("/", ".")
@@ -302,7 +302,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 var FileStream  = ResourceAssembly.GetManifestResourceStream(ResourcePath + "." + FilePath);
 
-                if (FileStream != null)
+                if (FileStream is not null)
                 {
 
                     #region Choose HTTP Content Type based on the file name extention...
