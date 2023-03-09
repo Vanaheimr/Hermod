@@ -296,7 +296,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               TimeSpan?                             RequestTimeout               = null,
                               TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
                               UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
-                              Boolean                               UseHTTPPipelining            = false,
+                              Boolean?                              UseHTTPPipelining            = null,
                               HTTPClientLogger?                     HTTPLogger                   = null,
                               DNSClient?                            DNSClient                    = null)
         {
@@ -313,7 +313,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.RequestTimeout              = RequestTimeout         ?? DefaultRequestTimeout;
             this.TransmissionRetryDelay      = TransmissionRetryDelay ?? (retryCounter => TimeSpan.FromSeconds(retryCounter * retryCounter * DefaultTransmissionRetryDelay.TotalSeconds));
             this.MaxNumberOfRetries          = MaxNumberOfRetries     ?? DefaultMaxNumberOfRetries;
-            this.UseHTTPPipelining           = UseHTTPPipelining;
+            this.UseHTTPPipelining           = UseHTTPPipelining      ?? false;
             this.HTTPLogger                  = HTTPLogger;
             this.DNSClient                   = DNSClient              ?? new DNSClient();
 
