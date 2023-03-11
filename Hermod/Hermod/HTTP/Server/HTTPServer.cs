@@ -414,16 +414,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              HTTPContentType  HTTPContentType,
                              HTTPPath         URLTarget)
 
-        {
-
-            httpServer.Redirect(HTTPAPI,
-                                Hostname,
-                                HTTPMethod,
-                                URLTemplate,
-                                HTTPContentType,
-                                URLTarget);
-
-        }
+            => httpServer.Redirect(HTTPAPI,
+                                   Hostname,
+                                   HTTPMethod,
+                                   URLTemplate,
+                                   HTTPContentType,
+                                   URLTarget);
 
         #endregion
 
@@ -442,15 +438,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              HTTPContentType  HTTPContentType,
                              HTTPPath         URLTarget)
 
-        {
-
-            httpServer.Redirect(HTTPAPI,
-                                HTTPMethod,
-                                URLTemplate,
-                                HTTPContentType,
-                                URLTarget);
-
-        }
+            => httpServer.Redirect(HTTPAPI,
+                                   HTTPMethod,
+                                   URLTemplate,
+                                   HTTPContentType,
+                                   URLTarget);
 
         #endregion
 
@@ -485,23 +477,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPDelegate?            HTTPDelegate                = null,
                                       URLReplacement           AllowReplacement            = URLReplacement.Fail)
 
-        {
-
-            httpServer.AddMethodCallback(HTTPAPI,
-                                          Hostname,
-                                          HTTPMethod,
-                                          URLTemplate,
-                                          HTTPContentType,
-                                          URLAuthentication,
-                                          HTTPMethodAuthentication,
-                                          ContentTypeAuthentication,
-                                          HTTPRequestLogger,
-                                          HTTPResponseLogger,
-                                          DefaultErrorHandler,
-                                          HTTPDelegate,
-                                          AllowReplacement);
-
-        }
+            => httpServer.AddMethodCallback(HTTPAPI,
+                                            Hostname,
+                                            HTTPMethod,
+                                            URLTemplate,
+                                            HTTPContentType,
+                                            URLAuthentication,
+                                            HTTPMethodAuthentication,
+                                            ContentTypeAuthentication,
+                                            HTTPRequestLogger,
+                                            HTTPResponseLogger,
+                                            DefaultErrorHandler,
+                                            HTTPDelegate,
+                                            AllowReplacement);
 
         #endregion
 
@@ -535,23 +523,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPDelegate?            HTTPDelegate                = null,
                                       URLReplacement           AllowReplacement            = URLReplacement.Fail)
 
-        {
-
-            httpServer.AddMethodCallback(HTTPAPI,
-                                          Hostname,
-                                          HTTPMethod,
-                                          URLTemplates,
-                                          HTTPContentType,
-                                          URLAuthentication,
-                                          HTTPMethodAuthentication,
-                                          ContentTypeAuthentication,
-                                          HTTPRequestLogger,
-                                          HTTPResponseLogger,
-                                          DefaultErrorHandler,
-                                          HTTPDelegate,
-                                          AllowReplacement);
-
-        }
+            => httpServer.AddMethodCallback(HTTPAPI,
+                                            Hostname,
+                                            HTTPMethod,
+                                            URLTemplates,
+                                            HTTPContentType,
+                                            URLAuthentication,
+                                            HTTPMethodAuthentication,
+                                            ContentTypeAuthentication,
+                                            HTTPRequestLogger,
+                                            HTTPResponseLogger,
+                                            DefaultErrorHandler,
+                                            HTTPDelegate,
+                                            AllowReplacement);
 
         #endregion
 
@@ -585,23 +569,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPDelegate?                  HTTPDelegate                = null,
                                       URLReplacement                 AllowReplacement            = URLReplacement.Fail)
 
-        {
-
-            httpServer.AddMethodCallback(HTTPAPI,
-                                          Hostname,
-                                          HTTPMethod,
-                                          URLTemplate,
-                                          HTTPContentTypes,
-                                          URLAuthentication,
-                                          HTTPMethodAuthentication,
-                                          ContentTypeAuthentication,
-                                          HTTPRequestLogger,
-                                          HTTPResponseLogger,
-                                          DefaultErrorHandler,
-                                          HTTPDelegate,
-                                          AllowReplacement);
-
-        }
+            => httpServer.AddMethodCallback(HTTPAPI,
+                                            Hostname,
+                                            HTTPMethod,
+                                            URLTemplate,
+                                            HTTPContentTypes,
+                                            URLAuthentication,
+                                            HTTPMethodAuthentication,
+                                            ContentTypeAuthentication,
+                                            HTTPRequestLogger,
+                                            HTTPResponseLogger,
+                                            DefaultErrorHandler,
+                                            HTTPDelegate,
+                                            AllowReplacement);
 
         #endregion
 
@@ -635,23 +615,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPDelegate?                 HTTPDelegate                = null,
                                       URLReplacement                AllowReplacement            = URLReplacement.Fail)
 
-        {
-
-            httpServer.AddMethodCallback(HTTPAPI,
-                                          Hostname,
-                                          HTTPMethod,
-                                          URLTemplates,
-                                          HTTPContentTypes,
-                                          URLAuthentication,
-                                          HTTPMethodAuthentication,
-                                          ContentTypeAuthentication,
-                                          HTTPRequestLogger,
-                                          HTTPResponseLogger,
-                                          DefaultErrorHandler,
-                                          HTTPDelegate,
-                                          AllowReplacement);
-
-        }
+            => httpServer.AddMethodCallback(HTTPAPI,
+                                            Hostname,
+                                            HTTPMethod,
+                                            URLTemplates,
+                                            HTTPContentTypes,
+                                            URLAuthentication,
+                                            HTTPMethodAuthentication,
+                                            ContentTypeAuthentication,
+                                            HTTPRequestLogger,
+                                            HTTPResponseLogger,
+                                            DefaultErrorHandler,
+                                            HTTPDelegate,
+                                            AllowReplacement);
 
         #endregion
 
@@ -661,17 +637,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Call the best matching method handler for the given HTTP request.
         /// </summary>
-        protected HTTPServer.HTTPRequestHandle GetHandlers(HTTPHostname                              Host,
-                                                  HTTPPath                                   URL,
-                                                  HTTPMethod?                               HTTPMethod                   = null,
-                                                  Func<HTTPContentType[], HTTPContentType>  HTTPContentTypeSelector      = null,
-                                                  Action<IEnumerable<String>>               ParsedURLParametersDelegate  = null)
+        protected HTTPServer.HTTPRequestHandle
+
+            GetHandlers(HTTPHostname                               Host,
+                        HTTPPath                                   URL,
+                        HTTPMethod?                                HTTPMethod                    = null,
+                        Func<HTTPContentType[], HTTPContentType>?  HTTPContentTypeSelector       = null,
+                        Action<IEnumerable<String>>?               ParsedURLParametersDelegate   = null)
 
             => httpServer.GetRequestHandle(Host,
-                                       URL,
-                                       HTTPMethod,
-                                       HTTPContentTypeSelector,
-                                       ParsedURLParametersDelegate);
+                                           URL,
+                                           HTTPMethod,
+                                           HTTPContentTypeSelector,
+                                           ParsedURLParametersDelegate);
 
         #endregion
 

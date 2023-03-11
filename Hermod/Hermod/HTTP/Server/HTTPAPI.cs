@@ -1176,7 +1176,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// This HTTP API runs in development mode.
         /// </summary>
-        public Boolean?                 IsDevelopment               { get; }
+        public Boolean                  IsDevelopment               { get; }
 
         /// <summary>
         /// The enumeration of server names which will imply to run this service in development mode.
@@ -1472,10 +1472,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.RunType                  = ApplicationRunType.GetRunType();
             this.SystemId                 = System_Id.Parse(Environment.MachineName.Replace("/", "") + "/" + HTTPServer.DefaultHTTPServerPort);
-            this.IsDevelopment            = IsDevelopment;
-            this.DevelopmentServers       = DevelopmentServers is not null ? new HashSet<String>(DevelopmentServers) : new HashSet<String>();
+            this.IsDevelopment            = IsDevelopment ?? false;
+            this.DevelopmentServers       = DevelopmentServers is not null
+                                                ? new HashSet<String>(DevelopmentServers)
+                                                : new HashSet<String>();
 
-            if (!this.IsDevelopment.HasValue && this.DevelopmentServers.Contains(Environment.MachineName))
+            if (this.DevelopmentServers.Contains(Environment.MachineName))
                 this.IsDevelopment = true;
 
             this.LogfileName              = LogfileName    ?? DefaultHTTPAPI_LogfileName;
@@ -2194,6 +2196,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 return HTMLTemplate.Replace("<%= content %>",  "").
                                     Replace("{{BasePath}}",    "");
+
+            }
+
+            return String.Empty;
+
+        }
+
+        #endregion
+
+        #region (protected virtual) MixWithHTMLTemplate    (ResourceName, HTMLConverter, ResourceAssemblies)
+
+        protected virtual String MixWithHTMLTemplate(String                ResourceName,
+                                                     Func<String, String>  HTMLConverter)
+
+            => MixWithHTMLTemplate(ResourceName,
+                                   HTMLConverter,
+                                   new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+
+        protected virtual String MixWithHTMLTemplate(String                            ResourceName,
+                                                     Func<String, String>              HTMLConverter,
+                                                     params Tuple<String, Assembly>[]  ResourceAssemblies)
+        {
+
+            if (HTMLTemplate is not null)
+            {
+
+                var htmlStream = new MemoryStream();
+
+                foreach (var assembly in ResourceAssemblies)
+                {
+
+                    var resourceStream = assembly.Item2.GetManifestResourceStream(assembly.Item1 + ResourceName);
+                    if (resourceStream is not null)
+                    {
+
+                        resourceStream.Seek(3, SeekOrigin.Begin);
+                        resourceStream.CopyTo(htmlStream);
+
+                        return HTMLConverter(HTMLTemplate.Replace("<%= content %>",  htmlStream.ToArray().ToUTF8String()).
+                                                          Replace("{{BasePath}}",    BasePath?.ToString() ?? ""));
+
+                    }
+
+                }
+
+                return HTMLConverter(HTMLTemplate.Replace("<%= content %>",  "").
+                                                  Replace("{{BasePath}}",    ""));
 
             }
 

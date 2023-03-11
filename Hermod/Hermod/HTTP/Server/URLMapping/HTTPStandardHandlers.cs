@@ -296,18 +296,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPContentType? ResponseContentType = null;
 
-                var FilePath    = (Request.ParsedURLParameters != null && Request.ParsedURLParameters.Length > 0)
+                var filePath    = (Request.ParsedURLParameters != null && Request.ParsedURLParameters.Length > 0)
                                       ? Request.ParsedURLParameters.Last().Replace("/", ".")
                                       : DefaultFilename.Replace("/", ".");
 
-                var FileStream  = ResourceAssembly.GetManifestResourceStream(ResourcePath + "." + FilePath);
+                var fileStream  = ResourceAssembly.GetManifestResourceStream(ResourcePath + "." + filePath);
 
-                if (FileStream is not null)
+                if (fileStream is not null)
                 {
 
                     #region Choose HTTP Content Type based on the file name extention...
 
-                    var FileName = FilePath.Substring(FilePath.LastIndexOf("/") + 1);
+                    var FileName = filePath.Substring(filePath.LastIndexOf("/") + 1);
 
                     // Get the appropriate content type based on the suffix of the requested resource
                     switch (FileName.Remove(0, FileName.LastIndexOf(".") + 1))
@@ -337,7 +337,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         Server          = HTTPServer.DefaultServerName,
                         Date            = DateTime.UtcNow,
                         ContentType     = ResponseContentType,
-                        ContentStream   = FileStream,
+                        ContentStream   = fileStream,
                         CacheControl    = "public, max-age=300",
                         //Expires          = "Mon, 25 Jun 2015 21:31:12 GMT",
                         KeepAlive       = new KeepAliveType(TimeSpan.FromMinutes(5), 500),
