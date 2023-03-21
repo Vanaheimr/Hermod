@@ -17,12 +17,8 @@
 
 #region Usings
 
-using System;
-using System.IO;
-using System.Linq;
 using System.Text;
 using System.ComponentModel;
-using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -39,7 +35,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     ///    for any kind of metadata
     ///  - A body hosting the transmitted content
     /// </summary>
-    public abstract class AHTTPPDUBuilder : IEnumerable<KeyValuePair<String, Object>>, INotifyPropertyChanged
+    public abstract class AHTTPPDUBuilder : IEnumerable<KeyValuePair<String, Object>>
     {
 
         #region Data
@@ -55,209 +51,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Non-HTTP header fields
 
-        #region EventTrackingId
-
-        private EventTracking_Id _EventTrackingId;
-
         /// <summary>
         /// A unique identification for tracking related events.
         /// </summary>
-        public EventTracking_Id EventTrackingId
-        {
-
-            get
-            {
-                return _EventTrackingId;
-            }
-
-            set
-            {
-                _EventTrackingId = value;
-            }
-
-        }
-
-        #endregion
-
-        #region ConstructedHTTPHeader
-
-        /// <summary>
-        /// Return a string representation of this HTTPHeader.
-        /// </summary>
-        public String ConstructedHTTPHeader
-        {
-            get
-            {
-
-                var HTTPHeader = new List<String>();
-
-                foreach (var kvp in HeaderFields)
-                {
-
-                    if (kvp.Key == "Accept" && !(kvp.Value as AcceptTypes).Any())
-                        continue;
-
-                    if (kvp.Value != null)
-                    {
-
-                        switch (kvp.Value)
-                        {
-
-                            case String text:
-                                HTTPHeader.Add(kvp.Key + ": " + text);
-                                break;
-
-                            case String[] texts:
-                                foreach (var text in texts)
-                                    HTTPHeader.Add(kvp.Key + ": " + text);
-                                break;
-
-                            default:
-                                HTTPHeader.Add(kvp.Key + ": " + kvp.Value);
-                                break;
-
-                        }
-
-                    }
-                }
-
-                //return (from   _KeyValuePair in HeaderFields
-                //        where  _KeyValuePair.Key   != null
-                //        where  _KeyValuePair.Value != null
-                //        where  !String.IsNullOrEmpty(_KeyValuePair.Value.ToString())
-                //        select _KeyValuePair.Key + ": " + _KeyValuePair.Value).
-                return HTTPHeader.AggregateOrDefault((a, b) => a + Environment.NewLine + b, String.Empty);
-
-            }
-        }
-
-        #endregion
-
-        #region HTTPStatusCode
+        public EventTracking_Id?    EventTrackingId     { get; set; }
 
         /// <summary>
         /// The HTTP status code.
         /// </summary>
-        protected HTTPStatusCode _HTTPStatusCode;
-
-        /// <summary>
-        /// The HTTP status code.
-        /// </summary>
-        public HTTPStatusCode HTTPStatusCode
-        {
-
-            get
-            {
-                return _HTTPStatusCode;
-            }
-
-            set
-            {
-                SetProperty(ref _HTTPStatusCode, value, "HTTPStatusCode");
-            }
-
-        }
-
-        #endregion
-
-        #region ProtocolName
-
-        private String _ProtocolName;
+        public HTTPStatusCode?      HTTPStatusCode      { get; set; }
 
         /// <summary>
         /// The HTTP protocol name field.
         /// </summary>
-        public String ProtocolName
-        {
-
-            get
-            {
-                return _ProtocolName;
-            }
-
-            set
-            {
-                SetProperty(ref _ProtocolName, value, "ProtocolName");
-            }
-
-        }
-
-        #endregion
-
-        #region ProtocolVersion
-
-        private HTTPVersion _ProtocolVersion;
+        public String?              ProtocolName        { get; set; }
 
         /// <summary>
         /// The HTTP protocol version.
         /// </summary>
-        public HTTPVersion ProtocolVersion
-        {
-
-            get
-            {
-                return _ProtocolVersion;
-            }
-
-            set
-            {
-                SetProperty(ref _ProtocolVersion, value, "ProtocolVersion");
-            }
-
-        }
-
-        #endregion
+        public HTTPVersion?         ProtocolVersion     { get; set; }
 
         #region Content
 
-        private Byte[] _Content;
+        private Byte[]? content;
 
         /// <summary>
         /// The HTTP body/content as an array of bytes.
         /// </summary>
-        public Byte[] Content
+        public Byte[]? Content
         {
 
             get
             {
-                return _Content;
+                return content;
             }
 
             set
             {
-                SetProperty(ref _Content, value, "Content");
-                ContentLength = _Content != null ? (UInt64) _Content.LongLength : 0;
+                content = value;
+                ContentLength = content is not null ? (UInt64) content.LongLength : 0;
             }
 
         }
 
         #endregion
-
-        #region ContentStream
-
-        private Stream _ContentStream;
 
         /// <summary>
         /// The HTTP body/content as a stream.
         /// </summary>
-        public Stream ContentStream
-        {
-
-            get
-            {
-                return _ContentStream;
-            }
-
-            set
-            {
-                SetProperty(ref _ContentStream, value, "ContentStream");
-                // Setting the Content-Length might break lazyness!
-                //ContentLength = (UInt64) _ContentStream.Length;
-            }
-
-        }
-
-        #endregion
+        public Stream?              ContentStream       { get; set; }
 
         #endregion
 
@@ -769,16 +611,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #endregion
 
-        #region Events
-
-        #region PropertyChanged
+        #region ConstructedHTTPHeader
 
         /// <summary>
-        /// Raise an event whenever a property is changed.
+        /// Return a string representation of this HTTPHeader.
         /// </summary>
-        public event PropertyChangedEventHandler PropertyChanged;
+        public String ConstructedHTTPHeader
+        {
+            get
+            {
+
+                var HTTPHeader = new List<String>();
+
+                foreach (var kvp in HeaderFields)
+                {
+
+                    if (kvp.Key == "Accept" && !(kvp.Value as AcceptTypes).Any())
+                        continue;
+
+                    if (kvp.Value != null)
+                    {
+
+                        switch (kvp.Value)
+                        {
+
+                            case String text:
+                                HTTPHeader.Add(kvp.Key + ": " + text);
+                                break;
+
+                            case String[] texts:
+                                foreach (var text in texts)
+                                    HTTPHeader.Add(kvp.Key + ": " + text);
+                                break;
+
+                            default:
+                                HTTPHeader.Add(kvp.Key + ": " + kvp.Value);
+                                break;
+
+                        }
+
+                    }
+                }
+
+                //return (from   _KeyValuePair in HeaderFields
+                //        where  _KeyValuePair.Key   != null
+                //        where  _KeyValuePair.Value != null
+                //        where  !String.IsNullOrEmpty(_KeyValuePair.Value.ToString())
+                //        select _KeyValuePair.Key + ": " + _KeyValuePair.Value).
+                return HTTPHeader.AggregateOrDefault((a, b) => a + Environment.NewLine + b, String.Empty);
+
+            }
+        }
 
         #endregion
 
@@ -792,35 +676,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public AHTTPPDUBuilder()
         {
             this.HeaderFields  = new Dictionary<String, Object>(StringComparer.OrdinalIgnoreCase);
-            this.Date          = DateTime.UtcNow;
-        }
-
-        #endregion
-
-
-        #region (protected) SetProperty<T>(ref Field, NewValue, PropertyName)
-
-        /// <summary>
-        /// Change a property value and raises an PropertyChanged event.
-        /// </summary>
-        /// <typeparam name="T">The type of the property.</typeparam>
-        /// <param name="Field">The internal field.</param>
-        /// <param name="NewValue">The new value of the property.</param>
-        /// <param name="PropertyName">The name of the property.</param>
-        protected void SetProperty<T>(ref T Field, T NewValue, String PropertyName)
-        {
-
-            if (!EqualityComparer<T>.Default.Equals(Field, NewValue))
-            {
-
-                Field = NewValue;
-
-                // Take a copy of the handler for concurrency issues!
-                PropertyChanged?.Invoke(this,
-                                        new PropertyChangedEventArgs(PropertyName));
-
-            }
-
+            this.Date          = Timestamp.Now;
         }
 
         #endregion

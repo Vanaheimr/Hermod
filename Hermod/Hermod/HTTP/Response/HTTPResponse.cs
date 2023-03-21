@@ -1857,10 +1857,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// Create a new HTTP response.
             /// </summary>
             /// <param name="HTTPStatusCode">A HTTP status code</param>
-            public Builder(HTTPStatusCode?  HTTPStatusCode = null)
+            public Builder(HTTPStatusCode?  HTTPStatusCode   = null)
             {
 
-                this._HTTPStatusCode    = HTTPStatusCode ?? HTTPStatusCode.OK;
+                this.HTTPStatusCode     = HTTPStatusCode ?? HTTPStatusCode.OK;
                 this.Timestamp          = Illias.Timestamp.Now;
                 this.ProtocolName       = "HTTP";
                 this.ProtocolVersion    = new HTTPVersion(1, 1);
@@ -1880,11 +1880,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <param name="HTTPRequest">The HTTP request for this response.</param>
             /// <param name="HTTPStatusCode">A HTTP status code</param>
             public Builder(HTTPRequest      HTTPRequest,
-                           HTTPStatusCode?  HTTPStatusCode = null)
+                           HTTPStatusCode?  HTTPStatusCode   = null)
             {
 
                 this.HTTPRequest        = HTTPRequest;
-                this._HTTPStatusCode    = HTTPStatusCode ?? HTTPStatusCode.OK;
+                this.HTTPStatusCode     = HTTPStatusCode ?? HTTPStatusCode.OK;
                 this.Timestamp          = Illias.Timestamp.Now;
                 this.ProtocolName       = "HTTP";
                 this.ProtocolVersion    = new HTTPVersion(1, 1);
