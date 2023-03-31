@@ -255,7 +255,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         }
 
 
-        public Tuple<String, String>?               HTTPBasicAuth                   { get; }
+        public IHTTPAuthentication?                 HTTPAuthentication              { get; }
 
 
         /// <summary>
@@ -280,6 +280,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
 
         public TimeSpan?                            SlowNetworkSimulationDelay      { get; set; }
+
+
+        public IEnumerable<String>                  SecWebSocketProtocols           { get; }
 
         #endregion
 
@@ -315,7 +318,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="ClientCert">The SSL/TLS client certificate to use of HTTP authentication.</param>
         /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
         /// <param name="URLPathPrefix">An optional default URL path prefix.</param>
-        /// <param name="HTTPBasicAuth">The WebService-Security username/password.</param>
+        /// <param name="HTTPAuthentication">The WebService-Security username/password.</param>
         /// <param name="RequestTimeout">An optional Request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
         /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
@@ -335,11 +338,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                HTTPPath?                             URLPathPrefix                = null,
                                SslProtocols?                         TLSProtocol                  = null,
                                Boolean?                              PreferIPv4                   = null,
-                               Tuple<String, String>?                HTTPBasicAuth                = null,
+                               IHTTPAuthentication?                  HTTPAuthentication           = null,
                                TimeSpan?                             RequestTimeout               = null,
                                TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
                                UInt16?                               MaxNumberOfRetries           = 3,
                                Boolean                               UseHTTPPipelining            = false,
+
+                               IEnumerable<String>?                  SecWebSocketProtocols        = null,
 
                                Boolean                               DisableMaintenanceTasks      = false,
                                TimeSpan?                             MaintenanceEvery             = null,
@@ -365,13 +370,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             //this.URLPathPrefix                      = URLPathPrefix;
             this.TLSProtocol                        = TLSProtocol             ?? SslProtocols.Tls12 | SslProtocols.Tls13;
             this.PreferIPv4                         = PreferIPv4              ?? false;
-            this.HTTPBasicAuth                      = HTTPBasicAuth;
+            this.HTTPAuthentication                 = HTTPAuthentication;
             this.RequestTimeout                     = RequestTimeout          ?? TimeSpan.FromMinutes(10);
             this.TransmissionRetryDelay             = TransmissionRetryDelay  ?? (retryCount => TimeSpan.FromSeconds(5));
             this.MaxNumberOfRetries                 = MaxNumberOfRetries      ?? 3;
             this.UseHTTPPipelining                  = UseHTTPPipelining;
             this.HTTPLogger                         = HTTPLogger;
             this.DNSClient                          = DNSClient;
+
+            this.SecWebSocketProtocols              = SecWebSocketProtocols   ?? Array.Empty<String>();
 
             this.DisableMaintenanceTasks            = DisableMaintenanceTasks;
             this.MaintenanceEvery                   = MaintenanceEvery        ?? DefaultMaintenanceEvery;
@@ -636,18 +643,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             // Sec-WebSocket-Protocol:  ocpp1.6, ocpp1.5
                             // Sec-WebSocket-Version:   13
 
-                            httpRequest = new HTTPRequest.Builder {
-                                          Path                  = RemoteURL.Path,
-                                          Host                  = HTTPHostname.Parse(String.Concat(RemoteURL.Hostname, ":", RemoteURL.Port)),
-                                          Connection            = "Upgrade",
-                                          Upgrade               = "websocket",
-                                          SecWebSocketKey       = "x3JJHMbDL1EzLkh9GBhXDw==",
-                                          SecWebSocketProtocol  = "ocpp1.6",
-                                          SecWebSocketVersion   = "13",
-                                          Authorization         = HTTPBasicAuth?.Item1.IsNotNullOrEmpty() == true && HTTPBasicAuth?.Item2.IsNotNullOrEmpty() == true
-                                                                      ? new HTTPBasicAuthentication(HTTPBasicAuth.Item1, HTTPBasicAuth.Item2)
-                                                                      : null
-                                      }.AsImmutable;
+                            httpRequest  = new HTTPRequest.Builder {
+                                               Path                  = RemoteURL.Path,
+                                               Host                  = HTTPHostname.Parse(String.Concat(RemoteURL.Hostname, ":", RemoteURL.Port)),
+                                               Connection            = "Upgrade",
+                                               Upgrade               = "websocket",
+                                               SecWebSocketKey       = "x3JJHMbDL1EzLkh9GBhXDw==",
+                                               SecWebSocketProtocol  = SecWebSocketProtocols.Any()
+                                                                           ? SecWebSocketProtocols.AggregateWith(", ")
+                                                                           : null,
+                                               SecWebSocketVersion   = "13",
+                                               Authorization         = HTTPAuthentication
+                                           }.AsImmutable;
 
                             #region Call the optional HTTP request log delegate
 

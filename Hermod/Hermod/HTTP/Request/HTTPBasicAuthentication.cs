@@ -17,9 +17,6 @@
 
 #region Usings
 
-using System;
-using System.Diagnostics;
-
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -30,8 +27,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A HTTP basic authentication.
     /// </summary>
-    [DebuggerDisplay("{DebugView}")]
-    public class HTTPBasicAuthentication : IHTTPAuthentication
+    public class HTTPBasicAuthentication : IHTTPAuthentication,
+                                           IEquatable<HTTPBasicAuthentication>,
+                                           IComparable<HTTPBasicAuthentication>,
+                                           IComparable
     {
 
         #region Properties
@@ -53,14 +52,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
         public String HTTPText
-            => "Basic " + (Username + ":" + Password).ToBase64();
 
-
-        /// <summary>
-        /// Return a debug representation of this object.
-        /// </summary>
-        private String DebugView
-            => String.Concat("Basic '", Username, "', '", Password, "'");
+            => $"Basic " + $"{Username}:{Password}".ToBase64();
 
         #endregion
 
@@ -78,10 +71,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region Initial checks
 
             if (Username.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(Username), "The given username must not be null or empty!");
+                throw new ArgumentNullException(nameof(Username),  "The given username must not be null or empty!");
 
             if (Password.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(Password), "The given password must not be null or empty!");
+                throw new ArgumentNullException(nameof(Password),  "The given password must not be null or empty!");
 
             #endregion
 
@@ -102,12 +95,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Text">A text representation of a HTTP basic authentication header.</param>
         /// <param name="BasicAuthentication">The parsed HTTP basic authentication header.</param>
         /// <returns>true, when the parsing was successful, else false.</returns>
-        public static Boolean TryParse(String Text, out HTTPBasicAuthentication BasicAuthentication)
+        public static Boolean TryParse(String Text, out HTTPBasicAuthentication? BasicAuthentication)
         {
 
             BasicAuthentication = null;
 
-            Text = Text?.Trim();
+            if (Text.IsNullOrEmpty())
+                return false;
+
+            Text = Text.Trim();
 
             if (Text.IsNullOrEmpty())
                 return false;
@@ -126,7 +122,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (usernamePassword.IsNullOrEmpty())
                     return false;
 
-                BasicAuthentication = new HTTPBasicAuthentication(usernamePassword[0], usernamePassword[1]);
+                BasicAuthentication = new HTTPBasicAuthentication(
+                                          usernamePassword[0],
+                                          usernamePassword[1]
+                                      );
+
                 return true;
 
             }
@@ -138,13 +138,218 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region Operator overloading
+
+        #region Operator == (HTTPBasicAuthentication1, HTTPBasicAuthentication2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPBasicAuthentication1">A HTTP basic authentication.</param>
+        /// <param name="HTTPBasicAuthentication2">Another HTTP basic authentication.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator == (HTTPBasicAuthentication HTTPBasicAuthentication1,
+                                           HTTPBasicAuthentication HTTPBasicAuthentication2)
+        {
+
+            if (Object.ReferenceEquals(HTTPBasicAuthentication1, HTTPBasicAuthentication2))
+                return true;
+
+            if (HTTPBasicAuthentication1 is null || HTTPBasicAuthentication2 is null)
+                return false;
+
+            return HTTPBasicAuthentication1.Equals(HTTPBasicAuthentication2);
+
+        }
+
+        #endregion
+
+        #region Operator != (HTTPBasicAuthentication1, HTTPBasicAuthentication2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPBasicAuthentication1">A HTTP basic authentication.</param>
+        /// <param name="HTTPBasicAuthentication2">Another HTTP basic authentication.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator != (HTTPBasicAuthentication HTTPBasicAuthentication1,
+                                           HTTPBasicAuthentication HTTPBasicAuthentication2)
+
+            => !(HTTPBasicAuthentication1 == HTTPBasicAuthentication2);
+
+        #endregion
+
+        #region Operator <  (HTTPBasicAuthentication1, HTTPBasicAuthentication2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPBasicAuthentication1">A HTTP basic authentication.</param>
+        /// <param name="HTTPBasicAuthentication2">Another HTTP basic authentication.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator < (HTTPBasicAuthentication HTTPBasicAuthentication1,
+                                          HTTPBasicAuthentication HTTPBasicAuthentication2)
+
+            => HTTPBasicAuthentication1 is null
+                   ? throw new ArgumentNullException(nameof(HTTPBasicAuthentication1), "The given HTTP basic authentication must not be null!")
+                   : HTTPBasicAuthentication1.CompareTo(HTTPBasicAuthentication2) < 0;
+
+        #endregion
+
+        #region Operator <= (HTTPBasicAuthentication1, HTTPBasicAuthentication2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPBasicAuthentication1">A HTTP basic authentication.</param>
+        /// <param name="HTTPBasicAuthentication2">Another HTTP basic authentication.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator <= (HTTPBasicAuthentication HTTPBasicAuthentication1,
+                                           HTTPBasicAuthentication HTTPBasicAuthentication2)
+
+            => !(HTTPBasicAuthentication1 > HTTPBasicAuthentication2);
+
+        #endregion
+
+        #region Operator >  (HTTPBasicAuthentication1, HTTPBasicAuthentication2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPBasicAuthentication1">A HTTP basic authentication.</param>
+        /// <param name="HTTPBasicAuthentication2">Another HTTP basic authentication.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator > (HTTPBasicAuthentication HTTPBasicAuthentication1,
+                                          HTTPBasicAuthentication HTTPBasicAuthentication2)
+
+            => HTTPBasicAuthentication1 is null
+                   ? throw new ArgumentNullException(nameof(HTTPBasicAuthentication1), "The given HTTP basic authentication must not be null!")
+                   : HTTPBasicAuthentication1.CompareTo(HTTPBasicAuthentication2) > 0;
+
+        #endregion
+
+        #region Operator >= (HTTPBasicAuthentication1, HTTPBasicAuthentication2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPBasicAuthentication1">A HTTP basic authentication.</param>
+        /// <param name="HTTPBasicAuthentication2">Another HTTP basic authentication.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator >= (HTTPBasicAuthentication HTTPBasicAuthentication1,
+                                           HTTPBasicAuthentication HTTPBasicAuthentication2)
+
+            => !(HTTPBasicAuthentication1 < HTTPBasicAuthentication2);
+
+        #endregion
+
+        #endregion
+
+        #region IComparable<HTTPBasicAuthentication> Members
+
+        #region CompareTo(Object)
+
+        /// <summary>
+        /// Compares two HTTP basic authentications.
+        /// </summary>
+        /// <param name="Object">A HTTP basic authentication to compare with.</param>
+        public Int32 CompareTo(Object? Object)
+
+            => Object is HTTPBasicAuthentication httpBasicAuthentication
+                   ? CompareTo(httpBasicAuthentication)
+                   : throw new ArgumentException("The given object is not a HTTP Basic Authentication!",
+                                                 nameof(Object));
+
+        #endregion
+
+        #region CompareTo(HTTPBasicAuthentication)
+
+        /// <summary>
+        /// Compares two HTTP basic authentications.
+        /// </summary>
+        /// <param name="HTTPBasicAuthentication">A HTTP basic authentication to compare with.</param>
+        public Int32 CompareTo(HTTPBasicAuthentication? HTTPBasicAuthentication)
+        {
+
+            if (HTTPBasicAuthentication is null)
+                throw new ArgumentNullException(nameof(Object),
+                                                "The given object HTTP Basic Authentication must not be null!");
+
+            var c = String.Compare(Username,
+                                   HTTPBasicAuthentication.Username,
+                                   StringComparison.Ordinal);
+
+            if (c == 0)
+                String.Compare(Password,
+                               HTTPBasicAuthentication.Password,
+                               StringComparison.Ordinal);
+
+            return c;
+
+        }
+
+        #endregion
+
+        #endregion
+
+        #region IEquatable<HTTPBasicAuthentication> Members
+
+        #region Equals(Object)
+
+        /// <summary>
+        /// Compares two HTTP basic authentications for equality.
+        /// </summary>
+        /// <param name="Object">A HTTP basic authentication to compare with.</param>
+        public override Boolean Equals(Object? Object)
+
+            => Object is HTTPBasicAuthentication httpBasicAuthentication &&
+                   Equals(httpBasicAuthentication);
+
+        #endregion
+
+        #region Equals(HTTPBasicAuthentication)
+
+        /// <summary>
+        /// Compares two HTTP basic authentications for equality.
+        /// </summary>
+        /// <param name="HTTPBasicAuthentication">A HTTP basic authentication to compare with.</param>
+        public Boolean Equals(HTTPBasicAuthentication? HTTPBasicAuthentication)
+
+            => HTTPBasicAuthentication is not null &&
+               Username.Equals(HTTPBasicAuthentication.Username) &&
+               Password.Equals(HTTPBasicAuthentication.Password);
+
+        #endregion
+
+        #endregion
+
+        #region (override) GetHashCode()
+
+        /// <summary>
+        /// Return the HashCode of this object.
+        /// </summary>
+        /// <returns>The HashCode of this object.</returns>
+        public override Int32 GetHashCode()
+        {
+            unchecked
+            {
+
+                return Username.GetHashCode() * 3 ^
+                       Password.GetHashCode();
+
+            }
+        }
+
+        #endregion
+
         #region (override) ToString()
 
         /// <summary>
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-            => "Basic " + (Username + ":" + Password).ToBase64();
+
+            => String.Concat($"Basic {Username}:{Password} (", $"{Username}:{Password}".ToBase64(), ")");
 
         #endregion
 

@@ -15,17 +15,11 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using System;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// Different authentication types for HTTP authentication.
+    /// HTTP authentication types.
     /// </summary>
     [Flags]
     public enum HTTPAuthenticationTypes

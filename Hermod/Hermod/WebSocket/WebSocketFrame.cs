@@ -509,18 +509,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                           ? MaskStatus.On
                                           : MaskStatus.Off;
 
+
+                // The payload length of HTTP WebSockets frames can be encoded using one of three
+                // different formats, depending on the size of the payload:
+                // 
+                // If the payload length is between 0 and 125 bytes, the length is encoded as a
+                // single byte in binary format, with the most significant bit set to 0. This
+                // byte directly represents the length of the payload.
+                // 
+                // If the payload length is between 126 and 65535 bytes, the length is encoded
+                // in two bytes in binary format, with the most significant bit of the first
+                // byte set to 0 and the most significant bit of the second byte set to 1.
+                // The remaining 15 bits of these two bytes are used to represent the length of
+                // the payload.
+                // 
+                // If the payload length is greater than 65535 bytes, the length is encoded in
+                // eight bytes in binary format. The first byte has the most significant bit set
+                // to 0 and the next seven bits set to 1. The remaining seven bytes are used to
+                // represent the length of the payload in network byte order (big-endian).
+                // 
+                // The encoding of the payload length is included in the WebSocket frame header,
+                // along with other information such as the opcode, masking key (if any), and
+                // payload data.
+
                 var payloadLength  = (UInt64) (ByteArray[1] & 0x7f);
-
                 var offset         = 2U;
-
 
                 if (payloadLength == 126) {
 
-                    payloadLength  = BitConverter.ToUInt16(new Byte[] {
-                                                               ByteArray[3],
-                                                               ByteArray[2]
-                                                           },
-                                                           0);
+                    payloadLength  = (UInt64) ((ByteArray[2] << 8) | ByteArray[3]);
 
                     offset         = 4U;
 
@@ -528,10 +545,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 else if (payloadLength == 127) {
 
-                    DebugX.Log("TODO: msglen == 127, needs qword to store msglen");
+                    payloadLength  = ((UInt64) ByteArray[2] << 56) |
+                                     ((UInt64) ByteArray[3] << 48) |
+                                     ((UInt64) ByteArray[4] << 40) |
+                                     ((UInt64) ByteArray[5] << 32) |
+                                     ((UInt64) ByteArray[6] << 24) |
+                                     ((UInt64) ByteArray[7] << 16) |
+                                     ((UInt64) ByteArray[8] <<  8) |
+                                               ByteArray[9];
 
-                    // i don't really know the byte order, please edit this
-                    // payloadLen = BitConverter.ToUInt64(new byte[] { bytes[5], bytes[4], bytes[3], bytes[2], bytes[9], bytes[8], bytes[7], bytes[6] }, 0);
                     offset         = 10U;
 
                 }

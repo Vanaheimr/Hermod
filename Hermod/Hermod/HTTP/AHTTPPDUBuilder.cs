@@ -645,6 +645,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     HTTPHeader.Add(kvp.Key + ": " + text);
                                 break;
 
+                            case IHTTPAuthentication httpAuthentication:
+                                HTTPHeader.Add(kvp.Key + ": " + httpAuthentication.HTTPText);
+                                break;
+
                             default:
                                 HTTPHeader.Add(kvp.Key + ": " + kvp.Value);
                                 break;

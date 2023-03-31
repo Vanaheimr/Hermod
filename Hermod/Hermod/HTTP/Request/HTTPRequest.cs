@@ -604,48 +604,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The HTTP basic authentication.
         /// </summary>
-        public IHTTPAuthentication Authorization
+        public IHTTPAuthentication? Authorization
         {
             get
             {
 
-                //var _Authorization = GetHeaderField<HTTPBasicAuthentication>("Authorization");
-                var _Authorization = GetHeaderField<IHTTPAuthentication>("Authorization");
-                if (_Authorization != null)
-                    return _Authorization;
+                var authorization       = GetHeaderField<IHTTPAuthentication>("Authorization");
+                if (authorization is not null)
+                    return authorization;
 
-                var _AuthString = GetHeaderField<String>("Authorization");
+                var authorizationString = GetHeaderField<String>(HTTPHeaderField.Authorization);
 
-                if (_AuthString == null)
-                    return null;
-
-                var splitted = _AuthString.Split(new Char[] { ' ' });
-
-                if (splitted.IsNullOrEmpty())
-                    return null;
-
-                if (splitted.Length == 2)
+                if (authorizationString is not null)
                 {
 
-                    if (String.Equals(splitted[0], "basic", StringComparison.OrdinalIgnoreCase))
-                    {
-
-                        if (HTTPBasicAuthentication.TryParse(_AuthString, out HTTPBasicAuthentication basicAuthentication))
-                            SetHeaderField("Authorization", basicAuthentication);
-
+                    if (HTTPBasicAuthentication. TryParse(authorizationString, out var basicAuthentication))
                         return basicAuthentication;
 
-                    }
-
-                    if (String.Equals(splitted[0], "token", StringComparison.OrdinalIgnoreCase))
-                    {
-
-                        if (HTTPTokenAuthentication.TryParse(_AuthString, out HTTPTokenAuthentication tokenAuthentication))
-                            SetHeaderField("Authorization", tokenAuthentication);
-
-                        return tokenAuthentication;
-
-                    }
+                    if (HTTPBearerAuthentication.TryParse(authorizationString, out var bearerAuthentication))
+                        return bearerAuthentication;
 
                 }
 
@@ -2022,13 +1999,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 get
                 {
 
-                    var aa = GetHeaderField<String>(HTTPHeaderField.Authorization);
+                    var authorization = GetHeaderField<String>(HTTPHeaderField.Authorization);
 
-                    if (HTTPBasicAuthentication. TryParse(aa, out HTTPBasicAuthentication  BasicAuth))
-                        return BasicAuth;
+                    if (authorization is not null)
+                    {
 
-                    if (HTTPBearerAuthentication.TryParse(aa, out HTTPBearerAuthentication BearerAuth))
-                        return BearerAuth;
+                        if (HTTPBasicAuthentication. TryParse(authorization, out var basicAuthentication))
+                            return basicAuthentication;
+
+                        if (HTTPBearerAuthentication.TryParse(authorization, out var bearerAuthentication))
+                            return bearerAuthentication;
+
+                    }
 
                     return null;
 
@@ -2036,7 +2018,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 set
                 {
-                    SetHeaderField(HTTPHeaderField.Authorization, value);
+                    SetHeaderField(HTTPHeaderField.Authorization, value?.HTTPText);
                 }
 
             }
@@ -2504,7 +2486,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region SecWebSocketProtocol
 
-            public String SecWebSocketProtocol
+            public String? SecWebSocketProtocol
             {
 
                 get
@@ -2523,7 +2505,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region SecWebSocketVersion
 
-            public String SecWebSocketVersion
+            public String? SecWebSocketVersion
             {
 
                 get
