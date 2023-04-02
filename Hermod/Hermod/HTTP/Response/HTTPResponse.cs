@@ -734,7 +734,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region SecWebSocketAccept
 
-        public String SecWebSocketAccept
+        public String? SecWebSocketAccept
+
             => GetHeaderField(HTTPHeaderField.SecWebSocketAccept);
 
         #endregion

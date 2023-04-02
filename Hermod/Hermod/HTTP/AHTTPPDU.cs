@@ -306,8 +306,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region SecWebSocketProtocol
 
-        public String SecWebSocketProtocol
-            => GetHeaderField(HTTPHeaderField.SecWebSocketProtocol);
+        private IEnumerable<String> secWebSocketProtocol;
+
+        public IEnumerable<String> SecWebSocketProtocol
+        {
+            get
+            {
+
+                if (secWebSocketProtocol is not null)
+                    return secWebSocketProtocol;
+
+                var secWebSocketProtocols = GetHeaderField<String>(HTTPHeaderField.SecWebSocketProtocol);
+
+                if (secWebSocketProtocols is not null)
+                    secWebSocketProtocol = secWebSocketProtocols.Split(',').Select(protocol => protocol.Trim()).Distinct();
+
+                return secWebSocketProtocol ?? Array.Empty<String>();
+
+            }
+        }
 
         #endregion
 

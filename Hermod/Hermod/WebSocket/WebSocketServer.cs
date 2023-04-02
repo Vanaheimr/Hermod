@@ -24,6 +24,7 @@ using System.Collections.Concurrent;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using System.Data.SqlTypes;
 
 #endregion
 
@@ -65,7 +66,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public String                            HTTPServiceName               { get; }
 
-
         public ServerThreadNameCreatorDelegate?  ServerThreadNameCreator       { get; }
 
         public ThreadPriority                    ServerThreadPriority          { get; }
@@ -94,6 +94,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public Boolean                           IsRunning
             => isRunning;
+
+
+        /// <summary>
+        /// The supported secondary web socket protocols.
+        /// </summary>
+        public IEnumerable<String>               SecWebSocketProtocols         { get; }
 
         /// <summary>
         /// Disable web socket pings.
@@ -255,6 +261,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                ThreadPriority?                   ServerThreadPriority         = null,
                                Boolean?                          ServerThreadIsBackground     = null,
 
+                               IEnumerable<String>?              SecWebSocketProtocols        = null,
                                Boolean                           DisableWebSocketPings        = false,
                                TimeSpan?                         WebSocketPingEvery           = null,
                                TimeSpan?                         SlowNetworkSimulationDelay   = null,
@@ -269,6 +276,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                    ServerThreadPriority,
                    ServerThreadIsBackground,
 
+                   SecWebSocketProtocols,
                    DisableWebSocketPings,
                    WebSocketPingEvery,
                    SlowNetworkSimulationDelay,
@@ -295,6 +303,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                ThreadPriority?                   ServerThreadPriority         = null,
                                Boolean?                          ServerThreadIsBackground     = null,
 
+                               IEnumerable<String>?              SecWebSocketProtocols        = null,
                                Boolean                           DisableWebSocketPings        = false,
                                TimeSpan?                         WebSocketPingEvery           = null,
                                TimeSpan?                         SlowNetworkSimulationDelay   = null,
@@ -304,12 +313,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         {
 
             this.IPSocket                    = IPSocket;
-            this.HTTPServiceName             = HTTPServiceName          ?? "GraphDefined HTTP Web Socket Server v2.0";
+            this.HTTPServiceName             = HTTPServiceName                   ?? "GraphDefined HTTP Web Socket Service v2.0";
             this.ServerThreadNameCreator     = ServerThreadNameCreator;
-            this.ServerThreadPriority        = ServerThreadPriority     ?? ThreadPriority.Normal;
-            this.ServerThreadIsBackground    = ServerThreadIsBackground ?? false;
+            this.ServerThreadPriority        = ServerThreadPriority              ?? ThreadPriority.Normal;
+            this.ServerThreadIsBackground    = ServerThreadIsBackground          ?? false;
+
+            this.SecWebSocketProtocols       = SecWebSocketProtocols?.Distinct() ?? Array.Empty<String>();
             this.DisableWebSocketPings       = DisableWebSocketPings;
-            this.WebSocketPingEvery          = WebSocketPingEvery       ?? DefaultWebSocketPingEvery;
+            this.WebSocketPingEvery          = WebSocketPingEvery                ?? DefaultWebSocketPingEvery;
             this.SlowNetworkSimulationDelay  = SlowNetworkSimulationDelay;
             this.DNSClient                   = DNSClient;
 
@@ -388,8 +399,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             var responseTask = OnTextMessageSentLocal(Timestamp.Now,
                                                                       this,
                                                                       Connection,
-                                                                      Frame.Payload.ToUTF8String(),
-                                                                      eventTrackingId);
+                                                                      eventTrackingId,
+                                                                      Timestamp.Now,
+                                                                      Frame.Payload.ToUTF8String());
 
                             responseTask.Wait(TimeSpan.FromSeconds(10));
 
@@ -794,10 +806,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                             // 3. Compute SHA-1 and Base64 hash of the new value
                                             // 4. Write the hash back as the value of "Sec-WebSocket-Accept" response header in an HTTP response
 #pragma warning disable SCS0006 // Weak hashing function.
-                                            var swk             = webSocketConnection.Request.SecWebSocketKey;
+                                            var swk             = webSocketConnection.Request?.SecWebSocketKey;
                                             var swka            = swk + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-                                            var swkaSha1        = System.Security.Cryptography.SHA1.Create().ComputeHash(Encoding.UTF8.GetBytes(swka));
-                                            var swkaSha1Base64  = Convert.ToBase64String(swkaSha1);
+                                            var swkaSHA1        = System.Security.Cryptography.SHA1.HashData(Encoding.UTF8.GetBytes(swka));
+                                            var swkaSHA1Base64  = Convert.ToBase64String(swkaSHA1);
 #pragma warning restore SCS0006 // Weak hashing function.
 
                                             // HTTP/1.1 101 Switching Protocols
@@ -810,8 +822,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                  Server                = HTTPServiceName,
                                                                  Connection            = "Upgrade",
                                                                  Upgrade               = "websocket",
-                                                                 SecWebSocketAccept    = swkaSha1Base64,
-                                                                 SecWebSocketProtocol  = "ocpp1.6",
+                                                                 SecWebSocketAccept    = swkaSHA1Base64,
+                                                                 SecWebSocketProtocol  = SecWebSocketProtocols.AggregateWith(", "),
                                                                  SecWebSocketVersion   = "13"
                                                              }.AsImmutable;
 
@@ -942,8 +954,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                             OnTextMessageRequest?.Invoke(Timestamp.Now,
                                                                                          this,
                                                                                          webSocketConnection,
-                                                                                         frame.Payload.ToUTF8String(),
-                                                                                         eventTrackingId);
+                                                                                         eventTrackingId,
+                                                                                         Timestamp.Now,
+                                                                                         frame.Payload.ToUTF8String());
 
                                                         }
                                                         catch (Exception e)
@@ -967,7 +980,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                                            token2);
 
                                                             // Incoming higher protocol level respones will not produce another response!
-                                                            if (textMessageResponse          is not null &&
+                                                            if (textMessageResponse                 is not null &&
                                                                 textMessageResponse.ResponseMessage is not null &&
                                                                 textMessageResponse.ResponseMessage != "")
                                                             {

@@ -96,8 +96,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     public delegate Task                                 OnWebSocketTextMessageRequestDelegate   (DateTime                         Timestamp,
                                                                                                   WebSocketServer                  Server,
                                                                                                   WebSocketConnection              Connection,
-                                                                                                  String                           TextRequestMessage,
-                                                                                                  EventTracking_Id                 EventTrackingId);
+                                                                                                  EventTracking_Id                 EventTrackingId,
+                                                                                                  DateTime                         RequestTimestamp,
+                                                                                                  String                           RequestMessage);
 
     public delegate Task                                 OnWebSocketTextMessageResponseDelegate  (DateTime                         Timestamp,
                                                                                                   WebSocketServer                  Server,

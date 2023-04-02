@@ -126,8 +126,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
                 messageResponses.    Add(responseFrame);
             };
 
-            webSocketServer.OnTextMessageRequest          += async (timestamp, server, connection, message, eventTrackingId) => {
-                textMessageRequests. Add(message);
+            webSocketServer.OnTextMessageRequest          += async (timestamp, server, connection, eventTrackingId, requestTimestamp, requestMessage) => {
+                textMessageRequests. Add(requestMessage);
             };
 
             webSocketServer.OnTextMessageResponse         += async (timestamp, server, connection, eventTrackingId, requestTimestamp, requestMessage, responseTimestamp, responseMessage) => {
@@ -229,8 +229,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
                 messageResponses.    Add(responseFrame);
             };
 
-            webSocketServer.OnTextMessageRequest          += async (timestamp, server, connection, message, eventTrackingId) => {
-                textMessageRequests. Add(message);
+            webSocketServer.OnTextMessageRequest          += async (timestamp, server, connection, eventTrackingId, requestTimestamp, requestMessage) => {
+                textMessageRequests. Add(requestMessage);
             };
 
             webSocketServer.OnTextMessageResponse         += async (timestamp, server, connection, eventTrackingId, requestTimestamp, requestMessage, responseTimestamp, responseMessage) => {
