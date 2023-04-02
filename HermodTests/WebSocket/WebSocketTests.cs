@@ -122,17 +122,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
                 messageRequests.     Add(requestFrame);
             };
 
-            webSocketServer.OnWebSocketFrameResponse      += async (timestamp, server, connection, requestFrame, responseFrame, eventTrackingId) => {
-                messageResponses.    Add(responseFrame);
-            };
+            //webSocketServer.OnWebSocketFrameResponseSent      += async (timestamp, server, connection, requestFrame, responseFrame, eventTrackingId) => {
+            //    messageResponses.    Add(responseFrame);
+            //};
 
-            webSocketServer.OnTextMessageRequest          += async (timestamp, server, connection, eventTrackingId, requestTimestamp, requestMessage) => {
+            webSocketServer.OnTextMessageReceived          += async (timestamp, server, connection, eventTrackingId, requestTimestamp, requestMessage) => {
                 textMessageRequests. Add(requestMessage);
             };
 
-            webSocketServer.OnTextMessageResponse         += async (timestamp, server, connection, eventTrackingId, requestTimestamp, requestMessage, responseTimestamp, responseMessage) => {
-                textMessageResponses.Add(responseMessage ?? "-");
-            };
+            //webSocketServer.OnTextMessageResponseSent         += async (timestamp, server, connection, eventTrackingId, requestTimestamp, requestMessage, responseTimestamp, responseMessage) => {
+            //    textMessageResponses.Add(responseMessage ?? "-");
+            //};
 
             var webSocketClient = new WebSocketClient(URL.Parse("ws://127.0.0.1:" + port));
             await webSocketClient.Connect();
@@ -225,17 +225,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
                 messageRequests.     Add(requestFrame);
             };
 
-            webSocketServer.OnWebSocketFrameResponse      += async (timestamp, server, connection, requestFrame, responseFrame, eventTrackingId) => {
-                messageResponses.    Add(responseFrame);
-            };
+            //webSocketServer.OnWebSocketFrameResponseSent      += async (timestamp, server, connection, requestFrame, responseFrame, eventTrackingId) => {
+            //    messageResponses.    Add(responseFrame);
+            //};
 
-            webSocketServer.OnTextMessageRequest          += async (timestamp, server, connection, eventTrackingId, requestTimestamp, requestMessage) => {
+            webSocketServer.OnTextMessageReceived          += async (timestamp, server, connection, eventTrackingId, requestTimestamp, requestMessage) => {
                 textMessageRequests. Add(requestMessage);
             };
 
-            webSocketServer.OnTextMessageResponse         += async (timestamp, server, connection, eventTrackingId, requestTimestamp, requestMessage, responseTimestamp, responseMessage) => {
-                textMessageResponses.Add(responseMessage ?? "-");
-            };
+            //webSocketServer.OnTextMessageResponseSent         += async (timestamp, server, connection, eventTrackingId, requestTimestamp, requestMessage, responseTimestamp, responseMessage) => {
+            //    textMessageResponses.Add(responseMessage ?? "-");
+            //};
 
             var webSocketClient = new WebSocketClient(URL.Parse("ws://127.0.0.1:" + port));
             await webSocketClient.Connect();

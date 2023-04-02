@@ -85,45 +85,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                                   WebSocketFrame                   Frame,
                                                                                                   EventTracking_Id                 EventTrackingId);
 
-    public delegate Task                                 OnWebSocketResponseFrameDelegate        (DateTime                         Timestamp,
-                                                                                                  WebSocketServer                  Server,
-                                                                                                  WebSocketConnection              Connection,
-                                                                                                  WebSocketFrame                   RequestFrame,
-                                                                                                  WebSocketFrame                   ResponseFrame,
-                                                                                                  EventTracking_Id                 EventTrackingId);
+    //public delegate Task                                 OnWebSocketResponseFrameDelegate        (DateTime                         Timestamp,
+    //                                                                                              WebSocketServer                  Server,
+    //                                                                                              WebSocketConnection              Connection,
+    //                                                                                              WebSocketFrame                   RequestFrame,
+    //                                                                                              WebSocketFrame                   ResponseFrame,
+    //                                                                                              EventTracking_Id                 EventTrackingId);
 
 
-    public delegate Task                                 OnWebSocketTextMessageRequestDelegate   (DateTime                         Timestamp,
+    public delegate Task                                 OnWebSocketTextMessageDelegate          (DateTime                         Timestamp,
                                                                                                   WebSocketServer                  Server,
                                                                                                   WebSocketConnection              Connection,
                                                                                                   EventTracking_Id                 EventTrackingId,
                                                                                                   DateTime                         RequestTimestamp,
                                                                                                   String                           RequestMessage);
 
-    public delegate Task                                 OnWebSocketTextMessageResponseDelegate  (DateTime                         Timestamp,
-                                                                                                  WebSocketServer                  Server,
-                                                                                                  WebSocketConnection              Connection,
-                                                                                                  EventTracking_Id                 EventTrackingId,
-                                                                                                  DateTime                         RequestTimestamp,
-                                                                                                  String                           RequestMessage,
-                                                                                                  DateTime                         ResponseTimestamp,
-                                                                                                  String?                          ResponseMessage);
-
-
-    public delegate Task                                 OnWebSocketBinaryMessageRequestDelegate (DateTime                         Timestamp,
+    public delegate Task                                 OnWebSocketBinaryMessageDelegate        (DateTime                         Timestamp,
                                                                                                   WebSocketServer                  Server,
                                                                                                   WebSocketConnection              Connection,
                                                                                                   Byte[]                           BinaryRequestMessage,
                                                                                                   EventTracking_Id                 EventTrackingId);
-
-    public delegate Task                                 OnWebSocketBinaryMessageResponseDelegate(DateTime                         Timestamp,
-                                                                                                  WebSocketServer                  Server,
-                                                                                                  WebSocketConnection              Connection,
-                                                                                                  EventTracking_Id                 EventTrackingId,
-                                                                                                  DateTime                         RequestTimestamp,
-                                                                                                  Byte[]                           RequestMessage,
-                                                                                                  DateTime                         ResponseTimestamp,
-                                                                                                  Byte[]?                          ResponseMessage);
 
 
     public delegate Task                                 OnCloseMessageDelegate                  (DateTime                         Timestamp,

@@ -31,7 +31,6 @@ using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
-using System.Text;
 
 #endregion
 
@@ -309,11 +308,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region Events
 
-        public event OnWebSocketClientTextMessageDelegate    OnIncomingTextMessage;
-        public event OnWebSocketClientTextMessageDelegate    OnOutgoingTextMessage;
+        public event OnWebSocketClientTextMessageDelegate?    OnTextMessageReceived;
+        public event OnWebSocketClientTextMessageDelegate?    OnTextMessageSent;
 
-        public event OnWebSocketClientBinaryMessageDelegate  OnIncomingBinaryMessage;
-        public event OnWebSocketClientBinaryMessageDelegate  OnOutgoingBinaryMessage;
+        public event OnWebSocketClientBinaryMessageDelegate?  OnBinaryMessageReceived;
+        public event OnWebSocketClientBinaryMessageDelegate?  OnBinaryMessageSent;
 
         #region HTTPRequest-/ResponseLog
 
@@ -817,12 +816,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                     case WebSocketFrame.Opcodes.Text: {
 
-                                                        #region OnIncomingTextMessage
+                                                        #region OnTextMessageReceived
 
                                                         try
                                                         {
 
-                                                            OnIncomingTextMessage?.Invoke(Timestamp.Now,
+                                                            OnTextMessageReceived?.Invoke(Timestamp.Now,
                                                                                           this,
                                                                                           null, //webSocketConnection,
                                                                                           frame,
@@ -832,7 +831,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         }
                                                         catch (Exception e)
                                                         {
-                                                            DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnIncomingTextMessage));
+                                                            DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnTextMessageReceived));
                                                         }
 
                                                         #endregion
@@ -844,12 +843,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                     case WebSocketFrame.Opcodes.Binary: {
 
-                                                        #region OnIncomingBinaryMessage
+                                                        #region OnBinaryMessageReceived
 
                                                         try
                                                         {
 
-                                                            OnIncomingBinaryMessage?.Invoke(Timestamp.Now,
+                                                            OnBinaryMessageReceived?.Invoke(Timestamp.Now,
                                                                                             this,
                                                                                             null, //webSocketConnection,
                                                                                             frame,
@@ -859,7 +858,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         }
                                                         catch (Exception e)
                                                         {
-                                                            DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnIncomingBinaryMessage));
+                                                            DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnBinaryMessageReceived));
                                                         }
 
                                                         #endregion
@@ -1206,42 +1205,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         /// <param name="Text">The text to send.</param>
         public void SendText(String Text)
-        {
 
-            var webSocketFrame = new WebSocketFrame(
-                                     WebSocketFrame.Fin.Final,
-                                     WebSocketFrame.MaskStatus.On,
-                                     new Byte[] { 0xaa, 0xaa, 0xaa, 0xaa },
-                                     WebSocketFrame.Opcodes.Text,
-                                     Text.ToUTF8Bytes(),
-                                     WebSocketFrame.Rsv.Off,
-                                     WebSocketFrame.Rsv.Off,
-                                     WebSocketFrame.Rsv.Off
-                                 );
-
-            #region OnOutgoingTextMessage
-
-            try
-            {
-
-                OnOutgoingTextMessage?.Invoke(Timestamp.Now,
-                                              this,
-                                              null, //webSocketConnection,
-                                              webSocketFrame,
-                                              EventTracking_Id.New,
-                                              webSocketFrame.Payload.ToUTF8String());
-
-            }
-            catch (Exception e)
-            {
-                DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnOutgoingTextMessage));
-            }
-
-            #endregion
-
-            SendWebSocketFrame(webSocketFrame);
-
-        }
+            => SendWebSocketFrame(new WebSocketFrame(
+                                      WebSocketFrame.Fin.Final,
+                                      WebSocketFrame.MaskStatus.On,
+                                      RandomExtensions.GetBytes(4),
+                                      WebSocketFrame.Opcodes.Text,
+                                      Text.ToUTF8Bytes(),
+                                      WebSocketFrame.Rsv.Off,
+                                      WebSocketFrame.Rsv.Off,
+                                      WebSocketFrame.Rsv.Off
+                                  ));
 
         #endregion
 
@@ -1252,43 +1226,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         /// <param name="Bytes">The array of bytes to send.</param>
         public void SendBinary(Byte[] Bytes)
-        {
 
-            var webSocketFrame = new WebSocketFrame(
+            => SendWebSocketFrame(new WebSocketFrame(
                                      WebSocketFrame.Fin.Final,
                                      WebSocketFrame.MaskStatus.On,
-                                     new Byte[] { 0xaa, 0xaa, 0xaa, 0xaa },
+                                     RandomExtensions.GetBytes(4),
                                      WebSocketFrame.Opcodes.Binary,
                                      Bytes,
                                      WebSocketFrame.Rsv.Off,
                                      WebSocketFrame.Rsv.Off,
                                      WebSocketFrame.Rsv.Off
-                                 );
-
-            #region OnOutgoingBinaryMessage
-
-            try
-            {
-
-                OnOutgoingBinaryMessage?.Invoke(Timestamp.Now,
-                                                this,
-                                                null, //webSocketConnection,
-                                                webSocketFrame,
-                                                EventTracking_Id.New,
-                                                webSocketFrame.Payload);
-
-            }
-            catch (Exception e)
-            {
-                DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnOutgoingBinaryMessage));
-            }
-
-            #endregion
-
-
-            SendWebSocketFrame(webSocketFrame);
-
-        }
+                                 ));
 
         #endregion
 
@@ -1319,6 +1267,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             HTTPStream.Write(WebSocketFrame.ToByteArray());
                             HTTPStream.Flush();
                         }
+
+                        #region OnOutgoingTextMessage
+
+                        if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Text)
+                        {
+
+                            try
+                            {
+
+                                OnTextMessageSent?.Invoke(Timestamp.Now,
+                                                          this,
+                                                          null, //webSocketConnection,
+                                                          WebSocketFrame,
+                                                          EventTracking_Id.New,
+                                                          WebSocketFrame.Payload.ToUTF8String());
+
+                            }
+                            catch (Exception e)
+                            {
+                                DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnTextMessageSent));
+                            }
+
+                        }
+
+                        #endregion
+
+                        #region OnOutgoingBinaryMessage
+
+                        else if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Binary)
+                        {
+
+                            try
+                            {
+
+                                OnBinaryMessageSent?.Invoke(Timestamp.Now,
+                                                            this,
+                                                            null, //webSocketConnection,
+                                                            WebSocketFrame,
+                                                            EventTracking_Id.New,
+                                                            WebSocketFrame.Payload);
+
+                            }
+                            catch (Exception e)
+                            {
+                                DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnTextMessageSent));
+                            }
+
+                        }
+
+                        #endregion
 
                     }
                     catch (Exception e)

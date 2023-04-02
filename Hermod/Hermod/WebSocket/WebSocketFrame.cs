@@ -699,7 +699,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             }
             catch (Exception e)
             {
-
+                DebugX.LogException(e);
             }
 
             return frameBytes;
