@@ -621,6 +621,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (HTTPBasicAuthentication. TryParse(authorizationString, out var basicAuthentication))
                         return basicAuthentication;
 
+                    if (HTTPTokenAuthentication. TryParse(authorizationString, out var tokenAuthentication))
+                        return tokenAuthentication;
+
                     if (HTTPBearerAuthentication.TryParse(authorizationString, out var bearerAuthentication))
                         return bearerAuthentication;
 
