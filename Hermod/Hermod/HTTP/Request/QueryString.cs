@@ -1093,10 +1093,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            if (internalDictionary.TryGetValue(ParameterName, out var Values) &&
-                Values is not null &&
-                Values.Count > 0   &&
-                Enum.TryParse(Values.Last(), out TEnum ValueT))
+            if (internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count > 0   &&
+                Enum.TryParse(values.Last(), out TEnum ValueT))
             {
                 return new TEnum?(ValueT);
             }
