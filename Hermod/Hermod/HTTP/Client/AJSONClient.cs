@@ -204,7 +204,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             //        var OnHTTPErrorLocal = OnHTTPError;
             //    if (OnHTTPErrorLocal != null)
-            //        return OnHTTPErrorLocal(DateTime.UtcNow, this, HttpResponseTask?.Result);
+            //        return OnHTTPErrorLocal(Timestamp.Now, this, HttpResponseTask?.Result);
 
             //    return new HTTPResponse<JObject>(HttpResponseTask?.Result,
             //                                     new JObject(new JProperty("HTTPError", "")),
@@ -223,25 +223,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     //var OnSOAPFaultLocal = OnSOAPFault;
                     //if (OnSOAPFaultLocal != null)
-                    //    return OnSOAPFaultLocal(DateTime.UtcNow, this, new HTTPResponse<XElement>(HttpResponseTask.Result, SOAPXML));
+                    //    return OnSOAPFaultLocal(Timestamp.Now, this, new HTTPResponse<XElement>(HttpResponseTask.Result, SOAPXML));
 
-                    return new HTTPResponse<JObject>(HttpResponse,
-                                                     new JObject(new JProperty("fault", "")),
-                                                     IsFault: true) as HTTPResponse<T>;
+                    return HTTPResponse<JObject>.IsFault(HttpResponse,
+                                                         new JObject(new JProperty("fault", ""))) as HTTPResponse<T>;
 
 
                 } catch (Exception e)
                 {
 
-                    OnException?.Invoke(DateTime.UtcNow, this, e);
+                    OnException?.Invoke(Timestamp.Now, this, e);
 
                     //var OnFaultLocal = OnSOAPFault;
                     //if (OnFaultLocal != null)
                     //    return OnFaultLocal(new HTTPResponse<XElement>(HttpResponseTask.Result, e));
 
-                    return new HTTPResponse<JObject>(HttpResponse,
-                                                     new JObject(new JProperty("exception", e.Message)),
-                                                     IsFault: true) as HTTPResponse<T>;
+                    return HTTPResponse<JObject>.IsFault(HttpResponse,
+                                                         new JObject(new JProperty("exception", e.Message))) as HTTPResponse<T>;
 
                 }
 
@@ -254,13 +252,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 var OnHTTPErrorLocal = OnHTTPError;
                 if (OnHTTPErrorLocal != null)
-                    return OnHTTPErrorLocal(DateTime.UtcNow, this, HttpResponse);
+                    return OnHTTPErrorLocal(Timestamp.Now, this, HttpResponse);
 
-                return new HTTPResponse<JObject>(HttpResponse,
-                                                 new JObject(
-                                                     new JProperty("HTTPError", true)
-                                                 ),
-                                                 IsFault: true) as HTTPResponse<T>;
+                return HTTPResponse<JObject>.IsFault(HttpResponse,
+                                                     new JObject(
+                                                         new JProperty("HTTPError", true)
+                                                     )) as HTTPResponse<T>;
 
             }
 

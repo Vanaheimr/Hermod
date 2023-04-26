@@ -18,7 +18,6 @@
 #region Usings
 
 using System.Text;
-using System.ComponentModel;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -35,7 +34,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     ///    for any kind of metadata
     ///  - A body hosting the transmitted content
     /// </summary>
-    public abstract class AHTTPPDUBuilder : IEnumerable<KeyValuePair<String, Object>>
+    public abstract class AHTTPPDUBuilder : IEnumerable<KeyValuePair<String, Object?>>
     {
 
         #region Data
@@ -43,7 +42,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The collection of all HTTP headers.
         /// </summary>
-        protected readonly IDictionary<String, Object> HeaderFields;
+        protected readonly IDictionary<String, Object?> HeaderFields;
 
         #endregion
 
@@ -71,7 +70,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public HTTPVersion?         ProtocolVersion     { get; set; }
 
-        #region Content
+        /// <summary>
+        /// The HTTP body/content as a stream.
+        /// </summary>
+        public Stream?              ContentStream       { get; set; }
+
 
         private Byte[]? content;
 
@@ -88,18 +91,70 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             set
             {
-                content = value;
-                ContentLength = content is not null ? (UInt64) content.LongLength : 0;
+
+                content        = value;
+                ContentLength  = content is not null
+                                     ? (UInt64) content.LongLength
+                                     : 0;
+
             }
 
         }
 
-        #endregion
 
         /// <summary>
-        /// The HTTP body/content as a stream.
+        /// Return a string representation of this HTTPHeader.
         /// </summary>
-        public Stream?              ContentStream       { get; set; }
+        public String ConstructedHTTPHeader
+        {
+            get
+            {
+
+                var HTTPHeader = new List<String>();
+
+                foreach (var kvp in HeaderFields)
+                {
+
+                    if (kvp.Key == "Accept" && !(kvp.Value as AcceptTypes).Any())
+                        continue;
+
+                    if (kvp.Value != null)
+                    {
+
+                        switch (kvp.Value)
+                        {
+
+                            case String text:
+                                HTTPHeader.Add(kvp.Key + ": " + text);
+                                break;
+
+                            case String[] texts:
+                                foreach (var text in texts)
+                                    HTTPHeader.Add(kvp.Key + ": " + text);
+                                break;
+
+                            case IHTTPAuthentication httpAuthentication:
+                                HTTPHeader.Add(kvp.Key + ": " + httpAuthentication.HTTPText);
+                                break;
+
+                            default:
+                                HTTPHeader.Add(kvp.Key + ": " + kvp.Value);
+                                break;
+
+                        }
+
+                    }
+                }
+
+                //return (from   _KeyValuePair in HeaderFields
+                //        where  _KeyValuePair.Key   != null
+                //        where  _KeyValuePair.Value != null
+                //        where  !String.IsNullOrEmpty(_KeyValuePair.Value.ToString())
+                //        select _KeyValuePair.Key + ": " + _KeyValuePair.Value).
+                return HTTPHeader.AggregateOrDefault((a, b) => a + Environment.NewLine + b, String.Empty);
+
+            }
+        }
 
         #endregion
 
@@ -107,7 +162,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Cache-Control
 
-        public String CacheControl
+        public String? CacheControl
         {
 
             get
@@ -126,7 +181,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Connection
 
-        public String Connection
+        public String? Connection
         {
 
             get
@@ -145,7 +200,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Upgrade
 
-        public String Upgrade
+        public String? Upgrade
         {
 
             get
@@ -188,7 +243,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             get
             {
-                return GetHeaderField<List<String>>(HTTPHeaderField.ContentLanguage);
+
+                var values = GetHeaderField<List<String>>(HTTPHeaderField.ContentLanguage);
+
+                return values is null
+                    ? new List<String>()
+                    : values;
+
             }
 
             set
@@ -221,7 +282,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Content-Location
 
-        public String ContentLocation
+        public String? ContentLocation
         {
 
             get
@@ -240,7 +301,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Content-MD5
 
-        public String ContentMD5
+        public String? ContentMD5
         {
 
             get
@@ -259,7 +320,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Content-Range
 
-        public String ContentRange
+        public String? ContentRange
         {
 
             get
@@ -278,34 +339,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Content-Type
 
-        public HTTPContentType ContentType
+        public HTTPContentType? ContentType
         {
 
             get
             {
 
-                var _ContentType = GetHeaderField<HTTPContentType>("Content-Type");
-                if (_ContentType != null)
-                    return _ContentType;
+                var contentType = GetHeaderField<HTTPContentType>("Content-Type");
+                if (contentType is not null)
+                    return contentType;
 
-                var _ContentTypeString = GetHeaderField<String>("Content-Type");
-                if (_ContentTypeString != null)
+                var contentTypeString = GetHeaderField<String>("Content-Type");
+                if (contentTypeString is not null)
                 {
 
-                    var __ContentTypeString = _ContentTypeString.Split('/');
+                    var contentTypeStringElements = contentTypeString.Split('/');
 
-                    if (__ContentTypeString.Length == 2)
+                    if (contentTypeStringElements.Length == 2)
                     {
 
-                        _ContentType = new HTTPContentType(__ContentTypeString[0],
-                                                           __ContentTypeString[1],
-                                                           "utf-8",
-                                                           null,
-                                                           null);
+                        contentType = new HTTPContentType(contentTypeStringElements[0],
+                                                          contentTypeStringElements[1],
+                                                          "utf-8",
+                                                          null,
+                                                          null);
 
-                        SetHeaderField("Content-Type", _ContentType);
+                        SetHeaderField("Content-Type", contentType);
 
-                        return _ContentType;
+                        return contentType;
 
                     }
 
@@ -326,7 +387,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Content-Disposition
 
-        public String ContentDisposition
+        public String? ContentDisposition
         {
 
             get
@@ -348,17 +409,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The date and time of the request/response in rfc1123 format.
         /// </summary>
-        public DateTime Date
+        public DateTime? Date
         {
 
             get
             {
-                return DateTime.Parse(GetHeaderField(HTTPHeaderField.Date));
+
+                var value = GetHeaderField(HTTPHeaderField.Date);
+
+                return value is not null
+                           ? DateTime.Parse(value)
+                           : null;
+
             }
 
             set
             {
-                SetHeaderField(HTTPHeaderField.Date, value.ToUniversalTime().ToString("r"));
+
+                if (value.HasValue)
+                    SetHeaderField(HTTPHeaderField.Date,
+                                   value.Value.ToUniversalTime().ToString("r"));
+
+                else
+                    RemoveHeaderField(HTTPHeaderField.Date);
+
             }
 
         }
@@ -367,7 +441,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Via
 
-        public String Via
+        public String? Via
         {
 
             get
@@ -386,7 +460,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Transfer-Encoding
 
-        public String TransferEncoding
+        public String? TransferEncoding
         {
 
             get
@@ -405,7 +479,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region SecWebSocketProtocol
 
-        public String SecWebSocketProtocol
+        public String? SecWebSocketProtocol
         {
 
             get
@@ -424,7 +498,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region SecWebSocketVersion
 
-        public String SecWebSocketVersion
+        public String? SecWebSocketVersion
         {
 
             get
@@ -443,7 +517,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Trailer
 
-        public String Trailer
+        public String? Trailer
         {
 
             get
@@ -466,7 +540,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Access-Control-Allow-Origin
 
-        public String AccessControlAllowOrigin
+        public String? AccessControlAllowOrigin
         {
 
             get
@@ -485,7 +559,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Access-Control-Allow-Methods
 
-        public String AccessControlAllowMethods
+        public String? AccessControlAllowMethods
         {
 
             get
@@ -504,7 +578,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Access-Control-Allow-Headers
 
-        public String AccessControlAllowHeaders
+        public String? AccessControlAllowHeaders
         {
 
             get
@@ -570,7 +644,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// embedded into other sites.
         /// </summary>
         /// <example>DENY, SAMEORIGIN, ALLOW-FROM https://example.com</example>
-        public String X_FrameOptions
+        public String? X_FrameOptions
         {
 
             get
@@ -611,65 +685,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-
-        #region ConstructedHTTPHeader
-
-        /// <summary>
-        /// Return a string representation of this HTTPHeader.
-        /// </summary>
-        public String ConstructedHTTPHeader
-        {
-            get
-            {
-
-                var HTTPHeader = new List<String>();
-
-                foreach (var kvp in HeaderFields)
-                {
-
-                    if (kvp.Key == "Accept" && !(kvp.Value as AcceptTypes).Any())
-                        continue;
-
-                    if (kvp.Value != null)
-                    {
-
-                        switch (kvp.Value)
-                        {
-
-                            case String text:
-                                HTTPHeader.Add(kvp.Key + ": " + text);
-                                break;
-
-                            case String[] texts:
-                                foreach (var text in texts)
-                                    HTTPHeader.Add(kvp.Key + ": " + text);
-                                break;
-
-                            case IHTTPAuthentication httpAuthentication:
-                                HTTPHeader.Add(kvp.Key + ": " + httpAuthentication.HTTPText);
-                                break;
-
-                            default:
-                                HTTPHeader.Add(kvp.Key + ": " + kvp.Value);
-                                break;
-
-                        }
-
-                    }
-                }
-
-                //return (from   _KeyValuePair in HeaderFields
-                //        where  _KeyValuePair.Key   != null
-                //        where  _KeyValuePair.Value != null
-                //        where  !String.IsNullOrEmpty(_KeyValuePair.Value.ToString())
-                //        select _KeyValuePair.Key + ": " + _KeyValuePair.Value).
-                return HTTPHeader.AggregateOrDefault((a, b) => a + Environment.NewLine + b, String.Empty);
-
-            }
-        }
-
-        #endregion
-
         #endregion
 
         #region Constructor(s)
@@ -686,7 +701,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-
         #region (protected) PrepareImmutability()
 
         /// <summary>
@@ -697,13 +711,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             // Set the Content-Length if it was not set before
-            if (ContentLength == null || ContentLength == 0)
+            if (ContentLength is null || ContentLength == 0)
             {
 
-                if (Content != null)
+                if (Content is not null)
                     ContentLength = (UInt64) Content.LongLength;
 
-                else if (ContentStream != null && ContentStream.CanSeek) // NetworkStreams are not seekable!
+                else if (ContentStream is not null && ContentStream.CanSeek) // NetworkStreams are not seekable!
                     ContentLength = (UInt64) ContentStream.Length;
 
             }
@@ -716,7 +730,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
-
 
 
         #region (protected) TryGetHeaderField(FieldName)
@@ -742,10 +755,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="FieldName">The key of the requested header field.</param>
         /// <param name="Value">The value of the requested header field.</param>
         /// <returns>True if the requested header exists; false otherwise.</returns>
-        protected Boolean TryGetHeaderField(HTTPHeaderField HeaderField, out Object Value)
-        {
-            return HeaderFields.TryGetValue(HeaderField.Name, out Value);
-        }
+        protected Boolean TryGetHeaderField(HTTPHeaderField HeaderField, out Object? Value)
+
+            => HeaderFields.TryGetValue(HeaderField.Name, out Value);
 
         #endregion
 
@@ -842,19 +854,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-
-        #region (protected) GetHeaderField(FieldName)
+        #region (protected) GetHeaderField   (FieldName)
 
         /// <summary>
         /// Return the value of the given HTTP header field.
         /// </summary>
         /// <param name="FieldName">The name of the header field.</param>
-        protected String GetHeaderField(String FieldName)
+        protected String? GetHeaderField(String FieldName)
         {
 
-            Object Value;
-            if (HeaderFields.TryGetValue(FieldName, out Value))
-                return Value.ToString();
+            if (HeaderFields.TryGetValue(FieldName, out var value))
+                return value?.ToString();
 
             return null;
 
@@ -872,7 +882,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected T? GetHeaderField<T>(String FieldName)
         {
 
-            if (HeaderFields.TryGetValue(FieldName, out Object? value))
+            if (HeaderFields.TryGetValue(FieldName, out var value))
                 if (value is T valueT)
                     return valueT;
 
@@ -882,17 +892,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected) GetHeaderField(HeaderField)
+
+        #region (protected) GetHeaderField       (HeaderField)
 
         /// <summary>
         /// Return the value of the given HTTP header field.
         /// </summary>
         /// <param name="HeaderField">The HTTP header field.</param>
-        protected String GetHeaderField(HTTPHeaderField HeaderField)
+        protected String? GetHeaderField(HTTPHeaderField HeaderField)
         {
 
-            if (HeaderFields.TryGetValue(HeaderField.Name, out Object Value))
-                return Value.ToString();
+            if (HeaderFields.TryGetValue(HeaderField.Name, out var value))
+                return value?.ToString();
 
             return null;
 
@@ -900,7 +911,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected) GetHeaderFields(HeaderField)
+        #region (protected) GetHeaderFields      (HeaderField)
 
         /// <summary>
         /// Return the values of the given HTTP header field.
@@ -909,26 +920,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected String[] GetHeaderFields(HTTPHeaderField HeaderField)
         {
 
-            if (HeaderFields.TryGetValue(HeaderField.Name, out Object Value))
+            if (HeaderFields.TryGetValue(HeaderField.Name, out var valueOrValues))
             {
 
-                if (Value is String Text)
+                if (valueOrValues is null)
+                    return Array.Empty<String>();
+
+                if (valueOrValues is String Text)
                     return new String[] { Text };
 
-                if (Value is String[] Texts)
+                if (valueOrValues is String[] Texts)
                     return Texts;
 
-                return new String[] { Value.ToString() };
+                var result = valueOrValues.ToString();
+
+                return result is null
+                           ? Array.Empty<String>()
+                           : new[] { result };
 
             }
 
-            return null;
+            return Array.Empty<String>();
 
         }
 
         #endregion
 
-        #region (protected) GetHeaderField<T>(HeaderField)
+        #region (protected) GetHeaderField<T>    (HeaderField)
 
         /// <summary>
         /// Return the value of the given HTTP header field.
@@ -938,8 +956,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected T? GetHeaderField<T>(HTTPHeaderField HeaderField)
         {
 
-            if (HeaderFields.TryGetValue(HeaderField.Name, out Object? value))
+            if (HeaderFields.TryGetValue(HeaderField.Name, out var value))
             {
+
+                if (value is null)
+                    return default;
 
                 if (value is String)
                 {
@@ -947,8 +968,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (HeaderField.Type == typeof(String))
                         return (T) value;
 
-                    else if (HeaderField.StringParser(value.ToString(), out Object Value2))
-                        return (T) Value2;
+                    if (HeaderField.StringParser(value?.ToString() ?? String.Empty, out var value2))
+                        return (T) value2;
 
                 }
 
@@ -963,7 +984,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected) GetHeaderField_Int64(HeaderField)
+        #region (protected) GetHeaderField_Int64 (HeaderField)
 
         /// <summary>
         /// Return the given HTTP header field.
@@ -972,13 +993,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected Int64? GetHeaderField_Int64(HTTPHeaderField HeaderField)
         {
 
-            if (HeaderFields.TryGetValue(HeaderField.Name, out Object Value))
+            if (HeaderFields.TryGetValue(HeaderField.Name, out var value))
             {
 
-                if (Value is Int64?)
-                    return (Int64?) Value;
+                if (value is Int64?)
+                    return (Int64?) value;
 
-                if (Int64.TryParse(Value.ToString(), out Int64 Int64Value))
+                if (Int64.TryParse(value.ToString(), out var Int64Value))
                     return Int64Value;
 
             }
@@ -998,13 +1019,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected UInt64? GetHeaderField_UInt64(HTTPHeaderField HeaderField)
         {
 
-            if (HeaderFields.TryGetValue(HeaderField.Name, out Object Value))
+            if (HeaderFields.TryGetValue(HeaderField.Name, out var value))
             {
 
-                if (Value is UInt64?)
-                    return (UInt64?)Value;
+                if (value is UInt64?)
+                    return (UInt64?) value;
 
-                if (UInt64.TryParse(Value.ToString(), out UInt64 UInt64Value))
+                if (UInt64.TryParse(value.ToString(), out var UInt64Value))
                     return UInt64Value;
 
             }

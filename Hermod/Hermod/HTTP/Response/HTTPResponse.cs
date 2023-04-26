@@ -261,7 +261,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private readonly Boolean _IsFault;
+        private readonly Boolean isFault;
 
         #endregion
 
@@ -270,39 +270,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The parsed content.
         /// </summary>
-        public TContent   Content    { get; }
+        public TContent    Content      { get; }
 
         /// <summary>
         /// An exception during parsing.
         /// </summary>
-        public Exception  Exception  { get; }
+        public Exception?  Exception    { get; }
 
         /// <summary>
         /// An error during parsing.
         /// </summary>
         public Boolean HasErrors
-            => Exception != null && !_IsFault;
+            => Exception is not null && !isFault;
 
         #endregion
 
         #region Constructor(s)
 
-        #region HTTPResponse(Response, Content, IsFault = false, NumberOfTransmissionRetries = 0, Exception = null)
+        #region (private) HTTPResponse(Response, Content, IsFault = false, NumberOfTransmissionRetries = 0, Exception = null)
 
-        public HTTPResponse(HTTPResponse  Response,
-                            TContent      Content,
-                            Boolean       IsFault    = false,
-                            Exception     Exception  = null)
+        private HTTPResponse(HTTPResponse  Response,
+                             TContent      Content,
+                             Boolean?      IsFault     = false,
+                             Exception?    Exception   = null)
 
             : base(Response)
 
         {
 
             this.Content    = Content;
-            this._IsFault   = IsFault;
+            this.isFault    = IsFault ?? false;
             this.Exception  = Exception;
 
         }
+
+        #endregion
+
+        #region HTTPResponse(Response, Content)
+
+        public HTTPResponse(HTTPResponse  Response,
+                            TContent      Content)
+
+            : this(Response,
+                   Content,
+                   null,
+                   null)
+
+        { }
 
         #endregion
 
@@ -312,7 +326,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             Boolean       IsFault)
 
             : this(Response,
-                   default(TContent),
+                   default,
                    IsFault)
 
         { }
@@ -325,7 +339,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             Exception     Exception)
 
             : this(Response,
-                   default(TContent),
+                   default,
                    true,
                    Exception)
 
@@ -344,7 +358,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             this.Content    = Content;
-            this._IsFault   = true;
+            this.isFault    = true;
             this.Exception  = Exception;
 
         }
@@ -368,8 +382,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPResponse(HTTPRequest  Request,
                             Exception    Exception)
 
-            : this(new Builder(Request) { HTTPStatusCode = HTTPStatusCode.BadRequest },
-                   default(TContent),
+            : this(new Builder(Request) {
+                       HTTPStatusCode = HTTPStatusCode.BadRequest
+                   },
+                   default,
                    true,
                    Exception)
 
@@ -517,7 +533,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public static HTTPResponse<TContent> OK(TContent Content)
 
-            => new (null, Content);
+            => new (null, Content, null, null);
+
+        public static HTTPResponse<TContent> IsFault(HTTPResponse  Response,
+                                                     TContent      Content)
+
+            => new (Response,
+                    Content,
+                    true);
+
+        public static HTTPResponse<TContent> IsFault(HTTPResponse  Response,
+                                                     Exception     Exception)
+
+            => new (Response,
+                    default,
+                    true,
+                    Exception);
 
         public static HTTPResponse<TContent> ClientError(TContent Content)
 
@@ -563,9 +594,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region HTTPRequest
 
         /// <summary>
-        /// The HTTP request for this HTTP response.
+        /// The optional HTTP request for this HTTP response.
         /// </summary>
-        public HTTPRequest     HTTPRequest       { get; }
+        public HTTPRequest?    HTTPRequest       { get; }
 
         /// <summary>
         /// The HTTP status code.
@@ -747,21 +778,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The runtime of the HTTP request/response pair.
         /// </summary>
-        public TimeSpan Runtime
-
-            => HTTPRequest != null
-                   ? Timestamp - HTTPRequest.Timestamp
-                   : TimeSpan.Zero;
+        public TimeSpan  Runtime                { get; }
 
         /// <summary>
         /// The number of retransmissions of this request.
         /// </summary>
-        public Byte      NumberOfRetries    { get; }
+        public Byte      NumberOfRetries        { get; }
+
+        /// <summary>
+        /// The optional HTTP sub protocol response, e.g. HTTP Web Socket.
+        /// </summary>
+        public Object?   SubprotocolResponse    { get; }
 
         #endregion
-
-        public Object  SubprotocolResponse    { get; }
-
 
         #region Constructor(s)
 
@@ -779,6 +808,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPBody">The HTTP body as an array of bytes.</param>
         /// <param name="HTTPBodyStream">The HTTP body as an stream of bytes.</param>
         /// <param name="HTTPBodyReceiveBufferSize">The size of the HTTP body receive buffer.</param>
+        /// <param name="SubprotocolResponse">An optional HTTP sub protocol response, e.g. HTTP Web Socket.</param>
+        /// 
         /// <param name="CancellationToken">A token to cancel the HTTP response processing.</param>
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         /// <param name="Runtime">The runtime of the HTTP request/response pair.</param>
@@ -787,15 +818,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              HTTPSource          HTTPSource,
                              IPSocket            LocalSocket,
                              IPSocket            RemoteSocket,
-                             HTTPRequest         HTTPRequest,
                              String              HTTPHeader,
-                             Byte[]              HTTPBody                    = null,
-                             Stream              HTTPBodyStream              = null,
-                             UInt32              HTTPBodyReceiveBufferSize   = DefaultHTTPBodyReceiveBufferSize,
-                             Object              SubprotocolResponse         = null,
+                             HTTPRequest?        HTTPRequest                 = null,
+                             Byte[]?             HTTPBody                    = null,
+                             Stream?             HTTPBodyStream              = null,
+                             UInt32?             HTTPBodyReceiveBufferSize   = DefaultHTTPBodyReceiveBufferSize,
+                             Object?             SubprotocolResponse         = null,
 
                              CancellationToken?  CancellationToken           = null,
-                             EventTracking_Id    EventTrackingId             = null,
+                             EventTracking_Id?   EventTrackingId             = null,
                              TimeSpan?           Runtime                     = null,
                              Byte                NumberOfRetries             = 0)
 
@@ -814,13 +845,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.HTTPRequest          = HTTPRequest;
 
-            var _StatusCodeLine       = FirstPDULine.Split(new Char[] { ' ' }, 3);
-            if (_StatusCodeLine.Length != 2 && _StatusCodeLine.Length != 3)
-                throw new Exception("Invalid HTTP response!");
+            var statusCodeLine        = FirstPDULine.Split(new Char[] { ' ' }, 3);
+            if (statusCodeLine.Length != 2 && statusCodeLine.Length != 3)
+                throw new ArgumentException($"Invalid HTTP response status code line: '{FirstPDULine}'!");
 
-            this.HTTPStatusCode       = HTTPStatusCode.ParseString(_StatusCodeLine[1]);
+            this.HTTPStatusCode       = HTTPStatusCode.ParseString(statusCodeLine[1]);
             this.NumberOfRetries      = NumberOfRetries;
             this.SubprotocolResponse  = SubprotocolResponse;
+            this.Runtime              = Runtime ?? (HTTPRequest is not null
+                                                        ? Timestamp - HTTPRequest.Timestamp
+                                                        : TimeSpan.Zero);
 
         }
 
@@ -839,188 +873,121 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this.HTTPRequest     = Response?.HTTPRequest;
-            this.HTTPStatusCode  = Response?.HTTPStatusCode;
+            this.HTTPRequest     = Response.HTTPRequest;
+            this.HTTPStatusCode  = Response.HTTPStatusCode;
 
         }
 
         #endregion
 
+        #endregion
 
-        // Parse the HTTP response from its text representation...
 
-        #region (private) HTTPResponse(ResponseHeader, Request, HTTPBody = null, NumberOfRetry = 0)
+        #region (static) Parse(ResponseHeader,                     Request = null, SubprotocolResponse = null)
 
         /// <summary>
-        /// Create a new HTTP response.
+        /// Parse the HTTP response from its text representation and
+        /// attach the given HTTP body.
         /// </summary>
         /// <param name="ResponseHeader">The HTTP header of the response.</param>
-        /// <param name="Request">The HTTP request leading to this response.</param>
-        /// <param name="HTTPBody">A HTTP body.</param>
-        /// <param name="NumberOfRetry">The number of retransmissions of this request.</param>
-        private HTTPResponse(String       ResponseHeader,
-                             HTTPRequest  Request,
-                             Byte[]       HTTPBody              = null,
-                             Byte         NumberOfRetry         = 0,
-                             Object       SubprotocolResponse   = null)
+        /// <param name="Request">An optional HTTP request leading to this response.</param>
+        /// <param name="SubprotocolResponse">An optional HTTP sub protocol response, e.g. HTTP Web Socket.</param>
+        public static HTTPResponse Parse(String              ResponseHeader,
+                                         HTTPRequest?        Request               = null,
+                                         Object?             SubprotocolResponse   = null,
 
-            : this(Illias.Timestamp.Now,
-                   new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
-                   IPSocket.LocalhostV4(IPPort.HTTPS),
-                   IPSocket.LocalhostV4(IPPort.HTTPS),
-                   Request,
-                   ResponseHeader,
-                   HTTPBody,
-                   new MemoryStream(),
-                   DefaultHTTPBodyReceiveBufferSize,
-                   SubprotocolResponse,
+                                         CancellationToken?  CancellationToken     = null,
+                                         EventTracking_Id?   EventTrackingId       = null,
+                                         TimeSpan?           Runtime               = null,
+                                         Byte                NumberOfRetries       = 0)
 
-                   Request?.CancellationToken,
-                   Request?.EventTrackingId,
-                   Request != null ? Illias.Timestamp.Now - Request.Timestamp : TimeSpan.Zero,
-                   NumberOfRetry)
-
-        {
-
-            this.HTTPRequest     = Request;
-
-            var _StatusCodeLine  = FirstPDULine.Split(' ');
-            if (_StatusCodeLine.Length < 3)
-                throw new Exception("Invalid HTTP response!");
-
-            this.HTTPStatusCode  = HTTPStatusCode.ParseString(_StatusCodeLine[1]);
-
-        }
+            => new (Illias.Timestamp.Now,
+                    new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
+                    IPSocket.LocalhostV4(IPPort.HTTPS),
+                    IPSocket.LocalhostV4(IPPort.HTTPS),
+                    ResponseHeader,
+                    Request,
+                    null,
+                    null,
+                    null,
+                    SubprotocolResponse,
+                    CancellationToken,
+                    EventTrackingId,
+                    Runtime,
+                    NumberOfRetries);
 
         #endregion
 
-        #region (private) HTTPResponse(ResponseHeader, ResponseBody, Request)
+        #region (static) Parse(ResponseHeader, ResponseBody,       Request = null, SubprotocolResponse = null)
 
         /// <summary>
-        /// Create a new HTTP response.
+        /// Parse the HTTP response from its text representation and
+        /// attach the given HTTP body.
         /// </summary>
         /// <param name="ResponseHeader">The HTTP header of the response.</param>
         /// <param name="ResponseBody">The HTTP body of the response.</param>
-        /// <param name="Request">The HTTP request leading to this response.</param>
-        private HTTPResponse(String       ResponseHeader,
-                             Byte[]       ResponseBody,
-                             HTTPRequest  Request,
-                             Object       SubprotocolResponse  = null)
+        /// <param name="Request">An optional HTTP request leading to this response.</param>
+        /// <param name="SubprotocolResponse">An optional HTTP sub protocol response, e.g. HTTP Web Socket.</param>
+        public static HTTPResponse Parse(String              ResponseHeader,
+                                         Byte[]              ResponseBody,
+                                         HTTPRequest?        Request               = null,
+                                         Object?             SubprotocolResponse   = null,
 
-            : this(Illias.Timestamp.Now,
-                   new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
-                   IPSocket.LocalhostV4(IPPort.HTTPS),
-                   IPSocket.LocalhostV4(IPPort.HTTPS),
-                   Request,
-                   ResponseHeader,
-                   ResponseBody,
-                   null,
-                   DefaultHTTPBodyReceiveBufferSize,
-                   SubprotocolResponse,
+                                         CancellationToken?  CancellationToken     = null,
+                                         EventTracking_Id?   EventTrackingId       = null,
+                                         TimeSpan?           Runtime               = null,
+                                         Byte                NumberOfRetries       = 0)
 
-                   Request?.CancellationToken,
-                   Request?.EventTrackingId,
-                   Request != null ? Illias.Timestamp.Now - Request.Timestamp : TimeSpan.Zero)
-
-        { }
+            => new (Illias.Timestamp.Now,
+                    new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
+                    IPSocket.LocalhostV4(IPPort.HTTPS),
+                    IPSocket.LocalhostV4(IPPort.HTTPS),
+                    ResponseHeader,
+                    Request,
+                    ResponseBody,
+                    null,
+                    null,
+                    SubprotocolResponse,
+                    CancellationToken,
+                    EventTrackingId,
+                    Runtime,
+                    NumberOfRetries);
 
         #endregion
 
-        #region (private) HTTPResponse(ResponseHeader, ResponseBodyStream, Request, HTTPBodyReceiveBufferSize = default)
+        #region (static) Parse(ResponseHeader, ResponseBodyStream, Request = null, SubprotocolResponse = null)
 
         /// <summary>
-        /// Create a new HTTP response.
+        /// Parse the HTTP response from its text representation and
+        /// attach the given HTTP body.
         /// </summary>
         /// <param name="ResponseHeader">The HTTP header of the response.</param>
-        /// <param name="ResponseBodyStream">The HTTP body of the response.</param>
-        /// <param name="Request">The HTTP request leading to this response.</param>
-        /// <param name="HTTPBodyReceiveBufferSize">The size of the HTTP body receive buffer.</param>
-        private HTTPResponse(String       ResponseHeader,
-                             Stream       ResponseBodyStream,
-                             HTTPRequest  Request,
-                             UInt32       HTTPBodyReceiveBufferSize  = DefaultHTTPBodyReceiveBufferSize,
-                             Object       SubprotocolResponse        = null)
+        /// <param name="ResponseBodyStream">The HTTP body of the response as stream of bytes.</param>
+        /// <param name="Request">An optional HTTP request leading to this response.</param>
+        /// <param name="SubprotocolResponse">An optional HTTP sub protocol response, e.g. HTTP Web Socket.</param>
+        public static HTTPResponse Parse(String              ResponseHeader,
+                                         Stream              ResponseBodyStream,
+                                         HTTPRequest?        Request               = null,
+                                         Object?             SubprotocolResponse   = null,
 
-            : this(Illias.Timestamp.Now,
-                   new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
-                   IPSocket.LocalhostV4(IPPort.HTTPS),
-                   IPSocket.LocalhostV4(IPPort.HTTPS),
-                   Request,
-                   ResponseHeader,
-                   null,
-                   ResponseBodyStream,
-                   HTTPBodyReceiveBufferSize,
-                   SubprotocolResponse,
+                                         CancellationToken?  CancellationToken     = null,
+                                         EventTracking_Id?   EventTrackingId       = null,
+                                         TimeSpan?           Runtime               = null,
+                                         Byte                NumberOfRetries       = 0)
 
-                   Request?.CancellationToken,
-                   Request?.EventTrackingId,
-                   Request != null ? Illias.Timestamp.Now - Request.Timestamp : TimeSpan.Zero)
+            => new (Illias.Timestamp.Now,
+                    new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
+                    IPSocket.LocalhostV4(IPPort.HTTPS),
+                    IPSocket.LocalhostV4(IPPort.HTTPS),
+                    ResponseHeader,
+                    Request,
+                    null,
+                    ResponseBodyStream,
+                    null,
+                    SubprotocolResponse,
 
-        { }
-
-        #endregion
-
-        #endregion
-
-
-        #region (static) Parse(HTTPResponseHeader, HTTPRequest, HTTPBody = null, NumberOfRetry = 0, )
-
-        /// <summary>
-        /// Parse the HTTP response from its text representation.
-        /// </summary>
-        /// <param name="HTTPResponseHeader">The HTTP header of the response.</param>
-        /// <param name="HTTPRequest">The HTTP request leading to this response.</param>
-        /// <param name="HTTPBody">An optional HTTP body.</param>
-        /// <param name="NumberOfRetry">The number of retransmissions of this request.</param>
-        public static HTTPResponse Parse(String       HTTPResponseHeader,
-                                         HTTPRequest  HTTPRequest,
-                                         Byte[]       HTTPBody              = null,
-                                         Byte         NumberOfRetry         = 0,
-                                         Object       SubprotocolResponse   = null)
-
-            => new HTTPResponse(HTTPResponseHeader,
-                                HTTPRequest,
-                                HTTPBody,
-                                NumberOfRetry,
-                                SubprotocolResponse);
-
-        #endregion
-
-        #region (static) Parse(HTTPResponseHeader, HTTPResponseBody, HTTPRequest)
-
-        /// <summary>
-        /// Parse the HTTP response from its text representation and
-        /// attach the given HTTP body.
-        /// </summary>
-        /// <param name="HTTPResponseHeader">The HTTP header of the response.</param>
-        /// <param name="HTTPResponseBody">The HTTP body of the response.</param>
-        /// <param name="HTTPRequest">The HTTP request leading to this response.</param>
-        public static HTTPResponse Parse(String       HTTPResponseHeader,
-                                         Byte[]       HTTPResponseBody,
-                                         HTTPRequest  HTTPRequest,
-                                         Object       SubprotocolResponse = null)
-
-            => new HTTPResponse(HTTPResponseHeader,
-                                HTTPResponseBody,
-                                HTTPRequest,
-                                SubprotocolResponse);
-
-        /// <summary>
-        /// Parse the HTTP response from its text representation and
-        /// attach the given HTTP body.
-        /// </summary>
-        /// <param name="HTTPResponseHeader">The HTTP header of the response.</param>
-        /// <param name="HTTPResponseBody">The HTTP body of the response.</param>
-        /// <param name="HTTPRequest">The HTTP request leading to this response.</param>
-        public static HTTPResponse Parse(String       HTTPResponseHeader,
-                                         Stream       HTTPResponseBody,
-                                         HTTPRequest  HTTPRequest,
-                                         Object       SubprotocolResponse = null)
-
-            => new HTTPResponse(HTTPResponseHeader,
-                                HTTPResponseBody,
-                                HTTPRequest,
-                                SubprotocolResponse: SubprotocolResponse);
+                    Request?.CancellationToken,
+                    Request?.EventTrackingId);
 
         #endregion
 
@@ -1041,23 +1008,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          HTTPSource?          HTTPSource        = null,
                                          IPSocket?            LocalSocket       = null,
                                          IPSocket?            RemoteSocket      = null,
-                                         EventTracking_Id     EventTrackingId   = null,
-                                         HTTPRequest          Request           = null)
+                                         EventTracking_Id?    EventTrackingId   = null,
+                                         HTTPRequest?         Request           = null)
         {
 
-                Timestamp  = Timestamp ?? Illias.Timestamp.Now;
-            var Header     = Text.TakeWhile(line => line != "").AggregateWith("\r\n");
-            var Body       = Text.SkipWhile(line => line != "").Skip(1).AggregateWith("\r\n");
+                Timestamp ??= Illias.Timestamp.Now;
+            var Header      = Text.TakeWhile(line => line != "").AggregateWith("\r\n");
+            var Body        = Text.SkipWhile(line => line != "").Skip(1).AggregateWith("\r\n");
 
             return new HTTPResponse(Timestamp    ?? Illias.Timestamp.Now,
                                     HTTPSource   ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
                                     LocalSocket  ?? IPSocket.LocalhostV4(IPPort.HTTPS),
                                     RemoteSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
-                                    Request,
                                     Header,
+                                    Request,
                                     Body.ToUTF8Bytes(),
                                     EventTrackingId:  EventTrackingId,
-                                    Runtime:          Request != null ? Timestamp - Request.Timestamp : TimeSpan.Zero);
+                                    Runtime:          Request is not null ? Timestamp - Request.Timestamp : TimeSpan.Zero);
 
         }
 
@@ -1472,24 +1439,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region Properties
 
             /// <summary>
+            /// The optional HTTP sub protocol response, e.g. HTTP Web Socket.
+            /// </summary>
+            public Object?            SubprotocolResponse    { get; set; }
+
+            /// <summary>
             /// The correlated HTTP request.
             /// </summary>
-            public HTTPRequest        HTTPRequest          { get; }
+            public HTTPRequest        HTTPRequest            { get; }
 
             /// <summary>
             /// The timestamp of the HTTP response.
             /// </summary>
-            public DateTime           Timestamp            { get; }
+            public DateTime           Timestamp              { get; }
 
             /// <summary>
             /// The cancellation token.
             /// </summary>
-            public CancellationToken  CancellationToken    { get; set; }
+            public CancellationToken  CancellationToken      { get; set; }
 
             /// <summary>
             /// The runtime of the HTTP request/response pair.
             /// </summary>
-            public TimeSpan?          Runtime              { get; }
+            public TimeSpan?          Runtime                { get; }
 
             /// <summary>
             /// The entire HTTP header.
@@ -1734,7 +1706,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Server
 
-            public String Server
+            public String? Server
             {
 
                 get
@@ -1753,7 +1725,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region SetCookie
 
-            public String SetCookie
+            public String? SetCookie
             {
 
                 get
@@ -1791,7 +1763,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Vary
 
-            public String Vary
+            public String? Vary
             {
 
                 get
@@ -1810,7 +1782,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region WWWAuthenticate
 
-            public String WWWAuthenticate
+            public String? WWWAuthenticate
             {
 
                 get
@@ -1829,7 +1801,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region SecWebSocketAccept
 
-            public String SecWebSocketAccept
+            public String? SecWebSocketAccept
             {
 
                 get
@@ -1847,8 +1819,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #endregion
 
             #endregion
-
-            public Object? SubprotocolResponse { get; set; }
 
             #region Constructor(s)
 
@@ -2456,14 +2426,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     PrepareImmutability();
 
-                    if (Content != null)
+                    if      (Content       is not null)
                         return Parse(HTTPHeader, Content,       HTTPRequest, SubprotocolResponse);
 
-                    else if (ContentStream != null)
+                    else if (ContentStream is not null)
                         return Parse(HTTPHeader, ContentStream, HTTPRequest, SubprotocolResponse);
 
                     else
-                        return Parse(HTTPHeader, HTTPRequest, SubprotocolResponse: SubprotocolResponse);
+                        return Parse(HTTPHeader,                HTTPRequest, SubprotocolResponse);
 
                 }
             }

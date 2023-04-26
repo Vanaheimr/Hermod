@@ -339,27 +339,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region HTTPBody
 
-        private Byte[] _HTTPBody;
+        private Byte[]? httpBody;
 
         /// <summary>
         /// The HTTP body/content as an array of bytes.
         /// </summary>
-        public Byte[] HTTPBody
+        public Byte[]? HTTPBody
         {
             get
             {
 
-                if (_HTTPBody is null)
+                if (httpBody is null)
                     TryReadHTTPBodyStream();
 
-                return _HTTPBody;
+                return httpBody;
 
             }
         }
 
         internal void ResizeBody(Int32 NewSize)
         {
-            Array.Resize(ref _HTTPBody, NewSize);
+            Array.Resize(ref httpBody, NewSize);
         }
 
         #endregion
@@ -377,10 +377,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    if (_HTTPBody == null)
+                    if (httpBody == null)
                         TryReadHTTPBodyStream();
 
-                    return _HTTPBody.ToUTF8String();
+                    return httpBody.ToUTF8String();
 
                 }
                 catch (Exception)
@@ -395,16 +395,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region HTTPBodyStream
 
-        private Stream _HTTPBodyStream;
+        private Stream? httpBodyStream;
 
         /// <summary>
         /// The HTTP body as a stream of bytes.
         /// </summary>
-        public Stream HTTPBodyStream
+        public Stream? HTTPBodyStream
         {
             get
             {
-                return _HTTPBodyStream;
+                return httpBodyStream;
             }
         }
 
@@ -429,10 +429,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected AHTTPPDU()
         {
 
-            this.Timestamp                  = DateTime.UtcNow;
+            this.Timestamp                  = Illias.Timestamp.Now;
             this._HeaderFields              = new Dictionary<String,          Object>(StringComparer.OrdinalIgnoreCase);
             this._HeaderFields2             = new Dictionary<HTTPHeaderField, Object>();
             this.HTTPBodyReceiveBufferSize  = DefaultHTTPBodyReceiveBufferSize;
+            this.RawHTTPHeader              = "";
+            this.RawPDU                     = "";
+            this.FirstPDULine               = "";
+            this.EventTrackingId            = EventTracking_Id.New;
+            this.secWebSocketProtocol       = Array.Empty<String>();
 
         }
 
@@ -448,25 +453,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             : this()
         {
 
-            this.Timestamp                  = HTTPPDU?.Timestamp         ?? DateTime.UtcNow;
+            this.Timestamp                  = HTTPPDU.Timestamp;
             this.HTTPSource                 = HTTPPDU.HTTPSource;
             this.RemoteSocket               = HTTPPDU.RemoteSocket;
             this.LocalSocket                = HTTPPDU.LocalSocket;
-            this.RawHTTPHeader              = HTTPPDU?.RawHTTPHeader;
-            this.RawPDU                     = HTTPPDU?.RawPDU;
-            this._HTTPBody                  = HTTPPDU?.HTTPBody;
-            this._HTTPBodyStream            = HTTPPDU?.HTTPBodyStream;
+            this.RawHTTPHeader              = HTTPPDU.RawHTTPHeader;
+            this.RawPDU                     = HTTPPDU.RawPDU;
+            this.httpBody                   = HTTPPDU.HTTPBody;
+            this.httpBodyStream             = HTTPPDU.HTTPBodyStream;
             this.HTTPBodyReceiveBufferSize  = DefaultHTTPBodyReceiveBufferSize;
-            this.CancellationToken          = HTTPPDU?.CancellationToken ?? new CancellationTokenSource().Token;
-            this.EventTrackingId            = HTTPPDU?.EventTrackingId;
+            this.CancellationToken          = HTTPPDU.CancellationToken;
+            this.EventTrackingId            = HTTPPDU.EventTrackingId;
 
-            this.FirstPDULine               = HTTPPDU?.FirstPDULine;
+            this.FirstPDULine               = HTTPPDU.FirstPDULine;
 
-            if (HTTPPDU._HeaderFields != null)
+            if (HTTPPDU._HeaderFields is not null)
                 foreach (var field in HTTPPDU._HeaderFields)
                     _HeaderFields.Add(field.Key, field.Value);
 
-            if (HTTPPDU._HeaderFields2 != null)
+            if (HTTPPDU._HeaderFields2 is not null)
                 foreach (var field in HTTPPDU._HeaderFields2)
                     _HeaderFields2.Add(field.Key, field.Value);
 
@@ -494,31 +499,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            IPSocket            LocalSocket,
                            IPSocket            RemoteSocket,
                            String              HTTPHeader,
-                           Byte[]              HTTPBody                    = null,
-                           Stream              HTTPBodyStream              = null,
-                           UInt32              HTTPBodyReceiveBufferSize   = DefaultHTTPBodyReceiveBufferSize,
+                           Byte[]?             HTTPBody                    = null,
+                           Stream?             HTTPBodyStream              = null,
+                           UInt32?             HTTPBodyReceiveBufferSize   = DefaultHTTPBodyReceiveBufferSize,
                            CancellationToken?  CancellationToken           = null,
-                           EventTracking_Id    EventTrackingId             = null)
+                           EventTracking_Id?   EventTrackingId             = null)
 
             : this()
 
         {
-
-            if (HTTPHeader.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(HTTPHeader), "The given HTTP response header must not be null or empty!");
 
             this.Timestamp                  = Timestamp;
             this.HTTPSource                 = HTTPSource;
             this.LocalSocket                = LocalSocket;
             this.RemoteSocket               = RemoteSocket;
             this.RawHTTPHeader              = HTTPHeader.Trim();
-            this._HTTPBody                  = HTTPBody;
-            this._HTTPBodyStream            = HTTPBodyStream;
-            this.HTTPBodyReceiveBufferSize  = HTTPBodyReceiveBufferSize < MaxHTTPBodyReceiveBufferSize
-                                                  ? HTTPBodyReceiveBufferSize
+            this.httpBody                   = HTTPBody;
+            this.httpBodyStream             = HTTPBodyStream;
+            this.HTTPBodyReceiveBufferSize  = HTTPBodyReceiveBufferSize.HasValue
+                                                  ? HTTPBodyReceiveBufferSize.Value < MaxHTTPBodyReceiveBufferSize
+                                                        ? HTTPBodyReceiveBufferSize.Value
+                                                        : DefaultHTTPBodyReceiveBufferSize
                                                   : DefaultHTTPBodyReceiveBufferSize;
             this.CancellationToken          = CancellationToken ?? new CancellationTokenSource().Token;
-            this.EventTrackingId            = EventTrackingId;
+            this.EventTrackingId            = EventTrackingId   ?? EventTracking_Id.New;
 
             #region Process first line...
 
@@ -1103,17 +1107,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean TryReadHTTPBodyStream()
         {
 
-            if (_HTTPBody is not null)
+            if (httpBody is not null)
                 return true;
 
             if (!ContentLength.HasValue ||
                  ContentLength.Value == 0)
             {
-                _HTTPBody = Array.Empty<Byte>();
+                httpBody = Array.Empty<Byte>();
                 return true;
             }
 
-               _HTTPBody   = new Byte[(Int32) ContentLength.Value];
+               httpBody   = new Byte[(Int32) ContentLength.Value];
             var Buffer     = new Byte[64*1024]; //ToDo: Make the HTTP Body read buffer more flexible!
             var Read       = 0;
             var Position   = 0;
@@ -1124,28 +1128,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    Read = _HTTPBodyStream.Read(Buffer, 0, Buffer.Length);
+                    Read = httpBodyStream.Read(Buffer, 0, Buffer.Length);
 
                     if (Read > 0)
                     {
 
-                        if (Position + Read <= _HTTPBody.Length)
+                        if (Position + Read <= httpBody.Length)
                         {
-                            Array.Copy(Buffer, 0, _HTTPBody, Position, Read);
+                            Array.Copy(Buffer, 0, httpBody, Position, Read);
                             Position += Read;
                         }
 
                         else
                         {
-                            Array.Copy(Buffer, 0, _HTTPBody, Position, _HTTPBody.Length - Position);
+                            Array.Copy(Buffer, 0, httpBody, Position, httpBody.Length - Position);
                             Position += Read;
                         }
 
                     }
 
-                    if (Position >= _HTTPBody.Length)
+                    if (Position >= httpBody.Length)
                     {
-                        this._HTTPBody = HTTPBody;
+                        this.httpBody = HTTPBody;
                         return true;
                     }
 
@@ -1176,7 +1180,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
             while (Read > 0);
 
-            Array.Resize(ref _HTTPBody, Position);
+            Array.Resize(ref httpBody, Position);
             return false;
 
         }
@@ -1189,7 +1193,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var _MemoryStream = new MemoryStream();
 
-            _HTTPBodyStream = _MemoryStream;
+            httpBodyStream = _MemoryStream;
 
             return _MemoryStream;
 
@@ -1203,9 +1207,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             if (DataStream == null)
-                _HTTPBody = ((MemoryStream) HTTPBodyStream).ToArray();
+                httpBody = ((MemoryStream) HTTPBodyStream).ToArray();
             else
-                _HTTPBody = ((MemoryStream) DataStream).ToArray();
+                httpBody = ((MemoryStream) DataStream).ToArray();
 
         }
 
