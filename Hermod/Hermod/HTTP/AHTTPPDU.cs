@@ -1203,11 +1203,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ContentStreamToArray(DataStream = null)
 
-        public void ContentStreamToArray(Stream DataStream = null)
+        public void ContentStreamToArray(Stream? DataStream = null)
         {
 
-            if (DataStream == null)
-                httpBody = ((MemoryStream) HTTPBodyStream).ToArray();
+            if (DataStream is null)
+                httpBody = HTTPBodyStream is null
+                               ? Array.Empty<Byte>()
+                               : httpBody = ((MemoryStream) HTTPBodyStream).ToArray();
+
             else
                 httpBody = ((MemoryStream) DataStream).ToArray();
 
