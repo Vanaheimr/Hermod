@@ -78,6 +78,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public static readonly IPPort HTTPS    = new (443);
 
+        /// <summary>
+        /// MQTT.
+        /// </summary>
+        public static readonly IPPort MQTT     = new (1883);
+
         #endregion
 
 
