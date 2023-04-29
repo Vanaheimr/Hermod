@@ -56,15 +56,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                               UInt64?                      Take              = null);
 
         void SetStatus(TStatusType                            NewStatus,
-                       String?                                DataSource     = null);
+                       Context?                               DataSource     = null);
         void SetStatus(Timestamped<TStatusType>               NewTimestampedStatus,
-                       String?                                DataSource     = null);
+                       Context?                               DataSource     = null);
         void SetStatus(IEnumerable<Timestamped<TStatusType>>  NewStatusList,
                        ChangeMethods                          ChangeMethod   = ChangeMethods.Replace,
-                       String?                                DataSource     = null);
+                       Context?                               DataSource     = null);
         void SetStatus(TStatusType                            NewStatus,
                        DateTime                               Timestamp,
-                       String?                                DataSource     = null);
+                       Context?                               DataSource     = null);
 
     }
 

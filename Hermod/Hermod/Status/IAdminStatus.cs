@@ -58,15 +58,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
 
         void SetAdminStatus(TAdminStatusType                            NewAdminStatus,
-                            String?                                     DataSource     = null);
+                            Context?                                    DataSource     = null);
         void SetAdminStatus(Timestamped<TAdminStatusType>               NewTimestampedAdminStatus,
-                            String?                                     DataSource     = null);
+                            Context?                                    DataSource     = null);
         void SetAdminStatus(IEnumerable<Timestamped<TAdminStatusType>>  NewAdminStatusList,
                             ChangeMethods                               ChangeMethod   = ChangeMethods.Replace,
-                            String?                                     DataSource     = null);
+                            Context?                                    DataSource     = null);
         void SetAdminStatus(TAdminStatusType                            NewAdminStatus,
                             DateTime                                    Timestamp,
-                            String?                                     DataSource     = null);
+                            Context?                                    DataSource     = null);
 
     }
 
